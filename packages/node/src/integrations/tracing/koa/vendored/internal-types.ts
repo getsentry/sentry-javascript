@@ -19,27 +19,23 @@
  */
 /* eslint-disable */
 
-// Inlined from @types/koa (DefinitelyTyped)
-// https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/koa/index.d.ts
+// Types below are inlined from @types/koa, @types/koa-compose, and @types/koa__router
+// to avoid requiring these packages as dependencies.
+// ParameterizedContext is simplified to only include fields accessed by this instrumentation.
+
 interface DefaultState {}
 
 export type Next = () => Promise<any>;
 
-// Simplified from @types/koa — ParameterizedContext only includes fields accessed by this instrumentation.
 type ParameterizedContext<_StateT = DefaultState, ContextT = {}, _ResponseBodyT = unknown> = {
   [key: string]: any;
 } & ContextT;
 
-// Inlined from @types/koa, which wraps compose.Middleware from @types/koa-compose.
-// Original: Middleware<StateT, ContextT, ResponseBodyT> = compose.Middleware<ParameterizedContext<StateT, ContextT, ResponseBodyT>>
-// compose.Middleware<T> = (context: T, next: Next) => any
 type Middleware<StateT = DefaultState, ContextT = {}, ResponseBodyT = any> = (
   context: ParameterizedContext<StateT, ContextT, ResponseBodyT>,
   next: Next,
 ) => any;
 
-// Inlined from @types/koa__router (DefinitelyTyped)
-// https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/koa__router/index.d.ts
 interface RouterParamContext<StateT = DefaultState, ContextT = {}> {
   params: Record<string, string>;
   router: Router<StateT, ContextT>;
