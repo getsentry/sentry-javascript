@@ -30,8 +30,9 @@ export type Next = () => Promise<any>;
 type Middleware<T> = (context: T, next: Next) => any;
 
 // Inlined from @types/koa. Simplified to only include fields accessed by this instrumentation
-type ParameterizedContext<_StateT = DefaultState, ContextT = {}, _ResponseBodyT = unknown> =
-  { [key: string]: any } & ContextT;
+type ParameterizedContext<_StateT = DefaultState, ContextT = {}, _ResponseBodyT = unknown> = {
+  [key: string]: any;
+} & ContextT;
 
 // Inlined from @types/koa__router (DefinitelyTyped)
 // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/koa__router/index.d.ts
