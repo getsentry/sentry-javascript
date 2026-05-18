@@ -680,6 +680,18 @@ export function createRunner(...paths: string[]) {
           if (completeError) {
             throw completeError;
           }
+
+          // Wait for the child to fully exit before resolving. The keepalive
+          // script injected via `--require` registers a SIGTERM handler that
+          // suppresses Node's default-action terminate, so `child.kill()`
+          // returns before the process is actually gone. Without this wait,
+          // back-to-back tests that bind the same fixed port (e.g. dataloader's
+          // Express server on 8008) race on EADDRINUSE.
+          await waitFor(() => hasExited, 5_000, 'Timed out waiting for child process to exit').catch(() => {
+            // If the child still hasn't exited (e.g. unclosed handles + our
+            // force-exit timer hasn't fired yet), escalate with SIGKILL.
+            child?.kill('SIGKILL');
+          });
         },
         childHasExited: function (): boolean {
           return hasExited;
