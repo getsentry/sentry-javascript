@@ -220,21 +220,27 @@ function replaceSDKSource(): void {
     './build/aws/dist-serverless/nodejs/node_modules/@sentry/core/build/esm/utils/env.js',
   ];
 
+  // Tolerant of whitespace/quote variations: esbuild emits the marker and `return` on
+  // separate lines and uses double quotes, while the source uses a single line and single
+  // quotes. The marker itself uses `/*! */` legal-comment syntax so esbuild preserves it.
+  const pattern = /\/\*! __SENTRY_SDK_SOURCE__ \*\/\s*return ["']npm["'];/;
+  const replacement = `/*! __SENTRY_SDK_SOURCE__ */ return 'aws-lambda-layer';`;
+
   for (const envFile of envFiles) {
+    let content: string;
     try {
-      let content = fs.readFileSync(envFile, 'utf-8');
-
-      // Replace the line marked with __SENTRY_SDK_SOURCE__ comment
-      // Change from 'npm' to 'aws-lambda-layer' to identify that this is the AWS Lambda layer
-      content = content.replace(
-        "/* __SENTRY_SDK_SOURCE__ */ return 'npm';",
-        "/* __SENTRY_SDK_SOURCE__ */ return 'aws-lambda-layer';",
-      );
-
-      fs.writeFileSync(envFile, content);
-      console.log(`Updated SDK source in ${envFile}`);
+      content = fs.readFileSync(envFile, 'utf-8');
     } catch {
-      console.warn(`Warning: Could not update SDK source in ${envFile}`);
+      throw new Error(`Could not read ${envFile} while updating the SDK source for the Lambda layer.`);
     }
+
+    if (!pattern.test(content)) {
+      throw new Error(
+        `Could not find the __SENTRY_SDK_SOURCE__ marker in ${envFile}. The Lambda layer would silently report its SDK source as 'npm'. Has the marker or the transpile output changed?`,
+      );
+    }
+
+    fs.writeFileSync(envFile, content.replace(pattern, replacement));
+    console.log(`Updated SDK source in ${envFile}`);
   }
 }
