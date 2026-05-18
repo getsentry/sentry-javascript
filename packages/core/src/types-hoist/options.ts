@@ -1,5 +1,6 @@
 import type { CaptureContext } from '../scope';
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
+import type { DataCollection } from './datacollection';
 import type { ErrorEvent, EventHint, TransactionEvent } from './event';
 import type { Integration } from './integration';
 import type { Log } from './log';
@@ -392,6 +393,12 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * added in versions above `7.9.0`.
    */
   sendDefaultPii?: boolean;
+
+  /**
+   * Controls what data the SDK collects and sends to Sentry.
+   * All fields are optional — omitted fields use the documented defaults.
+   */
+  dataCollection?: DataCollection;
 
   /**
    * Controls whether and how to enhance fetch error messages by appending the request hostname.
