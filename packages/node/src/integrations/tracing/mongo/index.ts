@@ -1,4 +1,4 @@
-import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
+import { MongoDBInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
