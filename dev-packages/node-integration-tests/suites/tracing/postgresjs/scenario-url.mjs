@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node';
 import postgres from 'postgres';
-import { waitForPostgres } from './wait-for-postgres.mjs';
+import { waitForPostgres } from './wait-for-postgres.js';
 
 // Test URL-based initialization - this is the common pattern that was causing the regression
 const sql = postgres('postgres://test:test@localhost:5444/test_db');

@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node';
 import postgres from 'postgres';
-import { waitForPostgres } from './wait-for-postgres.mjs';
+import { waitForPostgres } from './wait-for-postgres.js';
 
 // Test with plain object options
 const sql = postgres({ port: 5444, user: 'test', password: 'test', database: 'test_db' });

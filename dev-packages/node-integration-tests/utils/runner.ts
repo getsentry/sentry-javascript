@@ -240,17 +240,10 @@ export function createEsmAndCjsTests(
     await convertEsmFileToCjs(esmScenarioPathForRun, cjsScenarioPath);
     await convertEsmFileToCjs(esmInstrumentPathForRun, cjsInstrumentPath);
 
-    // Copy any additional files/dirs into tmp dir.
-    // For `.mjs` helper files, also emit a `.cjs` counterpart so they can be required
-    // from the CJS-converted scenario (which has its `.mjs` import paths rewritten to `.cjs`).
+    // Copy any additional files/dirs into tmp dir
     if (options?.copyPaths) {
       for (const path of options.copyPaths) {
-        const sourcePath = join(cwd, path);
-        const destPath = join(tmpDirPath, path);
-        await cp(sourcePath, destPath, { recursive: true });
-        if (path.endsWith('.mjs')) {
-          await convertEsmFileToCjs(destPath, destPath.replace(/\.mjs$/, '.cjs'));
-        }
+        await cp(join(cwd, path), join(tmpDirPath, path), { recursive: true });
       }
     }
 
@@ -876,67 +869,23 @@ function convertEsmToCjs(content: string): string {
     // eslint-disable-next-line regexp/optimal-quantifier-concatenation, regexp/no-super-linear-backtracking
     /import\s+([\w*{}\s,]+)\s+from\s+['"]([^'"]+)['"]/g,
     (_, imports: string, module: string) => {
-      const requirePath = rewriteRelativeMjsToCjs(module);
       if (imports.includes('* as')) {
         // Handle namespace imports: import * as x from 'y' -> const x = require('y')
-        return `const ${imports.replace('* as', '').trim()} = require('${requirePath}')`;
+        return `const ${imports.replace('* as', '').trim()} = require('${module}')`;
       } else if (imports.includes('{')) {
         // Handle named imports: import {x, y} from 'z' -> const {x, y} = require('z')
-        return `const ${imports} = require('${requirePath}')`;
+        return `const ${imports} = require('${module}')`;
       } else {
         // Handle default imports: import x from 'y' -> const x = require('y')
-        return `const ${imports} = require('${requirePath}')`;
+        return `const ${imports} = require('${module}')`;
       }
     },
   );
 
   // Handle side-effect imports: import 'x' -> require('x')
   newContent = newContent.replace(/import\s+['"]([^'"]+)['"]/g, (_, module) => {
-    return `require('${rewriteRelativeMjsToCjs(module)}')`;
+    return `require('${module}')`;
   });
-
-  // Convert named exports. We strip the leading `export` keyword from declarations and
-  // collect their identifiers, then append `module.exports.<name> = <name>` at the end.
-  const exportedNames: string[] = [];
-
-  // export [async] function NAME / export const|let|var|class NAME
-  newContent = newContent.replace(
-    /export\s+(async\s+)?(function|const|let|var|class)\s+(\w+)/g,
-    (_match, asyncPrefix: string | undefined, kind: string, name: string) => {
-      exportedNames.push(name);
-      return `${asyncPrefix ?? ''}${kind} ${name}`;
-    },
-  );
-
-  // export { a, b as c }
-  newContent = newContent.replace(/export\s*\{\s*([^}]+?)\s*\}\s*;?/g, (_match, names: string) => {
-    for (const raw of names.split(',')) {
-      const parts = raw.trim().split(/\s+as\s+/);
-      const exportedAs = (parts[1] ?? parts[0]).trim();
-      if (exportedAs) exportedNames.push(exportedAs);
-    }
-    return '';
-  });
-
-  // export default <expr>  ->  module.exports = <expr>
-  newContent = newContent.replace(/export\s+default\s+/g, 'module.exports = ');
-
-  if (exportedNames.length > 0) {
-    const assignments = exportedNames.map(name => `module.exports.${name} = ${name};`).join('\n');
-    newContent = `${newContent}\n${assignments}\n`;
-  }
 
   return newContent;
-}
-
-/**
- * Rewrites a relative ESM-helper import path from `.mjs` to `.cjs` so that the converted
- * CJS scenario can `require()` the matching `.cjs` counterpart emitted by `copyPaths`.
- * Non-relative or non-`.mjs` paths are returned unchanged.
- */
-function rewriteRelativeMjsToCjs(modulePath: string): string {
-  if ((modulePath.startsWith('./') || modulePath.startsWith('../')) && modulePath.endsWith('.mjs')) {
-    return `${modulePath.slice(0, -'.mjs'.length)}.cjs`;
-  }
-  return modulePath;
 }
