@@ -1,15 +1,7 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
+import * as Sentry from '@sentry/node';
+import pg from 'pg';
 
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-});
-
-const { native } = require('pg');
-
+const { native } = pg;
 const { Client } = native;
 
 const client = new Client({ port: 5494, user: 'test', password: 'test', database: 'tests' });
