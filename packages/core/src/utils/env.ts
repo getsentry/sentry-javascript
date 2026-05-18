@@ -30,6 +30,8 @@ export function isBrowserBundle(): boolean {
  * Get source of SDK.
  */
 export function getSDKSource(): SdkSource {
-  // This comment is used to identify this line in the CDN bundle build step and replace this with "return 'cdn';"
-  /* __SENTRY_SDK_SOURCE__ */ return 'npm';
+  // The `/*! ... */` marker is replaced by our CDN bundle build step with `return 'cdn';`.
+  // It uses the `/*!` legal-comment syntax specifically so it survives esbuild's transpile
+  // (which strips ordinary `/* ... */` block comments).
+  /*! __SENTRY_SDK_SOURCE__ */ return 'npm';
 }

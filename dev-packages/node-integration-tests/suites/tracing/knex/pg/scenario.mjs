@@ -1,9 +1,6 @@
 import * as Sentry from '@sentry/node';
 import knex from 'knex';
 
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
-
 const pgClient = knex({
   client: 'pg',
   connection: {

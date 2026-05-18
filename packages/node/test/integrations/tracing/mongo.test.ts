@@ -1,4 +1,4 @@
-import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
+import { MongoDBInstrumentation } from '../../../src/integrations/tracing/mongo/vendored/instrumentation';
 import { INSTRUMENTED } from '@sentry/node-core';
 import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import {
@@ -7,7 +7,7 @@ import {
   mongoIntegration,
 } from '../../../src/integrations/tracing/mongo';
 
-vi.mock('@opentelemetry/instrumentation-mongodb');
+vi.mock('../../../src/integrations/tracing/mongo/vendored/instrumentation');
 
 describe('Mongo', () => {
   beforeEach(() => {

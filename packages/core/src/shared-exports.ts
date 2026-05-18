@@ -65,6 +65,7 @@ export {
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,
 } from './utils/ai/providerSkip';
+export { defaultPiiToCollectionOptions } from './utils/data-collection/defaultPiiToCollectionOptions';
 export { envToBool } from './utils/envToBool';
 export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';
@@ -402,6 +403,7 @@ export type { Extra, Extras } from './types-hoist/extra';
 export type { Integration, IntegrationFn } from './types-hoist/integration';
 export type { Mechanism } from './types-hoist/mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types-hoist/misc';
+export type { CollectBehavior, DataCollection, HttpBodyCollectionTarget } from './types-hoist/datacollection';
 export type { ClientOptions, CoreOptions as Options } from './types-hoist/options';
 export type { Package } from './types-hoist/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types-hoist/polymorphics';
