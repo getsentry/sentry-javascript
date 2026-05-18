@@ -11,7 +11,7 @@ import {
   startInactiveSpan,
   WINDOW,
 } from '@sentry/browser';
-import { spanToJSON, type Client, type Span } from '@sentry/core';
+import { getCurrentScope, spanToJSON, type Client, type Span } from '@sentry/core';
 import { getBackburner } from './utils.ts';
 
 interface EmberRouterMain {
@@ -113,6 +113,7 @@ function _instrumentEmberRouter(
   const url = _getLocationURL(location);
 
   if (instrumentPageLoad !== false) {
+    console.log('instrumentPageLoad', url);
     // Somehow the router service etc. may not be fully ready/initialized yet at this point
     // Probably because we are running this before the Ember setup is necessarily completed
     // So in order to accomodate this, we fall back to starting the pageload span with the current URL and update it later
@@ -138,12 +139,11 @@ function _instrumentEmberRouter(
     getBackburner().off('end', finishActiveTransaction);
   };
 
-  if (instrumentNavigation === false) {
-    return;
-  }
-
   routerService.on('routeWillChange', (transition: Transition) => {
     const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
+
+    // Store this here to be used, even if the active span has ended
+    getCurrentScope().setTransactionName(`route:${toRoute}`);
 
     // We want to ignore loading && error routes
     if (transitionIsIntermediate(transition)) {
@@ -154,15 +154,17 @@ function _instrumentEmberRouter(
     if (fromRoute != null) {
       activeRootSpan?.end();
 
-      activeRootSpan = startBrowserTracingNavigationSpan(client, {
-        name: `route:${toRoute}`,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
-          fromRoute,
-          toRoute,
-        },
-      });
+      if (instrumentNavigation !== false) {
+        activeRootSpan = startBrowserTracingNavigationSpan(client, {
+          name: `route:${toRoute}`,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
+            fromRoute,
+            toRoute,
+          },
+        });
+      }
     } else if (activeRootSpan && spanToJSON(activeRootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
       // else, we make sure to update the pageload span with the current URL, if we couldn't get it before
       // In this case we re-load the router:main reference, as this may change and we may have a stale reference
@@ -176,6 +178,11 @@ function _instrumentEmberRouter(
           toRoute: toRoute,
         });
       }
+    }
+
+    // navigation spans are only emitted if instrumentNavigation is true
+    if (instrumentNavigation === false) {
+      return;
     }
 
     transitionSpan = startInactiveSpan({

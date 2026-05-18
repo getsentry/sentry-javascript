@@ -1,8 +1,10 @@
 import { on } from '@ember/modifier';
 import { scheduleOnce } from '@ember/runloop';
+import * as Sentry from '@sentry/ember';
 
 function createError(): void {
-  throw new Error('Generic Javascript Error');
+  // @ts-expect-error this is fine
+  this.nonExistentFunction();
 }
 
 function createEmberError(): void {

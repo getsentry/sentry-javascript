@@ -109,7 +109,10 @@ test('captures correct spans for navigation', async ({ page }) => {
   await page.goto(`/tracing`);
   await pageloadTxnPromise;
 
-  const [_, navigationTxn] = await Promise.all([page.getByText('Transition to slow loading route').click(), navigationTxnPromise]);
+  const [_, navigationTxn] = await Promise.all([
+    page.getByText('Transition to slow loading route').click(),
+    navigationTxnPromise,
+  ]);
 
   const traceId = navigationTxn.contexts?.trace?.trace_id;
   const spanId = navigationTxn.contexts?.trace?.span_id;
