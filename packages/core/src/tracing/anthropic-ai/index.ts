@@ -2,7 +2,7 @@ import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
-import type { Span, SpanAttributeValue } from '../../types-hoist/span';
+import type { Span, SpanAttributeValue } from '../../types/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PROMPT_ATTRIBUTE,

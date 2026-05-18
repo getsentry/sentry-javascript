@@ -1,13 +1,13 @@
 import { Client } from '../../src/client';
 import { initAndBind } from '../../src/sdk';
 import { createTransport } from '../../src/transports/base';
-import type { Outcome } from '../../src/types-hoist/clientreport';
-import type { Event, EventHint } from '../../src/types-hoist/event';
-import type { Integration } from '../../src/types-hoist/integration';
-import type { ClientOptions } from '../../src/types-hoist/options';
-import type { ParameterizedString } from '../../src/types-hoist/parameterize';
-import type { Session } from '../../src/types-hoist/session';
-import type { SeverityLevel } from '../../src/types-hoist/severity';
+import type { Outcome } from '../../src/types/clientreport';
+import type { Event, EventHint } from '../../src/types/event';
+import type { Integration } from '../../src/types/integration';
+import type { ClientOptions } from '../../src/types/options';
+import type { ParameterizedString } from '../../src/types/parameterize';
+import type { Session } from '../../src/types/session';
+import type { SeverityLevel } from '../../src/types/severity';
 import { resolvedSyncPromise } from '../../src/utils/syncpromise';
 
 export function getDefaultTestClientOptions(options: Partial<TestClientOptions> = {}): TestClientOptions {

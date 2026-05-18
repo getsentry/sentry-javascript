@@ -37,8 +37,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
-import type { SpanAttributes } from '../../types-hoist/span';
-import type { SpanStatus } from '../../types-hoist/spanStatus';
+import type { SpanAttributes } from '../../types/span';
+import type { SpanStatus } from '../../types/spanStatus';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;

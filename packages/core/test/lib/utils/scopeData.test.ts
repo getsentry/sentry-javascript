@@ -2,10 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ScopeData } from '../../../src';
 import { Scope, startInactiveSpan } from '../../../src';
 import * as currentScopes from '../../../src/currentScopes';
-import type { Attachment } from '../../../src/types-hoist/attachment';
-import type { Breadcrumb } from '../../../src/types-hoist/breadcrumb';
-import type { Event, EventType } from '../../../src/types-hoist/event';
-import type { EventProcessor } from '../../../src/types-hoist/eventprocessor';
+import type { Attachment } from '../../../src/types/attachment';
+import type { Breadcrumb } from '../../../src/types/breadcrumb';
+import type { Event, EventType } from '../../../src/types/event';
+import type { EventProcessor } from '../../../src/types/eventprocessor';
 import {
   applyScopeDataToEvent,
   getCombinedScopeData,

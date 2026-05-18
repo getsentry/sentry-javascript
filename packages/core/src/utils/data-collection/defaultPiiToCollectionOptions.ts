@@ -1,5 +1,5 @@
 import { PII_HEADER_SNIPPETS } from './filtering-snippets';
-import type { DataCollection } from '../../types-hoist/datacollection';
+import type { DataCollection } from '../../types/datacollection';
 
 /**
  * Helper function that maps the `sendDefaultPii` boolean flag to the corresponding `DataCollection` configuration.

@@ -1,7 +1,7 @@
-import type { Event } from '../types-hoist/event';
-import type { Exception } from '../types-hoist/exception';
-import type { Mechanism } from '../types-hoist/mechanism';
-import type { StackFrame } from '../types-hoist/stackframe';
+import type { Event } from '../types/event';
+import type { Exception } from '../types/exception';
+import type { Mechanism } from '../types/mechanism';
+import type { StackFrame } from '../types/stackframe';
 import { addNonEnumerableProperty } from './object';
 import { safeMathRandom, withRandomSafeContext } from './randomSafeContext';
 import { snipLine } from './string';

@@ -1,5 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import type { SpanAttributeValue } from '../../types-hoist/span';
+import type { SpanAttributeValue } from '../../types/span';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,

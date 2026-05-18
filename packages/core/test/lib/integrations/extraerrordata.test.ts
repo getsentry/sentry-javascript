@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { extraErrorDataIntegration } from '../../../src/integrations/extraerrordata';
-import type { ExtendedError } from '../../../src/types-hoist/error';
-import type { Event } from '../../../src/types-hoist/event';
+import type { ExtendedError } from '../../../src/types/error';
+import type { Event } from '../../../src/types/event';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const extraErrorData = extraErrorDataIntegration();

@@ -11,10 +11,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
-import type { DynamicSamplingContext } from '../types-hoist/envelope';
-import type { ClientOptions } from '../types-hoist/options';
-import type { SentrySpanArguments, Span, SpanTimeInput } from '../types-hoist/span';
-import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
+import type { DynamicSamplingContext } from '../types/envelope';
+import type { ClientOptions } from '../types/options';
+import type { SentrySpanArguments, Span, SpanTimeInput } from '../types/span';
+import type { StartSpanOptions } from '../types/startSpanOptions';
 import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';

@@ -6,7 +6,7 @@
 
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export { ServerRuntimeClient } from './server-runtime-client';
-export type { ServerRuntimeOptions } from './types-hoist/options';
+export type { ServerRuntimeOptions } from './types/options';
 export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { isNodeEnv, loadModule } from './utils/node';

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { EventFiltersOptions } from '../../../src/integrations/eventFilters';
 import { eventFiltersIntegration, inboundFiltersIntegration } from '../../../src/integrations/eventFilters';
-import type { Event } from '../../../src/types-hoist/event';
-import type { EventProcessor } from '../../../src/types-hoist/eventprocessor';
-import type { Integration } from '../../../src/types-hoist/integration';
+import type { Event } from '../../../src/types/event';
+import type { EventProcessor } from '../../../src/types/eventprocessor';
+import type { Integration } from '../../../src/types/integration';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';

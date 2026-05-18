@@ -9,7 +9,7 @@ import {
   parseEnvelope,
   setCurrentClient,
 } from '../../../src';
-import type { Event } from '../../../src/types-hoist/event';
+import type { Event } from '../../../src/types/event';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const stackParser = createStackParser(nodeStackLineParser());

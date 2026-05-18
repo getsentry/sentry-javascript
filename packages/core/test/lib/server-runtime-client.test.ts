@@ -3,7 +3,7 @@ import { applySdkMetadata, createTransport, Scope } from '../../src';
 import { _INTERNAL_captureMetric, _INTERNAL_getMetricBuffer } from '../../src/metrics/internal';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
-import type { Event, EventHint } from '../../src/types-hoist/event';
+import type { Event, EventHint } from '../../src/types/event';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 

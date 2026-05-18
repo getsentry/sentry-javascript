@@ -1,7 +1,7 @@
 import { getSentryCarrier } from '../carrier';
-import type { Attachment } from '../types-hoist/attachment';
-import type { DataCategory } from '../types-hoist/datacategory';
-import type { DsnComponents } from '../types-hoist/dsn';
+import type { Attachment } from '../types/attachment';
+import type { DataCategory } from '../types/datacategory';
+import type { DsnComponents } from '../types/dsn';
 import type {
   AttachmentItem,
   BaseEnvelopeHeaders,
@@ -10,11 +10,11 @@ import type {
   EnvelopeItemType,
   EventEnvelopeHeaders,
   SpanItem,
-} from '../types-hoist/envelope';
-import type { Event } from '../types-hoist/event';
-import type { SdkInfo } from '../types-hoist/sdkinfo';
-import type { SdkMetadata } from '../types-hoist/sdkmetadata';
-import type { SpanJSON } from '../types-hoist/span';
+} from '../types/envelope';
+import type { Event } from '../types/event';
+import type { SdkInfo } from '../types/sdkinfo';
+import type { SdkMetadata } from '../types/sdkmetadata';
+import type { SpanJSON } from '../types/span';
 import { dsnToString } from './dsn';
 import { normalize } from './normalize';
 import { GLOBAL_OBJ } from './worldwide';

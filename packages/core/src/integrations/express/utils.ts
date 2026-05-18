@@ -27,7 +27,7 @@
  * limitations under the License.
  */
 
-import type { SpanAttributes } from '../../types-hoist/span';
+import type { SpanAttributes } from '../../types/span';
 import { getStoredLayers } from './request-layer-store';
 import type {
   ExpressIntegrationOptions,

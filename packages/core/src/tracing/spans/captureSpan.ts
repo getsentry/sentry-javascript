@@ -17,7 +17,7 @@ import {
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
-import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
+import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types/span';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '../../utils/url';
 import {
