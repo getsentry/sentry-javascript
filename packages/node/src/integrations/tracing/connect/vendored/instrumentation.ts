@@ -24,11 +24,7 @@ import { context, Span, SpanOptions } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import type { HandleFunction, NextFunction, Server } from 'connect';
 import type { ServerResponse } from 'http';
-import {
-  AttributeNames,
-  ConnectNames,
-  ConnectTypes,
-} from './enums/AttributeNames';
+import { AttributeNames, ConnectNames, ConnectTypes } from './enums/AttributeNames';
 import { PatchedRequest, Use, UseArgs, UseArgs2 } from './internal-types';
 import { SDK_VERSION } from '@sentry/core';
 import {
@@ -38,11 +34,7 @@ import {
   isWrapped,
 } from '@opentelemetry/instrumentation';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
-import {
-  replaceCurrentStackRoute,
-  addNewStackLayer,
-  generateRoute,
-} from './utils';
+import { replaceCurrentStackRoute, addNewStackLayer, generateRoute } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-connect';
 
@@ -56,13 +48,9 @@ export class ConnectInstrumentation extends InstrumentationBase {
 
   init() {
     return [
-      new InstrumentationNodeModuleDefinition(
-        'connect',
-        ['>=3.0.0 <4'],
-        moduleExports => {
-          return this._patchConstructor(moduleExports);
-        }
-      ),
+      new InstrumentationNodeModuleDefinition('connect', ['>=3.0.0 <4'], moduleExports => {
+        return this._patchConstructor(moduleExports);
+      }),
     ];
   }
 
@@ -117,10 +105,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
     return this.tracer.startSpan(spanName, options);
   }
 
-  public _patchMiddleware(
-    routeName: string,
-    middleWare: HandleFunction
-  ): HandleFunction {
+  public _patchMiddleware(routeName: string, middleWare: HandleFunction): HandleFunction {
     const instrumentation = this;
     const isErrorMiddleware = middleWare.length === 4;
 
@@ -128,9 +113,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
       if (!instrumentation.isEnabled()) {
         return (middleWare as any).apply(this, arguments);
       }
-      const [reqArgIdx, resArgIdx, nextArgIdx] = isErrorMiddleware
-        ? [1, 2, 3]
-        : [0, 1, 2];
+      const [reqArgIdx, resArgIdx, nextArgIdx] = isErrorMiddleware ? [1, 2, 3] : [0, 1, 2];
       const req = arguments[reqArgIdx] as PatchedRequest;
       const res = arguments[resArgIdx] as ServerResponse;
       const next = arguments[nextArgIdx] as NextFunction;
@@ -158,9 +141,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
           instrumentation._diag.debug(`finishing span ${(span as any).name}`);
           span.end();
         } else {
-          instrumentation._diag.debug(
-            `span ${(span as any).name} - already finished`
-          );
+          instrumentation._diag.debug(`span ${(span as any).name} - already finished`);
         }
         res.removeListener('close', finishSpan);
       }
@@ -186,10 +167,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
       const middleWare = args[args.length - 1] as HandleFunction;
       const routeName = (args[args.length - 2] || '') as string;
 
-      args[args.length - 1] = instrumentation._patchMiddleware(
-        routeName,
-        middleWare
-      );
+      args[args.length - 1] = instrumentation._patchMiddleware(routeName, middleWare);
 
       return original.apply(this, args as UseArgs2);
     };
@@ -204,10 +182,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
       const completeStack = addNewStackLayer(req);
 
       if (typeof out === 'function') {
-        arguments[outIdx] = instrumentation._patchOut(
-          out as NextFunction,
-          completeStack
-        );
+        arguments[outIdx] = instrumentation._patchOut(out as NextFunction, completeStack);
       }
 
       return (original as any).apply(this, arguments);

@@ -22,7 +22,7 @@
 import type { HandleFunction, IncomingMessage, Server } from 'connect';
 
 export const _LAYERS_STORE_PROPERTY: unique symbol = Symbol(
-  'opentelemetry.instrumentation-connect.request-route-stack'
+  'opentelemetry.instrumentation-connect.request-route-stack',
 );
 
 export type UseArgs1 = [HandleFunction];

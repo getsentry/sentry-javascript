@@ -42,10 +42,7 @@ export const addNewStackLayer = (request: PatchedRequest) => {
   };
 };
 
-export const replaceCurrentStackRoute = (
-  request: PatchedRequest,
-  newRoute?: string
-) => {
+export const replaceCurrentStackRoute = (request: PatchedRequest, newRoute?: string) => {
   if (newRoute) {
     request[_LAYERS_STORE_PROPERTY].splice(-1, 1, newRoute);
   }
@@ -55,7 +52,5 @@ export const replaceCurrentStackRoute = (
 // splash between stack layer will be deduped
 // ["/first/", "/second", "/third/"] => /first/second/third/
 export const generateRoute = (request: PatchedRequest) => {
-  return request[_LAYERS_STORE_PROPERTY].reduce(
-    (acc, sub) => acc.replace(/\/+$/, '') + sub
-  );
+  return request[_LAYERS_STORE_PROPERTY].reduce((acc, sub) => acc.replace(/\/+$/, '') + sub);
 };
