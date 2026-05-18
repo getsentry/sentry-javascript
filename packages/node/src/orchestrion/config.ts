@@ -23,6 +23,13 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
     // assignment is what we want — that's matched by `expressionName: 'query'`,
     // which produces the esquery selector
     //   `AssignmentExpression[left.property.name="query"] > FunctionExpression[async]`.
-    functionQuery: { expressionName: 'query', kind: 'Callback' },
+    // `Auto` so both `connection.query(sql, cb)` and `connection.query(sql)`
+    // (streamable, no callback) get channel events. The transform picks
+    // `wrapCallback` when the last arg is a function and `wrapPromise`
+    // otherwise — for mysql's no-callback path the latter publishes
+    // `start`/`end` synchronously around the original call and stores the
+    // returned `Query` emitter on `ctx.result`, which the integration uses to
+    // attach `'end'`/`'error'` listeners that finish the span.
+    functionQuery: { expressionName: 'query', kind: 'Auto' },
   },
 ];
