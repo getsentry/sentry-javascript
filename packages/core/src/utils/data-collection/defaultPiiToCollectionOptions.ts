@@ -1,3 +1,5 @@
+import { PII_HEADER_SNIPPETS } from './filtering-snippets';
+
 // oxlint-disable-next-line typescript/no-explicit-any -> will be replaced with the new dataCollection type
 export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): any {
   return sendDefaultPii === true
@@ -13,10 +15,10 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): any {
       }
     : {
         userInfo: false,
-        cookies: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
-        httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+        cookies: { deny: PII_HEADER_SNIPPETS },
+        httpHeaders: { deny: PII_HEADER_SNIPPETS },
         httpBodies: [],
-        queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+        queryParams: { deny: PII_HEADER_SNIPPETS },
         genAI: { inputs: false, outputs: false },
         stackFrameVariables: true,
         frameContextLines: 5,
