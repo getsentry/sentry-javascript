@@ -36,42 +36,44 @@ export function withSentry(
   };
 
   const server = (solidStartConfig.server || {}) as SolidStartInlineServerConfig;
-  const hooks = server.hooks || {};
   const viteConfig = solidStartConfig.vite;
   const vite =
     typeof viteConfig === 'function'
       ? (...args: Parameters<typeof viteConfig>) => addSentryPluginToVite(viteConfig(...args), sentryPluginOptions)
       : addSentryPluginToVite(viteConfig, sentryPluginOptions);
 
+  // Use a module so we don't override preset hooks.
+  const sentryNitroModule = (nitro: Nitro) => {
+    nitro.hooks.hook('rollup:before', async (nitro, rollupConfig) => {
+      if (sentrySolidStartPluginOptions?.autoInjectServerSentry === 'experimental_dynamic-import') {
+        await addDynamicImportEntryFileWrapper({
+          nitro,
+          rollupConfig: rollupConfig as unknown as RollupConfig,
+          sentryPluginOptions,
+        });
+
+        sentrySolidStartPluginOptions.debug &&
+          debug.log(
+            'Wrapping the server entry file with a dynamic `import()`, so Sentry can be preloaded before the server initializes.',
+          );
+      } else {
+        await addInstrumentationFileToBuild(nitro);
+
+        if (sentrySolidStartPluginOptions?.autoInjectServerSentry === 'top-level-import') {
+          await addSentryTopImport(nitro);
+        }
+      }
+    });
+  };
+
+  const existingModules = (server as SolidStartInlineServerConfig & { modules?: unknown[] }).modules || [];
+
   return {
     ...solidStartConfig,
     vite,
     server: {
       ...server,
-      hooks: {
-        ...hooks,
-        async 'rollup:before'(nitro: Nitro, config: RollupConfig) {
-          if (sentrySolidStartPluginOptions?.autoInjectServerSentry === 'experimental_dynamic-import') {
-            await addDynamicImportEntryFileWrapper({ nitro, rollupConfig: config, sentryPluginOptions });
-
-            sentrySolidStartPluginOptions.debug &&
-              debug.log(
-                'Wrapping the server entry file with a dynamic `import()`, so Sentry can be preloaded before the server initializes.',
-              );
-          } else {
-            await addInstrumentationFileToBuild(nitro);
-
-            if (sentrySolidStartPluginOptions?.autoInjectServerSentry === 'top-level-import') {
-              await addSentryTopImport(nitro);
-            }
-          }
-
-          // Run user provided hook
-          if (hooks['rollup:before']) {
-            hooks['rollup:before'](nitro);
-          }
-        },
-      },
+      modules: [...existingModules, sentryNitroModule],
     },
   };
 }

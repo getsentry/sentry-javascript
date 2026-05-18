@@ -5,6 +5,7 @@ import type { Event } from '../types-hoist/event';
 import type { StackFrame } from '../types-hoist/stackframe';
 import { forEachEnvelopeItem } from '../utils/envelope';
 import { getFramesFromEvent } from '../utils/stacktrace';
+import { GLOBAL_OBJ } from '../utils/worldwide';
 
 interface Options {
   /**
@@ -74,8 +75,27 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
       });
     },
 
+    preprocessEvent(event) {
+      // Snapshot the depth counter onto the event before any event processors run.
+      // This is necessary because async event processors could cause the finally block
+      // in sentryWrapped to decrement the counter before processEvent reads it.
+      if (options.ignoreSentryInternalFrames && (GLOBAL_OBJ._sentryWrappedDepth ?? 0) > 0) {
+        event.sdkProcessingMetadata = {
+          ...event.sdkProcessingMetadata,
+          insideSentryWrapped: true,
+        };
+      }
+    },
+
     processEvent(event) {
-      const frameKeys = getBundleKeysForAllFramesWithFilenames(event, options.ignoreSentryInternalFrames);
+      const insideSentryWrapped = options.ignoreSentryInternalFrames
+        ? event.sdkProcessingMetadata?.insideSentryWrapped === true && event.exception?.values?.length === 1
+        : false;
+      const frameKeys = getBundleKeysForAllFramesWithFilenames(
+        event,
+        options.ignoreSentryInternalFrames,
+        insideSentryWrapped,
+      );
 
       if (frameKeys) {
         const arrayMethod =
@@ -106,20 +126,31 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
   };
 });
 
-/**
- * Checks if a stack frame is a Sentry internal frame by strictly matching:
- * 1. The frame must be the last frame in the stack
- * 2. The filename must indicate the internal helpers file
- * 3. The context_line must contain the exact pattern "fn.apply(this, wrappedArguments)"
- * 4. The comment pattern "Attempt to invoke user-land function" must be present in pre_context
- *
- */
-function isSentryInternalFrame(frame: StackFrame, frameIndex: number): boolean {
+/** Checks if a frame is Sentry-internal via runtime depth, function name, or source patterns. */
+function isSentryInternalFrame(frame: StackFrame, frameIndex: number, insideSentryWrapped: boolean): boolean {
   // Only match the last frame (index 0 in reversed stack)
-  if (frameIndex !== 0 || !frame.context_line || !frame.filename) {
+  if (frameIndex !== 0) {
     return false;
   }
 
+  // When processEvent runs inside a sentryWrapped call and the frame looks minified,
+  // the outermost frame is the sentryWrapped function with a mangled name.
+  // We gate on minified shape to avoid false positives in non-minified builds
+  // where stripSentryFramesAndReverse already removed the sentryWrapped frame.
+  if (insideSentryWrapped && isLikelyMinifiedSentryWrappedFrame(frame)) {
+    return true;
+  }
+
+  // Match by function name (works when function names survive bundling but source patterns don't)
+  if (frame.function === 'sentryWrapped') {
+    return true;
+  }
+
+  if (!frame.context_line || !frame.filename) {
+    return false;
+  }
+
+  // Match by source code patterns (works in development / unbundled builds)
   if (
     !frame.filename.includes('sentry') ||
     !frame.filename.includes('helpers') || // Filename would look something like this: 'node_modules/@sentry/browser/build/npm/esm/helpers.js'
@@ -144,6 +175,7 @@ function isSentryInternalFrame(frame: StackFrame, frameIndex: number): boolean {
 function getBundleKeysForAllFramesWithFilenames(
   event: Event,
   ignoreSentryInternalFrames?: boolean,
+  insideSentryWrapped?: boolean,
 ): string[][] | undefined {
   const frames = getFramesFromEvent(event);
 
@@ -163,7 +195,7 @@ function getBundleKeysForAllFramesWithFilenames(
         return false;
       }
       // Optionally ignore Sentry internal frames
-      return !ignoreSentryInternalFrames || !isSentryInternalFrame(frame, index);
+      return !ignoreSentryInternalFrames || !isSentryInternalFrame(frame, index, !!insideSentryWrapped);
     })
     .map(frame => {
       if (!frame.module_metadata) {
@@ -173,6 +205,10 @@ function getBundleKeysForAllFramesWithFilenames(
         .filter(key => key.startsWith(BUNDLER_PLUGIN_APP_KEY_PREFIX))
         .map(key => key.slice(BUNDLER_PLUGIN_APP_KEY_PREFIX.length));
     });
+}
+
+function isLikelyMinifiedSentryWrappedFrame(frame: StackFrame): boolean {
+  return !frame.context_line && !frame.pre_context && !!frame.function && frame.function.length <= 2;
 }
 
 const BUNDLER_PLUGIN_APP_KEY_PREFIX = '_sentryBundlerPluginAppKey:';

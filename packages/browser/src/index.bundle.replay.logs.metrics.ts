@@ -2,6 +2,7 @@ import {
   browserTracingIntegrationShim,
   feedbackIntegrationShim,
   spanStreamingIntegrationShim,
+  fetchStreamPerformanceIntegrationShim,
 } from '@sentry-internal/integration-shims';
 
 export * from './index.bundle.base';
@@ -18,4 +19,5 @@ export {
   feedbackIntegrationShim as feedbackAsyncIntegration,
   feedbackIntegrationShim as feedbackIntegration,
   spanStreamingIntegrationShim as spanStreamingIntegration,
+  fetchStreamPerformanceIntegrationShim as fetchStreamPerformanceIntegration,
 };

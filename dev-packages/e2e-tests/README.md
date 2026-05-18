@@ -15,8 +15,6 @@ current state.
 
 ## How to run
 
-Prerequisites: Docker
-
 - Copy `.env.example` to `.env`
 - OPTIONAL: Fill in auth information in `.env` for an example Sentry project - you only need this to run E2E tests that
   send data to Sentry.
@@ -92,41 +90,27 @@ If you run `yarn test:run nextjs-pages-dir --variant 13`, it will match against 
 
 ## How they work
 
-Before running any tests we launch a fake test registry (in our case [Verdaccio](https://verdaccio.org/docs/e2e/)), we
-build our packages, pack them, and publish them to the fake registry. The fake registry is hosted in a Docker container,
-and the script to publish the packages is also run from within a container to ensure that the fake publishing happens
-with the same Node.js and npm versions as we're using in CI.
+We build our packages, pack them into tarballs (`yarn build:tarball`), and create symlinks in the `packed/` directory
+that point to the versioned tarballs. When a test application is run, pnpm overrides are injected into its
+`package.json` to pin all `@sentry/*` and `@sentry-internal/*` packages to those local tarballs. This means test apps
+install the packages as if they were published, but from the local build output instead of a registry.
 
-After publishing our freshly built packages to the fake registry, the E2E test script will look for `test-recipe.json`
-files in test applications located in the `test-applications` folder. In this folder, we keep standalone test
-applications, that use our SDKs and can be used to verify their behavior. The `test-recipe.json` recipe files contain
-information on how to build the test applications and how to run tests on these applications.
+The E2E test script looks for test applications in the `test-applications` folder. These are standalone apps that use
+our SDKs and can be used to verify their behavior.
 
 ## How to set up a new test
 
-Test applications are completely standalone applications that can be used to verify our SDKs. To set one up, follow
-these commands:
+Test applications are completely standalone applications that can be used to verify our SDKs. To set one up:
 
 ```sh
 cd dev-packages/e2e-tests
-
-# Create a new test application folder
-mkdir test-applications/my-new-test-application # Name of the new folder doesn't technically matter but choose something meaningful
-
-# Create an npm configuration file that uses the fake test registry
-cat > test-applications/my-new-test-application/.npmrc << EOF
-@sentry:registry=http://127.0.0.1:4873
-@sentry-internal:registry=http://127.0.0.1:4873
-EOF
+mkdir test-applications/my-new-test-application
 ```
 
 Make sure to add a `test:build` and `test:assert` command to the new app's `package.json` file.
 
-### The `.npmrc` File
-
-Every test application needs an `.npmrc` file (as shown above) to tell pnpm to fetch `@sentry/*` and `@sentry-internal/*` packages from the local Verdaccio registry. Without it, pnpm will install from the public npm registry and your local changes won't be tested - this is one of the most common causes of confusing test failures.
-
-To verify packages are being installed from Verdaccio, check the version in `node_modules/@sentry/*/package.json`. If it shows something like `0.0.0-pr.12345`, Verdaccio is working. If it shows a released version (e.g., `8.0.0`), the `.npmrc` is missing or incorrect.
+Sentry packages are automatically resolved to the local build via pnpm overrides injected at test time, so no manual
+registry configuration is needed.
 
 ## Troubleshooting
 
@@ -134,20 +118,12 @@ To verify packages are being installed from Verdaccio, check the version in `nod
 
 #### Tests fail with "Cannot find module '@sentry/...'" or use wrong package version
 
-1. Verify the test application has an `.npmrc` file (see above)
-2. Rebuild tarballs: `yarn build && yarn build:tarball`
+1. Rebuild tarballs: `yarn build && yarn build:tarball`
+2. Re-run `yarn test:prepare` to refresh symlinks
 3. Delete `node_modules` in the test application and re-run the test
-
-#### Docker/Verdaccio issues
-
-- Ensure Docker daemon is running
-- Check that port 4873 is not already in use: `lsof -i :4873`
-- Stop any existing Verdaccio containers: `docker ps` and `docker stop <container-id>`
-- Check Verdaccio logs for errors
 
 #### Tests pass locally but fail in CI (or vice versa)
 
-- Most likely cause: missing `.npmrc` file
 - Verify all `@sentry/*` dependencies use `latest || *` version specifier
 - Check if the test relies on environment-specific behavior
 
@@ -206,10 +182,7 @@ For example, if something is changed in the browser package, only E2E test apps 
 You can add additional information about the test (e.g. canary versions, optional in CI) by adding `sentryTest` in the `package.json`
 of a test application.
 
-**An important thing to note:** In the context of the build/test commands the fake test registry is available at
-`http://127.0.0.1:4873`. It hosts all of our packages as if they were to be published with the state of the current
-branch. This means we can install the packages from this registry via the `.npmrc` configuration as seen above. If you
-add Sentry dependencies to your test application, you should set the dependency versions set to `latest || *` in order
+If you add Sentry dependencies to your test application, set the dependency versions to `latest || *` in order
 for it to work with both regular and prerelease versions:
 
 ```jsonc

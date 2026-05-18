@@ -6,6 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
@@ -64,6 +65,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 
   if (spanJSON.is_segment) {
     applyScopeToSegmentSpan(spanJSON, finalScopeData);
+    applySdkMetadataToSegmentSpan(spanJSON, client);
     // Allow hook subscribers to mutate the segment span JSON
     // This also invokes the `processSegmentSpan` hook of all integrations
     client.emit('processSegmentSpan', spanJSON);
@@ -118,6 +120,15 @@ export function safeSetSpanJSONAttributes(
   });
 }
 
+function applySdkMetadataToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, client: Client): void {
+  const integrationNames = client.getIntegrationNames();
+  if (!integrationNames.length) return;
+
+  safeSetSpanJSONAttributes(segmentSpanJSON, {
+    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: integrationNames,
+  });
+}
+
 function applyCommonSpanAttributes(
   spanJSON: StreamedSpanJSON,
   serializedSegmentSpan: StreamedSpanJSON,
@@ -125,7 +136,7 @@ function applyCommonSpanAttributes(
   scopeData: ScopeData,
 ): void {
   const sdk = client.getSdkMetadata();
-  const { release, environment, sendDefaultPii } = client.getOptions();
+  const { release, environment } = client.getOptions();
 
   // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
   safeSetSpanJSONAttributes(spanJSON, {
@@ -135,14 +146,10 @@ function applyCommonSpanAttributes(
     [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
     [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: sdk?.sdk?.name,
     [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: sdk?.sdk?.version,
-    ...(sendDefaultPii
-      ? {
-          [SEMANTIC_ATTRIBUTE_USER_ID]: scopeData.user?.id,
-          [SEMANTIC_ATTRIBUTE_USER_EMAIL]: scopeData.user?.email,
-          [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: scopeData.user?.ip_address,
-          [SEMANTIC_ATTRIBUTE_USER_USERNAME]: scopeData.user?.username,
-        }
-      : {}),
+    [SEMANTIC_ATTRIBUTE_USER_ID]: scopeData.user?.id,
+    [SEMANTIC_ATTRIBUTE_USER_EMAIL]: scopeData.user?.email,
+    [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: scopeData.user?.ip_address,
+    [SEMANTIC_ATTRIBUTE_USER_USERNAME]: scopeData.user?.username,
     ...scopeData.attributes,
   });
 }

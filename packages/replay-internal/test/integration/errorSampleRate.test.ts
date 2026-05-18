@@ -3,7 +3,7 @@
  */
 
 import '../utils/mock-internal-setTimeout';
-import { captureException, getClient } from '@sentry/core';
+import { captureException, getClient, getCurrentScope } from '@sentry/core';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -381,6 +381,28 @@ describe('Integration | errorSampleRate', () => {
           },
         ]),
       });
+    });
+
+    it('sets replay_id on DSC after converting from buffer to session mode', async () => {
+      const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
+      mockRecord._emitter(TEST_EVENT);
+
+      // Simulate a cached DSC on the scope (as browserTracingIntegration would set)
+      getCurrentScope().setPropagationContext({
+        traceId: '00000000000000000000000000000000',
+        sampleRand: 0,
+        dsc: { trace_id: '00000000000000000000000000000000', sampled: 'true' },
+      });
+
+      expect(replay.recordingMode).toBe('buffer');
+      const dsc = getCurrentScope().getPropagationContext().dsc!;
+      expect(dsc.replay_id).toBeUndefined();
+
+      await replay.sendBufferedReplayOrFlush({ continueRecording: true });
+      await vi.advanceTimersToNextTimerAsync();
+
+      expect(replay.recordingMode).toBe('session');
+      expect(dsc.replay_id).toBe(replay.getSessionId());
     });
 
     // This tests a regression where we were calling flush indiscriminantly in `stop()`

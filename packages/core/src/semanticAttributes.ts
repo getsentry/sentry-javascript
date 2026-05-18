@@ -52,14 +52,16 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID = 'sentry.segment.id';
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
 /** The version of the Sentry SDK */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
+/** The list of integrations enabled in the Sentry SDK (e.g., ["InboundFilters", "BrowserTracing"]) */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS = 'sentry.sdk.integrations';
 
-/** The user ID (gated by sendDefaultPii) */
+/** The user ID */
 export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';
-/** The user email (gated by sendDefaultPii) */
+/** The user email */
 export const SEMANTIC_ATTRIBUTE_USER_EMAIL = 'user.email';
-/** The user IP address (gated by sendDefaultPii) */
+/** The user IP address */
 export const SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS = 'user.ip_address';
-/** The user username (gated by sendDefaultPii) */
+/** The user username */
 export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.name';
 
 /**
