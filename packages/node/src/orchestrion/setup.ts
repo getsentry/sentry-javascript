@@ -43,15 +43,14 @@ export function _experimentalSetupOrchestrion(
     return;
   }
 
-  // Verify the user remembered to set the flag on init() — without it, the default
-  // OTel integrations are still active and we'd produce duplicate spans.
+  // Verify the user remembered to set the flag on init().
   const clientOptions = client.getOptions() as { _experimentalUseOrchestrion?: boolean };
   if (!clientOptions._experimentalUseOrchestrion) {
     DEBUG_BUILD &&
       debug.warn(
         '[Sentry] _experimentalSetupOrchestrion() called but Sentry.init() was not given ' +
-          '`_experimentalUseOrchestrion: true`. The default OTel integrations are still active — ' +
-          'you will get duplicate spans. Add the flag to Sentry.init().',
+          '`_experimentalUseOrchestrion: true` — it will use default instrumentation instead of ' +
+          'channel-based instrumentation. Add the flag to Sentry.init().',
       );
   }
 

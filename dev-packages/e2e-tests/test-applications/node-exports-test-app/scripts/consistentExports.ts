@@ -25,6 +25,7 @@ const NODE_EXPORTS_IGNORE = [
   '_INTERNAL_normalizeCollectionInterval',
   // Experimental
   '_experimentalSetupOrchestrion',
+  'mysqlChannelIntegration',
 ];
 
 const nodeExports = Object.keys(SentryNode).filter(e => !NODE_EXPORTS_IGNORE.includes(e));
