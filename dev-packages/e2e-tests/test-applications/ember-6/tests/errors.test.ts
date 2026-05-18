@@ -41,7 +41,7 @@ test('assigns the correct transaction value after a navigation', async ({ page }
   await page.goto(`/tracing`);
   await pageloadTxnPromise;
 
-  await page.getByText('Errors').click();
+  await page.getByText('Home').click();
 
   const [_, error] = await Promise.all([
     page.locator('[data-test-button="Throw Generic Javascript Error"]').click(),
