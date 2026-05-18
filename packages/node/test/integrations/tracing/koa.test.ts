@@ -1,9 +1,9 @@
-import { KoaInstrumentation } from '@opentelemetry/instrumentation-koa';
+import { KoaInstrumentation } from '../../../src/integrations/tracing/koa/vendored/instrumentation';
 import { INSTRUMENTED } from '@sentry/node-core';
 import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import { instrumentKoa, koaIntegration } from '../../../src/integrations/tracing/koa';
 
-vi.mock('@opentelemetry/instrumentation-koa');
+vi.mock('../../../src/integrations/tracing/koa/vendored/instrumentation');
 
 describe('Koa', () => {
   beforeEach(() => {
