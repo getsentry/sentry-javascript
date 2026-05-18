@@ -1,18 +1,9 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-});
+import * as Sentry from '@sentry/node';
+import memoizer from 'lru-memoizer';
 
 const run = async () => {
   // Test ported from the OTEL implementation:
   // https://github.com/open-telemetry/opentelemetry-js-contrib/blob/0d6ebded313bb75b5a0e7a6422206c922daf3943/plugins/node/instrumentation-lru-memoizer/test/index.test.ts#L28
-  const memoizer = require('lru-memoizer');
-
   let memoizerLoadCallback;
   const memoizedFoo = memoizer({
     load: (_param, callback) => {
