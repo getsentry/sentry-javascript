@@ -1,5 +1,6 @@
 /**
  * Controls how key-value data (headers, cookies, query params) is collected and filtered.
+ *
  * - `true`: Collect all data without filtering (empty denylist). Senstive values like keys and tokens are always filtered out.
  * - `false`: Do not collect any data.
  * - `{ allow: string[] }`: Collect only the specified keys.

@@ -397,8 +397,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   /**
    * Controls what data the SDK collects and sends to Sentry.
    * All fields are optional — omitted fields use the documented defaults.
-   *
-   * @see https://develop.sentry.dev/sdk/foundations/client/data-collection/
    */
   dataCollection?: DataCollection;
 
