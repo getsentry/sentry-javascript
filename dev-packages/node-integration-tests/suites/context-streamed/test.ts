@@ -16,8 +16,7 @@ test('nodeContextIntegration sets context attributes on segment spans', async ()
 
         // Static attributes
         expect(attrs['app.start_time']).toEqual({ type: 'string', value: expect.any(String) });
-        // TODO: device.archs is an array and currently dropped during serialization
-        // expect(attrs['device.archs']).toEqual({ type: 'array', value: [expect.any(String)] });
+        expect(attrs['device.archs']).toEqual({ type: 'array', value: expect.any(Array) });
         expect(attrs['device.boot_time']).toEqual({ type: 'string', value: expect.any(String) });
         expect(attrs['device.processor_count']).toEqual({ type: 'integer', value: expect.any(Number) });
         expect(attrs['device.cpu_description']).toEqual({ type: 'string', value: expect.any(String) });

@@ -49,6 +49,19 @@ describe('request utils', () => {
         key3: 'value3',
       });
     });
+
+    it('stringifies numeric values (e.g. OutgoingHttpHeaders content-length)', () => {
+      expect(
+        headersToDict({
+          'content-length': 42,
+          'x-string': 'hello',
+          'x-undef': undefined,
+        }),
+      ).toEqual({
+        'content-length': '42',
+        'x-string': 'hello',
+      });
+    });
   });
 
   describe('winterCGRequestToRequestData', () => {

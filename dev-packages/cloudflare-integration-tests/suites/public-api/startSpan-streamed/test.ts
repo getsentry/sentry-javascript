@@ -2,13 +2,14 @@ import type { Envelope, SerializedStreamedSpanContainer } from '@sentry/core';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { expect, it } from 'vitest';
@@ -175,6 +176,10 @@ it('sends a streamed span envelope with correct spans for a manually started spa
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+            type: 'array',
+            value: expect.arrayContaining(['SpanStreaming']),
+          },
           [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.http.cloudflare' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
