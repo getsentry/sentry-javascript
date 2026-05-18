@@ -145,14 +145,9 @@
         "**/integrations/tracing/dataloader/vendored/**/*.ts",
         "**/integrations/tracing/genericPool/vendored/**/*.ts",
         "**/integrations/fs/vendored/**/*.ts",
-        "**/integrations/tracing/knex/vendored/**/*.ts"
+        "**/integrations/tracing/knex/vendored/**/*.ts",
+        "**/integrations/tracing/mongo/vendored/**/*.ts"
       ],
-      "rules": {
-        "typescript/no-explicit-any": "off"
-      }
-    },
-    {
-      "files": ["**/integrations/tracing/mongo/vendored/**/*.ts"],
       "rules": {
         "typescript/no-explicit-any": "off"
       }
