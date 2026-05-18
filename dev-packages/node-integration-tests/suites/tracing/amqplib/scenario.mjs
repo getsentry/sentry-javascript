@@ -32,9 +32,6 @@ const QUEUE_OPTIONS = {
 
   await channel.close();
   await connection.close();
-
-  // Stop the process from exiting before the transaction is sent
-  setInterval(() => {}, 1000);
 })();
 
 async function connectToRabbitMQ() {
