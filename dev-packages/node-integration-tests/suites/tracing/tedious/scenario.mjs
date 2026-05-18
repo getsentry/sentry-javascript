@@ -1,14 +1,5 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-});
-
-const { Connection, Request } = require('tedious');
+import * as Sentry from '@sentry/node';
+import { Connection, Request } from 'tedious';
 
 const config = {
   server: '127.0.0.1',
