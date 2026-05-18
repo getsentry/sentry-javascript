@@ -584,7 +584,16 @@ export function createRunner(...paths: string[]) {
 
           if (process.env.DEBUG) log('starting scenario', testPath, flags, env.SENTRY_DSN);
 
-          child = spawn('node', [...flags, testPath], { env });
+          // Inject a `--require keepalive.cjs` to keep the child's event loop
+          // alive while the SDK flushes envelopes — replaces the
+          // `setInterval(() => {}, 1000)` boilerplate that used to live in
+          // every scenario. Skipped for `ensureNoErrorOutput` tests, which
+          // assert that the child exits naturally.
+          const childFlags = ensureNoErrorOutput
+            ? flags
+            : ['--require', join(__dirname, 'keepalive.cjs'), ...flags];
+
+          child = spawn('node', [...childFlags, testPath], { env });
 
           child.on('error', e => {
             // eslint-disable-next-line no-console
