@@ -65,11 +65,7 @@ export const bindPromise = <T = unknown>(
   ): Promise<TResult1 | TResult2> {
     const newOnFulfilled = context.bind(contextForCallbacks, onFulfilled);
     const newOnRejected = context.bind(contextForCallbacks, onRejected);
-    const patchedPromise = (origThen.call as any)(
-      this,
-      newOnFulfilled,
-      newOnRejected,
-    );
+    const patchedPromise = (origThen.call as any)(this, newOnFulfilled, newOnRejected);
     return rebindCount > 1 ? bindPromise(patchedPromise, contextForCallbacks, rebindCount - 1) : patchedPromise;
   };
   return target;

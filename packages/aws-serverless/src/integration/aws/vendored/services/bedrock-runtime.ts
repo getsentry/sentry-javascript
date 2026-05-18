@@ -43,8 +43,8 @@ import {
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
 import { hrTime, hrTimeDuration, hrTimeToMilliseconds } from '@opentelemetry/core';
 
-// Simplified types inlined from @aws-sdk/client-bedrock-runtime to avoid requiring the package.
-// Only the fields accessed by this instrumentation are included.
+// Simplified types inlined from @aws-sdk/client-bedrock-runtime
+// Only the fields accessed by this instrumentation are included
 interface TokenUsage {
   inputTokens: number | undefined;
   outputTokens: number | undefined;
