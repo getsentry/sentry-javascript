@@ -16,7 +16,6 @@
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-mongodb
  * - Upstream version: @opentelemetry/instrumentation-mongodb@0.71.0
- * - Minor TypeScript strictness adjustments for this repository's compiler settings
  */
 /* eslint-disable */
 
