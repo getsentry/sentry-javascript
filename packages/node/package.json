@@ -78,7 +78,6 @@
     "@opentelemetry/instrumentation-http": "0.214.0",
     "@opentelemetry/instrumentation-kafkajs": "0.23.0",
     "@opentelemetry/instrumentation-knex": "0.58.0",
-    "@opentelemetry/instrumentation-koa": "0.62.0",
     "@opentelemetry/instrumentation-lru-memoizer": "0.58.0",
     "@opentelemetry/instrumentation-mongodb": "0.67.0",
     "@opentelemetry/instrumentation-mongoose": "0.60.0",
@@ -96,6 +95,8 @@
     "import-in-the-middle": "^3.0.0"
   },
   "devDependencies": {
+    "@types/koa": "3.0.2",
+    "@types/koa__router": "12.0.5",
     "@types/node": "^18.19.1"
   },
   "scripts": {

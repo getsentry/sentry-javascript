@@ -1,5 +1,5 @@
-import type { KoaInstrumentationConfig, KoaLayerType } from '@opentelemetry/instrumentation-koa';
-import { KoaInstrumentation } from '@opentelemetry/instrumentation-koa';
+import type { KoaInstrumentationConfig, KoaLayerType } from './vendored/types';
+import { KoaInstrumentation } from './vendored/instrumentation';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import type { IntegrationFn } from '@sentry/core';
 import {
@@ -12,7 +12,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { addOriginToSpan, ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
-import { DEBUG_BUILD } from '../../debug-build';
+import { DEBUG_BUILD } from '../../../debug-build';
 
 interface KoaOptions {
   /**
