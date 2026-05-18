@@ -1,6 +1,6 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { afterAll, beforeAll, describe, expect } from 'vitest';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Mongoose experimental Test', () => {
   let mongoServer: MongoMemoryServer;
@@ -45,7 +45,9 @@ describe('Mongoose experimental Test', () => {
     ]),
   };
 
-  test('CJS - should auto-instrument `mongoose` package.', async () => {
-    await createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
+    test('should auto-instrument `mongoose` package.', async () => {
+      await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+    });
   });
 });

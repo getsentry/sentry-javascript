@@ -1,50 +1,52 @@
-import { afterAll, describe, expect, test } from 'vitest';
-import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { afterAll, describe, expect } from 'vitest';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe.skip('tedious auto instrumentation', { timeout: 75_000 }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument `tedious` package', async () => {
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction',
-      spans: expect.arrayContaining([
-        expect.objectContaining({
-          description: 'SELECT GETDATE()',
-          data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.tedious',
-            'sentry.op': 'db',
-            'db.name': 'master',
-            'db.statement': 'SELECT GETDATE()',
-            'db.system': 'mssql',
-            'db.user': 'sa',
-            'net.peer.name': '127.0.0.1',
-            'net.peer.port': 1433,
-          }),
-          status: 'ok',
+  const EXPECTED_TRANSACTION = {
+    transaction: 'Test Transaction',
+    spans: expect.arrayContaining([
+      expect.objectContaining({
+        description: 'SELECT GETDATE()',
+        data: expect.objectContaining({
+          'sentry.origin': 'auto.db.otel.tedious',
+          'sentry.op': 'db',
+          'db.name': 'master',
+          'db.statement': 'SELECT GETDATE()',
+          'db.system': 'mssql',
+          'db.user': 'sa',
+          'net.peer.name': '127.0.0.1',
+          'net.peer.port': 1433,
         }),
-        expect.objectContaining({
-          description: 'SELECT 1 + 1 AS solution',
-          data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.tedious',
-            'sentry.op': 'db',
-            'db.name': 'master',
-            'db.statement': 'SELECT 1 + 1 AS solution',
-            'db.system': 'mssql',
-            'db.user': 'sa',
-            'net.peer.name': '127.0.0.1',
-            'net.peer.port': 1433,
-          }),
-          status: 'ok',
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        description: 'SELECT 1 + 1 AS solution',
+        data: expect.objectContaining({
+          'sentry.origin': 'auto.db.otel.tedious',
+          'sentry.op': 'db',
+          'db.name': 'master',
+          'db.statement': 'SELECT 1 + 1 AS solution',
+          'db.system': 'mssql',
+          'db.user': 'sa',
+          'net.peer.name': '127.0.0.1',
+          'net.peer.port': 1433,
         }),
-      ]),
-    };
+        status: 'ok',
+      }),
+    ]),
+  };
 
-    await createRunner(__dirname, 'scenario.js')
-      .withDockerCompose({ workingDirectory: [__dirname] })
-      .expect({ transaction: EXPECTED_TRANSACTION })
-      .start()
-      .completed();
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
+    test('should auto-instrument `tedious` package', async () => {
+      await createTestRunner()
+        .withDockerCompose({ workingDirectory: [__dirname] })
+        .expect({ transaction: EXPECTED_TRANSACTION })
+        .start()
+        .completed();
+    });
   });
 });
