@@ -1,20 +1,11 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-  integrations: [Sentry.redisIntegration({ cachePrefixes: ['dc-cache:'] })],
-});
+import * as Sentry from '@sentry/node';
 
 async function run() {
   // Yield a microtick so the DC subscriber (deferred via Promise.resolve().then)
   // is registered before node-redis eagerly creates its native TracingChannels on require().
   await Promise.resolve();
 
-  const { createClient } = require('redis-5');
+  const { createClient } = await import('redis-5');
   const redisClient = await createClient({ socket: { host: '127.0.0.1', port: 6379 } }).connect();
 
   await Sentry.startSpan(
