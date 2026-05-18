@@ -22,10 +22,9 @@
 
 import { context, Span, SpanOptions } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
-import type { HandleFunction, NextFunction, Server } from 'connect';
 import type { ServerResponse } from 'http';
 import { AttributeNames, ConnectNames, ConnectTypes } from './enums/AttributeNames';
-import { PatchedRequest, Use, UseArgs, UseArgs2 } from './internal-types';
+import { HandleFunction, NextFunction, Server, PatchedRequest, Use, UseArgs, UseArgs2 } from './internal-types';
 import { SDK_VERSION } from '@sentry/core';
 import {
   InstrumentationBase,

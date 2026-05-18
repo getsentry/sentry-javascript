@@ -16,10 +16,41 @@
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-connect
  * - Upstream version: @opentelemetry/instrumentation-connect@0.61.0
+ * - Some types vendored from @types/connect
  */
 /* eslint-disable */
 
-import type { HandleFunction, IncomingMessage, Server } from 'connect';
+import type * as http from 'http';
+
+export type IncomingMessage = http.IncomingMessage & {
+  originalUrl?: http.IncomingMessage['url'] | undefined;
+};
+
+export type NextFunction = (err?: any) => void;
+
+export type SimpleHandleFunction = (req: IncomingMessage, res: http.ServerResponse) => void;
+export type NextHandleFunction = (req: IncomingMessage, res: http.ServerResponse, next: NextFunction) => void;
+export type ErrorHandleFunction = (
+  err: any,
+  req: IncomingMessage,
+  res: http.ServerResponse,
+  next: NextFunction,
+) => void;
+export type HandleFunction = SimpleHandleFunction | NextHandleFunction | ErrorHandleFunction;
+
+export interface Server extends NodeJS.EventEmitter {
+  (req: http.IncomingMessage, res: http.ServerResponse, next?: Function): void;
+
+  route: string;
+  stack: Array<{ route: string; handle: HandleFunction | http.Server }>;
+
+  use(fn: NextHandleFunction): Server;
+  use(fn: HandleFunction): Server;
+  use(route: string, fn: NextHandleFunction): Server;
+  use(route: string, fn: HandleFunction): Server;
+
+  handle(req: http.IncomingMessage, res: http.ServerResponse, next: Function): void;
+}
 
 export const _LAYERS_STORE_PROPERTY: unique symbol = Symbol(
   'opentelemetry.instrumentation-connect.request-route-stack',
