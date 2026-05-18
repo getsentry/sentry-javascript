@@ -28,12 +28,11 @@ import {
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 
-import type * as koa from 'koa';
 import { KoaLayerType, KoaInstrumentationConfig } from './types';
 import { SDK_VERSION } from '@sentry/core';
 import { getMiddlewareMetadata, isLayerIgnored } from './utils';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
-import { kLayerPatched, KoaContext, KoaMiddleware, KoaPatchedMiddleware } from './internal-types';
+import { Next, kLayerPatched, KoaContext, KoaMiddleware, KoaPatchedMiddleware } from './internal-types';
 
 const PACKAGE_NAME = '@sentry/instrumentation-koa';
 
@@ -48,7 +47,7 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
       'koa',
       ['>=2.0.0 <4'],
       (module: any) => {
-        const moduleExports: typeof koa =
+        const moduleExports: any =
           module[Symbol.toStringTag] === 'Module'
             ? module.default // ESM
             : module; // CommonJS
@@ -62,7 +61,7 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
         return module;
       },
       (module: any) => {
-        const moduleExports: typeof koa =
+        const moduleExports: any =
           module[Symbol.toStringTag] === 'Module'
             ? module.default // ESM
             : module; // CommonJS
@@ -78,9 +77,9 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
    * middleware layer which is introduced
    * @param {KoaMiddleware} middleware - the original middleware function
    */
-  private _getKoaUsePatch(original: (middleware: KoaMiddleware) => koa) {
+  private _getKoaUsePatch(original: (middleware: KoaMiddleware) => any) {
     const plugin = this;
-    return function use(this: koa, middlewareFunction: KoaMiddleware) {
+    return function use(this: any, middlewareFunction: KoaMiddleware) {
       let patchedFunction: KoaMiddleware;
       if (middlewareFunction.router) {
         patchedFunction = plugin._patchRouterDispatch(middlewareFunction);
@@ -147,7 +146,7 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
     middlewareLayer[kLayerPatched] = true;
 
     api.diag.debug('patching Koa middleware layer');
-    return async (context: KoaContext, next: koa.Next) => {
+    return async (context: KoaContext, next: Next) => {
       const parent = api.trace.getSpan(api.context.active());
       if (parent === undefined) {
         return middlewareLayer(context, next);

@@ -19,23 +19,40 @@
  */
 /* eslint-disable */
 
-import type { Middleware, ParameterizedContext, DefaultState } from 'koa';
-import type * as Router from '@koa/router';
+// Inlined from @types/koa (DefinitelyTyped)
+// https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/koa/index.d.ts
+interface DefaultState {}
 
-/**
- * Type compatibility note:
- *
- * This package uses @types/koa@3.x, but @types/koa__router@12.x depends on
- * @types/koa@2.x. This creates type conflicts when working with router middleware.
- * At runtime, koa@3.x is used throughout, so all methods exist and work correctly.
- *
- * The type casts in instrumentation.ts are necessary to bridge this gap.
- *
- * TODO: Remove type casts when @types/koa__router@13+ with @types/koa@3.x support is available
- */
+export type Next = () => Promise<any>;
 
-export type KoaContext = ParameterizedContext<DefaultState, Router.RouterParamContext>;
-export type KoaMiddleware = Middleware<DefaultState, KoaContext> & {
+// Inlined from @types/koa-compose (DefinitelyTyped)
+// https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/koa-compose/index.d.ts
+type Middleware<T> = (context: T, next: Next) => any;
+
+// Inlined from @types/koa. Simplified to only include fields accessed by this instrumentation
+type ParameterizedContext<_StateT = DefaultState, ContextT = {}, _ResponseBodyT = unknown> =
+  { [key: string]: any } & ContextT;
+
+// Inlined from @types/koa__router (DefinitelyTyped)
+// https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/koa__router/index.d.ts
+interface RouterParamContext {
+  params: Record<string, string>;
+  router: Router;
+  _matchedRoute: string | RegExp | undefined;
+  _matchedRouteName: string | undefined;
+}
+
+interface Layer {
+  path: string | RegExp;
+  stack: any[];
+}
+
+export interface Router {
+  stack: Layer[];
+}
+
+export type KoaContext = ParameterizedContext<DefaultState, RouterParamContext>;
+export type KoaMiddleware = Middleware<KoaContext> & {
   router?: Router;
 };
 
