@@ -16,12 +16,9 @@
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-koa
  * - Upstream version: @opentelemetry/instrumentation-koa@0.66.0
+ * - Some types vendored from @types/koa, @types/koa-compose, and @types/koa__router with simplifications
  */
 /* eslint-disable */
-
-// Types below are inlined from @types/koa, @types/koa-compose, and @types/koa__router
-// to avoid requiring these packages as dependencies.
-// ParameterizedContext is simplified to only include fields accessed by this instrumentation.
 
 interface DefaultState {}
 
