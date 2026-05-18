@@ -152,5 +152,18 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "outputs": [
+          "{projectRoot}/build/esm",
+          "{projectRoot}/build/cjs",
+          "{projectRoot}/build/npm/esm",
+          "{projectRoot}/build/npm/cjs",
+          "{projectRoot}/build/orchestrion"
+        ]
+      }
+    }
+  }
 }
