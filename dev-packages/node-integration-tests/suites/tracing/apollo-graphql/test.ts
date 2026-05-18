@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'vitest';
-import { createRunner } from '../../../utils/runner';
+import { afterAll, describe, expect } from 'vitest';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Server start transaction (Apollo Server v5 no longer runs introspection query on start)
 const EXPECTED_START_SERVER_TRANSACTION = {
@@ -7,7 +7,11 @@ const EXPECTED_START_SERVER_TRANSACTION = {
 };
 
 describe('GraphQL/Apollo Tests', () => {
-  test('should instrument GraphQL queries used from Apollo Server.', async () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  describe('query', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction (query)',
       spans: expect.arrayContaining([
@@ -24,14 +28,24 @@ describe('GraphQL/Apollo Tests', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-query.js')
-      .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-      .expect({ transaction: EXPECTED_TRANSACTION })
-      .start()
-      .completed();
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-query.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('should instrument GraphQL queries used from Apollo Server.', async () => {
+          await createTestRunner()
+            .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
+        });
+      },
+      { copyPaths: ['apollo-server.mjs'] },
+    );
   });
 
-  test('should instrument GraphQL mutations used from Apollo Server.', async () => {
+  describe('mutation', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction (mutation Mutation)',
       spans: expect.arrayContaining([
@@ -49,14 +63,24 @@ describe('GraphQL/Apollo Tests', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-mutation.js')
-      .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-      .expect({ transaction: EXPECTED_TRANSACTION })
-      .start()
-      .completed();
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-mutation.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('should instrument GraphQL mutations used from Apollo Server.', async () => {
+          await createTestRunner()
+            .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
+        });
+      },
+      { copyPaths: ['apollo-server.mjs'] },
+    );
   });
 
-  test('should handle GraphQL errors.', async () => {
+  describe('error', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction (mutation Mutation)',
       spans: expect.arrayContaining([
@@ -74,10 +98,20 @@ describe('GraphQL/Apollo Tests', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-error.js')
-      .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-      .expect({ transaction: EXPECTED_TRANSACTION })
-      .start()
-      .completed();
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-error.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('should handle GraphQL errors.', async () => {
+          await createTestRunner()
+            .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
+        });
+      },
+      { copyPaths: ['apollo-server.mjs'] },
+    );
   });
 });

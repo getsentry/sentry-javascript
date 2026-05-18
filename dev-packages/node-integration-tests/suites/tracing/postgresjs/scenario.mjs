@@ -1,9 +1,6 @@
 import * as Sentry from '@sentry/node';
-import { createRequire } from 'node:module';
 import postgres from 'postgres';
-
-const require = createRequire(import.meta.url);
-const { waitForPostgres } = require('./wait-for-postgres.js');
+import { waitForPostgres } from './wait-for-postgres.js';
 
 const sql = postgres({ port: 5444, user: 'test', password: 'test', database: 'test_db' });
 
