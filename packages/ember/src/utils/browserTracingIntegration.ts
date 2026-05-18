@@ -1,4 +1,3 @@
-import type { BrowserClient } from '@sentry/browser';
 import {
   browserTracingIntegration as originalBrowserTracingIntegration,
   startBrowserTracingNavigationSpan,
@@ -51,29 +50,26 @@ export function browserTracingIntegration(options: EmberBrowserTracingIntegratio
 
   return {
     ...integration,
-    afterAllSetup(client: BrowserClient) {
+    afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      // Run this in the next tick to ensure the ember router etc. is properly initialized
-      setTimeout(() => {
-        instrumentEmberAppInstanceForPerformance(
-          client,
-          appInstance,
-          appInstancePerformanceConfig,
-          startBrowserTracingPageLoadSpan,
-          startBrowserTracingNavigationSpan,
-        );
+      instrumentEmberAppInstanceForPerformance(
+        client,
+        appInstance,
+        appInstancePerformanceConfig,
+        startBrowserTracingPageLoadSpan,
+        startBrowserTracingNavigationSpan,
+      );
 
-        // We only want to run this once in tests!
-        if (macroCondition(isTesting())) {
-          if (_initialized) {
-            return;
-          }
+      // We only want to run this once in tests!
+      if (macroCondition(isTesting())) {
+        if (_initialized) {
+          return;
         }
+      }
 
-        instrumentGlobalsForPerformance(globalsPerformanceConfig);
-        _initialized = true;
-      });
+      instrumentGlobalsForPerformance(globalsPerformanceConfig);
+      _initialized = true;
     },
   };
 }

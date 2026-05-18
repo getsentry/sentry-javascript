@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   await page.goto(`/`);
@@ -26,11 +26,11 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 
 test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
   const pageloadTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   const navigationTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/`);
@@ -54,11 +54,11 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 
 test('sends a navigation transaction even if the pageload span is still active', async ({ page }) => {
   const pageloadTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   const navigationTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/`);
@@ -99,11 +99,11 @@ test('sends a navigation transaction even if the pageload span is still active',
 
 test('captures correct spans for navigation', async ({ page }) => {
   const pageloadTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   const navigationTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/tracing`);

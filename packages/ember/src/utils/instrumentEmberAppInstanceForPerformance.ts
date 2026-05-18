@@ -2,12 +2,16 @@ import type ApplicationInstance from '@ember/application/instance';
 import type Transition from '@ember/routing/transition';
 import type RouterService from '@ember/routing/router-service';
 import type {
-  BrowserClient,
   startBrowserTracingNavigationSpan as startBrowserTracingNavigationSpanType,
   startBrowserTracingPageLoadSpan as startBrowserTracingPageLoadSpanType,
 } from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, startInactiveSpan } from '@sentry/browser';
-import type { Span } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  startInactiveSpan,
+  WINDOW,
+} from '@sentry/browser';
+import { spanToJSON, type Client, type Span } from '@sentry/core';
 import { getBackburner } from './utils.ts';
 
 interface EmberRouterMain {
@@ -20,41 +24,39 @@ interface EmberRouterMain {
 }
 
 export function instrumentEmberAppInstanceForPerformance(
-  client: BrowserClient,
+  client: Client,
   appInstance: ApplicationInstance,
   config: { disableRunloopPerformance?: boolean; instrumentPageLoad?: boolean; instrumentNavigation?: boolean },
   startBrowserTracingPageLoadSpan: typeof startBrowserTracingPageLoadSpanType,
   startBrowserTracingNavigationSpan: typeof startBrowserTracingNavigationSpanType,
 ): void {
-  // eslint-disable-next-line ember/no-private-routing-service
-  const routerMain = appInstance.lookup('router:main') as EmberRouterMain;
-  let routerService = appInstance.lookup('service:router') as RouterService & {
+  _instrumentEmberRouter(
+    client,
+    appInstance,
+    config,
+    startBrowserTracingPageLoadSpan,
+    startBrowserTracingNavigationSpan,
+  );
+}
+
+function getRouterService(
+  appInstance: ApplicationInstance,
+): RouterService & { _hasMountedSentryPerformanceRouting?: boolean } {
+  const routerService = appInstance.lookup('service:router') as RouterService & {
     externalRouter?: RouterService;
     _hasMountedSentryPerformanceRouting?: boolean;
   };
 
   if (routerService.externalRouter) {
     // Using ember-engines-router-service in an engine.
-    routerService = routerService.externalRouter;
-  }
-  if (routerService._hasMountedSentryPerformanceRouting) {
-    // Routing listens to route changes on the main router, and should not be initialized multiple times per page.
-    return;
-  }
-  if (!routerService.recognize) {
-    // Router is missing critical functionality to limit cardinality of the transaction names.
-    return;
+    return routerService.externalRouter;
   }
 
-  routerService._hasMountedSentryPerformanceRouting = true;
-  _instrumentEmberRouter(
-    client,
-    routerService,
-    routerMain,
-    config,
-    startBrowserTracingPageLoadSpan,
-    startBrowserTracingNavigationSpan,
-  );
+  return routerService;
+}
+
+function getRouterMain(appInstance: ApplicationInstance): EmberRouterMain {
+  return appInstance.lookup('router:main') as EmberRouterMain;
 }
 
 function getTransitionInformation(
@@ -85,33 +87,47 @@ export function _getLocationURL(location: EmberRouterMain['location']): string {
 }
 
 function _instrumentEmberRouter(
-  client: BrowserClient,
-  routerService: RouterService,
-  routerMain: EmberRouterMain,
+  client: Client,
+  appInstance: ApplicationInstance,
   config: { disableRunloopPerformance?: boolean; instrumentPageLoad?: boolean; instrumentNavigation?: boolean },
   startBrowserTracingPageLoadSpan: typeof startBrowserTracingPageLoadSpanType,
   startBrowserTracingNavigationSpan: typeof startBrowserTracingNavigationSpanType,
 ): void {
   const { disableRunloopPerformance, instrumentPageLoad, instrumentNavigation } = config;
+  const routerService = getRouterService(appInstance);
+
+  if (routerService._hasMountedSentryPerformanceRouting) {
+    // Routing listens to route changes on the main router, and should not be initialized multiple times per page.
+    return;
+  }
+  if (!routerService.recognize) {
+    // Router is missing critical functionality to limit cardinality of the transaction names.
+    return;
+  }
+
+  const routerMain = getRouterMain(appInstance);
   const location = routerMain.location;
   let activeRootSpan: Span | undefined;
   let transitionSpan: Span | undefined;
 
   const url = _getLocationURL(location);
 
-  if (url && instrumentPageLoad !== false) {
-    const routeInfo = routerService.recognize(url);
-    if (routeInfo) {
-      activeRootSpan = startBrowserTracingPageLoadSpan(client, {
-        name: `route:${routeInfo.name}`,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
-          url,
-          toRoute: routeInfo.name,
-        },
-      });
-    }
+  if (instrumentPageLoad !== false) {
+    // Somehow the router service etc. may not be fully ready/initialized yet at this point
+    // Probably because we are running this before the Ember setup is necessarily completed
+    // So in order to accomodate this, we fall back to starting the pageload span with the current URL and update it later
+    const routeInfo = url ? routerService.recognize(url) : undefined;
+    const path = url || WINDOW.location.pathname;
+
+    activeRootSpan = startBrowserTracingPageLoadSpan(client, {
+      name: routeInfo ? `route:${routeInfo.name}` : path,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeInfo ? 'route' : 'url',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
+        url,
+        toRoute: routeInfo?.name,
+      },
+    });
   }
 
   const finishActiveTransaction = (_: unknown, nextInstance: unknown): void => {
@@ -134,17 +150,33 @@ function _instrumentEmberRouter(
       return;
     }
 
-    activeRootSpan?.end();
+    // If this is not the initial transition, we want to end the active root span and start a new one
+    if (fromRoute != null) {
+      activeRootSpan?.end();
 
-    activeRootSpan = startBrowserTracingNavigationSpan(client, {
-      name: `route:${toRoute}`,
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
-        fromRoute,
-        toRoute,
-      },
-    });
+      activeRootSpan = startBrowserTracingNavigationSpan(client, {
+        name: `route:${toRoute}`,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
+          fromRoute,
+          toRoute,
+        },
+      });
+    } else if (activeRootSpan && spanToJSON(activeRootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
+      // else, we make sure to update the pageload span with the current URL, if we couldn't get it before
+      // In this case we re-load the router:main reference, as this may change and we may have a stale reference
+      const location = getRouterMain(appInstance).location;
+      const url = _getLocationURL(location);
+      if (url) {
+        activeRootSpan.updateName(`route:${toRoute}`);
+        activeRootSpan.setAttributes({
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          url,
+          toRoute: toRoute,
+        });
+      }
+    }
 
     transitionSpan = startInactiveSpan({
       attributes: {
