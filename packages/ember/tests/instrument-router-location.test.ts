@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getLocationURL } from '../src/utils/instrumentEmberAppInstanceForPerformance.ts';
+import { _getLocationURL } from '../src/utils/instrumentEmberAppInstanceForPerformance.ts';
 
 interface Location {
   formatURL?: (url: string) => string;
@@ -8,7 +8,7 @@ interface Location {
   rootURL: string;
 }
 
-describe('getLocationURL', () => {
+describe('_getLocationURL', () => {
   it('handles hash location without implementation field', () => {
     const mockLocation: Location = {
       getURL: () => '#/test-route',
@@ -16,7 +16,7 @@ describe('getLocationURL', () => {
       rootURL: '/',
     };
 
-    expect(getLocationURL(mockLocation)).toBe('/#/test-route');
+    expect(_getLocationURL(mockLocation)).toBe('/#/test-route');
   });
 
   it('handles hash location with implementation field', () => {
@@ -27,7 +27,7 @@ describe('getLocationURL', () => {
       rootURL: '/',
     };
 
-    expect(getLocationURL(mockLocation)).toBe('/#/test-route');
+    expect(_getLocationURL(mockLocation)).toBe('/#/test-route');
   });
 
   it('handles history location', () => {
@@ -38,7 +38,7 @@ describe('getLocationURL', () => {
       rootURL: '/',
     };
 
-    expect(getLocationURL(mockLocation)).toBe('/test-route');
+    expect(_getLocationURL(mockLocation)).toBe('/test-route');
   });
 
   it('handles none location type', () => {
@@ -49,7 +49,7 @@ describe('getLocationURL', () => {
       rootURL: '/',
     };
 
-    expect(getLocationURL(mockLocation)).toBe('');
+    expect(_getLocationURL(mockLocation)).toBe('');
   });
 
   it('handles custom rootURL for hash location', () => {
@@ -59,7 +59,7 @@ describe('getLocationURL', () => {
       rootURL: '/my-app/',
     };
 
-    expect(getLocationURL(mockLocation)).toBe('/my-app/#/test-route');
+    expect(_getLocationURL(mockLocation)).toBe('/my-app/#/test-route');
   });
 
   it('handles location without getURL method', () => {
@@ -68,7 +68,7 @@ describe('getLocationURL', () => {
       rootURL: '/',
     };
 
-    expect(getLocationURL(mockLocation)).toBe('');
+    expect(_getLocationURL(mockLocation)).toBe('');
   });
 
   it('handles location without formatURL method', () => {
@@ -77,6 +77,6 @@ describe('getLocationURL', () => {
       rootURL: '/',
     };
 
-    expect(getLocationURL(mockLocation)).toBe('');
+    expect(_getLocationURL(mockLocation)).toBe('');
   });
 });
