@@ -1,24 +1,9 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-});
-
-const mysql = require('mysql');
+import * as Sentry from '@sentry/node';
+import mysql from 'mysql';
 
 const connection = mysql.createConnection({
   user: 'root',
   password: 'docker',
-});
-
-connection.connect(function (err) {
-  if (err) {
-    return;
-  }
 });
 
 Sentry.startSpanManual(
