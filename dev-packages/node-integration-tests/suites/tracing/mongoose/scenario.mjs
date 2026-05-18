@@ -1,15 +1,5 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-});
-
-// Must be required after Sentry is initialized
-const mongoose = require('mongoose');
+import * as Sentry from '@sentry/node';
+import mongoose from 'mongoose';
 
 async function run() {
   await mongoose.connect(process.env.MONGO_URL || '');
