@@ -19,7 +19,10 @@ describe('defaultPiiToCollectionOptions', () => {
     expect(defaultPiiToCollectionOptions(false)).toEqual({
       userInfo: false,
       cookies: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
-      httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      httpHeaders: {
+        request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+        response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      },
       httpBodies: [],
       queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       genAI: { inputs: false, outputs: false },
