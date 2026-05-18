@@ -1,7 +1,7 @@
 import { type Client } from '../../client';
 import { defineIntegration } from '../../integration';
-import { type Event, type EventHint } from '../../types-hoist/event';
-import { type Integration, type IntegrationFn } from '../../types-hoist/integration';
+import { type Event, type EventHint } from '../../types/event';
+import { type Integration, type IntegrationFn } from '../../types/integration';
 import {
   _INTERNAL_addFeatureFlagToActiveSpan,
   _INTERNAL_copyFlagsFromScopeToEvent,

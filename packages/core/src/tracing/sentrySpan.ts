@@ -10,9 +10,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
-import type { SpanEnvelope } from '../types-hoist/envelope';
-import type { TransactionEvent } from '../types-hoist/event';
-import type { SpanLink } from '../types-hoist/link';
+import type { SpanEnvelope } from '../types/envelope';
+import type { TransactionEvent } from '../types/event';
+import type { SpanLink } from '../types/link';
 import type {
   SentrySpanArguments,
   Span,
@@ -23,9 +23,9 @@ import type {
   SpanOrigin,
   SpanTimeInput,
   StreamedSpanJSON,
-} from '../types-hoist/span';
-import type { SpanStatus } from '../types-hoist/spanStatus';
-import type { TimedEvent } from '../types-hoist/timedEvent';
+} from '../types/span';
+import type { SpanStatus } from '../types/spanStatus';
+import type { TimedEvent } from '../types/timedEvent';
 import { debug } from '../utils/debug-logger';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {

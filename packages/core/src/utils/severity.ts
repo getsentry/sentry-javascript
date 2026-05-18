@@ -1,4 +1,4 @@
-import type { SeverityLevel } from '../types-hoist/severity';
+import type { SeverityLevel } from '../types/severity';
 
 /**
  * Converts a string-based level into a `SeverityLevel`, normalizing it along the way.

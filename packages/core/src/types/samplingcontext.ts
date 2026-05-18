@@ -1,4 +1,4 @@
-import type { RequestEventData } from '../types-hoist/request';
+import type { RequestEventData } from '../types/request';
 import type { WorkerLocation } from './misc';
 import type { SpanAttributes } from './span';
 

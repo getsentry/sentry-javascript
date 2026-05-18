@@ -1,7 +1,7 @@
 import type { Client } from '../client';
-import type { DynamicSamplingContext } from '../types-hoist/envelope';
-import type { PropagationContext } from '../types-hoist/tracing';
-import type { TraceparentData } from '../types-hoist/transaction';
+import type { DynamicSamplingContext } from '../types/envelope';
+import type { PropagationContext } from '../types/tracing';
+import type { TraceparentData } from '../types/transaction';
 import { debug } from '../utils/debug-logger';
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { extractOrgIdFromClient } from './dsn';

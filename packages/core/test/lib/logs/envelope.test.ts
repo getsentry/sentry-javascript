@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createLogContainerEnvelopeItem, createLogEnvelope } from '../../../src/logs/envelope';
-import type { DsnComponents } from '../../../src/types-hoist/dsn';
-import type { SerializedLog } from '../../../src/types-hoist/log';
-import type { SdkMetadata } from '../../../src/types-hoist/sdkmetadata';
+import type { DsnComponents } from '../../../src/types/dsn';
+import type { SerializedLog } from '../../../src/types/log';
+import type { SdkMetadata } from '../../../src/types/sdkmetadata';
 import * as utilsDsn from '../../../src/utils/dsn';
 import * as utilsEnvelope from '../../../src/utils/envelope';
 import { isBrowser } from '../../../src/utils/isBrowser';

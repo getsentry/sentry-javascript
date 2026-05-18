@@ -4,7 +4,7 @@
 import { captureException } from '../../exports';
 import { getClient } from '../../currentScopes';
 import { hasSpanStreamingEnabled } from '../spans/hasSpanStreamingEnabled';
-import type { Span } from '../../types-hoist/span';
+import type { Span } from '../../types/span';
 import { isThenable } from '../../utils/is';
 import {
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,

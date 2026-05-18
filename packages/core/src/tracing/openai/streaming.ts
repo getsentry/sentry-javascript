@@ -1,6 +1,6 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
-import type { Span } from '../../types-hoist/span';
+import type { Span } from '../../types/span';
 import { endStreamSpan } from '../ai/utils';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type {

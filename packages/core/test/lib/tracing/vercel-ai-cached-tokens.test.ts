@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addVercelAiProcessors } from '../../../src/tracing/vercel-ai';
-import type { SpanJSON } from '../../../src/types-hoist/span';
+import type { SpanJSON } from '../../../src/types/span';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 describe('vercel-ai cached tokens', () => {

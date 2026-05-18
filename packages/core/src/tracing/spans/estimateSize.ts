@@ -1,5 +1,5 @@
 import { estimateTypedAttributesSizeInBytes } from '../../attributes';
-import type { SerializedStreamedSpan } from '../../types-hoist/span';
+import type { SerializedStreamedSpan } from '../../types/span';
 
 /**
  * Estimates the serialized byte size of a {@link SerializedStreamedSpan}.

@@ -1,7 +1,7 @@
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { startSpan } from '../../tracing/trace';
-import type { SpanAttributeValue } from '../../types-hoist/span';
+import type { SpanAttributeValue } from '../../types/span';
 import {
   GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,

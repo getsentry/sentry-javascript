@@ -1,9 +1,9 @@
-import type { Span, SpanAttributes } from '../../types-hoist/span';
+import type { Span, SpanAttributes } from '../../types/span';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../semanticAttributes';
 import { getHttpSpanDetailsFromUrlObject, parseStringToURLObject } from '../../utils/url';
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
 import { getRequestUrlFromClientRequest } from './get-request-url';
-import type { StartSpanOptions } from '../../types-hoist/startSpanOptions';
+import type { StartSpanOptions } from '../../types/startSpanOptions';
 
 /**
  * Build the initial span name and attributes for an outgoing HTTP request.
