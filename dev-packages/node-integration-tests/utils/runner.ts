@@ -777,7 +777,7 @@ function log(...args: unknown[]): void {
  * targets the wrong SDK instance.
  */
 function buildAutoFlushFlags(existingFlags: readonly string[]): string[] {
-  const isEsm = existingFlags.some(flag => flag === '--import' || flag.startsWith('--import='));
+  const isEsm = existingFlags.some(flag => flag.startsWith('--import='));
   if (isEsm) {
     return ['--import', join(__dirname, 'auto-flush.mjs')];
   }
