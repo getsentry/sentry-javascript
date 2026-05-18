@@ -1,4 +1,4 @@
-import { KnexInstrumentation } from '@opentelemetry/instrumentation-knex';
+import { KnexInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
 import { generateInstrumentOnce, instrumentWhenWrapped } from '@sentry/node-core';
