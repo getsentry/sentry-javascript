@@ -186,6 +186,10 @@ const _mysqlChannelIntegration = (() => {
                 code: SPAN_STATUS_ERROR,
                 message: err instanceof Error ? err.message : 'unknown_error',
               });
+              // Defensive: end the span here too in case `'end'` never fires
+              // (e.g. abrupt socket destruction). `finishSpan` is idempotent —
+              // `spans.delete` makes the subsequent `'end'` listener a no-op.
+              finishSpan(rawCtx);
             });
             result.on('end', () => finishSpan(rawCtx));
             return;
