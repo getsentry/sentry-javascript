@@ -1,15 +1,7 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
+import * as Sentry from '@sentry/node';
+import mongodb from 'mongodb';
 
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-});
-
-// Must be required after Sentry is initialized
-const { MongoClient } = require('mongodb');
+const { MongoClient } = mongodb;
 
 const client = new MongoClient(process.env.MONGO_URL || '', {
   useUnifiedTopology: true,
