@@ -222,17 +222,22 @@ export class AmqplibInstrumentation extends InstrumentationBase<AmqplibInstrumen
       socketOptions: any,
       openCallback: Function,
     ) {
-      return original.call(this, url, socketOptions, function (this: unknown, err: any, conn: InstrumentationConnection) {
-        if (err == null) {
-          const urlAttributes = getConnectionAttributesFromUrl(url, self._netSemconvStability);
-          const serverAttributes = getConnectionAttributesFromServer(conn);
-          conn[CONNECTION_ATTRIBUTES] = {
-            ...urlAttributes,
-            ...serverAttributes,
-          };
-        }
-        openCallback.apply(this, arguments);
-      });
+      return original.call(
+        this,
+        url,
+        socketOptions,
+        function (this: unknown, err: any, conn: InstrumentationConnection) {
+          if (err == null) {
+            const urlAttributes = getConnectionAttributesFromUrl(url, self._netSemconvStability);
+            const serverAttributes = getConnectionAttributesFromServer(conn);
+            conn[CONNECTION_ATTRIBUTES] = {
+              ...urlAttributes,
+              ...serverAttributes,
+            };
+          }
+          openCallback.apply(this, arguments);
+        },
+      );
     };
   }
 
