@@ -17,6 +17,7 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-kafkajs
  * - Upstream version: @opentelemetry/instrumentation-kafkajs@0.27.0
  * - Some types vendored from kafkajs with simplifications
+ * - Minor TypeScript strictness adjustments for this repository's compiler settings
  */
 /* eslint-disable */
 
