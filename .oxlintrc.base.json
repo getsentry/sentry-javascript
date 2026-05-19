@@ -147,6 +147,7 @@
         "**/integrations/fs/vendored/**/*.ts",
         "**/integrations/tracing/knex/vendored/**/*.ts",
         "**/integrations/tracing/mongo/vendored/**/*.ts",
+        "**/integrations/tracing/connect/vendored/**/*.ts",
         "**/nestjs/src/integrations/vendored/**/*.ts"
       ],
       "rules": {

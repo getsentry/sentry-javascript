@@ -1,4 +1,4 @@
-import { ConnectInstrumentation } from '@opentelemetry/instrumentation-connect';
+import { ConnectInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   captureException,
