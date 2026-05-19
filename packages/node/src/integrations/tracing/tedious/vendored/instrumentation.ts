@@ -17,6 +17,7 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-tedious
  * - Upstream version: @opentelemetry/instrumentation-tedious@0.37.0
  * - Minor TypeScript strictness adjustments
+ * - Inlined simplified tedious types to avoid requiring the package as a dependency
  */
 /* eslint-disable */
 
@@ -48,7 +49,7 @@ import {
   ATTR_NET_PEER_NAME,
   ATTR_NET_PEER_PORT,
 } from './semconv';
-import type * as tedious from 'tedious';
+import type * as tedious from './tedious-types';
 import { TediousInstrumentationConfig } from './types';
 import { getSpanName, once } from './utils';
 import { SDK_VERSION } from '@sentry/core';
