@@ -96,3 +96,5 @@ jobs:
             5. Test the fix
             6. Checkout a new branch and commit the fix
             7. Create a pull request for the fix
+          claude_args: |
+            --max-turns 50
