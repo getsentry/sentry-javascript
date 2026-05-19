@@ -24,13 +24,13 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
   status: 'ok',
 });
 
-describe('amqplib v2 auto-instrumentation', () => {
+describe('amqplib v1 auto-instrumentation', () => {
   afterAll(async () => {
     cleanupChildProcesses();
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
-    test('should be able to send and receive messages with amqplib v2', { timeout: 60_000 }, async () => {
+    test('should be able to send and receive messages with amqplib v1', { timeout: 60_000 }, async () => {
       await createTestRunner()
         .withDockerCompose({
           workingDirectory: [__dirname],

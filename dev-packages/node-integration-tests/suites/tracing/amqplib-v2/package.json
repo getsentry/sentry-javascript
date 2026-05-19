@@ -1,7 +1,0 @@
-{
-  "name": "sentry-amqplib-v2-test",
-  "version": "1.0.0",
-  "dependencies": {
-    "amqplib": "^2.0.0"
-  }
-}
