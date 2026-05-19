@@ -47,7 +47,7 @@ Present a plan to the user covering:
 - Test coverage status
 - Any concerns
 
-Wait for user approval before implementing.
+**Stop here and wait for explicit user approval before implementing.** Use AskUserQuestion to confirm the plan.
 
 ## 3. Directory Structure
 
@@ -138,7 +138,9 @@ Before submitting, report ALL modifications to the user:
 
 ## 10. PR Creation
 
+**After reporting changes, ask the user if they want to proceed with creating the draft PR.** Use AskUserQuestion to confirm.
+
 - Branch: `vendor-<name>-instrumentation`
 - Commit: `ref(node): Vendor <name> instrumentation`
-- PR body: one sentence describing what was vendored, mention inlined types if applicable, reference closing issue
+- PR description: one or two concise sentences — what was vendored and any notable details (e.g., inlined types). Reference a closing issue if applicable. Example: "Vendors @opentelemetry/instrumentation-kafkajs into the SDK with no logic changes. Types from kafkajs are inlined as simplified interfaces to avoid requiring the package as a dependency.\n\nCloses #20151"
 - Always draft PR, base branch `develop`
