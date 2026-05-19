@@ -5,164 +5,130 @@ description: Vendor an OpenTelemetry instrumentation package into the Sentry Jav
 
 # Vendor OTel Instrumentation
 
+**Input:** The npm package name to vendor (e.g., `@opentelemetry/instrumentation-graphql`).
+
 Copy upstream OTel instrumentation TypeScript source into a `vendored/` directory, remove the npm dependency, and ensure builds and tests pass. No logic changes — the vendored code must behave identically to the original.
 
 ## 1. Research
 
-### Find upstream source
+Find upstream source files:
 ```bash
 gh api "repos/open-telemetry/opentelemetry-js-contrib/git/trees/main?recursive=1" --jq '.tree[].path' | grep "instrumentation-<name>/src/.*\.ts$"
 ```
 
-### Check versions
-- Pinned version: `grep "instrumentation-<name>" packages/node/package.json`
+Check versions:
+- Pinned: `grep "instrumentation-<name>" packages/node/package.json`
 - Latest tag: `gh api repos/open-telemetry/opentelemetry-js-contrib/git/refs/tags --jq '.[].ref' | grep "instrumentation-<name>"`
-- Get commit SHA: `gh api repos/open-telemetry/opentelemetry-js-contrib/git/refs/tags/instrumentation-<name>-v<version> --jq '.object.sha'`
+- Commit SHA: `gh api repos/open-telemetry/opentelemetry-js-contrib/git/refs/tags/instrumentation-<name>-v<version> --jq '.object.sha'`
 
-### Verify no breaking changes between pinned and latest
-**This is critical.** All OTel instrumentations are pre-v1 so any bump could break things. Diff ALL source files:
-```bash
-diff <(gh api ".../src/<file>?ref=instrumentation-<name>-v<pinned>" --jq '.content' | base64 -d) \
-     <(gh api ".../src/<file>?ref=instrumentation-<name>-v<latest>" --jq '.content' | base64 -d)
-```
-In practice most bumps have zero code changes (only license headers). If there ARE changes, evaluate safety and report to the user before proceeding.
+**Diff ALL source files between pinned and latest version.** All OTel instrumentations are pre-v1 so any bump could introduce breaking changes. Report findings to the user.
 
-### Check external type imports
+Check for external type imports (these need special handling, see section 5):
 ```bash
 grep "import.*from '" <file> | grep -v "@opentelemetry\|'\./\|@sentry\|'util'\|'path'\|'fs'\|'http'\|'events'"
 ```
-External type imports need special handling (see section 4).
 
-### Check test coverage
+Check test coverage and report gaps:
 - Integration tests: `dev-packages/node-integration-tests/suites/tracing/<name>/`
 - E2E tests: `dev-packages/e2e-tests/test-applications/node-<name>/`
 - Unit tests: `packages/node/test/integrations/tracing/<name>.test.ts`
 
-Report any gaps to the user (e.g., "no integration test exists for this instrumentation" or "tests exist but don't cover X functionality").
+## 2. Plan
 
-## 2. Directory Structure
+Present a plan to the user covering:
+- Which version to vendor (pinned vs latest, with diff summary)
+- Source files to copy
+- External types that need inlining
+- Test coverage status
+- Any concerns
 
-Move the integration file into a directory:
+Wait for user approval before implementing.
+
+## 3. Directory Structure
+
 - `packages/node/src/integrations/tracing/<name>.ts` → `packages/node/src/integrations/tracing/<name>/index.ts`
 - For non-tracing integrations (like `fs.ts`): `packages/node/src/integrations/<name>/index.ts`
 - For non-node packages (aws-serverless, nestjs): follow their existing structure
 - Create `vendored/` subdirectory for upstream files
 
-Import paths in barrel exports (`index.ts`, `tracing/index.ts`) resolve to the directory's `index.ts` automatically — usually no changes needed.
+## 4. Vendor Source Files
 
-## 3. Vendoring Source Files
-
-Fetch original TypeScript from the OTel contrib repo (NOT compiled JS from node_modules):
+Fetch original TypeScript from the OTel contrib GitHub repo (NOT compiled JS from node_modules):
 ```bash
 gh api "repos/open-telemetry/opentelemetry-js-contrib/contents/<path>?ref=<tag>" --jq '.content' | base64 -d
 ```
 
-**Be careful with header stripping** — `sed '1,Nd'` to remove the SPDX header can accidentally strip import lines. Always verify all imports are present after stripping.
+When stripping the upstream SPDX header, verify all import lines are still present afterward.
 
-Each vendored file gets this header:
+Each vendored file gets the full Apache 2.0 license header plus:
 ```
-/*
- * Copyright The OpenTelemetry Authors
- * ...full Apache 2.0 license text...
- *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/<sha>/packages/instrumentation-<name>
  * - Upstream version: @opentelemetry/instrumentation-<name>@<version>
- */
-/* eslint-disable */
 ```
+Add bullets for TS adjustments or type vendoring only when applicable.
 
-Add additional bullets to the NOTICE only when applicable:
-- `* - Minor TypeScript strictness adjustments for this repository's compiler settings` — when TS changes were made
-- `* - Some types vendored from <package> with simplifications` — when types were inlined
+Append `/* eslint-disable */` after the header block.
 
 Standard replacements in the main instrumentation file:
-- Remove `import { PACKAGE_NAME, PACKAGE_VERSION } from './version'` and the `/** @knipignore */` comment above it
-- Add `import { SDK_VERSION } from '@sentry/core'`
-- Add `const PACKAGE_NAME = '@sentry/instrumentation-<name>';`
+- Remove `import { PACKAGE_NAME, PACKAGE_VERSION } from './version'`
+- Add `import { SDK_VERSION } from '@sentry/core'` and `const PACKAGE_NAME = '@sentry/instrumentation-<name>';`
 - Replace `PACKAGE_VERSION` with `SDK_VERSION` in the `super()` call
 
-Don't forget barrel exports (`enums/index.ts`, etc.) if the upstream has them.
+Include barrel exports (`enums/index.ts`, etc.) if the upstream has them.
 
-## 4. External Type Handling
+## 5. External Type Handling
 
 Types from external packages can leak into `.d.ts` output and break consumers.
 
-**Decision tree:**
-1. Check if types appear in public class signatures. TypeScript strips private method signatures from `.d.ts`, so private-only usage won't leak.
+1. Check if types appear in public class signatures (private-only usage won't leak to `.d.ts`).
 2. Check if the upstream `types.ts` already vendors some types inline.
 3. If types leak or are needed for compilation, **inline simplified types**:
    - Put in a separate `<package>-types.ts` file in vendored/
    - Keep as close to originals as possible — same generic parameters, field names, types
    - Only simplify when the full type tree is too deep
    - Add `[key: string]: any` index signatures for permissiveness
-   - Check if package ships own types or uses DefinitelyTyped
-
 4. After building, verify no leaks: `grep "from '<package>'" packages/node/build/types/...`
 
-## 5. TypeScript Strictness Adjustments
+## 6. TypeScript Adjustments
 
-The Sentry repo has `strict: true` and `noUncheckedIndexedAccess: true`. Common fixes:
-- `<any>` angle-bracket assertions → `as any` (sucrase/esbuild doesn't support angle-bracket syntax)
-- Implicit `any` in `.then()`, `.catch()`, `.forEach()`, `.map()` callbacks → add `: any`
-- Array indexing `T | undefined` → add `!` non-null assertion or default values
-- `ConstructorParameters<typeof X>` constraint failures → replace with `any[]`
+Fix any compilation errors caused by this repository's strict TypeScript settings (`strict: true`, `noUncheckedIndexedAccess: true`). Add a `Minor TypeScript strictness adjustments` bullet to the header when changes are made.
 
-Add the TS strictness bullet to the header comment when changes are made.
-
-## 6. Package.json and Lint Config
+## 7. Package.json and Lint Config
 
 - Remove the dependency from the relevant `package.json`
-- If vendored code imports `@opentelemetry/core` and the package didn't previously have it as a direct dependency, **add it** — rollup auto-externalizes based on `dependencies`, without it the import resolves to a broken relative path
-- Add vendored path to the consolidated lint exceptions in `.oxlintrc.base.json`:
-```json
-"**/integrations/tracing/<name>/vendored/**/*.ts"
-```
+- If vendored code imports a package (e.g., `@opentelemetry/core`) that isn't a direct dependency, add it — rollup auto-externalizes based on `dependencies`
+- Add vendored path to the consolidated lint exceptions in `.oxlintrc.base.json`
 
-## 7. Build and Format
+## 8. Build, Format, and Test
 
 ```bash
 yarn install
-npx oxfmt --write <vendored-directory>/
+yarn fix
 yarn build:dev:filter @sentry/<package>
 ```
 
-Check `.d.ts` output for type leaks. For `aws-serverless`: needs `preserveModulesRoot: 'src'` in rollup config.
+Verify no external types leak into `.d.ts` output.
 
-## 8. Test Verification
+Run existing tests:
+- `cd dev-packages/node-integration-tests && yarn test suites/tracing/<name>`
+- `cd packages/node && yarn test:unit test/integrations/tracing/<name>.test.ts`
 
-- Run integration tests: `cd dev-packages/node-integration-tests && yarn test suites/tracing/<name>`
-- Run unit tests: `cd packages/node && yarn test:unit test/integrations/tracing/<name>.test.ts`
-- **Update test imports**: unit tests importing from `@opentelemetry/instrumentation-<name>` need paths updated to the vendored location, and `vi.mock()` calls updated to match
-- Docker-dependent tests (amqplib, kafkajs, redis, postgres) timeout locally but pass in CI
-- Version-specific tests: use a local `package.json` in the test directory with unique Docker container names
-
-**Report test coverage gaps to the user** — if an instrumentation has no integration test, no E2E test, or tests don't cover key functionality, flag it.
+Update unit test imports from `@opentelemetry/instrumentation-<name>` to the vendored path, including `vi.mock()` calls.
 
 ## 9. Report Changes
 
-**Before submitting, report ALL modifications to the user for verification:**
+Before submitting, report ALL modifications to the user:
 
-1. **Files copied as-is** (only header + formatting changes) — list them
-2. **TypeScript strictness adjustments** — list each change with file and line context (e.g., "added `: any` to `.catch()` callback parameter")
-3. **Type simplifications** — explain what was simplified vs the original and why
-4. **Import path changes** — `from 'kafkajs'` → `from './kafkajs-types'` etc.
-5. **Any other modifications** — anything beyond the standard vendoring pattern
-
-The user should be able to verify that no logic was changed and all adjustments were strictly necessary.
+1. **Files copied as-is** (only header + formatting)
+2. **TypeScript adjustments** — each change with file and line context
+3. **Type simplifications** — what was simplified and why
+4. **Import path changes**
+5. **Any other modifications**
 
 ## 10. PR Creation
 
-- Branch: `nh/vendor-<name>-instrumentation`
+- Branch: `vendor-<name>-instrumentation`
 - Commit: `ref(node): Vendor <name> instrumentation`
-- PR body: one sentence on what was vendored, mention inlined types if applicable, reference closing issue
+- PR body: one sentence describing what was vendored, mention inlined types if applicable, reference closing issue
 - Always draft PR, base branch `develop`
-
-## 11. Common Pitfalls
-
-- `sed` header stripping removing import lines — always verify
-- `preserveModules: true` shifting output paths with deeply nested vendored files
-- Docker container name conflicts between test suites
-- `/* eslint-disable */` kept for consistency even though project uses oxlint
-- `yarn.lock` duplicates — run `npx yarn-deduplicate yarn.lock`
-- `.oxlintrc.base.json` merge conflicts — keep both HEAD and develop entries
