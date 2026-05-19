@@ -1,5 +1,6 @@
 import type { Span } from '@opentelemetry/api';
-import { AmqplibInstrumentation, type AmqplibInstrumentationConfig } from '@opentelemetry/instrumentation-amqplib';
+import { AmqplibInstrumentation } from './vendored/amqplib';
+import type { AmqplibInstrumentationConfig } from './vendored/types';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
