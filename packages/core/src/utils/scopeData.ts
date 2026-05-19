@@ -1,9 +1,9 @@
 import { getGlobalScope } from '../currentScopes';
 import type { Scope, ScopeData } from '../scope';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
-import type { Breadcrumb } from '../types-hoist/breadcrumb';
-import type { Event } from '../types-hoist/event';
-import type { Span } from '../types-hoist/span';
+import type { Breadcrumb } from '../types/breadcrumb';
+import type { Event } from '../types/event';
+import type { Span } from '../types/span';
 import { merge } from './merge';
 import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
 

@@ -119,3 +119,8 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
 };
 
 export * from '@sentry/browser';
+
+/**
+ *  Ember-specific browser tracing integration
+ */
+export { browserTracingIntegration } from './utils/browserTracingIntegration';

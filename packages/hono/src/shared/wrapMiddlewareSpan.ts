@@ -3,7 +3,6 @@ import {
   getActiveSpan,
   getOriginalFunction,
   getRootSpan,
-  markFunctionWrapped,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -26,36 +25,42 @@ export function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHa
     return handler;
   }
 
-  const wrapped: MiddlewareHandler = async function sentryTracedMiddleware(context, next) {
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-    const span = startInactiveSpan({
-      name: handler.name || '<anonymous>',
-      op: 'middleware.hono',
-      onlyIfParent: true,
-      parentSpan: rootSpan,
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.hono',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: MIDDLEWARE_ORIGIN,
-      },
-    });
+  return new Proxy(handler, {
+    async apply(_target, _thisArg, args: Parameters<MiddlewareHandler>) {
+      const [context, next] = args;
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+      const span = startInactiveSpan({
+        name: handler.name || '<anonymous>',
+        op: 'middleware.hono',
+        onlyIfParent: true,
+        parentSpan: rootSpan,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.hono',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: MIDDLEWARE_ORIGIN,
+        },
+      });
 
-    try {
-      return await handler(context, next);
-    } catch (error) {
-      if (!isExpectedError(error)) {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        captureException(error, {
-          mechanism: { handled: false, type: MIDDLEWARE_ORIGIN },
-        });
+      try {
+        return await handler(context, next);
+      } catch (error) {
+        if (!isExpectedError(error)) {
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          captureException(error, {
+            mechanism: { handled: false, type: MIDDLEWARE_ORIGIN },
+          });
+        }
+
+        throw error;
+      } finally {
+        span.end();
       }
-
-      throw error;
-    } finally {
-      span.end();
-    }
-  };
-
-  markFunctionWrapped(wrapped as unknown as WrappedFunction, handler as unknown as WrappedFunction);
-  return wrapped;
+    },
+    get(target, prop, receiver) {
+      if (prop === '__sentry_original__') {
+        return handler;
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
 }

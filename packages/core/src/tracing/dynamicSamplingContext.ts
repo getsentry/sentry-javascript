@@ -7,8 +7,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
-import type { DynamicSamplingContext } from '../types-hoist/envelope';
-import type { Span } from '../types-hoist/span';
+import type { DynamicSamplingContext } from '../types/envelope';
+import type { Span } from '../types/span';
 import { baggageHeaderToDynamicSamplingContext, dynamicSamplingContextToSentryBaggageHeader } from '../utils/baggage';
 import { extractOrgIdFromClient } from '../utils/dsn';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';

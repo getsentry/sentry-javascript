@@ -3,8 +3,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
 } from '../semanticAttributes';
-import type { Measurements, MeasurementUnit } from '../types-hoist/measurement';
-import type { TimedEvent } from '../types-hoist/timedEvent';
+import type { Measurements, MeasurementUnit } from '../types/measurement';
+import type { TimedEvent } from '../types/timedEvent';
 import { debug } from '../utils/debug-logger';
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
 

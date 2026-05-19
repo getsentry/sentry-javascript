@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Event } from '../../../../src/types-hoist/event';
-import type { SpanJSON } from '../../../../src/types-hoist/span';
+import type { Event } from '../../../../src/types/event';
+import type { SpanJSON } from '../../../../src/types/span';
 import { extractGenAiSpansFromEvent } from '../../../../src/tracing/spans/extractGenAiSpans';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 

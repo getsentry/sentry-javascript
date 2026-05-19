@@ -95,6 +95,10 @@ const SEGMENT_SPAN = {
       type: 'string',
       value: expect.any(String),
     },
+    'sentry.sdk.integrations': {
+      type: 'array',
+      value: expect.arrayContaining(['SpanStreaming']),
+    },
     'sentry.segment.id': {
       type: 'string',
       value: expect.stringMatching(/^[\da-f]{16}$/),

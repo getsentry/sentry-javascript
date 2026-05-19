@@ -2,9 +2,6 @@ import * as Sentry from '@sentry/node';
 import genericPool from 'generic-pool';
 import mysql from 'mysql';
 
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
-
 const factory = {
   create: function () {
     return mysql.createConnection({

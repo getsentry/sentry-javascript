@@ -13,12 +13,11 @@ import deepMerge from 'deepmerge';
 
 import { defineConfig } from 'rollup';
 import {
-  makeCleanupPlugin,
   makeDebugBuildStatementReplacePlugin,
+  makeEsbuildPlugin,
   makeNodeResolvePlugin,
   makeProductionReplacePlugin,
   makeRrwebBuildPlugin,
-  makeSucrasePlugin,
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
 import { mergeExternals, mergePlugins } from './utils.mjs';
@@ -34,14 +33,13 @@ export function makeBaseNPMConfig(options = {}) {
     entrypoints = ['src/index.ts'],
     hasBundles = false,
     packageSpecificConfig = {},
-    sucrase = {},
+    esbuild = {},
     bundledBuiltins = [],
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
-  const sucrasePlugin = makeSucrasePlugin({}, sucrase);
+  const transpilePlugin = makeEsbuildPlugin(esbuild);
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
-  const cleanupPlugin = makeCleanupPlugin();
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeShadowDom: undefined,
     excludeIframe: undefined,
@@ -104,7 +102,7 @@ export function makeBaseNPMConfig(options = {}) {
       },
     },
 
-    plugins: [nodeResolvePlugin, sucrasePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin, cleanupPlugin],
+    plugins: [nodeResolvePlugin, transpilePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin],
 
     // don't include imported modules from outside the package in the final output
     // also treat subpath exports (e.g. `@sentry/core/browser`) as external
@@ -154,8 +152,9 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm/prod'),
-          plugins: [makeProductionReplacePlugin(), makePackageNodeEsm()],
+          plugins: [makePackageNodeEsm()],
         },
+        plugins: [makeProductionReplacePlugin()],
       });
     } else {
       variantSpecificConfigs.push({
@@ -168,7 +167,13 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
     }
   }
 
-  return variantSpecificConfigs.map(variant => deepMerge(baseConfig, variant));
+  return variantSpecificConfigs.map(variant =>
+    // Plugin arrays must be merged in the right order or the build silently misbehaves
+    // (e.g. esbuild strips dev-mode marker comments before the replace plugin can act).
+    deepMerge(baseConfig, variant, {
+      customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
+    }),
+  );
 }
 
 /**

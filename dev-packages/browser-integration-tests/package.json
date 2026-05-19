@@ -59,7 +59,7 @@
     "@babel/core": "^7.27.7",
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "~1.56.0",
-    "@sentry-internal/rrweb": "2.42.0",
+    "@sentry-internal/rrweb": "2.43.0",
     "@sentry/browser": "10.53.1",
     "@sentry-internal/replay": "10.53.1",
     "@sentry/opentelemetry": "10.53.1",

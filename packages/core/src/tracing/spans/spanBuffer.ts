@@ -1,6 +1,6 @@
 import type { Client } from '../../client';
 import { DEBUG_BUILD } from '../../debug-build';
-import type { SerializedStreamedSpan } from '../../types-hoist/span';
+import type { SerializedStreamedSpan } from '../../types/span';
 import { debug } from '../../utils/debug-logger';
 import { safeUnref } from '../../utils/timer';
 import { getDynamicSamplingContextFromSpan } from '../dynamicSamplingContext';

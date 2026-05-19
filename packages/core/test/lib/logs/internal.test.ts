@@ -6,7 +6,7 @@ import {
   _INTERNAL_getLogBuffer,
   _INTERNAL_removeLoneSurrogates,
 } from '../../../src/logs/internal';
-import type { Log } from '../../../src/types-hoist/log';
+import type { Log } from '../../../src/types/log';
 import * as loggerModule from '../../../src/utils/debug-logger';
 import * as timeModule from '../../../src/utils/time';
 import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';

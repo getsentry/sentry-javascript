@@ -14,29 +14,29 @@ import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingCon
 import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 import { extractGenAiSpansFromEvent } from './tracing/spans/extractGenAiSpans';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
-import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types-hoist/breadcrumb';
-import type { CheckIn, MonitorConfig } from './types-hoist/checkin';
-import type { EventDropReason, Outcome } from './types-hoist/clientreport';
-import type { DataCategory } from './types-hoist/datacategory';
-import type { DsnComponents } from './types-hoist/dsn';
-import type { DynamicSamplingContext, Envelope } from './types-hoist/envelope';
-import type { ErrorEvent, Event, EventHint, EventType, TransactionEvent } from './types-hoist/event';
-import type { EventProcessor } from './types-hoist/eventprocessor';
-import type { FeedbackEvent } from './types-hoist/feedback';
-import type { Integration } from './types-hoist/integration';
-import type { Log } from './types-hoist/log';
-import type { Metric } from './types-hoist/metric';
-import type { Primitive } from './types-hoist/misc';
-import type { ClientOptions } from './types-hoist/options';
-import type { ParameterizedString } from './types-hoist/parameterize';
-import type { ReplayEndEvent, ReplayStartEvent } from './types-hoist/replay';
-import type { RequestEventData } from './types-hoist/request';
-import type { SdkMetadata } from './types-hoist/sdkmetadata';
-import type { Session, SessionAggregates } from './types-hoist/session';
-import type { SeverityLevel } from './types-hoist/severity';
-import type { Span, SpanAttributes, SpanContextData, SpanJSON, StreamedSpanJSON } from './types-hoist/span';
-import type { StartSpanOptions } from './types-hoist/startSpanOptions';
-import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
+import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types/breadcrumb';
+import type { CheckIn, MonitorConfig } from './types/checkin';
+import type { EventDropReason, Outcome } from './types/clientreport';
+import type { DataCategory } from './types/datacategory';
+import type { DsnComponents } from './types/dsn';
+import type { DynamicSamplingContext, Envelope } from './types/envelope';
+import type { ErrorEvent, Event, EventHint, EventType, TransactionEvent } from './types/event';
+import type { EventProcessor } from './types/eventprocessor';
+import type { FeedbackEvent } from './types/feedback';
+import type { Integration } from './types/integration';
+import type { Log } from './types/log';
+import type { Metric } from './types/metric';
+import type { Primitive } from './types/misc';
+import type { ClientOptions } from './types/options';
+import type { ParameterizedString } from './types/parameterize';
+import type { ReplayEndEvent, ReplayStartEvent } from './types/replay';
+import type { RequestEventData } from './types/request';
+import type { SdkMetadata } from './types/sdkmetadata';
+import type { Session, SessionAggregates } from './types/session';
+import type { SeverityLevel } from './types/severity';
+import type { Span, SpanAttributes, SpanContextData, SpanJSON, StreamedSpanJSON } from './types/span';
+import type { StartSpanOptions } from './types/startSpanOptions';
+import type { Transport, TransportMakeRequestResponse } from './types/transport';
 import { createClientReportEnvelope } from './utils/clientreport';
 import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
@@ -498,6 +498,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public getIntegrationByName<T extends Integration = Integration>(integrationName: string): T | undefined {
     return this._integrations[integrationName] as T | undefined;
+  }
+
+  /**
+   * Returns the names of all installed integrations.
+   */
+  public getIntegrationNames(): string[] {
+    return Object.keys(this._integrations);
   }
 
   /**
@@ -1302,8 +1309,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     isolationScope: Scope,
   ): PromiseLike<Event | null> {
     const options = this.getOptions();
-    const integrations = Object.keys(this._integrations);
-    if (!hint.integrations && integrations?.length) {
+    const integrations = this.getIntegrationNames();
+    if (!hint.integrations && integrations.length) {
       hint.integrations = integrations;
     }
 

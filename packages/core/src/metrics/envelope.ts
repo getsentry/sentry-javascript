@@ -1,7 +1,7 @@
-import type { DsnComponents } from '../types-hoist/dsn';
-import type { MetricContainerItem, MetricEnvelope } from '../types-hoist/envelope';
-import type { SerializedMetric } from '../types-hoist/metric';
-import type { SdkMetadata } from '../types-hoist/sdkmetadata';
+import type { DsnComponents } from '../types/dsn';
+import type { MetricContainerItem, MetricEnvelope } from '../types/envelope';
+import type { SerializedMetric } from '../types/metric';
+import type { SdkMetadata } from '../types/sdkmetadata';
 import { dsnToString } from '../utils/dsn';
 import { createEnvelope } from '../utils/envelope';
 import { isBrowser } from '../utils/isBrowser';

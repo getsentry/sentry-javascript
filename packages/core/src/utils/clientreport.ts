@@ -1,5 +1,5 @@
-import type { ClientReport } from '../types-hoist/clientreport';
-import type { ClientReportEnvelope, ClientReportItem } from '../types-hoist/envelope';
+import type { ClientReport } from '../types/clientreport';
+import type { ClientReportEnvelope, ClientReportItem } from '../types/envelope';
 import { createEnvelope } from './envelope';
 import { dateTimestampInSeconds } from './time';
 

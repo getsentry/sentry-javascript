@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { Primitive } from '../types-hoist/misc';
-import type { ParameterizedString } from '../types-hoist/parameterize';
-import type { PolymorphicEvent } from '../types-hoist/polymorphics';
-import type { VNode, VueViewModel } from '../types-hoist/vue';
+import type { Primitive } from '../types/misc';
+import type { ParameterizedString } from '../types/parameterize';
+import type { PolymorphicEvent } from '../types/polymorphics';
+import type { VNode, VueViewModel } from '../types/vue';
 
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const objectToString = Object.prototype.toString;

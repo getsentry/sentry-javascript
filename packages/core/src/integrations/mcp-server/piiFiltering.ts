@@ -5,7 +5,7 @@
  * Input/output data (request arguments, tool/prompt results) is controlled
  * separately via recordInputs/recordOutputs options.
  */
-import type { SpanAttributeValue } from '../../types-hoist/span';
+import type { SpanAttributeValue } from '../../types/span';
 import { CLIENT_ADDRESS_ATTRIBUTE, CLIENT_PORT_ATTRIBUTE, MCP_RESOURCE_URI_ATTRIBUTE } from './attributes';
 
 /**

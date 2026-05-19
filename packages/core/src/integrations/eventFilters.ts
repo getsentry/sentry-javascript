@@ -1,8 +1,8 @@
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
-import type { Event } from '../types-hoist/event';
-import type { IntegrationFn } from '../types-hoist/integration';
-import type { StackFrame } from '../types-hoist/stackframe';
+import type { Event } from '../types/event';
+import type { IntegrationFn } from '../types/integration';
+import type { StackFrame } from '../types/stackframe';
 import { debug } from '../utils/debug-logger';
 import { getPossibleEventMessages } from '../utils/eventUtils';
 import { getEventDescription } from '../utils/misc';

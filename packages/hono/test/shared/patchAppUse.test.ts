@@ -135,6 +135,52 @@ describe('patchAppUse (middleware spans)', () => {
     expect(firstCall![0].name).not.toBe(secondCall![0].name);
   });
 
+  it('does not stack proxies when called twice on the same instance', () => {
+    const app = new Hono();
+    patchAppUse(app);
+    const firstUse = app.use;
+
+    patchAppUse(app);
+    expect(app.use).toBe(firstUse);
+  });
+
+  it('patches distinct instances independently', () => {
+    const app1 = new Hono();
+    const app2 = new Hono();
+
+    patchAppUse(app1);
+    patchAppUse(app2);
+
+    expect(app1.use).not.toBe(app2.use);
+  });
+
+  it('preserves symbol-keyed and string-keyed properties on wrapped handlers', async () => {
+    const app = new Hono();
+    patchAppUse(app);
+
+    const META = Symbol('test-meta');
+    const OPENAPI = Symbol('openapi');
+
+    const handler = async (_c: unknown, next: () => Promise<void>) => next();
+    (handler as any)[META] = { summary: 'Get items' };
+    (handler as any)[OPENAPI] = { responses: { 200: {} } };
+    (handler as any).customProp = 'hello';
+
+    app.use('/test', handler);
+
+    const route = (app.routes ?? []).find(r => r.path === '/test');
+    expect(route).toBeDefined();
+
+    expect((route!.handler as any).__sentry_original__).toBe(handler);
+
+    const symbols = Object.getOwnPropertySymbols(route!.handler);
+    expect(symbols).toContain(META);
+    expect(symbols).toContain(OPENAPI);
+    expect((route!.handler as any)[META]).toEqual({ summary: 'Get items' });
+    expect((route!.handler as any)[OPENAPI]).toEqual({ responses: { 200: {} } });
+    expect((route!.handler as any).customProp).toBe('hello');
+  });
+
   it('preserves this context when calling the original use (Proxy forwards thisArg)', () => {
     type FakeApp = {
       _capturedThis: unknown;

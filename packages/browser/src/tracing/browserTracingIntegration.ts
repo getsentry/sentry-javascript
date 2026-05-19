@@ -52,6 +52,7 @@ import {
 } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { getHttpRequestData, WINDOW } from '../helpers';
+import { fetchStreamPerformanceIntegration } from '../integrations/fetchStreamPerformance';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
@@ -174,6 +175,9 @@ export interface BrowserTracingOptions {
    * Do not enable this in case you have live streams or very long running streams.
    *
    * Default: false
+   *
+   * @deprecated Use `fetchStreamPerformanceIntegration()` instead. Add it to your `integrations` array
+   * to track the duration of streamed fetch response bodies.
    */
   trackFetchStreamPerformance: boolean;
 
@@ -743,13 +747,16 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       instrumentOutgoingRequests(client, {
         traceFetch,
         traceXHR,
-        trackFetchStreamPerformance,
         tracePropagationTargets: client.getOptions().tracePropagationTargets,
         shouldCreateSpanForRequest,
         enableHTTPTimings,
         onRequestSpanStart,
         onRequestSpanEnd,
       });
+
+      if (trackFetchStreamPerformance) {
+        client.addIntegration(fetchStreamPerformanceIntegration());
+      }
     },
   };
 }) satisfies IntegrationFn;

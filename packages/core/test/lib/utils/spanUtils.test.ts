@@ -16,9 +16,9 @@ import {
   timestampInSeconds,
   TRACEPARENT_REGEXP,
 } from '../../../src';
-import type { SpanLink } from '../../../src/types-hoist/link';
-import type { Span, SpanAttributes, SpanTimeInput, StreamedSpanJSON } from '../../../src/types-hoist/span';
-import type { SpanStatus } from '../../../src/types-hoist/spanStatus';
+import type { SpanLink } from '../../../src/types/link';
+import type { Span, SpanAttributes, SpanTimeInput, StreamedSpanJSON } from '../../../src/types/span';
+import type { SpanStatus } from '../../../src/types/spanStatus';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
 import {
   getRootSpan,

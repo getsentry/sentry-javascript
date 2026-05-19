@@ -5,7 +5,7 @@
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { SPAN_STATUS_ERROR, startSpanManual } from '../tracing';
-import type { Span } from '../types-hoist/span';
+import type { Span } from '../types/span';
 import { debug } from '../utils/debug-logger';
 import { getActiveSpan } from '../utils/spanUtils';
 

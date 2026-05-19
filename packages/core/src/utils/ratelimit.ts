@@ -1,5 +1,5 @@
-import type { DataCategory } from '../types-hoist/datacategory';
-import type { TransportMakeRequestResponse } from '../types-hoist/transport';
+import type { DataCategory } from '../types/datacategory';
+import type { TransportMakeRequestResponse } from '../types/transport';
 import { safeDateNow } from './randomSafeContext';
 
 // Intentionally keeping the key broad, as we don't know for sure what rate limit headers get returned from backend
