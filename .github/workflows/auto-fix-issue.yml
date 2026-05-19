@@ -94,5 +94,5 @@ jobs:
             4a. IMPORTANT: If the fix is complicated, or you are not 100% sure about the fix, stop here and instead write a comment on the issue describing what you did so far and why you aborted creating a fix.
             4b. Else, implement the fix
             5. Test the fix
-            6. Commit the fix
+            6. Checkout a new branch and commit the fix
             7. Create a pull request for the fix
