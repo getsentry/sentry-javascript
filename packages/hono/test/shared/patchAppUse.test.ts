@@ -366,6 +366,7 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
   it('forwards thisArg to the original method', () => {
     let capturedThis: unknown = null;
     const fakeMethod = function (this: unknown) {
+      // oxlint-disable-next-line @typescript-eslint/no-this-alias
       capturedThis = this;
       return this;
     };
