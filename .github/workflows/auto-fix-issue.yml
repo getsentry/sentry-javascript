@@ -22,7 +22,7 @@ jobs:
     environment: ci-triage
     permissions:
       contents: read
-      issues: read
+      issues: write
       pull-requests: write
       id-token: write
     # Run automatically for Flaky Test issues
