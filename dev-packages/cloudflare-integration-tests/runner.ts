@@ -19,11 +19,19 @@ export function cleanupChildProcesses(): void {
 process.on('exit', cleanupChildProcesses);
 
 // Wrangler can report "Ready" before it can actually handle requests.
-// This retries fetch on connection errors to handle this race condition.
+// This retries fetch on connection errors and transient 500 responses to handle this race condition.
 async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 10, retryDelayMs = 200): Promise<Response> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      return await fetch(url, init);
+      const res = await fetch(url, init);
+
+      if (res.status === 500 && attempt < maxRetries - 1) {
+        if (process.env.DEBUG) log(`Got 500, retrying (attempt ${attempt + 1}/${maxRetries})...`);
+        await new Promise(r => setTimeout(r, retryDelayMs));
+        continue;
+      }
+
+      return res;
     } catch (e) {
       const isConnectionError =
         e instanceof Error && (e.message.includes('ECONNREFUSED') || e.message.includes('fetch failed'));
