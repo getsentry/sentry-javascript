@@ -101,6 +101,15 @@ jobs:
             6. Checkout a new branch and commit the fix
             7. Create a pull request for the fix
 
+            Be economic with tool calls:
+            - Every tool call (Bash, Read, Grep, Edit, etc.) counts against your budget. Plan before acting.
+            - Prefer targeted commands over broad ones: read specific line ranges instead of whole files, grep for the exact symbol instead of listing directories.
+            - Batch independent operations into a single message with parallel tool calls.
+            - Do NOT re-read a file you just edited to "verify" — the edit either succeeded or errored.
+            - Do NOT run the full test suite to verify a small fix; run only the directly relevant test file.
+            - Do NOT re-run linters/formatters/builds repeatedly. Run each at most once unless the code changed since.
+            - If a search returned what you need, stop searching. Do not look for confirmation.
+
             Turn budget:
             - You have a hard limit of 80 tool calls for this entire task. Stay well under it.
             - If you have used roughly 50 tool calls and do not yet have a small, verified fix with a clear path to opening a PR, STOP. Do not keep exploring, re-reading files, or retrying tests.
