@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client, ScopeContext } from '../../src';
 import { createStackParser, getGlobalScope, getIsolationScope, GLOBAL_OBJ } from '../../src';
 import { Scope } from '../../src/scope';
-import type { Attachment } from '../../src/types-hoist/attachment';
-import type { Breadcrumb } from '../../src/types-hoist/breadcrumb';
-import type { Event, EventHint } from '../../src/types-hoist/event';
-import type { EventProcessor } from '../../src/types-hoist/eventprocessor';
-import type { ClientOptions } from '../../src/types-hoist/options';
+import type { Attachment } from '../../src/types/attachment';
+import type { Breadcrumb } from '../../src/types/breadcrumb';
+import type { Event, EventHint } from '../../src/types/event';
+import type { EventProcessor } from '../../src/types/eventprocessor';
+import type { ClientOptions } from '../../src/types/options';
 import {
   applyClientOptions,
   applyDebugIds,

@@ -2,8 +2,8 @@ import type { Client } from '../client';
 import { getCurrentScope, getIsolationScope } from '../currentScopes';
 import { defineIntegration } from '../integration';
 import { GEN_AI_CONVERSATION_ID_ATTRIBUTE } from '../semanticAttributes';
-import type { IntegrationFn } from '../types-hoist/integration';
-import type { Span } from '../types-hoist/span';
+import type { IntegrationFn } from '../types/integration';
+import type { Span } from '../types/span';
 import { spanToJSON } from '../utils/spanUtils';
 
 const INTEGRATION_NAME = 'ConversationId';

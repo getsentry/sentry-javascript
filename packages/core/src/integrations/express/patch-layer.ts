@@ -31,7 +31,7 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR, startSpanManual, withActiveSpan } from '../../tracing';
 import { debug } from '../../utils/debug-logger';
-import type { SpanAttributes } from '../../types-hoist/span';
+import type { SpanAttributes } from '../../types/span';
 import { getActiveSpan } from '../../utils/spanUtils';
 import { getStoredLayers, storeLayer } from './request-layer-store';
 import {

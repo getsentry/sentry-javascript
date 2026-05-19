@@ -1,7 +1,7 @@
-import type { SerializedCheckIn } from './types-hoist/checkin';
-import type { DsnComponents } from './types-hoist/dsn';
-import type { CheckInEnvelope, CheckInItem, DynamicSamplingContext } from './types-hoist/envelope';
-import type { SdkMetadata } from './types-hoist/sdkmetadata';
+import type { SerializedCheckIn } from './types/checkin';
+import type { DsnComponents } from './types/dsn';
+import type { CheckInEnvelope, CheckInItem, DynamicSamplingContext } from './types/envelope';
+import type { SdkMetadata } from './types/sdkmetadata';
 import { dsnToString } from './utils/dsn';
 import { createEnvelope } from './utils/envelope';
 

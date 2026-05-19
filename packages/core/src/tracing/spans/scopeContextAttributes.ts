@@ -1,4 +1,4 @@
-import type { Contexts } from '../../types-hoist/context';
+import type { Contexts } from '../../types/context';
 
 /**
  * Convert known scope contexts set by SDK integrations to span attributes.

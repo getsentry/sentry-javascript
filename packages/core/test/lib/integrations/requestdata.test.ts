@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../../src/client';
 import * as currentScopes from '../../../src/currentScopes';
 import { requestDataIntegration } from '../../../src/integrations/requestdata';
-import type { Event } from '../../../src/types-hoist/event';
-import type { StreamedSpanJSON } from '../../../src/types-hoist/span';
+import type { Event } from '../../../src/types/event';
+import type { StreamedSpanJSON } from '../../../src/types/span';
 import { ipHeaderNames } from '../../../src/vendor/getIpAddress';
 
 function mockClient(sendDefaultPii: boolean | undefined): Client {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SpanJSON } from '../../../../src/types-hoist/span';
+import type { SpanJSON } from '../../../../src/types/span';
 import { spanJsonToSerializedStreamedSpan } from '../../../../src/tracing/spans/spanJsonToStreamedSpan';
 
 function makeSpanJSON(overrides: Partial<SpanJSON> = {}): SpanJSON {

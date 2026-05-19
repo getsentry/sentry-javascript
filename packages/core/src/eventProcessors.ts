@@ -1,6 +1,6 @@
 import { DEBUG_BUILD } from './debug-build';
-import type { Event, EventHint } from './types-hoist/event';
-import type { EventProcessor } from './types-hoist/eventprocessor';
+import type { Event, EventHint } from './types/event';
+import type { EventProcessor } from './types/eventprocessor';
 import { debug } from './utils/debug-logger';
 import { isThenable } from './utils/is';
 import { rejectedSyncPromise, resolvedSyncPromise } from './utils/syncpromise';

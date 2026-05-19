@@ -1,7 +1,7 @@
 import { defineIntegration } from '../integration';
-import type { Event } from '../types-hoist/event';
-import type { StackFrame } from '../types-hoist/stackframe';
-import type { Stacktrace } from '../types-hoist/stacktrace';
+import type { Event } from '../types/event';
+import type { StackFrame } from '../types/stackframe';
+import type { Stacktrace } from '../types/stacktrace';
 import { basename, relative } from '../utils/path';
 import { GLOBAL_OBJ } from '../utils/worldwide';
 

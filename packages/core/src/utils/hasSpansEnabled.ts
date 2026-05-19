@@ -1,5 +1,5 @@
 import { getClient } from '../currentScopes';
-import type { CoreOptions } from '../types-hoist/options';
+import type { CoreOptions } from '../types/options';
 
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean | undefined;

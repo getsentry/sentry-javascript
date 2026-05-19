@@ -1,4 +1,4 @@
-import type { HandlerDataError } from '../types-hoist/instrument';
+import type { HandlerDataError } from '../types/instrument';
 import { GLOBAL_OBJ } from '../utils/worldwide';
 import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 

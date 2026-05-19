@@ -1,4 +1,4 @@
-import type { EventDropReason } from '../types-hoist/clientreport';
+import type { EventDropReason } from '../types/clientreport';
 import type {
   SentrySpanArguments,
   Span,
@@ -6,8 +6,8 @@ import type {
   SpanAttributeValue,
   SpanContextData,
   SpanTimeInput,
-} from '../types-hoist/span';
-import type { SpanStatus } from '../types-hoist/spanStatus';
+} from '../types/span';
+import type { SpanStatus } from '../types/spanStatus';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
-import type { Span } from '../../../src/types-hoist/span';
+import type { Span } from '../../../src/types/span';
 import { spanIsSampled, spanToJSON, TRACE_FLAG_NONE } from '../../../src/utils/spanUtils';
 
 describe('SentryNonRecordingSpan', () => {

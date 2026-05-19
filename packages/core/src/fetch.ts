@@ -3,10 +3,10 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { setHttpStatus, SPAN_STATUS_ERROR, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
-import type { FetchBreadcrumbHint } from './types-hoist/breadcrumb';
-import type { HandlerDataFetch } from './types-hoist/instrument';
-import type { ResponseHookInfo } from './types-hoist/request';
-import type { Span, SpanAttributes, SpanOrigin } from './types-hoist/span';
+import type { FetchBreadcrumbHint } from './types/breadcrumb';
+import type { HandlerDataFetch } from './types/instrument';
+import type { ResponseHookInfo } from './types/request';
+import type { Span, SpanAttributes, SpanOrigin } from './types/span';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils/baggage';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { isInstanceOf, isRequest } from './utils/is';

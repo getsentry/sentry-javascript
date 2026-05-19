@@ -1,6 +1,6 @@
 import type { Client } from '../../client';
-import type { DynamicSamplingContext, SpanContainerItem, StreamedSpanEnvelope } from '../../types-hoist/envelope';
-import type { SerializedStreamedSpan } from '../../types-hoist/span';
+import type { DynamicSamplingContext, SpanContainerItem, StreamedSpanEnvelope } from '../../types/envelope';
+import type { SerializedStreamedSpan } from '../../types/span';
 import { dsnToString } from '../../utils/dsn';
 import { createEnvelope, getSdkMetadataForEnvelopeHeader } from '../../utils/envelope';
 import { isBrowser } from '../../utils/isBrowser';

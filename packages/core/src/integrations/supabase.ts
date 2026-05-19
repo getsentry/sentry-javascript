@@ -10,7 +10,7 @@ import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
-import type { IntegrationFn } from '../types-hoist/integration';
+import type { IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
 import { isPlainObject } from '../utils/is';
 import { addExceptionMechanism } from '../utils/misc';

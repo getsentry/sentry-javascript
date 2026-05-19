@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { estimateSerializedSpanSizeInBytes } from '../../../../src/tracing/spans/estimateSize';
-import type { SerializedStreamedSpan } from '../../../../src/types-hoist/span';
+import type { SerializedStreamedSpan } from '../../../../src/types/span';
 
 // Produces a realistic trace_id (32 hex chars) and span_id (16 hex chars)
 const TRACE_ID = 'a1b2c3d4e5f607189a0b1c2d3e4f5060';

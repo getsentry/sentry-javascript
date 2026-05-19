@@ -5,12 +5,12 @@
  */
 export { getComponentName, getLocationHref, htmlTreeAsString } from './utils/browser';
 export { supportsDOMError, supportsHistory, supportsNativeFetch, supportsReportingObserver } from './utils/supports';
-export type { XhrBreadcrumbData, XhrBreadcrumbHint } from './types-hoist/breadcrumb';
+export type { XhrBreadcrumbData, XhrBreadcrumbHint } from './types/breadcrumb';
 export type {
   HandlerDataXhr,
   HandlerDataDom,
   HandlerDataHistory,
   SentryXhrData,
   SentryWrappedXMLHttpRequest,
-} from './types-hoist/instrument';
-export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './types-hoist/browseroptions';
+} from './types/instrument';
+export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './types/browseroptions';
