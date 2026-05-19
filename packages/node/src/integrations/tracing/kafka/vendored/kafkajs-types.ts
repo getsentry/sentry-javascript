@@ -24,7 +24,7 @@ export type RequestEvent = InstrumentationEvent<{
   size: number;
 }>;
 
-export type RemoveInstrumentationEventListener<T> = () => void;
+export type RemoveInstrumentationEventListener<_T> = () => void;
 
 export type ConsumerEvents = {
   REQUEST: 'consumer.network.request';
