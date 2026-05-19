@@ -357,6 +357,23 @@ module.exports = [
     limit: '51 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
+  // Core SDK subpath entry points (ESM)
+  {
+    name: '@sentry/core/server',
+    path: 'packages/core/build/esm/server.js',
+    import: '*',
+    gzip: true,
+    limit: '78 KB',
+    disablePlugins: ['@size-limit/esbuild'],
+  },
+  {
+    name: '@sentry/core/browser',
+    path: 'packages/core/build/esm/browser.js',
+    import: '*',
+    gzip: true,
+    limit: '64 KB',
+    disablePlugins: ['@size-limit/esbuild'],
+  },
   // Node-Core SDK (ESM)
   {
     name: '@sentry/node-core',
