@@ -1,7 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
+import { isDevMode } from './isDevMode';
 
 test('Sends a transaction for a request to app router with URL', async ({ page }) => {
+  // Turbopack dev mode intermittently 404s on nested dynamic routes, and the SDK
+  // drops 404 server transactions, so the waitForTransaction times out.
+  test.skip(isDevMode, 'Turbopack intermittently returns 404 for nested dynamic routes in dev mode');
+
   const serverComponentTransactionPromise = waitForTransaction('nextjs-16', transactionEvent => {
     return (
       transactionEvent?.transaction === 'GET /parameterized/[one]/beep/[two]' &&
