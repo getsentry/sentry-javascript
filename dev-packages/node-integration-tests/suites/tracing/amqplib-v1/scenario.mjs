@@ -5,7 +5,7 @@ const queueName = 'queue1';
 const amqpUsername = 'sentry';
 const amqpPassword = 'sentry';
 
-const AMQP_URL = `amqp://${amqpUsername}:${amqpPassword}@localhost:5672/`;
+const AMQP_URL = `amqp://${amqpUsername}:${amqpPassword}@localhost:5673/`;
 const ACKNOWLEDGEMENT = { noAck: false };
 
 const QUEUE_OPTIONS = {
