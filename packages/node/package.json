@@ -72,7 +72,6 @@
     "@opentelemetry/instrumentation-graphql": "0.62.0",
     "@opentelemetry/instrumentation-hapi": "0.60.0",
     "@opentelemetry/instrumentation-http": "0.214.0",
-    "@opentelemetry/instrumentation-kafkajs": "0.23.0",
     "@opentelemetry/instrumentation-koa": "0.62.0",
     "@opentelemetry/instrumentation-mongoose": "0.60.0",
     "@opentelemetry/instrumentation-mysql": "0.60.0",
