@@ -1,9 +1,9 @@
 import test, { expect } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
-import { isDevMode } from './isDevMode';
+import { isTurbopackDevMode } from './isDevMode';
 
 test('Should create a transaction for node route handlers', async ({ request }) => {
-  test.skip(isDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
+  test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
 
   const routehandlerTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /route-handler/[xoxo]/node';
@@ -40,7 +40,7 @@ test('Should create a transaction for edge route handlers', async ({ request }) 
 test('Should report an error with a parameterized transaction name for a throwing route handler', async ({
   request,
 }) => {
-  test.skip(isDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
+  test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
 
   const errorEventPromise = waitForError('nextjs-16', errorEvent => {
     return errorEvent?.exception?.values?.some(value => value.value === 'route-handler-error') ?? false;
@@ -72,7 +72,7 @@ test('Should report an error with a parameterized transaction name for a throwin
 test('Should set a parameterized transaction name on a captureMessage event in a route handler', async ({
   request,
 }) => {
-  test.skip(isDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
+  test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
 
   const messageEventPromise = waitForError('nextjs-16', event => {
     return event?.message === 'route-handler-message';
@@ -105,7 +105,7 @@ test('Should set a parameterized transaction name on a captureMessage event in a
 test('Should set a parameterized transaction name on a captureException event in a route handler', async ({
   request,
 }) => {
-  test.skip(isDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
+  test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
 
   const errorEventPromise = waitForError('nextjs-16', errorEvent => {
     return errorEvent?.exception?.values?.some(value => value.value === 'route-handler-capture-exception') ?? false;
