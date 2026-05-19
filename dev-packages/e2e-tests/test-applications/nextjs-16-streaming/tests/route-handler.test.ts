@@ -1,7 +1,10 @@
 import test, { expect } from '@playwright/test';
 import { waitForError, waitForStreamedSpan, getSpanOp } from '@sentry-internal/test-utils';
+import { isDevMode } from './isDevMode';
 
 test('Should create a streamed span for node route handlers', async ({ request }) => {
+  test.skip(isDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
+
   const rootSpanPromise = waitForStreamedSpan('nextjs-16-streaming', span => {
     return span.name === 'GET /route-handler/[xoxo]/node' && getSpanOp(span) === 'http.server' && span.is_segment;
   });
@@ -16,6 +19,8 @@ test('Should create a streamed span for node route handlers', async ({ request }
 });
 
 test('Should report an error linked to the correct trace for a throwing route handler', async ({ request }) => {
+  test.skip(isDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
+
   const errorEventPromise = waitForError('nextjs-16-streaming', errorEvent => {
     return errorEvent?.exception?.values?.some(value => value.value === 'route-handler-error') ?? false;
   });
@@ -37,6 +42,8 @@ test('Should report an error linked to the correct trace for a throwing route ha
 test('Should set a parameterized transaction name on a captureMessage event in a route handler', async ({
   request,
 }) => {
+  test.skip(isDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
+
   const messageEventPromise = waitForError('nextjs-16-streaming', event => {
     return event?.message === 'route-handler-message';
   });
