@@ -48,7 +48,7 @@ import {
   ATTR_NET_PEER_NAME,
   ATTR_NET_PEER_PORT,
 } from './semconv';
-import type * as tedious from 'tedious';
+import type * as tedious from './tedious-types';
 import { TediousInstrumentationConfig } from './types';
 import { getSpanName, once } from './utils';
 import { SDK_VERSION } from '@sentry/core';
