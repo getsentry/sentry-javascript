@@ -1,0 +1,13 @@
+{
+  "name": "cloudflare-workers-workflow-legacy",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-05-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workflows": [
+    {
+      "name": "retry-test-workflow",
+      "binding": "RETRY_WORKFLOW",
+      "class_name": "RetryTestWorkflow",
+    },
+  ],
+}

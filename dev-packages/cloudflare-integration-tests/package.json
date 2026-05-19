@@ -19,11 +19,11 @@
     "hono": "^4.12.18"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250922.0",
+    "@cloudflare/workers-types": "^4.20260426.0",
     "@sentry-internal/test-utils": "10.55.0",
     "eslint-plugin-regexp": "^1.15.0",
     "vitest": "^3.2.4",
-    "wrangler": "4.61.0"
+    "wrangler": "4.86.0"
   },
   "volta": {
     "extends": "../../package.json"
