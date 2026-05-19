@@ -37,22 +37,16 @@ import { AttributeNames, NestType } from './enums';
 
 const PACKAGE_NAME = '@sentry/instrumentation-nestjs-core';
 
-// Simplified types inlined from @nestjs/core and @nestjs/common to avoid requiring these packages.
-// Controller: exact copy from @nestjs/common/interfaces/controllers/controller.interface.d.ts
 type Controller = object;
 
-// NestFactory: simplified from @nestjs/core/nest-factory.d.ts — only the create method is used.
-// Declared as a const (matching the original export shape) so `typeof NestFactory` works.
 declare const NestFactory: {
   create(...args: any[]): Promise<any>;
 };
 
-// RouterExecutionContext: simplified from @nestjs/core/router/router-execution-context.d.ts — only the create method is used.
 interface RouterExecutionContext {
   create(instance: Controller, callback: (...args: any[]) => unknown, ...args: any[]): any;
 }
 
-// Reflect metadata API (provided by reflect-metadata at runtime, used by NestJS)
 declare namespace Reflect {
   function getMetadataKeys(target: any): any[];
   function getMetadata(metadataKey: any, target: any): any;
