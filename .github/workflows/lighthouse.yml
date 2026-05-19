@@ -8,16 +8,6 @@ on:
     - cron: '0 0 * * *'
   workflow_dispatch:
 
-concurrency:
-  group: lighthouse-${{ github.run_id }}
-  cancel-in-progress: false
-
-env:
-  CACHED_DEPENDENCY_PATHS: |
-    ${{ github.workspace }}/node_modules
-    ${{ github.workspace }}/packages/*/node_modules
-    ${{ github.workspace }}/dev-packages/*/node_modules
-
 jobs:
   build-and-upload:
     name: Bundle and upload Lighthouse cells
@@ -35,7 +25,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
-      - uses: ./.github/actions/install-dependencies
+      - run: yarn install --frozen-lockfile --ignore-engines
       - run: yarn build:ci
       - run: yarn build:tarball
       - run: yarn test:prepare
