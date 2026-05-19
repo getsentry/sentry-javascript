@@ -88,16 +88,16 @@ Include barrel exports (`enums/index.ts`, etc.) if the upstream has them.
 
 ## 5. External Type Handling
 
-Types from external packages can leak into `.d.ts` output and break consumers.
+**Always inline types from external packages** — even when they only appear in private methods and won't leak into `.d.ts` output. This ensures the SDK compiles standalone without relying on hoisted workspace dependencies.
 
-1. Check if types appear in public class signatures (private-only usage won't leak to `.d.ts`).
-2. Check if the upstream `types.ts` already vendors some types inline.
-3. If types leak or are needed for compilation, **inline simplified types**:
+1. Check if the upstream `types.ts` already vendors some types inline.
+2. For any `import type * as X from '<external-package>'`, **inline simplified types**:
    - Put in a separate `<package>-types.ts` file in vendored/
    - Keep as close to originals as possible — same generic parameters, field names, types
+   - Only include members actually accessed by the instrumentation
    - Only simplify when the full type tree is too deep
    - Add `[key: string]: any` index signatures for permissiveness
-4. After building, verify no leaks: `grep "from '<package>'" packages/node/build/types/...`
+3. After building, verify no leaks: `grep "from '<package>'" packages/node/build/types/...`
 
 ## 6. TypeScript Adjustments
 
