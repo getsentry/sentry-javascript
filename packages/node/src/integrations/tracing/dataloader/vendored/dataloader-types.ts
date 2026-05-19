@@ -1,6 +1,5 @@
 /*
  * Simplified types inlined from dataloader.
- * Only includes members accessed by this instrumentation.
  */
 
 declare class DataLoader<K, V, C = K> {
