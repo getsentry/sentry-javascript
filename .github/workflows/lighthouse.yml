@@ -30,4 +30,4 @@ jobs:
       - run: yarn build:tarball
       - run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
-      - run: node dev-packages/lighthouse-bundle/bundle-and-upload.mjs
+      - run: node scripts/lighthouse-bundle-and-upload.mjs

@@ -6,9 +6,6 @@
  * the upload succeeds.
  *
  * Single-app static matrix: 1 app × 3 modes = 3 cells.
- * See plan scratchpad #182 for design details.
- *
- * Wire protocol: ~/Projects/sentry-lhci/docs/sentry-javascript-handoff.md
  *
  * Zero runtime dependencies — uses Node 22 builtins (fetch, FormData, Blob) and
  * the system `tar`. Every external command is invoked via `execFileSync` with
