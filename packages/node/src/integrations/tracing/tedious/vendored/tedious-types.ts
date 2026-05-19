@@ -1,6 +1,5 @@
 /*
  * Simplified types inlined from tedious.
- * Only includes members accessed by this instrumentation.
  */
 
 import { EventEmitter } from 'events';
