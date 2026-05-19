@@ -21,14 +21,18 @@ jobs:
     runs-on: ubuntu-latest
     environment: ci-triage
     permissions:
-      contents: read
+      # Required to create a new branch and commit the fix
+      contents: write
+      # Required to comment on the issue
       issues: write
+      # Required to create a pull request
       pull-requests: write
+      # Required to create a new branch and commit the fix
       id-token: write
-    # Run automatically for Flaky Test issues
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      contains(github.event.issue.labels.*.name, 'Flaky Test')
+    # TODO: Run automatically for Flaky Test issues
+    # if: |
+    #  github.event_name == 'workflow_dispatch' ||
+    #  contains(github.event.issue.labels.*.name, 'Flaky Test')
 
     steps:
       - name: Parse issue number
