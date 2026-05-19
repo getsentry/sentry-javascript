@@ -88,22 +88,16 @@ Include barrel exports (`enums/index.ts`, etc.) if the upstream has them.
 
 ## 5. External Type Handling
 
-Types from external packages can leak into `.d.ts` output and break consumers.
-
-**When to inline vs. leave as-is:**
-
-- `import type * as X from '<instrumented-package>'` (e.g., `tedious`, `dataloader`, `generic-pool`) — **do NOT inline**. The instrumented package is always in the user's `node_modules` (otherwise the instrumentation wouldn't run), so its types are guaranteed to be available.
-- `import type ... from '@types/<pkg>'` or types from packages that are NOT the instrumented package itself (e.g., `@types/connect`, `@types/koa`, `@types/amqplib`) — **inline these**. Users may not have the `@types/*` package installed.
-
-**How to inline:**
+**Always inline types from external packages** — including types from the instrumented package itself. Without inlining, the local SDK build relies on workspace hoisting to resolve these types, which is brittle.
 
 1. Check if the upstream `types.ts` already vendors some types inline.
-2. Put inlined types in a separate `<package>-types.ts` or `internal-types.ts` file in vendored/
-3. Keep as close to originals as possible — same generic parameters, field names, types
-4. Only include members actually accessed by the instrumentation
-5. Only simplify when the full type tree is too deep
-6. Add `[key: string]: any` index signatures for permissiveness
-7. After building, verify no leaks: `grep "from '<package>'" packages/node/build/types/...`
+2. For any `import type * as X from '<external-package>'`, **inline simplified types**:
+   - Put in a separate `<package>-types.ts` file in vendored/
+   - Only include members actually accessed by the instrumentation
+   - Keep as close to originals as possible — same generic parameters, field names, types
+   - Only simplify when the full type tree is too deep
+   - Add `[key: string]: any` index signatures for permissiveness
+3. After building, verify no leaks: `grep "from '<package>'" packages/node/build/types/...`
 
 ## 6. TypeScript Adjustments
 
