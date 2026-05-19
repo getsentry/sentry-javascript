@@ -12,11 +12,13 @@ Copy upstream OTel instrumentation TypeScript source into a `vendored/` director
 ## 1. Research
 
 Find upstream source files:
+
 ```bash
 gh api "repos/open-telemetry/opentelemetry-js-contrib/git/trees/main?recursive=1" --jq '.tree[].path' | grep "instrumentation-<name>/src/.*\.ts$"
 ```
 
 Check versions:
+
 - Pinned: `grep "instrumentation-<name>" packages/node/package.json`
 - Latest tag: `gh api repos/open-telemetry/opentelemetry-js-contrib/git/refs/tags --jq '.[].ref' | grep "instrumentation-<name>"`
 - Commit SHA: `gh api repos/open-telemetry/opentelemetry-js-contrib/git/refs/tags/instrumentation-<name>-v<version> --jq '.object.sha'`
@@ -24,11 +26,13 @@ Check versions:
 **Diff ALL source files between pinned and latest version.** All OTel instrumentations are pre-v1 so any bump could introduce breaking changes. Report findings to the user.
 
 Check for external type imports (these need special handling, see section 5):
+
 ```bash
 grep "import.*from '" <file> | grep -v "@opentelemetry\|'\./\|@sentry\|'util'\|'path'\|'fs'\|'http'\|'events'"
 ```
 
 Check test coverage and report gaps:
+
 - Integration tests: `dev-packages/node-integration-tests/suites/tracing/<name>/`
 - E2E tests: `dev-packages/e2e-tests/test-applications/node-<name>/`
 - Unit tests: `packages/node/test/integrations/tracing/<name>.test.ts`
@@ -36,6 +40,7 @@ Check test coverage and report gaps:
 ## 2. Plan
 
 Present a plan to the user covering:
+
 - Which version to vendor (pinned vs latest, with diff summary)
 - Source files to copy
 - External types that need inlining
@@ -54,6 +59,7 @@ Wait for user approval before implementing.
 ## 4. Vendor Source Files
 
 Fetch original TypeScript from the OTel contrib GitHub repo (NOT compiled JS from node_modules):
+
 ```bash
 gh api "repos/open-telemetry/opentelemetry-js-contrib/contents/<path>?ref=<tag>" --jq '.content' | base64 -d
 ```
@@ -61,16 +67,19 @@ gh api "repos/open-telemetry/opentelemetry-js-contrib/contents/<path>?ref=<tag>"
 When stripping the upstream SPDX header, verify all import lines are still present afterward.
 
 Each vendored file gets the full Apache 2.0 license header plus:
+
 ```
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/<sha>/packages/instrumentation-<name>
  * - Upstream version: @opentelemetry/instrumentation-<name>@<version>
 ```
+
 Add bullets for TS adjustments or type vendoring only when applicable.
 
 Append `/* eslint-disable */` after the header block.
 
 Standard replacements in the main instrumentation file:
+
 - Remove `import { PACKAGE_NAME, PACKAGE_VERSION } from './version'`
 - Add `import { SDK_VERSION } from '@sentry/core'` and `const PACKAGE_NAME = '@sentry/instrumentation-<name>';`
 - Replace `PACKAGE_VERSION` with `SDK_VERSION` in the `super()` call
@@ -111,6 +120,7 @@ yarn build:dev:filter @sentry/<package>
 Verify no external types leak into `.d.ts` output.
 
 Run existing tests:
+
 - `cd dev-packages/node-integration-tests && yarn test suites/tracing/<name>`
 - `cd packages/node && yarn test:unit test/integrations/tracing/<name>.test.ts`
 
