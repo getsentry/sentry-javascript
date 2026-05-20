@@ -91,7 +91,8 @@ test('Reports a click error with stacktrace and mechanism', async ({ page }) => 
 test('Does not report SSR errors on the client', async ({ page }) => {
   let clientErrorReceived = false;
   const errorPromise = waitForError('create-remix-app-express', errorEvent => {
-    if (errorEvent.exception?.values?.[0]?.value === 'Sentry SSR Test Error') {
+    // The server SDK emits the same error with `platform: 'node'` — only flag browser envelopes.
+    if (errorEvent.platform === 'javascript' && errorEvent.exception?.values?.[0]?.value === 'Sentry SSR Test Error') {
       clientErrorReceived = true;
       return true;
     }
@@ -109,9 +110,12 @@ test('Does not report SSR errors on the client', async ({ page }) => {
 
 test('Does not report thrown redirect responses on the client', async ({ page }) => {
   let clientErrorReceived = false;
-  const errorPromise = waitForError('create-remix-app-express', () => {
-    clientErrorReceived = true;
-    return true;
+  const errorPromise = waitForError('create-remix-app-express', errorEvent => {
+    if (errorEvent.platform === 'javascript') {
+      clientErrorReceived = true;
+      return true;
+    }
+    return false;
   });
 
   await page.goto('/throw-redirect');
