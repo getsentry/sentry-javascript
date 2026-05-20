@@ -4,11 +4,13 @@ import * as currentScopes from '../../../src/currentScopes';
 import { requestDataIntegration } from '../../../src/integrations/requestdata';
 import type { Event } from '../../../src/types/event';
 import type { StreamedSpanJSON } from '../../../src/types/span';
+import { resolveDataCollectionOptions } from '../../../src/utils/data-collection/resolveDataCollectionOptions';
 import { ipHeaderNames } from '../../../src/vendor/getIpAddress';
 
 function mockClient(sendDefaultPii: boolean | undefined): Client {
   return {
     getOptions: () => ({ sendDefaultPii: sendDefaultPii as boolean | undefined }),
+    getDataCollectionOptions: () => resolveDataCollectionOptions({ sendDefaultPii }),
   } as unknown as Client;
 }
 
