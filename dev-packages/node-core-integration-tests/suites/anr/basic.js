@@ -3,6 +3,7 @@ const assert = require('assert');
 
 const Sentry = require('@sentry/node-core');
 const { setupOtel } = require('../../utils/setupOtel.js');
+const { waitForDebuggerReady } = require('@sentry-internal/test-utils');
 
 global._sentryDebugIds = { [new Error().stack]: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' };
 
@@ -29,6 +30,6 @@ function longWork() {
   }
 }
 
-setTimeout(() => {
+waitForDebuggerReady(() => {
   longWork();
-}, 1000);
+});

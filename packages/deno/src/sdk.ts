@@ -16,7 +16,9 @@ import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
+import { HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED, HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED } from './denoVersion';
 import { denoServeIntegration } from './integrations/deno-serve';
+import { denoHttpIntegration } from './integrations/http';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
@@ -39,6 +41,12 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     breadcrumbsIntegration(),
     denoContextIntegration(),
     denoServeIntegration(),
+    // node:http client diagnostics channels fire on Deno 2.7.13+
+    // server channels arrive at 2.8.0+
+    // Include in defaults if at least one is available
+    ...(HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED || HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED
+      ? [denoHttpIntegration()]
+      : []),
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),
