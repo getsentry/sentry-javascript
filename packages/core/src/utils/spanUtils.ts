@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+
 import { getAsyncContextStrategy } from '../asyncContext';
 import type { RawAttributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
@@ -30,6 +32,8 @@ import { timestampInSeconds } from '../utils/time';
 import { generateSentryTraceHeader, generateTraceparentHeader } from '../utils/tracing';
 import { consoleSandbox } from './debug-logger';
 import { _getSpanForScope } from './spanOnScope';
+import type { MaybeWeakRef } from './weakRef';
+import { derefWeakRef, makeWeakRef } from './weakRef';
 
 // These are aligned with OpenTelemetry trace flags
 export const TRACE_FLAG_NONE = 0x0;
@@ -343,12 +347,13 @@ const CHILD_SPANS_FIELD = '_sentryChildSpans';
 const ROOT_SPAN_FIELD = '_sentryRootSpan';
 
 type SpanWithPotentialChildren = Span & {
-  [CHILD_SPANS_FIELD]?: Set<Span>;
+  [CHILD_SPANS_FIELD]?: Set<MaybeWeakRef<Span>>;
   [ROOT_SPAN_FIELD]?: Span;
 };
 
 /**
  * Adds an opaque child span reference to a span.
+ * Uses WeakRef to allow child spans to be garbage collected when no longer needed.
  */
 export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
   // We store the root span reference on the child span
@@ -356,19 +361,25 @@ export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: S
   const rootSpan = span[ROOT_SPAN_FIELD] || span;
   addNonEnumerableProperty(childSpan as SpanWithPotentialChildren, ROOT_SPAN_FIELD, rootSpan);
 
-  // We store a list of child spans on the parent span
-  // We need this for `getSpanDescendants()` to work
+  const ref = makeWeakRef(childSpan);
+
   if (span[CHILD_SPANS_FIELD]) {
-    span[CHILD_SPANS_FIELD].add(childSpan);
+    span[CHILD_SPANS_FIELD].add(ref);
   } else {
-    addNonEnumerableProperty(span, CHILD_SPANS_FIELD, new Set([childSpan]));
+    addNonEnumerableProperty(span, CHILD_SPANS_FIELD, new Set([ref]));
   }
 }
 
 /** This is only used internally by Idle Spans. */
 export function removeChildSpanFromSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
-  if (span[CHILD_SPANS_FIELD]) {
-    span[CHILD_SPANS_FIELD].delete(childSpan);
+  const children = span[CHILD_SPANS_FIELD];
+  if (children) {
+    for (const ref of children) {
+      if (derefWeakRef(ref) === childSpan) {
+        children.delete(ref);
+        break;
+      }
+    }
   }
 }
 
@@ -385,9 +396,12 @@ export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
       // We want to ignore unsampled spans (e.g. non recording spans)
     } else if (spanIsSampled(span)) {
       resultSet.add(span);
-      const childSpans = span[CHILD_SPANS_FIELD] ? Array.from(span[CHILD_SPANS_FIELD]) : [];
-      for (const childSpan of childSpans) {
-        addSpanChildren(childSpan);
+      const childRefs = span[CHILD_SPANS_FIELD] ? Array.from(span[CHILD_SPANS_FIELD]) : [];
+      for (const ref of childRefs) {
+        const childSpan = derefWeakRef(ref);
+        if (childSpan) {
+          addSpanChildren(childSpan);
+        }
       }
     }
   }

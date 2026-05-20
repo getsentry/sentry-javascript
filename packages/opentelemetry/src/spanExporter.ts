@@ -20,6 +20,7 @@ import {
   getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
   getStatusMessage,
+  LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -41,6 +42,7 @@ type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
 const MAX_SPAN_COUNT = 1000;
 const DEFAULT_TIMEOUT = 300; // 5 min
+const SENT_SPANS_MAX_SIZE = 10000;
 
 interface FinishedSpanBucket {
   timestampInS: number;
@@ -71,9 +73,7 @@ export class SentrySpanExporter {
   private _finishedSpanBucketSize: number;
   private _spansToBucketEntry: WeakMap<ReadableSpan, FinishedSpanBucket>;
   private _lastCleanupTimestampInS: number;
-  // Essentially a a set of span ids that are already sent. The values are expiration
-  // times in this cache so we don't hold onto them indefinitely.
-  private _sentSpans: Map<string, number>;
+  private _sentSpans: LRUMap<string, number>;
   /* Internally, we use a debounced flush to give some wiggle room to the span processor to accumulate more spans. */
   private _debouncedFlush: ReturnType<typeof debounce>;
 
@@ -85,7 +85,7 @@ export class SentrySpanExporter {
     this._finishedSpanBuckets = new Array(this._finishedSpanBucketSize).fill(undefined);
     this._lastCleanupTimestampInS = Math.floor(_INTERNAL_safeDateNow() / 1000);
     this._spansToBucketEntry = new WeakMap();
-    this._sentSpans = new Map<string, number>();
+    this._sentSpans = new LRUMap<string, number>(SENT_SPANS_MAX_SIZE);
     this._debouncedFlush = debounce(this.flush.bind(this), 1, { maxWait: 100 });
   }
 
@@ -124,7 +124,7 @@ export class SentrySpanExporter {
 
     // If the span doesn't have a local parent ID (it's a root span), we're gonna flush all the ended spans
     const localParentId = getLocalParentId(span);
-    if (!localParentId || this._sentSpans.has(localParentId)) {
+    if (!localParentId || this._sentSpans.get(localParentId)) {
       this._debouncedFlush();
     }
   }
@@ -137,7 +137,6 @@ export class SentrySpanExporter {
   public flush(): void {
     const finishedSpans = this._finishedSpanBuckets.flatMap(bucket => (bucket ? Array.from(bucket.spans) : []));
 
-    this._flushSentSpanCache();
     const sentSpans = this._maybeSend(finishedSpans);
 
     const sentSpanCount = sentSpans.size;
@@ -147,15 +146,14 @@ export class SentrySpanExporter {
         `SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} spans are waiting for their parent spans to finish`,
       );
 
-    const expirationDate = _INTERNAL_safeDateNow() + DEFAULT_TIMEOUT * 1000;
-
     for (const span of sentSpans) {
-      this._sentSpans.set(span.spanContext().spanId, expirationDate);
+      this._sentSpans.set(span.spanContext().spanId, 1);
       const bucketEntry = this._spansToBucketEntry.get(span);
       if (bucketEntry) {
         bucketEntry.spans.delete(span);
       }
     }
+
     // Cancel a pending debounced flush, if there is one
     // This can be relevant if we directly flush, circumventing the debounce
     // in that case, we want to cancel any pending debounced flush
@@ -193,7 +191,7 @@ export class SentrySpanExporter {
       const transactionEvent = createTransactionForOtelSpan(span);
 
       // Add an attribute to the transaction event to indicate that this transaction is an orphaned transaction
-      if (root.parentNode && this._sentSpans.has(root.parentNode.id)) {
+      if (root.parentNode && this._sentSpans.get(root.parentNode.id)) {
         const traceData = transactionEvent.contexts?.trace?.data;
         if (traceData) {
           traceData['sentry.parent_span_already_sent'] = true;
@@ -235,20 +233,9 @@ export class SentrySpanExporter {
     return sentSpans;
   }
 
-  /** Remove "expired" span id entries from the _sentSpans cache. */
-  private _flushSentSpanCache(): void {
-    const currentTimestamp = _INTERNAL_safeDateNow();
-    // Note, it is safe to delete items from the map as we go: https://stackoverflow.com/a/35943995/90297
-    for (const [spanId, expirationTime] of this._sentSpans.entries()) {
-      if (expirationTime <= currentTimestamp) {
-        this._sentSpans.delete(spanId);
-      }
-    }
-  }
-
   /** Check if a node is a completed root node or a node whose parent has already been sent */
   private _nodeIsCompletedRootNodeOrHasSentParent(node: SpanNode): node is SpanNodeCompleted {
-    return !!node.span && (!node.parentNode || this._sentSpans.has(node.parentNode.id));
+    return !!node.span && (!node.parentNode || !!this._sentSpans.get(node.parentNode.id));
   }
 
   /** Get all completed root nodes from a list of nodes */
