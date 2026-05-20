@@ -3,5 +3,4 @@ node_modules
 /build
 /public/build
 .env
-yarn.lock
 
