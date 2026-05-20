@@ -11,7 +11,7 @@ function isSensitiveKey(lower: string, denySnippets: string[]): boolean {
  * Key names are always preserved. Values are either kept, replaced with
  * `[Filtered]`, or the entire record is dropped (off mode).
  *
- * @param additionalDenyTerms - Additional sensitive snippets to check beyond the built-in denylist (e.g. cookie-specific terms).
+ * @param additionalDenyTerms - Additional sensitive snippets to check beyond the built-in denylist.
  */
 export function filterKeyValueData(
   data: Record<string, string>,
