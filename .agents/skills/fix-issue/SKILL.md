@@ -38,9 +38,10 @@ Read the issue with `gh issue view <number> --repo getsentry/sentry-javascript -
 **Fetching Playwright trace artifacts** (only when the log shows a bare `Test timeout of <N>ms exceeded` with no assertion or step detail):
 
 1. Download the run's playwright traces: `gh run download <run-id> --repo getsentry/sentry-javascript --pattern 'playwright-traces-*' --dir .pw-traces`. `<run-id>` is the integer after `/runs/` in the issue URL. This extracts each artifact into `.pw-traces/<artifact-name>/`.
-2. For the failing test, read `.pw-traces/<artifact-name>/<test-dir>/error-context.md`. Playwright writes this per-failure markdown with the failing action, page state (URL, title), and any custom attachments — usually enough to identify which `await` hung.
-3. Only if `error-context.md` is insufficient: `unzip .pw-traces/<artifact-name>/<test-dir>/trace.zip -d .pw-traces/extracted` to expose the inner JSON-line trace (`trace.trace`, `*.network`, `*.stacks`). These are large and unstructured; treat them as a last resort.
-4. Leave the `.pw-traces/` directory in the workspace (do not `rm`).
+2. **`no artifact matches any of the names or patterns provided` means the artifact has expired**, not that it never existed. Playwright trace artifacts in this repo have a 7-day retention; if the issue is older than ~7 days, the trace is gone. Don't retry with different patterns — proceed to the abort comment and note "trace artifact expired" so a maintainer can re-link a fresh failing run.
+3. For the failing test, read `.pw-traces/<artifact-name>/<test-dir>/error-context.md`. Playwright writes this per-failure markdown with the failing action, page state (URL, title), and any custom attachments — usually enough to identify which `await` hung.
+4. Only if `error-context.md` is insufficient: `unzip .pw-traces/<artifact-name>/<test-dir>/trace.zip -d .pw-traces/extracted` to expose the inner JSON-line trace (`trace.trace`, `*.network`, `*.stacks`). These are large and unstructured; treat them as a last resort.
+5. Leave the `.pw-traces/` directory in the workspace (do not `rm`).
 
 Skip the artifact path entirely for non-Playwright failures or when the log already names the failed assertion / line.
 
