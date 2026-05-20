@@ -149,6 +149,7 @@
         "**/integrations/tracing/mongo/vendored/**/*.ts",
         "**/integrations/tracing/connect/vendored/**/*.ts",
         "**/integration/aws/vendored/**/*.ts"
+        "**/integrations/tracing/tedious/vendored/**/*.ts"
       ],
       "rules": {
         "typescript/no-explicit-any": "off"

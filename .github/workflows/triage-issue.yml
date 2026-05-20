@@ -54,7 +54,7 @@ jobs:
 
       - name: Run Claude triage
         id: triage
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@24492741e0ccfdef4c1d19da8e11e0f373d07494 # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
