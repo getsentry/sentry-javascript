@@ -141,16 +141,6 @@
       }
     },
     {
-      "files": ["**/integrations/tracing/mysql/vendored/**/*.ts"],
-      "rules": {
-        "typescript/no-explicit-any": "off",
-        "typescript/no-this-alias": "off",
-        "max-lines": "off",
-        "no-bitwise": "off",
-        "no-param-reassign": "off"
-      }
-    },
-    {
       "files": [
         "**/integrations/tracing/dataloader/vendored/**/*.ts",
         "**/integrations/tracing/genericPool/vendored/**/*.ts",
