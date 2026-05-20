@@ -7,5 +7,5 @@ export const loader: LoaderFunction = async () => {
 
 export default function ThrowRedirect() {
   const data = useLoaderData();
-  return <div>{data}</div>;
+  return <div>{String(data)}</div>;
 }

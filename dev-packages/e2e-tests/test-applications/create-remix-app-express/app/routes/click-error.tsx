@@ -1,4 +1,3 @@
-// Throw error on click
 export default function ClickError() {
   return (
     <div>

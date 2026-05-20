@@ -12,9 +12,7 @@ export const loader: LoaderFunction = async ({ params: { id } }) => {
     throw redirect('/loader-json-response/-2');
   }
 
-  return json({
-    id,
-  });
+  return json({ id });
 };
 
 export default function LoaderJSONResponse() {

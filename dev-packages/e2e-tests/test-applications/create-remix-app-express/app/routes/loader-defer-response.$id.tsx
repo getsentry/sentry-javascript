@@ -2,12 +2,10 @@ import { LoaderFunctionArgs, defer } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
 
 export const loader = async ({ params: { id } }: LoaderFunctionArgs) => {
-  return defer({
-    id,
-  });
+  return defer({ id });
 };
 
-export default function LoaderJSONResponse() {
+export default function LoaderDeferResponse() {
   const data = useLoaderData<typeof loader>();
 
   return (

@@ -1,6 +1,5 @@
-import { ActionFunction, ActionFunctionArgs, json, redirect } from '@remix-run/node';
+import { ActionFunction, ActionFunctionArgs, LoaderFunctionArgs, json, redirect } from '@remix-run/node';
 import { useActionData } from '@remix-run/react';
-import { LoaderFunctionArgs } from '@remix-run/router';
 
 export const loader = async ({ params: { id } }: LoaderFunctionArgs) => {
   if (id === '-100') {

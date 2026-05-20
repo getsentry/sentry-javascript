@@ -6,9 +6,6 @@ export default defineConfig({
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    // disableConsoleIntercept: true,
-    // silent: false,
     include: ['test/**/*.test.ts'],
-    exclude: ['**/integration/**/*.test.ts'],
   },
 });
