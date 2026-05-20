@@ -249,7 +249,7 @@ function sanitizeLogAttributes(attributes: Attributes): Attributes {
  * Replaces unpaired UTF-16 surrogates with U+FFFD (replacement character).
  *
  * Lone surrogates (U+D800–U+DFFF not part of a valid pair) cause `serde_json`
- * on the server to reject the entire log/span batch when they appear in
+ * on the server to reject the entire log batch when they appear in
  * JSON-escaped form (e.g. `\uD800`). Replacing them at the SDK level ensures
  * only the offending characters are lost instead of the whole payload.
  *
