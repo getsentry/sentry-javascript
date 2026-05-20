@@ -81,7 +81,6 @@ describe('filterCookies', () => {
     it('returns empty record for string with no key-value pairs', () => {
       expect(filterCookies(';;;', true)).toEqual({});
     });
-
   });
 
   describe('edge cases', () => {
