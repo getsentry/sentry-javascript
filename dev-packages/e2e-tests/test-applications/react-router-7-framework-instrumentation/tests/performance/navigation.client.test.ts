@@ -8,12 +8,12 @@ import { APP_NAME } from '../constants';
 // The legacy `instrumentHydratedRouter()` subscribe callback still runs and updates the span
 // name to its parameterized form (so `sentry.source` ends up as `route`).
 //
-// Previously these tests asserted the legacy origin `auto.navigation.react_router`, but that was
-// only true because of a bug where the subscribe callback unconditionally overwrote the origin.
 // See: https://github.com/remix-run/react-router/discussions/13749
 
-test.describe('client - navigation via instrumentation API', () => {
-  test('should send navigation transaction with instrumentation API origin', async ({ page }) => {
+test.describe('client - hybrid navigation (instrumentation API span + legacy parameterization)', () => {
+  test('should create navigation span via instrumentation API and parameterize via legacy subscribe', async ({
+    page,
+  }) => {
     // First load the performance page
     await page.goto(`/performance`);
     await page.waitForTimeout(1000);
@@ -34,6 +34,12 @@ test.describe('client - navigation via instrumentation API', () => {
         trace: {
           op: 'navigation',
           origin: 'auto.navigation.react_router.instrumentation_api',
+          data: {
+            'sentry.source': 'route',
+            'sentry.op': 'navigation',
+            'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
+            'navigation.type': 'router.navigate',
+          },
         },
       },
       transaction: '/performance/ssr',
