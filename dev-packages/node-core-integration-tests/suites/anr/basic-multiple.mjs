@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/node-core';
 import * as assert from 'assert';
 import * as crypto from 'crypto';
 import { setupOtel } from '../../utils/setupOtel.js';
+import { waitForDebuggerReady } from '@sentry-internal/test-utils';
 
 global._sentryDebugIds = { [new Error().stack]: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' };
 
@@ -28,10 +29,11 @@ function longWork() {
   }
 }
 
-setTimeout(() => {
+waitForDebuggerReady(() => {
   longWork();
-}, 1000);
 
-setTimeout(() => {
-  longWork();
-}, 4000);
+  // Second blocking event for maxAnrEvents test
+  setTimeout(() => {
+    longWork();
+  }, 2000);
+});

@@ -24,7 +24,7 @@ import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } f
 import { trace, context, Link, SpanStatusCode, SpanKind } from '@opentelemetry/api';
 import { DataloaderInstrumentationConfig } from './types';
 import { SDK_VERSION } from '@sentry/core';
-import type * as Dataloader from 'dataloader';
+import type * as Dataloader from './dataloader-types';
 
 const MODULE_NAME = 'dataloader';
 const PACKAGE_NAME = '@sentry/instrumentation-dataloader';

@@ -160,9 +160,6 @@ jobs:
       changed_node_core_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/node-core-integration-tests') }}
-      changed_remix:
-        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
-        '@sentry/remix') }}
       changed_node:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/node') }}
@@ -897,41 +894,6 @@ jobs:
         working-directory: dev-packages/bun-integration-tests
         run: yarn test
 
-  job_remix_integration_tests:
-    name: Remix (Node ${{ matrix.node }}) Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [18, 20, 22, 24, 26]
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ matrix.node }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-
-      - name: Run integration tests
-        env:
-          NODE_VERSION: ${{ matrix.node }}
-        working-directory: packages/remix
-        run: yarn test:integration
-
   job_build_tarballs:
     name: Build tarballs
     # We want to run this if:
@@ -1224,7 +1186,6 @@ jobs:
         job_bun_integration_tests,
         job_browser_playwright_tests,
         job_browser_loader_tests,
-        job_remix_integration_tests,
         job_e2e_tests,
         job_artifacts,
         job_lint,
