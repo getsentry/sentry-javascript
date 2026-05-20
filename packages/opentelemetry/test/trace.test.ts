@@ -2185,7 +2185,10 @@ describe('span.end() timestamp conversion', () => {
   });
 
   it('converts seconds to milliseconds for startSpan child span', () => {
-    const nowSec = Math.floor(Date.now() / 1000) + 1;
+    // +10s buffer (not +1 like sibling tests): the outer startSpan + inner startInactiveSpan
+    // adds enough wallclock overhead that nowSec*1000 can slip behind innerSpan's startTime,
+    // tripping OTel's `endTime < startTime` clamp and copying startTime's nanos onto endTime.
+    const nowSec = Math.floor(Date.now() / 1000) + 10;
     let capturedEndTime: [number, number] | undefined;
     startSpan({ name: 'outer' }, () => {
       const innerSpan = startInactiveSpan({ name: 'inner' });
