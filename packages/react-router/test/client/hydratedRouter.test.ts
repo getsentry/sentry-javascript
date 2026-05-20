@@ -47,9 +47,10 @@ describe('instrumentHydratedRouter', () => {
 
     (core.getActiveSpan as any).mockReturnValue(mockPageloadSpan);
     (core.getRootSpan as any).mockImplementation((span: any) => span);
-    (core.spanToJSON as any).mockImplementation((_span: any) => ({
+    (core.spanToJSON as any).mockImplementation((span: any) => ({
       description: '/foo/bar',
-      op: 'pageload',
+      // Distinguish so the subscribe callback can branch on op (pageload vs. navigation).
+      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
     }));
     (core.getClient as any).mockReturnValue({});
     (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
@@ -91,8 +92,31 @@ describe('instrumentHydratedRouter', () => {
     // After navigation, the active span should be the navigation span
     (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
     callback(newState);
-    expect(mockNavigationSpan.updateName).toHaveBeenCalled();
-    expect(mockNavigationSpan.setAttributes).toHaveBeenCalled();
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/:id');
+    // The subscribe callback only updates source; the origin is set at navigation-span
+    // creation time and must be left alone here (otherwise we'd clobber the pageload origin
+    // when the pageload is still the active root, and we'd strip the `.instrumentation_api`
+    // suffix on spans created via the instrumentation API).
+    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({ source: 'route' });
+  });
+
+  it('does not overwrite pageload origin when the pageload is still active', () => {
+    // Regression test for #20784: a static-route pageload (where pathname == rootSpanName) was
+    // being tagged with `origin: auto.navigation.react_router` because the subscribe callback
+    // re-wrote origin unconditionally, even when the active root span was still the pageload.
+    instrumentHydratedRouter();
+    const callback = mockRouter.subscribe.mock.calls[0][0];
+    const newState = {
+      location: { pathname: '/foo/bar' },
+      matches: [{ route: { path: '/foo/:id' } }],
+      navigation: { state: 'idle' },
+    };
+    // Active root span is still the pageload (no navigation has happened yet).
+    (core.getActiveSpan as any).mockReturnValue(mockPageloadSpan);
+    callback(newState);
+    expect(mockNavigationSpan.setAttributes).not.toHaveBeenCalled();
+    // No `origin` key — only `source`. The pageload origin was already set by trySubscribe.
+    expect(mockPageloadSpan.setAttributes).toHaveBeenLastCalledWith({ source: 'route' });
   });
 
   it('does not update navigation transaction on state change to loading', () => {

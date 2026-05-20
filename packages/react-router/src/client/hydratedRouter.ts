@@ -66,27 +66,33 @@ export function instrumentHydratedRouter(): void {
         };
       }
 
-      // Subscribe to router state changes to update navigation transactions with parameterized routes
+      // Subscribe to router state changes to update transactions (navigation, or a pageload
+      // whose route info wasn't yet available at `trySubscribe`) with the parameterized route.
+      // We deliberately do NOT touch `sentry.origin` here: the navigation span sets it at
+      // creation time (legacy: `auto.navigation.react_router`; instrumentation API:
+      // `auto.navigation.react_router.instrumentation_api`) and the pageload's origin is set
+      // by `trySubscribe`. Re-writing it caused a race where the subscribe callback fired
+      // while the pageload was still active (static routes where pathname == rootSpanName)
+      // and clobbered the pageload origin with the navigation origin.
       router.subscribe(newState => {
-        const navigationSpan = getActiveRootSpan();
+        const rootSpan = getActiveRootSpan();
 
-        if (!navigationSpan) {
+        if (!rootSpan) {
           return;
         }
 
-        const navigationSpanName = spanToJSON(navigationSpan).description;
-        const parameterizedNavRoute = getParameterizedRoute(newState);
+        const rootSpanName = spanToJSON(rootSpan).description;
+        const parameterizedRoute = getParameterizedRoute(newState);
 
         if (
-          navigationSpanName &&
+          rootSpanName &&
           newState.navigation.state === 'idle' && // navigation has completed
-          // this event is for the currently active navigation
-          normalizePathname(newState.location.pathname) === normalizePathname(navigationSpanName)
+          // this event is for the currently active root span
+          normalizePathname(newState.location.pathname) === normalizePathname(rootSpanName)
         ) {
-          navigationSpan.updateName(parameterizedNavRoute);
-          navigationSpan.setAttributes({
+          rootSpan.updateName(parameterizedRoute);
+          rootSpan.setAttributes({
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router',
           });
         }
       });
