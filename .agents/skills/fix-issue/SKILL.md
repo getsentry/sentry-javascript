@@ -42,24 +42,15 @@ A "small" fix is roughly: 1–3 files, under ~30 lines of code change, no new ab
 - **If the fix is complicated, or you are not 100% sure it is correct: ABORT.** Post a comment on the issue describing the root cause (if known), what you tried, and why you aborted. Do not open a PR.
 - **Otherwise:** implement the fix with `Edit` / `Write`.
 
-### Step 5: Verify the fix
+### Step 5: Verify the fix is sound
 
-Run the directly relevant test (not the full suite) and confirm it passes. Identify the test type from the failing test path / job name in the issue, then use the matching command:
+**Do NOT run the test.** Running the affected test (especially E2E or browser-integration suites) has too much setup overhead for an automated single-fix run. Instead, statically verify the change:
 
-- **`dev-packages/browser-integration-tests/` (Playwright):** pick the `test:bundle:*` script matching the `PW_BUNDLE` shard in the failing job name (e.g. job "Playwright bundle_tracing_logs_metrics Tests" → `test:bundle:tracing_logs_metrics`; no shard → use plain `test`), and scope with `-g "<test title>"`:
-  ```
-  yarn workspace @sentry-internal/browser-integration-tests test:bundle:tracing_logs_metrics -g "<test title>"
-  ```
-- **Vitest tests** (`dev-packages/node-integration-tests/`, `dev-packages/node-core-integration-tests/`, `dev-packages/cloudflare-integration-tests/`, `packages/<pkg>/`):
-  ```
-  yarn workspace @sentry-internal/<package-name> test <relative-test-path> -t "<test title>"
-  ```
-  or for SDK unit tests: `yarn workspace @sentry/<pkg> test <relative-test-path> -t "<test title>"`.
-- **`dev-packages/e2e-tests/test-applications/<app>/`:** run via the e2e orchestrator scoped to that one app:
-  ```
-  yarn workspace @sentry-internal/e2e-tests test:run <app>
-  ```
-- **Other / unclear test type:** open the closest `package.json`, find the `test` script, and run it scoped to the failing test.
+- Re-read the diff. Confirm the modified test still exercises the same behavior it did before — assertions and what they check, code paths covered, scenarios under test — and does not silently drop coverage. A fix that makes the test pass by removing the thing it was checking is not a fix; that's "loosening the test" and is grounds to abort per Step 4.
+- For flaky-test fixes specifically: confirm the change attacks the actual race / timing / environment cause you identified in Step 1, not just the surface symptom. If you cannot point to the specific mechanism the change neutralizes, abort.
+- For SDK-code fixes: confirm the change doesn't broaden behavior beyond the reported case (no new side effects, no removed validation, no widened error catching).
+
+If the change is purely additive guarding (e.g., adding `test.skip(<condition>, ...)`, widening an allowlist of expected values, raising a tight tolerance) and mirrors an existing pattern elsewhere in the same file, this static review is sufficient. Otherwise treat any ambiguity as a signal to abort per Step 4.
 
 ### Step 6: Commit on a new branch
 
