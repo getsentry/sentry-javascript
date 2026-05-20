@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/node-core';
 import * as assert from 'assert';
 import * as crypto from 'crypto';
 import { setupOtel } from '../../utils/setupOtel.js';
+import { waitForDebuggerReady } from '@sentry-internal/test-utils';
 
 setTimeout(() => {
   process.exit();
@@ -27,6 +28,6 @@ function longWork() {
   }
 }
 
-setTimeout(() => {
+waitForDebuggerReady(() => {
   longWork();
-}, 1000);
+});

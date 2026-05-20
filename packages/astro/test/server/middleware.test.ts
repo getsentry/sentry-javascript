@@ -370,6 +370,46 @@ describe('sentryMiddleware', () => {
     expect(html).toContain('<meta name="baggage" content="');
   });
 
+  it('preserves response status, statusText, and all headers when injecting meta tags', async () => {
+    const middleware = handleRequest();
+
+    const ctx = {
+      ...DYNAMIC_REQUEST_CONTEXT,
+    };
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response('<head></head>', {
+          status: 201,
+          statusText: 'Created',
+          headers: new Headers({
+            'content-type': 'text/html',
+            'X-Frame-Options': 'DENY',
+            'Permissions-Policy': 'camera=(), microphone=()',
+            'Cross-Origin-Opener-Policy': 'same-origin',
+            'Content-Security-Policy': "default-src 'self'",
+            'X-Content-Type-Options': 'nosniff',
+            'Referrer-Policy': 'strict-origin-when-cross-origin',
+            'X-Custom-Header': 'custom-value',
+          }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+
+    expect(resultFromNext?.status).toBe(201);
+    expect(resultFromNext?.statusText).toBe('Created');
+    expect(resultFromNext?.headers.get('content-type')).toBe('text/html');
+    expect(resultFromNext?.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(resultFromNext?.headers.get('Permissions-Policy')).toBe('camera=(), microphone=()');
+    expect(resultFromNext?.headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin');
+    expect(resultFromNext?.headers.get('Content-Security-Policy')).toBe("default-src 'self'");
+    expect(resultFromNext?.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(resultFromNext?.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+    expect(resultFromNext?.headers.get('X-Custom-Header')).toBe('custom-value');
+  });
+
   it("no-ops if the response isn't HTML", async () => {
     const middleware = handleRequest();
 
