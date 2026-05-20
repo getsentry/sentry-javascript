@@ -36,6 +36,33 @@ test.describe('basePath with sub-app routes', () => {
   });
 });
 
+// TODO: this test is currently skipped because we do not yet support middleware registered on new instances (e.g. here via .basePath(..).use(...)).
+test.skip('.basePath() middleware instrumentation', () => {
+  test('creates middleware span for .use() on .basePath() clone', async ({ baseURL }) => {
+    const transactionPromise = waitForTransaction(APP_NAME, event => {
+      return event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /test-basepath-mw/hello';
+    });
+
+    const response = await fetch(`${baseURL}/test-basepath-mw/hello`);
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(body).toEqual({ greeting: 'world' });
+
+    const transaction = await transactionPromise;
+    expect(transaction.transaction).toBe('GET /test-basepath-mw/hello');
+
+    const spans = transaction.spans || [];
+    const middlewareSpan = spans.find(
+      (span: { description?: string; op?: string }) =>
+        span.op === 'middleware.hono' && span.description === 'basepathMiddleware',
+    );
+
+    expect(middlewareSpan).toBeDefined();
+    expect(middlewareSpan?.origin).toBe('auto.middleware.hono');
+  });
+});
+
 test('traces .get() route registered after .basePath()/.route() chains', async ({ baseURL }) => {
   const transactionPromise = waitForTransaction(APP_NAME, event => {
     return event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /test-late-get';

@@ -63,6 +63,16 @@ export function addRoutes(app: HonoType<{ Bindings?: { E2E_TEST_DSN: string } }>
 
   app.basePath('/test-basepath').route('/v1', apiSubApp);
 
+  // .use() on the cloned instance returned by .basePath() — the clone has its own
+  // .use class field, so this tests whether middleware instrumentation propagates.
+  app
+    .basePath('/test-basepath-mw')
+    .use(async function basepathMiddleware(_c, next) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      await next();
+    })
+    .get('/hello', c => c.json({ greeting: 'world' }));
+
   // .get() registered on the root app after .basePath()/.route() chains
   app.get('/test-late-get', c => c.json({ registered: 'after-chains' }));
 }
