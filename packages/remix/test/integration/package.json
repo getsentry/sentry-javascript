@@ -39,7 +39,8 @@
     "@vanilla-extract/css": "1.13.0",
     "@vanilla-extract/integration": "6.2.4",
     "@types/mime": "^3.0.0",
-    "vite": "^6.4.2"
+    "vite": "^6.4.2",
+    "quansync": "0.2.11"
   },
   "engines": {
     "node": ">=18"
