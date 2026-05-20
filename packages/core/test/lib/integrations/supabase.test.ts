@@ -7,6 +7,7 @@ import {
   translateFiltersIntoMethods,
 } from '../../../src/integrations/supabase';
 import type { PostgRESTQueryBuilder, SupabaseClientInstance } from '../../../src/integrations/supabase';
+import { resolveDataCollectionOptions } from '../../../src/utils/data-collection/resolveDataCollectionOptions';
 
 const tracingMocks = vi.hoisted(() => ({
   startSpan: vi.fn((_opts: unknown, cb: (span: unknown) => unknown) => {
@@ -38,13 +39,13 @@ type CreateMockSupabaseClientOptions = {
   method?: string;
   url?: URL | string;
   body?: unknown;
-  /** When set, configures the mocked Sentry client `sendDefaultPii`. Omit to leave `getClient` to the test file `beforeEach`. */
-  sendDefaultPii?: boolean;
+  /** When set, configures the mocked Sentry client's `dataCollection.userInfo`. Omit to leave `getClient` to the test file `beforeEach`. */
+  dataCollectionUserInfo?: boolean;
 };
 
 const DEFAULT_MOCK_SUPABASE_REST_URL = 'https://example.supabase.co/rest/v1/todos';
 
-/** Shared PATCH + query string + body shape for `sendDefaultPii` tests. */
+/** Shared PATCH + query string + body shape for operation data tests. */
 const MOCK_SUPABASE_PII_SCENARIO: Pick<CreateMockSupabaseClientOptions, 'method' | 'url' | 'body'> = {
   method: 'PATCH',
   url: 'https://example.supabase.co/rest/v1/users?email=eq.secret%40example.com&select=id',
@@ -52,9 +53,9 @@ const MOCK_SUPABASE_PII_SCENARIO: Pick<CreateMockSupabaseClientOptions, 'method'
 };
 
 function createMockSupabaseClient(resolveWith: unknown, options?: CreateMockSupabaseClientOptions): unknown {
-  if (options?.sendDefaultPii !== undefined) {
+  if (options?.dataCollectionUserInfo !== undefined) {
     currentScopesMocks.getClient.mockReturnValue({
-      getOptions: () => ({ sendDefaultPii: options.sendDefaultPii }),
+      getDataCollectionOptions: () => ({ userInfo: options.dataCollectionUserInfo }),
     } as any);
   }
 
@@ -223,7 +224,7 @@ describe('Supabase Integration', () => {
     });
   });
 
-  describe('sendDefaultPii', () => {
+  describe('operation data collection', () => {
     let captureExceptionSpy: ReturnType<typeof vi.spyOn>;
     let addBreadcrumbSpy: ReturnType<typeof vi.spyOn>;
 
@@ -236,10 +237,10 @@ describe('Supabase Integration', () => {
       vi.restoreAllMocks();
     });
 
-    it('omits db.query, db.body, and breadcrumb query/body when sendDefaultPii is false', async () => {
+    it('omits db.query, db.body, and breadcrumb query/body when dataCollection.userInfo is false', async () => {
       const client = createMockSupabaseClient(
         { status: 200 },
-        { ...MOCK_SUPABASE_PII_SCENARIO, sendDefaultPii: false },
+        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionUserInfo: false },
       );
       instrumentSupabaseClient(client);
 
@@ -258,8 +259,11 @@ describe('Supabase Integration', () => {
       expect(breadcrumb).not.toHaveProperty('data');
     });
 
-    it('includes db.query, db.body, and breadcrumb query/body when sendDefaultPii is true', async () => {
-      const client = createMockSupabaseClient({ status: 200 }, { ...MOCK_SUPABASE_PII_SCENARIO, sendDefaultPii: true });
+    it('includes db.query, db.body, and breadcrumb query/body when dataCollection.userInfo is true', async () => {
+      const client = createMockSupabaseClient(
+        { status: 200 },
+        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionUserInfo: true },
+      );
       instrumentSupabaseClient(client);
 
       await (client as any).from('users').update({}).then();
@@ -286,10 +290,95 @@ describe('Supabase Integration', () => {
       );
     });
 
-    it('omits supabase error context query/body when sendDefaultPii is false', async () => {
+    it('includes data when sendOperationData option is set, regardless of dataCollection.userInfo', async () => {
+      const client = createMockSupabaseClient(
+        { status: 200 },
+        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionUserInfo: false },
+      );
+      instrumentSupabaseClient(client, { sendOperationData: true });
+
+      await (client as any).from('users').update({}).then();
+
+      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+        name: string;
+        attributes: Record<string, unknown>;
+      };
+      expect(spanOptions.name).toContain('eq(email, secret@example.com)');
+      expect(spanOptions.attributes['db.query']).toEqual(
+        expect.arrayContaining([expect.stringContaining('secret@example.com')]),
+      );
+      expect(spanOptions.attributes['db.body']).toEqual(
+        expect.objectContaining({ full_name: 'Jane Doe', phone: '555-0100' }),
+      );
+    });
+
+    it('sendOperationData: false takes precedence over dataCollection.userInfo: true', async () => {
+      const client = createMockSupabaseClient(
+        { status: 200 },
+        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionUserInfo: true },
+      );
+      instrumentSupabaseClient(client, { sendOperationData: false });
+
+      await (client as any).from('users').update({}).then();
+
+      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+        name: string;
+        attributes: Record<string, unknown>;
+      };
+      expect(spanOptions.name).toContain('[redacted]');
+      expect(spanOptions.attributes['db.query']).toBeUndefined();
+      expect(spanOptions.attributes['db.body']).toBeUndefined();
+    });
+
+    it('includes data when legacy sendDefaultPii: true is bridged to dataCollection.userInfo', async () => {
+      const resolved = resolveDataCollectionOptions({ sendDefaultPii: true });
+      currentScopesMocks.getClient.mockReturnValue({
+        getDataCollectionOptions: () => resolved,
+      } as any);
+
+      const client = createMockSupabaseClient({ status: 200 }, { ...MOCK_SUPABASE_PII_SCENARIO });
+      instrumentSupabaseClient(client);
+
+      await (client as any).from('users').update({}).then();
+
+      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+        name: string;
+        attributes: Record<string, unknown>;
+      };
+      expect(spanOptions.name).toContain('eq(email, secret@example.com)');
+      expect(spanOptions.attributes['db.query']).toEqual(
+        expect.arrayContaining([expect.stringContaining('secret@example.com')]),
+      );
+      expect(spanOptions.attributes['db.body']).toEqual(
+        expect.objectContaining({ full_name: 'Jane Doe', phone: '555-0100' }),
+      );
+    });
+
+    it('redacts data when legacy sendDefaultPii is not set (bridged defaults)', async () => {
+      const resolved = resolveDataCollectionOptions({ sendDefaultPii: false });
+      currentScopesMocks.getClient.mockReturnValue({
+        getDataCollectionOptions: () => resolved,
+      } as any);
+
+      const client = createMockSupabaseClient({ status: 200 }, { ...MOCK_SUPABASE_PII_SCENARIO });
+      instrumentSupabaseClient(client);
+
+      await (client as any).from('users').update({}).then();
+
+      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+        name: string;
+        attributes: Record<string, unknown>;
+      };
+      expect(spanOptions.name).toContain('[redacted]');
+      expect(spanOptions.name).not.toContain('secret');
+      expect(spanOptions.attributes['db.query']).toBeUndefined();
+      expect(spanOptions.attributes['db.body']).toBeUndefined();
+    });
+
+    it('omits supabase error context query/body when data collection is off', async () => {
       const client = createMockSupabaseClient(
         { status: 400, error: { message: 'Bad request', code: '400' } },
-        { ...MOCK_SUPABASE_PII_SCENARIO, sendDefaultPii: false },
+        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionUserInfo: false },
       );
       instrumentSupabaseClient(client);
 
@@ -328,7 +417,7 @@ describe('Supabase Integration', () => {
           method: 'POST',
           url: 'https://example.supabase.co/rest/v1/todos?columns=',
           body: [{ title: 'Test Todo' }],
-          sendDefaultPii: true,
+          dataCollectionUserInfo: true,
         },
       );
       instrumentSupabaseClient(client);

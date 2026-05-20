@@ -151,7 +151,7 @@ function isInstrumented<T>(fn: T): boolean | undefined {
 
 /**
  * Plain-object bodies are copied into `plainBody`; array inserts (and other non-plain shapes) stay only on `rawBody`.
- * Returns a payload suitable for span attributes / breadcrumbs when the client has `sendDefaultPii` enabled.
+ * Returns a payload suitable for span attributes / breadcrumbs when operation data collection is enabled.
  */
 function getMutationBodyPayloadForTelemetry(rawBody: unknown, plainBody: Record<string, unknown>): unknown | undefined {
   if (Object.keys(plainBody).length > 0) {
@@ -322,7 +322,7 @@ function instrumentSupabaseAuthClient(supabaseClientInstance: SupabaseClientInst
   markAsInstrumented(supabaseClientInstance.auth);
 }
 
-function instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
+function instrumentSupabaseClientConstructor(SupabaseClient: unknown, _options: { sendOperationData?: boolean }): void {
   if (isInstrumented((SupabaseClient as SupabaseClientConstructor).prototype.from)) {
     return;
   }
@@ -334,7 +334,7 @@ function instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
         const rv = Reflect.apply(target, thisArg, argumentsList);
         const PostgRESTQueryBuilder = (rv as PostgRESTQueryBuilder).constructor;
 
-        instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder as unknown as new () => PostgRESTQueryBuilder);
+        instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder as unknown as new () => PostgRESTQueryBuilder, _options);
 
         return rv;
       },
@@ -344,7 +344,10 @@ function instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
   markAsInstrumented((SupabaseClient as SupabaseClientConstructor).prototype.from);
 }
 
-function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilterBuilder['constructor']): void {
+function instrumentPostgRESTFilterBuilder(
+  PostgRESTFilterBuilder: PostgRESTFilterBuilder['constructor'],
+  _options: { sendOperationData?: boolean },
+): void {
   if (isInstrumented((PostgRESTFilterBuilder.prototype as unknown as PostgRESTProtoThenable).then)) {
     return;
   }
@@ -381,7 +384,8 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           }
         }
 
-        const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+        const client = getClient();
+        const shouldSendData = _options.sendOperationData ?? client?.getDataCollectionOptions().userInfo === true;
         const bodyPayload = getMutationBodyPayloadForTelemetry(typedThis.body, body);
 
         // Adding operation to the beginning of the description if it's not a `select` operation
@@ -391,7 +395,7 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           operation === 'select'
             ? ''
             : `${operation}${hasMutationBodyForDescription(typedThis.body, body) ? '(...) ' : ''}`;
-        const queryPart = sendDefaultPii ? queryItems.join(' ') : queryItems.length > 0 ? '[redacted]' : '';
+        const queryPart = shouldSendData ? queryItems.join(' ') : queryItems.length > 0 ? '[redacted]' : '';
         const descriptionMiddle = [mutationPart.trimEnd(), queryPart].filter(Boolean).join(' ');
         const description = descriptionMiddle ? `${descriptionMiddle} from(${table})` : `from(${table})`;
 
@@ -406,11 +410,11 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
         };
 
-        if (queryItems.length && sendDefaultPii) {
+        if (queryItems.length && shouldSendData) {
           attributes['db.query'] = queryItems;
         }
 
-        if (bodyPayload !== undefined && sendDefaultPii) {
+        if (bodyPayload !== undefined && shouldSendData) {
           attributes['db.body'] = bodyPayload;
         }
 
@@ -440,10 +444,10 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
                     }
 
                     const supabaseContext: Record<string, any> = {};
-                    if (queryItems.length && sendDefaultPii) {
+                    if (queryItems.length && shouldSendData) {
                       supabaseContext.query = queryItems;
                     }
-                    if (bodyPayload !== undefined && sendDefaultPii) {
+                    if (bodyPayload !== undefined && shouldSendData) {
                       supabaseContext.body = bodyPayload;
                     }
 
@@ -471,11 +475,11 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
 
                   const data: Record<string, unknown> = {};
 
-                  if (queryItems.length && sendDefaultPii) {
+                  if (queryItems.length && shouldSendData) {
                     data.query = queryItems;
                   }
 
-                  if (bodyPayload !== undefined && sendDefaultPii) {
+                  if (bodyPayload !== undefined && shouldSendData) {
                     data.body = bodyPayload;
                   }
 
@@ -506,7 +510,10 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
   markAsInstrumented((PostgRESTFilterBuilder.prototype as unknown as PostgRESTProtoThenable).then);
 }
 
-function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgRESTQueryBuilder): void {
+function instrumentPostgRESTQueryBuilder(
+  PostgRESTQueryBuilder: new () => PostgRESTQueryBuilder,
+  _options: { sendOperationData?: boolean },
+): void {
   // We need to wrap _all_ operations despite them sharing the same `PostgRESTFilterBuilder`
   // constructor, as we don't know which method will be called first, and we don't want to miss any calls.
   for (const operation of DB_OPERATIONS_TO_INSTRUMENT) {
@@ -524,7 +531,7 @@ function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgR
 
           DEBUG_BUILD && debug.log(`Instrumenting ${operation} operation's PostgRESTFilterBuilder`);
 
-          instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder);
+          instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder, _options);
 
           return rv;
         },
@@ -535,7 +542,10 @@ function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgR
   }
 }
 
-export const instrumentSupabaseClient = (supabaseClient: unknown): void => {
+export const instrumentSupabaseClient = (
+  supabaseClient: unknown,
+  options: { sendOperationData?: boolean } = {},
+): void => {
   if (!supabaseClient) {
     DEBUG_BUILD && debug.warn('Supabase integration was not installed because no Supabase client was provided.');
     return;
@@ -543,21 +553,33 @@ export const instrumentSupabaseClient = (supabaseClient: unknown): void => {
   const SupabaseClientConstructor =
     supabaseClient.constructor === Function ? supabaseClient : supabaseClient.constructor;
 
-  instrumentSupabaseClientConstructor(SupabaseClientConstructor);
+  instrumentSupabaseClientConstructor(SupabaseClientConstructor, options);
   instrumentSupabaseAuthClient(supabaseClient as SupabaseClientInstance);
 };
 
+interface SupabaseIntegrationOptions {
+  supabaseClient: any;
+  /**
+   * Whether to attach PostgREST query filters and mutation body payloads
+   * to Sentry telemetry.
+   *
+   * Falls back to `dataCollection.userInfo` when not set.
+   * @default undefined
+   */
+  sendOperationData?: boolean;
+}
+
 const INTEGRATION_NAME = 'Supabase';
 
-const _supabaseIntegration = ((supabaseClient: unknown) => {
+const _supabaseIntegration = ((supabaseClient: unknown, options: { sendOperationData?: boolean }) => {
   return {
     setupOnce() {
-      instrumentSupabaseClient(supabaseClient);
+      instrumentSupabaseClient(supabaseClient, options);
     },
     name: INTEGRATION_NAME,
   };
 }) satisfies IntegrationFn;
 
-export const supabaseIntegration = defineIntegration((options: { supabaseClient: any }) => {
-  return _supabaseIntegration(options.supabaseClient);
+export const supabaseIntegration = defineIntegration((options: SupabaseIntegrationOptions) => {
+  return _supabaseIntegration(options.supabaseClient, { sendOperationData: options.sendOperationData });
 }) satisfies IntegrationFn;
