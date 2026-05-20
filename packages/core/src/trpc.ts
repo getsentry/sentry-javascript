@@ -60,7 +60,11 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
         (clientOptions?.normalizeDepth ?? 5), // 5 is a sane depth
     );
 
-    if (options.attachRpcInput !== undefined ? options.attachRpcInput : dataCollection?.httpBodies.includes('incomingRequest')) {
+    if (
+      options.attachRpcInput !== undefined
+        ? options.attachRpcInput
+        : dataCollection?.httpBodies.includes('incomingRequest')
+    ) {
       if (rawInput !== undefined) {
         trpcContext.input = normalize(rawInput);
       }
