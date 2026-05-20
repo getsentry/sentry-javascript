@@ -1,3 +1,5 @@
+// Nuxt 3.21+ moved nitro types from @nuxt/schema to @nuxt/nitro-server — this import loads the module augmentations.
+import type {} from '@nuxt/nitro-server';
 import {
   addPlugin,
   addPluginTemplate,
