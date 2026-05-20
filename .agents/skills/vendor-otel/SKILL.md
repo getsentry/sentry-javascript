@@ -23,7 +23,15 @@ Check versions:
 - Latest tag: `gh api repos/open-telemetry/opentelemetry-js-contrib/git/refs/tags --jq '.[].ref' | grep "instrumentation-<name>"`
 - Commit SHA: `gh api repos/open-telemetry/opentelemetry-js-contrib/git/refs/tags/instrumentation-<name>-v<version> --jq '.object.sha'`
 
-**Diff ALL source files between pinned and latest version.** All OTel instrumentations are pre-v1 so any bump could introduce breaking changes. Report findings to the user.
+**Review the upstream CHANGELOG** between pinned and latest version:
+
+```
+https://github.com/open-telemetry/opentelemetry-js-contrib/blob/main/packages/instrumentation-<name>/CHANGELOG.md
+```
+
+Fetch and present the relevant changelog entries to the user. All OTel instrumentations are pre-v1 so any bump could introduce breaking changes.
+
+Also **diff ALL source files** between pinned and latest version. Report both the changelog and diff findings to the user so they can verify the bump is safe before proceeding.
 
 Check for external type imports (these need special handling, see section 5):
 
