@@ -43,8 +43,8 @@ describe('instrumentHydratedRouter', () => {
     };
     (globalThis as any).__reactRouterDataRouter = mockRouter;
 
-    mockPageloadSpan = { updateName: vi.fn(), setAttributes: vi.fn() };
-    mockNavigationSpan = { updateName: vi.fn(), setAttributes: vi.fn() };
+    mockPageloadSpan = { updateName: vi.fn(), setAttributes: vi.fn(), setAttribute: vi.fn() };
+    mockNavigationSpan = { updateName: vi.fn(), setAttributes: vi.fn(), setAttribute: vi.fn() };
 
     (core.getActiveSpan as any).mockReturnValue(mockPageloadSpan);
     (core.getRootSpan as any).mockImplementation((span: any) => span);
@@ -111,9 +111,12 @@ describe('instrumentHydratedRouter', () => {
     // Active root span is still the pageload (no navigation has happened yet).
     (core.getActiveSpan as any).mockReturnValue(mockPageloadSpan);
     callback(newState);
+    // Subscribe callback must not touch the navigation span, and must not write `origin` on the
+    // pageload — only `source` via the single-attribute setter. The pageload origin was already
+    // set by trySubscribe.
+    expect(mockNavigationSpan.setAttribute).not.toHaveBeenCalled();
     expect(mockNavigationSpan.setAttributes).not.toHaveBeenCalled();
-    // No `origin` key — only `source`. The pageload origin was already set by trySubscribe.
-    expect(mockPageloadSpan.setAttributes).toHaveBeenLastCalledWith({ source: 'route' });
+    expect(mockPageloadSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   });
 
   it('does not update navigation transaction on state change to loading', () => {
