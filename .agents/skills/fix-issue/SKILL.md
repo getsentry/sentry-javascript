@@ -73,7 +73,7 @@ Run only the directly relevant test file (not the full suite). Use `yarn test <p
 
 ## Turn economy
 
-Your budget is measured in *agent turns* (assistant messages), not individual tool calls. A single turn can batch many parallel tool calls — batching is free.
+Your budget is measured in _agent turns_ (assistant messages), not individual tool calls. A single turn can batch many parallel tool calls — batching is free.
 
 - Plan before acting. Prefer targeted commands over broad ones: read specific line ranges instead of whole files; grep for the exact symbol instead of listing directories.
 - In each turn, issue all independent tool calls in parallel rather than spreading them across multiple turns.
