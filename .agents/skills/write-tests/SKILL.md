@@ -465,6 +465,22 @@ test('captures transactions for all routes', async ({ baseURL }) => {
 });
 ```
 
+### SSR hydration timing
+
+In SSR apps (Nuxt, SvelteKit, Next.js), elements are visible before framework event handlers attach.
+Playwright's actionability checks pass on server-rendered HTML, so `.click()` can fire before
+hydration, making it a no-op and timing out `waitForError`. Wait for the Sentry SDK before
+interacting:
+
+```typescript
+await page.goto(`/test-param/1234`);
+await page.waitForFunction(() => typeof window.__SENTRY__ === 'object');
+await page.locator('#errorBtn').click();
+```
+
+Don't use `networkidle`. Playwright discourages it. Use `waitForFunction` with a condition that
+directly proves readiness.
+
 ### Common pitfalls
 
 - **Proxy name mismatch:** `APP_NAME` must match `proxyServerName` in `start-event-proxy.mjs`.
