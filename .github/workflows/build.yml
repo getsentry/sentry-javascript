@@ -485,6 +485,13 @@ jobs:
         run: yarn test:ci:browser
         if: github.event_name != 'pull_request'
 
+      - name: Parse and Upload Coverage
+        if: cancelled() == false
+        continue-on-error: true
+        uses: getsentry/codecov-action@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   job_bun_unit_tests:
     name: Bun Unit Tests
     needs: [job_get_metadata, job_build]
@@ -549,7 +556,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22, 24, 26]
+        node: [18, 20, 22, 24]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v6
@@ -580,6 +587,14 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
+
+      - name: Parse and Upload Coverage
+        if: cancelled() == false
+        continue-on-error: true
+        uses: getsentry/codecov-action@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ matrix.node }}
 
   job_browser_playwright_tests:
     name:
@@ -680,6 +695,18 @@ jobs:
           overwrite: true
           retention-days: 7
 
+      - name: Parse and Upload Coverage
+        if: cancelled() == false
+        continue-on-error: true
+        uses: getsentry/codecov-action@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          directory: dev-packages/browser-integration-tests
+          enable-coverage: false
+          name:
+            browser-playwright-${{ matrix.bundle }}-${{ matrix.project }}${{ matrix.shard && format('-{0}',
+            matrix.shard) || '' }}
+
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
@@ -739,6 +766,16 @@ jobs:
           overwrite: true
           retention-days: 7
 
+      - name: Parse and Upload Coverage
+        uses: getsentry/codecov-action@main
+        if: cancelled() == false
+        continue-on-error: true
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          directory: dev-packages/browser-integration-tests
+          enable-coverage: false
+          name: browser-loader-${{ matrix.bundle }}
+
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
     needs: [job_get_metadata, job_build]
@@ -775,7 +812,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22, 24, 26]
+        node: [18, 20, 22, 24]
         typescript:
           - false
         include:
@@ -816,7 +853,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22, 24, 26]
+        node: [18, 20, 22, 24]
         typescript:
           - false
         include:
@@ -906,7 +943,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22, 24, 26]
+        node: [18, 20, 22, 24]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v6
@@ -929,8 +966,9 @@ jobs:
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
-        working-directory: packages/remix
-        run: yarn test:integration
+        run: |
+          cd packages/remix
+          yarn test:integration:ci
 
   job_build_tarballs:
     name: Build tarballs

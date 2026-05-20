@@ -2,93 +2,95 @@
   "name": "@sentry/ember",
   "version": "10.53.1",
   "description": "Official Sentry SDK for Ember.js",
-  "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/ember",
-  "author": "Sentry",
-  "license": "MIT",
   "keywords": [
     "ember-addon"
   ],
-  "publishConfig": {
-    "access": "public"
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/ember",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "license": "MIT",
+  "author": "Sentry",
+  "imports": {
+    "#src/*": "./src/*"
   },
-  "directories": {
-    "doc": "doc",
-    "test": "tests"
+  "exports": {
+    ".": {
+      "types": "./declarations/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./addon-main.js": "./addon-main.cjs"
   },
+  "files": [
+    "addon-main.cjs",
+    "declarations",
+    "dist",
+    "src"
+  ],
   "scripts": {
-    "build:tarball": "ember ts:precompile && npm pack && ember ts:clean",
-    "clean": "yarn rimraf sentry-ember-*.tgz dist tmp build .node_modules.ember-try package.json.ember-try instance-initializers index.d.ts runloop.d.ts types.d.ts",
-    "lint": "run-p lint:js lint:hbs lint:ts",
-    "lint:hbs": "ember-template-lint .",
-    "lint:js": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
-    "lint:ts": "tsc",
+    "build": "rollup --config",
+    "build:dev": "yarn build",
+    "build:tarball": "npm pack",
+    "build:watch": "rollup --config --watch",
+    "circularDepCheck": "madge --circular src/index.ts",
+    "clean": "rimraf dist declarations *.tgz .turbo",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "start": "ember serve",
-    "test": "ember b --prod && ember test",
-    "prepack": "ember ts:precompile",
-    "postpack": "ember ts:clean"
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "prepack": "rollup --config",
+    "test": "yarn test:unit",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest --watch",
+    "yalc:publish": "yalc publish --push --sig"
   },
   "dependencies": {
-    "@babel/core": "^7.27.7",
-    "@embroider/macros": "^1.16.0",
+    "@embroider/addon-shim": "^1.10.2",
     "@sentry/browser": "10.53.1",
     "@sentry/core": "10.53.1",
-    "ember-auto-import": "^2.7.2",
-    "ember-cli-babel": "^8.2.0",
-    "ember-cli-htmlbars": "^6.1.1",
-    "ember-cli-typescript": "^5.3.0"
-  },
-  "peerDependencies": {
-    "ember-cli": ">=4"
-  },
-  "peerDependenciesMeta": {
-    "ember-cli": {
-      "optional": true
-    }
+    "decorator-transforms": "^2.3.2"
   },
   "devDependencies": {
-    "@ember/optional-features": "~1.3.0",
-    "@ember/test-helpers": "4.0.4",
-    "@embroider/test-setup": "~4.0.0",
-    "@glimmer/component": "~1.1.2",
-    "@glimmer/tracking": "~1.1.2",
-    "@types/ember": "~3.16.5",
-    "@types/ember-resolver": "5.0.13",
-    "@types/ember__debug": "^4.0.8",
-    "@types/qunit": "~2.19.11",
-    "@types/rsvp": "~4.0.9",
-    "babel-eslint": "~10.1.0",
-    "broccoli-asset-rev": "~3.0.0",
-    "ember-cli": "~4.12.3",
-    "ember-cli-dependency-checker": "~3.3.2",
-    "ember-cli-inject-live-reload": "~2.1.0",
-    "ember-cli-terser": "~4.0.2",
-    "ember-load-initializers": "~2.1.1",
-    "ember-qunit": "~8.1.0",
-    "ember-resolver": "13.1.1",
-    "ember-sinon-qunit": "7.5.0",
-    "ember-source": "~4.12.4",
-    "ember-template-lint": "~4.16.1",
-    "eslint-plugin-ember": "11.9.0",
-    "eslint-plugin-n": "15.0.0",
-    "eslint-plugin-qunit": "8.0.0",
-    "loader.js": "~4.7.0",
-    "qunit": "~2.22.0",
-    "qunit-dom": "~3.5.0",
-    "sinon": "21.0.1",
-    "webpack": "~5.104.1"
+    "@babel/core": "^7.29.0",
+    "@babel/eslint-parser": "^7.28.6",
+    "@babel/plugin-transform-typescript": "^7.28.6",
+    "@ember/app-tsconfig": "^2.0.0",
+    "@ember/library-tsconfig": "^2.0.0",
+    "@embroider/addon-dev": "^8.3.0",
+    "@embroider/compat": "^4.1.17",
+    "@embroider/core": "^4.4.7",
+    "@embroider/macros": "^1.20.2",
+    "@embroider/vite": "^1.7.2",
+    "@glint/ember-tsc": "^1.5.0",
+    "@rollup/plugin-babel": "^7.0.0",
+    "ember-source": "^6.12.0"
   },
   "engines": {
     "node": ">=18"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "ember": {
     "edition": "octane"
   },
   "ember-addon": {
-    "configPath": "tests/dummy/config"
+    "version": 2,
+    "type": "addon",
+    "main": "addon-main.cjs"
   },
-  "volta": {
-    "extends": "../../package.json"
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "dependsOn": [
+          "^build:transpile",
+          "^build:types"
+        ],
+        "outputs": [
+          "{projectRoot}/dist",
+          "{projectRoot}/**/*.d.ts",
+          "{projectRoot}/declarations/*.d.ts.map"
+        ]
+      }
+    }
   }
 }
