@@ -537,3 +537,46 @@ export function extractToolDefinitions(extraParams?: Record<string, unknown>): s
   });
   return JSON.stringify(toolDefs);
 }
+
+/** Duck-types a LangChain `CallbackManager` (avoids coupling to a specific `@langchain/core` resolution). */
+function isCallbackManager(value: unknown): value is {
+  addHandler: (handler: unknown, inherit?: boolean) => void;
+  copy: () => unknown;
+  handlers?: unknown[];
+} {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as { addHandler?: unknown; copy?: unknown };
+  return typeof candidate.addHandler === 'function' && typeof candidate.copy === 'function';
+}
+
+/**
+ * Merge `sentryHandler` into a given set of LangChain callbacks or callback manager.
+ * @internal Exported for cross-package instrumentation.
+ */
+export function _INTERNAL_mergeLangChainCallbackHandler(existing: unknown, sentryHandler: unknown): unknown {
+  if (!existing) {
+    return [sentryHandler];
+  }
+
+  if (Array.isArray(existing)) {
+    if (existing.includes(sentryHandler)) {
+      return existing;
+    }
+    return [...existing, sentryHandler];
+  }
+
+  if (isCallbackManager(existing)) {
+    const copied = existing.copy() as {
+      addHandler: (handler: unknown, inherit?: boolean) => void;
+      handlers?: unknown[];
+    };
+    if (!copied.handlers?.includes(sentryHandler)) {
+      copied.addHandler(sentryHandler, true);
+    }
+    return copied;
+  }
+
+  return existing;
+}

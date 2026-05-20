@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { GEN_AI_INPUT_MESSAGES_ATTRIBUTE } from '../../../src/tracing/ai/gen-ai-attributes';
 import type { LangChainMessage } from '../../../src/tracing/langchain/types';
-import { extractChatModelRequestAttributes, normalizeLangChainMessages } from '../../../src/tracing/langchain/utils';
+import {
+  _INTERNAL_mergeLangChainCallbackHandler,
+  extractChatModelRequestAttributes,
+  normalizeLangChainMessages,
+} from '../../../src/tracing/langchain/utils';
 
 describe('normalizeLangChainMessages', () => {
   it('normalizes messages with _getType()', () => {
@@ -244,5 +248,87 @@ describe('extractChatModelRequestAttributes with multimodal content', () => {
     expect(inputMessages).not.toContain(b64Data);
     expect(inputMessages).toContain('[Blob substitute]');
     expect(inputMessages).toContain('What is in this image?');
+  });
+});
+
+describe('_INTERNAL_mergeLangChainCallbackHandler', () => {
+  const sentryHandler = { _sentry: true };
+
+  function makeFakeCallbackManager(existingHandlers: unknown[] = []) {
+    const manager = {
+      handlers: [...existingHandlers],
+      inheritableHandlers: [...existingHandlers],
+      addHandler: vi.fn(function (this: any, handler: unknown, inherit?: boolean) {
+        this.handlers.push(handler);
+        if (inherit !== false) {
+          this.inheritableHandlers.push(handler);
+        }
+      }),
+      copy: vi.fn(function (this: any) {
+        return makeFakeCallbackManager(this.handlers);
+      }),
+    };
+    return manager;
+  }
+
+  it('returns a fresh array when no existing callbacks are present', () => {
+    expect(_INTERNAL_mergeLangChainCallbackHandler(undefined, sentryHandler)).toStrictEqual([sentryHandler]);
+    expect(_INTERNAL_mergeLangChainCallbackHandler(null, sentryHandler)).toStrictEqual([sentryHandler]);
+  });
+
+  it('appends to an existing callbacks array', () => {
+    const userA = { _user: 'A' };
+    const userB = { _user: 'B' };
+    expect(_INTERNAL_mergeLangChainCallbackHandler([userA, userB], sentryHandler)).toStrictEqual([
+      userA,
+      userB,
+      sentryHandler,
+    ]);
+  });
+
+  it('does not duplicate when the sentry handler is already in the array', () => {
+    const userA = { _user: 'A' };
+    const existing = [userA, sentryHandler];
+    expect(_INTERNAL_mergeLangChainCallbackHandler(existing, sentryHandler)).toBe(existing);
+  });
+
+  it('preserves inheritable handlers when callbacks is a CallbackManager', () => {
+    // Reproduces the LangGraph `streamMode: ['messages']` setup: a
+    // CallbackManager carrying a StreamMessagesHandler is passed via
+    // options.callbacks. Wrapping it as `[manager, sentryHandler]` would
+    // drop the manager's inheritable children — instead we register
+    // Sentry on a copy and keep the existing handler chain intact.
+    const streamMessagesHandler = { name: 'StreamMessagesHandler', lc_prefer_streaming: true };
+    const manager = makeFakeCallbackManager([streamMessagesHandler]);
+    const result = _INTERNAL_mergeLangChainCallbackHandler(manager, sentryHandler) as { handlers: unknown[] };
+    expect(Array.isArray(result)).toBe(false);
+    expect(result.handlers).toEqual([streamMessagesHandler, sentryHandler]);
+  });
+
+  it('copies the manager and registers Sentry as an inheritable handler', () => {
+    const manager = makeFakeCallbackManager([]);
+    const result = _INTERNAL_mergeLangChainCallbackHandler(manager, sentryHandler) as {
+      addHandler: ReturnType<typeof vi.fn>;
+      inheritableHandlers: unknown[];
+    };
+    expect(manager.copy).toHaveBeenCalledTimes(1);
+    expect(manager.handlers).toEqual([]);
+    expect(result.addHandler).toHaveBeenCalledWith(sentryHandler, true);
+    expect(result.inheritableHandlers).toEqual([sentryHandler]);
+  });
+
+  it('does not double-register when the copied manager already contains the handler', () => {
+    const manager = makeFakeCallbackManager([sentryHandler]);
+    const result = _INTERNAL_mergeLangChainCallbackHandler(manager, sentryHandler) as {
+      handlers: unknown[];
+      addHandler: ReturnType<typeof vi.fn>;
+    };
+    expect(result.handlers).toEqual([sentryHandler]);
+    expect(result.addHandler).not.toHaveBeenCalled();
+  });
+
+  it('returns the value unchanged when it is neither an array nor a CallbackManager', () => {
+    const opaque = { name: 'NotAManager' };
+    expect(_INTERNAL_mergeLangChainCallbackHandler(opaque, sentryHandler)).toBe(opaque);
   });
 });

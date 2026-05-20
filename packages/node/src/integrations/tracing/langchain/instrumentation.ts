@@ -7,12 +7,12 @@ import {
 } from '@opentelemetry/instrumentation';
 import type { LangChainOptions } from '@sentry/core';
 import {
+  _INTERNAL_mergeLangChainCallbackHandler,
   _INTERNAL_skipAiProviderWrapping,
   ANTHROPIC_AI_INTEGRATION_NAME,
   createLangChainCallbackHandler,
   GOOGLE_GENAI_INTEGRATION_NAME,
   instrumentLangChainEmbeddings,
-  mergeSentryCallback,
   OPENAI_INTEGRATION_NAME,
   SDK_VERSION,
 } from '@sentry/core';
