@@ -54,14 +54,14 @@ Flaky tests in this repo can live in several places. Identify the type from the 
   ```
   yarn workspace @sentry-internal/browser-integration-tests test:bundle:tracing_logs_metrics -g "sends profile_chunk envelopes in manual mode" --repeat-each=5
   ```
-- **`dev-packages/node-integration-tests/` (Vitest):** `yarn workspace @sentry-internal/node-integration-tests test <relative-test-path> --repeat=5`.
+- **`dev-packages/node-integration-tests/`, `dev-packages/node-core-integration-tests/`, `dev-packages/cloudflare-integration-tests/` (all Vitest):** `yarn workspace @sentry-internal/<package-name> test <relative-test-path> --repeat=5`.
 - **`dev-packages/e2e-tests/test-applications/<app>/` (per-app Playwright or Vitest):** flakiness lives in one specific test app. `cd` into that app and run its own `test` script with `--repeat-each=5` (Playwright) or `--repeat=5` (Vitest). The top-level `test:e2e` orchestrator does not have a repeat flag — invoke the app's test directly.
 - **Vitest unit tests in `packages/<pkg>/`:** `yarn workspace @sentry/<pkg> test <relative-test-path> --repeat=5`.
 - **Other / unclear test type:** open the closest `package.json` and look at the `test` script to see whether it's Vitest, Playwright, or something else; then apply the matching repeat flag.
 
 If all 5 runs pass, the fix is verified. If even one fails, the fix is incomplete — abort per Step 4 (do not "loosen" the test to make it pass).
 
-**Fallback — symmetric-pattern verification.** If you cannot identify the right test command within one or two attempts, OR the test app uses a custom runner with no repeat support, fall back to confirming the change extends an existing, clearly-correct pattern (e.g., adding a sibling to a known-safe whitelist, mirroring an existing `waitFor` elsewhere in the suite). Note in the PR body that the fix was not runtime-verified.
+**Fallback — symmetric-pattern verification.** If you cannot identify the right test command within one or two attempts, OR the test app uses a custom runner with no repeat support, fall back to just running the respective test once.
 
 ### Step 6: Commit on a new branch
 
