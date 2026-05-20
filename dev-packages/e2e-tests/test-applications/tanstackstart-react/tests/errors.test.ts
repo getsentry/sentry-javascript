@@ -13,6 +13,11 @@ test('Sends client-side error to Sentry with auto-instrumentation', async ({ pag
 
   await page.goto(`/`);
 
+  // Wait for React to hydrate (see __root.tsx) before clicking — the SSR HTML
+  // renders the button before the onClick handler is attached, and clicking
+  // pre-hydration would fire no handler and produce no error.
+  await page.locator('html[data-hydrated="true"]').waitFor();
+
   await expect(page.locator('button').filter({ hasText: 'Break the client' })).toBeVisible();
 
   await page.locator('button').filter({ hasText: 'Break the client' }).click();
