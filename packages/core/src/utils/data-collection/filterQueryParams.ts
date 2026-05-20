@@ -2,19 +2,6 @@ import type { CollectBehavior } from '../../types/datacollection';
 import { FILTERED_VALUE as FILTERED } from './filtering-snippets';
 import { filterKeyValueData } from './filterKeyValueData';
 
-function parseQueryParams(queryString: string): Record<string, string> | undefined {
-  try {
-    const params = new URLSearchParams(queryString);
-    const result: Record<string, string> = {};
-    params.forEach((value, key) => {
-      result[key] = value;
-    });
-    return Object.keys(result).length > 0 ? result : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 /**
  * Filters a query parameter string according to a `CollectBehavior`.
  *
@@ -26,11 +13,19 @@ export function filterQueryParams(queryString: string, behavior: CollectBehavior
     return {};
   }
 
-  const parsed = parseQueryParams(queryString);
+  try {
+    const params = new URLSearchParams(queryString);
+    const parsed: Record<string, string> = {};
+    params.forEach((value, key) => {
+      parsed[key] = value;
+    });
 
-  if (parsed == null) {
+    if (Object.keys(parsed).length === 0) {
+      return {};
+    }
+
+    return filterKeyValueData(parsed, behavior);
+  } catch {
     return FILTERED;
   }
-
-  return filterKeyValueData(parsed, behavior);
 }

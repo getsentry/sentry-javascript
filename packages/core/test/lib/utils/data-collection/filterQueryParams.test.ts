@@ -62,9 +62,9 @@ describe('filterQueryParams', () => {
     });
   });
 
-  describe('unparseable input', () => {
-    it('returns [Filtered] for empty string', () => {
-      expect(filterQueryParams('', true)).toBe('[Filtered]');
+  describe('empty input', () => {
+    it('returns empty record for empty string', () => {
+      expect(filterQueryParams('', true)).toEqual({});
     });
   });
 
