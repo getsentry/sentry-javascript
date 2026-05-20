@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it, test, vi } from 'vitest';
-import type { WrappedFunction } from '../../../src/types-hoist/wrappedfunction';
+import type { WrappedFunction } from '../../../src/types/wrappedfunction';
 import {
   addNonEnumerableProperty,
   dropUndefinedKeys,

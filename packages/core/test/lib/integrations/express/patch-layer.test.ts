@@ -6,8 +6,8 @@ import {
   type ExpressResponse,
 } from '../../../../src/integrations/express/types';
 import { getStoredLayers, storeLayer } from '../../../../src/integrations/express/request-layer-store';
-import { type StartSpanOptions } from '../../../../src/types-hoist/startSpanOptions';
-import { type Span } from '../../../../src/types-hoist/span';
+import { type StartSpanOptions } from '../../../../src/types/startSpanOptions';
+import { type Span } from '../../../../src/types/span';
 import { EventEmitter } from 'node:events';
 import { getOriginalFunction, markFunctionWrapped } from '../../../../src';
 

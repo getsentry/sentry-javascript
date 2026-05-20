@@ -1,6 +1,6 @@
 import type { Client } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
-import type { DsnComponents, DsnLike, DsnProtocol } from '../types-hoist/dsn';
+import type { DsnComponents, DsnLike, DsnProtocol } from '../types/dsn';
 import { consoleSandbox, debug } from './debug-logger';
 
 /** Regular expression used to extract org ID from a DSN host. */

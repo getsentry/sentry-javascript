@@ -4,7 +4,7 @@ import { getCurrentScope } from '../../src/currentScopes';
 import { captureCheckIn } from '../../src/exports';
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind, setCurrentClient } from '../../src/sdk';
-import type { Integration } from '../../src/types-hoist/integration';
+import type { Integration } from '../../src/types/integration';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 // eslint-disable-next-line no-var

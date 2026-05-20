@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createStreamedSpanEnvelope } from '../../../../src/tracing/spans/envelope';
-import type { DynamicSamplingContext } from '../../../../src/types-hoist/envelope';
-import type { SerializedStreamedSpan } from '../../../../src/types-hoist/span';
+import type { DynamicSamplingContext } from '../../../../src/types/envelope';
+import type { SerializedStreamedSpan } from '../../../../src/types/span';
 import { isBrowser } from '../../../../src/utils/isBrowser';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 

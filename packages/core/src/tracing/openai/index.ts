@@ -3,7 +3,7 @@ import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
-import type { Span, SpanAttributeValue } from '../../types-hoist/span';
+import type { Span, SpanAttributeValue } from '../../types/span';
 import { debug } from '../../utils/debug-logger';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,

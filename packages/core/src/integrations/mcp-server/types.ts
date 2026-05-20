@@ -1,4 +1,4 @@
-import type { Span } from '../../types-hoist/span';
+import type { Span } from '../../types/span';
 
 /** Types for MCP server instrumentation */
 

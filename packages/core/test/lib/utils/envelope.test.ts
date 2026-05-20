@@ -7,9 +7,9 @@ import {
 } from '@sentry/core';
 import { afterEach, describe, expect, it, test, vi } from 'vitest';
 import { getSentryCarrier } from '../../../src/carrier';
-import type { EventEnvelope } from '../../../src/types-hoist/envelope';
-import type { Event } from '../../../src/types-hoist/event';
-import type { SpanAttributes } from '../../../src/types-hoist/span';
+import type { EventEnvelope } from '../../../src/types/envelope';
+import type { Event } from '../../../src/types/event';
+import type { SpanAttributes } from '../../../src/types/span';
 import {
   addItemToEnvelope,
   createEnvelope,

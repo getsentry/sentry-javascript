@@ -1,8 +1,8 @@
 import { defineIntegration } from '../integration';
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
-import type { EventItem } from '../types-hoist/envelope';
-import type { Event } from '../types-hoist/event';
-import type { StackFrame } from '../types-hoist/stackframe';
+import type { EventItem } from '../types/envelope';
+import type { Event } from '../types/event';
+import type { StackFrame } from '../types/stackframe';
 import { forEachEnvelopeItem } from '../utils/envelope';
 import { getFramesFromEvent } from '../utils/stacktrace';
 import { GLOBAL_OBJ } from '../utils/worldwide';

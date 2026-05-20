@@ -11,7 +11,7 @@
  */
 
 import { SPAN_STATUS_ERROR } from '../../tracing';
-import type { Span } from '../../types-hoist/span';
+import type { Span } from '../../types/span';
 import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
 import { extractPromptResultAttributes, extractToolResultAttributes } from './resultExtraction';
 import { buildServerAttributesFromInfo, extractSessionDataFromInitializeResponse } from './sessionExtraction';

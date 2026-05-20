@@ -1,5 +1,5 @@
 import { createTransport } from '../../src/transports/base';
-import type { Transport } from '../../src/types-hoist/transport';
+import type { Transport } from '../../src/types/transport';
 import { SyncPromise } from '../../src/utils/syncpromise';
 
 async function sleep(delay: number): Promise<void> {

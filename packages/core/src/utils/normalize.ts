@@ -1,4 +1,4 @@
-import type { Primitive } from '../types-hoist/misc';
+import type { Primitive } from '../types/misc';
 import { isSyntheticEvent, isVueViewModel } from './is';
 import { getNormalizationDepthOverrideHint, hasSkipNormalizationHint } from './normalizationHints';
 import { convertToPlainObject } from './object';

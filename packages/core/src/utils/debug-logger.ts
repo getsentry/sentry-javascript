@@ -1,6 +1,6 @@
 import { getGlobalSingleton } from '../carrier';
 import { DEBUG_BUILD } from '../debug-build';
-import type { ConsoleLevel } from '../types-hoist/instrument';
+import type { ConsoleLevel } from '../types/instrument';
 import { GLOBAL_OBJ } from './worldwide';
 
 export interface SentryDebugLogger {

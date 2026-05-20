@@ -1,6 +1,6 @@
 import type { Scope } from '../scope';
-import type { Log, LogSeverityLevel } from '../types-hoist/log';
-import type { ParameterizedString } from '../types-hoist/parameterize';
+import type { Log, LogSeverityLevel } from '../types/log';
+import type { ParameterizedString } from '../types/parameterize';
 import { _INTERNAL_captureLog } from './internal';
 
 /**

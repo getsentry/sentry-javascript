@@ -21,7 +21,7 @@ import type {
   ExpressErrorMiddleware,
   ExpressHandlerOptions,
 } from '../../../../src/integrations/express/types';
-import type { WrappedFunction } from '../../../../src/types-hoist/wrappedfunction';
+import type { WrappedFunction } from '../../../../src/types/wrappedfunction';
 
 const sdkProcessingMetadata: unknown[] = [];
 const isolationScope = {

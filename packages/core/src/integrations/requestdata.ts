@@ -1,10 +1,10 @@
 import { getIsolationScope } from '../currentScopes';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS } from '../semanticAttributes';
-import type { Event } from '../types-hoist/event';
-import type { IntegrationFn } from '../types-hoist/integration';
-import type { QueryParams, RequestEventData } from '../types-hoist/request';
-import type { StreamedSpanJSON } from '../types-hoist/span';
+import type { Event } from '../types/event';
+import type { IntegrationFn } from '../types/integration';
+import type { QueryParams, RequestEventData } from '../types/request';
+import type { StreamedSpanJSON } from '../types/span';
 import { parseCookie } from '../utils/cookie';
 import { httpHeadersToSpanAttributes } from '../utils/request';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';

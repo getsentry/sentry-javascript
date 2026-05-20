@@ -5,8 +5,8 @@ import {
   getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
 } from '../tracing/dynamicSamplingContext';
-import type { TraceContext } from '../types-hoist/context';
-import type { DynamicSamplingContext } from '../types-hoist/envelope';
+import type { TraceContext } from '../types/context';
+import type { DynamicSamplingContext } from '../types/envelope';
 import { getActiveSpan, spanToTraceContext } from './spanUtils';
 
 /** Extract trace information from scope */

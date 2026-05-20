@@ -3,7 +3,7 @@ import { debug } from '../../utils/debug-logger';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { Scope } from '../../scope';
 import type { HttpServerResponse } from './types';
-import type { AggregationCounts } from '../../types-hoist/session';
+import type { AggregationCounts } from '../../types/session';
 import { safeUnref } from '../../utils/timer';
 
 const clientToRequestSessionAggregatesMap = new WeakMap<

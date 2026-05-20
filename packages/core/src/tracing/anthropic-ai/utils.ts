@@ -1,7 +1,7 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
-import type { Span } from '../../types-hoist/span';
-import type { SpanStatusType } from '../../types-hoist/spanStatus';
+import type { Span } from '../../types/span';
+import type { SpanStatusType } from '../../types/spanStatus';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,

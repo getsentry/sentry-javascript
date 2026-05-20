@@ -1,5 +1,5 @@
 import { DEBUG_BUILD } from '../debug-build';
-import type { CoreOptions as Options } from '../types-hoist/options';
+import type { CoreOptions as Options } from '../types/options';
 import { debug } from './debug-logger';
 import type { LRUMap } from './lru';
 import { stringMatchesSomePattern } from './string';

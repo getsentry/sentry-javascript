@@ -1,6 +1,6 @@
 import { DEBUG_BUILD } from '../debug-build';
-import type { CoreOptions } from '../types-hoist/options';
-import type { SamplingContext } from '../types-hoist/samplingcontext';
+import type { CoreOptions } from '../types/options';
+import type { SamplingContext } from '../types/samplingcontext';
 import { debug } from '../utils/debug-logger';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';

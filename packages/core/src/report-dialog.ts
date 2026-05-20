@@ -1,4 +1,4 @@
-import type { DsnLike } from './types-hoist/dsn';
+import type { DsnLike } from './types/dsn';
 
 /**
  * All properties the report dialog supports

@@ -1,10 +1,10 @@
 import type { Client } from './client';
 import { getClient } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import type { Event, EventHint } from './types-hoist/event';
-import type { Integration, IntegrationFn } from './types-hoist/integration';
-import type { CoreOptions } from './types-hoist/options';
-import type { StreamedSpanJSON } from './types-hoist/span';
+import type { Event, EventHint } from './types/event';
+import type { Integration, IntegrationFn } from './types/integration';
+import type { CoreOptions } from './types/options';
+import type { StreamedSpanJSON } from './types/span';
 import { debug } from './utils/debug-logger';
 
 export const installedIntegrations: string[] = [];

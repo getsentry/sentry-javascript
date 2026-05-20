@@ -4,7 +4,7 @@ import {
   messagesFromParams,
   setMessagesAttribute,
 } from '../../../src/tracing/anthropic-ai/utils';
-import type { Span } from '../../../src/types-hoist/span';
+import type { Span } from '../../../src/types/span';
 
 describe('anthropic-ai-utils', () => {
   describe('mapAnthropicErrorToStatusMessage', () => {

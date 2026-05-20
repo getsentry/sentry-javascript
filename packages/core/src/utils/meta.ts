@@ -1,4 +1,4 @@
-import type { SerializedTraceData } from '../types-hoist/tracing';
+import type { SerializedTraceData } from '../types/tracing';
 import { getTraceData } from './traceData';
 
 /**

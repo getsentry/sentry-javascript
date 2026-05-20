@@ -148,6 +148,8 @@
         "**/integrations/tracing/knex/vendored/**/*.ts",
         "**/integrations/tracing/mongo/vendored/**/*.ts",
         "**/integrations/tracing/koa/vendored/**/*.ts"
+        "**/integrations/tracing/connect/vendored/**/*.ts",
+        "**/integrations/tracing/tedious/vendored/**/*.ts"
       ],
       "rules": {
         "typescript/no-explicit-any": "off"
