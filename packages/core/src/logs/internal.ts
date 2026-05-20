@@ -256,7 +256,7 @@ function sanitizeLogAttributes(attributes: Attributes): Attributes {
  * Uses the native `String.prototype.toWellFormed()` when available
  * (Node 20+, Chrome 111+, Safari 15.4+, Firefox 119+, Hermes).
  * On older runtimes without native support, returns the string as-is.
- * 
+ *
  * Exported for testing
  */
 export function _removeLoneSurrogates(str: string): string {
