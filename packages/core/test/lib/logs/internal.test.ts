@@ -4,7 +4,7 @@ import {
   _INTERNAL_captureLog,
   _INTERNAL_flushLogsBuffer,
   _INTERNAL_getLogBuffer,
-  _INTERNAL_removeLoneSurrogates,
+  _removeLoneSurrogates,
 } from '../../../src/logs/internal';
 import type { Log } from '../../../src/types/log';
 import * as loggerModule from '../../../src/utils/debug-logger';
@@ -13,6 +13,9 @@ import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSeque
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
+
+// toWellFormed() is only available in Node 20+, Chrome 111+, Safari 15.4+, Firefox 119+, Hermes
+const hasToWellFormed = typeof ''.isWellFormed === 'function';
 
 describe('_INTERNAL_captureLog', () => {
   beforeEach(() => {
@@ -1275,9 +1278,6 @@ describe('_INTERNAL_captureLog', () => {
     });
   });
 
-  // toWellFormed() is only available in Node 20+, Chrome 111+, Safari 15.4+, Firefox 119+, Hermes
-  const hasToWellFormed = typeof ''.isWellFormed === 'function';
-
   describe.runIf(hasToWellFormed)('lone surrogate sanitization', () => {
     it('sanitizes lone surrogates in log message body', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
@@ -1373,59 +1373,56 @@ describe('_INTERNAL_captureLog', () => {
   });
 });
 
-// toWellFormed() is only available in Node 20+, Chrome 111+, Safari 15.4+, Firefox 119+, Hermes
-const hasToWellFormedGlobal = typeof ''.isWellFormed === 'function';
-
-describe('_INTERNAL_removeLoneSurrogates', () => {
+describe('_removeLoneSurrogates', () => {
   it('returns the same string when there are no surrogates', () => {
-    expect(_INTERNAL_removeLoneSurrogates('hello world')).toBe('hello world');
+    expect(_removeLoneSurrogates('hello world')).toBe('hello world');
   });
 
   it('returns the same string for empty input', () => {
-    expect(_INTERNAL_removeLoneSurrogates('')).toBe('');
+    expect(_removeLoneSurrogates('')).toBe('');
   });
 
   it('preserves valid surrogate pairs (emoji)', () => {
-    expect(_INTERNAL_removeLoneSurrogates('hello 😀 world')).toBe('hello 😀 world');
+    expect(_removeLoneSurrogates('hello 😀 world')).toBe('hello 😀 world');
   });
 
-  it.runIf(hasToWellFormedGlobal)('replaces a lone high surrogate with U+FFFD', () => {
-    expect(_INTERNAL_removeLoneSurrogates('before\uD800after')).toBe('before\uFFFDafter');
+  it.runIf(hasToWellFormed)('replaces a lone high surrogate with U+FFFD', () => {
+    expect(_removeLoneSurrogates('before\uD800after')).toBe('before\uFFFDafter');
   });
 
-  it.runIf(hasToWellFormedGlobal)('replaces a lone low surrogate with U+FFFD', () => {
-    expect(_INTERNAL_removeLoneSurrogates('before\uDC00after')).toBe('before\uFFFDafter');
+  it.runIf(hasToWellFormed)('replaces a lone low surrogate with U+FFFD', () => {
+    expect(_removeLoneSurrogates('before\uDC00after')).toBe('before\uFFFDafter');
   });
 
-  it.runIf(hasToWellFormedGlobal)('replaces lone high surrogate at end of string', () => {
-    expect(_INTERNAL_removeLoneSurrogates('end\uD800')).toBe('end\uFFFD');
+  it.runIf(hasToWellFormed)('replaces lone high surrogate at end of string', () => {
+    expect(_removeLoneSurrogates('end\uD800')).toBe('end\uFFFD');
   });
 
-  it.runIf(hasToWellFormedGlobal)('replaces lone low surrogate at start of string', () => {
-    expect(_INTERNAL_removeLoneSurrogates('\uDC00start')).toBe('\uFFFDstart');
+  it.runIf(hasToWellFormed)('replaces lone low surrogate at start of string', () => {
+    expect(_removeLoneSurrogates('\uDC00start')).toBe('\uFFFDstart');
   });
 
-  it.runIf(hasToWellFormedGlobal)('replaces multiple lone surrogates', () => {
-    expect(_INTERNAL_removeLoneSurrogates('\uD800\uD801\uDC00')).toBe('\uFFFD\uD801\uDC00');
+  it.runIf(hasToWellFormed)('replaces multiple lone surrogates', () => {
+    expect(_removeLoneSurrogates('\uD800\uD801\uDC00')).toBe('\uFFFD\uD801\uDC00');
   });
 
-  it.runIf(hasToWellFormedGlobal)('handles two consecutive lone high surrogates', () => {
-    expect(_INTERNAL_removeLoneSurrogates('\uD800\uD800')).toBe('\uFFFD\uFFFD');
+  it.runIf(hasToWellFormed)('handles two consecutive lone high surrogates', () => {
+    expect(_removeLoneSurrogates('\uD800\uD800')).toBe('\uFFFD\uFFFD');
   });
 
-  it.runIf(hasToWellFormedGlobal)('handles mixed valid pairs and lone surrogates', () => {
-    expect(_INTERNAL_removeLoneSurrogates('\uD83D\uDE00\uD800')).toBe('😀\uFFFD');
+  it.runIf(hasToWellFormed)('handles mixed valid pairs and lone surrogates', () => {
+    expect(_removeLoneSurrogates('\uD83D\uDE00\uD800')).toBe('😀\uFFFD');
   });
 
-  it.runIf(hasToWellFormedGlobal)('handles the exact reproduction case from issue #5186', () => {
+  it.runIf(hasToWellFormed)('handles the exact reproduction case from issue #5186', () => {
     const badValue = '{"a":"\uD800"}';
-    const result = _INTERNAL_removeLoneSurrogates(badValue);
+    const result = _removeLoneSurrogates(badValue);
     expect(result).toBe('{"a":"\uFFFD"}');
     expect(() => JSON.parse(result)).not.toThrow();
   });
 
   it('returns the string as-is when toWellFormed is not available', () => {
     // Verify the function doesn't throw regardless of runtime support
-    expect(_INTERNAL_removeLoneSurrogates('normal string')).toBe('normal string');
+    expect(_removeLoneSurrogates('normal string')).toBe('normal string');
   });
 });

@@ -162,7 +162,7 @@ export function _INTERNAL_captureLog(
   const serializedLog: SerializedLog = {
     timestamp,
     level,
-    body: _INTERNAL_removeLoneSurrogates(String(message)),
+    body: _removeLoneSurrogates(String(message)),
     trace_id: traceContext?.trace_id,
     severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
     attributes: sanitizeLogAttributes({
@@ -235,9 +235,9 @@ function _getBufferMap(): WeakMap<Client, Array<SerializedLog>> {
 function sanitizeLogAttributes(attributes: Attributes): Attributes {
   const sanitized: Attributes = {};
   for (const [key, attr] of Object.entries(attributes)) {
-    const sanitizedKey = _INTERNAL_removeLoneSurrogates(key);
+    const sanitizedKey = _removeLoneSurrogates(key);
     if (attr.type === 'string') {
-      sanitized[sanitizedKey] = { ...attr, value: _INTERNAL_removeLoneSurrogates(attr.value) };
+      sanitized[sanitizedKey] = { ...attr, value: _removeLoneSurrogates(attr.value) };
     } else {
       sanitized[sanitizedKey] = attr;
     }
