@@ -82,10 +82,6 @@ describe('filterCookies', () => {
       expect(filterCookies(';;;', true)).toEqual({});
     });
 
-    it('returns [Filtered] when parsing throws', () => {
-      // parseCookie doesn't throw for malformed strings, so this path
-      // is a safety net — verified via the catch block existence
-    });
   });
 
   describe('edge cases', () => {
