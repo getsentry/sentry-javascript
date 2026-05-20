@@ -27,6 +27,8 @@ Optional `--ci` flag: when set, you are running unattended in GitHub Actions.
 
 Read the issue with `gh issue view <number> --repo getsentry/sentry-javascript --comments`. Locate the relevant code via Grep / Glob / Read. Stay focused on the current checkout — see "Investigation scope" below.
 
+**Fetching CI logs:** if the issue links to a failing job, prefer `gh api repos/getsentry/sentry-javascript/actions/jobs/<job-id>/logs` over `gh run view --log`. The latter frequently returns `failed to get run log: stream error: stream ID 1; CANCEL` from inside CI; the `gh api` endpoint is the reliable fallback. Try it ONCE — if it also fails, proceed without the CI log and reason from the issue text + code alone.
+
 ### Step 2: Propose a fix
 
 Identify the smallest change that addresses the root cause. Write it down internally before editing.
@@ -40,9 +42,11 @@ A "small" fix is roughly: 1–3 files, under ~30 lines of code change, no new ab
 - **If the fix is complicated, or you are not 100% sure it is correct: ABORT.** Post a comment on the issue describing the root cause (if known), what you tried, and why you aborted. Do not open a PR.
 - **Otherwise:** implement the fix with `Edit` / `Write`.
 
-### Step 5: Test the fix
+### Step 5: Verify the fix
 
-Run only the directly relevant test file (not the full suite). Use `yarn test <path>` or `yarn workspace @sentry/<pkg> test <path>` as appropriate.
+For most fixes, run only the directly relevant test file (not the full suite). Use `yarn test <path>` or `yarn workspace @sentry/<pkg> test <path>` as appropriate.
+
+**Exception — flaky test fixes:** running the test once proves nothing, because the failure is intermittent. Instead, verify the change matches a clear, existing pattern in the test (e.g., extending a whitelist of known-safe values alongside its siblings, loosening an over-tight epsilon, adding a `waitFor`). If you cannot point to an existing pattern your change is symmetric with, treat the fix as uncertain and abort per Step 4.
 
 ### Step 6: Commit on a new branch
 
