@@ -66,28 +66,27 @@ export function instrumentHydratedRouter(): void {
         };
       }
 
-      // Subscribe to router state changes to update navigation transactions with parameterized routes
+      // Subscribe to router state changes to update navigation transactions (and any pageload
+      // whose route info only became available after `trySubscribe`, e.g. lazy routes) with the
+      // parameterized route.
       router.subscribe(newState => {
-        const navigationSpan = getActiveRootSpan();
+        const rootSpan = getActiveRootSpan();
 
-        if (!navigationSpan) {
+        if (!rootSpan) {
           return;
         }
 
-        const navigationSpanName = spanToJSON(navigationSpan).description;
-        const parameterizedNavRoute = getParameterizedRoute(newState);
+        const rootSpanName = spanToJSON(rootSpan).description;
+        const parameterizedRoute = getParameterizedRoute(newState);
 
         if (
-          navigationSpanName &&
+          rootSpanName &&
           newState.navigation.state === 'idle' && // navigation has completed
-          // this event is for the currently active navigation
-          normalizePathname(newState.location.pathname) === normalizePathname(navigationSpanName)
+          // this event is for the currently active root span
+          normalizePathname(newState.location.pathname) === normalizePathname(rootSpanName)
         ) {
-          navigationSpan.updateName(parameterizedNavRoute);
-          navigationSpan.setAttributes({
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router',
-          });
+          rootSpan.updateName(parameterizedRoute);
+          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
         }
       });
       return true;
