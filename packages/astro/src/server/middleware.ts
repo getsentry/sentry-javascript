@@ -495,7 +495,11 @@ function injectMetaTagsInResponse(originalResponse: Response, metaTagsStr: strin
       },
     });
 
-    return new Response(newResponseStream, originalResponse);
+    return new Response(newResponseStream, {
+      status: originalResponse.status,
+      statusText: originalResponse.statusText,
+      headers: new Headers(originalResponse.headers),
+    });
   } catch (e) {
     sendErrorToSentry(e);
     throw e;
