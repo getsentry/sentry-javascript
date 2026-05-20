@@ -10,6 +10,11 @@ on:
         description: 'Issue number (e.g., 1234)'
         required: true
         type: number
+      show_full_output:
+        description: 'Show full Claude SDK output in logs (may expose secrets — use for debugging only)'
+        required: false
+        type: boolean
+        default: false
 
 # Per-issue concurrency to prevent duplicate analysis
 concurrency:
@@ -74,6 +79,7 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_non_write_users: '*'
+          show_full_output: ${{ github.event.inputs.show_full_output || 'false' }}
           prompt: |
             Fix the issue in getsentry/sentry-javascript with number #${{ steps.parse-issue.outputs.issue_number }}.
 
@@ -100,6 +106,11 @@ jobs:
             5. Test the fix
             6. Checkout a new branch and commit the fix
             7. Create a pull request for the fix
+
+            Investigation scope:
+            - This workflow always runs on the latest `develop`. Treat the current checkout as the source of truth — diagnose and fix from the code as it is now.
+            - For flaky test issues specifically: do NOT start by inspecting git history, `git log`, `git blame`, or diffs. Reproduce/reason about the flake from the current code first.
+            - Reach for git history only as an escalated step, once you have a concrete reason to believe a recent change is responsible and reading the code alone is not enough.
 
             Be economic with your turns:
             - Your budget is measured in *agent turns* (assistant messages), not individual tool calls. A single turn can contain many parallel tool calls and counts as one turn — so batching is free.

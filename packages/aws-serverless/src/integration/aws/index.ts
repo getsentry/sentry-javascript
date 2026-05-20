@@ -1,5 +1,5 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { AwsInstrumentation } from '@opentelemetry/instrumentation-aws-sdk';
+import { AwsInstrumentation } from './vendored/aws-sdk';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
 /**

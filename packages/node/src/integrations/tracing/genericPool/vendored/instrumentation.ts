@@ -28,7 +28,7 @@ import {
   isWrapped,
 } from '@opentelemetry/instrumentation';
 
-import type * as genericPool from 'generic-pool';
+import type * as genericPool from './generic-pool-types';
 
 import { SDK_VERSION } from '@sentry/core';
 
