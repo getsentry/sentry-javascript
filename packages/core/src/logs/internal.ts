@@ -197,7 +197,7 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
     clientOptions._metadata,
     clientOptions.tunnel,
     client.getDsn(),
-    clientOptions.sendDefaultPii,
+    client.getDataCollectionOptions().userInfo,
   );
 
   // Clear the log buffer after envelopes have been constructed.
