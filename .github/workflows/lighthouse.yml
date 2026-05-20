@@ -1,0 +1,33 @@
+name: 'Nightly: Lighthouse'
+
+# Nightly: builds the Lighthouse fixture app and uploads bundles to the
+# lighthouse.sentry.gg lab. Never blocks merges.
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  build-and-upload:
+    name: Bundle and upload Lighthouse cells
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      LIGHTHOUSE_LAB_URL: ${{ secrets.LIGHTHOUSE_LAB_URL }}
+      LIGHTHOUSE_UPLOAD_TOKEN: ${{ secrets.LIGHTHOUSE_UPLOAD_TOKEN }}
+      VITE_E2E_TEST_DSN: 'https://username@domain/123'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: 'package.json'
+      - run: yarn install --frozen-lockfile --ignore-engines
+      - run: yarn build:ci
+      - run: yarn build:tarball
+      - run: yarn test:prepare
+        working-directory: dev-packages/e2e-tests
+      - run: node scripts/lighthouse-bundle-and-upload.mjs
