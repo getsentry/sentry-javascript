@@ -45,7 +45,7 @@ A "small" fix is roughly: 1–3 files, under ~30 lines of code change, no new ab
 
 ### Step 4: Decide — fix or abort
 
-- **If the fix is complicated, or you are not 100% sure it is correct: ABORT.** Post a comment on the issue describing the root cause (if known), what you tried, and why you aborted. Do not open a PR.
+- **If the fix is complicated, or you are not 100% sure it is correct: ABORT.** Write the comment to a workspace file (using `Write`), then post via `gh issue comment <issue-number> --repo getsentry/sentry-javascript --body-file <file>`. NEVER pass the comment inline via `--body "..."` — same backtick-mangling problem as Step 7 (code fences render as literal `\`` if forced through Bash quoting). Do not open a PR.
 - **Otherwise:** implement the fix with `Edit` / `Write`.
 
 ### Step 5: Verify the fix is sound
@@ -60,9 +60,15 @@ If the change is purely additive guarding (e.g., adding `test.skip(<condition>, 
 
 ### Step 6: Commit on a new branch and push
 
-`git checkout -b fix/<short-descriptive-name>`, `git add <files>`, `git commit -m "<conventional commit>"`, then `git push -u origin fix/<short-descriptive-name>`. The push is required before Step 7 can open the PR.
+`git checkout -b fix/<short-descriptive-name>`, `git add <files>`, then commit with **two `-m` flags** so the subject and the `Fixes` footer both land in the message:
 
-**Commit message format:** follow Conventional Commits — `<type>(<scope>): <subject>`, where `<type>` is one of `test`, `fix`, `feat`, `ref`, `chore`, `docs`, `ci`. Look at recent commits (`git log --oneline -10`) for examples. Include `Fixes #<issue-number>` in the message body.
+```
+git commit -m "<type>(<scope>): <subject>" -m "Fixes #<issue-number>"
+```
+
+A single `-m` only sets the subject — the footer would be silently dropped, and the merged PR wouldn't auto-close the issue. Then `git push -u origin fix/<short-descriptive-name>`.
+
+**Commit message format:** Conventional Commits — `<type>` is one of `test`, `fix`, `feat`, `ref`, `chore`, `docs`, `ci`. Look at recent commits (`git log --oneline -10`) for examples. The PR body in Step 7 will also include `Fixes #<issue-number>` as a belt-and-suspenders — GitHub recognizes the closing keyword in either place.
 
 **Do NOT run `yarn format` / `yarn lint` / `yarn test` / `yarn build:dev` before committing.** `CLAUDE.md` / `AGENTS.md` list a "Before Every Commit" checklist that includes those, but this workflow does not allowlist `yarn` (per Step 5 / Turn economy). CI will run lint and tests on the opened PR; rely on that. The pre-commit checklist in those docs does not apply to this skill.
 
@@ -76,6 +82,8 @@ gh pr create --base develop --title "<title>" --body-file pr-body.md
 
 Targeting `develop` (never `master`). Always use `--body-file`, NOT `--body "<inline>"`: passing the body inline forces it through Bash quoting, where backticks for code blocks and `$` for shell-looking text get mangled (escaped backticks render as literal `\`` in the PR, breaking every code block). Writing the body to a file sidesteps that entirely. Leave the file in the workspace — do not `rm` it.
 
+Include `Fixes #<issue-number>` somewhere in the PR body so the merge auto-closes the issue. (The commit message footer in Step 6 covers this too, but it's worth having in the PR body as well — that's the surface a reviewer actually sees.)
+
 ## Investigation scope
 
 - This workflow always runs against the latest `develop`. **Treat the current checkout as the source of truth** — diagnose and fix from the code as it is now.
@@ -84,9 +92,9 @@ Targeting `develop` (never `master`). Always use `--body-file`, NOT `--body "<in
 
 ## Tool failure handling
 
-- If the **same** tool call fails on the **same** target twice in a row (e.g., two `Edit` denials on the same file, two `gh pr create` rejections), STOP retrying. Either pivot to a meaningfully different approach or abort: post a comment on the issue describing the proposed fix and why you stopped, then exit.
+- If the **same** tool call fails on the **same** target twice in a row (e.g., two `Edit` denials on the same file, two `gh pr create` rejections), STOP retrying. Either pivot to a meaningfully different approach or abort per Step 4 (write the comment to a file, post via `gh issue comment --body-file`).
 - Do NOT reimplement blocked tools via Bash. Forbidden workarounds include: `printf` piped to `git apply` as a substitute for `Edit`/`Write`; `gh api -X POST .../pulls --input -` as a substitute for `gh pr create`; reconstructing files via `cat <<EOF` or `sed -e`. If a primary tool is blocked, that is the signal to abort, not to invent a workaround.
-- If `gh pr create` fails after one retry with cleaned-up arguments, the run cannot complete its goal — abort and post the proposed diff as an issue comment instead.
+- If `gh pr create` fails after one retry with cleaned-up arguments, the run cannot complete its goal — abort per Step 4 and include the proposed diff inside the comment file.
 
 ## Bash usage rules
 
@@ -112,5 +120,5 @@ Your budget is measured in _agent turns_ (assistant messages), not individual to
 
 - You have a hard limit of **80 agent turns** for this entire task. One turn = one assistant message, regardless of how many tool calls it contains. Stay well under the limit.
 - If you have used roughly 50 turns and do not yet have a small, verified fix with a clear path to opening a PR, STOP. Do not keep exploring, re-reading files, or retrying tests.
-- On stop: post a comment on the issue summarizing the root cause (if known), what you tried, and why you aborted, then exit. Do not open a PR.
+- On stop: abort per Step 4 (write the comment to a file, post via `gh issue comment --body-file`) summarizing the root cause (if known), what you tried, and why you aborted, then exit. Do not open a PR.
 - Re-running the same failing command, re-reading the same files, or going in circles is a signal to stop early — do not wait for the budget to run out.
