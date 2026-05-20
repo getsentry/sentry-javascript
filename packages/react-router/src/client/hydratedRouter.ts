@@ -86,9 +86,7 @@ export function instrumentHydratedRouter(): void {
           normalizePathname(newState.location.pathname) === normalizePathname(rootSpanName)
         ) {
           rootSpan.updateName(parameterizedRoute);
-          rootSpan.setAttributes({
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          });
+          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
         }
       });
       return true;
