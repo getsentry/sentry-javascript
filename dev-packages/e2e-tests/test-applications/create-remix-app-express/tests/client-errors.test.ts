@@ -29,8 +29,13 @@ test('Sends a client-side ErrorBoundary exception to Sentry', async ({ page }) =
 });
 
 test('Reports a manually captured exception from a route', async ({ page }) => {
+  // The route component runs on both server and browser, so two events are emitted.
+  // We only care about the browser-side capture here.
   const errorPromise = waitForError('create-remix-app-express', errorEvent => {
-    return errorEvent.exception?.values?.[0]?.value === 'Sentry Manually Captured Error';
+    return (
+      errorEvent.platform === 'javascript' &&
+      errorEvent.exception?.values?.[0]?.value === 'Sentry Manually Captured Error'
+    );
   });
 
   await page.goto('/capture-exception');
@@ -51,7 +56,7 @@ test('Reports a manually captured exception from a route', async ({ page }) => {
 
 test('Reports a manually captured message from a route', async ({ page }) => {
   const messagePromise = waitForError('create-remix-app-express', errorEvent => {
-    return errorEvent.message === 'Sentry Manually Captured Message';
+    return errorEvent.platform === 'javascript' && errorEvent.message === 'Sentry Manually Captured Message';
   });
 
   await page.goto('/capture-message');

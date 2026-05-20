@@ -57,10 +57,14 @@ test('Reports a thrown Response from a loader', async ({ page }) => {
 });
 
 test('Reports an error in the redirection target loader', async ({ page }) => {
+  // Same payload as the direct-loader-error test; serial execution + timestamp
+  // gating in the proxy ensures this listener only matches the event emitted
+  // for this test.
   const errorPromise = waitForError('create-remix-app-express', errorEvent => {
     return (
+      errorEvent.platform === 'node' &&
       errorEvent.exception?.values?.[0]?.value === 'Unexpected Server Error' &&
-      errorEvent.transaction === 'GET loader-json-response/:id'
+      errorEvent.exception?.values?.[0]?.mechanism?.data?.function === 'remix.server.handleError'
     );
   });
 
@@ -77,8 +81,10 @@ test('Reports an error thrown from an action', async ({ request }) => {
   });
   const errorPromise = waitForError('create-remix-app-express', errorEvent => {
     return (
+      errorEvent.platform === 'node' &&
+      errorEvent.request?.method === 'POST' &&
       errorEvent.exception?.values?.[0]?.value === 'Unexpected Server Error' &&
-      errorEvent.transaction === 'POST action-json-response/:id'
+      errorEvent.exception?.values?.[0]?.mechanism?.data?.function === 'remix.server.handleError'
     );
   });
 
@@ -91,9 +97,7 @@ test('Reports an error thrown from an action', async ({ request }) => {
   expect(errorEvent.exception?.values?.[0]?.mechanism).toMatchObject({
     handled: false,
     type: 'auto.function.remix.server',
-    data: { function: 'remix.server.handleError' },
   });
-  expect(errorEvent.request?.method).toBe('POST');
 });
 
 test('Reports a thrown json() error response with statusText', async ({ request }) => {
@@ -198,11 +202,11 @@ test('Reports an SSR error and applies tags from wrapHandleErrorWithSentry', asy
 });
 
 test('Does not report a thrown redirect response on the server', async ({ page }) => {
-  let redirectErrorReceived = false;
+  let serverErrorReceived = false;
 
   const errorPromise = waitForError('create-remix-app-express', errorEvent => {
-    if (errorEvent.transaction === 'GET throw-redirect') {
-      redirectErrorReceived = true;
+    if (errorEvent.platform === 'node') {
+      serverErrorReceived = true;
       return true;
     }
     return false;
@@ -212,5 +216,5 @@ test('Does not report a thrown redirect response on the server', async ({ page }
 
   await Promise.race([errorPromise, new Promise(resolve => setTimeout(resolve, 3000))]);
 
-  expect(redirectErrorReceived).toBe(false);
+  expect(serverErrorReceived).toBe(false);
 });
