@@ -1,5 +1,4 @@
 import { LoaderFunction, json } from '@remix-run/node';
-
 import * as Sentry from '@sentry/remix';
 
 export const loader: LoaderFunction = async ({ params: { id } }) => {

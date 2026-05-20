@@ -1,5 +1,5 @@
 export default function SSRError() {
-  const data = ['err'].map(err => {
+  const data = ['err'].map(() => {
     throw new Error('Sentry SSR Test Error');
   });
 

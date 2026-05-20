@@ -1,11 +1,7 @@
 node_modules
 
-test/integration/.cache
 /build
 /public/build
 .env
-/test-results/
-/playwright-report/
-/playwright/.cache/
 yarn.lock
 

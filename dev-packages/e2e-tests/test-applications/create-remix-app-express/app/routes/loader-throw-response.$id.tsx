@@ -13,12 +13,12 @@ export const loader: LoaderFunction = async ({ params: { id } }) => {
 };
 
 export default function LoaderThrowResponse() {
-  const data = useLoaderData();
+  const data = useLoaderData<{ message?: string }>();
 
   return (
     <div>
       <h1>Loader Throw Response</h1>
-      <span>{data ? data.message : 'No Data'} </span>
+      <span>{data ? data.message : 'No Data'}</span>
     </div>
   );
 }
