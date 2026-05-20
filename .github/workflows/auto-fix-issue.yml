@@ -34,6 +34,9 @@ jobs:
       pull-requests: write
       # Required to create a new branch and commit the fix
       id-token: write
+      # Required for `gh api .../actions/jobs/<id>/logs` (skill Step 1 CI-log fetch).
+      # With explicit `permissions:`, omitted scopes default to no access.
+      actions: read
     # TODO: Run automatically for Flaky Test issues
     # if: |
     #  github.event_name == 'workflow_dispatch' ||
