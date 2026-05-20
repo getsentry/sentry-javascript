@@ -1,6 +1,6 @@
 import type { CollectBehavior } from '../../types/datacollection';
 import { parseCookie } from '../cookie';
-import { FILTERED_VALUE as FILTERED } from './filtering-snippets';
+import { FILTERED_VALUE as FILTERED, SENSITIVE_COOKIE_NAME_SNIPPETS } from './filtering-snippets';
 import { filterKeyValueData } from './filterKeyValueData';
 
 /**
@@ -21,7 +21,7 @@ export function filterCookies(cookieString: string, behavior: CollectBehavior): 
       return {};
     }
 
-    return filterKeyValueData(parsed, behavior);
+    return filterKeyValueData(parsed, behavior, SENSITIVE_COOKIE_NAME_SNIPPETS);
   } catch {
     return FILTERED;
   }

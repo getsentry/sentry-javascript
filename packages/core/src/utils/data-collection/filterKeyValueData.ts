@@ -1,9 +1,8 @@
 import type { CollectBehavior } from '../../types/datacollection';
 import { FILTERED_VALUE as FILTERED, SENSITIVE_KEY_SNIPPETS } from './filtering-snippets';
 
-function isSensitiveKey(key: string): boolean {
-  const lower = key.toLowerCase();
-  return SENSITIVE_KEY_SNIPPETS.some(snippet => lower.includes(snippet));
+function isSensitiveKey(lower: string, denySnippets: string[]): boolean {
+  return denySnippets.some(snippet => lower.includes(snippet));
 }
 
 /**
@@ -11,17 +10,25 @@ function isSensitiveKey(key: string): boolean {
  *
  * Key names are always preserved. Values are either kept, replaced with
  * `[Filtered]`, or the entire record is dropped (off mode).
+ *
+ * @param additionalDenyTerms - Additional sensitive snippets to check beyond the built-in denylist (e.g. cookie-specific terms).
  */
-export function filterKeyValueData(data: Record<string, string>, behavior: CollectBehavior): Record<string, string> {
+export function filterKeyValueData(
+  data: Record<string, string>,
+  behavior: CollectBehavior,
+  additionalDenyTerms?: string[],
+): Record<string, string> {
   if (behavior === false) {
     return {};
   }
 
+  const denySnippets =
+    additionalDenyTerms != null ? [...SENSITIVE_KEY_SNIPPETS, ...additionalDenyTerms] : SENSITIVE_KEY_SNIPPETS;
   const result: Record<string, string> = {};
 
   if (behavior === true) {
     for (const key of Object.keys(data)) {
-      result[key] = isSensitiveKey(key) ? FILTERED : data[key]!;
+      result[key] = isSensitiveKey(key.toLowerCase(), denySnippets) ? FILTERED : data[key]!;
     }
     return result;
   }
@@ -30,7 +37,7 @@ export function filterKeyValueData(data: Record<string, string>, behavior: Colle
     const lowerTerms = behavior.deny.map(t => t.toLowerCase());
     for (const key of Object.keys(data)) {
       const lower = key.toLowerCase();
-      const isDenied = isSensitiveKey(key) || lowerTerms.some(term => lower.includes(term));
+      const isDenied = isSensitiveKey(lower, denySnippets) || lowerTerms.some(term => lower.includes(term));
       result[key] = isDenied ? FILTERED : data[key]!;
     }
     return result;
@@ -39,10 +46,10 @@ export function filterKeyValueData(data: Record<string, string>, behavior: Colle
   // allowList mode
   const lowerTerms = behavior.allow.map(t => t.toLowerCase());
   for (const key of Object.keys(data)) {
-    if (isSensitiveKey(key)) {
+    const lower = key.toLowerCase();
+    if (isSensitiveKey(lower, denySnippets)) {
       result[key] = FILTERED;
     } else {
-      const lower = key.toLowerCase();
       const isAllowed = lowerTerms.some(term => lower.includes(term));
       result[key] = isAllowed ? data[key]! : FILTERED;
     }

@@ -27,6 +27,17 @@ describe('filterCookies', () => {
         color: 'blue',
       });
     });
+
+    it('filters cookie-specific sensitive names', () => {
+      const result = filterCookies('theme=dark; connect.sid=abc; remember_me=xyz; __secure-token=secret', true);
+
+      expect(result).toEqual({
+        theme: 'dark',
+        'connect.sid': '[Filtered]', // matches ".sid"
+        remember_me: '[Filtered]', // matches "remember"
+        '__secure-token': '[Filtered]', // matches "__secure-" and "token"
+      });
+    });
   });
 
   describe('denyList mode ({ deny: [...] })', () => {
