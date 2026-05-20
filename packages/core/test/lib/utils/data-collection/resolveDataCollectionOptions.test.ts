@@ -133,6 +133,7 @@ describe('resolveDataCollectionOptions', () => {
     it('always returns all fields', () => {
       const result = resolveDataCollectionOptions({});
 
+      expect(Object.keys(result)).toHaveLength(8);
       expect(result).toHaveProperty('userInfo');
       expect(result).toHaveProperty('cookies');
       expect(result).toHaveProperty('httpHeaders');
