@@ -44,9 +44,21 @@ A "small" fix is roughly: 1–3 files, under ~30 lines of code change, no new ab
 
 ### Step 5: Verify the fix
 
-For most fixes, run only the directly relevant test file (not the full suite). Use `yarn test <path>` or `yarn workspace @sentry/<pkg> test <path>` as appropriate.
+For most fixes, run only the directly relevant test file (not the full suite). Use `yarn test <path>` or `yarn workspace @sentry-internal/<pkg> test <path>` as appropriate.
 
-**Exception — flaky test fixes:** running the test once proves nothing, because the failure is intermittent. Instead, verify the change matches a clear, existing pattern in the test (e.g., extending a whitelist of known-safe values alongside its siblings, loosening an over-tight epsilon, adding a `waitFor`). If you cannot point to an existing pattern your change is symmetric with, treat the fix as uncertain and abort per Step 4.
+**Flaky test fixes — run the test multiple times.** A single pass proves nothing because the failure is intermittent. Run the targeted test ~5 times in a row, all must pass. Use the framework's built-in repeat support (do NOT spawn 5 separate Bash invocations — that's wasted turns and breaks setup/teardown caching):
+
+- **Playwright (browser-integration-tests, E2E, browser/loader suites):** use `--repeat-each=5`, scope with `-g "<test title>"`, and pick the matching `PW_BUNDLE` script. Example for `suites/profiling/manualMode/test.ts` in the `bundle_tracing_logs_metrics` shard:
+  ```
+  yarn workspace @sentry-internal/browser-integration-tests test:bundle:tracing_logs_metrics -g "sends profile_chunk envelopes in manual mode" --repeat-each=5
+  ```
+  The `PW_BUNDLE` value is encoded in the failing job name in the issue (e.g. job "Playwright bundle_tracing_logs_metrics Tests" → `test:bundle:tracing_logs_metrics`). If it's a generic Playwright run with no `PW_BUNDLE`, use the package's `test` script directly.
+- **Vitest unit tests:** use `--repeat=5` on the specific file: `yarn workspace @sentry/<pkg> test <relative-test-path> --repeat=5`.
+- **Node integration / E2E tests:** check the test app's package.json for a `test` script and add `--repeat-each=5` (Playwright) or `--repeat=5` (Vitest) accordingly.
+
+If all 5 runs pass, the fix is verified. If even one fails, the fix is incomplete — abort per Step 4 (do not "loosen" the test to make it pass).
+
+If you cannot identify the right `PW_BUNDLE`/test command from the issue text within one or two attempts, fall back to symmetric-pattern verification: confirm the change extends an existing, clearly-correct pattern (e.g., adding a sibling to a known-safe whitelist), and note in the PR body that the fix was not runtime-verified.
 
 ### Step 6: Commit on a new branch
 
