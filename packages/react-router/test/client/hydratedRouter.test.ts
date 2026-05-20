@@ -2,6 +2,7 @@ import * as browser from '@sentry/browser';
 import * as core from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentHydratedRouter } from '../../src/client/hydratedRouter';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual<any>('@sentry/core');
@@ -93,11 +94,7 @@ describe('instrumentHydratedRouter', () => {
     (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
     callback(newState);
     expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/:id');
-    // The subscribe callback only updates source; the origin is set at navigation-span
-    // creation time and must be left alone here (otherwise we'd clobber the pageload origin
-    // when the pageload is still the active root, and we'd strip the `.instrumentation_api`
-    // suffix on spans created via the instrumentation API).
-    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({ source: 'route' });
+    expect(mockNavigationSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   });
 
   it('does not overwrite pageload origin when the pageload is still active', () => {
