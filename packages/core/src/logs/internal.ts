@@ -256,8 +256,10 @@ function sanitizeLogAttributes(attributes: Attributes): Attributes {
  * Uses the native `String.prototype.toWellFormed()` when available
  * (Node 20+, Chrome 111+, Safari 15.4+, Firefox 119+, Hermes).
  * On older runtimes without native support, returns the string as-is.
+ * 
+ * Exported for testing
  */
-export function _INTERNAL_removeLoneSurrogates(str: string): string {
+export function _removeLoneSurrogates(str: string): string {
   // isWellFormed/toWellFormed are ES2024 (not in our TS lib target), so we feature-detect via Object().
   const strObj: Record<string, Function> = Object(str);
   const isWellFormed = strObj['isWellFormed'];
