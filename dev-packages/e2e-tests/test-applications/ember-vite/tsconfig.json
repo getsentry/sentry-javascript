@@ -8,11 +8,6 @@
       "ember-vite/*": ["./app/*"],
       "*": ["./types/*"]
     },
-    "types": [
-      "ember-source/types",
-      "@embroider/core/virtual",
-      "vite/client",
-      "@glint/ember-tsc/types"
-    ]
+    "types": ["ember-source/types", "@embroider/core/virtual", "vite/client", "@glint/ember-tsc/types"]
   }
 }

@@ -1,7 +1,5 @@
 /**
- * This babel.config is not used for publishing.
- * It's only for the local editing experience
- * (and linting)
+ * This babel config is used for local tests in the e2e app.
  */
 const { buildMacros } = require('@embroider/macros/babel');
 
@@ -33,7 +31,6 @@ module.exports = {
     ],
     ...macros.babelMacros,
   ],
-
   generatorOpts: {
     compact: false,
   },

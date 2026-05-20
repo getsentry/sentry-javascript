@@ -62,10 +62,10 @@ For automatic performance instrumentation (page loads, navigation, runloop, comp
 ```typescript
 // app/instance-initializers/sentry-performance.ts
 import type ApplicationInstance from '@ember/application/instance';
-import { addIntegration, browserTracingIntegration } from '@sentry/ember';
+import { instrumentAppInstancePerformance } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
-  addIntegration(browserTracingIntegration({ appInstance }));
+  instrumentAppInstancePerformance(appInstance, optionalOptions);
 }
 
 export default {
@@ -75,17 +75,17 @@ export default {
 
 ### Performance Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `appInstance` | `ApplicationInstance` | *required* | The Ember application instance |
-| `disableRunloopPerformance` | `boolean` | `false` | Disable runloop queue tracking |
-| `disableInstrumentComponents` | `boolean` | `false` | Disable component render tracking |
-| `enableComponentDefinitions` | `boolean` | `false` | Enable component definition tracking |
-| `minimumRunloopQueueDuration` | `number` | `5` | Minimum duration (ms) for runloop spans |
-| `minimumComponentRenderDuration` | `number` | `2` | Minimum duration (ms) for component spans |
-| `instrumentPageLoad` | `boolean` | `true` | Instrument page load spans |
-| `instrumentNavigation` | `boolean` | `true` | Instrument navigation spans |
-| `idleTimeout` | `number` | `5000` | Idle timeout (ms) for tracing |
+| Option                           | Type                  | Default    | Description                               |
+| -------------------------------- | --------------------- | ---------- | ----------------------------------------- |
+| `appInstance`                    | `ApplicationInstance` | _required_ | The Ember application instance            |
+| `disableRunloopPerformance`      | `boolean`             | `false`    | Disable runloop queue tracking            |
+| `disableInstrumentComponents`    | `boolean`             | `false`    | Disable component render tracking         |
+| `enableComponentDefinitions`     | `boolean`             | `false`    | Enable component definition tracking      |
+| `minimumRunloopQueueDuration`    | `number`              | `5`        | Minimum duration (ms) for runloop spans   |
+| `minimumComponentRenderDuration` | `number`              | `2`        | Minimum duration (ms) for component spans |
+| `instrumentPageLoad`             | `boolean`             | `true`     | Instrument page load spans                |
+| `instrumentNavigation`           | `boolean`             | `true`     | Instrument navigation spans               |
+| `idleTimeout`                    | `number`              | `5000`     | Idle timeout (ms) for tracing             |
 
 You can also use the convenience function `setupPerformance`:
 

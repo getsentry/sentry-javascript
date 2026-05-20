@@ -1,11 +1,11 @@
-"use strict";
+'use strict';
 
 module.exports = function (environment) {
   const ENV = {
-    modulePrefix: "ember-vite",
+    modulePrefix: 'ember-vite',
     environment,
-    rootURL: "/",
-    locationType: "history",
+    rootURL: '/',
+    locationType: 'history',
     EmberENV: {
       EXTEND_PROTOTYPES: false,
       FEATURES: {},
@@ -15,18 +15,18 @@ module.exports = function (environment) {
 
   ENV.sentryDsn = process.env.E2E_TEST_DSN;
 
-  if (environment === "development") {
+  if (environment === 'development') {
   }
 
-  if (environment === "test") {
-    ENV.locationType = "none";
+  if (environment === 'test') {
+    ENV.locationType = 'none';
     ENV.APP.LOG_ACTIVE_GENERATION = false;
     ENV.APP.LOG_VIEW_LOOKUPS = false;
-    ENV.APP.rootElement = "#ember-testing";
+    ENV.APP.rootElement = '#ember-testing';
     ENV.APP.autoboot = false;
   }
 
-  if (environment === "production") {
+  if (environment === 'production') {
   }
 
   return ENV;

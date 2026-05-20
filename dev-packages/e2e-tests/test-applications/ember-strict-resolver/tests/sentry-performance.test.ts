@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('ember-classic', async transactionEvent => {
+  const transactionPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -25,11 +25,11 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 });
 
 test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -53,11 +53,11 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 });
 
 test('sends a navigation transaction even if the pageload span is still active', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -98,18 +98,21 @@ test('sends a navigation transaction even if the pageload span is still active',
 });
 
 test('captures correct spans for navigation', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/tracing`);
   await pageloadTxnPromise;
 
-  const [_, navigationTxn] = await Promise.all([page.getByText('Measure Things!').click(), navigationTxnPromise]);
+  const [_, navigationTxn] = await Promise.all([
+    page.getByText('Transition to slow loading route').click(),
+    navigationTxnPromise,
+  ]);
 
   const traceId = navigationTxn.contexts?.trace?.trace_id;
   const spanId = navigationTxn.contexts?.trace?.span_id;
@@ -275,5 +278,119 @@ test('captures correct spans for navigation', async ({ page }) => {
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: traceId,
+  });
+});
+
+test('handles slow loading route', async ({ page }) => {
+  const transactionPromise = waitForTransaction('ember-strict-resolver', transactionEvent => {
+    return transactionEvent.transaction === 'route:slow-loading-route.index';
+  });
+  await page.goto('/tracing');
+  await page.locator('[data-test-button="Transition to slow loading route"]').click();
+
+  const transaction = await transactionPromise;
+  expect(transaction).toMatchObject({
+    transaction: 'route:slow-loading-route.index',
+    contexts: {
+      trace: {
+        data: {
+          fromRoute: 'tracing',
+          toRoute: 'slow-loading-route.index',
+        },
+      },
+    },
+  });
+  expect(transaction.spans).toContainEqual(
+    expect.objectContaining({
+      op: 'ui.ember.transition',
+      description: 'route:tracing -> route:slow-loading-route.index',
+    }),
+  );
+  expect(transaction.spans).toContainEqual(
+    expect.objectContaining({
+      op: 'ui.ember.route.before_model',
+      description: 'slow-loading-route',
+    }),
+  );
+  expect(transaction.spans).toContainEqual(
+    expect.objectContaining({
+      op: 'ui.ember.route.before_model',
+      description: 'slow-loading-route.index',
+    }),
+  );
+  expect(transaction.spans).toContainEqual(
+    expect.objectContaining({
+      op: 'ui.ember.route.model',
+      description: 'slow-loading-route.index',
+    }),
+  );
+  expect(transaction.spans).toContainEqual(
+    expect.objectContaining({
+      op: 'ui.ember.route.model',
+      description: 'slow-loading-route',
+    }),
+  );
+  expect(transaction.spans).toContainEqual(
+    expect.objectContaining({
+      op: 'ui.ember.route.after_model',
+      description: 'slow-loading-route',
+    }),
+  );
+  expect(transaction.spans).toContainEqual(
+    expect.objectContaining({
+      op: 'ui.ember.route.after_model',
+      description: 'slow-loading-route.index',
+    }),
+  );
+  expect(transaction.spans).toContainEqual(
+    expect.objectContaining({
+      op: 'ui.ember.route.setup_controller',
+      description: 'slow-loading-route',
+    }),
+  );
+  expect(transaction.spans).toContainEqual(
+    expect.objectContaining({
+      op: 'ui.ember.route.setup_controller',
+      description: 'slow-loading-route.index',
+    }),
+  );
+});
+
+test('handles page with loading state', async ({ page }) => {
+  const transactionPromise = waitForTransaction('ember-strict-resolver', transactionEvent => {
+    return transactionEvent.transaction === 'route:with-loading.index';
+  });
+  await page.goto('/with-loading');
+
+  const transaction = await transactionPromise;
+  expect(transaction).toMatchObject({
+    transaction: 'route:with-loading.index',
+    contexts: {
+      trace: {
+        data: {
+          toRoute: 'with-loading.index',
+        },
+      },
+    },
+  });
+});
+
+test('handles page with error state', async ({ page }) => {
+  // The route's model hook intentionally throws, so we need to handle errors
+  const transactionPromise = waitForTransaction('ember-strict-resolver', transactionEvent => {
+    return transactionEvent.transaction === 'route:with-error.index';
+  });
+  await page.goto('/with-error');
+
+  const transaction = await transactionPromise;
+  expect(transaction).toMatchObject({
+    transaction: 'route:with-error.index',
+    contexts: {
+      trace: {
+        data: {
+          toRoute: 'with-error.index',
+        },
+      },
+    },
   });
 });

@@ -6,11 +6,11 @@ This guide covers migrating from the v1 Ember addon format to the v2 addon forma
 
 The v2 addon is a modern [Ember v2 addon](https://rfcs.emberjs.com/id/0507-embroider-v2-package-format/) that works with Embroider and Vite. Key differences:
 
-| Feature | v1 Addon | v2 Addon |
-|---------|----------|----------|
-| Configuration | `config/environment.js` | Direct `Sentry.init()` call |
+| Feature                     | v1 Addon                    | v2 Addon                                                     |
+| --------------------------- | --------------------------- | ------------------------------------------------------------ |
+| Configuration               | `config/environment.js`     | Direct `Sentry.init()` call                                  |
 | Performance instrumentation | Auto-registered initializer | Manual instance-initializer with `browserTracingIntegration` |
-| Build compatibility | Classic builds only | Embroider & Vite compatible |
+| Build compatibility         | Classic builds only         | Embroider & Vite compatible                                  |
 
 ## Step 1: Update Configuration
 
@@ -73,10 +73,10 @@ In v1, performance instrumentation was automatic. In v2, create an instance-init
 
 ```typescript
 import type ApplicationInstance from '@ember/application/instance';
-import { addIntegration, browserTracingIntegration } from '@sentry/ember';
+import { instrumentAppInstancePerformance } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
-  addIntegration(browserTracingIntegration({ appInstance }));
+  instrumentAppInstancePerformance(appInstance);
 }
 
 export default {
@@ -88,12 +88,10 @@ export default {
 
 ```typescript
 import type ApplicationInstance from '@ember/application/instance';
-import { addIntegration, browserTracingIntegration } from '@sentry/ember';
+import { instrumentAppInstancePerformance } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
-  addIntegration(browserTracingIntegration({
-    appInstance,
-
+  instrumentAppInstancePerformance(appInstance, {
     // Disable runloop queue tracking
     disableRunloopPerformance: false,
 
@@ -115,7 +113,7 @@ export function initialize(appInstance: ApplicationInstance): void {
 
     // Idle timeout (ms)
     idleTimeout: 5000,
-  }));
+  });
 }
 
 export default {
@@ -149,7 +147,7 @@ Most imports remain the same, but check for these changes:
 
 ```typescript
 // v2 - new import for browserTracingIntegration
-import { addIntegration, browserTracingIntegration } from '@sentry/ember';
+import { addIntegration, browserTracingIntegration, instrumentAppInstancePerformance } from '@sentry/ember';
 
 // v2 - same for instrumentRoutePerformance
 import { instrumentRoutePerformance } from '@sentry/ember';
@@ -197,12 +195,14 @@ config/
 ```
 
 **app/app.js:**
+
 ```javascript
 import Application from '@ember/application';
 // Sentry was auto-initialized from config
 ```
 
 **config/environment.js:**
+
 ```javascript
 module.exports = function (environment) {
   return {
@@ -230,6 +230,7 @@ config/
 ```
 
 **app/app.ts:**
+
 ```typescript
 import Application from '@ember/application';
 import Resolver from 'ember-resolver';
@@ -252,12 +253,13 @@ loadInitializers(App, config.modulePrefix);
 ```
 
 **app/instance-initializers/sentry-performance.ts:**
+
 ```typescript
 import type ApplicationInstance from '@ember/application/instance';
-import { addIntegration, browserTracingIntegration } from '@sentry/ember';
+import { instrumentAppInstancePerformance } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
-  addIntegration(browserTracingIntegration({ appInstance }));
+  instrumentAppInstancePerformance(appInstance);
 }
 
 export default { initialize };
@@ -268,6 +270,7 @@ export default { initialize };
 ### "Cannot find module '@sentry/ember/performance'"
 
 Make sure you're importing from the correct path:
+
 ```typescript
 import { browserTracingIntegration } from '@sentry/ember';
 ```

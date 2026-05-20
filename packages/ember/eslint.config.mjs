@@ -33,14 +33,7 @@ const tsParserOptions = {
 };
 
 export default defineConfig([
-  globalIgnores([
-    'dist/',
-    'dist-*/',
-    'declarations/',
-    'coverage/',
-    '!**/.*',
-    '.npm-deps/',
-  ]),
+  globalIgnores(['dist/', 'dist-*/', 'declarations/', 'coverage/', '!**/.*', '.npm-deps/']),
   js.configs.recommended,
   prettier,
   ember.configs.base,

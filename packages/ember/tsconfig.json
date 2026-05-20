@@ -5,19 +5,9 @@
  */
 {
   "extends": "@ember/app-tsconfig",
-  "include": [
-    "src/**/*",
-    "tests/**/*",
-    "unpublished-development-types/**/*",
-    "demo-app/**/*"
-  ],
+  "include": ["src/**/*", "tests/**/*", "unpublished-development-types/**/*"],
   "compilerOptions": {
     "rootDir": ".",
-    "types": [
-      "ember-source/types",
-      "vite/client",
-      "@embroider/core/virtual",
-      "@glint/ember-tsc/types"
-    ]
+    "types": ["ember-source/types", "vite/client", "@embroider/core/virtual", "@glint/ember-tsc/types"]
   }
 }

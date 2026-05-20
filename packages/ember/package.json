@@ -1,6 +1,6 @@
 {
   "name": "@sentry/ember",
-  "version": "10.52.0",
+  "version": "10.53.1",
   "description": "Official Sentry SDK for Ember.js",
   "keywords": [
     "ember-addon"
@@ -28,77 +28,38 @@
   "scripts": {
     "build": "rollup --config",
     "build:dev": "yarn build",
-    "build:tarball": "yarn build && npm pack",
+    "build:tarball": "npm pack",
     "build:watch": "rollup --config --watch",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf dist declarations *.tgz .turbo",
-    "format": "prettier . --cache --write",
-    "lint": "concurrently \"yarn:lint:*(!fix)\" --names \"lint:\" --prefixColors auto",
-    "lint:fix": "concurrently \"yarn:lint:*:fix\" --names \"fix:\" --prefixColors auto && yarn format",
-    "lint:format": "prettier . --cache --check",
-    "lint:hbs": "ember-template-lint . --no-error-on-unmatched-pattern",
-    "lint:hbs:fix": "ember-template-lint . --fix --no-error-on-unmatched-pattern",
-    "lint:js": "eslint . --cache",
-    "lint:js:fix": "eslint . --fix",
-    "lint:types": "ember-tsc --noEmit",
-    "lint:publish": "yarn build && publint run --level error --pack npm",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "prepack": "rollup --config",
-    "start": "vite dev",
-    "test": "vite build --mode=development --out-dir dist-tests && testem --file testem.cjs ci --port 0",
+    "test": "yarn test:unit",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
   "dependencies": {
     "@embroider/addon-shim": "^1.10.2",
-    "@sentry/browser": "10.52.0",
-    "@sentry/core": "10.52.0",
+    "@sentry/browser": "10.53.1",
+    "@sentry/core": "10.53.1",
     "decorator-transforms": "^2.3.2"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/eslint-parser": "^7.28.6",
     "@babel/plugin-transform-typescript": "^7.28.6",
-    "@babel/runtime": "^7.29.2",
     "@ember/app-tsconfig": "^2.0.0",
     "@ember/library-tsconfig": "^2.0.0",
-    "@ember/test-helpers": "^5.4.2",
-    "@ember/test-waiters": "^4.1.1",
     "@embroider/addon-dev": "^8.3.0",
     "@embroider/compat": "^4.1.17",
     "@embroider/core": "^4.4.7",
     "@embroider/macros": "^1.20.2",
     "@embroider/vite": "^1.7.2",
-    "@eslint/js": "^9.39.4",
-    "@glimmer/component": "^2.1.1",
     "@glint/ember-tsc": "^1.5.0",
-    "@glint/template": "^1.7.7",
-    "@glint/tsserver-plugin": "^2.4.0",
     "@rollup/plugin-babel": "^7.0.0",
-    "@types/qunit": "^2.19.13",
-    "@types/sinon": "^21.0.1",
-    "babel-plugin-ember-template-compilation": "^4.0.0",
-    "concurrently": "^9.2.1",
-    "ember-page-title": "^9.0.3",
-    "ember-qunit": "^9.0.4",
-    "ember-source": "^6.12.0",
-    "ember-strict-application-resolver": "^0.1.1",
-    "ember-template-lint": "^7.9.3",
-    "eslint": "^9.39.4",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-ember": "^13.2.1",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-n": "^18.0.1",
-    "globals": "^17.6.0",
-    "prettier": "^3.8.3",
-    "prettier-plugin-ember-template-tag": "^2.1.6",
-    "publint": "^0.3.20",
-    "qunit": "^2.25.0",
-    "qunit-dom": "^3.5.1",
-    "rollup": "^4.60.3",
-    "sinon": "^22.0.0",
-    "testem": "^3.20.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.11"
+    "ember-source": "^6.12.0"
   },
   "engines": {
     "node": ">=18"
@@ -116,5 +77,20 @@
     "version": 2,
     "type": "addon",
     "main": "addon-main.cjs"
+  },
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "dependsOn": [
+          "^build:transpile",
+          "^build:types"
+        ],
+        "outputs": [
+          "{projectRoot}/dist",
+          "{projectRoot}/**/*.d.ts",
+          "{projectRoot}/declarations/*.d.ts.map"
+        ]
+      }
+    }
   }
 }
