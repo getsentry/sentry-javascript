@@ -74,6 +74,7 @@ If the change is purely additive guarding (e.g., adding `test.skip(<condition>, 
 
 ## Bash usage rules
 
+- Use the `Grep` and `Glob` tools for searching code, NOT `grep`/`find` via Bash. `Bash(grep *)` is not allowlisted in this workflow and will be denied; the same is true for most non-trivial shell utilities. The dedicated tools are faster, ignore-aware, and don't burn a turn on a denial.
 - Do NOT chain Bash operations: no pipes (`|`), no `&&`, no `;`, no `2>&1`, no `>` redirection. The action blocks any command with chained operations as "multiple operations require approval". Run one command at a time and let stderr print naturally.
 - Do NOT use `python3 -c` or other inline Python in Bash. Only the scripts under `.claude/skills/triage-issue/scripts/` are allowed for Python.
 - Do NOT attempt to delete (`rm`) files you create. Just leave them in the workspace.
