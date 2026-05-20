@@ -54,7 +54,11 @@ If the change is purely additive guarding (e.g., adding `test.skip(<condition>, 
 
 ### Step 6: Commit on a new branch and push
 
-`git checkout -b fix/<short-descriptive-name>`, `git add <files>`, `git commit -m "<conventional commit>"`, then `git push -u origin fix/<short-descriptive-name>`. Follow the repo's commit conventions (see `CLAUDE.md`). The push is required before Step 7 can open the PR.
+`git checkout -b fix/<short-descriptive-name>`, `git add <files>`, `git commit -m "<conventional commit>"`, then `git push -u origin fix/<short-descriptive-name>`. The push is required before Step 7 can open the PR.
+
+**Commit message format:** follow Conventional Commits — `<type>(<scope>): <subject>`, where `<type>` is one of `test`, `fix`, `feat`, `ref`, `chore`, `docs`, `ci`. Look at recent commits (`git log --oneline -10`) for examples. Include `Fixes #<issue-number>` in the message body.
+
+**Do NOT run `yarn format` / `yarn lint` / `yarn test` / `yarn build:dev` before committing.** `CLAUDE.md` / `AGENTS.md` list a "Before Every Commit" checklist that includes those, but this workflow does not allowlist `yarn` (per Step 5 / Turn economy). CI will run lint and tests on the opened PR; rely on that. The pre-commit checklist in those docs does not apply to this skill.
 
 ### Step 7: Open a PR
 
