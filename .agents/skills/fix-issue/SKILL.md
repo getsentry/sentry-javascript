@@ -58,7 +58,13 @@ If the change is purely additive guarding (e.g., adding `test.skip(<condition>, 
 
 ### Step 7: Open a PR
 
-`gh pr create --base develop --title "<title>" --body "<body>"` targeting `develop` (never `master`).
+Write the PR body to a file in the workspace first (using the `Write` tool), then point `gh pr create` at it:
+
+```
+gh pr create --base develop --title "<title>" --body-file pr-body.md
+```
+
+Targeting `develop` (never `master`). Always use `--body-file`, NOT `--body "<inline>"`: passing the body inline forces it through Bash quoting, where backticks for code blocks and `$` for shell-looking text get mangled (escaped backticks render as literal `\`` in the PR, breaking every code block). Writing the body to a file sidesteps that entirely. Leave the file in the workspace — do not `rm` it.
 
 ## Investigation scope
 
