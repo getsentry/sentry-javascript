@@ -4,6 +4,7 @@ import * as crypto from 'crypto';
 import * as path from 'path';
 import * as url from 'url';
 import { setupOtel } from '../../utils/setupOtel.js';
+import { waitForDebuggerReady } from '@sentry-internal/test-utils';
 
 global._sentryDebugIds = { [new Error().stack]: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' };
 
@@ -32,6 +33,6 @@ function longWork() {
   }
 }
 
-setTimeout(() => {
+waitForDebuggerReady(() => {
   longWork();
-}, 1000);
+});

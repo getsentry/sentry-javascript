@@ -210,9 +210,7 @@ describe('Anthropic integration', () => {
           span: container => {
             expect(container.items).toHaveLength(5);
             const completionSpan = container.items.find(
-              span =>
-                span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value ===
-                '[{"role":"user","content":"What is the capital of France?"}]',
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'msg_mock123',
             );
             expect(completionSpan).toBeDefined();
             expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
@@ -224,6 +222,9 @@ describe('Anthropic integration', () => {
             expect(completionSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('claude-3-haiku-20240307');
             expect(completionSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE].value).toBe('msg_mock123');
             expect(completionSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE].value).toBe('Hello from Anthropic mock!');
+            expect(completionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(
+              '[{"role":"user","content":"What is the capital of France?"}]',
+            );
             expect(completionSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
             expect(completionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(10);
             expect(completionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(15);

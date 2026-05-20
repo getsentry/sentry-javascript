@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
+import { isTurbopackDevMode } from './isDevMode';
 
 test('Sends a transaction for a request to app router with URL', async ({ page }) => {
+  test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for nested dynamic routes in dev mode');
+
   const serverComponentTransactionPromise = waitForTransaction('nextjs-16', transactionEvent => {
     return (
       transactionEvent?.transaction === 'GET /parameterized/[one]/beep/[two]' &&
@@ -74,6 +77,8 @@ test('Will create a transaction with spans for every server component and metada
 test('Will create a transaction with spans for every server component and metadata generation functions when visiting a dynamic page', async ({
   page,
 }) => {
+  test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
+
   const serverTransactionEventPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /nested-layout/[dynamic]';
   });

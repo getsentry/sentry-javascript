@@ -1,4 +1,4 @@
-import { TediousInstrumentation } from '@opentelemetry/instrumentation-tedious';
+import { TediousInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
 import { generateInstrumentOnce, instrumentWhenWrapped } from '@sentry/node-core';

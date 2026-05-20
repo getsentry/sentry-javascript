@@ -226,7 +226,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           },
           'http.request.header.cf_connecting_ip': {
             type: 'string',
-            value: expect.stringMatching(/^(::1|127\.0\.0\.1)$/),
+            value: '[Filtered]',
           },
           'http.request.header.host': {
             type: 'string',

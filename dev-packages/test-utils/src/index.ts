@@ -26,3 +26,5 @@ export type { CDPClientOptions } from './cdp-client';
 
 export { MemoryProfiler } from './memory-profiler';
 export type { MemoryProfilerOptions, SnapshotStats, SnapshotComparisonResult } from './memory-profiler';
+
+export { waitForDebuggerReady } from './anr';
