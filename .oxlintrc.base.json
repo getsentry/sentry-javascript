@@ -155,6 +155,7 @@
         "**/integrations/tracing/kafka/vendored/**/*.ts",
         "**/integrations/tracing/tedious/vendored/**/*.ts",
         "**/integrations/tracing/mongoose/vendored/**/*.ts"
+        "**/integrations/tracing/amqplib/vendored/**/*.ts"
       ],
       "rules": {
         "typescript/no-explicit-any": "off"
