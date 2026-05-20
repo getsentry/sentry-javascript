@@ -148,7 +148,7 @@
         "**/integrations/tracing/knex/vendored/**/*.ts",
         "**/integrations/tracing/mongo/vendored/**/*.ts",
         "**/integrations/tracing/connect/vendored/**/*.ts",
-        "**/integration/aws/vendored/**/*.ts"
+        "**/integration/aws/vendored/**/*.ts",
         "**/integrations/tracing/tedious/vendored/**/*.ts"
       ],
       "rules": {
