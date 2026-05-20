@@ -27,7 +27,7 @@ Optional `--ci` flag: when set, you are running unattended in GitHub Actions.
 
 Read the issue with `gh issue view <number> --repo getsentry/sentry-javascript --comments`. Locate the relevant code via Grep / Glob / Read. Stay focused on the current checkout — see "Investigation scope" below.
 
-**Fetching CI logs:** if the issue links to a failing job, prefer `gh api repos/getsentry/sentry-javascript/actions/jobs/<job-id>/logs` over `gh run view --log`. The latter frequently returns `failed to get run log: stream error: stream ID 1; CANCEL` from inside CI; the `gh api` endpoint is the reliable fallback. Try it ONCE — if it also fails, proceed without the CI log and reason from the issue text + code alone.
+**Fetching CI logs:** if the issue links to a failing job, use `gh api repos/getsentry/sentry-javascript/actions/jobs/<job-id>/logs`. (`gh run view --log` is not available in this workflow; it also frequently returns `stream error: stream ID 1; CANCEL` from inside CI, which is why the `gh api` endpoint is the only path.) Try the `gh api` call ONCE — if it fails, proceed without the CI log and reason from the issue text + code alone.
 
 ### Step 2: Propose a fix
 
@@ -52,9 +52,9 @@ A "small" fix is roughly: 1–3 files, under ~30 lines of code change, no new ab
 
 If the change is purely additive guarding (e.g., adding `test.skip(<condition>, ...)`, widening an allowlist of expected values, raising a tight tolerance) and mirrors an existing pattern elsewhere in the same file, this static review is sufficient. Otherwise treat any ambiguity as a signal to abort per Step 4.
 
-### Step 6: Commit on a new branch
+### Step 6: Commit on a new branch and push
 
-`git checkout -b fix/<short-descriptive-name>`, `git add <files>`, `git commit -m "<conventional commit>"`. Follow the repo's commit conventions (see `CLAUDE.md`).
+`git checkout -b fix/<short-descriptive-name>`, `git add <files>`, `git commit -m "<conventional commit>"`, then `git push -u origin fix/<short-descriptive-name>`. Follow the repo's commit conventions (see `CLAUDE.md`). The push is required before Step 7 can open the PR.
 
 ### Step 7: Open a PR
 
