@@ -44,21 +44,24 @@ A "small" fix is roughly: 1–3 files, under ~30 lines of code change, no new ab
 
 ### Step 5: Verify the fix
 
-For most fixes, run only the directly relevant test file (not the full suite). Use `yarn test <path>` or `yarn workspace @sentry-internal/<pkg> test <path>` as appropriate.
+For most fixes, run only the directly relevant test file (not the full suite). Use `yarn test <path>` or `yarn workspace @sentry/<pkg> test <path>` as appropriate.
 
-**Flaky test fixes — run the test multiple times.** A single pass proves nothing because the failure is intermittent. Run the targeted test ~5 times in a row, all must pass. Use the framework's built-in repeat support (do NOT spawn 5 separate Bash invocations — that's wasted turns and breaks setup/teardown caching):
+**Flaky test fixes — run the test ~5 times in a row, all must pass.** A single pass proves nothing because the failure is intermittent. Use the test framework's built-in repeat flag (do NOT spawn 5 separate Bash invocations — that wastes turns and breaks setup/teardown caching).
 
-- **Playwright (browser-integration-tests, E2E, browser/loader suites):** use `--repeat-each=5`, scope with `-g "<test title>"`, and pick the matching `PW_BUNDLE` script. Example for `suites/profiling/manualMode/test.ts` in the `bundle_tracing_logs_metrics` shard:
+Flaky tests in this repo can live in several places. Identify the type from the failing test path / job name in the issue, then use the matching pattern:
+
+- **`dev-packages/browser-integration-tests/` (Playwright):** scope with `-g "<test title>"` and add `--repeat-each=5`. Pick the `test:bundle:*` script matching the `PW_BUNDLE` shard in the failing job name (e.g. job "Playwright bundle_tracing_logs_metrics Tests" → `test:bundle:tracing_logs_metrics`; no shard → use plain `test`). Example:
   ```
   yarn workspace @sentry-internal/browser-integration-tests test:bundle:tracing_logs_metrics -g "sends profile_chunk envelopes in manual mode" --repeat-each=5
   ```
-  The `PW_BUNDLE` value is encoded in the failing job name in the issue (e.g. job "Playwright bundle_tracing_logs_metrics Tests" → `test:bundle:tracing_logs_metrics`). If it's a generic Playwright run with no `PW_BUNDLE`, use the package's `test` script directly.
-- **Vitest unit tests:** use `--repeat=5` on the specific file: `yarn workspace @sentry/<pkg> test <relative-test-path> --repeat=5`.
-- **Node integration / E2E tests:** check the test app's package.json for a `test` script and add `--repeat-each=5` (Playwright) or `--repeat=5` (Vitest) accordingly.
+- **`dev-packages/node-integration-tests/` (Vitest):** `yarn workspace @sentry-internal/node-integration-tests test <relative-test-path> --repeat=5`.
+- **`dev-packages/e2e-tests/test-applications/<app>/` (per-app Playwright or Vitest):** flakiness lives in one specific test app. `cd` into that app and run its own `test` script with `--repeat-each=5` (Playwright) or `--repeat=5` (Vitest). The top-level `test:e2e` orchestrator does not have a repeat flag — invoke the app's test directly.
+- **Vitest unit tests in `packages/<pkg>/`:** `yarn workspace @sentry/<pkg> test <relative-test-path> --repeat=5`.
+- **Other / unclear test type:** open the closest `package.json` and look at the `test` script to see whether it's Vitest, Playwright, or something else; then apply the matching repeat flag.
 
 If all 5 runs pass, the fix is verified. If even one fails, the fix is incomplete — abort per Step 4 (do not "loosen" the test to make it pass).
 
-If you cannot identify the right `PW_BUNDLE`/test command from the issue text within one or two attempts, fall back to symmetric-pattern verification: confirm the change extends an existing, clearly-correct pattern (e.g., adding a sibling to a known-safe whitelist), and note in the PR body that the fix was not runtime-verified.
+**Fallback — symmetric-pattern verification.** If you cannot identify the right test command within one or two attempts, OR the test app uses a custom runner with no repeat support, fall back to confirming the change extends an existing, clearly-correct pattern (e.g., adding a sibling to a known-safe whitelist, mirroring an existing `waitFor` elsewhere in the suite). Note in the PR body that the fix was not runtime-verified.
 
 ### Step 6: Commit on a new branch
 
