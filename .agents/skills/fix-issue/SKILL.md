@@ -27,7 +27,13 @@ Optional `--ci` flag: when set, you are running unattended in GitHub Actions.
 
 Read the issue with `gh issue view <number> --repo getsentry/sentry-javascript --comments`. Locate the relevant code via Grep / Glob / Read. Stay focused on the current checkout — see "Investigation scope" below.
 
-**Fetching CI logs:** if the issue links to a failing job, use `gh api repos/getsentry/sentry-javascript/actions/jobs/<job-id>/logs`. (`gh run view --log` is not available in this workflow; it also frequently returns `stream error: stream ID 1; CANCEL` from inside CI, which is why the `gh api` endpoint is the only path.) Try the `gh api` call ONCE — if it fails, proceed without the CI log and reason from the issue text + code alone.
+**Fetching CI logs:** if the issue links to a failing job, fetch its log:
+
+1. Extract `<job-id>` from the CI link in the issue body. Auto-created flaky-test issues use the form `https://github.com/getsentry/sentry-javascript/actions/runs/<run-id>/job/<job-id>` — `<job-id>` is the integer after `/job/`.
+2. Run `gh api repos/getsentry/sentry-javascript/actions/jobs/<job-id>/logs`.
+3. If the link has *only* a run id (`.../actions/runs/<run-id>` with no `/job/...` suffix), list the jobs first with `gh api repos/getsentry/sentry-javascript/actions/runs/<run-id>/jobs` and pick the one whose `name` matches the failing job named in the issue, then fetch its logs as in step 2.
+
+(`gh run view --log` is not available in this workflow and frequently returns `stream error: stream ID 1; CANCEL` anyway — the `gh api` endpoints above are the only path.) Try the relevant `gh api` call ONCE — if it fails, proceed without the CI log and reason from the issue text + code alone.
 
 ### Step 2: Propose a fix
 
@@ -84,7 +90,7 @@ Targeting `develop` (never `master`). Always use `--body-file`, NOT `--body "<in
 
 ## Bash usage rules
 
-- Use the `Grep` and `Glob` tools for searching code, NOT `grep`/`find` via Bash. `Bash(grep *)` is not allowlisted in this workflow and will be denied; the same is true for most non-trivial shell utilities. The dedicated tools are faster, ignore-aware, and don't burn a turn on a denial.
+- Use the `Read`, `Grep`, and `Glob` tools for all file inspection. **Do NOT use `cat`, `head`, `tail`, `ls`, `find`, `wc`, or `grep` via Bash** — none are allowlisted and will be denied. The dedicated tools are faster, ignore-aware, and the narrow allowlist exists for security: arbitrary Bash file reads (`cat /proc/self/environ`, `find / -name 'config*'`) would otherwise let a prompt-injection in untrusted issue content exfiltrate `ANTHROPIC_API_KEY` / `GITHUB_TOKEN` via `gh issue comment`.
 - Do NOT chain Bash operations: no pipes (`|`), no `&&`, no `;`, no `2>&1`, no `>` redirection. The action blocks any command with chained operations as "multiple operations require approval". Run one command at a time and let stderr print naturally.
 - Do NOT use `python3 -c` or other inline Python in Bash.
 - Do NOT attempt to delete (`rm`) files you create. Just leave them in the workspace.
