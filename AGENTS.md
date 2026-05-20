@@ -153,6 +153,10 @@ Use `/release` skill. See `.claude/skills/release/SKILL.md`
 
 Use `/upgrade-dep` skill. See `.claude/skills/upgrade-dep/SKILL.md`
 
+### Vendor OpenTelemetry Instrumentation
+
+Use `/vendor-otel` skill. See `.claude/skills/vendor-otel/SKILL.md`
+
 ### AI Integration
 
 Use `/add-ai-integration` skill. See `.claude/skills/add-ai-integration/SKILL.md`
