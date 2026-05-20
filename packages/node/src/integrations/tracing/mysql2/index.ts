@@ -1,4 +1,4 @@
-import { MySQL2Instrumentation } from '@opentelemetry/instrumentation-mysql2';
+import { MySQL2Instrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
