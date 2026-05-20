@@ -35,6 +35,15 @@ Read the issue with `gh issue view <number> --repo getsentry/sentry-javascript -
 
 (`gh run view --log` is not available in this workflow and frequently returns `stream error: stream ID 1; CANCEL` anyway — the `gh api` endpoints above are the only path.) Try the relevant `gh api` call ONCE — if it fails, proceed without the CI log and reason from the issue text + code alone.
 
+**Fetching Playwright trace artifacts** (only when the log shows a bare `Test timeout of <N>ms exceeded` with no assertion or step detail):
+
+1. Download the run's playwright traces: `gh run download <run-id> --repo getsentry/sentry-javascript --pattern 'playwright-traces-*' --dir .pw-traces`. `<run-id>` is the integer after `/runs/` in the issue URL. This extracts each artifact into `.pw-traces/<artifact-name>/`.
+2. For the failing test, read `.pw-traces/<artifact-name>/<test-dir>/error-context.md`. Playwright writes this per-failure markdown with the failing action, page state (URL, title), and any custom attachments — usually enough to identify which `await` hung.
+3. Only if `error-context.md` is insufficient: `unzip .pw-traces/<artifact-name>/<test-dir>/trace.zip -d .pw-traces/extracted` to expose the inner JSON-line trace (`trace.trace`, `*.network`, `*.stacks`). These are large and unstructured; treat them as a last resort.
+4. Leave the `.pw-traces/` directory in the workspace (do not `rm`).
+
+Skip the artifact path entirely for non-Playwright failures or when the log already names the failed assertion / line.
+
 ### Step 2: Propose a fix
 
 Identify the smallest change that addresses the root cause. Write it down internally before editing.
