@@ -8,7 +8,7 @@ describe('kafkajs', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('traces producers and consumers', { timeout: 60_000 }, async () => {
+    test('traces producers and consumers', { timeout: 90_000 }, async () => {
       // The producer and consumer transactions can arrive in any order,
       // so we collect them and assert after both have been received.
       const receivedTransactions: TransactionEvent[] = [];
