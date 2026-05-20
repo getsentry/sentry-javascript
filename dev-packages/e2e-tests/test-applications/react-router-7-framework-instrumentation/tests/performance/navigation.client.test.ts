@@ -2,18 +2,22 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
-// Known React Router limitation: HydratedRouter doesn't invoke instrumentation API
-// hooks on the client-side in Framework Mode. Server-side instrumentation works.
+// When `useInstrumentationAPI: true` is set and the instrumentations array is passed to
+// HydratedRouter, React Router invokes the navigate hook on the client and the navigation span
+// is created via the instrumentation API (origin: `auto.navigation.react_router.instrumentation_api`).
+// The legacy `instrumentHydratedRouter()` subscribe callback still runs and updates the span
+// name to its parameterized form (so `sentry.source` ends up as `route`).
+//
+// Previously these tests asserted the legacy origin `auto.navigation.react_router`, but that was
+// only true because of a bug where the subscribe callback unconditionally overwrote the origin.
 // See: https://github.com/remix-run/react-router/discussions/13749
-// The legacy HydratedRouter instrumentation provides fallback navigation tracking.
 
-test.describe('client - navigation fallback to legacy instrumentation', () => {
-  test('should send navigation transaction via legacy HydratedRouter instrumentation', async ({ page }) => {
+test.describe('client - navigation via instrumentation API', () => {
+  test('should send navigation transaction with instrumentation API origin', async ({ page }) => {
     // First load the performance page
     await page.goto(`/performance`);
     await page.waitForTimeout(1000);
 
-    // Wait for the navigation transaction (from legacy instrumentation)
     const navigationTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return (
         transactionEvent.transaction === '/performance/ssr' && transactionEvent.contexts?.trace?.op === 'navigation'
@@ -25,13 +29,11 @@ test.describe('client - navigation fallback to legacy instrumentation', () => {
 
     const transaction = await navigationTxPromise;
 
-    // Navigation should work via legacy HydratedRouter instrumentation
-    // (not instrumentation_api since that doesn't work in Framework Mode)
     expect(transaction).toMatchObject({
       contexts: {
         trace: {
           op: 'navigation',
-          origin: 'auto.navigation.react_router', // Legacy origin, not instrumentation_api
+          origin: 'auto.navigation.react_router.instrumentation_api',
         },
       },
       transaction: '/performance/ssr',
@@ -58,7 +60,7 @@ test.describe('client - navigation fallback to legacy instrumentation', () => {
       contexts: {
         trace: {
           op: 'navigation',
-          origin: 'auto.navigation.react_router',
+          origin: 'auto.navigation.react_router.instrumentation_api',
           data: {
             'sentry.source': 'route',
           },
@@ -89,7 +91,7 @@ test.describe('client - navigation fallback to legacy instrumentation', () => {
       contexts: {
         trace: {
           op: 'navigation',
-          origin: 'auto.navigation.react_router',
+          origin: 'auto.navigation.react_router.instrumentation_api',
         },
       },
       transaction: '/performance/ssr',
@@ -109,7 +111,7 @@ test.describe('client - navigation fallback to legacy instrumentation', () => {
       contexts: {
         trace: {
           op: 'navigation',
-          origin: 'auto.navigation.react_router',
+          origin: 'auto.navigation.react_router.instrumentation_api',
         },
       },
       transaction: '/performance',
