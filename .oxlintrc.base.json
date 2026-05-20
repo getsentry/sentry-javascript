@@ -149,6 +149,8 @@
         "**/integrations/tracing/mongo/vendored/**/*.ts",
         "**/integrations/tracing/koa/vendored/**/*.ts",
         "**/integrations/tracing/connect/vendored/**/*.ts",
+        "**/nestjs/src/integrations/vendored/**/*.ts",
+        "**/integrations/tracing/kafka/vendored/**/*.ts",
         "**/integrations/tracing/tedious/vendored/**/*.ts"
       ],
       "rules": {
