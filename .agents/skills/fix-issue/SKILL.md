@@ -44,25 +44,22 @@ A "small" fix is roughly: 1–3 files, under ~30 lines of code change, no new ab
 
 ### Step 5: Verify the fix
 
-For most fixes, run only the directly relevant test file (not the full suite). Use `yarn test <path>` or `yarn workspace @sentry/<pkg> test <path>` as appropriate.
+Run the directly relevant test (not the full suite) and confirm it passes. Identify the test type from the failing test path / job name in the issue, then use the matching command:
 
-**Flaky test fixes — run the test ~5 times in a row, all must pass.** A single pass proves nothing because the failure is intermittent. Identify the test type from the failing test path / job name in the issue, then use the matching pattern:
-
-- **`dev-packages/browser-integration-tests/` (Playwright):** scope with `-g "<test title>"` and add `--repeat-each=5` (Playwright's built-in repeat — runs all 5 iterations in one invocation, sharing setup). Pick the `test:bundle:*` script matching the `PW_BUNDLE` shard in the failing job name (e.g. job "Playwright bundle_tracing_logs_metrics Tests" → `test:bundle:tracing_logs_metrics`; no shard → use plain `test`). Example:
+- **`dev-packages/browser-integration-tests/` (Playwright):** pick the `test:bundle:*` script matching the `PW_BUNDLE` shard in the failing job name (e.g. job "Playwright bundle_tracing_logs_metrics Tests" → `test:bundle:tracing_logs_metrics`; no shard → use plain `test`), and scope with `-g "<test title>"`:
   ```
-  yarn workspace @sentry-internal/browser-integration-tests test:bundle:tracing_logs_metrics -g "sends profile_chunk envelopes in manual mode" --repeat-each=5
+  yarn workspace @sentry-internal/browser-integration-tests test:bundle:tracing_logs_metrics -g "<test title>"
   ```
-- **Vitest tests** (`dev-packages/node-integration-tests/`, `dev-packages/node-core-integration-tests/`, `dev-packages/cloudflare-integration-tests/`, `packages/<pkg>/`): Vitest has **no CLI flag** to repeat a passing test — `--retry` only re-runs on failure, not for flake detection. Run the test command 5 separate times. Example for a unit test in `packages/<pkg>/`:
+- **Vitest tests** (`dev-packages/node-integration-tests/`, `dev-packages/node-core-integration-tests/`, `dev-packages/cloudflare-integration-tests/`, `packages/<pkg>/`):
   ```
-  yarn workspace @sentry/<pkg> test <relative-test-path> -t "<test title>"
+  yarn workspace @sentry-internal/<package-name> test <relative-test-path> -t "<test title>"
   ```
-  Invoke that line 5 times sequentially (one Bash call each) and confirm all 5 pass. This is the one exception to the "no repeated separate invocations" rule below — Vitest gives no alternative.
-- **`dev-packages/e2e-tests/test-applications/<app>/` (per-app Playwright or Vitest):** flakiness lives in one specific test app. `cd` into that app and run its own `test` script — `--repeat-each=5` for Playwright apps, 5 separate invocations for Vitest apps. The top-level `test:e2e` orchestrator has no repeat support — invoke the app's test directly.
-- **Other / unclear test type:** open the closest `package.json` and look at the `test` script. If it's Playwright, use `--repeat-each=5`; if it's Vitest, run 5 separate times; if it's something else, use whatever the runner offers and fall back to symmetric verification if nothing works.
-
-If all 5 runs pass, the fix is verified. If even one fails, the fix is incomplete — abort per Step 4 (do not "loosen" the test to make it pass).
-
-**Fallback — symmetric-pattern verification.** If you cannot identify the right test command within one or two attempts, OR the test app uses a custom runner with no repeat support, fall back to just running the respective test once.
+  or for SDK unit tests: `yarn workspace @sentry/<pkg> test <relative-test-path> -t "<test title>"`.
+- **`dev-packages/e2e-tests/test-applications/<app>/`:** run via the e2e orchestrator scoped to that one app:
+  ```
+  yarn workspace @sentry-internal/e2e-tests test:run <app>
+  ```
+- **Other / unclear test type:** open the closest `package.json`, find the `test` script, and run it scoped to the failing test.
 
 ### Step 6: Commit on a new branch
 
