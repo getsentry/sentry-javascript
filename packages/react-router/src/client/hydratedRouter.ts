@@ -66,14 +66,9 @@ export function instrumentHydratedRouter(): void {
         };
       }
 
-      // Subscribe to router state changes to update transactions (navigation, or a pageload
-      // whose route info wasn't yet available at `trySubscribe`) with the parameterized route.
-      // We deliberately do NOT touch `sentry.origin` here: the navigation span sets it at
-      // creation time (legacy: `auto.navigation.react_router`; instrumentation API:
-      // `auto.navigation.react_router.instrumentation_api`) and the pageload's origin is set
-      // by `trySubscribe`. Re-writing it caused a race where the subscribe callback fired
-      // while the pageload was still active (static routes where pathname == rootSpanName)
-      // and clobbered the pageload origin with the navigation origin.
+      // Subscribe to router state changes to update navigation transactions (and any pageload
+      // whose route info only became available after `trySubscribe`, e.g. lazy routes) with the
+      // parameterized route.
       router.subscribe(newState => {
         const rootSpan = getActiveRootSpan();
 
