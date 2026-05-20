@@ -86,8 +86,7 @@ Your budget is measured in _agent turns_ (assistant messages), not individual to
 - Plan before acting. Prefer targeted commands over broad ones: read specific line ranges instead of whole files; grep for the exact symbol instead of listing directories.
 - In each turn, issue all independent tool calls in parallel rather than spreading them across multiple turns.
 - Do NOT re-read a file you just edited to "verify" — the edit either succeeded or errored.
-- Do NOT run the full test suite to verify a small fix; run only the directly relevant test file.
-- Do NOT re-run linters/formatters/builds repeatedly. Run each at most once unless the code changed since.
+- Do NOT run tests, linters, formatters, or builds. This workflow does not allowlist `yarn`/`npm`/`npx`; verification is static-only per Step 5. Attempting a test command will be blocked and waste a turn.
 - If a search returned what you need, stop searching. Do not look for confirmation.
 
 ## Turn budget
