@@ -46,18 +46,19 @@ A "small" fix is roughly: 1–3 files, under ~30 lines of code change, no new ab
 
 For most fixes, run only the directly relevant test file (not the full suite). Use `yarn test <path>` or `yarn workspace @sentry/<pkg> test <path>` as appropriate.
 
-**Flaky test fixes — run the test ~5 times in a row, all must pass.** A single pass proves nothing because the failure is intermittent. Use the test framework's built-in repeat flag (do NOT spawn 5 separate Bash invocations — that wastes turns and breaks setup/teardown caching).
+**Flaky test fixes — run the test ~5 times in a row, all must pass.** A single pass proves nothing because the failure is intermittent. Identify the test type from the failing test path / job name in the issue, then use the matching pattern:
 
-Flaky tests in this repo can live in several places. Identify the type from the failing test path / job name in the issue, then use the matching pattern:
-
-- **`dev-packages/browser-integration-tests/` (Playwright):** scope with `-g "<test title>"` and add `--repeat-each=5`. Pick the `test:bundle:*` script matching the `PW_BUNDLE` shard in the failing job name (e.g. job "Playwright bundle_tracing_logs_metrics Tests" → `test:bundle:tracing_logs_metrics`; no shard → use plain `test`). Example:
+- **`dev-packages/browser-integration-tests/` (Playwright):** scope with `-g "<test title>"` and add `--repeat-each=5` (Playwright's built-in repeat — runs all 5 iterations in one invocation, sharing setup). Pick the `test:bundle:*` script matching the `PW_BUNDLE` shard in the failing job name (e.g. job "Playwright bundle_tracing_logs_metrics Tests" → `test:bundle:tracing_logs_metrics`; no shard → use plain `test`). Example:
   ```
   yarn workspace @sentry-internal/browser-integration-tests test:bundle:tracing_logs_metrics -g "sends profile_chunk envelopes in manual mode" --repeat-each=5
   ```
-- **`dev-packages/node-integration-tests/`, `dev-packages/node-core-integration-tests/`, `dev-packages/cloudflare-integration-tests/` (all Vitest):** `yarn workspace @sentry-internal/<package-name> test <relative-test-path> --repeat=5`.
-- **`dev-packages/e2e-tests/test-applications/<app>/` (per-app Playwright or Vitest):** flakiness lives in one specific test app. `cd` into that app and run its own `test` script with `--repeat-each=5` (Playwright) or `--repeat=5` (Vitest). The top-level `test:e2e` orchestrator does not have a repeat flag — invoke the app's test directly.
-- **Vitest unit tests in `packages/<pkg>/`:** `yarn workspace @sentry/<pkg> test <relative-test-path> --repeat=5`.
-- **Other / unclear test type:** open the closest `package.json` and look at the `test` script to see whether it's Vitest, Playwright, or something else; then apply the matching repeat flag.
+- **Vitest tests** (`dev-packages/node-integration-tests/`, `dev-packages/node-core-integration-tests/`, `dev-packages/cloudflare-integration-tests/`, `packages/<pkg>/`): Vitest has **no CLI flag** to repeat a passing test — `--retry` only re-runs on failure, not for flake detection. Run the test command 5 separate times. Example for a unit test in `packages/<pkg>/`:
+  ```
+  yarn workspace @sentry/<pkg> test <relative-test-path> -t "<test title>"
+  ```
+  Invoke that line 5 times sequentially (one Bash call each) and confirm all 5 pass. This is the one exception to the "no repeated separate invocations" rule below — Vitest gives no alternative.
+- **`dev-packages/e2e-tests/test-applications/<app>/` (per-app Playwright or Vitest):** flakiness lives in one specific test app. `cd` into that app and run its own `test` script — `--repeat-each=5` for Playwright apps, 5 separate invocations for Vitest apps. The top-level `test:e2e` orchestrator has no repeat support — invoke the app's test directly.
+- **Other / unclear test type:** open the closest `package.json` and look at the `test` script. If it's Playwright, use `--repeat-each=5`; if it's Vitest, run 5 separate times; if it's something else, use whatever the runner offers and fall back to symmetric verification if nothing works.
 
 If all 5 runs pass, the fix is verified. If even one fails, the fix is incomplete — abort per Step 4 (do not "loosen" the test to make it pass).
 
