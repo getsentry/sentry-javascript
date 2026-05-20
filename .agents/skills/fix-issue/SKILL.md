@@ -31,7 +31,7 @@ Read the issue with `gh issue view <number> --repo getsentry/sentry-javascript -
 
 1. Extract `<job-id>` from the CI link in the issue body. Auto-created flaky-test issues use the form `https://github.com/getsentry/sentry-javascript/actions/runs/<run-id>/job/<job-id>` — `<job-id>` is the integer after `/job/`.
 2. Run `gh api repos/getsentry/sentry-javascript/actions/jobs/<job-id>/logs`.
-3. If the link has *only* a run id (`.../actions/runs/<run-id>` with no `/job/...` suffix), list the jobs first with `gh api repos/getsentry/sentry-javascript/actions/runs/<run-id>/jobs` and pick the one whose `name` matches the failing job named in the issue, then fetch its logs as in step 2.
+3. If the link has _only_ a run id (`.../actions/runs/<run-id>` with no `/job/...` suffix), list the jobs first with `gh api repos/getsentry/sentry-javascript/actions/runs/<run-id>/jobs` and pick the one whose `name` matches the failing job named in the issue, then fetch its logs as in step 2.
 
 (`gh run view --log` is not available in this workflow and frequently returns `stream error: stream ID 1; CANCEL` anyway — the `gh api` endpoints above are the only path.) Try the relevant `gh api` call ONCE — if it fails, proceed without the CI log and reason from the issue text + code alone.
 
