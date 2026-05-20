@@ -6058,15 +6058,6 @@
     "@opentelemetry/resources" "2.6.1"
     "@opentelemetry/sdk-trace-base" "2.6.1"
 
-"@opentelemetry/instrumentation-amqplib@0.61.0":
-  version "0.61.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-amqplib/-/instrumentation-amqplib-0.61.0.tgz#e9d52f56dfc4cb8a26837f31c1832af18859f1f2"
-  integrity sha512-mCKoyTGfRNisge4br0NpOFSy2Z1NnEW8hbCJdUDdJFHrPqVzc4IIBPA/vX0U+LUcQqrQvJX+HMIU0dbDRe0i0Q==
-  dependencies:
-    "@opentelemetry/core" "^2.0.0"
-    "@opentelemetry/instrumentation" "^0.214.0"
-    "@opentelemetry/semantic-conventions" "^1.33.0"
-
 "@opentelemetry/instrumentation-graphql@0.62.0":
   version "0.62.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-graphql/-/instrumentation-graphql-0.62.0.tgz#dc2fc92c6be331c4f95b62a40983c8aedb8f9bf9"
