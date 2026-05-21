@@ -300,7 +300,7 @@ describe('createStreamedSpanEnvelope', () => {
       ]);
     });
 
-    it("respects sendDefaultPii: true bridged to dataCollection.userInfo", () => {
+    it('respects sendDefaultPii: true bridged to dataCollection.userInfo', () => {
       vi.mocked(isBrowser).mockReturnValue(true);
 
       const mockSpan = createMockSerializedSpan();
@@ -321,7 +321,7 @@ describe('createStreamedSpanEnvelope', () => {
       ]);
     });
 
-    it("respects sendDefaultPii: false bridged to dataCollection.userInfo", () => {
+    it('respects sendDefaultPii: false bridged to dataCollection.userInfo', () => {
       vi.mocked(isBrowser).mockReturnValue(true);
 
       const mockSpan = createMockSerializedSpan();
