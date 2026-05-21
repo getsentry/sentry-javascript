@@ -59,7 +59,8 @@ describe('Vercel AI integration (V6)', () => {
                 span =>
                   span.name === 'generate_content mock-model-id' &&
                   span.attributes['vercel.ai.operationId'].value === 'ai.generateText.doGenerate' &&
-                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] === undefined,
+                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] === undefined &&
+                  span.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value === 10,
               );
               expect(firstGenerateContentSpan).toBeDefined();
               expect(firstGenerateContentSpan!.name).toBe('generate_content mock-model-id');
