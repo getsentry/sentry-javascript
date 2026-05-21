@@ -2,7 +2,7 @@
  * Simplified types inlined from dataloader.
  */
 
-declare class DataLoader<K, V, C = K> {
+declare class DataLoader<K, V, _C = K> {
   constructor(batchLoadFn: DataLoader.BatchLoadFn<K, V>, options?: any);
   load(key: K): Promise<V>;
   loadMany(keys: ArrayLike<K>): Promise<Array<V | Error>>;
