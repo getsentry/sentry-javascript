@@ -55,7 +55,7 @@ function wrapRunnableMethod(
       }
 
       // Inject our callback handler into options.callbacks (request time callbacks)
-      options.callbacks = mergeSentryCallback(options.callbacks, sentryHandler);
+      options.callbacks = _INTERNAL_mergeLangChainCallbackHandler(options.callbacks, sentryHandler);
 
       // Call original method with augmented options
       return Reflect.apply(target, thisArg, args);
