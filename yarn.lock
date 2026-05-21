@@ -379,12 +379,12 @@
   dependencies:
     json-schema-to-ts "^3.1.1"
 
-"@apm-js-collab/code-transformer-bundler-plugins@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.1.0.tgz#655ba83f88e156a0b1c0e501ac2f427a1c6a0741"
-  integrity sha512-pFSNp4Y0r+PSft9az5rFO8zgsIX8NuDMxMsaq6uAkPPuZBArq2Xykg2xlmuc884sI9lfZ4rJ0VSeVuTz8lfAcA==
+"@apm-js-collab/code-transformer-bundler-plugins@^0.2.1":
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.2.1.tgz#9617f6e6f00eb4bf5e4e95b84258a9031bd36a93"
+  integrity sha512-RDpd1NLHKeMWMdNsSefMuyrF0CWjvOdOQHLQ+OxYrfNi9MEYYobh5AKUEUVnuRY0/wrFcWjq0BxKpKsyGMhyqQ==
   dependencies:
-    "@apm-js-collab/code-transformer" "^0.3.0"
+    "@apm-js-collab/code-transformer" "^0.13.0"
     module-details-from-path "^1.0.4"
     unplugin "^2.3.5"
 
@@ -399,13 +399,6 @@
     meriyah "^6.1.4"
     semifies "^1.0.0"
     source-map "^0.6.0"
-
-"@apm-js-collab/code-transformer@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer/-/code-transformer-0.3.0.tgz#bf6b46e1f8db932da457aeb568f13b38509dd2fb"
-  integrity sha512-6vZdhmS8sSR/FCzpqo43+rD8xL0wRmzdwt8h+xm0ytRK0BIAzAargRu6mqiP9k/wd/p1LQyPd4wTnaFw12t9HA==
-  dependencies:
-    wasm-pack "^0.13.1"
 
 "@apm-js-collab/tracing-hooks@^0.7.0":
   version "0.7.0"
@@ -11577,13 +11570,6 @@ axios@1.16.0:
     form-data "^4.0.5"
     proxy-from-env "^2.1.0"
 
-axios@^0.26.1:
-  version "0.26.1"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-0.26.1.tgz#1ede41c51fcf51bbbd6fd43669caaa4f0495aaa9"
-  integrity sha512-fPwcX4EvnSHuInCMItEhAGnaSEXRBjtzh9fOtsE6E1G6p7vl7edEeZe11QHf18+6+9gR5PbKV/sGKNaD8YaMeA==
-  dependencies:
-    follow-redirects "^1.14.8"
-
 axobject-query@^3.2.1:
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/axobject-query/-/axobject-query-3.2.1.tgz#39c378a6e3b06ca679f29138151e45b2b32da62a"
@@ -11976,15 +11962,6 @@ binary-extensions@^2.0.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-2.2.0.tgz#75f502eeaf9ffde42fc98829645be4ea76bd9e2d"
   integrity sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==
-
-binary-install@^1.0.1:
-  version "1.1.2"
-  resolved "https://registry.yarnpkg.com/binary-install/-/binary-install-1.1.2.tgz#06f059e5475e2a208d65ead8cb523d7845a83038"
-  integrity sha512-ZS2cqFHPZOy4wLxvzqfQvDjCOifn+7uCPqNmYRIBM/03+yllON+4fNnsD0VJdW0p97y+E+dTRNPStWNqMBq+9g==
-  dependencies:
-    axios "^0.26.1"
-    rimraf "^3.0.2"
-    tar "^6.1.11"
 
 binary@^0.3.0:
   version "0.3.0"
@@ -17494,7 +17471,7 @@ fn.name@1.x.x:
   resolved "https://registry.yarnpkg.com/fn.name/-/fn.name-1.1.0.tgz#26cad8017967aea8731bc42961d04a3d5988accc"
   integrity sha512-GRnmB5gPyJpAhTQdSZTSp9uaPSvl09KoYcMQtsB9rQoOmzs9dH6ffeccH+Z+cv6P68Hu5bC6JjRh4Ah/mHSNRw==
 
-follow-redirects@^1.0.0, follow-redirects@^1.14.8, follow-redirects@^1.15.11, follow-redirects@^1.16.0:
+follow-redirects@^1.0.0, follow-redirects@^1.15.11, follow-redirects@^1.16.0:
   version "1.16.0"
   resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.16.0.tgz#28474a159d3b9d11ef62050a14ed60e4df6d61bc"
   integrity sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==
@@ -30405,13 +30382,6 @@ warning@^3.0.0:
   integrity sha1-MuU3fLVy3kqwR1O9+IIcAe1gW3w=
   dependencies:
     loose-envify "^1.0.0"
-
-wasm-pack@^0.13.1:
-  version "0.13.1"
-  resolved "https://registry.yarnpkg.com/wasm-pack/-/wasm-pack-0.13.1.tgz#345701522420ad74a5b584f1bdaf6db8c264cb54"
-  integrity sha512-P9exD4YkjpDbw68xUhF3MDm/CC/3eTmmthyG5bHJ56kalxOTewOunxTke4SyF8MTXV6jUtNjXggPgrGmMtczGg==
-  dependencies:
-    binary-install "^1.0.1"
 
 watch-detector@^1.0.0, watch-detector@^1.0.2:
   version "1.0.2"
