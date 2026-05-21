@@ -72,7 +72,6 @@
     "@opentelemetry/sql-common": "^0.41.2",
     "@opentelemetry/sdk-trace-base": "^2.6.1",
     "@opentelemetry/semantic-conventions": "^1.40.0",
-    "@fastify/otel": "0.18.0",
     "@sentry/core": "10.53.1",
     "@sentry/node-core": "10.53.1",
     "@sentry/opentelemetry": "10.53.1",
