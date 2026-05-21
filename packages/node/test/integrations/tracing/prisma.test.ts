@@ -1,9 +1,9 @@
-import { PrismaInstrumentation } from '@prisma/instrumentation';
+import { PrismaInstrumentation } from '../../../src/integrations/tracing/prisma/vendored/instrumentation';
 import { INSTRUMENTED } from '@sentry/node-core';
 import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import { instrumentPrisma } from '../../../src/integrations/tracing/prisma';
 
-vi.mock('@prisma/instrumentation');
+vi.mock('../../../src/integrations/tracing/prisma/vendored/instrumentation');
 
 describe('Prisma', () => {
   beforeEach(() => {
