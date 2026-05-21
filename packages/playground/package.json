@@ -14,7 +14,7 @@
     "clean:all": "run-p clean:deps",
     "clean:build": "premove ./out",
     "clean:deps": "premove node_modules",
-    "start:proxyLogger": "ts-node scripts/request-logger-proxy.ts"
+    "start:proxyLogger": "node scripts/request-logger-proxy.mjs"
   },
   "dependencies": {
     "@sentry/bundler-plugin-core": "5.3.0",

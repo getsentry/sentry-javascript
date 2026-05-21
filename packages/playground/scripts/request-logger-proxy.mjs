@@ -10,12 +10,12 @@ var app = express();
 var proxy = httpProxy.createProxyServer();
 
 app.use(function (req, res, next) {
-  let reqBody: Uint8Array[] = [];
-  let resBody: Uint8Array[] = [];
-  let reqLog: string;
+  let reqBody = [];
+  let resBody = [];
+  let reqLog;
 
   req
-    .on("data", (chunk: Buffer) => {
+    .on("data", (chunk) => {
       reqBody.push(chunk);
     })
     .on("end", () => {
@@ -29,14 +29,12 @@ app.use(function (req, res, next) {
   var oldWrite = res.write,
     oldEnd = res.end;
 
-  res.write = function (chunk: Buffer) {
+  res.write = function (chunk) {
     resBody.push(chunk);
 
-    // @ts-ignore
     return oldWrite.apply(res, arguments);
   };
 
-  // @ts-ignore
   res.end = function (chunk) {
     if (chunk) resBody.push(chunk);
 
@@ -54,7 +52,6 @@ app.use(function (req, res, next) {
       }
     );
 
-    // @ts-ignore
     oldEnd.apply(res, arguments);
   };
 

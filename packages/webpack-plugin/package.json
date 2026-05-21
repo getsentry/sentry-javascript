@@ -50,7 +50,7 @@
     "clean:deps": "premove node_modules",
     "test": "vitest run",
     "lint": "eslint ./src ./test",
-    "prepack": "ts-node ./src/prepack.ts"
+    "prepack": "node ./prepack.mjs"
   },
   "dependencies": {
     "@sentry/bundler-plugin-core": "5.3.0"
@@ -58,13 +58,13 @@
   "devDependencies": {
     "@sentry-internal/eslint-config": "5.3.0",
     "@sentry-internal/sentry-bundler-plugin-tsconfig": "5.3.0",
+    "@sentry-internal/dev-utils": "5.3.0",
     "@types/node": "^18.6.3",
     "@types/webpack": "npm:@types/webpack@^4",
     "eslint": "^8.18.0",
     "vitest": "^4.0.0",
     "premove": "^4.0.0",
     "rolldown": "^1.0.0",
-    "ts-node": "^10.9.1",
     "typescript": "^4.7.4",
     "webpack": "5.76.0"
   },

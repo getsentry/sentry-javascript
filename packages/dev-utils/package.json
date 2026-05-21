@@ -3,9 +3,12 @@
   "version": "5.3.0",
   "license": "MIT",
   "private": true,
-  "files": [
-    "src"
-  ],
+  "type": "module",
+  "main": "./out/index.mjs",
+  "module": "./out/index.mjs",
+  "scripts": {
+    "build": "rolldown --config rollup.config.mjs"
+  },
   "peerDependencies": {
     "eslint": "^8.14.0"
   },

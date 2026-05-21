@@ -1,5 +1,4 @@
 import packageJson from "./package.json" with { type: "json" };
-import modulePackage from "module";
 
 export default {
   platform: "node",
