@@ -30,7 +30,7 @@ import {
 import { clearGlobalTracingHelper, getGlobalTracingHelper, setGlobalTracingHelper } from './global';
 
 import { ActiveTracingHelper } from './active-tracing-helper';
-import { MODULE_NAME, NAME, VERSION } from './constants';
+import { MODULE_NAME, NAME, SUPPORTED_MODULE_VERSIONS, VERSION } from './constants';
 
 export interface PrismaInstrumentationConfig {
   ignoreSpanTypes?: (string | RegExp)[];
@@ -50,7 +50,7 @@ export class PrismaInstrumentation extends InstrumentationBase {
   }
 
   init() {
-    const module = new InstrumentationNodeModuleDefinition(MODULE_NAME, [VERSION]);
+    const module = new InstrumentationNodeModuleDefinition(MODULE_NAME, SUPPORTED_MODULE_VERSIONS);
 
     return [module];
   }

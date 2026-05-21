@@ -27,3 +27,5 @@ export const VERSION = SDK_VERSION;
 export const NAME = '@sentry/instrumentation-prisma';
 
 export const MODULE_NAME = '@prisma/client';
+
+export const SUPPORTED_MODULE_VERSIONS = ['>=5.0.0'];
