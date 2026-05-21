@@ -5,6 +5,8 @@ const { MongoClient } = mongodb;
 
 const client = new MongoClient(process.env.MONGO_URL || '', {
   useUnifiedTopology: true,
+  heartbeatFrequencyMS: 60000,
+  minHeartbeatFrequencyMS: 60000,
 });
 
 async function run() {

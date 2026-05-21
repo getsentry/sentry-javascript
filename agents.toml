@@ -27,6 +27,10 @@ name = "e2e"
 source = "path:.agents/skills/e2e"
 
 [[skills]]
+name = "fix-issue"
+source = "path:.agents/skills/fix-issue"
+
+[[skills]]
 name = "fix-security-vulnerability"
 source = "path:.agents/skills/fix-security-vulnerability"
 

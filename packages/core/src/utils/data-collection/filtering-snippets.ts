@@ -1,3 +1,5 @@
+export const FILTERED_VALUE = '[Filtered]';
+
 export const PII_HEADER_SNIPPETS = ['forwarded', '-ip', 'remote-', 'via', '-user'];
 
 export const SENSITIVE_KEY_SNIPPETS = [

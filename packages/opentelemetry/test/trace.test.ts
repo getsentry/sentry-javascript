@@ -2120,9 +2120,8 @@ describe('span.end() timestamp conversion', () => {
   });
 
   it('converts seconds to milliseconds for startInactiveSpan', () => {
-    // Use a timestamp in seconds that is after the span start (i.e. in the future)
-    // OTel resets endTime to startTime if endTime < startTime
-    const nowSec = Math.floor(Date.now() / 1000) + 1;
+    // +10s buffer (see startInactiveSpan test above): avoids OTel's endTime-before-startTime clamp.
+    const nowSec = Math.floor(Date.now() / 1000) + 10;
     const span = startInactiveSpan({ name: 'test' });
     span.end(nowSec);
 
@@ -2163,41 +2162,43 @@ describe('span.end() timestamp conversion', () => {
     expect(endTime![0]).not.toBe(0);
   });
 
-  it('handles HrTime input for startInactiveSpan', () => {
-    const nowSec = Math.floor(Date.now() / 1000) + 1;
-    const span = startInactiveSpan({ name: 'test' });
-    span.end([nowSec, 500000000] as [number, number]);
-
-    const endTime = getSpanEndTime(span);
-    expect(endTime![0]).toBe(nowSec);
-    expect(endTime![1]).toBe(500000000);
-  });
-
-  it('converts seconds to milliseconds for startSpanManual callback span', () => {
-    const nowSec = Math.floor(Date.now() / 1000) + 1;
-    startSpanManual({ name: 'test' }, span => {
-      span.end(nowSec);
+  // +10s buffer: if the wallclock rolls past the next-second boundary between computing
+  // nowSec and creating the span, `endTime = [nowSec, 0]` is < startTime, OTel clamps
+  // endTime to startTime, and `endTime[1]` ends up at the startTime's nanos rather than 0.
+  describe('span.end() timestamp conversion', () => {
+    it('handles HrTime input for startInactiveSpan', () => {
+      const nowSec = Math.floor(Date.now() / 1000) + 10;
+      const span = startInactiveSpan({ name: 'test' });
+      span.end([nowSec, 500000000] as [number, number]);
 
       const endTime = getSpanEndTime(span);
       expect(endTime![0]).toBe(nowSec);
-      expect(endTime![1]).toBe(0);
-    });
-  });
-
-  it('converts seconds to milliseconds for startSpan child span', () => {
-    // +10s buffer (not +1 like sibling tests): the outer startSpan + inner startInactiveSpan
-    // adds enough wallclock overhead that nowSec*1000 can slip behind innerSpan's startTime,
-    // tripping OTel's `endTime < startTime` clamp and copying startTime's nanos onto endTime.
-    const nowSec = Math.floor(Date.now() / 1000) + 10;
-    let capturedEndTime: [number, number] | undefined;
-    startSpan({ name: 'outer' }, () => {
-      const innerSpan = startInactiveSpan({ name: 'inner' });
-      innerSpan.end(nowSec);
-      capturedEndTime = getSpanEndTime(innerSpan);
+      expect(endTime![1]).toBe(500000000);
     });
 
-    expect(capturedEndTime![0]).toBe(nowSec);
-    expect(capturedEndTime![1]).toBe(0);
+    it('converts seconds to milliseconds for startSpanManual callback span', () => {
+      const nowSec = Math.floor(Date.now() / 1000) + 10;
+      startSpanManual({ name: 'test' }, span => {
+        span.end(nowSec);
+
+        const endTime = getSpanEndTime(span);
+        expect(endTime![0]).toBe(nowSec);
+        expect(endTime![1]).toBe(0);
+      });
+    });
+
+    it('converts seconds to milliseconds for startSpan child span', () => {
+      const nowSec = Math.floor(Date.now() / 1000) + 10;
+      let capturedEndTime: [number, number] | undefined;
+      startSpan({ name: 'outer' }, () => {
+        const innerSpan = startInactiveSpan({ name: 'inner' });
+        innerSpan.end(nowSec);
+        capturedEndTime = getSpanEndTime(innerSpan);
+      });
+
+      expect(capturedEndTime![0]).toBe(nowSec);
+      expect(capturedEndTime![1]).toBe(0);
+    });
   });
 });
 

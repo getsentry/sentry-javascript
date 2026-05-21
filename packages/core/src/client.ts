@@ -37,6 +37,7 @@ import type { SeverityLevel } from './types/severity';
 import type { Span, SpanAttributes, SpanContextData, SpanJSON, StreamedSpanJSON } from './types/span';
 import type { StartSpanOptions } from './types/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types/transport';
+import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
 import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
@@ -54,6 +55,7 @@ import { showSpanDropWarning } from './utils/spanUtils';
 import { rejectedSyncPromise } from './utils/syncpromise';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
+import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
@@ -137,18 +139,21 @@ function setupWeightBasedFlushing<
     if (weight >= 800_000) {
       flushFn(client);
     } else if (!isTimerActive) {
-      // Only start timer if one isn't already running.
-      // This prevents flushing being delayed by items that arrive close to the timeout limit
-      // and thus resetting the flushing timeout and delaying items being flushed.
-      isTimerActive = true;
-      // Use safeUnref so the timer doesn't prevent the process from exiting
-      flushTimeout = safeUnref(
-        setTimeout(() => {
-          flushFn(client);
-          // Note: isTimerActive is reset by the flushHook handler above, not here,
-          // to avoid race conditions when new items arrive during the flush.
-        }, DEFAULT_FLUSH_INTERVAL),
-      );
+      const flushInterval = client.getOptions()._flushInterval ?? DEFAULT_FLUSH_INTERVAL;
+      if (flushInterval > 0) {
+        // Only start timer if one isn't already running.
+        // This prevents flushing being delayed by items that arrive close to the timeout limit
+        // and thus resetting the flushing timeout and delaying items being flushed.
+        isTimerActive = true;
+        // Use safeUnref so the timer doesn't prevent the process from exiting
+        flushTimeout = safeUnref(
+          setTimeout(() => {
+            flushFn(client);
+            // Note: isTimerActive is reset by the flushHook handler above, not here,
+            // to avoid race conditions when new items arrive during the flush.
+          }, flushInterval),
+        );
+      }
     }
   });
 
@@ -213,6 +218,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   protected _promiseBuffer: PromiseBuffer<unknown>;
 
+  protected readonly _dataCollection: ResolvedDataCollection;
+
   /**
    * Initializes this client instance.
    *
@@ -226,6 +233,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._hooks = {};
     this._eventProcessors = [];
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
+    this._dataCollection = resolveDataCollectionOptions(options);
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -397,6 +405,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public getOptions(): O {
     return this._options;
+  }
+
+  /**
+   * Get the resolved data collection configuration.
+   */
+  public getDataCollectionOptions(): ResolvedDataCollection {
+    return this._dataCollection;
   }
 
   /**

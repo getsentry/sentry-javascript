@@ -1,7 +1,7 @@
 /**
  * Controls how key-value data (headers, cookies, query params) is collected and filtered.
  *
- * - `true`: Collect all data without filtering (empty denylist). Senstive values like keys and tokens are always filtered out.
+ * - `true`: Collect all data without filtering (empty denylist). Sensitive values like keys and tokens are always filtered out.
  * - `false`: Do not collect any data.
  * - `{ allow: string[] }`: Collect only the specified keys.
  * - `{ deny: string[] }`: Collect all keys except the specified ones.
@@ -70,3 +70,11 @@ export interface DataCollection {
    */
   frameContextLines?: number;
 }
+
+/**
+ * Fully resolved `DataCollection` with all defaults applied.
+ */
+export type ResolvedDataCollection = Required<DataCollection> & {
+  httpHeaders: Required<NonNullable<DataCollection['httpHeaders']>>;
+  genAI: Required<NonNullable<DataCollection['genAI']>>;
+};

@@ -34,6 +34,7 @@ export class CloudflareClient extends ServerRuntimeClient {
       // TODO: Grab version information
       runtime: { name: 'cloudflare' },
       // TODO: Add server name
+      _flushInterval: 0,
     };
 
     super(clientOptions);
