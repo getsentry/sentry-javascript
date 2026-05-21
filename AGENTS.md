@@ -67,6 +67,11 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 4. `yarn build:dev`
 5. NEVER push on `develop`
 
+## Pull Requests
+
+- **Do NOT add a "Test plan" / "Testing" checklist to PR bodies.** CI runs the full test suite on every PR — a hand-rolled checklist duplicates that signal and rots fast. Use the PR body for _Summary_ and _Root cause_ (if relevant) only.
+- Include `Fixes #<issue-number>` somewhere in the PR body so the merge auto-closes the linked issue.
+
 ## Architecture
 
 ### Core
@@ -153,9 +158,9 @@ Use `/release` skill. See `.claude/skills/release/SKILL.md`
 
 Use `/upgrade-dep` skill. See `.claude/skills/upgrade-dep/SKILL.md`
 
-### OpenTelemetry Instrumentation Upgrades
+### Vendor OpenTelemetry Instrumentation
 
-Use `/upgrade-otel` skill. See `.claude/skills/upgrade-otel/SKILL.md`
+Use `/vendor-otel` skill. See `.claude/skills/vendor-otel/SKILL.md`
 
 ### AI Integration
 

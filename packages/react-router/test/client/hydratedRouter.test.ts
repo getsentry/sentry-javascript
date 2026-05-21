@@ -2,6 +2,7 @@ import * as browser from '@sentry/browser';
 import * as core from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentHydratedRouter } from '../../src/client/hydratedRouter';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual<any>('@sentry/core');
@@ -42,14 +43,15 @@ describe('instrumentHydratedRouter', () => {
     };
     (globalThis as any).__reactRouterDataRouter = mockRouter;
 
-    mockPageloadSpan = { updateName: vi.fn(), setAttributes: vi.fn() };
-    mockNavigationSpan = { updateName: vi.fn(), setAttributes: vi.fn() };
+    mockPageloadSpan = { updateName: vi.fn(), setAttributes: vi.fn(), setAttribute: vi.fn() };
+    mockNavigationSpan = { updateName: vi.fn(), setAttributes: vi.fn(), setAttribute: vi.fn() };
 
     (core.getActiveSpan as any).mockReturnValue(mockPageloadSpan);
     (core.getRootSpan as any).mockImplementation((span: any) => span);
-    (core.spanToJSON as any).mockImplementation((_span: any) => ({
+    (core.spanToJSON as any).mockImplementation((span: any) => ({
       description: '/foo/bar',
-      op: 'pageload',
+      // Distinguish so the subscribe callback can branch on op (pageload vs. navigation).
+      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
     }));
     (core.getClient as any).mockReturnValue({});
     (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
@@ -91,8 +93,30 @@ describe('instrumentHydratedRouter', () => {
     // After navigation, the active span should be the navigation span
     (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
     callback(newState);
-    expect(mockNavigationSpan.updateName).toHaveBeenCalled();
-    expect(mockNavigationSpan.setAttributes).toHaveBeenCalled();
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/:id');
+    expect(mockNavigationSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+  });
+
+  it('does not overwrite pageload origin when the pageload is still active', () => {
+    // Regression test for #20784: a static-route pageload (where pathname == rootSpanName) was
+    // being tagged with `origin: auto.navigation.react_router` because the subscribe callback
+    // re-wrote origin unconditionally, even when the active root span was still the pageload.
+    instrumentHydratedRouter();
+    const callback = mockRouter.subscribe.mock.calls[0][0];
+    const newState = {
+      location: { pathname: '/foo/bar' },
+      matches: [{ route: { path: '/foo/:id' } }],
+      navigation: { state: 'idle' },
+    };
+    // Active root span is still the pageload (no navigation has happened yet).
+    (core.getActiveSpan as any).mockReturnValue(mockPageloadSpan);
+    callback(newState);
+    // Subscribe callback must not touch the navigation span, and must not write `origin` on the
+    // pageload — only `source` via the single-attribute setter. The pageload origin was already
+    // set by trySubscribe.
+    expect(mockNavigationSpan.setAttribute).not.toHaveBeenCalled();
+    expect(mockNavigationSpan.setAttributes).not.toHaveBeenCalled();
+    expect(mockPageloadSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   });
 
   it('does not update navigation transaction on state change to loading', () => {

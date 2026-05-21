@@ -35,9 +35,26 @@ const QUEUE_OPTIONS = {
 })();
 
 async function connectToRabbitMQ() {
-  const connection = await amqp.connect(AMQP_URL);
-  const channel = await connection.createChannel();
-  return { connection, channel };
+  // Retry up to 5 times with 1s backoff. The docker-compose healthcheck
+  // (`rabbitmq-diagnostics -q ping`) reports the broker ready before AMQP
+  // handshakes actually succeed, so the first connect can race with broker
+  // boot and reject with "Socket closed abruptly during opening handshake".
+  // That rejection becomes an unhandled rejection captured by Sentry and
+  // sent as an error envelope, which the runner sees ahead of the expected
+  // transaction and reports as "Expected envelope item type 'transaction'
+  // but got 'event'" (the flake reported in the issue).
+  let lastError;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const connection = await amqp.connect(AMQP_URL);
+      const channel = await connection.createChannel();
+      return { connection, channel };
+    } catch (err) {
+      lastError = err;
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  throw lastError;
 }
 
 async function createQueue(queueName, channel) {
