@@ -1,6 +1,6 @@
 import type { AttributeValue } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
-import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
+import { GraphQLInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, getRootSpan, spanToJSON } from '@sentry/core';
 import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
