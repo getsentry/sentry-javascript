@@ -30,7 +30,7 @@ export interface Token {
 export interface Source {
   body: string;
   name: string;
-  locationOffset: { line: number; column: number };
+  locationOffset: Location;
   [key: string]: any;
 }
 
@@ -116,7 +116,7 @@ interface GraphQLWrappingType {
 
 export interface GraphQLUnionType {
   name: string;
-  getTypes(): GraphQLObjectType[];
+  getTypes(): ReadonlyArray<GraphQLObjectType>;
   [key: string]: any;
 }
 

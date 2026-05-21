@@ -38,7 +38,6 @@ import type {
   GraphQLFieldResolver,
   GraphQLSchema,
   GraphQLTypeResolver,
-  Location,
   OperationDefinitionNode,
   ParseOptions,
   PromiseOrValue,
