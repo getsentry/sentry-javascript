@@ -1,3 +1,4 @@
+import type { Client } from '../client';
 import { getIsolationScope } from '../currentScopes';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS } from '../semanticAttributes';
@@ -29,29 +30,47 @@ type RequestDataIntegrationOptions = {
 
 const INTEGRATION_NAME = 'RequestData';
 
-function getDefaultInclude(dataCollection: ResolvedDataCollection): RequestDataIncludeOptions {
-  return {
-    cookies: dataCollection.cookies !== false,
-    // Always attach body data that's already on the scope — dataCollection.httpBodies gates write-time, not read-time
-    data: true,
-    headers: dataCollection.httpHeaders.request !== false,
-    ip: dataCollection.userInfo,
-    query_string: dataCollection.queryParams !== false,
-    // No dataCollection equivalent — URL is always included
-    url: true,
-  };
-}
-
 const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) => {
+  // Per spec, integration-level options override global dataCollection.
+  // When include overrides a category back on that dataCollection turned off,
+  // we flip the dataCollection behavior to true (default denylist filtering).
+  function resolveIncludeAndDataCollection(client: Client): {
+    include: RequestDataIncludeOptions;
+    dataCollection: ResolvedDataCollection;
+  } {
+    const dc = client.getDataCollectionOptions();
+    const dataCollection: ResolvedDataCollection = {
+      ...dc,
+      ...(options.include?.cookies === true && dc.cookies === false && { cookies: true as const }),
+      ...(options.include?.headers === true &&
+        dc.httpHeaders.request === false && {
+          httpHeaders: { ...dc.httpHeaders, request: true as const },
+        }),
+    };
+
+    return {
+      dataCollection,
+      include: {
+        cookies: dataCollection.cookies !== false,
+        // Always attach body data that's already on the scope — dataCollection.httpBodies gates write-time, not read-time
+        data: true,
+        headers: dataCollection.httpHeaders.request !== false,
+        ip: dataCollection.userInfo,
+        query_string: dataCollection.queryParams !== false,
+        // No dataCollection equivalent — URL is always included
+        url: true,
+        ...options.include,
+      },
+    };
+  }
+
   return {
     name: INTEGRATION_NAME,
     processEvent(event, _hint, client) {
       const { sdkProcessingMetadata = {} } = event;
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
 
-      const dataCollection = client.getDataCollectionOptions();
-      // Per spec, integration-level options override global dataCollection
-      const include = { ...getDefaultInclude(dataCollection), ...options.include };
+      const { include } = resolveIncludeAndDataCollection(client);
 
       if (normalizedRequest) {
         addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, include);
@@ -67,8 +86,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
         return;
       }
 
-      const dataCollection = client.getDataCollectionOptions();
-      const include = { ...getDefaultInclude(dataCollection), ...options.include };
+      const { include, dataCollection } = resolveIncludeAndDataCollection(client);
 
       addNormalizedRequestDataToSpan(span, normalizedRequest, ipAddress, include, dataCollection);
     },
