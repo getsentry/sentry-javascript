@@ -1,4 +1,5 @@
 const Sentry = require('@sentry/node');
+const { expectProcessToExit } = require('../../../utils/expect-process-to-exit');
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -9,11 +10,6 @@ Sentry.init({
   ],
 });
 
-setTimeout(() => {
-  // This should not be called because the script throws before this resolves.
-  // Using 3000ms to account for the SDK's 2000ms shutdown timeout + buffer.
-  process.stdout.write("I'm alive!");
-  process.exit(0);
-}, 3000);
+expectProcessToExit();
 
 throw new Error();

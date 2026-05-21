@@ -1,4 +1,5 @@
 const Sentry = require('@sentry/node');
+const { expectProcessToExit } = require('../../../utils/expect-process-to-exit');
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -20,10 +21,7 @@ class AbortError extends Error {
   }
 }
 
-setTimeout(() => {
-  process.stdout.write("I'm alive!");
-  process.exit(0);
-}, 500);
+expectProcessToExit();
 
 // These should be ignored by default and not produce a warning
 Promise.reject(new AI_NoOutputGeneratedError('Stream aborted'));
