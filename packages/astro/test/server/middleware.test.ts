@@ -428,6 +428,55 @@ describe('sentryMiddleware', () => {
     expect(resultFromNext).toBe(originalResponse);
   });
 
+  it('does not inject meta tags into <head> inside attribute values', async () => {
+    const middleware = handleRequest();
+
+    const ctx = {
+      ...DYNAMIC_REQUEST_CONTEXT,
+    };
+
+    const bodyWithHeadInAttr =
+      '<head><meta name="something" content=""/></head><body><button data-code="&lt;html&gt;&lt;head&gt;&lt;/head&gt;"></button></body>';
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response(bodyWithHeadInAttr, {
+          headers: new Headers({ 'content-type': 'text/html' }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+    const html = await resultFromNext?.text();
+
+    expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
+    expect(html).not.toContain('data-code="&lt;html&gt;&lt;head&gt;<meta name="sentry-route-name"');
+  });
+
+  it('does not inject meta tags into <head> inside quoted attribute values in the same chunk', async () => {
+    const middleware = handleRequest();
+
+    const ctx = {
+      ...DYNAMIC_REQUEST_CONTEXT,
+    };
+
+    const htmlWithHeadInDataAttr = '<head></head><body><div data-content="<head>should not be modified"></div></body>';
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response(htmlWithHeadInDataAttr, {
+          headers: new Headers({ 'content-type': 'text/html' }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+    const html = await resultFromNext?.text();
+
+    expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
+    expect(html).toContain('data-content="<head>should not be modified"');
+  });
+
   it("no-ops if there's no <head> tag in the response", async () => {
     const middleware = handleRequest();
 
