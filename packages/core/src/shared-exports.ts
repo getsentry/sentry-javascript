@@ -65,7 +65,9 @@ export {
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,
 } from './utils/ai/providerSkip';
-export { defaultPiiToCollectionOptions } from './utils/data-collection/defaultPiiToCollectionOptions';
+export { filterKeyValueData as _INTERNAL_filterKeyValueData } from './utils/data-collection/filterKeyValueData';
+export { filterCookies as _INTERNAL_filterCookies } from './utils/data-collection/filterCookies';
+export { filterQueryParams as _INTERNAL_filterQueryParams } from './utils/data-collection/filterQueryParams';
 export { envToBool } from './utils/envToBool';
 export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';
@@ -404,7 +406,12 @@ export type { Extra, Extras } from './types/extra';
 export type { Integration, IntegrationFn } from './types/integration';
 export type { Mechanism } from './types/mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types/misc';
-export type { CollectBehavior, DataCollection, HttpBodyCollectionTarget } from './types/datacollection';
+export type {
+  CollectBehavior,
+  DataCollection,
+  HttpBodyCollectionTarget,
+  ResolvedDataCollection,
+} from './types/datacollection';
 export type { ClientOptions, CoreOptions as Options } from './types/options';
 export type { Package } from './types/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types/polymorphics';

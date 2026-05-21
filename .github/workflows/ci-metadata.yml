@@ -22,6 +22,9 @@ on:
       changed_any_code:
         description: 'Whether any non-markdown files changed'
         value: ${{ jobs.get_metadata.outputs.changed_any_code }}
+      changed_deps:
+        description: 'Whether any package.json or yarn.lock changed'
+        value: ${{ jobs.get_metadata.outputs.changed_deps }}
       is_gitflow_sync:
         description: 'Whether this is a gitflow sync (master merge)'
         value: ${{ jobs.get_metadata.outputs.is_gitflow_sync }}
@@ -69,6 +72,9 @@ jobs:
               - '.github/**'
             any_code:
               - '!**/*.md'
+            deps:
+              - '**/package.json'
+              - 'yarn.lock'
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
@@ -78,6 +84,7 @@ jobs:
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
       changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
+      changed_deps: ${{ steps.changed.outputs.deps == 'true' }}
 
       # When merging into master, or from master
       is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}

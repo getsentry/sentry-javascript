@@ -36,6 +36,16 @@ describe('Hono Node Middleware', () => {
       expect(initNodeMock).not.toHaveBeenCalled();
     });
 
+    it('accepts Hono with custom env types without requiring a cast', () => {
+      type CustomEnv = { Bindings: { DATABASE_URL: string }; Variables: { userId: string } };
+      const app = new Hono<CustomEnv>();
+
+      const middleware = sentry(app);
+
+      expect(typeof middleware).toBe('function');
+      expect(middleware).toHaveLength(2);
+    });
+
     it('returns a middleware handler function', () => {
       const app = new Hono();
       const middleware = sentry(app);
