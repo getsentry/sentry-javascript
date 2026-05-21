@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
 
 sentryTest(
   'should not capture request/response headers or cookies without sendDefaultPii',
@@ -22,7 +22,8 @@ sentryTest(
       });
     });
 
-    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+    const req = await Promise.all([waitForErrorRequest(page), page.goto(url)]).then(([r]) => r);
+    const eventData = envelopeRequestParser<Event>(req);
 
     expect(eventData.exception?.values).toHaveLength(1);
     expect(eventData.message).toBe('HTTP Client Error with status code: 500');
