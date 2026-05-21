@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @abcang, @ahmadio, and @victorgarciaesgi. Thank you for your contributions!
+Work in this release was contributed by @abcang, @ahmadio, @victorgarciaesgi, and @delorge. Thank you for your contributions!
 
 - **feat(core): Support array attributes for spans, logs, and metrics ([#20427](https://github.com/getsentry/sentry-javascript/pull/20427))**
 
