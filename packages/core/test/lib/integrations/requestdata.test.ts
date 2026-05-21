@@ -879,10 +879,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
         headers: { 'content-type': 'application/json', accept: 'text/html' },
       });
 
-      integration.processSegmentSpan!(
-        span,
-        mockClient(false, { httpHeaders: { request: false, response: false } }),
-      );
+      integration.processSegmentSpan!(span, mockClient(false, { httpHeaders: { request: false, response: false } }));
 
       expect(span.attributes).toMatchObject({
         'http.request.header.content_type': 'application/json',
