@@ -157,7 +157,8 @@
         "**/integrations/tracing/hapi/vendored/**/*.ts",
         "**/integrations/tracing/mongoose/vendored/**/*.ts",
         "**/integrations/tracing/amqplib/vendored/**/*.ts",
-        "**/integrations/tracing/prisma/vendored/**/*.ts"
+        "**/integrations/tracing/prisma/vendored/**/*.ts",
+        "**/integrations/tracing/graphql/vendored/**/*.ts"
       ],
       "rules": {
         "typescript/no-explicit-any": "off"

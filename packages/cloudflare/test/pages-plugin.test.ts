@@ -56,4 +56,68 @@ describe('sentryPagesPlugin', () => {
     expect(result.status).toBe(response.status);
     expect(await result.text()).toBe('test');
   });
+
+  test('OPTIONS requests bypass SDK instrumentation', async () => {
+    const mockOptionsHandler = vi.fn().mockReturnValue(MOCK_OPTIONS);
+    const mockOnRequest = sentryPagesPlugin(mockOptionsHandler);
+    const mockNext = vi.fn().mockResolvedValue(new Response('options response'));
+
+    const result = await mockOnRequest({
+      request: new Request('https://example.com', { method: 'OPTIONS' }),
+      functionPath: 'test',
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+      next: mockNext,
+      env: { ASSETS: { fetch: vi.fn() } },
+      params: {},
+      data: {},
+      pluginArgs: MOCK_OPTIONS,
+    });
+
+    expect(mockOptionsHandler).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    expect(result.status).toBe(200);
+  });
+
+  test('HEAD requests bypass SDK instrumentation', async () => {
+    const mockOptionsHandler = vi.fn().mockReturnValue(MOCK_OPTIONS);
+    const mockOnRequest = sentryPagesPlugin(mockOptionsHandler);
+    const mockNext = vi.fn().mockResolvedValue(new Response('head response'));
+
+    const result = await mockOnRequest({
+      request: new Request('https://example.com', { method: 'HEAD' }),
+      functionPath: 'test',
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+      next: mockNext,
+      env: { ASSETS: { fetch: vi.fn() } },
+      params: {},
+      data: {},
+      pluginArgs: MOCK_OPTIONS,
+    });
+
+    expect(mockOptionsHandler).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    expect(result.status).toBe(200);
+  });
+
+  test('GET requests are instrumented', async () => {
+    const mockOptionsHandler = vi.fn().mockReturnValue(MOCK_OPTIONS);
+    const mockOnRequest = sentryPagesPlugin(mockOptionsHandler);
+    const mockNext = vi.fn().mockResolvedValue(new Response('get response'));
+
+    await mockOnRequest({
+      request: new Request('https://example.com', { method: 'GET' }),
+      functionPath: 'test',
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+      next: mockNext,
+      env: { ASSETS: { fetch: vi.fn() } },
+      params: {},
+      data: {},
+      pluginArgs: MOCK_OPTIONS,
+    });
+
+    expect(mockOptionsHandler).toHaveBeenCalledTimes(1);
+  });
 });
