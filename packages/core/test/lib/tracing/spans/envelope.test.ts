@@ -240,7 +240,67 @@ describe('createStreamedSpanEnvelope', () => {
       ]);
     });
 
-    it("includes ingest_settings with 'auto' values when in browser and sendDefaultPii is true", () => {
+    it("includes ingest_settings with 'auto' values when in browser and dataCollection.userInfo is true", () => {
+      vi.mocked(isBrowser).mockReturnValue(true);
+
+      const mockSpan = createMockSerializedSpan();
+      const mockClient = new TestClient(getDefaultTestClientOptions({ dataCollection: { userInfo: true } }));
+      const dsc: Partial<DynamicSamplingContext> = {};
+
+      const envelopeItems = createStreamedSpanEnvelope([mockSpan], dsc, mockClient)[1];
+
+      expect(envelopeItems).toEqual([
+        [
+          { type: 'span', item_count: 1, content_type: 'application/vnd.sentry.items.span.v2+json' },
+          {
+            version: 2,
+            ingest_settings: { infer_ip: 'auto', infer_user_agent: 'auto' },
+            items: [mockSpan],
+          },
+        ],
+      ]);
+    });
+
+    it("includes ingest_settings with 'never' values when in browser and dataCollection.userInfo is false", () => {
+      vi.mocked(isBrowser).mockReturnValue(true);
+
+      const mockSpan = createMockSerializedSpan();
+      const mockClient = new TestClient(getDefaultTestClientOptions({ dataCollection: { userInfo: false } }));
+      const dsc: Partial<DynamicSamplingContext> = {};
+
+      const envelopeItems = createStreamedSpanEnvelope([mockSpan], dsc, mockClient)[1];
+
+      expect(envelopeItems).toEqual([
+        [
+          { type: 'span', item_count: 1, content_type: 'application/vnd.sentry.items.span.v2+json' },
+          {
+            version: 2,
+            ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
+            items: [mockSpan],
+          },
+        ],
+      ]);
+    });
+
+    it('omits ingest_settings when not in browser', () => {
+      const mockSpan = createMockSerializedSpan();
+      const mockClient = new TestClient(getDefaultTestClientOptions({ dataCollection: { userInfo: true } }));
+      const dsc: Partial<DynamicSamplingContext> = {};
+
+      const envelopeItems = createStreamedSpanEnvelope([mockSpan], dsc, mockClient)[1];
+
+      expect(envelopeItems).toEqual([
+        [
+          { type: 'span', item_count: 1, content_type: 'application/vnd.sentry.items.span.v2+json' },
+          {
+            version: 2,
+            items: [mockSpan],
+          },
+        ],
+      ]);
+    });
+
+    it('respects sendDefaultPii: true bridged to dataCollection.userInfo', () => {
       vi.mocked(isBrowser).mockReturnValue(true);
 
       const mockSpan = createMockSerializedSpan();
@@ -261,7 +321,7 @@ describe('createStreamedSpanEnvelope', () => {
       ]);
     });
 
-    it("includes ingest_settings with 'never' values when in browser and sendDefaultPii is false", () => {
+    it('respects sendDefaultPii: false bridged to dataCollection.userInfo', () => {
       vi.mocked(isBrowser).mockReturnValue(true);
 
       const mockSpan = createMockSerializedSpan();
@@ -276,24 +336,6 @@ describe('createStreamedSpanEnvelope', () => {
           {
             version: 2,
             ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
-            items: [mockSpan],
-          },
-        ],
-      ]);
-    });
-
-    it('omits ingest_settings when not in browser', () => {
-      const mockSpan = createMockSerializedSpan();
-      const mockClient = new TestClient(getDefaultTestClientOptions({ sendDefaultPii: true }));
-      const dsc: Partial<DynamicSamplingContext> = {};
-
-      const envelopeItems = createStreamedSpanEnvelope([mockSpan], dsc, mockClient)[1];
-
-      expect(envelopeItems).toEqual([
-        [
-          { type: 'span', item_count: 1, content_type: 'application/vnd.sentry.items.span.v2+json' },
-          {
-            version: 2,
             items: [mockSpan],
           },
         ],
