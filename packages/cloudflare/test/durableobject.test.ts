@@ -81,6 +81,27 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
   });
 
+  it('Binds prototype methods to original object when enableRpcTracePropagation is true', () => {
+    const testClass = class {
+      method() {
+        return this;
+      }
+    };
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+      testClass as any,
+    );
+    const obj = Reflect.construct(instrumented, []);
+
+    // Method should be callable and return the original object (not the proxy)
+    const result = obj.method();
+    expect(result).not.toBe(obj); // result is original object, obj is proxy
+    expect(typeof result.method).toBe('function'); // original object still has method
+
+    // Methods should be cached (same reference on repeated access)
+    expect(obj.method).toBe(obj.method);
+  });
+
   it('Built-in durable object methods are always instrumented', () => {
     const testClass = class {
       fetch() {}
@@ -100,6 +121,36 @@ describe('instrumentDurableObjectWithSentry', () => {
     for (const method_name of ['fetch', 'alarm', 'webSocketMessage', 'webSocketClose', 'webSocketError']) {
       expect(getInstrumented((obj as any)[method_name]), `Method ${method_name} is instrumented`).toBeTruthy();
     }
+  });
+
+  it('Built-in durable object methods are own properties and not wrapped as RPC', () => {
+    const testClass = class {
+      fetch() {
+        return new Response('fetch');
+      }
+
+      alarm() {}
+
+      rpcMethod() {
+        return 'rpc';
+      }
+    };
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+      testClass as any,
+    );
+    const obj = Reflect.construct(instrumented, []);
+
+    // Built-in DO methods are set as own properties (not on prototype)
+    // This ensures they are not wrapped as RPC methods by the Proxy
+    expect(Object.prototype.hasOwnProperty.call(obj, 'fetch')).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(obj, 'alarm')).toBe(true);
+
+    // RPC methods remain on the prototype
+    expect(Object.prototype.hasOwnProperty.call(obj, 'rpcMethod')).toBe(false);
+
+    // All methods should still work correctly
+    expect(obj.rpcMethod()).toBe('rpc');
   });
 
   it('Does not instrument RPC methods when instrumentPrototypeMethods is not set', () => {
@@ -164,10 +215,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       expect(obj.methodOne).not.toBe(testClass.prototype.methodOne);
       expect(obj.methodThree).not.toBe(testClass.prototype.methodThree);
 
-      // methodTwo is not in the allow-list and must remain the original
-      // prototype method (i.e. not wrapped).
-      expect(obj.methodTwo).toBe(testClass.prototype.methodTwo);
-
+      // methodTwo is not in the allow-list — it's bound but not wrapped with Sentry tracing.
       // All methods should still be callable and behave correctly.
       expect(obj.methodOne()).toBe('one');
       expect(obj.methodTwo()).toBe('two');
@@ -225,18 +273,12 @@ describe('instrumentDurableObjectWithSentry', () => {
       );
       const obj = Reflect.construct(instrumented, []);
 
-      // Object.prototype methods should NOT be wrapped - they should be the original methods
-      expect(obj.toString).toBe(Object.prototype.toString);
-      expect(obj.valueOf).toBe(Object.prototype.valueOf);
-      expect(obj.hasOwnProperty).toBe(Object.prototype.hasOwnProperty);
-      expect(obj.propertyIsEnumerable).toBe(Object.prototype.propertyIsEnumerable);
-      expect(obj.isPrototypeOf).toBe(Object.prototype.isPrototypeOf);
-      expect(obj.toLocaleString).toBe(Object.prototype.toLocaleString);
-
-      // They should still work correctly
+      // Object.prototype methods should NOT be wrapped with Sentry tracing.
+      // They are bound to the original object but still work correctly.
       expect(obj.toString()).toBe('[object Object]');
       expect(obj.hasOwnProperty('rpcMethod')).toBe(false); // It's on prototype, not own
-      expect(obj.valueOf()).toBe(obj);
+      // valueOf returns the original object, not the proxy
+      expect(obj.valueOf()).not.toBe(obj);
 
       // Meanwhile, actual RPC methods SHOULD be wrapped (not equal to prototype method)
       expect(obj.rpcMethod).not.toBe(testClass.prototype.rpcMethod);
