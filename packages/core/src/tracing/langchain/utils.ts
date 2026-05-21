@@ -568,13 +568,13 @@ export function _INTERNAL_mergeLangChainCallbackHandler(existing: unknown, sentr
   }
 
   if (isCallbackManager(existing)) {
+    if (existing.handlers?.includes(sentryHandler)) {
+      return existing;
+    }
     const copied = existing.copy() as {
       addHandler: (handler: unknown, inherit?: boolean) => void;
-      handlers?: unknown[];
     };
-    if (!copied.handlers?.includes(sentryHandler)) {
-      copied.addHandler(sentryHandler, true);
-    }
+    copied.addHandler(sentryHandler, true);
     return copied;
   }
 

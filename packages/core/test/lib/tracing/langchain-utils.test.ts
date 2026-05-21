@@ -317,14 +317,12 @@ describe('_INTERNAL_mergeLangChainCallbackHandler', () => {
     expect(result.inheritableHandlers).toEqual([sentryHandler]);
   });
 
-  it('does not double-register when the copied manager already contains the handler', () => {
+  it('returns the manager unchanged without copying when it already contains the handler', () => {
     const manager = makeFakeCallbackManager([sentryHandler]);
-    const result = _INTERNAL_mergeLangChainCallbackHandler(manager, sentryHandler) as {
-      handlers: unknown[];
-      addHandler: ReturnType<typeof vi.fn>;
-    };
-    expect(result.handlers).toEqual([sentryHandler]);
-    expect(result.addHandler).not.toHaveBeenCalled();
+    const result = _INTERNAL_mergeLangChainCallbackHandler(manager, sentryHandler);
+    expect(result).toBe(manager);
+    expect(manager.copy).not.toHaveBeenCalled();
+    expect(manager.addHandler).not.toHaveBeenCalled();
   });
 
   it('returns the value unchanged when it is neither an array nor a CallbackManager', () => {
