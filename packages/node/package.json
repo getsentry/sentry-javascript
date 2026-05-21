@@ -69,7 +69,6 @@
     "@opentelemetry/core": "^2.6.1",
     "@opentelemetry/instrumentation": "^0.214.0",
     "@opentelemetry/instrumentation-graphql": "0.62.0",
-    "@opentelemetry/instrumentation-hapi": "0.60.0",
     "@opentelemetry/instrumentation-http": "0.214.0",
     "@opentelemetry/sql-common": "^0.41.2",
     "@opentelemetry/instrumentation-pg": "0.66.0",

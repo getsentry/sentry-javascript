@@ -154,6 +154,7 @@
         "**/nestjs/src/integrations/vendored/**/*.ts",
         "**/integrations/tracing/kafka/vendored/**/*.ts",
         "**/integrations/tracing/tedious/vendored/**/*.ts",
+        "**/integrations/tracing/hapi/vendored/**/*.ts",
         "**/integrations/tracing/mongoose/vendored/**/*.ts",
         "**/integrations/tracing/amqplib/vendored/**/*.ts"
       ],
