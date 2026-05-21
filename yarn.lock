@@ -6009,13 +6009,6 @@
   dependencies:
     "@octokit/openapi-types" "^12.11.0"
 
-"@opentelemetry/api-logs@0.207.0":
-  version "0.207.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/api-logs/-/api-logs-0.207.0.tgz#ae991c51eedda55af037a3e6fc1ebdb12b289f49"
-  integrity sha512-lAb0jQRVyleQQGiuuvCOTDVspc14nx6XJjP4FspJ1sNARo3Regq4ZZbrc3rN4b1TYSuUCvgH+UXUPug4SLOqEQ==
-  dependencies:
-    "@opentelemetry/api" "^1.3.0"
-
 "@opentelemetry/api-logs@0.212.0":
   version "0.212.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/api-logs/-/api-logs-0.212.0.tgz#ec66a0951b84b1f082e13fd8a027b9f9d65a3f7a"
@@ -6087,15 +6080,6 @@
   dependencies:
     "@opentelemetry/api-logs" "0.214.0"
     import-in-the-middle "^3.0.0"
-    require-in-the-middle "^8.0.0"
-
-"@opentelemetry/instrumentation@^0.207.0":
-  version "0.207.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation/-/instrumentation-0.207.0.tgz#1a5a921c04f171ff28096fa320af713f3c87ec14"
-  integrity sha512-y6eeli9+TLKnznrR8AZlQMSJT7wILpXH+6EYq5Vf/4Ao+huI7EedxQHwRgVUOMLFbe7VFDvHJrX9/f4lcwnJsA==
-  dependencies:
-    "@opentelemetry/api-logs" "0.207.0"
-    import-in-the-middle "^2.0.0"
     require-in-the-middle "^8.0.0"
 
 "@opentelemetry/instrumentation@^0.212.0":
@@ -6707,13 +6691,6 @@
   integrity sha512-Jbb+Xbxyp05NSR1x2epabetHiXvpO8tdN2YNoWoA/ZsbYyxxu/CO/ROBauIFuMXs3Ti+W7N7SJtWsHGaWte9Rg==
   dependencies:
     "@prisma/debug" "6.15.0"
-
-"@prisma/instrumentation@7.6.0":
-  version "7.6.0"
-  resolved "https://registry.yarnpkg.com/@prisma/instrumentation/-/instrumentation-7.6.0.tgz#22a4ea3e9d8cdc57cbaa0e26ccf10cb8db854549"
-  integrity sha512-ZPW2gRiwpPzEfgeZgaekhqXrbW+Y2RJKHVqUmlhZhKzRNCcvR6DykzylDrynpArKKRQtLxoZy36fK7U0p3pdgQ==
-  dependencies:
-    "@opentelemetry/instrumentation" "^0.207.0"
 
 "@protobuf-ts/plugin-framework@^2.9.4":
   version "2.9.4"
@@ -18859,7 +18836,7 @@ import-fresh@^3.2.1:
     parent-module "^1.0.0"
     resolve-from "^4.0.0"
 
-import-in-the-middle@^2.0.0, import-in-the-middle@^2.0.6:
+import-in-the-middle@^2.0.6:
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/import-in-the-middle/-/import-in-the-middle-2.0.6.tgz#1972337bfe020d05f6b5e020c13334567436324f"
   integrity sha512-3vZV3jX0XRFW3EJDTwzWoZa+RH1b8eTTx6YOCjglrLyPuepwoBti1k3L2dKwdCUrnVEfc5CuRuGstaC/uQJJaw==
