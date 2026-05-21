@@ -85,20 +85,6 @@ export function wrapRequestHandler(
       }
     }
 
-    // Do not capture spans for OPTIONS and HEAD requests
-    if (request.method === 'OPTIONS' || request.method === 'HEAD') {
-      try {
-        return await handler();
-      } catch (e) {
-        if (captureErrors) {
-          captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
-        }
-        throw e;
-      } finally {
-        waitUntil?.(flushAndDispose(client));
-      }
-    }
-
     if (client) {
       await captureIncomingRequestBody(client, request);
     }

@@ -563,60 +563,6 @@ describe('flushAndDispose', () => {
     disposeSpy.mockRestore();
   });
 
-  test('dispose is called for OPTIONS requests', async () => {
-    const context = createMockExecutionContext();
-    const waits: Promise<unknown>[] = [];
-    const waitUntil = vi.fn(promise => waits.push(promise));
-    (context as any).waitUntil = waitUntil;
-
-    const disposeSpy = vi.spyOn(CloudflareClient.prototype, 'dispose');
-    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
-
-    await wrapRequestHandler(
-      {
-        options: MOCK_OPTIONS,
-        request: new Request('https://example.com', { method: 'OPTIONS' }),
-        context,
-      },
-      () => new Response('', { status: 200 }),
-    );
-
-    // Wait for all waitUntil promises to resolve
-    await Promise.all(waits);
-
-    expect(disposeSpy).toHaveBeenCalled();
-
-    flushSpy.mockRestore();
-    disposeSpy.mockRestore();
-  });
-
-  test('dispose is called for HEAD requests', async () => {
-    const context = createMockExecutionContext();
-    const waits: Promise<unknown>[] = [];
-    const waitUntil = vi.fn(promise => waits.push(promise));
-    (context as any).waitUntil = waitUntil;
-
-    const disposeSpy = vi.spyOn(CloudflareClient.prototype, 'dispose');
-    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
-
-    await wrapRequestHandler(
-      {
-        options: MOCK_OPTIONS,
-        request: new Request('https://example.com', { method: 'HEAD' }),
-        context,
-      },
-      () => new Response('', { status: 200 }),
-    );
-
-    // Wait for all waitUntil promises to resolve
-    await Promise.all(waits);
-
-    expect(disposeSpy).toHaveBeenCalled();
-
-    flushSpy.mockRestore();
-    disposeSpy.mockRestore();
-  });
-
   test('dispose is called after streaming response completes', async () => {
     const context = createMockExecutionContext();
     const waits: Promise<unknown>[] = [];

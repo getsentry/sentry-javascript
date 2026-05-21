@@ -174,4 +174,85 @@ describe('instrumentFetch', () => {
     await Promise.all(waits);
     expect(flush).toHaveBeenCalledOnce();
   });
+
+  test('OPTIONS requests bypass SDK instrumentation', async () => {
+    const originalFetch = vi.fn().mockReturnValue(new Response('options response'));
+    const handler = {
+      fetch: originalFetch,
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const optionsCallback = vi.fn().mockReturnValue({ dsn: MOCK_ENV.SENTRY_DSN });
+
+    const wrappedHandler = withSentry(optionsCallback, handler);
+    const result = await wrappedHandler.fetch?.(
+      new Request('https://example.com', { method: 'OPTIONS' }),
+      MOCK_ENV,
+      createMockExecutionContext(),
+    );
+
+    expect(originalFetch).toHaveBeenCalledTimes(1);
+    expect(optionsCallback).not.toHaveBeenCalled();
+    expect(result?.status).toBe(200);
+    if (result) {
+      expect(await result.text()).toBe('options response');
+    }
+  });
+
+  test('HEAD requests bypass SDK instrumentation', async () => {
+    const originalFetch = vi.fn().mockReturnValue(new Response('head response'));
+    const handler = {
+      fetch: originalFetch,
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const optionsCallback = vi.fn().mockReturnValue({ dsn: MOCK_ENV.SENTRY_DSN });
+
+    const wrappedHandler = withSentry(optionsCallback, handler);
+    const result = await wrappedHandler.fetch?.(
+      new Request('https://example.com', { method: 'HEAD' }),
+      MOCK_ENV,
+      createMockExecutionContext(),
+    );
+
+    expect(originalFetch).toHaveBeenCalledTimes(1);
+    expect(optionsCallback).not.toHaveBeenCalled();
+    expect(result?.status).toBe(200);
+  });
+
+  test('GET requests are instrumented', async () => {
+    const originalFetch = vi.fn().mockReturnValue(new Response('get response'));
+    const handler = {
+      fetch: originalFetch,
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const optionsCallback = vi.fn().mockReturnValue({ dsn: MOCK_ENV.SENTRY_DSN });
+
+    const wrappedHandler = withSentry(optionsCallback, handler);
+    await wrappedHandler.fetch?.(
+      new Request('https://example.com', { method: 'GET' }),
+      MOCK_ENV,
+      createMockExecutionContext(),
+    );
+
+    expect(originalFetch).toHaveBeenCalledTimes(1);
+    expect(optionsCallback).toHaveBeenCalledTimes(1);
+  });
+
+  test('POST requests are instrumented', async () => {
+    const originalFetch = vi.fn().mockReturnValue(new Response('post response'));
+    const handler = {
+      fetch: originalFetch,
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const optionsCallback = vi.fn().mockReturnValue({ dsn: MOCK_ENV.SENTRY_DSN });
+
+    const wrappedHandler = withSentry(optionsCallback, handler);
+    await wrappedHandler.fetch?.(
+      new Request('https://example.com', { method: 'POST' }),
+      MOCK_ENV,
+      createMockExecutionContext(),
+    );
+
+    expect(originalFetch).toHaveBeenCalledTimes(1);
+    expect(optionsCallback).toHaveBeenCalledTimes(1);
+  });
 });
