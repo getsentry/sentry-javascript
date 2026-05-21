@@ -43,7 +43,6 @@ import {
   UpDownCounter,
 } from '@opentelemetry/api';
 import type { PgClient } from './pg-types';
-import type { PgPool } from './pg-pool-types';
 import {
   PgClientConnect,
   PgClientExtended,
@@ -233,10 +232,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
 
         const span = plugin.tracer.startSpan(SpanNames.CONNECT, {
           kind: SpanKind.CLIENT,
-          attributes: utils.getSemanticAttributesFromConnection(
-            (this as any).connectionParameters ?? this,
-            plugin._semconvStability,
-          ),
+          attributes: utils.getSemanticAttributesFromConnection(this, plugin._semconvStability),
         });
 
         if (callback) {
