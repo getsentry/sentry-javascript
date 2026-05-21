@@ -70,7 +70,6 @@
     "@opentelemetry/instrumentation": "^0.214.0",
     "@opentelemetry/instrumentation-http": "0.214.0",
     "@opentelemetry/sql-common": "^0.41.2",
-    "@opentelemetry/instrumentation-pg": "0.66.0",
     "@opentelemetry/sdk-trace-base": "^2.6.1",
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@fastify/otel": "0.18.0",
