@@ -11,9 +11,13 @@ export function setUrlProcessingMetadata(event: Event): void {
     return;
   }
 
-  // Only add URL if sendDefaultPii is enabled, as URLs may contain PII
   const client = getClient();
-  if (!client?.getOptions().sendDefaultPii) {
+  if (!client) {
+    return;
+  }
+
+  // todo(v11): Replace with a dataCollection gate once URL collection is covered by the spec.
+  if (!client.getOptions().sendDefaultPii) {
     return;
   }
 

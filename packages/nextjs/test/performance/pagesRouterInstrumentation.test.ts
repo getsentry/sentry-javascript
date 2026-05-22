@@ -128,6 +128,9 @@ describe('pagesRouterInstrumentPageLoad', () => {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
           'sentry.source': 'route',
+          user: 'lforst',
+          id: '1337',
+          q: '42',
         },
       },
     ],
@@ -190,6 +193,9 @@ describe('pagesRouterInstrumentPageLoad', () => {
       const client = {
         emit,
         getOptions: () => ({}),
+        getDataCollectionOptions: () => ({
+          queryParams: { deny: [] },
+        }),
       } as unknown as Client;
 
       pagesRouterInstrumentPageLoad(client);

@@ -1,5 +1,6 @@
 import type { Client, TransactionSource } from '@sentry/core';
 import {
+  _INTERNAL_filterKeyValueData,
   browserPerformanceTimeOrigin,
   debug,
   parseBaggageHeader,
@@ -129,7 +130,7 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
-        ...(params && client.getOptions().sendDefaultPii && { ...params }),
+        ...(params && getFilteredRouteParams(params, client)),
       },
     },
     { sentryTrace, baggage },
@@ -183,6 +184,17 @@ function getNextRouteFromPathname(pathname: string): string | undefined {
     const routeRegExp = convertNextRouteToRegExp(route);
     return pathname.match(routeRegExp);
   });
+}
+
+function getFilteredRouteParams(params: ParsedUrlQuery, client: Client): Record<string, string> {
+  const { queryParams } = client.getDataCollectionOptions();
+  const stringParams: Record<string, string> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === 'string') {
+      stringParams[key] = value;
+    }
+  }
+  return _INTERNAL_filterKeyValueData(stringParams, queryParams);
 }
 
 /**

@@ -12,12 +12,19 @@ export function addHeadersAsAttributes(
     return {};
   }
 
+  const client = getClient();
+  const { httpHeaders } = client?.getDataCollectionOptions() ?? { httpHeaders: { request: false, response: false } };
+
+  if (httpHeaders.request === false) {
+    return {};
+  }
+
   const headersDict: Record<string, string | string[] | undefined> =
     headers instanceof Headers || (typeof headers === 'object' && 'get' in headers)
       ? winterCGHeadersToDict(headers as Headers)
       : headers;
 
-  const headerAttributes = httpHeadersToSpanAttributes(headersDict, getClient()?.getOptions().sendDefaultPii ?? false);
+  const headerAttributes = httpHeadersToSpanAttributes(headersDict, httpHeaders.request === true);
 
   if (span) {
     span.setAttributes(headerAttributes);
