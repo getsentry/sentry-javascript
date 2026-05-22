@@ -537,3 +537,51 @@ export function extractToolDefinitions(extraParams?: Record<string, unknown>): s
   });
   return JSON.stringify(toolDefs);
 }
+
+/** Duck-types a LangChain `CallbackManager` (avoids coupling to a specific `@langchain/core` resolution). */
+function isCallbackManager(value: unknown): value is {
+  addHandler: (handler: unknown, inherit?: boolean) => void;
+  copy: () => unknown;
+  handlers?: unknown[];
+} {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as { addHandler?: unknown; copy?: unknown };
+  return typeof candidate.addHandler === 'function' && typeof candidate.copy === 'function';
+}
+
+function isSentryHandler(handler: unknown): boolean {
+  return typeof handler === 'object' && (handler as Record<string, unknown>)?.name === 'SentryCallbackHandler';
+}
+
+function containsSentryHandler(handlers: unknown[]): boolean {
+  return handlers.some(isSentryHandler);
+}
+
+/**
+ * Merge `sentryHandler` into a given set of LangChain callbacks or callback manager.
+ * @internal Exported for cross-package instrumentation.
+ */
+export function _INTERNAL_mergeLangChainCallbackHandler(existing: unknown, sentryHandler: unknown): unknown {
+  if (!existing) {
+    return [sentryHandler];
+  }
+
+  if (isCallbackManager(existing)) {
+    if (containsSentryHandler(existing.handlers ?? [])) {
+      return existing;
+    }
+
+    const copied = existing.copy() as { addHandler: (handler: unknown, inherit?: boolean) => void };
+    copied.addHandler(sentryHandler, true);
+    return copied;
+  }
+
+  const handlers = Array.isArray(existing) ? existing : [existing];
+  if (containsSentryHandler(handlers)) {
+    return existing;
+  }
+
+  return [...handlers, sentryHandler];
+}
