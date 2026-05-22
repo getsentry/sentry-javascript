@@ -159,7 +159,8 @@
         "**/integrations/tracing/amqplib/vendored/**/*.ts",
         "**/integrations/tracing/prisma/vendored/**/*.ts",
         "**/integrations/tracing/graphql/vendored/**/*.ts",
-        "**/integrations/tracing/postgres/vendored/**/*.ts"
+        "**/integrations/tracing/postgres/vendored/**/*.ts",
+        "**/integrations/tracing/fastify/vendored/**/*.ts"
       ],
       "rules": {
         "typescript/no-explicit-any": "off"
