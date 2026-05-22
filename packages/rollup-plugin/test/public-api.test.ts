@@ -1,5 +1,5 @@
 import { sentryRollupPlugin } from "../src";
-import { Plugin, SourceMap } from "rollup";
+import type { Plugin, SourceMap } from "rollup";
 import { describe, it, expect, test, beforeEach, vi } from "vitest";
 
 test("Rollup plugin should exist", () => {
@@ -91,10 +91,7 @@ describe("Hooks", () => {
       ],
       [
         "inline format with large file",
-        '"use strict";\n' +
-          "// comment\n".repeat(10) +
-          ';{try{(function(){var e="undefined"!=typeof window?window:e._sentryDebugIdIdentifier="sentry-dbid-existing-id");})();}catch(e){}};' +
-          '\nconsole.log("line");\n'.repeat(100),
+        `"use strict";\n${"// comment\n".repeat(10)};{try{(function(){var e="undefined"!=typeof window?window:e._sentryDebugIdIdentifier="sentry-dbid-existing-id");})();}catch(e){}};${`\nconsole.log("line");\n`.repeat(100)}`,
       ],
     ])("should NOT inject when debug ID already exists (%s)", (_description, code) => {
       const result = renderChunk(code, { fileName: "bundle.js" });
@@ -103,15 +100,12 @@ describe("Hooks", () => {
 
     it("should only check boundaries for performance (not entire file)", () => {
       // Inline format beyond first 6KB boundary
-      const codeWithInlineBeyond6KB =
-        "a".repeat(6100) +
-        ';{try{(function(){var e="undefined"!=typeof window?window:e._sentryDebugIdIdentifier="sentry-dbid-existing-id");})();}catch(e){}};';
+      const codeWithInlineBeyond6KB = `${"a".repeat(6100)};{try{(function(){var e="undefined"!=typeof window?window:e._sentryDebugIdIdentifier="sentry-dbid-existing-id");})();}catch(e){}};`;
 
       expect(renderChunk(codeWithInlineBeyond6KB, { fileName: "bundle.js" })).not.toBeNull();
 
       // Comment format beyond last 500 bytes boundary
-      const codeWithCommentBeyond500B =
-        "//# debugId=f6ccd6f4-7ea0-4854-8384-1c9f8340af81\n" + "a".repeat(600);
+      const codeWithCommentBeyond500B = `//# debugId=f6ccd6f4-7ea0-4854-8384-1c9f8340af81\n${"a".repeat(600)}`;
 
       expect(renderChunk(codeWithCommentBeyond500B, { fileName: "bundle.js" })).not.toBeNull();
     });

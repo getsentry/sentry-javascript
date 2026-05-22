@@ -1,5 +1,5 @@
+import type { Options } from "@sentry/bundler-plugin-core";
 import {
-  Options,
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
@@ -132,7 +132,7 @@ function getWebpackMajorVersion(): string | undefined {
     const version = webpack?.version ?? webpack?.default?.version;
     const webpackMajorVersion = version?.split(".")[0]; // "4" or "5"
     return webpackMajorVersion;
-  } catch (error) {
+  } catch {
     return undefined;
   }
 }

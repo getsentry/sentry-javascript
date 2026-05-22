@@ -1,5 +1,6 @@
-import { Scope } from "@sentry/core";
-import { NormalizedOptions, normalizeUserOptions } from "../../src/options-mapping";
+import type { Scope } from "@sentry/core";
+import type { NormalizedOptions } from "../../src/options-mapping";
+import { normalizeUserOptions } from "../../src/options-mapping";
 import { allowedToSendTelemetry, setTelemetryDataOnScope } from "../../src/sentry/telemetry";
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 

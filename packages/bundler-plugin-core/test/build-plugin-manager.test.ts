@@ -5,7 +5,8 @@ import {
 import fs from "fs";
 import { globFiles } from "../src/glob";
 import { prepareBundleForDebugIdUpload } from "../src/debug-id-upload";
-import { describe, it, expect, afterEach, beforeEach, vi, MockedFunction } from "vitest";
+import type { MockedFunction } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 
 const { mockCliExecute, mockCliUploadSourceMaps, mockCliNewDeploy, mockCliConstructor } =
   vi.hoisted(() => ({

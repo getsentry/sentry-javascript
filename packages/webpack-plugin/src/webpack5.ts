@@ -1,4 +1,5 @@
-import { SentryWebpackPluginOptions, sentryWebpackPluginFactory } from "./webpack4and5";
+import type { SentryWebpackPluginOptions } from "./webpack4and5";
+import { sentryWebpackPluginFactory } from "./webpack4and5";
 
 const createSentryWebpackPlugin = sentryWebpackPluginFactory();
 

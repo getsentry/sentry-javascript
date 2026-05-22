@@ -1,10 +1,10 @@
+import type { Options } from "@sentry/bundler-plugin-core";
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
   isJsFile,
   shouldSkipCodeInjection,
-  Options,
   getDebugIdSnippet,
   stringToUUID,
   COMMENT_USE_STRICT_REGEX,
@@ -14,7 +14,8 @@ import {
   replaceBooleanFlagsInCode,
   CodeInjection,
 } from "@sentry/bundler-plugin-core";
-import MagicString, { SourceMap } from "magic-string";
+import type { SourceMap } from "magic-string";
+import MagicString from "magic-string";
 import type { TransformResult } from "rollup";
 import * as path from "node:path";
 import { createRequire } from "node:module";
@@ -41,7 +42,7 @@ function getRollupMajorVersion(): string | undefined {
     const req = createRequire(import.meta.url);
     const rollup = req("rollup") as { VERSION?: string };
     return rollup.VERSION?.split(".")[0];
-  } catch (err) {
+  } catch {
     // do nothing, we'll just not report a version
   }
 

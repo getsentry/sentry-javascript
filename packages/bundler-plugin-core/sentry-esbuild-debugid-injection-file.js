@@ -17,4 +17,4 @@ try {
     globalObject._sentryDebugIds[stack] = "__SENTRY_DEBUG_ID__";
     globalObject._sentryDebugIdIdentifier = "sentry-dbid-__SENTRY_DEBUG_ID__";
   }
-} catch (e) {}
+} catch {}

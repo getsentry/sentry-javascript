@@ -2,7 +2,8 @@ import { basename, dirname, join } from "node:path";
 import { createTempDir, readAllFiles, runBundler } from "../utils";
 import { fileURLToPath } from "node:url";
 import { rmSync } from "node:fs";
-import { TestContext, test as vitestTest } from "vitest";
+import type { TestContext } from "vitest";
+import { test as vitestTest } from "vitest";
 import { execSync } from "node:child_process";
 
 const cwd = dirname(fileURLToPath(import.meta.url));

@@ -1,4 +1,5 @@
-import { execSync, ExecSyncOptions } from "node:child_process";
+import type { ExecSyncOptions } from "node:child_process";
+import { execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -103,7 +104,7 @@ export function readAllFiles(
 const tempDirs: string[] = [];
 
 export function createTempDir(): string {
-  const tempDir = mkdtempSync(join(tmpdir(), "sentry-bundler-plugin-" + randomUUID()));
+  const tempDir = mkdtempSync(join(tmpdir(), `sentry-bundler-plugin-${randomUUID()}`));
   tempDirs.push(tempDir);
   return tempDir;
 }

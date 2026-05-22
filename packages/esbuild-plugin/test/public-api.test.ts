@@ -1,5 +1,5 @@
 import { sentryEsbuildPlugin } from "../src";
-import { Plugin } from "esbuild";
+import type { Plugin } from "esbuild";
 import { describe, it, expect, test } from "vitest";
 
 test("Esbuild plugin should exist", () => {

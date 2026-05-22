@@ -9,12 +9,6 @@
   "scripts": {
     "build": "rolldown --config rollup.config.mjs"
   },
-  "peerDependencies": {
-    "eslint": "^8.14.0"
-  },
-  "devDependencies": {
-    "eslint": "^8.14.0"
-  },
   "volta": {
     "extends": "../../package.json"
   }

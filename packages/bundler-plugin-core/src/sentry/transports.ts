@@ -126,7 +126,7 @@ export function makeOptionallyEnabledNodeTransport(
             const outDir = process.env["SENTRY_TEST_OUT_DIR"];
             mkdirSync(outDir, { recursive: true });
             const path = join(outDir, "sentry-telemetry.json");
-            appendFileSync(path, JSON.stringify(request) + ",\n");
+            appendFileSync(path, `${JSON.stringify(request)},\n`);
             return { statusCode: 200 };
           }
 

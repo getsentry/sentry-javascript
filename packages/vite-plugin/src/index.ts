@@ -14,7 +14,7 @@ function getViteMajorVersion(): string | undefined {
     const req = createRequire(import.meta.url);
     const vite = req("vite") as { version?: string };
     return vite.version?.split(".")[0];
-  } catch (err) {
+  } catch {
     // do nothing, we'll just not report a version
   }
 

@@ -1,4 +1,5 @@
-import { SentryWebpackPluginOptions, sentryWebpackPluginFactory } from "./webpack4and5";
+import type { SentryWebpackPluginOptions } from "./webpack4and5";
+import { sentryWebpackPluginFactory } from "./webpack4and5";
 import * as webpack4or5 from "webpack";
 
 const BannerPlugin = webpack4or5?.BannerPlugin || webpack4or5?.default?.BannerPlugin;

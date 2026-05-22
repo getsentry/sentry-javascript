@@ -4,7 +4,7 @@ import * as path from "path";
 import * as os from "os";
 import { prepareBundleForDebugIdUpload } from "../src/debug-id-upload";
 import type { RewriteSourcesHook } from "../src/types";
-import { Logger } from "../src";
+import type { Logger } from "../src";
 
 describe("prepareBundleForDebugIdUpload", () => {
   let tmpDir: string;

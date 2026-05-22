@@ -1,10 +1,12 @@
+/* oxlint-disable max-lines */
 import findUp from "find-up";
 import path from "path";
 import fs from "fs";
 import os from "os";
 import crypto from "crypto";
 import childProcess from "child_process";
-import MagicString, { SourceMap } from "magic-string";
+import type { SourceMap } from "magic-string";
+import MagicString from "magic-string";
 
 /**
  * Checks whether the given input is already an array, and if it isn't, wraps it in one.
@@ -30,7 +32,8 @@ export function getPackageJson({ cwd, stopAt }: { cwd?: string; stopAt?: string 
   return lookupPackageJson(cwd ?? process.cwd(), path.normalize(stopAt ?? os.homedir()));
 }
 
-export function parseMajorVersion(version: string): number | undefined {
+export function parseMajorVersion(ver: string): number | undefined {
+  let version = ver;
   // if it has a `v` prefix, remove it
   if (version.startsWith("v")) {
     version = version.slice(1);
@@ -145,7 +148,7 @@ function lookupPackageJson(cwd: string, stopAt: string): PackageJson | undefined
         return findUp.stop;
       }
 
-      return findUp.sync.exists(dirName + "/package.json") ? "package.json" : undefined;
+      return findUp.sync.exists(`${dirName}/package.json`) ? "package.json" : undefined;
     },
     { cwd }
   );
@@ -163,12 +166,12 @@ function lookupPackageJson(cwd: string, stopAt: string): PackageJson | undefined
     if ("name" in json || "private" in json) {
       return json;
     }
-  } catch (error) {
+  } catch {
     // Ignore and walk up
   }
 
   // Continue up the tree, if we find a fitting package.json
-  const newCwd = path.dirname(path.resolve(jsonPath + "/.."));
+  const newCwd = path.dirname(path.resolve(`${jsonPath}/..`));
   return lookupPackageJson(newCwd, stopAt);
 }
 
@@ -182,18 +185,7 @@ export function stringToUUID(str: string): string {
   // RFC 4122 section 4.4
   const v4variant = ["8", "9", "a", "b"][sha256Hash.substring(16, 17).charCodeAt(0) % 4] as string;
 
-  return (
-    sha256Hash.substring(0, 8) +
-    "-" +
-    sha256Hash.substring(8, 12) +
-    "-4" +
-    sha256Hash.substring(13, 16) +
-    "-" +
-    v4variant +
-    sha256Hash.substring(17, 20) +
-    "-" +
-    sha256Hash.substring(20, 32)
-  ).toLowerCase();
+  return `${sha256Hash.substring(0, 8)}-${sha256Hash.substring(8, 12)}-4${sha256Hash.substring(13, 16)}-${v4variant}${sha256Hash.substring(17, 20)}-${sha256Hash.substring(20, 32)}`.toLowerCase();
 }
 
 function gitRevision(): string | undefined {
@@ -203,7 +195,7 @@ function gitRevision(): string | undefined {
       .execSync("git rev-parse HEAD", { stdio: ["ignore", "pipe", "ignore"] })
       .toString()
       .trim();
-  } catch (e) {
+  } catch {
     // noop
   }
   return gitRevision;
@@ -212,6 +204,7 @@ function gitRevision(): string | undefined {
 /**
  * Tries to guess a release name based on environmental data.
  */
+// oxlint-disable-next-line complexity
 export function determineReleaseName(): string | undefined {
   // This list is in approximate alpha order, separated into 3 categories:
   // 1. Git providers
@@ -460,10 +453,13 @@ export function containsOnlyImports(code: string): boolean {
 export class CodeInjection {
   // The code below is mostly ternary operators because it saves bundle size.
   // The checks are to support as many environments as possible. (Node.js, Browser, webworkers, etc.)
-  private readonly header = `!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};`;
-  private readonly footer = "}catch(e){}}();";
+  private readonly header: string;
+  private readonly footer: string;
 
-  constructor(private body: string = "") {}
+  constructor(private body: string = "") {
+    this.header = `!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};`;
+    this.footer = "}catch(e){}}();";
+  }
 
   public code(): string {
     if (this.isEmpty()) {

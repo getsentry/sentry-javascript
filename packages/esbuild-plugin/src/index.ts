@@ -1,8 +1,8 @@
+import type { Options } from "@sentry/bundler-plugin-core";
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
-  Options,
   getDebugIdSnippet,
   createDebugIdUploadFunction,
   CodeInjection,
@@ -74,7 +74,7 @@ function getEsbuildMajorVersion(): string | undefined {
     const esbuild = req("esbuild") as { version?: string };
     // esbuild hasn't released a v1 yet, so we'll return the minor version as the major version
     return esbuild.version?.split(".")[1];
-  } catch (err) {
+  } catch {
     // do nothing, we'll just not report a version
   }
 
@@ -268,7 +268,7 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
             sideEffects: true,
             pluginName,
             namespace: "sentry-debug-id-stub",
-            suffix: "?sentry-module-id=" + randomUUID(),
+            suffix: `?sentry-module-id=${randomUUID()}`,
           };
         });
 

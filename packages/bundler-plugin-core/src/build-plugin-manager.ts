@@ -1,3 +1,4 @@
+/* oxlint-disable max-lines */
 import SentryCli from "@sentry/cli";
 import {
   closeSession,
@@ -11,14 +12,16 @@ import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { NormalizedOptions, normalizeUserOptions, validateOptions } from "./options-mapping";
-import { createLogger, Logger } from "./logger";
+import type { NormalizedOptions } from "./options-mapping";
+import { normalizeUserOptions, validateOptions } from "./options-mapping";
+import type { Logger } from "./logger";
+import { createLogger } from "./logger";
 import {
   allowedToSendTelemetry,
   createSentryInstance,
   safeFlushTelemetry,
 } from "./sentry/telemetry";
-import { Options, SentrySDKBuildFlags } from "./types";
+import type { Options, SentrySDKBuildFlags } from "./types";
 import {
   arrayify,
   getProjects,
@@ -456,14 +459,12 @@ export function createSentryBuildPluginManager(
         return;
       } else if (!options.authToken) {
         logger.warn(
-          "No auth token provided. Will not create release. Please set the `authToken` option. You can find information on how to generate a Sentry auth token here: https://docs.sentry.io/api/auth/" +
-            getTurborepoEnvPassthroughWarning("SENTRY_AUTH_TOKEN")
+          `No auth token provided. Will not create release. Please set the \`authToken\` option. You can find information on how to generate a Sentry auth token here: https://docs.sentry.io/api/auth/${getTurborepoEnvPassthroughWarning("SENTRY_AUTH_TOKEN")}`
         );
         return;
       } else if (!options.org && !options.authToken.startsWith("sntrys_")) {
         logger.warn(
-          "No organization slug provided. Will not create release. Please set the `org` option to your Sentry organization slug." +
-            getTurborepoEnvPassthroughWarning("SENTRY_ORG")
+          `No organization slug provided. Will not create release. Please set the \`org\` option to your Sentry organization slug.${getTurborepoEnvPassthroughWarning("SENTRY_ORG")}`
         );
         return;
       } else if (
@@ -471,8 +472,7 @@ export function createSentryBuildPluginManager(
         (Array.isArray(options.project) && options.project.length === 0)
       ) {
         logger.warn(
-          "No project provided. Will not create release. Please set the `project` option to your Sentry project slug." +
-            getTurborepoEnvPassthroughWarning("SENTRY_PROJECT")
+          `No project provided. Will not create release. Please set the \`project\` option to your Sentry project slug.${getTurborepoEnvPassthroughWarning("SENTRY_PROJECT")}`
         );
         return;
       }
@@ -858,22 +858,19 @@ function canUploadSourceMaps(
   }
   if (!options.authToken) {
     logger.warn(
-      "No auth token provided. Will not upload source maps. Please set the `authToken` option. You can find information on how to generate a Sentry auth token here: https://docs.sentry.io/api/auth/" +
-        getTurborepoEnvPassthroughWarning("SENTRY_AUTH_TOKEN")
+      `No auth token provided. Will not upload source maps. Please set the \`authToken\` option. You can find information on how to generate a Sentry auth token here: https://docs.sentry.io/api/auth/${getTurborepoEnvPassthroughWarning("SENTRY_AUTH_TOKEN")}`
     );
     return false;
   }
   if (!options.org && !options.authToken.startsWith("sntrys_")) {
     logger.warn(
-      "No org provided. Will not upload source maps. Please set the `org` option to your Sentry organization slug." +
-        getTurborepoEnvPassthroughWarning("SENTRY_ORG")
+      `No org provided. Will not upload source maps. Please set the \`org\` option to your Sentry organization slug.${getTurborepoEnvPassthroughWarning("SENTRY_ORG")}`
     );
     return false;
   }
   if (!getProjects(options.project)?.[0]) {
     logger.warn(
-      "No project provided. Will not upload source maps. Please set the `project` option to your Sentry project slug." +
-        getTurborepoEnvPassthroughWarning("SENTRY_PROJECT")
+      `No project provided. Will not upload source maps. Please set the \`project\` option to your Sentry project slug.${getTurborepoEnvPassthroughWarning("SENTRY_PROJECT")}`
     );
     return false;
   }

@@ -1,5 +1,5 @@
-import { Logger } from "./logger";
-import {
+import type { Logger } from "./logger";
+import type {
   Options as UserOptions,
   SetCommitsOptions,
   RewriteSourcesHook,
@@ -87,6 +87,7 @@ export type NormalizedOptions = {
 
 export const SENTRY_SAAS_URL = "https://sentry.io";
 
+// oxlint-disable-next-line complexity
 export function normalizeUserOptions(userOptions: UserOptions): NormalizedOptions {
   const options = {
     org: userOptions.org ?? process.env["SENTRY_ORG"],

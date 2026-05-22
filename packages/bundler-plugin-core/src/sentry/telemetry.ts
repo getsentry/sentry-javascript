@@ -1,7 +1,9 @@
 import SentryCli from "@sentry/cli";
-import { Client } from "@sentry/types";
-import { applySdkMetadata, ServerRuntimeClient, ServerRuntimeClientOptions } from "@sentry/core";
-import { NormalizedOptions, SENTRY_SAAS_URL } from "../options-mapping";
+import type { Client } from "@sentry/types";
+import type { ServerRuntimeClientOptions } from "@sentry/core";
+import { applySdkMetadata, ServerRuntimeClient } from "@sentry/core";
+import type { NormalizedOptions } from "../options-mapping";
+import { SENTRY_SAAS_URL } from "../options-mapping";
 import { Scope } from "@sentry/core";
 import { createStackParser, nodeStackLineParser } from "@sentry/utils";
 import { makeOptionallyEnabledNodeTransport } from "./transports";
@@ -150,7 +152,7 @@ export async function allowedToSendTelemetry(options: NormalizedOptions): Promis
     // because only at this time we checked a possibly existing .sentryclirc file. This file
     // could point to another URL than the default URL.
     cliInfo = await cli.execute(["info"], false);
-  } catch (e) {
+  } catch {
     return false;
   }
 

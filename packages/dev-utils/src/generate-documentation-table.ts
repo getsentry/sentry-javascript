@@ -1,3 +1,4 @@
+/* oxlint-disable max-lines */
 type Bundler = "webpack" | "vite" | "rollup" | "esbuild";
 
 type OptionDocumentation = {

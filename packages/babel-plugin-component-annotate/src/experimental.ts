@@ -1,3 +1,4 @@
+/* oxlint-disable max-lines */
 /**
  * MIT License
  *
@@ -103,7 +104,7 @@ export function experimentalComponentNameAnnotatePlugin({
         },
       },
       FunctionDeclaration(path, state) {
-        if (!path.node.id || !path.node.id.name) {
+        if (!path.node.id?.name) {
           return;
         }
 
@@ -134,7 +135,7 @@ export function experimentalComponentNameAnnotatePlugin({
           return prop.isClassMethod() && prop.get("key").isIdentifier({ name: "render" });
         });
 
-        if (!render || !render.traverse) {
+        if (!render?.traverse) {
           return;
         }
 
@@ -441,10 +442,8 @@ function collectFragmentContext(programPath: Babel.NodePath): FragmentContext {
             for (const prop of properties) {
               if (
                 prop.type === "ObjectProperty" &&
-                prop.key &&
-                prop.key.type === "Identifier" &&
-                prop.value &&
-                prop.value.type === "Identifier" &&
+                prop.key?.type === "Identifier" &&
+                prop.value?.type === "Identifier" &&
                 prop.key.name === "Fragment"
               ) {
                 fragmentAliases.add(prop.value.name);

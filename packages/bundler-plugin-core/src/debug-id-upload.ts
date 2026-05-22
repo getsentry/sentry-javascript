@@ -3,9 +3,9 @@ import path from "path";
 import * as url from "url";
 import * as util from "util";
 import { promisify } from "util";
-import { SentryBuildPluginManager } from "./build-plugin-manager";
-import { Logger } from "./logger";
-import { ResolveSourceMapHook, RewriteSourcesHook } from "./types";
+import type { SentryBuildPluginManager } from "./build-plugin-manager";
+import type { Logger } from "./logger";
+import type { ResolveSourceMapHook, RewriteSourcesHook } from "./types";
 import { stripQueryAndHashFromPath } from "./utils";
 
 interface DebugIdUploadPluginOptions {
@@ -151,7 +151,7 @@ export async function determineSourceMapPathFromBundle(
       // noop
     }
 
-    if (parsedUrl && parsedUrl.protocol === "file:") {
+    if (parsedUrl?.protocol === "file:") {
       searchLocations.push(url.fileURLToPath(sourceMappingUrl));
     } else if (parsedUrl) {
       // noop, non-file urls don't translate to a local sourcemap file
@@ -163,14 +163,14 @@ export async function determineSourceMapPathFromBundle(
   }
 
   // 2. try to find source map at path adjacent to chunk source, but with `.map` appended
-  searchLocations.push(bundlePath + ".map");
+  searchLocations.push(`${bundlePath}.map`);
 
   for (const searchLocation of searchLocations) {
     try {
       await util.promisify(fs.access)(searchLocation);
       logger.debug(`Source map found for bundle \`${bundlePath}\`: \`${searchLocation}\``);
       return searchLocation;
-    } catch (e) {
+    } catch {
       // noop
     }
   }
@@ -213,7 +213,7 @@ async function prepareSourceMapForDebugIdUpload(
     // For now we write both fields until we know what will become the standard - if ever.
     map["debug_id"] = debugId;
     map["debugId"] = debugId;
-  } catch (e) {
+  } catch {
     logger.error(`Failed to parse source map for debug ID upload: ${sourceMapPath}`);
     return;
   }

@@ -5,7 +5,6 @@
   "private": true,
   "scripts": {
     "test": "node setup.mjs && vitest run --pool threads --test-timeout=10000",
-    "lint": "eslint .",
     "check:types": "tsc --project ./tsconfig.json --noEmit",
     "clean": "run-s clean:build",
     "clean:all": "run-p clean clean:deps",
@@ -13,7 +12,6 @@
     "clean:deps": "premove node_modules"
   },
   "dependencies": {
-    "@sentry-internal/eslint-config": "5.3.0",
     "@sentry/esbuild-plugin": "5.3.0",
     "@sentry/rollup-plugin": "5.3.0",
     "@sentry/vite-plugin": "5.3.0",

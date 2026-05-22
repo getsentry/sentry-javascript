@@ -10,7 +10,6 @@
     "packages/bundler-plugin-core",
     "packages/dev-utils",
     "packages/esbuild-plugin",
-    "packages/eslint-configs",
     "packages/playground",
     "packages/rollup-plugin",
     "packages/vite-plugin",
@@ -28,7 +27,8 @@
     "test": "nx run-many --target=test --all",
     "test:unit": "nx run-many --target=test --all --exclude=@sentry-internal/integration-tests-next",
     "test:integration": "nx run @sentry-internal/integration-tests-next:test",
-    "lint": "nx run-many --target=lint --all",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint .",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix",
     "check:formatting": "oxfmt --check .",
     "fix:formatting": "oxfmt ."
   },
@@ -40,6 +40,8 @@
     "npm-run-all": "^4.1.5",
     "nx": "22.5.2",
     "oxfmt": "^0.33.0",
+    "oxlint": "1.53.0",
+    "oxlint-tsgolint": "0.16.0",
     "typescript": "~5.8.0"
   },
   "volta": {

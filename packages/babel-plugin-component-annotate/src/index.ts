@@ -1,3 +1,4 @@
+/* oxlint-disable max-lines */
 /**
  * MIT License
  *
@@ -109,7 +110,7 @@ export default function componentNameAnnotatePlugin({ types: t }: typeof Babel):
         },
       },
       FunctionDeclaration(path, state) {
-        if (!path.node.id || !path.node.id.name) {
+        if (!path.node.id?.name) {
           return;
         }
         if (isKnownIncompatiblePluginFromState(state)) {
@@ -147,7 +148,7 @@ export default function componentNameAnnotatePlugin({ types: t }: typeof Babel):
           return prop.isClassMethod() && prop.get("key").isIdentifier({ name: "render" });
         });
 
-        if (!render || !render.traverse || isKnownIncompatiblePluginFromState(state)) {
+        if (!render?.traverse || isKnownIncompatiblePluginFromState(state)) {
           return;
         }
 
@@ -319,7 +320,7 @@ function processJSX(
       return;
     }
 
-    if (shouldSetComponentName && openingElement && openingElement.node) {
+    if (shouldSetComponentName && openingElement?.node) {
       shouldSetComponentName = false;
       processJSX(context, child, currentComponentName);
     } else {
@@ -523,10 +524,8 @@ function collectFragmentContext(programPath: Babel.NodePath): FragmentContext {
             for (const prop of properties) {
               if (
                 prop.type === "ObjectProperty" &&
-                prop.key &&
-                prop.key.type === "Identifier" &&
-                prop.value &&
-                prop.value.type === "Identifier" &&
+                prop.key?.type === "Identifier" &&
+                prop.value?.type === "Identifier" &&
                 prop.key.name === "Fragment"
               ) {
                 fragmentAliases.add(prop.value.name);
@@ -880,7 +879,7 @@ function maybeInjectSentryLabel(context: JSXProcessingContext, jsxNode: Babel.No
   }
 
   if (label.length > MAX_LABEL_LENGTH) {
-    label = label.substring(0, MAX_LABEL_LENGTH - 3) + "...";
+    label = `${label.substring(0, MAX_LABEL_LENGTH - 3)}...`;
   }
 
   targetElement.openingElement.attributes.push(

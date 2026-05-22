@@ -1,4 +1,4 @@
-import { WebpackPluginInstance } from "webpack";
+import type { WebpackPluginInstance } from "webpack";
 import { sentryWebpackPlugin } from "../src/index";
 import { describe, it, expect, test } from "vitest";
 

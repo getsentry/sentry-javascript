@@ -49,9 +49,7 @@
     "clean:build": "premove ./dist *.tgz",
     "clean:deps": "premove node_modules",
     "pretest": "yarn prebuild",
-    "test": "vitest run",
-    "lint": "eslint ./src ./test",
-    "fix": "eslint ./src ./test --format stylish --fix"
+    "test": "vitest run"
   },
   "dependencies": {
     "@babel/core": "^7.18.5",
@@ -63,12 +61,10 @@
     "magic-string": "~0.30.8"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config": "5.3.0",
     "@sentry/core": "8.30.0",
     "@sentry/types": "8.30.0",
     "@sentry/utils": "8.30.0",
     "@types/node": "^18.6.3",
-    "eslint": "^8.18.0",
     "vitest": "^4.0.0",
     "premove": "^4.0.0",
     "rolldown": "^1.0.0"

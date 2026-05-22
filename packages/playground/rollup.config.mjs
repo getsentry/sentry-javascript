@@ -1,6 +1,5 @@
 // @ts-check
 import { sentryRollupPlugin } from "@sentry/rollup-plugin";
-import fs from "fs";
 
 const input = ["src/entrypoint1.js"];
 

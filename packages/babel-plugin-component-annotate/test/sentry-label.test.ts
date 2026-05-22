@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { transform, BabelFileResult } from "@babel/core";
+import type { BabelFileResult } from "@babel/core";
+import { transform } from "@babel/core";
 import plugin from "../src/index";
 
 function transformWith(code: string, opts: Record<string, unknown> = {}): BabelFileResult | null {
