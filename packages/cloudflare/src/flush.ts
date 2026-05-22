@@ -7,15 +7,27 @@ type FlushLock = {
   readonly finalize: () => Promise<void>;
 };
 
+// Track contexts that have already been wrapped to prevent nested wrapping.
+// Uses WeakMap to allow GC of contexts when they're no longer referenced.
+const wrappedContexts = new WeakMap<ExecutionContext, FlushLock>();
+
 /**
  * Enhances the given execution context by wrapping its `waitUntil` method with a proxy
  * to monitor pending tasks, and provides a flusher function to ensure all tasks
  * have been completed before executing any subsequent logic.
  *
+ * For Durable Objects where the same context is reused across requests, this returns
+ * the existing FlushLock to prevent memory leaks from accumulating promises and closures.
+ *
  * @param {ExecutionContext} context - The execution context to be enhanced. If no context is provided, the function returns undefined.
  * @return {FlushLock} Returns a flusher function if a valid context is provided, otherwise undefined.
  */
 export function makeFlushLock(context: ExecutionContext): FlushLock {
+  const existing = wrappedContexts.get(context);
+  if (existing) {
+    return existing;
+  }
+
   let resolveAllDone: () => void = () => undefined;
   const allDone = new Promise<void>(res => {
     resolveAllDone = res;
@@ -30,13 +42,16 @@ export function makeFlushLock(context: ExecutionContext): FlushLock {
       }),
     );
   };
-  return Object.freeze({
+  const flushLock = Object.freeze({
     ready: allDone,
     finalize: () => {
       if (pending === 0) resolveAllDone();
       return allDone;
     },
   });
+
+  wrappedContexts.set(context, flushLock);
+  return flushLock;
 }
 
 /**
