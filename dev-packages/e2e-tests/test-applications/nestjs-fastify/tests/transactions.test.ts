@@ -62,7 +62,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           data: {
             'sentry.origin': 'auto.http.otel.fastify',
             'sentry.op': 'hook.fastify',
-            'hook.name': 'fastify -> @fastify/otel -> @fastify/middie - onRequest',
+            'hook.name': 'fastify -> @sentry/instrumentation-fastify -> @fastify/middie - onRequest',
             'fastify.type': 'hook',
             'hook.callback.name': 'runMiddie',
           },
@@ -80,7 +80,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           data: {
             'sentry.origin': 'auto.http.otel.fastify',
             'sentry.op': 'request_handler.fastify',
-            'hook.name': 'fastify -> @fastify/otel -> @fastify/middie - route-handler',
+            'hook.name': 'fastify -> @sentry/instrumentation-fastify -> @fastify/middie - route-handler',
             'fastify.type': 'request-handler',
             'http.route': '/test-transaction',
             'hook.callback.name': 'anonymous',
