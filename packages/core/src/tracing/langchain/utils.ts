@@ -551,6 +551,17 @@ function isCallbackManager(value: unknown): value is {
   return typeof candidate.addHandler === 'function' && typeof candidate.copy === 'function';
 }
 
+function isSentryHandler(handler: unknown): boolean {
+  return (
+    typeof handler === 'object' &&
+    (handler as Record<string, unknown>)?.name === 'SentryCallbackHandler'
+  );
+}
+
+function containsSentryHandler(handlers: unknown[]): boolean {
+  return handlers.some(isSentryHandler);
+}
+
 /**
  * Merge `sentryHandler` into a given set of LangChain callbacks or callback manager.
  * @internal Exported for cross-package instrumentation.
@@ -560,11 +571,11 @@ export function _INTERNAL_mergeLangChainCallbackHandler(existing: unknown, sentr
     return [sentryHandler];
   }
 
-  if (Array.isArray(existing) && !existing.includes(sentryHandler)) {
+  if (Array.isArray(existing) && !containsSentryHandler(existing)) {
     return [...existing, sentryHandler];
   }
 
-  if (isCallbackManager(existing) && !existing.handlers?.includes(sentryHandler)) {
+  if (isCallbackManager(existing) && !containsSentryHandler(existing.handlers ?? [])) {
     const copied = existing.copy() as {
       addHandler: (handler: unknown, inherit?: boolean) => void;
     };
