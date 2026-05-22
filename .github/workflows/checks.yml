@@ -148,8 +148,10 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: dependency-cache
         with:
-          path: "**/node_modules"
-          key: ${{ runner.os }}-${{ hashFiles('**/package.json') }}-${{ hashFiles('**/yarn.lock') }}
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('**/package.json') }}-${{ hashFiles('**/yarn.lock') }}
       - name: Install dependencies
         run: yarn --frozen-lockfile --ignore-engines
         if: steps.dependency-cache.outputs.cache-hit != 'true'
