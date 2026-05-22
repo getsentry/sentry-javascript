@@ -552,10 +552,7 @@ function isCallbackManager(value: unknown): value is {
 }
 
 function isSentryHandler(handler: unknown): boolean {
-  return (
-    typeof handler === 'object' &&
-    (handler as Record<string, unknown>)?.name === 'SentryCallbackHandler'
-  );
+  return typeof handler === 'object' && (handler as Record<string, unknown>)?.name === 'SentryCallbackHandler';
 }
 
 function containsSentryHandler(handlers: unknown[]): boolean {
@@ -571,17 +568,20 @@ export function _INTERNAL_mergeLangChainCallbackHandler(existing: unknown, sentr
     return [sentryHandler];
   }
 
-  if (Array.isArray(existing) && !containsSentryHandler(existing)) {
-    return [...existing, sentryHandler];
-  }
+  if (isCallbackManager(existing)) {
+    if (containsSentryHandler(existing.handlers ?? [])) {
+      return existing;
+    }
 
-  if (isCallbackManager(existing) && !containsSentryHandler(existing.handlers ?? [])) {
-    const copied = existing.copy() as {
-      addHandler: (handler: unknown, inherit?: boolean) => void;
-    };
+    const copied = existing.copy() as { addHandler: (handler: unknown, inherit?: boolean) => void };
     copied.addHandler(sentryHandler, true);
     return copied;
   }
 
-  return existing;
+  const handlers = Array.isArray(existing) ? existing : [existing];
+  if (containsSentryHandler(handlers)) {
+    return existing;
+  }
+
+  return [...handlers, sentryHandler];
 }

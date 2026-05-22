@@ -325,8 +325,13 @@ describe('_INTERNAL_mergeLangChainCallbackHandler', () => {
     expect(manager.addHandler).not.toHaveBeenCalled();
   });
 
-  it('returns the value unchanged when it is neither an array nor a CallbackManager', () => {
+  it('wraps a lone callback object into an array with the sentry handler', () => {
     const opaque = { name: 'NotAManager' };
-    expect(_INTERNAL_mergeLangChainCallbackHandler(opaque, sentryHandler)).toBe(opaque);
+    expect(_INTERNAL_mergeLangChainCallbackHandler(opaque, sentryHandler)).toStrictEqual([opaque, sentryHandler]);
+  });
+
+  it('returns unchanged when the lone callback object is already a sentry handler', () => {
+    const existing = { name: 'SentryCallbackHandler' };
+    expect(_INTERNAL_mergeLangChainCallbackHandler(existing, sentryHandler)).toBe(existing);
   });
 });
