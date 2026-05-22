@@ -53,7 +53,7 @@ import {
 } from './internal-types';
 import { PgInstrumentationConfig } from './types';
 import * as utils from './utils';
-import { addSqlCommenterComment } from '@opentelemetry/sql-common';
+import { addSqlCommenterComment } from '../../utils/sql-common';
 import { SDK_VERSION } from '@sentry/core';
 const PACKAGE_NAME = '@sentry/instrumentation-pg';
 import { SpanNames } from './enums/SpanNames';
