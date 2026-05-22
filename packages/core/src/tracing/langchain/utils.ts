@@ -560,17 +560,11 @@ export function _INTERNAL_mergeLangChainCallbackHandler(existing: unknown, sentr
     return [sentryHandler];
   }
 
-  if (Array.isArray(existing)) {
-    if (existing.includes(sentryHandler)) {
-      return existing;
-    }
+  if (Array.isArray(existing) && !existing.includes(sentryHandler)) {
     return [...existing, sentryHandler];
   }
 
-  if (isCallbackManager(existing)) {
-    if (existing.handlers?.includes(sentryHandler)) {
-      return existing;
-    }
+  if (isCallbackManager(existing) && !existing.handlers?.includes(sentryHandler)) {
     const copied = existing.copy() as {
       addHandler: (handler: unknown, inherit?: boolean) => void;
     };
