@@ -252,7 +252,7 @@ describe('extractChatModelRequestAttributes with multimodal content', () => {
 });
 
 describe('_INTERNAL_mergeLangChainCallbackHandler', () => {
-  const sentryHandler = { _sentry: true };
+  const sentryHandler = { name: 'SentryCallbackHandler' };
 
   function makeFakeCallbackManager(existingHandlers: unknown[] = []) {
     const manager = {
