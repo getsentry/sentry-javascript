@@ -118,7 +118,7 @@ export class FastifyOtelInstrumentation extends InstrumentationBase<FastifyOtelI
           done();
         };
         emptyPlugin[Symbol.for('skip-override')] = true;
-        emptyPlugin[Symbol.for('fastify.display-name')] = '@fastify/otel';
+        emptyPlugin[Symbol.for('fastify.display-name')] = PACKAGE_NAME;
         message.fastify.register(emptyPlugin);
       };
       dc.subscribe('fastify.initialization', this._handleInitialization);
@@ -143,10 +143,10 @@ export class FastifyOtelInstrumentation extends InstrumentationBase<FastifyOtelI
 
     const pluginAny = FastifyInstrumentationPlugin as any;
     pluginAny[Symbol.for('skip-override')] = true;
-    pluginAny[Symbol.for('fastify.display-name')] = '@fastify/otel';
+    pluginAny[Symbol.for('fastify.display-name')] = PACKAGE_NAME;
     pluginAny[Symbol.for('plugin-meta')] = {
       fastify: SUPPORTED_VERSIONS,
-      name: '@fastify/otel',
+      name: PACKAGE_NAME,
     };
 
     return FastifyInstrumentationPlugin;
@@ -261,7 +261,7 @@ export class FastifyOtelInstrumentation extends InstrumentationBase<FastifyOtelI
           }
 
           const attributes: Record<string, string> = {
-            [ATTRIBUTE_NAMES.ROOT]: '@fastify/otel',
+            [ATTRIBUTE_NAMES.ROOT]: PACKAGE_NAME,
             [ATTR_HTTP_REQUEST_METHOD]: request.method,
             [ATTR_URL_PATH]: request.url,
           };
