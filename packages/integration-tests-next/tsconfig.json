@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "@sentry-internal/sentry-bundler-plugin-tsconfig/base-config.json",
+  "extends": "../../tsconfig.json",
   "include": ["./**/*"],
   // We exclude the Vite files for now.
   // Because the Vite plugin 'references" a different `vite` package when devDeps are loaded, it doesn't

@@ -1,12 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "./src/tsconfig.json",
-  "files": ["./src/index.ts"],
+  "extends": "./tsconfig.json",
+  "include": ["./src/**/*"],
   "compilerOptions": {
     "rootDir": "./src",
     "declaration": true,
     "emitDeclarationOnly": true,
-    "declarationDir": "./dist/types",
-    "declarationMap": true
+    "declarationDir": "./dist/types"
   }
 }

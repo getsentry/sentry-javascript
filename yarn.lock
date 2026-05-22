@@ -1089,6 +1089,11 @@
   resolved "https://registry.npmjs.org/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.59.0.tgz#4584a8a87b29188a4c1fe987a9fcf701e256d86c"
   integrity sha512-2HRCml6OztYXyJXAvdDXPKcawukWY2GpR5/nxKp4iBgiO3wcoEGkAaqctIbZcNB6KlUQBIqt8VYkNSj2397EfA==
 
+"@sentry-internal/eslint-plugin-sdk@^10.53.1":
+  version "10.53.1"
+  resolved "https://registry.npmjs.org/@sentry-internal/eslint-plugin-sdk/-/eslint-plugin-sdk-10.53.1.tgz#50829ad86d668ca4bb502e6e7f5960aa5cb6a5b0"
+  integrity sha512-L0XfWq7wxw0PBubGsUq9cC+CvmMFGlmAOHxJM1y9I+UVqnZSc2UggJ1hoPZc4J2zx5OxB92uN/c+cD2N65COKA==
+
 "@sentry-internal/tracing@7.50.0":
   version "7.50.0"
   resolved "https://registry.npmjs.org/@sentry-internal/tracing/-/tracing-7.50.0.tgz#74454af99a03d81762993835d2687c881e14f41e"
@@ -1098,6 +1103,11 @@
     "@sentry/types" "7.50.0"
     "@sentry/utils" "7.50.0"
     tslib "^1.9.3"
+
+"@sentry-internal/typescript@^10.53.1":
+  version "10.53.1"
+  resolved "https://registry.npmjs.org/@sentry-internal/typescript/-/typescript-10.53.1.tgz#216b3e3ec0d5aa7ef3e7055ea50d6371d9786cce"
+  integrity sha512-7ncY4Ww9MsTf5lsX9qAUaiNeQdKNBeZm7rtFze0UeU8fTLxOKx9ink4jCFa1xB/sztIR1pq/rGmnBs7evvn+aw==
 
 "@sentry/cli-darwin@2.58.5":
   version "2.58.5"
@@ -5051,10 +5061,10 @@ typed-array-length@^1.0.4:
     for-each "^0.3.3"
     is-typed-array "^1.1.9"
 
-typescript@^4.7.4:
-  version "4.9.5"
-  resolved "https://registry.npmjs.org/typescript/-/typescript-4.9.5.tgz#095979f9bcc0d09da324d58d03ce8f8374cbe65a"
-  integrity sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==
+typescript@~5.8.0:
+  version "5.8.3"
+  resolved "https://registry.npmjs.org/typescript/-/typescript-5.8.3.tgz#92f8a3e5e3cf497356f4178c34cd65a7f5e8440e"
+  integrity sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==
 
 unbox-primitive@^1.0.2:
   version "1.0.2"

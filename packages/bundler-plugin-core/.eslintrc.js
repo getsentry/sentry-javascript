@@ -12,7 +12,7 @@ module.exports = {
   ],
   parserOptions: {
     tsconfigRootDir: __dirname,
-    project: ["./src/tsconfig.json", "./test/tsconfig.json"],
+    project: ["./tsconfig.json", "./test/tsconfig.json"],
   },
   env: {
     node: true,
