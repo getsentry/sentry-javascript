@@ -25,6 +25,8 @@ export function init(options: ReactBrowserOptions): Client | undefined {
     /\/@id\//,
     /\/@react-refresh/,
     /\/@tanstack-start\//,
+    /\/@fs\//,
+    /\/@vite\//,
   ];
 
   return initReactSDK(sentryOptions);

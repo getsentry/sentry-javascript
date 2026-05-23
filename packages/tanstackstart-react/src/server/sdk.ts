@@ -20,6 +20,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
     /\/@id\//,
     /\/@react-refresh/,
     /\/@tanstack-start\//,
+    /\/@fs\//,
+    /\/@vite\//,
   ];
 
   return initNodeSdk(sentryOptions);

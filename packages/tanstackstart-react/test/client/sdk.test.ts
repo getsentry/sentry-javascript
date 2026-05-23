@@ -54,6 +54,8 @@ describe('TanStack Start React Client SDK', () => {
             /\/@id\//,
             /\/@react-refresh/,
             /\/@tanstack-start\//,
+            /\/@fs\//,
+            /\/@vite\//,
           ]),
         }),
       );
