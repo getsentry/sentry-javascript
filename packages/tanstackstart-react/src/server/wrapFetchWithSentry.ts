@@ -37,8 +37,9 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
       return originalResponse;
     }
 
-    // Type cast necessary b/c the body's ReadableStream type doesn't include
+    // Type case necessary b/c the body's ReadableStream type doesn't include
     // the async iterator that is actually available in Node
+    // We later on use the async iterator to read the body chunks
     // see https://github.com/microsoft/TypeScript/issues/39051
     const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
     if (!originalBody) {
