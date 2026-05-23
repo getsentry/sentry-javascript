@@ -38,5 +38,34 @@ describe('TanStack Start React Server SDK', () => {
     it('returns client from init', () => {
       expect(init({})).not.toBeUndefined();
     });
+
+    it('sets ignoreSpans to filter low-quality transactions', () => {
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(nodeInit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ignoreSpans: expect.arrayContaining([
+            /GET \/node_modules\//,
+            /GET \/favicon\.ico/,
+            /GET \/@id\//,
+            /GET \/@react-refresh/,
+            /GET \/@tanstack-start\//,
+          ]),
+        }),
+      );
+    });
+
+    it('preserves user-defined ignoreSpans', () => {
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        ignoreSpans: [/custom-pattern/],
+      });
+
+      expect(nodeInit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ignoreSpans: expect.arrayContaining([/custom-pattern/, /GET \/favicon\.ico/]),
+        }),
+      );
+    });
   });
 });
