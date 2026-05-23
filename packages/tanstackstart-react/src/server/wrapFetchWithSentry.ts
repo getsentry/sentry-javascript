@@ -67,7 +67,9 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
               yield chunk;
             }
           } catch (e) {
-            captureException(e);
+            captureException(e, {
+              mechanism: { type: 'auto.http.tanstackstart', handled: false },
+            });
             throw e;
           }
         }
