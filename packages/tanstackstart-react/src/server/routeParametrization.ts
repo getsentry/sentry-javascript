@@ -9,6 +9,9 @@ function patternToRegex(pattern: string): RegExp {
   const segments = pattern
     .split('/')
     .map(segment => {
+      if (segment === '$') {
+        return '.+';
+      }
       if (segment.startsWith('$')) {
         return '[^/]+';
       }
