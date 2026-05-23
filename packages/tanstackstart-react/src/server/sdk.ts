@@ -16,11 +16,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
   sentryOptions.ignoreSpans = [
     ...(sentryOptions.ignoreSpans || []),
     /\/node_modules\//,
-    /\/favicon\.ico/,
     /\/@id\//,
     /\/@react-refresh/,
-    /\/@tanstack-start\//,
-    /\/@fs\//,
     /\/@vite\//,
   ];
 

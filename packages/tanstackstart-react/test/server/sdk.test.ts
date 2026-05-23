@@ -44,15 +44,7 @@ describe('TanStack Start React Server SDK', () => {
 
       expect(nodeInit).toHaveBeenCalledWith(
         expect.objectContaining({
-          ignoreSpans: expect.arrayContaining([
-            /\/node_modules\//,
-            /\/favicon\.ico/,
-            /\/@id\//,
-            /\/@react-refresh/,
-            /\/@tanstack-start\//,
-            /\/@fs\//,
-            /\/@vite\//,
-          ]),
+          ignoreSpans: expect.arrayContaining([/\/node_modules\//, /\/@id\//, /\/@react-refresh/, /\/@vite\//]),
         }),
       );
     });
