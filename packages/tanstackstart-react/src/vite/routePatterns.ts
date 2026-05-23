@@ -43,22 +43,32 @@ export function makeRoutePatternPlugin(): Plugin {
 }
 
 /**
- * Extracts route path patterns from the content of routeTree.gen.ts.
+ * Extracts full route path patterns from the content of routeTree.gen.ts.
  *
- * Matches patterns like: `path: '/page-b/$id'`
+ * Parses the `fullPaths` type union which contains the resolved full paths
+ * (e.g., `fullPaths: '/' | '/page-a' | '/users/$userId'`).
+ * This is more reliable than `path:` properties which can be relative for nested routes.
  *
  * Only exported for testing.
  */
 export function extractRoutePatterns(content: string): string[] {
+  const fullPathsMatch = content.match(/fullPaths:\s*([\s\S]*?)(?:\n\s*\w|\n\})/);
+  if (!fullPathsMatch) {
+    return ['/'];
+  }
+
   const patterns: string[] = [];
-  const regex = /path:\s*['"]([^'"]+)['"]/g;
+  const pathRegex = /'([^']+)'/g;
   let match;
-  while ((match = regex.exec(content)) !== null) {
-    const pattern = match[1];
-    if (pattern && pattern !== '/') {
-      patterns.push(pattern);
+  while ((match = pathRegex.exec(fullPathsMatch[1] || '')) !== null) {
+    if (match[1]) {
+      patterns.push(match[1]);
     }
   }
-  patterns.push('/');
+
+  if (!patterns.includes('/')) {
+    patterns.push('/');
+  }
+
   return [...new Set(patterns)];
 }
