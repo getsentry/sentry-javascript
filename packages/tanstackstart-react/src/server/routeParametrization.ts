@@ -21,26 +21,43 @@ function patternToRegex(pattern: string): RegExp {
   return new RegExp(`^${segments}$`);
 }
 
+type CompiledPattern = { pattern: string; regex: RegExp };
+
+let compiledPatterns: CompiledPattern[] | undefined;
+let compiledFromPatterns: string[] | undefined;
+
+function getCompiledPatterns(patterns: string[]): CompiledPattern[] {
+  if (compiledPatterns && compiledFromPatterns === patterns) {
+    return compiledPatterns;
+  }
+
+  compiledFromPatterns = patterns;
+  compiledPatterns = [...patterns]
+    .sort((a, b) => {
+      const aSegments = a.split('/');
+      const bSegments = b.split('/');
+      if (bSegments.length !== aSegments.length) {
+        return bSegments.length - aSegments.length;
+      }
+      const aDynamic = aSegments.filter(s => s.startsWith('$')).length;
+      const bDynamic = bSegments.filter(s => s.startsWith('$')).length;
+      return aDynamic - bDynamic;
+    })
+    .map(pattern => ({ pattern, regex: patternToRegex(pattern) }));
+
+  return compiledPatterns;
+}
+
 /**
  * Matches a URL pathname against a list of TanStack Start route patterns.
  * Patterns use `$param` syntax for dynamic segments (e.g., `/users/$id`).
  *
  * Patterns are sorted by specificity: more segments first, static segments before dynamic.
+ * Compiled regexes are cached across calls since the pattern list is static at build time.
  */
 export function matchUrlToRoutePattern(pathname: string, patterns: string[]): string | undefined {
-  const sorted = [...patterns].sort((a, b) => {
-    const aSegments = a.split('/');
-    const bSegments = b.split('/');
-    if (bSegments.length !== aSegments.length) {
-      return bSegments.length - aSegments.length;
-    }
-    const aDynamic = aSegments.filter(s => s.startsWith('$')).length;
-    const bDynamic = bSegments.filter(s => s.startsWith('$')).length;
-    return aDynamic - bDynamic;
-  });
-
-  for (const pattern of sorted) {
-    if (patternToRegex(pattern).test(pathname)) {
+  for (const { pattern, regex } of getCompiledPatterns(patterns)) {
+    if (regex.test(pathname)) {
       return pattern;
     }
   }
