@@ -45,11 +45,11 @@ describe('TanStack Start React Server SDK', () => {
       expect(nodeInit).toHaveBeenCalledWith(
         expect.objectContaining({
           ignoreSpans: expect.arrayContaining([
-            /GET \/node_modules\//,
-            /GET \/favicon\.ico/,
-            /GET \/@id\//,
-            /GET \/@react-refresh/,
-            /GET \/@tanstack-start\//,
+            /\/node_modules\//,
+            /\/favicon\.ico/,
+            /\/@id\//,
+            /\/@react-refresh/,
+            /\/@tanstack-start\//,
           ]),
         }),
       );
@@ -63,7 +63,7 @@ describe('TanStack Start React Server SDK', () => {
 
       expect(nodeInit).toHaveBeenCalledWith(
         expect.objectContaining({
-          ignoreSpans: expect.arrayContaining([/custom-pattern/, /GET \/favicon\.ico/]),
+          ignoreSpans: expect.arrayContaining([/custom-pattern/, /\/favicon\.ico/]),
         }),
       );
     });

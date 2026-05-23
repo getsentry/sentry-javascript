@@ -43,6 +43,35 @@ describe('TanStack Start React Client SDK', () => {
       expect(init({})).not.toBeUndefined();
     });
 
+    it('sets ignoreSpans to filter low-quality spans', () => {
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(reactInit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ignoreSpans: expect.arrayContaining([
+            /\/node_modules\//,
+            /\/favicon\.ico/,
+            /\/@id\//,
+            /\/@react-refresh/,
+            /\/@tanstack-start\//,
+          ]),
+        }),
+      );
+    });
+
+    it('preserves user-defined ignoreSpans', () => {
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        ignoreSpans: [/custom-pattern/],
+      });
+
+      expect(reactInit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ignoreSpans: expect.arrayContaining([/custom-pattern/, /\/favicon\.ico/]),
+        }),
+      );
+    });
+
     it('applies the managed tunnel route when no runtime tunnel is provided', () => {
       vi.stubGlobal('__SENTRY_TANSTACKSTART_TUNNEL_ROUTE__', '/managed-tunnel');
 
