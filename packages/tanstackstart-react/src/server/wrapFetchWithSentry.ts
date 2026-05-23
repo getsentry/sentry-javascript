@@ -61,7 +61,7 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
         // Assign to a new variable to avoid TS losing the narrower type checked above.
         const body = originalBody;
 
-        async function* bodyIterator(): AsyncGenerator<string | Buffer> {
+        async function* bodyReporter(): AsyncGenerator<string | Buffer> {
           try {
             for await (const chunk of body) {
               yield chunk;
@@ -75,7 +75,7 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
         }
 
         try {
-          for await (const chunk of bodyIterator()) {
+          for await (const chunk of bodyReporter()) {
             const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
             const modifiedHtml = addMetaTagToHead(html, metaTagsStr);
             controller.enqueue(new TextEncoder().encode(modifiedHtml));
@@ -94,7 +94,9 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
       headers: new Headers(originalResponse.headers),
     });
   } catch (e) {
-    captureException(e);
+    captureException(e, {
+      mechanism: { type: 'auto.http.tanstackstart', handled: false },
+    });
     throw e;
   }
 }
