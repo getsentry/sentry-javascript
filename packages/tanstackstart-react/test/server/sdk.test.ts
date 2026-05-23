@@ -57,7 +57,7 @@ describe('TanStack Start React Server SDK', () => {
 
       expect(nodeInit).toHaveBeenCalledWith(
         expect.objectContaining({
-          ignoreSpans: expect.arrayContaining([/custom-pattern/, /\/favicon\.ico/]),
+          ignoreSpans: expect.arrayContaining([/custom-pattern/, /\/@vite\//]),
         }),
       );
     });
