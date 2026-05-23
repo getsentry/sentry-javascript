@@ -1,5 +1,10 @@
 import { flushIfServerless, getTraceMetaTags } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
+import {
+  captureException,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startSpan,
+} from '@sentry/node';
 import { extractServerFunctionSha256 } from './utils';
 
 export type ServerEntry = {
@@ -33,7 +38,9 @@ function addMetaTagToHead(htmlChunk: string, metaTagsStr: string): string {
 function injectMetaTagsInResponse(originalResponse: Response): Response {
   try {
     const contentType = originalResponse.headers.get('content-type');
-    if (!contentType?.startsWith('text/html')) {
+
+    const isPageloadRequest = contentType?.startsWith('text/html');
+    if (!isPageloadRequest) {
       return originalResponse;
     }
 
@@ -51,10 +58,25 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
 
     const newResponseStream = new ReadableStream({
       start: async controller => {
+        // Assign to a new variable to avoid TS losing the narrower type checked above.
+        const body = originalBody;
+
+        async function* bodyIterator(): AsyncGenerator<string | Buffer> {
+          try {
+            for await (const chunk of body) {
+              yield chunk;
+            }
+          } catch (e) {
+            captureException(e);
+            throw e;
+          }
+        }
+
         try {
-          for await (const chunk of originalBody) {
-            const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk as BufferSource, { stream: true });
-            controller.enqueue(new TextEncoder().encode(addMetaTagToHead(html, metaTagsStr)));
+          for await (const chunk of bodyIterator()) {
+            const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+            const modifiedHtml = addMetaTagToHead(html, metaTagsStr);
+            controller.enqueue(new TextEncoder().encode(modifiedHtml));
           }
         } catch (e) {
           controller.error(e);
@@ -69,8 +91,9 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
       statusText: originalResponse.statusText,
       headers: new Headers(originalResponse.headers),
     });
-  } catch {
-    return originalResponse;
+  } catch (e) {
+    captureException(e);
+    throw e;
   }
 }
 
