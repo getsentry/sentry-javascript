@@ -74,6 +74,7 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
           }
         }
 
+        let errored = false;
         try {
           for await (const chunk of bodyReporter()) {
             const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
@@ -81,9 +82,12 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
             controller.enqueue(new TextEncoder().encode(modifiedHtml));
           }
         } catch (e) {
+          errored = true;
           controller.error(e);
         } finally {
-          controller.close();
+          if (!errored) {
+            controller.close();
+          }
         }
       },
     });
