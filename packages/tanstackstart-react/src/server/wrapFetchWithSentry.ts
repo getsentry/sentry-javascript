@@ -1,10 +1,77 @@
-import { flushIfServerless } from '@sentry/core';
+import { flushIfServerless, getTraceMetaTags } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
 import { extractServerFunctionSha256 } from './utils';
 
 export type ServerEntry = {
   fetch: (request: Request, opts?: unknown) => Promise<Response> | Response;
 };
+
+/**
+ * This function optimistically assumes that the HTML coming in chunks will not be split
+ * within the <head> tag. If this still happens, we simply won't replace anything.
+ */
+function addMetaTagToHead(htmlChunk: string, metaTagsStr: string): string {
+  if (typeof htmlChunk !== 'string' || !metaTagsStr) {
+    return htmlChunk;
+  }
+
+  if (htmlChunk.includes('"sentry-trace"')) {
+    return htmlChunk;
+  }
+
+  // Skip quoted attribute values so we don't match <head> inside e.g. data-code="...<head>..."
+  let replaced = false;
+  return htmlChunk.replace(/"[^"]*"|'[^']*'|(<head>)/g, (match, headTag) => {
+    if (headTag && !replaced) {
+      replaced = true;
+      return `<head>${metaTagsStr}`;
+    }
+    return match;
+  });
+}
+
+function injectMetaTagsInResponse(originalResponse: Response): Response {
+  try {
+    const contentType = originalResponse.headers.get('content-type');
+    if (!contentType?.startsWith('text/html')) {
+      return originalResponse;
+    }
+
+    // Type cast necessary b/c the body's ReadableStream type doesn't include
+    // the async iterator that is actually available in Node
+    // see https://github.com/microsoft/TypeScript/issues/39051
+    const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
+    if (!originalBody) {
+      return originalResponse;
+    }
+
+    const metaTagsStr = getTraceMetaTags();
+    const decoder = new TextDecoder();
+
+    const newResponseStream = new ReadableStream({
+      start: async controller => {
+        try {
+          for await (const chunk of originalBody) {
+            const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk as BufferSource, { stream: true });
+            controller.enqueue(new TextEncoder().encode(addMetaTagToHead(html, metaTagsStr)));
+          }
+        } catch (e) {
+          controller.error(e);
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(newResponseStream, {
+      status: originalResponse.status,
+      statusText: originalResponse.statusText,
+      headers: new Headers(originalResponse.headers),
+    });
+  } catch {
+    return originalResponse;
+  }
+}
 
 /**
  * This function can be used to wrap the server entry request handler to add tracing to server-side functionality.
@@ -62,7 +129,7 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
             );
           }
 
-          return await target.apply(thisArg, args);
+          return injectMetaTagsInResponse(await target.apply(thisArg, args));
         } finally {
           await flushIfServerless();
         }
