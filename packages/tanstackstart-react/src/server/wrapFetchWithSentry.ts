@@ -5,7 +5,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/node';
+import { updateSpanWithRouteParametrization } from './routeParametrization';
 import { extractServerFunctionSha256 } from './utils';
+
+declare const __SENTRY_ROUTE_PATTERNS__: string[] | undefined;
 
 export type ServerEntry = {
   fetch: (request: Request, opts?: unknown) => Promise<Response> | Response;
@@ -159,6 +162,10 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
                 return target.apply(thisArg, args);
               },
             );
+          }
+
+          if (typeof __SENTRY_ROUTE_PATTERNS__ !== 'undefined') {
+            updateSpanWithRouteParametrization(method, url.pathname, __SENTRY_ROUTE_PATTERNS__);
           }
 
           return injectMetaTagsInResponse(await target.apply(thisArg, args));

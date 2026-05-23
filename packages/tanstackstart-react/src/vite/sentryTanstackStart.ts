@@ -1,6 +1,7 @@
 import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
+import { makeRoutePatternPlugin } from './routePatterns';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { TunnelRouteOptions } from './tunnelRoute';
 import { makeTunnelRoutePlugin } from './tunnelRoute';
@@ -86,12 +87,16 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
 export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): Plugin[] {
   const tunnelRoutePlugin = options.tunnelRoute ? makeTunnelRoutePlugin(options.tunnelRoute, options.debug) : undefined;
 
-  // only add build-time plugins in production builds
+  // In development, only add route patterns plugin and tunnel route
   if (process.env.NODE_ENV === 'development') {
-    return tunnelRoutePlugin ? [tunnelRoutePlugin] : [];
+    const devPlugins: Plugin[] = [makeRoutePatternPlugin()];
+    if (tunnelRoutePlugin) {
+      devPlugins.push(tunnelRoutePlugin);
+    }
+    return devPlugins;
   }
 
-  const plugins: Plugin[] = [...makeAddSentryVitePlugin(options)];
+  const plugins: Plugin[] = [makeRoutePatternPlugin(), ...makeAddSentryVitePlugin(options)];
 
   if (tunnelRoutePlugin) {
     plugins.push(tunnelRoutePlugin);
