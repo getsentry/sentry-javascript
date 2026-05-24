@@ -1,4 +1,3 @@
-import type { BuildTimeOptionsBase } from '@sentry/core';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { Plugin, UserConfig } from 'vite';
 import type { SentryTanstackStartOptions } from './sentryTanstackStart';
@@ -93,7 +92,7 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
 /**
  * A Sentry plugin for TanStack Start React to enable "hidden" source maps if they are unset.
  */
-export function makeEnableSourceMapsVitePlugin(options: BuildTimeOptionsBase): Plugin[] {
+export function makeEnableSourceMapsVitePlugin(options: SentryTanstackStartOptions): Plugin[] {
   return [
     {
       name: 'sentry-tanstackstart-react-source-maps',
@@ -129,7 +128,7 @@ export function makeEnableSourceMapsVitePlugin(options: BuildTimeOptionsBase): P
  */
 export function getUpdatedSourceMapSettings(
   viteConfig: UserConfig,
-  sentryPluginOptions?: BuildTimeOptionsBase,
+  sentryPluginOptions?: SentryTanstackStartOptions,
 ): boolean | 'inline' | 'hidden' {
   viteConfig.build = viteConfig.build || {};
 
