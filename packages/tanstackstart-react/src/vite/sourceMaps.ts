@@ -7,7 +7,9 @@ type FilesToDeleteAfterUpload = string | string[] | undefined;
 /**
  * A Sentry plugin for adding the @sentry/vite-plugin to automatically upload source maps to Sentry.
  */
-export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[] {
+export function makeAddSentryVitePlugin(
+  options: BuildTimeOptionsBase & { reactComponentAnnotation?: { enabled?: boolean; ignoredComponents?: string[] } },
+): Plugin[] {
   const {
     applicationKey,
     authToken,
@@ -22,6 +24,7 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
     silent,
     sourcemaps,
     telemetry,
+    reactComponentAnnotation,
   } = options;
 
   // defer resolving the filesToDeleteAfterUpload until we got access to the Vite config
@@ -71,6 +74,10 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
       // Keep runtime support while staying resilient to type version skew.
       rewriteSources: (sourcemaps as unknown as { rewriteSources?: unknown } | undefined)?.rewriteSources as never,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
+    },
+    reactComponentAnnotation: {
+      enabled: reactComponentAnnotation?.enabled ?? undefined,
+      ignoredComponents: reactComponentAnnotation?.ignoredComponents ?? undefined,
     },
     telemetry: telemetry ?? true,
     url: sentryUrl,

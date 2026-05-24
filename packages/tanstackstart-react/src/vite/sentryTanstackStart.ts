@@ -23,6 +23,18 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
   autoInstrumentMiddleware?: boolean;
 
   /**
+   * Options for automatic React component name annotation.
+   *
+   * When enabled, the Sentry Vite plugin adds `data-sentry-component`, `data-sentry-element`,
+   * and `data-sentry-source-file` attributes to JSX elements during build. This improves
+   * readability of component names in Session Replay, breadcrumbs, and performance monitoring.
+   */
+  reactComponentAnnotation?: {
+    enabled?: boolean;
+    ignoredComponents?: string[];
+  };
+
+  /**
    * Configures a framework-managed same-origin tunnel route for Sentry envelopes.
    *
    * This creates a TanStack Start server route backed by `createSentryTunnelRoute()` and applies the resulting path
