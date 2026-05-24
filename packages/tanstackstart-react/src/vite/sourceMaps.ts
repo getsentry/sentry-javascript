@@ -1,15 +1,14 @@
 import type { BuildTimeOptionsBase } from '@sentry/core';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { Plugin, UserConfig } from 'vite';
+import type { SentryTanstackStartOptions } from './sentryTanstackStart';
 
 type FilesToDeleteAfterUpload = string | string[] | undefined;
 
 /**
  * A Sentry plugin for adding the @sentry/vite-plugin to automatically upload source maps to Sentry.
  */
-export function makeAddSentryVitePlugin(
-  options: BuildTimeOptionsBase & { reactComponentAnnotation?: { enabled?: boolean; ignoredComponents?: string[] } },
-): Plugin[] {
+export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Plugin[] {
   const {
     applicationKey,
     authToken,
