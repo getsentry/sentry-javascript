@@ -21,5 +21,13 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "deno-version": "latest",
+        "label": "deno-streamed (latest)"
+      }
+    ]
   }
 }
