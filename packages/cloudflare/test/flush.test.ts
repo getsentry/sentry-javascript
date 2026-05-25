@@ -29,6 +29,19 @@ describe('Flush buffer test', () => {
     await Promise.all(waitUntilPromises);
     await expect(lock.ready).resolves.toBeUndefined();
   });
+
+  it('does not grow the waitUntil wrapper stack on repeated flush lock creation', () => {
+    const context: ExecutionContext = {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+    };
+
+    for (let i = 0; i < 20_000; i++) {
+      makeFlushLock(context);
+    }
+
+    expect(() => context.waitUntil(Promise.resolve())).not.toThrow();
+  });
 });
 
 describe('flushAndDispose', () => {
