@@ -7,6 +7,17 @@ type FlushLock = {
   readonly finalize: () => Promise<void>;
 };
 
+type FlushLockRegistry = {
+  readonly locks: Set<FlushLockInternal>;
+};
+
+type FlushLockInternal = FlushLock & {
+  readonly acquire: () => void;
+  readonly release: () => void;
+};
+
+const flushLockRegistries = new WeakMap<ExecutionContext['waitUntil'], FlushLockRegistry>();
+
 /**
  * Enhances the given execution context by wrapping its `waitUntil` method with a proxy
  * to monitor pending tasks, and provides a flusher function to ensure all tasks
@@ -16,27 +27,69 @@ type FlushLock = {
  * @return {FlushLock} Returns a flusher function if a valid context is provided, otherwise undefined.
  */
 export function makeFlushLock(context: ExecutionContext): FlushLock {
+  const registry = getOrCreateFlushLockRegistry(context);
   let resolveAllDone: () => void = () => undefined;
   const allDone = new Promise<void>(res => {
     resolveAllDone = res;
   });
   let pending = 0;
+
+  const lock: FlushLockInternal = {
+    ready: allDone,
+    acquire: () => {
+      pending++;
+    },
+    release: () => {
+      if (--pending === 0) {
+        registry.locks.delete(lock);
+        resolveAllDone();
+      }
+    },
+    finalize: () => {
+      if (pending === 0) {
+        registry.locks.delete(lock);
+        resolveAllDone();
+      }
+      return allDone;
+    },
+  };
+
+  registry.locks.add(lock);
+  return Object.freeze(lock);
+}
+
+function getOrCreateFlushLockRegistry(context: ExecutionContext): FlushLockRegistry {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const waitUntil = context.waitUntil;
+  const existingRegistry = flushLockRegistries.get(waitUntil);
+
+  if (existingRegistry) {
+    return existingRegistry;
+  }
+
+  const registry: FlushLockRegistry = { locks: new Set() };
   const originalWaitUntil = context.waitUntil.bind(context) as typeof context.waitUntil;
-  context.waitUntil = promise => {
-    pending++;
+  const instrumentedWaitUntil: typeof context.waitUntil = promise => {
+    // Snapshot active locks so locks created after this call do not wait for earlier waitUntil work.
+    const locks = [...registry.locks];
+
+    for (const lock of locks) {
+      lock.acquire();
+    }
+
     return originalWaitUntil(
       promise.finally(() => {
-        if (--pending === 0) resolveAllDone();
+        for (const lock of locks) {
+          lock.release();
+        }
       }),
     );
   };
-  return Object.freeze({
-    ready: allDone,
-    finalize: () => {
-      if (pending === 0) resolveAllDone();
-      return allDone;
-    },
-  });
+
+  flushLockRegistries.set(instrumentedWaitUntil, registry);
+  context.waitUntil = instrumentedWaitUntil;
+
+  return registry;
 }
 
 /**

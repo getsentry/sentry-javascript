@@ -30,9 +30,12 @@ describe('Flush buffer test', () => {
     await expect(lock.ready).resolves.toBeUndefined();
   });
 
-  it('does not grow the waitUntil wrapper stack on repeated flush lock creation', () => {
+  it('does not grow the waitUntil wrapper stack on repeated flush lock creation', async () => {
+    const waitUntilPromises: Promise<void>[] = [];
     const context: ExecutionContext = {
-      waitUntil: vi.fn(),
+      waitUntil: vi.fn(promise => {
+        waitUntilPromises.push(promise);
+      }),
       passThroughOnException: vi.fn(),
     };
 
@@ -41,6 +44,37 @@ describe('Flush buffer test', () => {
     }
 
     expect(() => context.waitUntil(Promise.resolve())).not.toThrow();
+    await Promise.all(waitUntilPromises);
+  });
+
+  it('creates a fresh flush lock when waitUntil was already instrumented', async () => {
+    const waitUntilPromises: Promise<void>[] = [];
+    const context: ExecutionContext = {
+      waitUntil: vi.fn(promise => {
+        waitUntilPromises.push(promise);
+      }),
+      passThroughOnException: vi.fn(),
+    };
+
+    const firstLock = makeFlushLock(context);
+    await firstLock.finalize();
+
+    let resolveWaitUntil!: () => void;
+    const secondTask = new Promise<void>(resolve => {
+      resolveWaitUntil = resolve;
+    });
+    const secondLock = makeFlushLock(context);
+
+    context.waitUntil(secondTask);
+    void secondLock.finalize();
+
+    await Promise.resolve();
+    expect(waitUntilPromises).toHaveLength(1);
+    await expect(Promise.race([secondLock.ready, Promise.resolve('pending')])).resolves.toBe('pending');
+
+    resolveWaitUntil();
+    await Promise.all(waitUntilPromises);
+    await expect(secondLock.ready).resolves.toBeUndefined();
   });
 });
 
