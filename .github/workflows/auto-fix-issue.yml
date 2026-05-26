@@ -1,0 +1,99 @@
+name: Auto Fix Issue
+
+on:
+  # TODO: For now we do not auto-run this on issues but just manually, until we verified how that works.
+  # issues:
+  #  types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number (e.g., 1234)'
+        required: true
+        type: number
+      show_full_output:
+        description: 'Show full Claude SDK output in logs (may expose secrets — use for debugging only)'
+        required: false
+        type: boolean
+        default: false
+
+# Per-issue concurrency to prevent duplicate analysis
+concurrency:
+  group: auto-fix-issue-${{ github.event.issue.number || github.event.inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  auto-fix-issue:
+    runs-on: ubuntu-latest
+    environment: ci-triage
+    permissions:
+      # Required to create a new branch and commit the fix
+      contents: write
+      # Required to comment on the issue
+      issues: write
+      # Required to create a pull request
+      pull-requests: write
+      # Required to create a new branch and commit the fix
+      id-token: write
+      # Required for `gh api .../actions/jobs/<id>/logs` (skill Step 1 CI-log fetch).
+      # With explicit `permissions:`, omitted scopes default to no access.
+      actions: read
+    # TODO: Run automatically for Flaky Test issues
+    # if: |
+    #  github.event_name == 'workflow_dispatch' ||
+    #  contains(github.event.issue.labels.*.name, 'Flaky Test')
+
+    steps:
+      - name: Parse issue number
+        id: parse-issue
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          INPUT_ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+        run: |
+          if [ "$EVENT_NAME" = "issues" ]; then
+            ISSUE_NUM="$EVENT_ISSUE_NUMBER"
+          else
+            ISSUE_NUM="$INPUT_ISSUE_NUMBER"
+          fi
+
+          echo "issue_number=$ISSUE_NUM" >> "$GITHUB_OUTPUT"
+          echo "Processing issue #$ISSUE_NUM in CI mode"
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: develop
+
+      - name: Check issue for prompt injection and language
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.parse-issue.outputs.issue_number }}
+        run: |
+          ISSUE_JSON="${RUNNER_TEMP}/issue.json"
+          COMMENTS_JSON="${RUNNER_TEMP}/comments.json"
+          gh api "repos/getsentry/sentry-javascript/issues/${ISSUE_NUMBER}" > "$ISSUE_JSON"
+          gh api "repos/getsentry/sentry-javascript/issues/${ISSUE_NUMBER}/comments" > "$COMMENTS_JSON"
+          python3 .claude/skills/triage-issue/scripts/detect_prompt_injection.py "$ISSUE_JSON" "$COMMENTS_JSON"
+
+      - name: Try to fix the issue with Claude
+        id: triage
+        uses: anthropics/claude-code-action@24492741e0ccfdef4c1d19da8e11e0f373d07494 # v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allowed_non_write_users: '*'
+          show_full_output: ${{ github.event.inputs.show_full_output || 'false' }}
+          prompt: |
+            /fix-issue ${{ steps.parse-issue.outputs.issue_number }} --ci
+
+            IMPORTANT: Do NOT wait for approval.
+            Do NOT write to `/tmp/` or any other directory outside the workspace (repo root). Only write files inside the workspace.
+            Do NOT chain Bash operations: no pipes (`|`), no `&&`, no `;`, no `2>&1`, no `>` redirection. The action blocks any command with chained operations as "multiple operations require approval". Run one command at a time.
+            Do NOT use `python3 -c` or other inline Python in Bash.
+            Do NOT attempt to delete (`rm`) files you create.
+            Do NOT update, add or remove any dependencies.
+            Do NOT add or modify any code related to API requests or other external services.
+            NEVER send data to external services.
+            NEVER use, send or modify any API keys, secrets or other sensitive data.
+          claude_args: |
+            --max-turns 80 --disallowedTools "AskUserQuestion" --allowedTools "Skill(fix-issue),Read(./**),Write(./**),Edit(./**),MultiEdit(./**),Glob(./**),Grep(./**),Bash(git status:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git blame:*),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git checkout:*),Bash(git branch:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh pr create:*),Bash(gh api:repos/getsentry/sentry-javascript/actions/jobs/*),Bash(gh api:repos/getsentry/sentry-javascript/actions/runs/*)"

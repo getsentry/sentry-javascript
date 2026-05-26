@@ -12,6 +12,9 @@ export default [
       packageSpecificConfig: {
         // Used for our custom eventContextExtractor
         external: ['@opentelemetry/api'],
+        output: {
+          preserveModulesRoot: 'src',
+        },
       },
     }),
   ),

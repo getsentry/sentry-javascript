@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createTransport } from '../../../src/transports/base';
-import type { ClientReport } from '../../../src/types-hoist/clientreport';
-import type { AttachmentItem, EventEnvelope, EventItem } from '../../../src/types-hoist/envelope';
-import type { TransportMakeRequestResponse } from '../../../src/types-hoist/transport';
+import type { ClientReport } from '../../../src/types/clientreport';
+import type { AttachmentItem, EventEnvelope, EventItem } from '../../../src/types/envelope';
+import type { TransportMakeRequestResponse } from '../../../src/types/transport';
 import { createClientReportEnvelope } from '../../../src/utils/clientreport';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
 import { type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from '../../../src/utils/promisebuffer';

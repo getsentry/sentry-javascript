@@ -279,8 +279,15 @@ function addMetaTagToHead(htmlChunk: string, metaTagsStr: string): string {
     return htmlChunk;
   }
 
-  const content = `<head>${metaTagsStr}`;
-  return htmlChunk.replace('<head>', content);
+  // Skip quoted attribute values so we don't match <head> inside e.g. data-code="...<head>..."
+  let replaced = false;
+  return htmlChunk.replace(/"[^"]*"|'[^']*'|(<head>)/g, (match, headTag) => {
+    if (headTag && !replaced) {
+      replaced = true;
+      return `<head>${metaTagsStr}`;
+    }
+    return match;
+  });
 }
 
 function getMetaTagsStr({
@@ -495,7 +502,11 @@ function injectMetaTagsInResponse(originalResponse: Response, metaTagsStr: strin
       },
     });
 
-    return new Response(newResponseStream, originalResponse);
+    return new Response(newResponseStream, {
+      status: originalResponse.status,
+      statusText: originalResponse.statusText,
+      headers: new Headers(originalResponse.headers),
+    });
   } catch (e) {
     sendErrorToSentry(e);
     throw e;

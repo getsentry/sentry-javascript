@@ -1,12 +1,6 @@
 import * as Sentry from '@sentry/node';
-import { createRequire } from 'node:module';
 import postgres from 'postgres';
-
-const require = createRequire(import.meta.url);
-const { waitForPostgres } = require('./wait-for-postgres.js');
-
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
+import { waitForPostgres } from './wait-for-postgres.js';
 
 // Test with plain object options
 const sql = postgres({ port: 5444, user: 'test', password: 'test', database: 'test_db' });

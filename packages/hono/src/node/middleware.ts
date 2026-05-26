@@ -1,5 +1,5 @@
 import { type BaseTransportOptions, debug, type Options, getClient } from '@sentry/core';
-import type { Hono, MiddlewareHandler } from 'hono';
+import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { applyPatches } from '../shared/applyPatches';
 
@@ -13,7 +13,7 @@ export interface HonoNodeOptions extends Options<BaseTransportOptions> {}
  *
  * **Note:** You must initialize Sentry separately before using this middleware. Typically, this is done by calling `Sentry.init()` in an `instrument.ts` file and loading it via the Node `--import` flag.
  */
-export const sentry = (app: Hono): MiddlewareHandler => {
+export const sentry = <E extends Env>(app: Hono<E>): MiddlewareHandler => {
   const sentryClient = getClient();
   if (sentryClient === undefined) {
     debug.warn(

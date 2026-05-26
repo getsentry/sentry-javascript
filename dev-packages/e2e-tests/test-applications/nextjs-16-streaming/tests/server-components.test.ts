@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForStreamedSpan, waitForStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { isDevMode } from './isDevMode';
 
 test('Sends a streamed span for a request to app router with URL', async ({ page }) => {
+  test.skip(isDevMode, 'Turbopack intermittently returns 404 for nested dynamic routes in dev mode');
+
   const rootSpanPromise = waitForStreamedSpan('nextjs-16-streaming', span => {
     return span.name === 'GET /parameterized/[one]/beep/[two]' && span.is_segment;
   });
@@ -17,6 +20,8 @@ test('Sends a streamed span for a request to app router with URL', async ({ page
 test('Will create streamed spans for every server component and metadata generation functions when visiting a page', async ({
   page,
 }) => {
+  test.skip(isDevMode, 'Turbopack intermittently returns 404 for nested dynamic routes in dev mode');
+
   const spansPromise = waitForStreamedSpans('nextjs-16-streaming', spans => {
     return spans.some(span => span.name === 'GET /nested-layout' && span.is_segment);
   });
@@ -40,6 +45,8 @@ test('Will create streamed spans for every server component and metadata generat
 test('Will create streamed spans for every server component and metadata generation functions when visiting a dynamic page', async ({
   page,
 }) => {
+  test.skip(isDevMode, 'Turbopack intermittently returns 404 for nested dynamic routes in dev mode');
+
   const spansPromise = waitForStreamedSpans('nextjs-16-streaming', spans => {
     return spans.some(span => span.name === 'GET /nested-layout/[dynamic]' && span.is_segment);
   });

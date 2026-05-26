@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { estimateSerializedSpanSizeInBytes } from '../../../../src/tracing/spans/estimateSize';
-import type { SerializedStreamedSpan } from '../../../../src/types-hoist/span';
+import type { SerializedStreamedSpan } from '../../../../src/types/span';
 
 // Produces a realistic trace_id (32 hex chars) and span_id (16 hex chars)
 const TRACE_ID = 'a1b2c3d4e5f607189a0b1c2d3e4f5060';
@@ -130,9 +130,9 @@ describe('estimateSerializedSpanSizeInBytes', () => {
       status: 'ok',
       is_segment: false,
       attributes: {
-        'item.ids': { type: 'string[]', value: ['id-001', 'id-002', 'id-003', 'id-004', 'id-005'] },
-        scores: { type: 'double[]', value: [1.1, 2.2, 3.3, 4.4] },
-        flags: { type: 'boolean[]', value: [true, false, true] },
+        'item.ids': { type: 'array', value: ['id-001', 'id-002', 'id-003', 'id-004', 'id-005'] },
+        scores: { type: 'array', value: [1.1, 2.2, 3.3, 4.4] },
+        flags: { type: 'array', value: [true, false, true] },
       },
     };
 

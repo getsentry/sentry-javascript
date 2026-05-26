@@ -4,7 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_URL_FULL,
 } from '../semanticAttributes';
-import type { SpanAttributes } from '../types-hoist/span';
+import type { SpanAttributes } from '../types/span';
 
 type PartialURL = {
   host?: string;

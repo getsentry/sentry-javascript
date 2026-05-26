@@ -14,29 +14,30 @@ import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingCon
 import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 import { extractGenAiSpansFromEvent } from './tracing/spans/extractGenAiSpans';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
-import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types-hoist/breadcrumb';
-import type { CheckIn, MonitorConfig } from './types-hoist/checkin';
-import type { EventDropReason, Outcome } from './types-hoist/clientreport';
-import type { DataCategory } from './types-hoist/datacategory';
-import type { DsnComponents } from './types-hoist/dsn';
-import type { DynamicSamplingContext, Envelope } from './types-hoist/envelope';
-import type { ErrorEvent, Event, EventHint, EventType, TransactionEvent } from './types-hoist/event';
-import type { EventProcessor } from './types-hoist/eventprocessor';
-import type { FeedbackEvent } from './types-hoist/feedback';
-import type { Integration } from './types-hoist/integration';
-import type { Log } from './types-hoist/log';
-import type { Metric } from './types-hoist/metric';
-import type { Primitive } from './types-hoist/misc';
-import type { ClientOptions } from './types-hoist/options';
-import type { ParameterizedString } from './types-hoist/parameterize';
-import type { ReplayEndEvent, ReplayStartEvent } from './types-hoist/replay';
-import type { RequestEventData } from './types-hoist/request';
-import type { SdkMetadata } from './types-hoist/sdkmetadata';
-import type { Session, SessionAggregates } from './types-hoist/session';
-import type { SeverityLevel } from './types-hoist/severity';
-import type { Span, SpanAttributes, SpanContextData, SpanJSON, StreamedSpanJSON } from './types-hoist/span';
-import type { StartSpanOptions } from './types-hoist/startSpanOptions';
-import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
+import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types/breadcrumb';
+import type { CheckIn, MonitorConfig } from './types/checkin';
+import type { EventDropReason, Outcome } from './types/clientreport';
+import type { DataCategory } from './types/datacategory';
+import type { DsnComponents } from './types/dsn';
+import type { DynamicSamplingContext, Envelope } from './types/envelope';
+import type { ErrorEvent, Event, EventHint, EventType, TransactionEvent } from './types/event';
+import type { EventProcessor } from './types/eventprocessor';
+import type { FeedbackEvent } from './types/feedback';
+import type { Integration } from './types/integration';
+import type { Log } from './types/log';
+import type { Metric } from './types/metric';
+import type { Primitive } from './types/misc';
+import type { ClientOptions } from './types/options';
+import type { ParameterizedString } from './types/parameterize';
+import type { ReplayEndEvent, ReplayStartEvent } from './types/replay';
+import type { RequestEventData } from './types/request';
+import type { SdkMetadata } from './types/sdkmetadata';
+import type { Session, SessionAggregates } from './types/session';
+import type { SeverityLevel } from './types/severity';
+import type { Span, SpanAttributes, SpanContextData, SpanJSON, StreamedSpanJSON } from './types/span';
+import type { StartSpanOptions } from './types/startSpanOptions';
+import type { Transport, TransportMakeRequestResponse } from './types/transport';
+import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
 import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
@@ -54,6 +55,7 @@ import { showSpanDropWarning } from './utils/spanUtils';
 import { rejectedSyncPromise } from './utils/syncpromise';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
+import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
@@ -137,18 +139,21 @@ function setupWeightBasedFlushing<
     if (weight >= 800_000) {
       flushFn(client);
     } else if (!isTimerActive) {
-      // Only start timer if one isn't already running.
-      // This prevents flushing being delayed by items that arrive close to the timeout limit
-      // and thus resetting the flushing timeout and delaying items being flushed.
-      isTimerActive = true;
-      // Use safeUnref so the timer doesn't prevent the process from exiting
-      flushTimeout = safeUnref(
-        setTimeout(() => {
-          flushFn(client);
-          // Note: isTimerActive is reset by the flushHook handler above, not here,
-          // to avoid race conditions when new items arrive during the flush.
-        }, DEFAULT_FLUSH_INTERVAL),
-      );
+      const flushInterval = client.getOptions()._flushInterval ?? DEFAULT_FLUSH_INTERVAL;
+      if (flushInterval > 0) {
+        // Only start timer if one isn't already running.
+        // This prevents flushing being delayed by items that arrive close to the timeout limit
+        // and thus resetting the flushing timeout and delaying items being flushed.
+        isTimerActive = true;
+        // Use safeUnref so the timer doesn't prevent the process from exiting
+        flushTimeout = safeUnref(
+          setTimeout(() => {
+            flushFn(client);
+            // Note: isTimerActive is reset by the flushHook handler above, not here,
+            // to avoid race conditions when new items arrive during the flush.
+          }, flushInterval),
+        );
+      }
     }
   });
 
@@ -213,6 +218,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   protected _promiseBuffer: PromiseBuffer<unknown>;
 
+  protected readonly _dataCollection: ResolvedDataCollection;
+
   /**
    * Initializes this client instance.
    *
@@ -226,6 +233,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._hooks = {};
     this._eventProcessors = [];
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
+    this._dataCollection = resolveDataCollectionOptions(options);
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -400,6 +408,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
+   * Get the resolved data collection configuration.
+   */
+  public getDataCollectionOptions(): ResolvedDataCollection {
+    return this._dataCollection;
+  }
+
+  /**
    * Get the SDK metadata.
    * @see SdkMetadata
    */
@@ -498,6 +513,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public getIntegrationByName<T extends Integration = Integration>(integrationName: string): T | undefined {
     return this._integrations[integrationName] as T | undefined;
+  }
+
+  /**
+   * Returns the names of all installed integrations.
+   */
+  public getIntegrationNames(): string[] {
+    return Object.keys(this._integrations);
   }
 
   /**
@@ -1302,8 +1324,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     isolationScope: Scope,
   ): PromiseLike<Event | null> {
     const options = this.getOptions();
-    const integrations = Object.keys(this._integrations);
-    if (!hint.integrations && integrations?.length) {
+    const integrations = this.getIntegrationNames();
+    if (!hint.integrations && integrations.length) {
       hint.integrations = integrations;
     }
 

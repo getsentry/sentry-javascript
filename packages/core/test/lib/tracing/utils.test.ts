@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Scope } from '../../../src/scope';
 import { getCapturedScopesOnSpan, setCapturedScopesOnSpan } from '../../../src/tracing/utils';
-import type { Span } from '../../../src/types-hoist/span';
+import type { Span } from '../../../src/types/span';
 
 // Mock span object that implements the minimum needed interface
 function createMockSpan(): Span {

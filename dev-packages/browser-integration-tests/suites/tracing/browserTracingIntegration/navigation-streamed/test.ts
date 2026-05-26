@@ -4,6 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -130,6 +131,10 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
       'sentry.sdk.version': {
         type: 'string',
         value: SDK_VERSION,
+      },
+      [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+        type: 'array',
+        value: expect.arrayContaining(['BrowserTracing', 'SpanStreaming']),
       },
       'sentry.segment.id': {
         type: 'string',

@@ -1,6 +1,6 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
-import type { Span } from '../../types-hoist/span';
+import type { Span } from '../../types/span';
 import { endStreamSpan } from '../ai/utils';
 import type { GoogleGenAIResponse } from './types';
 

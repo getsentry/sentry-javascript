@@ -1,13 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fmt, Scope } from '../../../src';
-import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_getLogBuffer } from '../../../src/logs/internal';
-import type { Log } from '../../../src/types-hoist/log';
+import {
+  _INTERNAL_captureLog,
+  _INTERNAL_flushLogsBuffer,
+  _INTERNAL_getLogBuffer,
+  _removeLoneSurrogates,
+} from '../../../src/logs/internal';
+import type { Log } from '../../../src/types/log';
 import * as loggerModule from '../../../src/utils/debug-logger';
 import * as timeModule from '../../../src/utils/time';
 import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
+
+// toWellFormed() is only available in Node 20+, Chrome 111+, Safari 15.4+, Firefox 119+, Hermes
+const hasToWellFormed = typeof ''.isWellFormed === 'function';
 
 describe('_INTERNAL_captureLog', () => {
   beforeEach(() => {
@@ -191,7 +199,6 @@ describe('_INTERNAL_captureLog', () => {
       scope.setAttribute('scope_2', { value: 38, unit: 'gigabyte' });
       scope.setAttributes({
         scope_3: true,
-        // these are invalid since for now we don't support arrays
         scope_4: [1, 2, 3],
         scope_5: { value: [true, false, true], unit: 'second' },
       });
@@ -228,6 +235,15 @@ describe('_INTERNAL_captureLog', () => {
         scope_3: {
           type: 'boolean',
           value: true,
+        },
+        scope_4: {
+          type: 'array',
+          value: [1, 2, 3],
+        },
+        scope_5: {
+          type: 'array',
+          value: [true, false, true],
+          unit: 'second',
         },
         'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
@@ -1260,5 +1276,153 @@ describe('_INTERNAL_captureLog', () => {
       const buffer2 = _INTERNAL_getLogBuffer(client2);
       expect(buffer2?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
     });
+  });
+
+  describe.runIf(hasToWellFormed)('lone surrogate sanitization', () => {
+    it('sanitizes lone surrogates in log message body', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureLog({ level: 'error', message: 'bad surrogate \uD800 here' }, scope);
+
+      const logBuffer = _INTERNAL_getLogBuffer(client);
+      expect(logBuffer?.[0]?.body).toBe('bad surrogate \uFFFD here');
+    });
+
+    it('sanitizes lone surrogates in parameterized (fmt) log message body', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const badValue = 'bad\uD800value';
+      _INTERNAL_captureLog({ level: 'error', message: fmt`parameterized ${badValue} message` }, scope);
+
+      const logBuffer = _INTERNAL_getLogBuffer(client);
+      expect(logBuffer?.[0]?.body).toBe('parameterized bad\uFFFDvalue message');
+    });
+
+    it('sanitizes lone surrogates in log attribute values', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureLog(
+        {
+          level: 'error',
+          message: 'test',
+          attributes: { bad: '{"a":"\uD800"}' },
+        },
+        scope,
+      );
+
+      const logBuffer = _INTERNAL_getLogBuffer(client);
+      expect(logBuffer?.[0]?.attributes?.['bad']).toEqual({
+        value: '{"a":"\uFFFD"}',
+        type: 'string',
+      });
+    });
+
+    it('sanitizes lone surrogates in log attribute keys', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureLog(
+        {
+          level: 'error',
+          message: 'test',
+          attributes: { ['bad\uD800key']: 'value' },
+        },
+        scope,
+      );
+
+      const logBuffer = _INTERNAL_getLogBuffer(client);
+      expect(logBuffer?.[0]?.attributes?.['bad\uFFFDkey']).toEqual({
+        value: 'value',
+        type: 'string',
+      });
+    });
+
+    it('preserves valid emoji in log messages and attributes', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureLog(
+        {
+          level: 'info',
+          message: 'hello 😀 world',
+          attributes: { emoji: '🎉 party' },
+        },
+        scope,
+      );
+
+      const logBuffer = _INTERNAL_getLogBuffer(client);
+      expect(logBuffer?.[0]?.body).toBe('hello 😀 world');
+      expect(logBuffer?.[0]?.attributes?.['emoji']).toEqual({
+        value: '🎉 party',
+        type: 'string',
+      });
+    });
+  });
+});
+
+describe('_removeLoneSurrogates', () => {
+  it('returns the same string when there are no surrogates', () => {
+    expect(_removeLoneSurrogates('hello world')).toBe('hello world');
+  });
+
+  it('returns the same string for empty input', () => {
+    expect(_removeLoneSurrogates('')).toBe('');
+  });
+
+  it('preserves valid surrogate pairs (emoji)', () => {
+    expect(_removeLoneSurrogates('hello 😀 world')).toBe('hello 😀 world');
+  });
+
+  it.runIf(hasToWellFormed)('replaces a lone high surrogate with U+FFFD', () => {
+    expect(_removeLoneSurrogates('before\uD800after')).toBe('before\uFFFDafter');
+  });
+
+  it.runIf(hasToWellFormed)('replaces a lone low surrogate with U+FFFD', () => {
+    expect(_removeLoneSurrogates('before\uDC00after')).toBe('before\uFFFDafter');
+  });
+
+  it.runIf(hasToWellFormed)('replaces lone high surrogate at end of string', () => {
+    expect(_removeLoneSurrogates('end\uD800')).toBe('end\uFFFD');
+  });
+
+  it.runIf(hasToWellFormed)('replaces lone low surrogate at start of string', () => {
+    expect(_removeLoneSurrogates('\uDC00start')).toBe('\uFFFDstart');
+  });
+
+  it.runIf(hasToWellFormed)('replaces multiple lone surrogates', () => {
+    expect(_removeLoneSurrogates('\uD800\uD801\uDC00')).toBe('\uFFFD\uD801\uDC00');
+  });
+
+  it.runIf(hasToWellFormed)('handles two consecutive lone high surrogates', () => {
+    expect(_removeLoneSurrogates('\uD800\uD800')).toBe('\uFFFD\uFFFD');
+  });
+
+  it.runIf(hasToWellFormed)('handles mixed valid pairs and lone surrogates', () => {
+    expect(_removeLoneSurrogates('\uD83D\uDE00\uD800')).toBe('😀\uFFFD');
+  });
+
+  it.runIf(hasToWellFormed)('handles the exact reproduction case from issue #5186', () => {
+    const badValue = '{"a":"\uD800"}';
+    const result = _removeLoneSurrogates(badValue);
+    expect(result).toBe('{"a":"\uFFFD"}');
+    expect(() => JSON.parse(result)).not.toThrow();
+  });
+
+  it('returns the string as-is when toWellFormed is not available', () => {
+    // Verify the function doesn't throw regardless of runtime support
+    expect(_removeLoneSurrogates('normal string')).toBe('normal string');
   });
 });

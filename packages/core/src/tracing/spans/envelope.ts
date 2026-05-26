@@ -1,6 +1,6 @@
 import type { Client } from '../../client';
-import type { DynamicSamplingContext, SpanContainerItem, StreamedSpanEnvelope } from '../../types-hoist/envelope';
-import type { SerializedStreamedSpan } from '../../types-hoist/span';
+import type { DynamicSamplingContext, SpanContainerItem, StreamedSpanEnvelope } from '../../types/envelope';
+import type { SerializedStreamedSpan } from '../../types/span';
 import { dsnToString } from '../../utils/dsn';
 import { createEnvelope, getSdkMetadataForEnvelopeHeader } from '../../utils/envelope';
 import { isBrowser } from '../../utils/isBrowser';
@@ -25,7 +25,7 @@ export function createStreamedSpanEnvelope(
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
-  const inferSetting = options.sendDefaultPii ? 'auto' : 'never';
+  const inferSetting = client.getDataCollectionOptions().userInfo ? 'auto' : 'never';
 
   const spanContainer: SpanContainerItem = [
     { type: 'span', item_count: serializedSpans.length, content_type: 'application/vnd.sentry.items.span.v2+json' },

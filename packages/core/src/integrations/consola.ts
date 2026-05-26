@@ -2,7 +2,7 @@ import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import { _INTERNAL_captureLog } from '../logs/internal';
 import { createConsoleTemplateAttributes, formatConsoleArgs, hasConsoleSubstitutions } from '../logs/utils';
-import type { LogSeverityLevel } from '../types-hoist/log';
+import type { LogSeverityLevel } from '../types/log';
 import { isPlainObject } from '../utils/is';
 import { normalize } from '../utils/normalize';
 

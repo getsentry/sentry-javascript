@@ -1,4 +1,4 @@
-import { NestInstrumentation as NestInstrumentationCore } from '@opentelemetry/instrumentation-nestjs-core';
+import { NestInstrumentation as NestInstrumentationCore } from './vendored/instrumentation';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node';
 import { SentryNestBullMQInstrumentation } from './sentry-nest-bullmq-instrumentation';

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME, SEMANTIC_ATTRIBUTE_PROFILE_ID } from '../../../src/semanticAttributes';
-import type { TransactionEvent } from '../../../src/types-hoist/event';
-import type { SpanJSON } from '../../../src/types-hoist/span';
+import type { TransactionEvent } from '../../../src/types/event';
+import type { SpanJSON } from '../../../src/types/span';
 import {
   convertSpanJsonToTransactionEvent,
   convertTransactionEventToSpanJson,

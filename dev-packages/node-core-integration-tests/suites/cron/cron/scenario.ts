@@ -28,4 +28,4 @@ cron.start();
 
 setTimeout(() => {
   process.exit();
-}, 5000);
+}, 15_000);

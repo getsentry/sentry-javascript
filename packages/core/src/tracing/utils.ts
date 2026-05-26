@@ -1,5 +1,5 @@
 import type { Scope } from '../scope';
-import type { Span } from '../types-hoist/span';
+import type { Span } from '../types/span';
 import { addNonEnumerableProperty } from '../utils/object';
 import { derefWeakRef, makeWeakRef, type MaybeWeakRef } from '../utils/weakRef';
 

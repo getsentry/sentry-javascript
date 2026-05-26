@@ -370,6 +370,46 @@ describe('sentryMiddleware', () => {
     expect(html).toContain('<meta name="baggage" content="');
   });
 
+  it('preserves response status, statusText, and all headers when injecting meta tags', async () => {
+    const middleware = handleRequest();
+
+    const ctx = {
+      ...DYNAMIC_REQUEST_CONTEXT,
+    };
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response('<head></head>', {
+          status: 201,
+          statusText: 'Created',
+          headers: new Headers({
+            'content-type': 'text/html',
+            'X-Frame-Options': 'DENY',
+            'Permissions-Policy': 'camera=(), microphone=()',
+            'Cross-Origin-Opener-Policy': 'same-origin',
+            'Content-Security-Policy': "default-src 'self'",
+            'X-Content-Type-Options': 'nosniff',
+            'Referrer-Policy': 'strict-origin-when-cross-origin',
+            'X-Custom-Header': 'custom-value',
+          }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+
+    expect(resultFromNext?.status).toBe(201);
+    expect(resultFromNext?.statusText).toBe('Created');
+    expect(resultFromNext?.headers.get('content-type')).toBe('text/html');
+    expect(resultFromNext?.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(resultFromNext?.headers.get('Permissions-Policy')).toBe('camera=(), microphone=()');
+    expect(resultFromNext?.headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin');
+    expect(resultFromNext?.headers.get('Content-Security-Policy')).toBe("default-src 'self'");
+    expect(resultFromNext?.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(resultFromNext?.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+    expect(resultFromNext?.headers.get('X-Custom-Header')).toBe('custom-value');
+  });
+
   it("no-ops if the response isn't HTML", async () => {
     const middleware = handleRequest();
 
@@ -386,6 +426,55 @@ describe('sentryMiddleware', () => {
     const resultFromNext = await middleware(ctx, next);
 
     expect(resultFromNext).toBe(originalResponse);
+  });
+
+  it('does not inject meta tags into <head> inside attribute values', async () => {
+    const middleware = handleRequest();
+
+    const ctx = {
+      ...DYNAMIC_REQUEST_CONTEXT,
+    };
+
+    const bodyWithHeadInAttr =
+      '<head><meta name="something" content=""/></head><body><button data-code="&lt;html&gt;&lt;head&gt;&lt;/head&gt;"></button></body>';
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response(bodyWithHeadInAttr, {
+          headers: new Headers({ 'content-type': 'text/html' }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+    const html = await resultFromNext?.text();
+
+    expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
+    expect(html).not.toContain('data-code="&lt;html&gt;&lt;head&gt;<meta name="sentry-route-name"');
+  });
+
+  it('does not inject meta tags into <head> inside quoted attribute values in the same chunk', async () => {
+    const middleware = handleRequest();
+
+    const ctx = {
+      ...DYNAMIC_REQUEST_CONTEXT,
+    };
+
+    const htmlWithHeadInDataAttr = '<head></head><body><div data-content="<head>should not be modified"></div></body>';
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response(htmlWithHeadInDataAttr, {
+          headers: new Headers({ 'content-type': 'text/html' }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+    const html = await resultFromNext?.text();
+
+    expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
+    expect(html).toContain('data-content="<head>should not be modified"');
   });
 
   it("no-ops if there's no <head> tag in the response", async () => {

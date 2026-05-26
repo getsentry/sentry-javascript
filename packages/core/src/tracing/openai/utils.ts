@@ -1,5 +1,5 @@
-import type { Span } from '../../types-hoist/span';
-import type { SpanAttributeValue } from '../../types-hoist/span';
+import type { Span } from '../../types/span';
+import type { SpanAttributeValue } from '../../types/span';
 import {
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,

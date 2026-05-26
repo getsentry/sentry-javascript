@@ -1,5 +1,12 @@
-import type { BrowserClientReplayOptions, Client, Integration, IntegrationFn, ReplayRecordingMode } from '@sentry/core';
-import { consoleSandbox, GLOBAL_OBJ, isBrowser, parseSampleRate } from '@sentry/core';
+import type {
+  BrowserClientReplayOptions,
+  Client,
+  Integration,
+  IntegrationFn,
+  ReplayRecordingMode,
+  StreamedSpanJSON,
+} from '@sentry/core';
+import { consoleSandbox, GLOBAL_OBJ, isBrowser, parseSampleRate, safeSetSpanJSONAttributes } from '@sentry/core';
 import {
   DEFAULT_FLUSH_MAX_DELAY,
   DEFAULT_FLUSH_MIN_DELAY,
@@ -350,6 +357,13 @@ export class Replay implements Integration {
     }
 
     return this._replay.recordingMode;
+  }
+
+  public processSpan(span: StreamedSpanJSON): void {
+    const replayId = this.getReplayId(true);
+    if (replayId) {
+      safeSetSpanJSONAttributes(span, { 'sentry.replay_id': replayId });
+    }
   }
 
   /**

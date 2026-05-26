@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HandlerDataFetch } from '../../src';
 import { _INTERNAL_getTracingHeadersForFetchRequest, instrumentFetchRequest } from '../../src/fetch';
-import type { Span } from '../../src/types-hoist/span';
+import type { Span } from '../../src/types/span';
 
 const { DEFAULT_SENTRY_TRACE, DEFAULT_BAGGAGE, hasSpansEnabled } = vi.hoisted(() => ({
   DEFAULT_SENTRY_TRACE: 'defaultTraceId-defaultSpanId-1',

@@ -9,7 +9,7 @@ import {
   withScope,
 } from '../../src';
 import { captureFeedback } from '../../src/feedback';
-import type { Span } from '../../src/types-hoist/span';
+import type { Span } from '../../src/types/span';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('captureFeedback', () => {

@@ -52,6 +52,8 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID = 'sentry.segment.id';
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
 /** The version of the Sentry SDK */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
+/** The list of integrations enabled in the Sentry SDK (e.g., ["InboundFilters", "BrowserTracing"]) */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS = 'sentry.sdk.integrations';
 
 /** The user ID */
 export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';

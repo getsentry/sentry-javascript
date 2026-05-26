@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMetricContainerEnvelopeItem, createMetricEnvelope } from '../../../src/metrics/envelope';
-import type { DsnComponents } from '../../../src/types-hoist/dsn';
-import type { SerializedMetric } from '../../../src/types-hoist/metric';
-import type { SdkMetadata } from '../../../src/types-hoist/sdkmetadata';
+import type { DsnComponents } from '../../../src/types/dsn';
+import type { SerializedMetric } from '../../../src/types/metric';
+import type { SdkMetadata } from '../../../src/types/sdkmetadata';
 import * as utilsDsn from '../../../src/utils/dsn';
 import * as utilsEnvelope from '../../../src/utils/envelope';
 import { isBrowser } from '../../../src/utils/isBrowser';

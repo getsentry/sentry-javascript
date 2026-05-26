@@ -16,9 +16,9 @@ import {
   timestampInSeconds,
   TRACEPARENT_REGEXP,
 } from '../../../src';
-import type { SpanLink } from '../../../src/types-hoist/link';
-import type { Span, SpanAttributes, SpanTimeInput, StreamedSpanJSON } from '../../../src/types-hoist/span';
-import type { SpanStatus } from '../../../src/types-hoist/spanStatus';
+import type { SpanLink } from '../../../src/types/link';
+import type { Span, SpanAttributes, SpanTimeInput, StreamedSpanJSON } from '../../../src/types/span';
+import type { SpanStatus } from '../../../src/types/spanStatus';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
 import {
   getRootSpan,
@@ -622,11 +622,9 @@ describe('spanToJSON', () => {
           attr1: { type: 'string', value: 'value1' },
           attr2: { type: 'integer', value: 2 },
           attr3: { type: 'boolean', value: true },
+          attr4: { type: 'array', value: [1, 2, 3] },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test op' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto' },
-          // notice the absence of `attr4`!
-          // for now, we don't yet serialize array attributes. This test will fail
-          // once we allow serializing them.
         },
         links: [
           {

@@ -5,8 +5,8 @@ import { getClient, getCurrentScope, hasExternalPropagationContext } from '../cu
 import { isEnabled } from '../exports';
 import type { Scope } from '../scope';
 import { getDynamicSamplingContextFromScope, getDynamicSamplingContextFromSpan } from '../tracing';
-import type { Span } from '../types-hoist/span';
-import type { SerializedTraceData } from '../types-hoist/tracing';
+import type { Span } from '../types/span';
+import type { SerializedTraceData } from '../types/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from './baggage';
 import { debug } from './debug-logger';
 import { getActiveSpan, spanToTraceHeader, spanToTraceparentHeader } from './spanUtils';

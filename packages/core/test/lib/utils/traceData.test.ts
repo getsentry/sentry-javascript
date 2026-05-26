@@ -15,7 +15,7 @@ import {
 } from '../../../src/';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
-import type { Span } from '../../../src/types-hoist/span';
+import type { Span } from '../../../src/types/span';
 import type { TestClientOptions } from '../../mocks/client';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 

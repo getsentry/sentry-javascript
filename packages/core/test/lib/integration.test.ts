@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { getCurrentScope } from '../../src/currentScopes';
 import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
 import { setCurrentClient } from '../../src/sdk';
-import type { Integration } from '../../src/types-hoist/integration';
-import type { CoreOptions } from '../../src/types-hoist/options';
+import type { Integration } from '../../src/types/integration';
+import type { CoreOptions } from '../../src/types/options';
 import { debug } from '../../src/utils/debug-logger';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 

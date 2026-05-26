@@ -1,4 +1,4 @@
-import type { LogSeverityLevel } from '../types-hoist/log';
+import type { LogSeverityLevel } from '../types/log';
 
 /**
  * Maps a log severity level to a log severity number.

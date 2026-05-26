@@ -5,7 +5,7 @@ import {
   _INTERNAL_flushMetricsBuffer,
   _INTERNAL_getMetricBuffer,
 } from '../../../src/metrics/internal';
-import type { Metric } from '../../../src/types-hoist/metric';
+import type { Metric } from '../../../src/types/metric';
 import * as loggerModule from '../../../src/utils/debug-logger';
 import * as timeModule from '../../../src/utils/time';
 import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';

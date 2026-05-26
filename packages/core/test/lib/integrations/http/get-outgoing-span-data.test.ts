@@ -4,7 +4,7 @@ import {
   setIncomingResponseSpanData,
 } from '../../../../src/integrations/http/get-outgoing-span-data';
 import type { HttpClientRequest, HttpIncomingMessage } from '../../../../src/integrations/http/types';
-import type { Span } from '../../../../src/types-hoist/span';
+import type { Span } from '../../../../src/types/span';
 
 function makeMockRequest(overrides: Partial<Record<string, unknown>> = {}): HttpClientRequest {
   return {

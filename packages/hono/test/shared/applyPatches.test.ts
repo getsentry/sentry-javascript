@@ -11,10 +11,13 @@ vi.mock('@sentry/core', async () => {
       setStatus: vi.fn(),
       end: vi.fn(),
     })),
+    startSpan: vi.fn((_opts: unknown, callback: () => unknown) => callback()),
+    getActiveSpan: vi.fn(() => ({ spanId: 'fake-span' })),
   };
 });
 
 const startInactiveSpanMock = SentryCore.startInactiveSpan as ReturnType<typeof vi.fn>;
+const startSpanMock = SentryCore.startSpan as ReturnType<typeof vi.fn>;
 
 const honoBaseProto = Object.getPrototypeOf(Object.getPrototypeOf(new Hono()));
 const originalRoute = honoBaseProto.route;
@@ -389,6 +392,219 @@ describe('applyPatches', () => {
       await app.fetch(new Request('http://localhost/sub/b/test'));
       expect(startInactiveSpanMock).toHaveBeenCalledTimes(1);
       expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'mwForB' }));
+    });
+  });
+
+  describe('wrapSubAppMiddleware non-invasive patching', () => {
+    it('preserves symbol-keyed properties on sub-app middleware handlers', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const OPENAPI = Symbol('openapi');
+      const META = Symbol('meta');
+      const middleware = async function authMiddleware(_c: unknown, next: () => Promise<void>) {
+        await next();
+      };
+      (middleware as any)[OPENAPI] = { security: [{ bearer: [] }] };
+      (middleware as any)[META] = { rateLimit: 100 };
+      (middleware as any).customProp = 'preserved';
+
+      const subApp = new Hono();
+      subApp.use(middleware);
+      subApp.get('/', () => new Response('ok'));
+
+      app.route('/api', subApp);
+
+      const route = (subApp.routes as Array<{ handler: Function }>).find(
+        r => (r.handler as any).__sentry_original__ === middleware || r.handler === middleware,
+      );
+      expect(route).toBeDefined();
+
+      const wrappedHandler = route!.handler;
+      const symbols = Object.getOwnPropertySymbols(wrappedHandler);
+      expect(symbols).toContain(OPENAPI);
+      expect(symbols).toContain(META);
+      expect((wrappedHandler as any)[OPENAPI]).toEqual({ security: [{ bearer: [] }] });
+      expect((wrappedHandler as any)[META]).toEqual({ rateLimit: 100 });
+      expect((wrappedHandler as any).customProp).toBe('preserved');
+    });
+
+    it('preserves function.name on sub-app middleware after wrapping', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const subApp = new Hono();
+      subApp.use(async function corsMiddleware(_c: unknown, next: () => Promise<void>) {
+        await next();
+      });
+      subApp.get('/', () => new Response('ok'));
+
+      app.route('/api', subApp);
+
+      const route = (subApp.routes as Array<{ handler: Function; method: string }>).find(
+        r => r.method === 'ALL' && r.handler.name === 'corsMiddleware',
+      );
+      expect(route).toBeDefined();
+      expect(route!.handler.name).toBe('corsMiddleware');
+    });
+
+    it('preserves function.length on sub-app middleware after wrapping', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const subApp = new Hono();
+      const mw = async function twoArgMw(_c: unknown, next: () => Promise<void>) {
+        await next();
+      };
+      const originalLength = mw.length;
+      subApp.use(mw);
+      subApp.get('/', () => new Response('ok'));
+
+      app.route('/api', subApp);
+
+      const route = (subApp.routes as Array<{ handler: Function; method: string }>).find(
+        r => r.method === 'ALL' && r.handler.length === originalLength,
+      );
+      expect(route).toBeDefined();
+      expect(route!.handler.length).toBe(originalLength);
+    });
+
+    it('does not alter the behavior of sub-app route handlers (non-middleware)', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const HANDLER_META = Symbol('handler-meta');
+      const handler = async function getItems() {
+        return new Response('items');
+      };
+      (handler as any)[HANDLER_META] = { cached: true };
+
+      const subApp = new Hono();
+      subApp.get('/items', handler);
+
+      app.route('/api', subApp);
+
+      const route = (subApp.routes as Array<{ handler: Function; path: string }>).find(r => r.path === '/items');
+      expect(route).toBeDefined();
+      expect((route!.handler as any)[HANDLER_META]).toEqual({ cached: true });
+
+      const res = await app.fetch(new Request('http://localhost/api/items'));
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe('items');
+    });
+  });
+
+  describe('main-app .get() routes after applyPatches', () => {
+    it('responds correctly from .get() routes registered after applyPatches', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      app.get('/docs', c => c.text('API Documentation'));
+      app.get('/openapi.json', c => c.json({ openapi: '3.0.0', paths: {} }));
+
+      const docsRes = await app.fetch(new Request('http://localhost/docs'));
+      expect(docsRes.status).toBe(200);
+      expect(await docsRes.text()).toBe('API Documentation');
+
+      const specRes = await app.fetch(new Request('http://localhost/openapi.json'));
+      expect(specRes.status).toBe(200);
+      expect(await specRes.json()).toEqual({ openapi: '3.0.0', paths: {} });
+    });
+
+    it('preserves .get() routes registered after .basePath() and .route() chains', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const subApp = new Hono();
+      subApp.use(async function authMiddleware(_c: unknown, next: () => Promise<void>) {
+        await next();
+      });
+      subApp.get('/resource', () => new Response('resource'));
+
+      app.basePath('/api').route('/v1', subApp);
+
+      app.get('/docs', c => c.text('Docs page'));
+      app.get('/openapi.json', c => c.json({ openapi: '3.0.0' }));
+
+      const resourceRes = await app.fetch(new Request('http://localhost/api/v1/resource'));
+      expect(resourceRes.status).toBe(200);
+      expect(await resourceRes.text()).toBe('resource');
+
+      const docsRes = await app.fetch(new Request('http://localhost/docs'));
+      expect(docsRes.status).toBe(200);
+      expect(await docsRes.text()).toBe('Docs page');
+
+      const specRes = await app.fetch(new Request('http://localhost/openapi.json'));
+      expect(specRes.status).toBe(200);
+      expect(await specRes.json()).toEqual({ openapi: '3.0.0' });
+    });
+
+    it('does not corrupt app.routes for third-party route introspection', () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      app.use(async function globalMw(_c: unknown, next: () => Promise<void>) {
+        await next();
+      });
+      app.get('/users', () => new Response('users'));
+      app.post('/users', () => new Response('created'));
+
+      const subApp = new Hono();
+      subApp.get('/items', () => new Response('items'));
+      app.route('/api', subApp);
+
+      const routes = app.routes as Array<{ method: string; path: string; handler: Function }>;
+      const getPaths = routes.filter(r => r.method === 'GET').map(r => r.path);
+      const postPaths = routes.filter(r => r.method === 'POST').map(r => r.path);
+
+      expect(getPaths).toContain('/users');
+      expect(getPaths).toContain('/api/items');
+      expect(postPaths).toContain('/users');
+
+      for (const route of routes) {
+        expect(typeof route.handler).toBe('function');
+      }
+    });
+  });
+
+  describe('patchAppRequest integration', () => {
+    it('patches .request() on sub-apps when they are mounted via route()', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const subApp = new Hono();
+      subApp.get('/hello', () => new Response('world'));
+
+      app.route('/api', subApp);
+
+      await subApp.request('/hello');
+
+      expect(startSpanMock).toHaveBeenCalledTimes(1);
+      expect(startSpanMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'GET /hello',
+          op: 'hono.request',
+          attributes: expect.objectContaining({
+            'sentry.op': 'hono.request',
+            'sentry.origin': 'auto.http.hono.internal_request',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    it('does not double-patch .request() on a sub-app mounted multiple times', () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const subApp = new Hono();
+      subApp.get('/hello', () => new Response('world'));
+
+      app.route('/api', subApp);
+      const patchedRequest = subApp.request;
+
+      app.route('/api2', subApp);
+      expect(subApp.request).toBe(patchedRequest);
     });
   });
 });

@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq-v1
+    environment:
+      - RABBITMQ_DEFAULT_USER=sentry
+      - RABBITMQ_DEFAULT_PASS=sentry
+    ports:
+      - '5673:5672'
+      - '15673:15672'
+    healthcheck:
+      test: ['CMD-SHELL', 'rabbitmq-diagnostics -q ping']
+      interval: 2s
+      timeout: 10s
+      retries: 30
+      start_period: 15s
+
+networks:
+  default:
+    driver: bridge

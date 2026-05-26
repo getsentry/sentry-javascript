@@ -1,6 +1,6 @@
 import { defineIntegration } from '../integration';
-import type { Event, EventHint } from '../types-hoist/event';
-import type { IntegrationFn } from '../types-hoist/integration';
+import type { Event, EventHint } from '../types/event';
+import type { IntegrationFn } from '../types/integration';
 import { isError } from '../utils/is';
 import { truncate } from '../utils/string';
 

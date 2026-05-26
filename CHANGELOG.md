@@ -4,6 +4,104 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.54.0
+
+### Important Changes
+
+- **feat(browser): Add `fetchStreamPerformanceIntegration` for streamed response tracking ([#20778](https://github.com/getsentry/sentry-javascript/pull/20778))**
+
+  A new integration that tracks the performance of streamed fetch responses. Use this to measure time-to-first-byte and streaming duration for APIs that return chunked/streamed data. This replaces the now deprecated `trackFetchStreamPerformance` option.
+
+- **feat(core): Add `dataCollection` client option ([#20965](https://github.com/getsentry/sentry-javascript/pull/20965))**
+
+  Adds a new `dataCollection` client option for controlling what data the SDK collects and sends to Sentry. This provides a centralized way to configure data collection behavior across different SDK features. In the future, this option will be used for fine-granular data filtering, while the simple `sendDefaultPii` boolean option will be deprecated and removed in a future release.
+
+- **feat(core): Support array attributes for spans, logs, and metrics ([#20427](https://github.com/getsentry/sentry-javascript/pull/20427))**
+
+  Arrays of primitive values (`string`, `number`, `boolean`) are now accepted as attribute values. Arrays containing non-primitive elements will be dropped and won't show up in Sentry. Note that array attributes on logs and metrics were previously stringified in certain cases and will now be sent as arrays instead.
+
+- **feat(hono): Add `hono.request` spans for internal `.request()` calls ([#20843](https://github.com/getsentry/sentry-javascript/pull/20843))**
+
+  The Hono SDK now creates spans for internal `.request()` calls, providing better visibility into request handling within Hono applications.
+
+### Other Changes
+
+- feat(core): Add data collection filtering utilities ([#20989](https://github.com/getsentry/sentry-javascript/pull/20989))
+- feat(core): Convert scope contexts to segment span attributes in span streaming ([#20828](https://github.com/getsentry/sentry-javascript/pull/20828))
+- feat(core): Emit `sentry.sdk.integrations` on streamed segment spans ([#20428](https://github.com/getsentry/sentry-javascript/pull/20428))
+- feat(core): HTTP server diagnostics channel utility ([#20779](https://github.com/getsentry/sentry-javascript/pull/20779))
+- feat(core): Migrate span streaming envelope to `dataCollection` ([#21080](https://github.com/getsentry/sentry-javascript/pull/21080))
+- feat(core): Migrate Supabase integration to `dataCollection` ([#21085](https://github.com/getsentry/sentry-javascript/pull/21085))
+- feat(core): Migrate trpc to `dataCollection` ([#21072](https://github.com/getsentry/sentry-javascript/pull/21072))
+- feat(deno): Instrument `node:http` on versions that support it ([#21009](https://github.com/getsentry/sentry-javascript/pull/21009))
+- feat(ember): Extract ember-specific logic into custom `browserTracingIntegration` ([#20702](https://github.com/getsentry/sentry-javascript/pull/20702))
+- feat(logs): Migrate log envelope user inference to `dataCollection` ([#21073](https://github.com/getsentry/sentry-javascript/pull/21073))
+- feat(nuxt): Allow custom configuration files paths in Nuxt module ([#20650](https://github.com/getsentry/sentry-javascript/pull/20650))
+- feat(replay): Update example worker script ([#20899](https://github.com/getsentry/sentry-javascript/pull/20899))
+- feat(serverless): Add server-only context span attributes via processSegmentSpan hooks ([#20842](https://github.com/getsentry/sentry-javascript/pull/20842))
+- fix(astro): Avoid injecting meta tags into `<head>` inside attribute values ([#21089](https://github.com/getsentry/sentry-javascript/pull/21089))
+- fix(astro): Use explicit ResponseInit when injecting meta tags in response ([#21021](https://github.com/getsentry/sentry-javascript/pull/21021))
+- fix(browser): Add a synthetic stack trace to DOMException with empty stack traces if `attachStacktrace` is true ([#19988](https://github.com/getsentry/sentry-javascript/pull/19988))
+- fix(browser): Fix internal frame detection in minified bundles ([#20802](https://github.com/getsentry/sentry-javascript/pull/20802))
+- fix(cloudflare): Avoid repeated flush lock wrapping ([#21156](https://github.com/getsentry/sentry-javascript/pull/21156))
+- fix(cloudflare): Skip SDK initialization for OPTIONS/HEAD requests ([#21090](https://github.com/getsentry/sentry-javascript/pull/21090))
+- fix(cloudflare, vercel-edge): Disable timer-based flush for serverless runtimes ([#20889](https://github.com/getsentry/sentry-javascript/pull/20889))
+- fix(core): Sanitize lone surrogates in log body and attributes ([#20245](https://github.com/getsentry/sentry-javascript/pull/20245))
+- fix(deno): Support `Deno.serve` instrumentation on Deno 2.8 ([#21155](https://github.com/getsentry/sentry-javascript/pull/21155))
+- fix(hono): Preserve middleware handler metadata ([#20954](https://github.com/getsentry/sentry-javascript/pull/20954))
+- fix(hono): Use generic Hono type in Bun/Node ([#21060](https://github.com/getsentry/sentry-javascript/pull/21060))
+- fix(nextjs): Widen `project` option type to `string | string[]` ([#21067](https://github.com/getsentry/sentry-javascript/pull/21067))
+- fix(node): Improve `http.client` double-wrap message ([#20705](https://github.com/getsentry/sentry-javascript/pull/20705))
+- fix(node): Preserve CallbackManager handlers in LangChain instrumentation ([#20849](https://github.com/getsentry/sentry-javascript/pull/20849))
+- fix(react-router): Do not re-write origin on router state changes ([#21056](https://github.com/getsentry/sentry-javascript/pull/21056))
+- fix(replay): Set `sentry.replay_id` attribute on streamed spans ([#20897](https://github.com/getsentry/sentry-javascript/pull/20897))
+- fix(replay): Set `replay_id` on DSC after buffer-to-session conversion ([#20686](https://github.com/getsentry/sentry-javascript/pull/20686))
+- fix(solidstart): Use nitro module for build hooks to preserve preset hooks ([#20861](https://github.com/getsentry/sentry-javascript/pull/20861))
+- ref(core): Rename `types-hoist` to `types` ([#20979](https://github.com/getsentry/sentry-javascript/pull/20979))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add compatibility function for `sendDefaultPii` ([#20967](https://github.com/getsentry/sentry-javascript/pull/20967))
+- chore: Add size-limit for core/server, core/browser ([#20990](https://github.com/getsentry/sentry-javascript/pull/20990))
+- chore: Bump rrweb deps to v2.43.0 ([#20844](https://github.com/getsentry/sentry-javascript/pull/20844))
+- chore(build): Replace sucrase with esbuild ([#20865](https://github.com/getsentry/sentry-javascript/pull/20865))
+- chore(deps): Bump nitropack from 2.13.1 to 2.13.4 ([#20713](https://github.com/getsentry/sentry-javascript/pull/20713))
+- chore(deps): Bump ws from 8.20.0 to 8.20.1 ([#20998](https://github.com/getsentry/sentry-javascript/pull/20998))
+- chore(deps): Remove redundant yarn resolutions ([#20877](https://github.com/getsentry/sentry-javascript/pull/20877))
+- feat(deps): Bump @tootallnate/once from 1.1.2 to 2.0.1 ([#21108](https://github.com/getsentry/sentry-javascript/pull/21108))
+- feat(deps): Bump devalue from 4.3.3 to 5.8.1 ([#20893](https://github.com/getsentry/sentry-javascript/pull/20893))
+- feat(deps): Bump protobufjs from 7.5.5 to 7.5.9 ([#20846](https://github.com/getsentry/sentry-javascript/pull/20846))
+- ref(aws-serverless): Vendor aws-sdk instrumentation ([#20988](https://github.com/getsentry/sentry-javascript/pull/20988))
+- ref(http): Use shared snippets for filtering headers and cookies ([#20970](https://github.com/getsentry/sentry-javascript/pull/20970))
+- ref(nestjs): Vendor nestjs-core instrumentation ([#20996](https://github.com/getsentry/sentry-javascript/pull/20996))
+- ref(node): Remove unused `@opentelemetry/instrumentation-http` dependency ([#21113](https://github.com/getsentry/sentry-javascript/pull/21113))
+- ref(node): Vendor `@fastify/otel` ([#21099](https://github.com/getsentry/sentry-javascript/pull/21099))
+- ref(node): Vendor `@opentelemetry/instrumentation-pg` ([#21102](https://github.com/getsentry/sentry-javascript/pull/21102))
+- ref(node): Vendor `@opentelemetry/sql-common` ([#21140](https://github.com/getsentry/sentry-javascript/pull/21140))
+- ref(node): Vendor `@prisma/instrumentation` ([#21098](https://github.com/getsentry/sentry-javascript/pull/21098))
+- ref(node): Vendor amqplib instrumentation ([#21003](https://github.com/getsentry/sentry-javascript/pull/21003))
+- ref(node): Vendor connect instrumentation ([#20955](https://github.com/getsentry/sentry-javascript/pull/20955))
+- ref(node): Vendor dataloader instrumentation ([#20950](https://github.com/getsentry/sentry-javascript/pull/20950))
+- ref(node): Vendor fs instrumentation ([#20964](https://github.com/getsentry/sentry-javascript/pull/20964))
+- ref(node): Vendor generic-pool instrumentation ([#20949](https://github.com/getsentry/sentry-javascript/pull/20949))
+- ref(node): Vendor graphql instrumentation ([#21096](https://github.com/getsentry/sentry-javascript/pull/21096))
+- ref(node): Vendor hapi instrumentation ([#21057](https://github.com/getsentry/sentry-javascript/pull/21057))
+- ref(node): Vendor kafkajs instrumentation ([#21005](https://github.com/getsentry/sentry-javascript/pull/21005))
+- ref(node): Vendor knex instrumentation ([#20963](https://github.com/getsentry/sentry-javascript/pull/20963))
+- ref(node): Vendor koa instrumentation ([#20956](https://github.com/getsentry/sentry-javascript/pull/20956))
+- ref(node): Vendor lru-memoizer instrumentation ([#20948](https://github.com/getsentry/sentry-javascript/pull/20948))
+- ref(node): Vendor minimal types for dataloader and generic-pool instrumentations ([#21013](https://github.com/getsentry/sentry-javascript/pull/21013))
+- ref(node): Vendor mongodb instrumentation ([#20966](https://github.com/getsentry/sentry-javascript/pull/20966))
+- ref(node): Vendor mongoose instrumentation ([#21058](https://github.com/getsentry/sentry-javascript/pull/21058))
+- ref(node): Vendor mysql instrumentation ([#21016](https://github.com/getsentry/sentry-javascript/pull/21016))
+- ref(node): Vendor mysql2 instrumentation ([#21031](https://github.com/getsentry/sentry-javascript/pull/21031))
+- ref(node): Vendor tedious instrumentation ([#21010](https://github.com/getsentry/sentry-javascript/pull/21010))
+
+</details>
+
+Work in this release was contributed by @abcang, @ahmadio, @delorge, @mdnanocom, and @victorgarciaesgi. Thank you for your contributions!
+
 ## 10.53.1
 
 - fix(core): Don't gate user data for streamed spans at scope read time ([#20827](https://github.com/getsentry/sentry-javascript/pull/20827))

@@ -7,8 +7,8 @@ import * as SentryCore from '../../../src/exports';
 import { addConsoleInstrumentationHandler } from '../../../src/instrument/console';
 import { resetInstrumentationHandlers } from '../../../src/instrument/handlers';
 import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
-import type { Event } from '../../../src/types-hoist/event';
-import type { ConsoleLevel } from '../../../src/types-hoist/instrument';
+import type { Event } from '../../../src/types/event';
+import type { ConsoleLevel } from '../../../src/types/instrument';
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../../../src/utils/debug-logger';
 import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
 

@@ -3,6 +3,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
@@ -128,6 +129,10 @@ test('sends a streamed span envelope with correct spans for a manually started s
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+            type: 'array',
+            value: expect.arrayContaining(['SpanStreaming']),
+          },
           [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
           [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
           [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
@@ -135,8 +140,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
           'process.runtime.engine.version': { type: 'string', value: expect.any(String) },
           'app.start_time': { type: 'string', value: expect.any(String) },
           'app.memory': { type: 'integer', value: expect.any(Number) },
-          // TODO: device.archs is an array and currently dropped during serialization
-          // 'device.archs': { type: 'array', value: [expect.any(String)] },
+          'device.archs': { type: 'array', value: expect.any(Array) },
           'device.boot_time': { type: 'string', value: expect.any(String) },
           'device.memory_size': { type: 'integer', value: expect.any(Number) },
           'device.free_memory': { type: 'integer', value: expect.any(Number) },

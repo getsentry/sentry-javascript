@@ -13,7 +13,7 @@
  * calling the handlers with the relevant data at the appropriate time.
  */
 
-import type { SpanStatus } from '../../types-hoist/spanStatus';
+import type { SpanStatus } from '../../types/spanStatus';
 import { addOutgoingRequestBreadcrumb } from './add-outgoing-request-breadcrumb';
 import {
   getSpanStatusFromHttpCode,

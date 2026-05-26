@@ -6,7 +6,7 @@ import {
   flattenIssuePath,
   formatIssueMessage,
 } from '../../../src/integrations/zoderrors';
-import type { Event, EventHint } from '../../../src/types-hoist/event';
+import type { Event, EventHint } from '../../../src/types/event';
 
 // Simplified type definition
 interface ZodIssue {

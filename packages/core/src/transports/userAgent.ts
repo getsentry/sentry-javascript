@@ -1,4 +1,4 @@
-import type { ClientOptions } from '../types-hoist/options';
+import type { ClientOptions } from '../types/options';
 
 /**
  * Takes the SDK metadata and adds the user-agent header to the transport options.

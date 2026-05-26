@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DsnComponents } from '../../build/types/types-hoist/dsn';
-import type { DynamicSamplingContext } from '../../build/types/types-hoist/envelope';
+import type { DsnComponents } from '../../build/types/types/dsn';
+import type { DynamicSamplingContext } from '../../build/types/types/envelope';
 import type { Client, SdkInfo } from '../../src';
 import {
   getCurrentScope,
@@ -11,7 +11,7 @@ import {
   setCurrentClient,
 } from '../../src';
 import { _enhanceEventWithSdkInfo, createEventEnvelope, createSpanEnvelope } from '../../src/envelope';
-import type { Event } from '../../src/types-hoist/event';
+import type { Event } from '../../src/types/event';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'testry.io', publicKey: 'pubKey123' };

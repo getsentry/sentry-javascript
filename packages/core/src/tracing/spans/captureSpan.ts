@@ -6,6 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
@@ -16,7 +17,7 @@ import {
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
-import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
+import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types/span';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '../../utils/url';
 import {
@@ -27,6 +28,7 @@ import {
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
 import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
+import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 
 export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
   _segmentSpan: Span;
@@ -64,6 +66,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 
   if (spanJSON.is_segment) {
     applyScopeToSegmentSpan(spanJSON, finalScopeData);
+    applySdkMetadataToSegmentSpan(spanJSON, client);
     // Allow hook subscribers to mutate the segment span JSON
     // This also invokes the `processSegmentSpan` hook of all integrations
     client.emit('processSegmentSpan', spanJSON);
@@ -96,9 +99,9 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   };
 }
 
-function applyScopeToSegmentSpan(_segmentSpanJSON: StreamedSpanJSON, _scopeData: ScopeData): void {
-  // TODO: Apply contexts data from auto instrumentation to segment span
-  // This will follow in a separate PR
+function applyScopeToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, scopeData: ScopeData): void {
+  const contextAttributes = scopeContextsToSpanAttributes(scopeData.contexts);
+  safeSetSpanJSONAttributes(segmentSpanJSON, contextAttributes);
 }
 
 /**
@@ -115,6 +118,15 @@ export function safeSetSpanJSONAttributes(
     if (value != null && !(key in originalAttributes)) {
       originalAttributes[key] = value;
     }
+  });
+}
+
+function applySdkMetadataToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, client: Client): void {
+  const integrationNames = client.getIntegrationNames();
+  if (!integrationNames.length) return;
+
+  safeSetSpanJSONAttributes(segmentSpanJSON, {
+    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: integrationNames,
   });
 }
 
