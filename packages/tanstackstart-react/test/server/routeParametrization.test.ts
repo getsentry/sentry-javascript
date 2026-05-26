@@ -38,4 +38,9 @@ describe('matchUrlToRoutePattern', () => {
     const patternsNested = ['/users/$id/profile', '/users/$id'];
     expect(matchUrlToRoutePattern('/users/123/profile', patternsNested)).toBe('/users/$id/profile');
   });
+
+  it('handles URLs with trailing slashes', () => {
+    expect(matchUrlToRoutePattern('/page-a/', patterns)).toBe('/page-a');
+    expect(matchUrlToRoutePattern('/page-b/42/', patterns)).toBe('/page-b/$id');
+  });
 });

@@ -29,8 +29,9 @@ function patternToRegex(pattern: string): RegExp {
  * Patterns are expected to be pre-sorted by specificity (more segments first, static before dynamic).
  */
 export function matchUrlToRoutePattern(pathname: string, patterns: string[]): string | undefined {
+  const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
   for (const pattern of patterns) {
-    if (patternToRegex(pattern).test(pathname)) {
+    if (patternToRegex(pattern).test(normalizedPathname)) {
       return pattern;
     }
   }
