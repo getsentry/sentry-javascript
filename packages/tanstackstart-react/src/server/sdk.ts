@@ -13,5 +13,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   applySdkMetadata(sentryOptions, 'tanstackstart-react', ['tanstackstart-react', 'node']);
 
+  sentryOptions.ignoreSpans = [
+    ...(sentryOptions.ignoreSpans || []),
+    /\/node_modules\//,
+    /\/@id\//,
+    /\/@react-refresh/,
+    /\/@vite\//,
+  ];
+
   return initNodeSdk(sentryOptions);
 }

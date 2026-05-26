@@ -12,6 +12,17 @@ export { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } from '.
 export { createSentryTunnelRoute } from './tunnelRoute';
 
 /**
+ * A no-op stub of the replay integration for the server. Router setup code is shared between client and server,
+ * so this stub is needed to prevent build errors during SSR bundling.
+ */
+export function replayIntegration(_options?: Record<string, unknown>): Integration {
+  return {
+    name: 'Replay',
+    setup() {},
+  };
+}
+
+/**
  * A no-op stub of the browser tracing integration for the server. Router setup code is shared between client and server,
  * so this stub is needed to prevent build errors during SSR bundling.
  */

@@ -35,6 +35,7 @@ test.describe('client-side errors', async () => {
     });
 
     await page.goto(`/test-param/1234`);
+    await page.waitForFunction(() => typeof window.__SENTRY__ === 'object');
     await page.locator('#errorBtn').click();
 
     const error = await errorPromise;

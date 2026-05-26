@@ -1,13 +1,13 @@
-import type { BuildTimeOptionsBase } from '@sentry/core';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { Plugin, UserConfig } from 'vite';
+import type { SentryTanstackStartOptions } from './sentryTanstackStart';
 
 type FilesToDeleteAfterUpload = string | string[] | undefined;
 
 /**
  * A Sentry plugin for adding the @sentry/vite-plugin to automatically upload source maps to Sentry.
  */
-export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[] {
+export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Plugin[] {
   const {
     applicationKey,
     authToken,
@@ -22,6 +22,7 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
     silent,
     sourcemaps,
     telemetry,
+    reactComponentAnnotation,
   } = options;
 
   // defer resolving the filesToDeleteAfterUpload until we got access to the Vite config
@@ -72,6 +73,10 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
       rewriteSources: (sourcemaps as unknown as { rewriteSources?: unknown } | undefined)?.rewriteSources as never,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
     },
+    reactComponentAnnotation: {
+      enabled: reactComponentAnnotation?.enabled ?? undefined,
+      ignoredComponents: reactComponentAnnotation?.ignoredComponents ?? undefined,
+    },
     telemetry: telemetry ?? true,
     url: sentryUrl,
     _metaOptions: {
@@ -87,7 +92,7 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
 /**
  * A Sentry plugin for TanStack Start React to enable "hidden" source maps if they are unset.
  */
-export function makeEnableSourceMapsVitePlugin(options: BuildTimeOptionsBase): Plugin[] {
+export function makeEnableSourceMapsVitePlugin(options: SentryTanstackStartOptions): Plugin[] {
   return [
     {
       name: 'sentry-tanstackstart-react-source-maps',
@@ -123,7 +128,7 @@ export function makeEnableSourceMapsVitePlugin(options: BuildTimeOptionsBase): P
  */
 export function getUpdatedSourceMapSettings(
   viteConfig: UserConfig,
-  sentryPluginOptions?: BuildTimeOptionsBase,
+  sentryPluginOptions?: SentryTanstackStartOptions,
 ): boolean | 'inline' | 'hidden' {
   viteConfig.build = viteConfig.build || {};
 
