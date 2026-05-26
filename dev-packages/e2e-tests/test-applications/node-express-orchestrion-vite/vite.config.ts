@@ -15,7 +15,4 @@ export default defineConfig({
       },
     },
   },
-  ssr: {
-    noExternal: ['mysql'],
-  },
 });

@@ -35,6 +35,9 @@ import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vit
  *      `_experimentalSetupOrchestrion()` detector can confirm the bundler path
  *      ran (rather than relying on a build-time flag that wouldn't be visible
  *      to the runtime).
+ *      Also injects every instrumented package name into `ssr.noExternal` via
+ *      the `config` hook, since externalized deps are `require()`d at runtime
+ *      from `node_modules` and never pass through the transform.
  *   2. The upstream `@apm-js-collab/code-transformer-bundler-plugins/vite`
  *      plugin, fed our central `SENTRY_INSTRUMENTATIONS` config.
  *
@@ -60,9 +63,21 @@ function bundlerMarkerPlugin(): UnknownPlugin {
     '',
   ].join('\n');
 
+  const instrumentedModules = Array.from(new Set(SENTRY_INSTRUMENTATIONS.map(i => i.module.name)));
+
   return {
     name: 'sentry-orchestrion-marker',
     enforce: 'pre' as const,
+    config(): { ssr: { noExternal: string[] } } {
+      // Force-bundle every instrumented package so the code transform actually
+      // sees its source. Vite externalizes dependencies in SSR builds by
+      // default, leaving them as bare `require()`/`import` calls resolved from
+      // `node_modules` at runtime — those copies are untouched and the
+      // diagnostics_channel calls never get injected. Vite merges array
+      // `noExternal` entries with the user's config, so we don't overwrite
+      // their additions.
+      return { ssr: { noExternal: instrumentedModules } };
+    },
     renderChunk(code: string, chunk: { isEntry: boolean }): { code: string; map: null } | null {
       if (!chunk.isEntry) return null;
       return { code: banner + code, map: null };
