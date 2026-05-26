@@ -330,6 +330,29 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
     expect((startInactiveSpanMock.mock.calls[0]![0] as { name: string }).name).toBe('useMw');
   });
 
+  it('produces exactly one span per middleware when called multiple times on the same instance', async () => {
+    const app = new Hono();
+    patchHttpMethodHandlers(app);
+    patchHttpMethodHandlers(app);
+    patchHttpMethodHandlers(app);
+
+    app.get(
+      '/test',
+      async function inlineMw(_c: unknown, next: () => Promise<void>) {
+        await next();
+      },
+      async function routeHandler() {
+        return new Response('ok');
+      },
+    );
+
+    await app.fetch(new Request('http://localhost/test'));
+
+    const spanNames = startInactiveSpanMock.mock.calls.map((c: unknown[]) => (c[0] as { name: string }).name);
+    expect(spanNames).toHaveLength(1);
+    expect(spanNames[0]).toBe('inlineMw');
+  });
+
   it('creates spans for both app.use middleware and inline middleware in app.get', async () => {
     const app = new Hono();
     patchAppUse(app);
