@@ -7,37 +7,25 @@ declare global {
 }
 
 /**
- * Verifies that exactly one of the two orchestrion setup paths is active:
+ * Verifies that orchestrion has been setup, either:
  * - the runtime hook (`node --import @sentry/node/orchestrion app.js`), OR
- * - the bundler plugin (`sentryOrchestrionPlugin()`).
- *
- * Warns if neither (channels never fire — integrations silently record nothing)
- * or both (double-wrapped — duplicate spans) ran.
+ * - the bundler plugin (`sentryOrchestrionPlugin()`)
  */
 export function detectOrchestrionSetup(): void {
+  if (!DEBUG_BUILD) return;
+
   const marker = globalThis.__SENTRY_ORCHESTRION__;
   const runtime = !!marker?.runtime;
   const bundler = !!marker?.bundler;
 
-  DEBUG_BUILD && debug.log(`[orchestrion] detect: runtime=${runtime} bundler=${bundler}`);
-
-  if (runtime && bundler) {
-    DEBUG_BUILD &&
-      debug.warn(
-        '[Sentry] Detected BOTH the @sentry/node/orchestrion runtime hook AND the bundler plugin. ' +
-          'Functions will be instrumented twice and produce duplicate spans. ' +
-          'Remove `--import @sentry/node/orchestrion` if you are using the bundler plugin, or vice versa.',
-      );
-    return;
-  }
+  debug.log(`[orchestrion] detect: runtime=${runtime} bundler=${bundler}`);
 
   if (!runtime && !bundler) {
-    DEBUG_BUILD &&
-      debug.warn(
-        '[Sentry] No orchestrion auto-instrumentation hook detected. Channel-based integrations ' +
-          '(mysql, …) will not record spans. Either run with ' +
-          '`node --import @sentry/node/orchestrion app.js`, or add `sentryOrchestrionPlugin()` ' +
-          'to your bundler config.',
-      );
+    debug.warn(
+      '[Sentry] No orchestrion auto-instrumentation hook detected. Channel-based integrations ' +
+        '(mysql, …) will not record spans. Either run with ' +
+        '`node --import @sentry/node/orchestrion app.js`, or add `sentryOrchestrionPlugin()` ' +
+        'to your bundler config.',
+    );
   }
 }
