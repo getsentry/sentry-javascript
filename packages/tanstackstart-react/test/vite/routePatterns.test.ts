@@ -35,9 +35,9 @@ export interface FileRouteTypes {
     expect(patterns).toHaveLength(4);
   });
 
-  it('always includes the root route', () => {
+  it('returns empty array when fullPaths is not found', () => {
     const patterns = extractRoutePatterns('');
-    expect(patterns).toEqual(['/']);
+    expect(patterns).toEqual([]);
   });
 
   it('extracts nested route full paths correctly', () => {

@@ -21,12 +21,15 @@ export function makeRoutePatternPlugin(): Plugin {
     },
 
     transform(code, id) {
+      // this is set in the `wrapFetchWithSentry` where the paths are getting replaced by their parametrized counterparts
+      // so this extraction should only happen once during the build (for the `wrapFetchWithSentry` file)
       if (!code.includes('__SENTRY_ROUTE_PATTERNS__')) {
         return null;
       }
 
+      // extract the patterns from the route tree file
       const routeTreePath = path.resolve(resolvedRoot, 'src/routeTree.gen.ts');
-      let patterns: string[] = ['/'];
+      let patterns: string[] = [];
       try {
         if (fs.existsSync(routeTreePath)) {
           patterns = extractRoutePatterns(fs.readFileSync(routeTreePath, 'utf-8'));
@@ -49,13 +52,11 @@ export function makeRoutePatternPlugin(): Plugin {
  * Parses the `fullPaths` type union which contains the resolved full paths
  * (e.g., `fullPaths: '/' | '/page-a' | '/users/$userId'`).
  * This is more reliable than `path:` properties which can be relative for nested routes.
- *
- * Only exported for testing.
  */
 export function extractRoutePatterns(content: string): string[] {
   const fullPathsMatch = content.match(/fullPaths:\s*([\s\S]*?)(?:\n\s*\w|\n\})/);
   if (!fullPathsMatch) {
-    return ['/'];
+    return [];
   }
 
   const patterns: string[] = [];
@@ -65,10 +66,6 @@ export function extractRoutePatterns(content: string): string[] {
     if (match[1]) {
       patterns.push(match[1]);
     }
-  }
-
-  if (!patterns.includes('/')) {
-    patterns.push('/');
   }
 
   return [...new Set(patterns)];
