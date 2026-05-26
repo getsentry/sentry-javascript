@@ -56,9 +56,6 @@
     "./orchestrion": {
       "import": {
         "default": "./build/orchestrion/import-hook.mjs"
-      },
-      "require": {
-        "default": "./build/orchestrion/require-hook.cjs"
       }
     },
     "./orchestrion/config": {

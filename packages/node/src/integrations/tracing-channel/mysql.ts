@@ -9,7 +9,6 @@ import {
   startInactiveSpan,
   withActiveSpan,
 } from '@sentry/core';
-import { addOriginToSpan } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 

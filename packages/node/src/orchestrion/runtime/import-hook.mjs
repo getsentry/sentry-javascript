@@ -9,8 +9,8 @@
 // single self-contained `.mjs` file with no relative-path imports — `--import`
 // resolves it via Node's module resolution against the installed package.
 
-import { createRequire } from 'node:module';
-import { register } from 'node:module';
+import { initialize, resolve, load } from '@apm-js-collab/tracing-hooks/hook-sync.mjs';
+import ModulePatch from '@apm-js-collab/tracing-hooks';
 import { SENTRY_INSTRUMENTATIONS } from '@sentry/node/orchestrion/config';
 
 const DEBUG = !!(process.env.DEBUG || process.env.debug || process.env.SENTRY_DEBUG);
@@ -19,28 +19,36 @@ const debug = (...args) => DEBUG && console.log('[Sentry orchestrion]', ...args)
 
 debug('import-hook.mjs loaded, instrumentations:', SENTRY_INSTRUMENTATIONS);
 
-const g = (globalThis.__SENTRY_ORCHESTRION__ ??= {});
-if (g.runtime) {
-  // eslint-disable-next-line no-console
-  console.warn('[Sentry] @sentry/node/orchestrion was loaded twice via --import. Ignoring the second load.');
-} else {
-  g.runtime = true;
+// detection to decide module loader hooks to use
+// registerHooks was present but not stable until 24.13 and 25.1
+const version = (process.versions.node ?? '0.0.0').split('.').map(n => parseInt(n, 10));
+const stableSyncHooks =
+  version[0] > 25 || (version[0] === 25 && version[1] >= 1) || (version[0] === 24 && version[1] >= 13);
 
-  // ESM loader for `import`-ed modules.
-  register('@apm-js-collab/tracing-hooks/hook.mjs', import.meta.url, {
+const g = (globalThis.__SENTRY_ORCHESTRION__ ??= {});
+
+g.runtime = true;
+
+if (typeof Module.registerHooks === 'function' && stableSyncHooks) {
+  initialize({ instrumentations: SENTRY_INSTRUMENTATIONS });
+  Module.registerHooks({ resolve, load });
+  debug('Module.registerHooks() called for @apm-js-collab/tracing-hooks/hook-sync.mjs');
+} else if (typeof Module.register === 'function') {
+  Module.register('@apm-js-collab/tracing-hooks/hook.mjs', import.meta.url, {
     data: { instrumentations: SENTRY_INSTRUMENTATIONS },
   });
-  debug('module.register() called for @apm-js-collab/tracing-hooks/hook.mjs');
+  debug('Module.register() called for @apm-js-collab/tracing-hooks/hook.mjs');
 
-  // ALSO patch `Module.prototype._compile` for the CJS side: when an ESM file
-  // `import`s a CJS package (e.g. `import mysql from 'mysql'`), Node loads the
-  // package's entry through the ESM bridge but resolves the package's INTERNAL
-  // `require()` calls (mysql/index.js → `require('./lib/Connection.js')`)
-  // through the CJS machinery. Those internal requires never reach the ESM
-  // resolve hook, so without this patch the file we actually want to instrument
-  // (mysql/lib/Connection.js) is loaded untransformed.
-  const require = createRequire(import.meta.url);
-  const ModulePatch = require('@apm-js-collab/tracing-hooks');
+  // ALSO patch `Module.prototype._compile` for the CJS side: when
+  // an ESM file `import`s a CJS package, Node loads the package's
+  // entry through the ESM bridge but resolves the package's
+  // INTERNAL `require()` calls through the CJS machinery.
+  // Those internal requires never reach the ESM resolve hook, so
+  // without this patch the file we actually want to instrument is
+  // loaded untransformed.
+  // This isn't necessary in the registerHooks case, because Node
+  // applies those hooks to all CJS and ESM modules.
   new ModulePatch({ instrumentations: SENTRY_INSTRUMENTATIONS }).patch();
-  debug('Module.patch() called for CJS-internal requires');
+} else {
+  throw new Error('No available API to apply module load hooks');
 }

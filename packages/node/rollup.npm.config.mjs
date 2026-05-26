@@ -1,22 +1,19 @@
 import { defineConfig } from 'rollup';
 import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
 
-// EXPERIMENTAL — orchestrion.js runtime hooks. Each one is a tiny hand-written
-// `.mjs`/`.cjs` shim that the user references via `node --import` or
-// `node --require`. We pass them through rollup only to copy them into `build/`
-// at the path the package.json `exports` map expects; `external: /.*/` keeps
-// every import (e.g. `@sentry/node/orchestrion/config`) as a runtime resolution
-// against the installed package.
+// EXPERIMENTAL — orchestrion.js runtime hook. A tiny hand-written `.mjs` shim
+// that the user references via `node --import @sentry/node/orchestrion`. It
+// installs both the ESM loader and a `Module.prototype._compile` patch, so it
+// also covers CJS-internal `require()` calls — no separate `--require` hook is
+// needed. We pass it through rollup only to copy it into `build/` at the path
+// the package.json `exports` map expects; `external: /.*/` keeps every import
+// (e.g. `@sentry/node/orchestrion/config`) as a runtime resolution against the
+// installed package.
 const orchestrionRuntimeHooks = [
   defineConfig({
     input: 'src/orchestrion/runtime/import-hook.mjs',
     external: /.*/,
     output: { format: 'esm', file: 'build/orchestrion/import-hook.mjs' },
-  }),
-  defineConfig({
-    input: 'src/orchestrion/runtime/require-hook.cjs',
-    external: /.*/,
-    output: { format: 'cjs', file: 'build/orchestrion/require-hook.cjs', strict: false },
   }),
 ];
 
