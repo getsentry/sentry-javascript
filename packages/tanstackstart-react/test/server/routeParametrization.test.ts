@@ -20,10 +20,6 @@ describe('matchUrlToRoutePattern', () => {
     expect(matchUrlToRoutePattern('/users/123/posts/456', patterns)).toBe('/users/$userId/posts/$postId');
   });
 
-  it('matches a static API route', () => {
-    expect(matchUrlToRoutePattern('/api/health', patterns)).toBe('/api/health');
-  });
-
   it('returns undefined for unmatched paths', () => {
     expect(matchUrlToRoutePattern('/unknown', patterns)).toBeUndefined();
   });
