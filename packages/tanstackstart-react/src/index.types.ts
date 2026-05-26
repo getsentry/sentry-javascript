@@ -39,6 +39,7 @@ export declare const unleashIntegration: typeof clientSdk.unleashIntegration;
 
 export declare const wrapMiddlewaresWithSentry: typeof serverSdk.wrapMiddlewaresWithSentry;
 
+export declare const replayIntegration: typeof clientSdk.replayIntegration;
 export declare const tanstackRouterBrowserTracingIntegration: typeof clientSdk.tanstackRouterBrowserTracingIntegration;
 export declare const sentryGlobalRequestMiddleware: typeof serverSdk.sentryGlobalRequestMiddleware;
 export declare const sentryGlobalFunctionMiddleware: typeof serverSdk.sentryGlobalFunctionMiddleware;
