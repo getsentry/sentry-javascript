@@ -12,9 +12,6 @@ function patternToRegex(pattern: string): RegExp {
   const segments = pattern
     .split('/')
     .map(segment => {
-      if (segment === '$') {
-        return '.+';
-      }
       if (segment.startsWith('$')) {
         return '[^/]+';
       }
@@ -28,7 +25,7 @@ function patternToRegex(pattern: string): RegExp {
  * Matches a URL pathname against a list of TanStack Start route patterns.
  * Patterns use `$param` syntax for dynamic segments (e.g., `/users/$id`).
  *
- * Patterns are sorted by specificity: more segments first, static before dynamic, splat last.
+ * Patterns are sorted by specificity: more segments first, static before dynamic.
  */
 export function matchUrlToRoutePattern(pathname: string, patterns: string[]): string | undefined {
   const sorted = [...patterns].sort((a, b) => {
@@ -36,11 +33,6 @@ export function matchUrlToRoutePattern(pathname: string, patterns: string[]): st
     const bSegments = b.split('/');
     if (bSegments.length !== aSegments.length) {
       return bSegments.length - aSegments.length;
-    }
-    const aSplat = aSegments.filter(s => s === '$').length;
-    const bSplat = bSegments.filter(s => s === '$').length;
-    if (aSplat !== bSplat) {
-      return aSplat - bSplat;
     }
     const aDynamic = aSegments.filter(s => s.startsWith('$')).length;
     const bDynamic = bSegments.filter(s => s.startsWith('$')).length;

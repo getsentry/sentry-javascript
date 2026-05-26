@@ -37,21 +37,4 @@ describe('matchUrlToRoutePattern', () => {
     const patternsNested = ['/users/$id', '/users/$id/profile'];
     expect(matchUrlToRoutePattern('/users/123/profile', patternsNested)).toBe('/users/$id/profile');
   });
-
-  it('matches splat/catch-all routes across multiple segments', () => {
-    const patternsWithSplat = ['/', '/files/$'];
-    expect(matchUrlToRoutePattern('/files/a/b/c', patternsWithSplat)).toBe('/files/$');
-    expect(matchUrlToRoutePattern('/files/readme.txt', patternsWithSplat)).toBe('/files/$');
-  });
-
-  it('prefers specific routes over splat routes', () => {
-    const patternsWithSplat = ['/files/$', '/files/upload'];
-    expect(matchUrlToRoutePattern('/files/upload', patternsWithSplat)).toBe('/files/upload');
-    expect(matchUrlToRoutePattern('/files/a/b', patternsWithSplat)).toBe('/files/$');
-  });
-
-  it('prefers named param routes over splat routes with same segment count', () => {
-    const patternsWithBoth = ['/files/$', '/files/$name'];
-    expect(matchUrlToRoutePattern('/files/readme.txt', patternsWithBoth)).toBe('/files/$name');
-  });
 });
