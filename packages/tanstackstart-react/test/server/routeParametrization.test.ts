@@ -53,4 +53,9 @@ describe('matchUrlToRoutePattern', () => {
     expect(matchUrlToRoutePattern('/files/upload', patternsWithSplat)).toBe('/files/upload');
     expect(matchUrlToRoutePattern('/files/a/b', patternsWithSplat)).toBe('/files/$');
   });
+
+  it('prefers named param routes over splat routes with same segment count', () => {
+    const patternsWithBoth = ['/files/$', '/files/$name'];
+    expect(matchUrlToRoutePattern('/files/readme.txt', patternsWithBoth)).toBe('/files/$name');
+  });
 });

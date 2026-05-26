@@ -1,9 +1,12 @@
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
-import { getActiveSpan, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON, updateSpanName } from '@sentry/core';
-
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+import {
+  escapeStringForRegex,
+  getActiveSpan,
+  getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanToJSON,
+  updateSpanName,
+} from '@sentry/core';
 
 function patternToRegex(pattern: string): RegExp {
   const segments = pattern
@@ -15,7 +18,7 @@ function patternToRegex(pattern: string): RegExp {
       if (segment.startsWith('$')) {
         return '[^/]+';
       }
-      return escapeRegex(segment);
+      return escapeStringForRegex(segment);
     })
     .join('/');
   return new RegExp(`^${segments}$`);
@@ -25,7 +28,7 @@ function patternToRegex(pattern: string): RegExp {
  * Matches a URL pathname against a list of TanStack Start route patterns.
  * Patterns use `$param` syntax for dynamic segments (e.g., `/users/$id`).
  *
- * Patterns are sorted by specificity: more segments first, static segments before dynamic.
+ * Patterns are sorted by specificity: more segments first, static before dynamic, splat last.
  */
 export function matchUrlToRoutePattern(pathname: string, patterns: string[]): string | undefined {
   const sorted = [...patterns].sort((a, b) => {
@@ -33,6 +36,11 @@ export function matchUrlToRoutePattern(pathname: string, patterns: string[]): st
     const bSegments = b.split('/');
     if (bSegments.length !== aSegments.length) {
       return bSegments.length - aSegments.length;
+    }
+    const aSplat = aSegments.filter(s => s === '$').length;
+    const bSplat = bSegments.filter(s => s === '$').length;
+    if (aSplat !== bSplat) {
+      return aSplat - bSplat;
     }
     const aDynamic = aSegments.filter(s => s.startsWith('$')).length;
     const bDynamic = bSegments.filter(s => s.startsWith('$')).length;
