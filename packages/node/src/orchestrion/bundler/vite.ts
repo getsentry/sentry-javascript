@@ -14,6 +14,7 @@
 type UnknownPlugin = any;
 
 import { SENTRY_INSTRUMENTATIONS } from '../config';
+import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
 
 // `vite` types live in the package's ESM-only subpath; under Node16 module
 // resolution with TS treating @sentry/node as CJS, importing them produces a
@@ -44,8 +45,7 @@ import { SENTRY_INSTRUMENTATIONS } from '../config';
  * export default { plugins: [sentryOrchestrionPlugin()] };
  * ```
  */
-export async function sentryOrchestrionPlugin(): Promise<UnknownPlugin[]> {
-  const { default: codeTransformer } = await import('@apm-js-collab/code-transformer-bundler-plugins/vite');
+export function sentryOrchestrionPlugin(): UnknownPlugin[] {
   const codeTransformerPlugins = codeTransformer({ instrumentations: SENTRY_INSTRUMENTATIONS });
   const codeTransformerArray: UnknownPlugin[] = Array.isArray(codeTransformerPlugins)
     ? codeTransformerPlugins
@@ -56,9 +56,6 @@ export async function sentryOrchestrionPlugin(): Promise<UnknownPlugin[]> {
 function bundlerMarkerPlugin(): UnknownPlugin {
   const banner = [
     'globalThis.__SENTRY_ORCHESTRION__ = (globalThis.__SENTRY_ORCHESTRION__ || {});',
-    'if (globalThis.__SENTRY_ORCHESTRION__.bundler) {',
-    '  console.warn("[Sentry] sentryOrchestrionPlugin() ran twice in the same bundle. Functions may be instrumented twice.");',
-    '}',
     'globalThis.__SENTRY_ORCHESTRION__.bundler = true;',
     '',
   ].join('\n');
