@@ -192,9 +192,9 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelRoutePlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
-        mockTunnelRoutePlugin,
         mockMiddlewarePlugin,
       ]);
     });
