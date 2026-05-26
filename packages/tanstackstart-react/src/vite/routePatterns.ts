@@ -60,7 +60,7 @@ export function extractRoutePatterns(content: string): string[] {
   }
 
   const patterns: string[] = [];
-  const pathRegex = /'([^']+)'/g;
+  const pathRegex = /['"]([^'"]+)['"]/g;
   let match;
   while ((match = pathRegex.exec(fullPathsMatch[1] || '')) !== null) {
     if (match[1]) {

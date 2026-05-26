@@ -68,6 +68,19 @@ export interface FileRouteTypes {
     expect(patterns).toEqual(['/users/$id/profile', '/page-b/special', '/page-b/$id', '/users/$id', '/']);
   });
 
+  it('handles double-quoted paths (quoteStyle: "double")', () => {
+    const content = `
+export interface FileRouteTypes {
+  fullPaths: "/" | "/page-a" | "/page-b/$id"
+  fileRoutesByTo: FileRoutesByTo
+}
+`;
+    const patterns = extractRoutePatterns(content);
+    expect(patterns).toContain('/');
+    expect(patterns).toContain('/page-a');
+    expect(patterns).toContain('/page-b/$id');
+  });
+
   it('deduplicates patterns', () => {
     const content = `
 export interface FileRouteTypes {
