@@ -20,8 +20,6 @@
 
   Adds a new `dataCollection` client option for controlling what data the SDK collects and sends to Sentry. This provides a centralized way to configure data collection behavior across different SDK features. In the future, this option will be used for fine-granular data filtering, while the simple `sendDefaultPii` boolean option will be deprecated and removed in a future release.
 
-Work in this release was contributed by @abcang, @ahmadio, @victorgarciaesgi, @delorge, and @mdnanocom. Thank you for your contributions!
-
 - **feat(core): Support array attributes for spans, logs, and metrics ([#20427](https://github.com/getsentry/sentry-javascript/pull/20427))**
 
   Arrays of primitive values (`string`, `number`, `boolean`) are now accepted as attribute values. Arrays containing non-primitive elements will be dropped and won't show up in Sentry. Note that array attributes on logs and metrics were previously stringified in certain cases and will now be sent as arrays instead.
