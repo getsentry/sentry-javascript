@@ -1,32 +1,24 @@
 {
-  "name": "node-express-vite-orchestrion-app",
+  "name": "node-express-orchestrion-app",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
-    "start": "node --import ./dist/instrument.js ./dist/app.js",
+    "start": "node --import ./src/instrument.mjs ./src/app.mjs",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
-    "test:build": "pnpm install && pnpm build",
+    "test:build": "pnpm install",
     "test:assert": "pnpm test"
   },
   "dependencies": {
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
-    "@types/express": "^4.17.21",
-    "@types/node": "^18.19.1",
     "express": "^5.1.0",
-    "mysql": "2.18.1",
-    "typescript": "~5.0.0"
+    "mysql": "2.18.1"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
-    "vite": "^5.4.11"
-  },
-  "resolutions": {
-    "@types/qs": "6.9.17"
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz"
   },
   "volta": {
     "extends": "../../package.json"

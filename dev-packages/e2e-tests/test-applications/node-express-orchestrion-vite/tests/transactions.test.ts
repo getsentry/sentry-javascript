@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an API route transaction', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('node-express-vite-orchestrion', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('node-express-orchestrion-vite', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'
@@ -104,7 +104,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 });
 
 test('Sends an API route transaction for an errored route', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-express-vite-orchestrion', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-express-orchestrion-vite', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.transaction === 'GET /test-exception/:id' &&
@@ -123,7 +123,7 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
 });
 
 test('Instruments MySQL via Orchestrion', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-express-vite-orchestrion', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-express-orchestrion-vite', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /test-mysql';
   });
 
