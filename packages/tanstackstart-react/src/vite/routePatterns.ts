@@ -6,7 +6,8 @@ import type { Plugin } from 'vite';
  * Extracts route patterns from TanStack Start's generated routeTree.gen.ts
  * and replaces `__SENTRY_ROUTE_PATTERNS__` references with the extracted patterns.
  *
- * Reads the route tree lazily during `transform` to ensure it exists after TanStack Start generates it.
+ * The route tree file is read during `transform` rather than `config` because
+ * TanStack Start generates it during the build.
  */
 export function makeRoutePatternPlugin(): Plugin {
   let resolvedRoot = '';
