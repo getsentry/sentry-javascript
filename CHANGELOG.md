@@ -8,6 +8,10 @@
 
   Change the recommended setup for the SDK to do `Sentry.init()` in the client entry file to capture telemetry that is emitted ahead of page hydration.
 
+- **feat(tanstackstart-react): Add distributed tracing ([#21144](https://github.com/getsentry/sentry-javascript/pull/21144))**
+
+  Server and client traces are now automatically connected, allowing you to see the full request lifecycle from server-side rendering through client-side hydration in a single trace.
+
 ## 10.54.0
 
 ### Important Changes

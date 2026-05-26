@@ -3,11 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const startSpanSpy = vi.fn((_, callback) => callback());
 const flushIfServerlessSpy = vi.fn().mockResolvedValue(undefined);
 
+const captureExceptionSpy = vi.fn();
+
 vi.mock('@sentry/node', async importOriginal => {
   const original = await importOriginal();
   return {
     ...original,
     startSpan: (...args: unknown[]) => startSpanSpy(...args),
+    captureException: (...args: unknown[]) => captureExceptionSpy(...args),
   };
 });
 
@@ -146,6 +149,34 @@ describe('wrapFetchWithSentry', () => {
 
     expect(html).toContain('<head><meta name="sentry-trace"');
     expect(html).toContain('data-content="<head>ignore"');
+  });
+
+  it('captures exception when HTML response body stream errors', async () => {
+    const streamError = new Error('stream read error');
+    const body = new ReadableStream({
+      start(controller) {
+        controller.error(streamError);
+      },
+    });
+    const mockResponse = new Response(body, {
+      headers: new Headers({ 'content-type': 'text/html' }),
+    });
+    const fetchFn = vi.fn().mockResolvedValue(mockResponse);
+
+    const serverEntry = wrapFetchWithSentry({ fetch: fetchFn });
+    const request = new Request('http://localhost:3000/');
+
+    const response = await serverEntry.fetch(request);
+
+    try {
+      await response.text();
+    } catch {
+      // expected — the stream errors
+    }
+
+    expect(captureExceptionSpy).toHaveBeenCalledWith(streamError, {
+      mechanism: { type: 'auto.http.tanstackstart', handled: false },
+    });
   });
 
   it('calls flushIfServerless even if the handler throws', async () => {
