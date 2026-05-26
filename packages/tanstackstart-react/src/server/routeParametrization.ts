@@ -2,6 +2,7 @@ import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
   escapeStringForRegex,
   getActiveSpan,
+  getCurrentScope,
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
@@ -25,21 +26,10 @@ function patternToRegex(pattern: string): RegExp {
  * Matches a URL pathname against a list of TanStack Start route patterns.
  * Patterns use `$param` syntax for dynamic segments (e.g., `/users/$id`).
  *
- * Patterns are sorted by specificity: more segments first, static before dynamic.
+ * Patterns are expected to be pre-sorted by specificity (more segments first, static before dynamic).
  */
 export function matchUrlToRoutePattern(pathname: string, patterns: string[]): string | undefined {
-  const sorted = [...patterns].sort((a, b) => {
-    const aSegments = a.split('/');
-    const bSegments = b.split('/');
-    if (bSegments.length !== aSegments.length) {
-      return bSegments.length - aSegments.length;
-    }
-    const aDynamic = aSegments.filter(s => s.startsWith('$')).length;
-    const bDynamic = bSegments.filter(s => s.startsWith('$')).length;
-    return aDynamic - bDynamic;
-  });
-
-  for (const pattern of sorted) {
+  for (const pattern of patterns) {
     if (patternToRegex(pattern).test(pathname)) {
       return pattern;
     }
@@ -67,7 +57,9 @@ export function updateSpanWithRouteParametrization(method: string, pathname: str
     return;
   }
 
-  updateSpanName(rootSpan, `${method} ${matchedPattern}`);
+  const transactionName = `${method} ${matchedPattern}`;
+  updateSpanName(rootSpan, transactionName);
   rootSpan.setAttribute(ATTR_HTTP_ROUTE, matchedPattern);
   rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+  getCurrentScope().setTransactionName(transactionName);
 }

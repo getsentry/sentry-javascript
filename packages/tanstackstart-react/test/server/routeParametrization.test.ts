@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { matchUrlToRoutePattern } from '../../src/server/routeParametrization';
 
 describe('matchUrlToRoutePattern', () => {
-  const patterns = ['/', '/page-a', '/page-b/$id', '/users/$userId/posts/$postId', '/api/health'];
+  // Pre-sorted by specificity: more segments first, static before dynamic
+  const patterns = ['/users/$userId/posts/$postId', '/api/health', '/page-a', '/page-b/$id', '/'];
 
   it('matches the root route', () => {
     expect(matchUrlToRoutePattern('/', patterns)).toBe('/');
@@ -28,13 +29,13 @@ describe('matchUrlToRoutePattern', () => {
     expect(matchUrlToRoutePattern('/page-b', patterns)).toBeUndefined();
   });
 
-  it('prefers static over dynamic matches', () => {
-    const patternsWithOverlap = ['/page-b/$id', '/page-b/special'];
+  it('prefers static over dynamic matches when pre-sorted', () => {
+    const patternsWithOverlap = ['/page-b/special', '/page-b/$id'];
     expect(matchUrlToRoutePattern('/page-b/special', patternsWithOverlap)).toBe('/page-b/special');
   });
 
-  it('prefers more specific routes (more segments)', () => {
-    const patternsNested = ['/users/$id', '/users/$id/profile'];
+  it('prefers more specific routes when pre-sorted', () => {
+    const patternsNested = ['/users/$id/profile', '/users/$id'];
     expect(matchUrlToRoutePattern('/users/123/profile', patternsNested)).toBe('/users/$id/profile');
   });
 });

@@ -68,5 +68,14 @@ export function extractRoutePatterns(content: string): string[] {
     }
   }
 
-  return [...new Set(patterns)];
+  return [...new Set(patterns)].sort((a, b) => {
+    const aSegments = a.split('/');
+    const bSegments = b.split('/');
+    if (bSegments.length !== aSegments.length) {
+      return bSegments.length - aSegments.length;
+    }
+    const aDynamic = aSegments.filter(s => s.startsWith('$')).length;
+    const bDynamic = bSegments.filter(s => s.startsWith('$')).length;
+    return aDynamic - bDynamic;
+  });
 }

@@ -57,6 +57,17 @@ export interface FileRouteTypes {
     expect(patterns).toContain('/users/$userId/posts/$postId');
   });
 
+  it('sorts patterns by specificity: more segments first, static before dynamic', () => {
+    const content = `
+export interface FileRouteTypes {
+  fullPaths: '/' | '/page-b/$id' | '/page-b/special' | '/users/$id/profile' | '/users/$id'
+  fileRoutesByTo: FileRoutesByTo
+}
+`;
+    const patterns = extractRoutePatterns(content);
+    expect(patterns).toEqual(['/users/$id/profile', '/page-b/special', '/page-b/$id', '/users/$id', '/']);
+  });
+
   it('deduplicates patterns', () => {
     const content = `
 export interface FileRouteTypes {
