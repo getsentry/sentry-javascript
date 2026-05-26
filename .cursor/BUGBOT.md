@@ -26,6 +26,7 @@ Unless explicitly noted (e.g. in the `Testing Conventions` section), only flag t
 - Multiple loops over the same array (for example, chaining `.filter`, `.map`, `.forEach`). Suggest a classic `for` loop as a replacement.
 - Memory leaks from event listeners, timers, or closures not being cleaned up / unsubscribed from
 - Large bundle size increases in browser packages. Sometimes they're unavoidable but flag them anyway.
+- Flag top-level side effects (function calls, mutations of module-level state, IIFEs) in modules that are reachable from a package's public entry points. Side effects defeat tree-shaking and inflate bundles for users who don't import the affected code. Pure exports (constants, classes, factory functions, side-effect-free declarations) are fine.
 
 ### Auto instrumentation, SDK integrations, Sentry-specific conventions
 
@@ -44,6 +45,14 @@ Unless explicitly noted (e.g. in the `Testing Conventions` section), only flag t
   - Only consider calling `captureException` if the instrumentation prevents errors from bubbling up (e.g. by swallowing them in a `try/catch` or an error event listener). Doing so is generally discouraged — prefer to let the error propagate instead.
   - Flag any instrumentation that swallows errors without calling `captureException`, and any instrumentation that calls `captureException` even though the error would still bubble up to the user (which causes double-reporting).
 - When calling `generateInstrumentationOnce`, the passed in name MUST match the name of the integration that uses it. If there are multiple instrumentations, they need to follow the pattern `${INSTRUMENTATION_NAME}.some-suffix`.
+- Flag any unguarded `debug.log` / `debug.warn` / `debug.error` call in SDK source. The convention is the short-circuit form `DEBUG_BUILD && debug.log(...)` (not `if (DEBUG_BUILD) { ... }` wrapping). Without the `DEBUG_BUILD` gate the message text ships in production bundles and bloats bundle size.
+- Flag direct `console.log` / `console.warn` / `console.error` / `console.info` / `console.debug` calls in SDK source. The accepted patterns are:
+  - The SDK's `debug` logger (gated with `DEBUG_BUILD && debug.*`) for SDK-internal diagnostics.
+  - `consoleSandbox(() => { console.warn(...) })` for intentional user-facing warnings (e.g. init-time misconfiguration messages). The `consoleSandbox` wrapper prevents the SDK's own console instrumentation from intercepting the call. Bare `console.*` calls outside very early init paths (e.g. before the logger is available) should be flagged.
+
+### Code quality
+
+- Flag new uses of `any`, `as any`, `as unknown as ...` double-casts, or non-null assertions (`!`) in SDK source. Each occurrence should have a comment explaining why a safer typing isn't possible; flag any that don't.
 
 ## Testing Conventions
 
@@ -65,3 +74,4 @@ Unless explicitly noted (e.g. in the `Testing Conventions` section), only flag t
 
 - When any `setTimeout` or `setInterval` timers are started in a code path that can end up in server runtime packages (e.g. `@sentry/core` or `@sentry/node`), flag if neither `timeout.unref()` nor `safeUnref()` are called.
   Not unref'ing a timer can keep CLI-like applications or node scripts from exiting immediately, due to the process waiting on timers started by the SDK.
+- Flag Node-only imports (`fs`, `path`, `child_process`, `os`, `net`, `http`, `https`, `node:*`, etc.) in code paths that ship to non-Node runtimes (`@sentry/browser`, `@sentry/cloudflare`, `@sentry/deno`, `@sentry/bun`, or shared code in `@sentry/core` / `@sentry/browser-utils` reachable from those entry points). When the dependency is unavoidable, isolate it behind a runtime check, dynamic `import()`, or a Node-only entry point — never at the top level of a cross-runtime module.
