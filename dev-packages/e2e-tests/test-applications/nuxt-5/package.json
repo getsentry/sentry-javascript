@@ -13,8 +13,8 @@
     "test": "playwright test",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "bash ./nuxt-start-dev-server.bash && TEST_ENV=development playwright test environment",
-    "test:build": "pnpm install && pnpm build",
-    "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitro@npm:nitro-nightly@latest && pnpm install --force && pnpm build",
+    "test:build": "npm install && pnpm build",
+    "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitro@npm:nitro-nightly@latest && npm install --force && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "//": [
