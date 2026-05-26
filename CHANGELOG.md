@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **test(tanstackstart-react): Move initialization to client entry point ([#21161](https://github.com/getsentry/sentry-javascript/pull/21161))**
+
+  Change the recommended setup for the SDK to do `Sentry.init()` in the client entry file to capture telemetry that is emitted ahead of page hydration.
+
 ## 10.54.0
 
 ### Important Changes
@@ -15,6 +19,8 @@
 - **feat(core): Add `dataCollection` client option ([#20965](https://github.com/getsentry/sentry-javascript/pull/20965))**
 
   Adds a new `dataCollection` client option for controlling what data the SDK collects and sends to Sentry. This provides a centralized way to configure data collection behavior across different SDK features. In the future, this option will be used for fine-granular data filtering, while the simple `sendDefaultPii` boolean option will be deprecated and removed in a future release.
+
+Work in this release was contributed by @abcang, @ahmadio, @victorgarciaesgi, @delorge, and @mdnanocom. Thank you for your contributions!
 
 - **feat(core): Support array attributes for spans, logs, and metrics ([#20427](https://github.com/getsentry/sentry-javascript/pull/20427))**
 
