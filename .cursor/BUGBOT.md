@@ -43,7 +43,10 @@ Do not flag the issues below if they appear in tests.
     - The type should align with the `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN` if a span wraps the `captureException` call.
     - If there's no direct span that's wrapping the captured exception, apply a proper `type` value, following the same naming
       convention as the `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN` value.
-- When calling `startSpan`, check if error cases are handled. If flag that it might make sense to try/catch and call `captureException`.
+- When calling any `startSpan` API, check how errors in the instrumented code are handled:
+  - Generally, errors in instrumented code should be allowed to bubble up so the end user can handle them. If they remain unhandled, they will eventually be captured by Sentry through the SDK's global error handlers — so instrumentation code should typically **not** call `captureException` itself.
+  - Only consider calling `captureException` if the instrumentation prevents errors from bubbling up (e.g. by swallowing them in a `try/catch` or an error event listener). Doing so is generally discouraged — prefer to let the error propagate instead.
+  - Flag any instrumentation that swallows errors without calling `captureException`, and any instrumentation that calls `captureException` even though the error would still bubble up to the user (which causes double-reporting).
 - When calling `generateInstrumentationOnce`, the passed in name MUST match the name of the integration that uses it. If there are more than one instrumentations, they need to follow the pattern `${INSTRUMENTATION_NAME}.some-suffix`.
 
 ## Testing Conventions
