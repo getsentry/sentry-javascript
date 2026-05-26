@@ -89,8 +89,6 @@ export function makeErrorHandler(client: NodeClient, options: OnUncaughtExceptio
           return (
             // as soon as we're using domains this listener is attached by node itself
             listener.name !== 'domainUncaughtExceptionClear' &&
-            // the handler we register for tracing
-            listener.tag !== 'sentry_tracingErrorCallback' &&
             // the handler we register in this integration
             (listener as ErrorHandler)._errorHandler !== true
           );
