@@ -1,31 +1,21 @@
 import type { ReactNode } from 'react';
 import { Outlet, createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
-import { getTraceData } from '@sentry/tanstackstart-react';
 
 export const Route = createRootRoute({
-  head: () => {
-    const traceData = getTraceData();
-    const sentryMeta = Object.entries(traceData).map(([key, value]) => ({
-      name: key,
-      content: value,
-    }));
-
-    return {
-      meta: [
-        {
-          charSet: 'utf-8',
-        },
-        {
-          name: 'viewport',
-          content: 'width=device-width, initial-scale=1',
-        },
-        {
-          title: 'TanStack Start Cloudflare E2E Test',
-        },
-        ...sentryMeta,
-      ],
-    };
-  },
+  head: () => ({
+    meta: [
+      {
+        charSet: 'utf-8',
+      },
+      {
+        name: 'viewport',
+        content: 'width=device-width, initial-scale=1',
+      },
+      {
+        title: 'TanStack Start Cloudflare E2E Test',
+      },
+    ],
+  }),
   component: RootComponent,
 });
 
