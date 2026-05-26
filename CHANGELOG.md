@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **test(tanstackstart-react): Move initialization to client entry point ([#21161](https://github.com/getsentry/sentry-javascript/pull/21161))**
+
+  Change the recommended setup for the SDK to do `Sentry.init()` in the client entry file to capture telemetry that is emitted ahead of page hydration.
+
 ## 10.54.0
 
 ### Important Changes
