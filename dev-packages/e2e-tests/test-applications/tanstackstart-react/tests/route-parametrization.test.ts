@@ -28,15 +28,11 @@ test('should parametrize server and client transaction names for dynamic routes'
   const serverTx = await serverTxPromise;
   const clientTx = await clientTxPromise;
 
-  expect(serverTx).toMatchObject({
-    transaction: 'GET /param/$id',
-    transaction_info: { source: 'route' },
-  });
+  expect(serverTx.transaction).toBe('GET /param/$id');
+  expect(serverTx.transaction_info?.source).toBe('route');
 
-  expect(clientTx).toMatchObject({
-    transaction: '/param/$id',
-    transaction_info: { source: 'route' },
-  });
+  expect(clientTx.transaction).toBe('/param/$id');
+  expect(clientTx.transaction_info?.source).toBe('route');
 });
 
 test('should parametrize server and client transaction names for nested dynamic routes', async ({ page }) => {
@@ -61,15 +57,11 @@ test('should parametrize server and client transaction names for nested dynamic 
   const serverTx = await serverTxPromise;
   const clientTx = await clientTxPromise;
 
-  expect(serverTx).toMatchObject({
-    transaction: 'GET /users/$userId',
-    transaction_info: { source: 'route' },
-  });
+  expect(serverTx.transaction).toBe('GET /users/$userId');
+  expect(serverTx.transaction_info?.source).toBe('route');
 
-  expect(clientTx).toMatchObject({
-    transaction: '/users/$userId',
-    transaction_info: { source: 'route' },
-  });
+  expect(clientTx.transaction).toBe('/users/$userId');
+  expect(clientTx.transaction_info?.source).toBe('route');
 });
 
 test('should parametrize API route transaction names', async ({ baseURL }) => {
@@ -85,8 +77,6 @@ test('should parametrize API route transaction names', async ({ baseURL }) => {
 
   const serverTx = await serverTxPromise;
 
-  expect(serverTx).toMatchObject({
-    transaction: 'GET /api/user/$id',
-    transaction_info: { source: 'route' },
-  });
+  expect(serverTx.transaction).toBe('GET /api/user/$id');
+  expect(serverTx.transaction_info?.source).toBe('route');
 });
