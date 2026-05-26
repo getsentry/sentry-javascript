@@ -170,37 +170,47 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
             const executeSpan = (): unknown => {
               return startSpan({ name: methodName, attributes }, span => {
-                // When linking to previous trace, fetch the stored context and add links asynchronously
-                // This avoids blocking the response while fetching from storage
+                // When linking to a previous trace, fetch the stored context in parallel with the
+                // user's handler and await it before the span ends, so `sentry.previous_trace` lands
+                // on the serialized transaction. Awaiting it ties the lookup into the handler's
+                // async lifecycle, so a separate `waitUntil` is not needed.
+                let linkPromise: Promise<void> | undefined;
+
                 if (startNewTrace && storage) {
-                  waitUntil?.(
-                    getStoredSpanContext(storage, methodName).then(storedContext => {
-                      if (storedContext) {
-                        span.addLinks(buildSpanLinks(storedContext));
-                        // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
-                        // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
-                        // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
-                        // to check this at v11 time :)
-                        const sampledFlag = storedContext.sampled ? '1' : '0';
-                        span.setAttribute(
-                          'sentry.previous_trace',
-                          `${storedContext.traceId}-${storedContext.spanId}-${sampledFlag}`,
-                        );
-                      }
-                    }),
-                  );
+                  linkPromise = getStoredSpanContext(storage, methodName).then(storedContext => {
+                    if (storedContext) {
+                      span.addLinks(buildSpanLinks(storedContext));
+                      // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
+                      // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
+                      // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
+                      // to check this at v11 time :)
+                      const sampledFlag = storedContext.sampled ? '1' : '0';
+                      span.setAttribute(
+                        'sentry.previous_trace',
+                        `${storedContext.traceId}-${storedContext.spanId}-${sampledFlag}`,
+                      );
+                    }
+                  });
                 }
+
+                const awaitLink = async (): Promise<void> => {
+                  if (linkPromise) {
+                    await linkPromise.catch(() => undefined);
+                  }
+                };
 
                 try {
                   const result = Reflect.apply(target, thisArg, args);
 
                   if (isThenable(result)) {
                     return result.then(
-                      (res: unknown) => {
+                      async (res: unknown) => {
+                        await awaitLink();
                         waitUntil?.(teardown());
                         return res;
                       },
-                      (e: unknown) => {
+                      async (e: unknown) => {
+                        await awaitLink();
                         captureException(e, {
                           mechanism: {
                             type: 'auto.faas.cloudflare.durable_object',
