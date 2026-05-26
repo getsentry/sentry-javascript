@@ -12,6 +12,10 @@
 
   Server and client traces are now automatically connected, allowing you to see the full request lifecycle from server-side rendering through client-side hydration in a single trace.
 
+- **feat(tanstackstart-react): Add server-side route parametrization ([#21147](https://github.com/getsentry/sentry-javascript/pull/21147))**
+
+  Server transaction names are now parametrized automatically (e.g., `GET /users/123` becomes `GET /users/$userId`), improving transaction grouping in Sentry.
+
 ## 10.54.0
 
 ### Important Changes
