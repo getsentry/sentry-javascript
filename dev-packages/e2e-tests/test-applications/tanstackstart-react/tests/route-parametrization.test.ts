@@ -6,7 +6,7 @@ const usesManagedTunnelRoute =
 
 test.skip(usesManagedTunnelRoute, 'Default e2e suites run only in the proxy variant');
 
-test('should parametrize server transaction names for dynamic routes', async ({ page }) => {
+test('should parametrize server and client transaction names for dynamic routes', async ({ page }) => {
   const serverTxPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
@@ -15,14 +15,31 @@ test('should parametrize server transaction names for dynamic routes', async ({ 
     );
   });
 
+  const clientTxPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'pageload' &&
+      typeof transactionEvent?.transaction === 'string' &&
+      transactionEvent.transaction.includes('/param/')
+    );
+  });
+
   await page.goto('/param/42');
 
   const serverTx = await serverTxPromise;
+  const clientTx = await clientTxPromise;
 
-  expect(serverTx.transaction).toBe('GET /param/$id');
+  expect(serverTx).toMatchObject({
+    transaction: 'GET /param/$id',
+    transaction_info: { source: 'route' },
+  });
+
+  expect(clientTx).toMatchObject({
+    transaction: '/param/$id',
+    transaction_info: { source: 'route' },
+  });
 });
 
-test('should parametrize server transaction names for nested dynamic routes', async ({ page }) => {
+test('should parametrize server and client transaction names for nested dynamic routes', async ({ page }) => {
   const serverTxPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
@@ -31,9 +48,45 @@ test('should parametrize server transaction names for nested dynamic routes', as
     );
   });
 
+  const clientTxPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'pageload' &&
+      typeof transactionEvent?.transaction === 'string' &&
+      transactionEvent.transaction.includes('/users/')
+    );
+  });
+
   await page.goto('/users/123');
 
   const serverTx = await serverTxPromise;
+  const clientTx = await clientTxPromise;
 
-  expect(serverTx.transaction).toBe('GET /users/$userId');
+  expect(serverTx).toMatchObject({
+    transaction: 'GET /users/$userId',
+    transaction_info: { source: 'route' },
+  });
+
+  expect(clientTx).toMatchObject({
+    transaction: '/users/$userId',
+    transaction_info: { source: 'route' },
+  });
+});
+
+test('should parametrize API route transaction names', async ({ baseURL }) => {
+  const serverTxPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      typeof transactionEvent?.transaction === 'string' &&
+      transactionEvent.transaction.includes('/api/user/')
+    );
+  });
+
+  await fetch(`${baseURL}/api/user/456`);
+
+  const serverTx = await serverTxPromise;
+
+  expect(serverTx).toMatchObject({
+    transaction: 'GET /api/user/$id',
+    transaction_info: { source: 'route' },
+  });
 });
