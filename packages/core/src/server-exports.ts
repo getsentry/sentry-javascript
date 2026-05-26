@@ -24,6 +24,27 @@ export type {
 } from './integrations/express/types';
 export { instrumentPostgresJsSql } from './integrations/postgresjs';
 
+export {
+  IOREDIS_DC_CHANNEL_COMMAND,
+  IOREDIS_DC_CHANNEL_CONNECT,
+  REDIS_DC_CHANNEL_BATCH,
+  REDIS_DC_CHANNEL_COMMAND,
+  REDIS_DC_CHANNEL_CONNECT,
+  subscribeRedisDiagnosticChannels,
+} from './integrations/redis/redis-dc-subscriber';
+export type {
+  IORedisCommandData,
+  RedisBatchData,
+  RedisCommandData,
+  RedisConnectData,
+  RedisDiagnosticChannelResponseHook,
+  RedisTracingChannel,
+  RedisTracingChannelContextWithSpan,
+  RedisTracingChannelFactory,
+  RedisTracingChannelSubscribers,
+} from './integrations/redis/redis-dc-subscriber';
+export { defaultDbStatementSerializer } from './integrations/redis/redis-statement-serializer';
+
 export { patchHttpModuleClient } from './integrations/http/client-patch';
 export { getHttpClientSubscriptions } from './integrations/http/client-subscriptions';
 export { getHttpServerSubscriptions, isStaticAssetRequest } from './integrations/http/server-subscription';

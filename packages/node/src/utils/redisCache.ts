@@ -1,4 +1,4 @@
-export type IORedisCommandArgs = Array<string | Buffer | number | unknown[]>;
+export type IORedisCommandArgs = Array<string | Buffer | Uint8Array | number | unknown[]>;
 
 const SINGLE_ARG_COMMANDS = ['get', 'set', 'setex'];
 
@@ -37,9 +37,11 @@ export function getCacheKeySafely(redisCommand: string, cmdArgs: IORedisCommandA
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const processArg = (arg: string | Buffer | number | any[]): string[] => {
-      if (typeof arg === 'string' || typeof arg === 'number' || Buffer.isBuffer(arg)) {
+    const processArg = (arg: string | Buffer | Uint8Array | number | any[]): string[] => {
+      if (typeof arg === 'string' || typeof arg === 'number') {
         return [arg.toString()];
+      } else if (arg instanceof Uint8Array) {
+        return [new TextDecoder().decode(arg)];
       } else if (Array.isArray(arg)) {
         return flatten(arg.map(arg => processArg(arg)));
       } else {
