@@ -1,16 +1,11 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import mysql from 'mysql';
 
-const client = Sentry.init({
-  environment: 'qa', // dynamic sampling bias to keep transactions
-  dsn: process.env.E2E_TEST_DSN,
-  debug: !!process.env.DEBUG,
-  tunnel: `http://localhost:3031/`, // proxy server
-  tracesSampleRate: 1,
-  _experimentalUseOrchestrion: true,
+const connection = mysql.createConnection({
+  user: 'root',
+  password: 'docker',
 });
-
-Sentry._experimentalSetupOrchestrion(client);
 
 const app = express();
 const port = 3030;
@@ -21,6 +16,14 @@ app.get('/test-success', function (req, res) {
 
 app.get('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
+});
+
+app.get('/test-mysql', function (req, res) {
+  connection.query('SELECT 1 + 1 AS solution', function () {
+    connection.query('SELECT NOW()', ['1', '2'], () => {
+      res.send({ status: 'ok' });
+    });
+  });
 });
 
 app.get('/test-transaction', function (_req, res) {

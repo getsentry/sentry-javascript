@@ -4,6 +4,7 @@ import {
   debug,
   defineIntegration,
   getActiveSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
@@ -117,6 +118,7 @@ const _mysqlChannelIntegration = (() => {
             op: 'db',
             attributes: {
               [ATTR_DB_SYSTEM]: 'mysql',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.orchestrion.mysql',
               [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
               ...(database ? { [ATTR_DB_NAME]: database } : {}),
               ...(user ? { [ATTR_DB_USER]: user } : {}),
@@ -125,7 +127,6 @@ const _mysqlChannelIntegration = (() => {
               ...(portIsNumber ? { [ATTR_NET_PEER_PORT]: portNumber } : {}),
             },
           });
-          addOriginToSpan(span, 'auto.db.orchestrion.mysql');
           spans.set(rawCtx, span);
 
           // Restore the Sentry/OTel context across mysql's internal callback

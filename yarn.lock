@@ -379,14 +379,13 @@
   dependencies:
     json-schema-to-ts "^3.1.1"
 
-"@apm-js-collab/code-transformer-bundler-plugins@^0.2.1":
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.2.1.tgz#9617f6e6f00eb4bf5e4e95b84258a9031bd36a93"
-  integrity sha512-RDpd1NLHKeMWMdNsSefMuyrF0CWjvOdOQHLQ+OxYrfNi9MEYYobh5AKUEUVnuRY0/wrFcWjq0BxKpKsyGMhyqQ==
+"@apm-js-collab/code-transformer-bundler-plugins@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.3.0.tgz#cc44d2bbfee3f83f2907f3f70b10601c342ec967"
+  integrity sha512-WjUUf8J+HFHLkA6mbzKyeq54B+WjGM4ZAiCkw0Xb9Nk1X2KJwCEkVScs3gRISuern1xRdsTtOYgihHvcd9mcSg==
   dependencies:
     "@apm-js-collab/code-transformer" "^0.13.0"
     module-details-from-path "^1.0.4"
-    unplugin "^2.3.5"
 
 "@apm-js-collab/code-transformer@^0.13.0":
   version "0.13.0"

@@ -90,7 +90,7 @@
   },
   "dependencies": {
     "@apm-js-collab/code-transformer": "^0.13.0",
-    "@apm-js-collab/code-transformer-bundler-plugins": "^0.2.1",
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.3.0",
     "@apm-js-collab/tracing-hooks": "^0.7.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/core": "^2.6.1",
