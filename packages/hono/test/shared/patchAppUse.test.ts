@@ -330,11 +330,19 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
     expect((startInactiveSpanMock.mock.calls[0]![0] as { name: string }).name).toBe('useMw');
   });
 
-  it('produces exactly one span per middleware when called multiple times on the same instance', async () => {
+  it('produces exactly one span per middleware and does not stack Proxy layers when called multiple times on the same instance', async () => {
     const app = new Hono();
     patchHttpMethodHandlers(app);
+    const firstGet = app.get;
+    const firstOn = app.on;
+
     patchHttpMethodHandlers(app);
+    expect(app.get).toBe(firstGet);
+    expect(app.on).toBe(firstOn);
+
     patchHttpMethodHandlers(app);
+    expect(app.get).toBe(firstGet);
+    expect(app.on).toBe(firstOn);
 
     app.get(
       '/test',
