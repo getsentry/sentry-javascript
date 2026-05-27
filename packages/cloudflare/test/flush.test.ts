@@ -2,7 +2,7 @@ import { type ExecutionContext } from '@cloudflare/workers-types';
 import * as sentryCore from '@sentry/core';
 import { type Client } from '@sentry/core';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { flushAndDispose, makeFlushLock } from '../src/flush';
+import { flushAndDispose, getOriginalWaitUntil, makeFlushLock } from '../src/flush';
 
 describe('Flush buffer test', () => {
   const waitUntilPromises: Promise<void>[] = [];
@@ -107,5 +107,80 @@ describe('flushAndDispose', () => {
 
     expect(flushSpy).toHaveBeenCalled();
     flushSpy.mockRestore();
+  });
+});
+
+describe('getOriginalWaitUntil', () => {
+  it('returns the original waitUntil before instrumentation', () => {
+    const originalWaitUntil = vi.fn();
+    const context: ExecutionContext = {
+      waitUntil: originalWaitUntil,
+      passThroughOnException: vi.fn(),
+    };
+
+    const result = getOriginalWaitUntil(context);
+    expect(result).toBe(originalWaitUntil);
+  });
+
+  it('returns the original waitUntil after instrumentation', () => {
+    const originalWaitUntil = vi.fn();
+    const context: ExecutionContext = {
+      waitUntil: originalWaitUntil,
+      passThroughOnException: vi.fn(),
+    };
+
+    makeFlushLock(context);
+
+    const result = getOriginalWaitUntil(context);
+
+    expect(result).not.toBe(context.waitUntil);
+    expect(result).toBeDefined();
+    result!(Promise.resolve());
+    expect(originalWaitUntil).toHaveBeenCalled();
+  });
+
+  it('returns the original waitUntil after multiple instrumentations', () => {
+    const originalWaitUntil = vi.fn();
+    const context: ExecutionContext = {
+      waitUntil: originalWaitUntil,
+      passThroughOnException: vi.fn(),
+    };
+
+    makeFlushLock(context);
+    makeFlushLock(context);
+    makeFlushLock(context);
+
+    const result = getOriginalWaitUntil(context);
+
+    expect(result).not.toBe(context.waitUntil);
+    result!(Promise.resolve());
+    expect(originalWaitUntil).toHaveBeenCalled();
+  });
+
+  it('allows flushAndDispose to complete when called via original waitUntil', async () => {
+    const waitUntilPromises: Promise<void>[] = [];
+    const context: ExecutionContext = {
+      waitUntil: vi.fn(promise => {
+        waitUntilPromises.push(promise);
+      }),
+      passThroughOnException: vi.fn(),
+    };
+
+    const lock = makeFlushLock(context);
+
+    const mockClient = {
+      flush: vi.fn(async () => {
+        await lock.finalize();
+        return true;
+      }),
+      dispose: vi.fn(),
+    } as unknown as Client;
+
+    const originalWaitUntil = getOriginalWaitUntil(context);
+    originalWaitUntil!.call(context, flushAndDispose(mockClient));
+
+    await vi.waitFor(() => Promise.all(waitUntilPromises));
+    expect(mockClient.flush).toHaveBeenCalled();
+    expect(mockClient.dispose).toHaveBeenCalled();
   });
 });
