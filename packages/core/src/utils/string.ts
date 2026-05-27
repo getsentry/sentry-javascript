@@ -1,5 +1,5 @@
-import { isRegExp, isString, isVueViewModel } from './is';
-import { getVueInternalName } from './stacktrace';
+import { isRegExp, isString } from './is';
+import { normalize } from './normalize';
 
 export { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 
@@ -75,20 +75,7 @@ export function safeJoin(input: unknown[], delimiter?: string): string {
   // eslint-disable-next-line typescript/prefer-for-of
   for (let i = 0; i < input.length; i++) {
     const value = input[i];
-    try {
-      // This is a hack to fix a Vue3-specific bug that causes an infinite loop of
-      // console warnings. This happens when a Vue template is rendered with
-      // an undeclared variable, which we try to stringify, ultimately causing
-      // Vue to issue another warning which repeats indefinitely.
-      // see: https://github.com/getsentry/sentry-javascript/pull/8981
-      if (isVueViewModel(value)) {
-        output.push(getVueInternalName(value));
-      } else {
-        output.push(String(value));
-      }
-    } catch {
-      output.push('[value cannot be serialized]');
-    }
+    output.push(normalize(value));
   }
 
   return output.join(delimiter);
