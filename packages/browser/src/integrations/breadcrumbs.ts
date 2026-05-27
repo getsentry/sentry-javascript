@@ -25,7 +25,6 @@ import {
   getClient,
   getComponentName,
   getEventDescription,
-  htmlTreeAsString,
   parseUrl,
   safeJoin,
   severityLevelFromString,
@@ -35,6 +34,7 @@ import {
   addClickKeypressInstrumentationHandler,
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
+  htmlTreeAsString,
   SENTRY_XHR_DATA_KEY,
 } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
