@@ -18,5 +18,16 @@ export function init(options: ReactBrowserOptions): Client | undefined {
   applyTunnelRouteOption(sentryOptions);
   applySdkMetadata(sentryOptions, 'tanstackstart-react', ['tanstackstart-react', 'react']);
 
+  sentryOptions.ignoreSpans = [
+    ...(sentryOptions.ignoreSpans || []),
+    /\/node_modules\//,
+    /\/favicon\.ico/,
+    /\/@id\//,
+    /\/@react-refresh/,
+    /\/@tanstack-start\//,
+    /\/@fs\//,
+    /\/@vite\//,
+  ];
+
   return initReactSDK(sentryOptions);
 }

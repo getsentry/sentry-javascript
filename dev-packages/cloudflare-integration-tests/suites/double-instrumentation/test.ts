@@ -26,6 +26,10 @@ it('Only sends one error event when withSentry is called twice', async ({ signal
         },
       }),
     )
+    // The http.server span produces a transaction envelope that is sent in parallel with the
+    // error event. Either can arrive first at the mock server, so ignore it here to keep the
+    // assertion focused on the error event.
+    .ignore('transaction')
     .start(signal);
   await runner.makeRequest('get', '/error', { expectError: true });
   await runner.completed();

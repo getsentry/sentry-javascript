@@ -1,9 +1,9 @@
-import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
+import { GraphQLInstrumentation } from '../../../src/integrations/tracing/graphql/vendored/instrumentation';
 import { INSTRUMENTED } from '@sentry/node-core';
 import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import { graphqlIntegration, instrumentGraphql } from '../../../src/integrations/tracing/graphql';
 
-vi.mock('@opentelemetry/instrumentation-graphql');
+vi.mock('../../../src/integrations/tracing/graphql/vendored/instrumentation');
 
 describe('GraphQL', () => {
   beforeEach(() => {
