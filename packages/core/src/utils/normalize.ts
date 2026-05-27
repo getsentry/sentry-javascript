@@ -5,8 +5,15 @@ import { getFunctionName } from './stacktrace';
 
 type Stringifier = (value: Exclude<unknown, string | number | boolean | null>) => string | undefined;
 
+// We store a custom stringifier in module scope, which is not bullet proof
+// however, we currently only really use this for browser-specific values, where this should work just fine, generally.
 let stringifier: Stringifier | undefined;
 
+/**
+ * Set a custom stringifier for the normalize function.
+ * If this returns a non-empty string, it will be used instead of the default stringification.
+ * Return undefined to fall back to the generic behavior.
+ */
 export function setNormalizeStringifier(newStringifier: Stringifier | undefined): void {
   stringifier = newStringifier;
 }
