@@ -1,13 +1,12 @@
-import { htmlTreeAsString } from './htmlTreeAsString';
-import { isElement } from './is';
+import { htmlTreeAsString, isElement } from '@sentry-internal/browser-utils';
 
 type Prototype = { constructor?: (...args: unknown[]) => unknown };
 
 const HTML_ELEMENT_CONSTRUCTOR_NAME_REGEX = /^HTML(\w*)Element$/;
 
 /**
- * Browser-specific contributions to `normalize()`'s `stringifyValue`. Plug into the
- * async-context strategy from the browser SDK so DOM values get a useful string
+ * Browser-specific contributions to `normalize()`'s `stringifyValue`. Plug into
+ * `setNormalizeStringifier` from the browser SDK so DOM values get a useful string
  * representation without forcing core to carry the DOM-specific code.
  *
  * Handles:

@@ -34,8 +34,6 @@ export { getBodyString, getFetchRequestArgBody, serializeFormData, parseXhrRespo
 
 export { resourceTimingToSpanAttributes } from './metrics/resourceTiming';
 
-export { normalizeStringifyValue } from './normalizeStringifyValue';
-
 export { htmlTreeAsString } from './htmlTreeAsString';
 
 export { isElement } from './is';

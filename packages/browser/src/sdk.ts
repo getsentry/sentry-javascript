@@ -21,8 +21,8 @@ import { linkedErrorsIntegration } from './integrations/linkederrors';
 import { spotlightBrowserIntegration } from './integrations/spotlight';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
+import { normalizeStringifyValue } from './normalizeStringifyValue';
 import { checkAndWarnIfIsEmbeddedBrowserExtension } from './utils/detectBrowserExtension';
-import { normalizeStringifyValue } from '@sentry-internal/browser-utils';
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
