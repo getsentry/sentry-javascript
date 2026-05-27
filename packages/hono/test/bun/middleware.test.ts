@@ -3,6 +3,7 @@ import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { sentry } from '../../src/bun/middleware';
+import { init } from '../../src/bun/sdk';
 
 vi.mock('@sentry/bun', () => ({
   init: vi.fn(),
@@ -18,10 +19,12 @@ vi.mock('@sentry/core', async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     applySdkMetadata: vi.fn(actual.applySdkMetadata),
+    getClient: vi.fn(() => undefined),
   };
 });
 
 const applySdkMetadataMock = SentryCore.applySdkMetadata as Mock;
+const getClientMock = SentryCore.getClient as Mock;
 
 describe('Hono Bun Middleware', () => {
   beforeEach(() => {
@@ -51,7 +54,8 @@ describe('Hono Bun Middleware', () => {
       expect(applySdkMetadataMock).toHaveBeenCalledWith(options, 'hono', ['hono', 'bun']);
     });
 
-    it('calls init from @sentry/bun', () => {
+    it('calls init from @sentry/bun when no client exists yet', () => {
+      getClientMock.mockReturnValue(undefined);
       const app = new Hono();
       const options = {
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -154,6 +158,58 @@ describe('Hono Bun Middleware', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('double-init guard', () => {
+    it('does not call init when Sentry is already initialized', () => {
+      const fakeClient = { getOptions: () => ({}) };
+      getClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
+
+      const app = new Hono();
+      sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(initBunMock).not.toHaveBeenCalled();
+    });
+
+    it('emits a warning when Sentry is already initialized', () => {
+      const warnSpy = vi.spyOn(SentryCore.debug, 'warn');
+      const fakeClient = { getOptions: () => ({}) };
+      getClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
+
+      const app = new Hono();
+      sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Sentry is already initialized'));
+    });
+
+    it('warns that initialization should only happen through the sentry() middleware', () => {
+      const warnSpy = vi.spyOn(SentryCore.debug, 'warn');
+      const fakeClient = { getOptions: () => ({}) };
+      getClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
+
+      const app = new Hono();
+      sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Remove the duplicate `Sentry.init()` call'));
+    });
+
+    it('returns the existing client when already initialized', () => {
+      const fakeClient = { getOptions: () => ({}) };
+      getClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
+
+      const result = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(result).toBe(fakeClient);
+      expect(initBunMock).not.toHaveBeenCalled();
+    });
+
+    it('initializes normally when no client exists yet', () => {
+      getClientMock.mockReturnValue(undefined);
+
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(initBunMock).toHaveBeenCalledTimes(1);
     });
   });
 });
