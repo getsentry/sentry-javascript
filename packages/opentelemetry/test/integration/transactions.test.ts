@@ -1,6 +1,6 @@
 import type { SpanContext } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
-import { TraceState } from '@opentelemetry/core';
+import { TraceState } from '../../src/utils/TraceState';
 import type { Event, TransactionEvent } from '@sentry/core';
 import {
   addBreadcrumb,
