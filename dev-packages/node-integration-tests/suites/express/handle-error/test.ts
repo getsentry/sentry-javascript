@@ -10,6 +10,15 @@ test('should capture and send Express controller error with txn name if tracesSa
     .expect({
       transaction: {
         transaction: 'GET /test/express/:id',
+        contexts: {
+          trace: {
+            op: 'http.server',
+            status: 'internal_error',
+            data: expect.objectContaining({
+              'http.response.status_code': 500,
+            }),
+          },
+        },
       },
     })
     .expect({
