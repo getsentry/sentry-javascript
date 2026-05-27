@@ -1,5 +1,5 @@
-import { isRegExp, isString } from './is';
-import { normalize } from './normalize';
+import { isPrimitive, isRegExp, isString } from './is';
+import { stringifyValue } from './normalize';
 
 export { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 
@@ -75,7 +75,11 @@ export function safeJoin(input: unknown[], delimiter?: string): string {
   // eslint-disable-next-line typescript/prefer-for-of
   for (let i = 0; i < input.length; i++) {
     const value = input[i];
-    output.push(normalize(value));
+    if (isPrimitive(value)) {
+      output.push(String(value));
+    } else {
+      output.push(stringifyValue(undefined, value));
+    }
   }
 
   return output.join(delimiter);

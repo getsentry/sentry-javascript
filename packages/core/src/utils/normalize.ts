@@ -194,7 +194,7 @@ function visit(
  * @param value The value to stringify
  * @returns A stringified representation of the given value
  */
-function stringifyValue(
+export function stringifyValue(
   key: unknown,
   // this type is a tiny bit of a cheat, since this function does handle NaN (which is technically a number), but for
   // our internal use, it'll do
