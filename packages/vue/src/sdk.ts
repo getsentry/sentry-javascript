@@ -1,6 +1,6 @@
 import { getDefaultIntegrations, init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
-import { applySdkMetadata, getStackAsyncContextStrategy, setAsyncContextStrategy } from '@sentry/core/browser';
+import { applySdkMetadata, setNormalizeStringifier } from '@sentry/core/browser';
 import { normalizeStringifyValue as browserNormalizeStringifyValue } from '@sentry-internal/browser-utils';
 import { vueIntegration } from './integration';
 import { isVueViewModel } from './isVueViewModel';
@@ -20,10 +20,7 @@ export function init(options: Partial<Omit<Options, 'tracingOptions'>> = {}): Cl
   const client = browserInit(opts);
 
   // Add vue-specific stringification
-  setAsyncContextStrategy({
-    ...getStackAsyncContextStrategy(),
-    normalizeStringifyValue,
-  });
+  setNormalizeStringifier(normalizeStringifyValue);
 
   return client;
 }

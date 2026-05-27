@@ -6,8 +6,7 @@ import {
   getIntegrationsToSetup,
   inboundFiltersIntegration,
   initAndBind,
-  getStackAsyncContextStrategy,
-  setAsyncContextStrategy,
+  setNormalizeStringifier,
   stackParserFromStackParserOptions,
 } from '@sentry/core/browser';
 import type { BrowserClientOptions, BrowserOptions } from './client';
@@ -122,10 +121,7 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     transport: options.transport || makeFetchTransport,
   };
 
-  setAsyncContextStrategy({
-    ...getStackAsyncContextStrategy(),
-    normalizeStringifyValue,
-  });
+  setNormalizeStringifier(normalizeStringifyValue);
 
   return initAndBind(BrowserClient, clientOptions);
 }

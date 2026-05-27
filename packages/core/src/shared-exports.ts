@@ -47,8 +47,7 @@ export {
   hasExternalPropagationContext,
 } from './currentScopes';
 export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
-export { getAsyncContextStrategy, setAsyncContextStrategy } from './asyncContext';
-export { getStackAsyncContextStrategy } from './asyncContext/stackStrategy';
+export { setAsyncContextStrategy } from './asyncContext';
 export { getGlobalSingleton, getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 export { Scope } from './scope';
@@ -251,7 +250,7 @@ export {
   parseSemver,
   uuid4,
 } from './utils/misc';
-export { normalize, normalizeToSize, normalizeUrlToBase } from './utils/normalize';
+export { normalize, normalizeToSize, normalizeUrlToBase, setNormalizeStringifier } from './utils/normalize';
 export { setNormalizationDepthOverrideHint, setSkipNormalizationHint } from './utils/normalizationHints';
 export {
   addNonEnumerableProperty,

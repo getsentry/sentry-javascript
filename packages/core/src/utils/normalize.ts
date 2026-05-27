@@ -1,12 +1,15 @@
-import { getAsyncContextStrategy } from '../asyncContext';
-import type { AsyncContextStrategy } from '../asyncContext/types';
-import { getMainCarrier } from '../carrier';
 import type { Primitive } from '../types/misc';
 import { getNormalizationDepthOverrideHint, hasSkipNormalizationHint } from './normalizationHints';
 import { convertToPlainObject } from './object';
 import { getFunctionName } from './stacktrace';
 
-type Stringifier = AsyncContextStrategy['normalizeStringifyValue'];
+type Stringifier = (value: Exclude<unknown, string | number | boolean | null>) => string | undefined;
+
+let stringifier: Stringifier | undefined;
+
+export function setNormalizeStringifier(newStringifier: Stringifier | undefined): void {
+  stringifier = newStringifier;
+}
 
 type Prototype = { constructor?: (...args: unknown[]) => unknown };
 // This is a hack to placate TS, relying on the fact that technically, arrays are objects with integer keys. Normally we
@@ -44,13 +47,8 @@ type MemoFunc = [
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalize(input: unknown, depth: number = 100, maxProperties: number = +Infinity): any {
   try {
-    // Runtime-specific stringification (e.g. window/document/HTMLElement/VueViewModel/SyntheticEvent)
-    // is contributed by SDKs via the async-context strategy. We resolve it once here and thread the
-    // function down through `visit()` / `stringifyValue()` to avoid repeating the carrier lookup
-    // for every visited node.
-    const stringifier = getAsyncContextStrategy(getMainCarrier()).normalizeStringifyValue;
     // since we're at the outermost level, we don't provide a key
-    return visit('', input, depth, maxProperties, undefined, stringifier);
+    return visit('', input, depth, maxProperties, undefined);
   } catch (err) {
     return { ERROR: `**non-serializable** (${err})` };
   }
@@ -89,7 +87,6 @@ function visit(
   depth: number = +Infinity,
   maxProperties: number = +Infinity,
   memo = memoBuilder(),
-  stringifier?: Stringifier,
 ): Primitive | ObjOrArray<unknown> {
   const [memoize, unmemoize] = memo;
 
@@ -102,7 +99,7 @@ function visit(
     return value as Primitive;
   }
 
-  const stringified = stringifyValue(key, value, stringifier);
+  const stringified = stringifyValue(key, value);
 
   // Anything we could potentially dig into more (objects or arrays) will have come back as `"[object XXXX]"`.
   // Everything else will have already been serialized, so if we don't see that pattern, we're done.
@@ -139,7 +136,7 @@ function visit(
     try {
       const jsonValue = valueWithToJSON.toJSON();
       // We need to normalize the return value of `.toJSON()` in case it has circular references
-      return visit('', jsonValue, remainingDepth - 1, maxProperties, memo, stringifier);
+      return visit('', jsonValue, remainingDepth - 1, maxProperties, memo);
     } catch {
       // pass (The built-in `toJSON` failed, but we can still try to do it ourselves)
     }
@@ -168,7 +165,7 @@ function visit(
 
     // Recursively visit all the child nodes
     const visitValue = visitable[visitKey];
-    normalized[visitKey] = visit(visitKey, visitValue, remainingDepth - 1, maxProperties, memo, stringifier);
+    normalized[visitKey] = visit(visitKey, visitValue, remainingDepth - 1, maxProperties, memo);
 
     numAdded++;
   }
@@ -195,7 +192,6 @@ function stringifyValue(
   // this type is a tiny bit of a cheat, since this function does handle NaN (which is technically a number), but for
   // our internal use, it'll do
   value: Exclude<unknown, string | number | boolean | null>,
-  stringifier?: Stringifier,
 ): string {
   try {
     if (typeof global !== 'undefined' && value === global) {

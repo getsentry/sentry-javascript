@@ -1,7 +1,7 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { init as browserInit, setContext } from '@sentry/browser';
 import type { Client } from '@sentry/core/browser';
-import { applySdkMetadata, getStackAsyncContextStrategy, setAsyncContextStrategy } from '@sentry/core/browser';
+import { applySdkMetadata, setNormalizeStringifier } from '@sentry/core/browser';
 import { normalizeStringifyValue as browserNormalizeStringifyValue } from '@sentry-internal/browser-utils';
 import { version } from 'react';
 import { isSyntheticEvent } from './isSyntheticEvent';
@@ -19,10 +19,7 @@ export function init(options: BrowserOptions): Client | undefined {
   const client = browserInit(opts);
 
   // Add react-specific stringification
-  setAsyncContextStrategy({
-    ...getStackAsyncContextStrategy(),
-    normalizeStringifyValue,
-  });
+  setNormalizeStringifier(normalizeStringifyValue);
 
   return client;
 }
