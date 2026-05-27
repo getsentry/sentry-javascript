@@ -77,6 +77,10 @@ export function safeJoin(input: unknown[], delimiter?: string): string {
     const value = input[i];
     if (isPrimitive(value)) {
       output.push(String(value));
+    } else if (value instanceof Error) {
+      // While stringifyValue does not special-case errors, because we later handle them specifically based on the [object XXX] fallback,
+      // in this method we want to render them more nicely
+      output.push(value.message ? `${value.name}: ${value.message}` : value.name);
     } else {
       output.push(stringifyValue(undefined, value));
     }

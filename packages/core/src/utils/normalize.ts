@@ -201,10 +201,6 @@ export function stringifyValue(
   value: Exclude<unknown, string | number | boolean | null>,
 ): string {
   try {
-    if (typeof global !== 'undefined' && value === global) {
-      return '[Global]';
-    }
-
     // Runtime-specific stringifications (browser, framework integrations) are registered on the
     // async-context strategy. Consult them before the universal fallbacks below.
     if (stringifier) {
@@ -213,6 +209,10 @@ export function stringifyValue(
       if (stringified) {
         return stringified;
       }
+    }
+
+    if (typeof global !== 'undefined' && value === global) {
+      return '[Global]';
     }
 
     if (typeof value === 'number' && !Number.isFinite(value)) {

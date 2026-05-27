@@ -39,7 +39,7 @@ sentryTest('should capture console messages in replay', async ({ getLocalTestUrl
         category: 'console',
         data: { arguments: ['Test log', '[HTMLElement: body]'], logger: 'console' },
         level: 'log',
-        message: 'Test log [object body]',
+        message: 'Test log [HTMLElement: body]',
       },
     ]),
   );
