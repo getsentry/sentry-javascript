@@ -39,6 +39,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry-internal/browser-utils": "10.54.0",
     "@sentry/browser": "10.54.0",
     "@sentry/core": "10.54.0"
   },
