@@ -20,6 +20,9 @@ import {
 const CHANNEL_COMMAND = 'node-redis:command';
 const CHANNEL_BATCH = 'node-redis:batch';
 const CHANNEL_CONNECT = 'node-redis:connect';
+const CHANNEL_IOREDIS_COMMAND = 'ioredis:command';
+const CHANNEL_IOREDIS_BATCH = 'ioredis:batch';
+const CHANNEL_IOREDIS_CONNECT = 'ioredis:connect';
 
 const subs = (name: string) =>
   channels[name]?.subs as {
@@ -209,6 +212,91 @@ describe('redis-dc-subscriber', () => {
 
       expect(secondHook).toHaveBeenCalledTimes(1);
       expect(responseHook).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('ioredis channels', () => {
+    describe('command channel', () => {
+      it('calls the response hook with args as published by ioredis', () => {
+        const data = {
+          command: 'get',
+          args: ['cache:key'],
+          result: 'hit-value',
+          _sentrySpan: mockSpan,
+        };
+        subs(CHANNEL_IOREDIS_COMMAND).asyncEnd(data);
+
+        expect(responseHook).toHaveBeenCalledWith(mockSpan, 'get', ['cache:key'], 'hit-value');
+        expect(mockSpan.end).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not slice the first arg for ioredis command payloads', () => {
+        const data = {
+          command: 'mget',
+          args: ['key1', 'key2', 'key3'],
+          result: ['v1', 'v2', 'v3'],
+          _sentrySpan: mockSpan,
+        };
+        subs(CHANNEL_IOREDIS_COMMAND).asyncEnd(data);
+
+        expect(responseHook).toHaveBeenCalledWith(mockSpan, 'mget', ['key1', 'key2', 'key3'], ['v1', 'v2', 'v3']);
+      });
+
+      it('sets error status and ends the span in the error handler', () => {
+        const error = new Error('WRONGTYPE');
+        const data = { command: 'hset', args: ['key', 'field', '?'], error, _sentrySpan: mockSpan };
+        subs(CHANNEL_IOREDIS_COMMAND).error(data);
+
+        expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'WRONGTYPE' });
+        expect(mockSpan.end).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not call the response hook or end the span a second time in asyncEnd when error is set', () => {
+        const error = new Error('WRONGTYPE');
+        const data = { command: 'hset', args: ['key', 'field', '?'], error, _sentrySpan: mockSpan };
+
+        subs(CHANNEL_IOREDIS_COMMAND).error(data);
+        subs(CHANNEL_IOREDIS_COMMAND).asyncEnd(data);
+
+        expect(responseHook).not.toHaveBeenCalled();
+        expect(mockSpan.end).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('batch channel', () => {
+      it('ends the span', () => {
+        const data = { batchMode: 'MULTI', batchSize: 3, _sentrySpan: mockSpan };
+        subs(CHANNEL_IOREDIS_BATCH).asyncEnd(data);
+
+        expect(mockSpan.end).toHaveBeenCalledTimes(1);
+      });
+
+      it('sets error status and ends the span in the error handler', () => {
+        const error = new Error('EXECABORT');
+        const data = { batchMode: 'MULTI', error, _sentrySpan: mockSpan };
+        subs(CHANNEL_IOREDIS_BATCH).error(data);
+
+        expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'EXECABORT' });
+        expect(mockSpan.end).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('connect channel', () => {
+      it('ends the span', () => {
+        const data = { serverAddress: 'localhost', serverPort: 6379, _sentrySpan: mockSpan };
+        subs(CHANNEL_IOREDIS_CONNECT).asyncEnd(data);
+
+        expect(mockSpan.end).toHaveBeenCalledTimes(1);
+      });
+
+      it('sets error status and ends the span in the error handler', () => {
+        const error = new Error('connect ECONNREFUSED');
+        const data = { serverAddress: 'localhost', serverPort: 1, error, _sentrySpan: mockSpan };
+        subs(CHANNEL_IOREDIS_CONNECT).error(data);
+
+        expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'connect ECONNREFUSED' });
+        expect(mockSpan.end).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });
