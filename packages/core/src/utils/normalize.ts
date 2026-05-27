@@ -55,7 +55,7 @@ type MemoFunc = [
 export function normalize(input: unknown, depth: number = 100, maxProperties: number = +Infinity): any {
   try {
     // since we're at the outermost level, we don't provide a key
-    return visit('', input, depth, maxProperties, undefined);
+    return visit('', input, depth, maxProperties);
   } catch (err) {
     return { ERROR: `**non-serializable** (${err})` };
   }
