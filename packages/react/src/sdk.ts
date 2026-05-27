@@ -1,14 +1,10 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { init as browserInit, setContext } from '@sentry/browser';
 import type { Client } from '@sentry/core/browser';
-import {
-  applySdkMetadata,
-  getStackAsyncContextStrategy,
-  isSyntheticEvent,
-  setAsyncContextStrategy,
-} from '@sentry/core/browser';
+import { applySdkMetadata, getStackAsyncContextStrategy, setAsyncContextStrategy } from '@sentry/core/browser';
 import { normalizeStringifyValue as browserNormalizeStringifyValue } from '@sentry-internal/browser-utils';
 import { version } from 'react';
+import { isSyntheticEvent } from './isSyntheticEvent';
 
 /**
  * Inits the React SDK

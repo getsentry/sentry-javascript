@@ -1,4 +1,5 @@
-import { htmlTreeAsString, isElement } from '@sentry/core';
+import { htmlTreeAsString } from './htmlTreeAsString';
+import { isElement } from './is';
 
 type Prototype = { constructor?: (...args: unknown[]) => unknown };
 

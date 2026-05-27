@@ -1,14 +1,10 @@
 import { getDefaultIntegrations, init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
-import {
-  applySdkMetadata,
-  getStackAsyncContextStrategy,
-  isVueViewModel,
-  setAsyncContextStrategy,
-} from '@sentry/core/browser';
-import { vueIntegration } from './integration';
-import type { Options } from './types';
+import { applySdkMetadata, getStackAsyncContextStrategy, setAsyncContextStrategy } from '@sentry/core/browser';
 import { normalizeStringifyValue as browserNormalizeStringifyValue } from '@sentry-internal/browser-utils';
+import { vueIntegration } from './integration';
+import { isVueViewModel } from './isVueViewModel';
+import type { Options } from './types';
 
 /**
  * Inits the Vue SDK

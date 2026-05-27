@@ -36,4 +36,8 @@ export { resourceTimingToSpanAttributes } from './metrics/resourceTiming';
 
 export { normalizeStringifyValue } from './normalizeStringifyValue';
 
+export { htmlTreeAsString } from './htmlTreeAsString';
+
+export { isElement } from './is';
+
 export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';
