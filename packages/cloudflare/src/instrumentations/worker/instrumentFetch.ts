@@ -25,6 +25,11 @@ export function instrumentExportedHandlerFetch<T extends ExportedHandler<any, an
       new Proxy(original, {
         apply(target, thisArg, args: Parameters<NonNullable<T['fetch']>>) {
           const [request, env, ctx] = args;
+
+          if (request.method === 'OPTIONS' || request.method === 'HEAD') {
+            return target.apply(thisArg, args);
+          }
+
           const context = instrumentContext(ctx);
           const options = getFinalOptions(optionsCallback(env), env);
           args[1] = instrumentEnv(env, options);
@@ -52,6 +57,10 @@ export function instrumentWorkerEntrypointFetch<T extends WorkerEntrypoint>(
   instance.fetch = new Proxy(original, {
     apply(target, thisArg, args: [Request]) {
       const [request] = args;
+
+      if (request.method === 'OPTIONS' || request.method === 'HEAD') {
+        return Reflect.apply(target, thisArg, args);
+      }
 
       return wrapRequestHandler({ options, request, context }, () => Reflect.apply(target, thisArg, args));
     },

@@ -1,9 +1,9 @@
-import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
+import { PgInstrumentation } from '../../../src/integrations/tracing/postgres/vendored/instrumentation';
 import { INSTRUMENTED } from '@sentry/node-core';
 import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import { instrumentPostgres, postgresIntegration } from '../../../src/integrations/tracing/postgres';
 
-vi.mock('@opentelemetry/instrumentation-pg');
+vi.mock('../../../src/integrations/tracing/postgres/vendored/instrumentation');
 
 describe('postgres integration', () => {
   beforeEach(() => {

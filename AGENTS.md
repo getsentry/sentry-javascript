@@ -44,11 +44,15 @@ Single package: `cd packages/<name> && yarn test`
 
 ## Commit Attribution
 
-AI commits MUST include:
+AI commits MUST include a `Co-Authored-By` line with the appropriate committer email when known:
 
 ```
-Co-Authored-By: <agent model name> <noreply@anthropic.com>
+Co-Authored-By: <Claude model name> <noreply@anthropic.com>
+Co-Authored-By: <OpenAI/ChatGPT model name> <codex@openai.com>
+Co-Authored-By: <Cursor agent name> <cursoragent@cursor.com>
 ```
+
+Use the Cursor email for Cursor, even when it runs a Claude or OpenAI model. Omit the line only when there is no known committer email address for the agent.
 
 ## Git Workflow
 
@@ -66,6 +70,11 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 3. `yarn test`
 4. `yarn build:dev`
 5. NEVER push on `develop`
+
+## Pull Requests
+
+- **Do NOT add a "Test plan" / "Testing" checklist to PR bodies.** CI runs the full test suite on every PR — a hand-rolled checklist duplicates that signal and rots fast. Use the PR body for _Summary_ and _Root cause_ (if relevant) only.
+- Include `Fixes #<issue-number>` somewhere in the PR body so the merge auto-closes the linked issue.
 
 ## Architecture
 

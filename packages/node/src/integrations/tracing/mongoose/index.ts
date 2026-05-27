@@ -1,4 +1,4 @@
-import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
+import { MongooseInstrumentation } from './vendored/mongoose';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';

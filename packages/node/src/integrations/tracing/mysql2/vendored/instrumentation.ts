@@ -33,7 +33,7 @@ import {
   semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
 import { DB_SYSTEM_VALUE_MYSQL, ATTR_DB_STATEMENT, ATTR_DB_SYSTEM } from './semconv';
-import { addSqlCommenterComment } from '@opentelemetry/sql-common';
+import { addSqlCommenterComment } from '../../utils/sql-common';
 import type { Connection, Query, QueryOptions, QueryError, FieldPacket, FormatFunction } from './mysql2-types';
 import { MySQL2InstrumentationConfig } from './types';
 import { getConnectionAttributes, getConnectionPrototypeToInstrument, getQueryText, getSpanName, once } from './utils';

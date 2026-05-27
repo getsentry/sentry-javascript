@@ -242,6 +242,37 @@ describe('makeAddSentryVitePlugin()', () => {
       }),
     );
   });
+
+  it('passes reactComponentAnnotation options to the vite plugin', () => {
+    makeAddSentryVitePlugin({
+      reactComponentAnnotation: {
+        enabled: true,
+        ignoredComponents: ['MyIgnoredComponent'],
+      },
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reactComponentAnnotation: {
+          enabled: true,
+          ignoredComponents: ['MyIgnoredComponent'],
+        },
+      }),
+    );
+  });
+
+  it('passes undefined reactComponentAnnotation values when not configured', () => {
+    makeAddSentryVitePlugin({});
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reactComponentAnnotation: {
+          enabled: undefined,
+          ignoredComponents: undefined,
+        },
+      }),
+    );
+  });
 });
 
 describe('getUpdatedSourceMapSettings', () => {

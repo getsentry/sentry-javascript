@@ -10,22 +10,16 @@ test('Sends an error event to Sentry', async ({ request }) => {
 
   const errorEvent = await errorEventPromise;
 
-  // Nitro wraps thrown errors in an HTTPError with .cause, producing a chained exception
-  expect(errorEvent.exception?.values).toHaveLength(2);
+  expect(errorEvent.exception?.values).toHaveLength(1);
 
-  // The innermost exception (values[0]) is the original thrown error
   expect(errorEvent.exception?.values?.[0]?.type).toBe('Error');
   expect(errorEvent.exception?.values?.[0]?.value).toBe('This is a test error');
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual(
     expect.objectContaining({
       handled: false,
-      type: 'auto.function.nitro.captureErrorHook',
+      type: 'auto.http.nitro.onTraceError',
     }),
   );
-
-  // The outermost exception (values[1]) is the HTTPError wrapper
-  expect(errorEvent.exception?.values?.[1]?.type).toBe('HTTPError');
-  expect(errorEvent.exception?.values?.[1]?.value).toBe('This is a test error');
 });
 
 test('Does not send 404 errors to Sentry', async ({ request }) => {

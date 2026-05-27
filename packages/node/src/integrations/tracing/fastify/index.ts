@@ -1,5 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { FastifyOtelInstrumentation } from '@fastify/otel';
+import { FastifyOtelInstrumentation } from './vendored/instrumentation';
 import type { Instrumentation, InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
@@ -294,7 +294,10 @@ function addFastifySpanAttributes(span: Span): void {
     // Try removing `fastify -> ` and `@fastify/otel -> ` prefixes
     // This is a bit of a hack, and not always working for all spans
     // But it's the best we can do without a proper API
-    const updatedName = attrName.replace(/^fastify -> /, '').replace(/^@fastify\/otel -> /, '');
+    const updatedName = attrName
+      .replace(/^fastify -> /, '')
+      .replace(/^@fastify\/otel -> /, '')
+      .replace(/^@sentry\/instrumentation-fastify -> /, '');
 
     span.updateName(updatedName);
   }

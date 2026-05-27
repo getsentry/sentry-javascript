@@ -494,6 +494,79 @@ describe('applyPatches', () => {
     });
   });
 
+  describe('main-app .get() routes after applyPatches', () => {
+    it('responds correctly from .get() routes registered after applyPatches', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      app.get('/docs', c => c.text('API Documentation'));
+      app.get('/openapi.json', c => c.json({ openapi: '3.0.0', paths: {} }));
+
+      const docsRes = await app.fetch(new Request('http://localhost/docs'));
+      expect(docsRes.status).toBe(200);
+      expect(await docsRes.text()).toBe('API Documentation');
+
+      const specRes = await app.fetch(new Request('http://localhost/openapi.json'));
+      expect(specRes.status).toBe(200);
+      expect(await specRes.json()).toEqual({ openapi: '3.0.0', paths: {} });
+    });
+
+    it('preserves .get() routes registered after .basePath() and .route() chains', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const subApp = new Hono();
+      subApp.use(async function authMiddleware(_c: unknown, next: () => Promise<void>) {
+        await next();
+      });
+      subApp.get('/resource', () => new Response('resource'));
+
+      app.basePath('/api').route('/v1', subApp);
+
+      app.get('/docs', c => c.text('Docs page'));
+      app.get('/openapi.json', c => c.json({ openapi: '3.0.0' }));
+
+      const resourceRes = await app.fetch(new Request('http://localhost/api/v1/resource'));
+      expect(resourceRes.status).toBe(200);
+      expect(await resourceRes.text()).toBe('resource');
+
+      const docsRes = await app.fetch(new Request('http://localhost/docs'));
+      expect(docsRes.status).toBe(200);
+      expect(await docsRes.text()).toBe('Docs page');
+
+      const specRes = await app.fetch(new Request('http://localhost/openapi.json'));
+      expect(specRes.status).toBe(200);
+      expect(await specRes.json()).toEqual({ openapi: '3.0.0' });
+    });
+
+    it('does not corrupt app.routes for third-party route introspection', () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      app.use(async function globalMw(_c: unknown, next: () => Promise<void>) {
+        await next();
+      });
+      app.get('/users', () => new Response('users'));
+      app.post('/users', () => new Response('created'));
+
+      const subApp = new Hono();
+      subApp.get('/items', () => new Response('items'));
+      app.route('/api', subApp);
+
+      const routes = app.routes as Array<{ method: string; path: string; handler: Function }>;
+      const getPaths = routes.filter(r => r.method === 'GET').map(r => r.path);
+      const postPaths = routes.filter(r => r.method === 'POST').map(r => r.path);
+
+      expect(getPaths).toContain('/users');
+      expect(getPaths).toContain('/api/items');
+      expect(postPaths).toContain('/users');
+
+      for (const route of routes) {
+        expect(typeof route.handler).toBe('function');
+      }
+    });
+  });
+
   describe('patchAppRequest integration', () => {
     it('patches .request() on sub-apps when they are mounted via route()', async () => {
       const app = new Hono();

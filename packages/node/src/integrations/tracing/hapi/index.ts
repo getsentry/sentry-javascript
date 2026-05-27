@@ -1,4 +1,4 @@
-import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
+import { HapiInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   captureException,

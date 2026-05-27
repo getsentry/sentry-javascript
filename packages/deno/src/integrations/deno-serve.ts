@@ -1,5 +1,5 @@
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import { debug, defineIntegration } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 import type { RequestHandlerWrapperOptions } from '../wrap-deno-request-handler';
 import { wrapDenoRequestHandler } from '../wrap-deno-request-handler';
@@ -44,24 +44,44 @@ const applyHandlerWrap = <A extends Deno.Addr>(
       () => handler(request, info as Deno.ServeHandlerInfo<A>),
     )) as Deno.ServeHandler;
 
+const instrumentedDenoServe = (serve: typeof Deno.serve): typeof Deno.serve =>
+  new Proxy(serve, {
+    apply(target, thisArg, args: ServeParams) {
+      if (isSimpleHandler(args)) {
+        args[0] = applyHandlerWrap(args[0]);
+      } else if (isServeOptWithFunction(args)) {
+        args[1] = applyHandlerWrap(args[1], args[0]);
+      } else if (isServeInitOptions(args)) {
+        args[0].handler = applyHandlerWrap(args[0].handler, args[0]);
+      }
+      // if none of those matched, it'll crash, most likely.
+      return target.apply(thisArg, args);
+    },
+  });
+
 const _denoServeIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       setAsyncLocalStorageAsyncContextStrategy();
-      Deno.serve = new Proxy(Deno.serve, {
-        apply(target, thisArg, args: ServeParams) {
-          if (isSimpleHandler(args)) {
-            args[0] = applyHandlerWrap(args[0]);
-          } else if (isServeOptWithFunction(args)) {
-            args[1] = applyHandlerWrap(args[1], args[0]);
-          } else if (isServeInitOptions(args)) {
-            args[0].handler = applyHandlerWrap(args[0].handler, args[0]);
-          }
-          // if none of those matched, it'll crash, most likely.
-          return target.apply(thisArg, args);
-        },
-      });
+
+      const originalServe = Deno.serve;
+      const wrappedServe = instrumentedDenoServe(originalServe);
+
+      try {
+        const descriptor = Object.getOwnPropertyDescriptor(Deno, 'serve');
+
+        Object.defineProperty(Deno, 'serve', {
+          configurable: descriptor?.configurable ?? true,
+          enumerable: descriptor?.enumerable ?? true,
+          // writable: true avoids other instrumentations on older Deno versions
+          // from crashing if they used to do assignment
+          writable: true,
+          value: wrappedServe,
+        });
+      } catch (error) {
+        debug.warn('Could not instrument Deno.serve.', error);
+      }
     },
   };
 }) satisfies IntegrationFn;
