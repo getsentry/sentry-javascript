@@ -19,7 +19,7 @@
  */
 /* eslint-disable */
 
-import { Tracer, Span, DiagLogger, Meter, HrTime } from '@opentelemetry/api';
+import { Tracer, Span, DiagLogger, Meter } from '@opentelemetry/api';
 import { SemconvStability } from '@opentelemetry/instrumentation';
 import { ServiceExtension, RequestMetadata } from './ServiceExtension';
 import { SqsServiceExtension } from './sqs';
@@ -77,7 +77,7 @@ export class ServicesExtensions implements ServiceExtension {
     span: Span,
     tracer: Tracer,
     config: AwsSdkInstrumentationConfig,
-    startTime: HrTime,
+    startTime: number,
   ) {
     const serviceExtension = this.services.get(response.request.serviceName);
 

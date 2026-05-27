@@ -9,6 +9,8 @@ description: Vendor an OpenTelemetry instrumentation package into the Sentry Jav
 
 Copy upstream OTel instrumentation TypeScript source into a `vendored/` directory, remove the npm dependency, and ensure builds and tests pass. No logic changes — the vendored code must behave identically to the original.
 
+**Scope of this rule:** "No logic changes" applies **only to the initial vendoring PR**. After a package has been vendored, the `vendored/` directory is Sentry-owned source and follow-up PRs may refactor, simplify, replace upstream utilities with Sentry equivalents (e.g. `@opentelemetry/core` → `@sentry/core`), or otherwise diverge from upstream. Such cleanup is desired, not discouraged.
+
 ## 1. Research
 
 Find upstream source files:

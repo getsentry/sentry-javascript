@@ -31,7 +31,7 @@ import {
   Link,
   Context,
 } from '@opentelemetry/api';
-import { hrTime, hrTimeDuration, hrTimeToMilliseconds } from '@opentelemetry/core';
+import { timestampInSeconds } from '@sentry/core';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
@@ -376,7 +376,7 @@ export class AmqplibInstrumentation extends InstrumentationBase<AmqplibInstrumen
           // store the message on the channel so we can close the span on ackAll etc
           channel[CHANNEL_SPANS_NOT_ENDED]!.push({
             msg,
-            timeOfConsume: hrTime(),
+            timeOfConsume: timestampInSeconds(),
           });
 
           // store the span on the message, so we can end it when user call 'ack' on it
@@ -615,14 +615,14 @@ export class AmqplibInstrumentation extends InstrumentationBase<AmqplibInstrumen
   }
 
   private checkConsumeTimeoutOnChannel(channel: InstrumentationConsumeChannel) {
-    const currentTime = hrTime();
+    const currentTime = timestampInSeconds();
     const spansNotEnded = channel[CHANNEL_SPANS_NOT_ENDED] ?? [];
     let i: number;
     const { consumeTimeoutMs } = this.getConfig();
     for (i = 0; i < spansNotEnded.length; i++) {
       const currMessage = spansNotEnded[i]!;
-      const timeFromConsume = hrTimeDuration(currMessage.timeOfConsume, currentTime);
-      if (hrTimeToMilliseconds(timeFromConsume) < consumeTimeoutMs!) {
+      const timeFromConsumeMs = (currentTime - currMessage.timeOfConsume) * 1000;
+      if (timeFromConsumeMs < consumeTimeoutMs!) {
         break;
       }
       this.endConsumerSpan(currMessage.msg, null, EndOperation.InstrumentationTimeout, true);
