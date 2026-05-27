@@ -14,6 +14,8 @@ type SimpleNode = {
  * and its ancestors
  * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
  * @returns generated DOM path
+ * @deprecated This is browser-specific and will be removed from `@sentry/core` in a future major version.
+ * Import `htmlTreeAsString` from `@sentry-internal/browser-utils` instead.
  */
 export function htmlTreeAsString(
   elem: unknown,

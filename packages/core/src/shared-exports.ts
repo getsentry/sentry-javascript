@@ -221,6 +221,7 @@ export { addHandler, maybeInstrument, resetInstrumentationHandlers, triggerHandl
 export {
   isDOMError,
   isDOMException,
+  // eslint-disable-next-line deprecation/deprecation
   isElement,
   isError,
   isErrorEvent,
@@ -231,8 +232,10 @@ export {
   isPrimitive,
   isRegExp,
   isString,
+  // eslint-disable-next-line deprecation/deprecation
   isSyntheticEvent,
   isThenable,
+  // eslint-disable-next-line deprecation/deprecation
   isVueViewModel,
 } from './utils/is';
 export { isBrowser } from './utils/isBrowser';
