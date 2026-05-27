@@ -16,6 +16,10 @@
 
   Server transaction names are now parametrized automatically (e.g., `GET /users/123` becomes `GET /users/$userId`), improving transaction grouping in Sentry.
 
+- **feat(tanstackstart-react): Show readable server function names in traces ([#21190](https://github.com/getsentry/sentry-javascript/pull/21190))**
+
+  Server function spans now show human-readable names (e.g., `GET /_serverFn/greet` instead of `GET /_serverFn/a10e70b3...`). The `tanstackstart.function.hash.sha256` span attribute has been renamed to `tanstackstart.function.id`.
+
 ## 10.54.0
 
 ### Important Changes
