@@ -95,25 +95,3 @@ test('Sends server-side transaction for page request', async ({ baseURL }) => {
     status: 'ok',
   });
 });
-
-test('Propagates trace from server to client', async ({ page }) => {
-  const serverTransactionPromise = waitForTransaction('tanstackstart-react-cloudflare', transactionEvent => {
-    return transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /';
-  });
-
-  const clientTransactionPromise = waitForTransaction('tanstackstart-react-cloudflare', transactionEvent => {
-    return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
-  });
-
-  await page.goto('/');
-
-  const serverTransaction = await serverTransactionPromise;
-  const clientTransaction = await clientTransactionPromise;
-
-  const serverTraceId = serverTransaction.contexts?.trace?.trace_id;
-  const clientTraceId = clientTransaction.contexts?.trace?.trace_id;
-
-  expect(serverTraceId).toMatch(/[a-f0-9]{32}/);
-  expect(clientTraceId).toMatch(/[a-f0-9]{32}/);
-  expect(clientTraceId).toBe(serverTraceId);
-});

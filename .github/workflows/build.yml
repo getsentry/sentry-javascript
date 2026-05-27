@@ -340,6 +340,10 @@ jobs:
     needs: [job_get_metadata]
     timeout-minutes: 10
     runs-on: ubuntu-24.04
+    if: |
+      needs.job_get_metadata.outputs.changed_deps == 'true' ||
+      needs.job_get_metadata.outputs.is_base_branch == 'true' ||
+      needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v6
@@ -349,8 +353,14 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
+      - name: Install dependencies
+        run: yarn install --ignore-engines
       - name: Check that yarn.lock is stable
-        run: yarn install --frozen-lockfile --ignore-engines
+        run: |
+          if ! git diff --exit-code yarn.lock; then
+            echo "::error::yarn.lock has uncommitted changes after running 'yarn install'. Please run 'yarn install' locally and commit the updated yarn.lock."
+            exit 1
+          fi
       - name: Check for duplicate dependencies in lockfile
         run: yarn dedupe-deps:check
 
@@ -989,7 +999,7 @@ jobs:
         if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
         uses: denoland/setup-deno@v2.0.4
         with:
-          deno-version: v2.1.5
+          deno-version: ${{ matrix.deno-version || 'v2.1.5' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1108,6 +1118,11 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
+      - name: Set up Deno
+        if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
+        uses: denoland/setup-deno@v2.0.4
+        with:
+          deno-version: ${{ matrix.deno-version || 'v2.1.5' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:

@@ -1,4 +1,4 @@
-import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
+import { PgInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';

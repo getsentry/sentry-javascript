@@ -29,6 +29,16 @@ describe('Hono Bun Middleware', () => {
   });
 
   describe('sentry middleware', () => {
+    it('accepts Hono with custom env types without requiring a cast', () => {
+      type CustomEnv = { Bindings: { DATABASE_URL: string }; Variables: { userId: string } };
+      const app = new Hono<CustomEnv>();
+
+      const middleware = sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(typeof middleware).toBe('function');
+      expect(middleware).toHaveLength(2);
+    });
+
     it('calls applySdkMetadata with "hono" and "bun"', () => {
       const app = new Hono();
       const options = {

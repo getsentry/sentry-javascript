@@ -1,4 +1,5 @@
 const Sentry = require('@sentry/node');
+const { expectProcessToExit } = require('../../../utils/expect-process-to-exit');
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -18,10 +19,7 @@ class CustomIgnoredError extends Error {
   }
 }
 
-setTimeout(() => {
-  process.stdout.write("I'm alive!");
-  process.exit(0);
-}, 500);
+expectProcessToExit();
 
 // This should be ignored by the custom ignore matcher and not produce a warning
 Promise.reject(new CustomIgnoredError('This error should be ignored'));

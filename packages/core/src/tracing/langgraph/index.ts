@@ -30,10 +30,10 @@ import {
   extractAgentNameFromParams,
   extractLLMFromParams,
   extractToolsFromCompiledGraph,
-  mergeSentryCallback,
   setResponseAttributes,
   wrapToolsWithSpans,
 } from './utils';
+import { _INTERNAL_mergeLangChainCallbackHandler } from '../langchain/utils';
 
 let _insideCreateReactAgent = false;
 
@@ -179,7 +179,10 @@ function instrumentCompiledGraphInvoke(
                 ...(typeof graphName === 'string' ? { lc_agent_name: graphName } : {}),
               };
 
-              invokeConfig.callbacks = mergeSentryCallback(invokeConfig.callbacks, sentryCallbackHandler);
+              invokeConfig.callbacks = _INTERNAL_mergeLangChainCallbackHandler(
+                invokeConfig.callbacks,
+                sentryCallbackHandler,
+              );
             }
 
             // Extract available tools from the graph instance

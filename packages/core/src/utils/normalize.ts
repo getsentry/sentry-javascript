@@ -187,14 +187,6 @@ function stringifyValue(
   value: Exclude<unknown, string | number | boolean | null>,
 ): string {
   try {
-    if (key === 'domain' && value && typeof value === 'object' && (value as { _events: unknown })._events) {
-      return '[Domain]';
-    }
-
-    if (key === 'domainEmitter') {
-      return '[DomainEmitter]';
-    }
-
     // It's safe to use `global`, `window`, and `document` here in this manner, as we are asserting using `typeof` first
     // which won't throw if they are not present.
 
