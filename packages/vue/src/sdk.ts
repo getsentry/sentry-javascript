@@ -4,7 +4,7 @@ import { applySdkMetadata, setNormalizeStringifier } from '@sentry/core/browser'
 
 import { vueIntegration } from './integration';
 import type { Options } from './types';
-import { normalizeStringifyValue } from './isVueViewModel';
+import { normalizeStringifyValue } from './normalizeStringifyValue';
 
 /**
  * Inits the Vue SDK
