@@ -27,13 +27,15 @@ test('Sends a server function transaction with auto-instrumentation', async ({ p
   expect(transactionEvent?.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        description: expect.stringContaining('GET /_serverFn/'),
+        description: 'GET /_serverFn/testLog',
         op: 'function.tanstackstart',
         origin: 'auto.function.tanstackstart.server',
         data: {
           'sentry.op': 'function.tanstackstart',
           'sentry.origin': 'auto.function.tanstackstart.server',
-          'tanstackstart.function.hash.sha256': expect.any(String),
+          'sentry.source': 'route',
+          'tanstackstart.function.id': expect.any(String),
+          'tanstackstart.function.filename': 'src/routes/test-serverFn.tsx',
         },
         status: 'ok',
       }),
@@ -65,13 +67,15 @@ test('Sends a server function transaction for a nested server function only if i
   expect(transactionEvent?.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        description: expect.stringContaining('GET /_serverFn/'),
+        description: 'GET /_serverFn/testNestedLog',
         op: 'function.tanstackstart',
         origin: 'auto.function.tanstackstart.server',
         data: {
           'sentry.op': 'function.tanstackstart',
           'sentry.origin': 'auto.function.tanstackstart.server',
-          'tanstackstart.function.hash.sha256': expect.any(String),
+          'sentry.source': 'route',
+          'tanstackstart.function.id': expect.any(String),
+          'tanstackstart.function.filename': 'src/routes/test-serverFn.tsx',
         },
         status: 'ok',
       }),
