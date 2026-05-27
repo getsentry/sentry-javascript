@@ -22,7 +22,7 @@
 
 - **feat(core): Support array attributes for spans, logs, and metrics ([#20427](https://github.com/getsentry/sentry-javascript/pull/20427))**
 
-  Arrays of primitive values (`string`, `number`, `boolean`) are now accepted as attribute values. Arrays containing non-primitive elements will be dropped. Array attributes on logs and metrics were previously stringified and will now be sent as actual arrays instead. **If you use `beforeSend*` callbacks that assume attribute values are always primitive (e.g., `typeof value === 'string'`), update them to handle array values as well.**
+  Arrays of primitive values (`string`, `number`, `boolean`) are now accepted as attribute values. Arrays containing non-primitive elements will be dropped and won't show up in Sentry. Array attributes on logs and metrics were previously stringified and will now be sent as actual arrays instead. **If you have custom rules that process attribute values in any `beforeSend*` callbacks (e.g., PII scrubbing), you may need to update them to correctly handle array values.**
 
 - **feat(browser): Add `fetchStreamPerformanceIntegration` for streamed response tracking ([#20778](https://github.com/getsentry/sentry-javascript/pull/20778))**
 
