@@ -1,5 +1,6 @@
 import type { Primitive } from '../types/misc';
-import { isSyntheticEvent, isVueViewModel } from './is';
+import { htmlTreeAsString } from './browser';
+import { isElement, isSyntheticEvent, isVueViewModel } from './is';
 import { getNormalizationDepthOverrideHint, hasSkipNormalizationHint } from './normalizationHints';
 import { convertToPlainObject } from './object';
 import { getFunctionName, getVueInternalName } from './stacktrace';
@@ -237,8 +238,8 @@ function stringifyValue(
     const objName = getConstructorName(value);
 
     // Handle HTML Elements
-    if (/^HTML(\w*)Element$/.test(objName)) {
-      return `[HTMLElement: ${objName}]`;
+    if (isElement(value) && /^HTML(\w*)Element$/.test(objName)) {
+      return `[HTMLElement: ${htmlTreeAsString(value)}]`;
     }
 
     return `[object ${objName}]`;

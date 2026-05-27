@@ -63,10 +63,24 @@ describe('normalize()', () => {
       Object.defineProperty(chaseEvent, 'wagging', { value: true, enumerable: false });
 
       expect(normalize(chaseEvent)).toEqual({
-        currentTarget: 'park',
-        isTrusted: false,
-        target: 'park > tree > squirrel',
         type: 'chase',
+        target: {
+          tagName: 'SQUIRREL',
+          parentNode: {
+            tagName: 'TREE',
+            parentNode: {
+              tagName: 'PARK',
+              getAttribute: '[Function: getAttribute]',
+            },
+            getAttribute: '[Function: getAttribute]',
+          },
+          getAttribute: '[Function: getAttribute]',
+        },
+        currentTarget: {
+          tagName: 'PARK',
+          getAttribute: '[Function: getAttribute]',
+        },
+        isTrusted: false,
         // notice that `wagging` isn't included because it's not enumerable and not one of the ones we specifically extract
       });
 
@@ -323,14 +337,17 @@ describe('normalize()', () => {
 
   describe('handles HTML elements', () => {
     test('HTMLDivElement', () => {
+      const div2 = document.createElement('div');
+      div2.setAttribute('data-test-id', 'div2');
+      div2.classList.add('container');
       expect(
         normalize({
           div: document.createElement('div'),
-          div2: document.createElement('div'),
+          div2,
         }),
       ).toEqual({
-        div: '[HTMLElement: HTMLDivElement]',
-        div2: '[HTMLElement: HTMLDivElement]',
+        div: '[HTMLElement: div]',
+        div2: '[HTMLElement: div.container]',
       });
     });
 
@@ -341,8 +358,8 @@ describe('normalize()', () => {
           select: document.createElement('select'),
         }),
       ).toEqual({
-        input: '[HTMLElement: HTMLInputElement]',
-        select: '[HTMLElement: HTMLSelectElement]',
+        input: '[HTMLElement: input]',
+        select: '[HTMLElement: select]',
       });
     });
   });
