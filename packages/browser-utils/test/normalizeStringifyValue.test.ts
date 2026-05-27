@@ -1,22 +1,19 @@
 /**
  * @vitest-environment jsdom
  */
-import { getStackAsyncContextStrategy, normalize, setAsyncContextStrategy } from '@sentry/core';
+import { normalize, setNormalizeStringifier } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { normalizeStringifyValue } from '../src/normalizeStringifyValue';
 
-// Each test installs the browser stringifier on the async-context strategy and tears
-// it down afterwards so unrelated tests don't see a leftover hook on the global carrier.
-describe('normalizeStringifyValue (registered via async-context strategy)', () => {
+// Each test installs the browser stringifier via `setNormalizeStringifier` and tears
+// it down afterwards so unrelated tests don't see a leftover hook.
+describe('normalizeStringifyValue (registered via setNormalizeStringifier)', () => {
   beforeEach(() => {
-    setAsyncContextStrategy({
-      ...getStackAsyncContextStrategy(),
-      normalizeStringifyValue,
-    });
+    setNormalizeStringifier(normalizeStringifyValue);
   });
 
   afterEach(() => {
-    setAsyncContextStrategy(undefined);
+    setNormalizeStringifier(undefined);
   });
 
   test('collapses `window` to `[Window]` (called directly)', () => {

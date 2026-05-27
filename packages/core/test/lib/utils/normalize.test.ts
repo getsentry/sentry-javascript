@@ -4,10 +4,9 @@
 
 import { describe, expect, test, vi } from 'vitest';
 import {
-  getStackAsyncContextStrategy,
   normalize,
-  setAsyncContextStrategy,
   setNormalizationDepthOverrideHint,
+  setNormalizeStringifier,
   setSkipNormalizationHint,
 } from '../../../src';
 import * as isModule from '../../../src/utils/is';
@@ -342,8 +341,8 @@ describe('normalize()', () => {
   });
 
   // HTMLElement / SyntheticEvent / VueViewModel rendering is now contributed by SDKs (browser-utils,
-  // react, vue) via the async-context strategy's `normalizeStringifyValue` hook — these cases are
-  // covered in those packages' tests. Here we just verify the hook plumbing.
+  // react, vue) via `setNormalizeStringifier` — those cases are covered in those packages' tests.
+  // Here we just verify the hook plumbing.
 
   describe('calls toJSON if implemented', () => {
     test('primitive values', () => {
@@ -591,8 +590,8 @@ describe('normalize()', () => {
     });
   });
 
-  test('runs registered `normalizeStringifyValue` for each visited value', () => {
-    // Plug a stub stringifier into the async-context strategy and verify normalize
+  test('runs registered stringifier for each visited value', () => {
+    // Plug a stub stringifier in via `setNormalizeStringifier` and verify normalize
     // consults it on every visited object — including iterating through decycle.
     const stub = vi.fn((value: unknown): string | undefined => {
       if (typeof value === 'object' && value !== null && (value as { foo?: unknown }).foo === 'mark-me') {
@@ -600,7 +599,7 @@ describe('normalize()', () => {
       }
       return undefined;
     });
-    setAsyncContextStrategy({ ...getStackAsyncContextStrategy(), normalizeStringifyValue: stub });
+    setNormalizeStringifier(stub);
     try {
       const obj = {
         marker: { foo: 'mark-me' },
@@ -620,18 +619,18 @@ describe('normalize()', () => {
       // Stub is consulted on every non-primitive value visited.
       expect(stub).toHaveBeenCalled();
     } finally {
-      setAsyncContextStrategy(undefined);
+      setNormalizeStringifier(undefined);
     }
   });
 
   test('falls back to default representation when the registered stringifier returns undefined', () => {
     const stub = vi.fn(() => undefined);
-    setAsyncContextStrategy({ ...getStackAsyncContextStrategy(), normalizeStringifyValue: stub });
+    setNormalizeStringifier(stub);
     try {
       expect(normalize({ a: 1, b: NaN })).toEqual({ a: 1, b: '[NaN]' });
       expect(stub).toHaveBeenCalled();
     } finally {
-      setAsyncContextStrategy(undefined);
+      setNormalizeStringifier(undefined);
     }
   });
 

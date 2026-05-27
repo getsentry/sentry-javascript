@@ -2,15 +2,15 @@
  * @vitest-environment jsdom
  */
 
-import { normalize, setAsyncContextStrategy } from '@sentry/core';
+import { normalize, setNormalizeStringifier } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { init } from '../src/sdk';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
-// The React SDK's `init()` wraps the browser-side `normalizeStringifyValue` on the
-// async-context strategy with a SyntheticEvent check on top. These tests exercise the
-// composition end-to-end via `normalize()` (React-shaped values are collapsed here;
+// The React SDK's `init()` wraps the browser-side `normalizeStringifyValue` (registered
+// via `setNormalizeStringifier`) with a SyntheticEvent check on top. These tests exercise
+// the composition end-to-end via `normalize()` (React-shaped values are collapsed here;
 // non-React values fall through to the browser variant and finally to core).
 describe('@sentry/react init() normalize stringifier', () => {
   beforeEach(() => {
@@ -22,7 +22,7 @@ describe('@sentry/react init() normalize stringifier', () => {
   });
 
   afterEach(() => {
-    setAsyncContextStrategy(undefined);
+    setNormalizeStringifier(undefined);
   });
 
   it("collapses React SyntheticEvent-like objects to '[SyntheticEvent]'", () => {

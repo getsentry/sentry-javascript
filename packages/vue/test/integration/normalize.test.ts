@@ -2,15 +2,15 @@
  * @vitest-environment jsdom
  */
 
-import { normalize, setAsyncContextStrategy } from '@sentry/core';
+import { normalize, setNormalizeStringifier } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import * as Sentry from '../../src';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
-// The Vue SDK's `init()` wraps the browser-side `normalizeStringifyValue` on the
-// async-context strategy with a Vue check on top. These tests exercise the wrapped
-// stringifier end-to-end through `normalize()` so we catch any breakage in the
+// The Vue SDK's `init()` wraps the browser-side `normalizeStringifyValue` (registered
+// via `setNormalizeStringifier`) with a Vue check on top. These tests exercise the
+// wrapped stringifier end-to-end through `normalize()` so we catch any breakage in the
 // composition (Vue value handled here; non-Vue values fall through to the browser
 // variant; non-DOM/non-Vue values fall through to core's defaults).
 describe('@sentry/vue init() normalize stringifier', () => {
@@ -23,8 +23,8 @@ describe('@sentry/vue init() normalize stringifier', () => {
   });
 
   afterEach(() => {
-    // Reset the async-context strategy so subsequent test files start clean.
-    setAsyncContextStrategy(undefined);
+    // Reset the registered stringifier so subsequent test files start clean.
+    setNormalizeStringifier(undefined);
   });
 
   it("collapses Vue 3 component instances (`__isVue`) to '[VueViewModel]'", () => {
