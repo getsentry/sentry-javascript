@@ -14,7 +14,7 @@ describe('tracer.startActiveSpan errors', () => {
     // Users who want auto-status-on-error should use `Sentry.startSpan` instead, or follow the
     // OTel-idiomatic pattern: `span.recordException(err); span.setStatus({ code: ERROR })` in a
     // `catch` inside the callback.
-    test('does NOT mark span errored when uncaught error escapes raw tracer.startActiveSpan callback (status quo)', async () => {
+    test('does NOT mark span errored when uncaught error escapes raw tracer.startActiveSpan callback', async () => {
       await createRunner()
         .expect({
           transaction: {
