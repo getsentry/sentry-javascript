@@ -6,6 +6,8 @@ import {
   getIntegrationsToSetup,
   inboundFiltersIntegration,
   initAndBind,
+  getStackAsyncContextStrategy,
+  setAsyncContextStrategy,
   stackParserFromStackParserOptions,
 } from '@sentry/core/browser';
 import type { BrowserClientOptions, BrowserOptions } from './client';
@@ -21,6 +23,7 @@ import { spotlightBrowserIntegration } from './integrations/spotlight';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 import { checkAndWarnIfIsEmbeddedBrowserExtension } from './utils/detectBrowserExtension';
+import { normalizeStringifyValue } from '@sentry-internal/browser-utils';
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
@@ -118,6 +121,12 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     }),
     transport: options.transport || makeFetchTransport,
   };
+
+  setAsyncContextStrategy({
+    ...getStackAsyncContextStrategy(),
+    normalizeStringifyValue,
+  });
+
   return initAndBind(BrowserClient, clientOptions);
 }
 

@@ -47,7 +47,8 @@ export {
   hasExternalPropagationContext,
 } from './currentScopes';
 export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
-export { setAsyncContextStrategy } from './asyncContext';
+export { getAsyncContextStrategy, setAsyncContextStrategy } from './asyncContext';
+export { getStackAsyncContextStrategy } from './asyncContext/stackStrategy';
 export { getGlobalSingleton, getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 export { Scope } from './scope';

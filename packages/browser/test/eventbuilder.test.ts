@@ -82,9 +82,9 @@ describe('eventFromUnknownInput', () => {
       'Event',
       new Event('custom'),
       {
-        currentTarget: '[object Null]',
+        currentTarget: null,
         isTrusted: false,
-        target: '[object Null]',
+        target: null,
         type: 'custom',
       },
       'Event `Event` (type=custom) captured as exception',
@@ -93,9 +93,9 @@ describe('eventFromUnknownInput', () => {
       'MouseEvent',
       new MouseEvent('click'),
       {
-        currentTarget: '[object Null]',
+        currentTarget: null,
         isTrusted: false,
-        target: '[object Null]',
+        target: null,
         type: 'click',
       },
       'Event `MouseEvent` (type=click) captured as exception',

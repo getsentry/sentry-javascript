@@ -1,8 +1,14 @@
 import { getDefaultIntegrations, init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import {
+  applySdkMetadata,
+  getStackAsyncContextStrategy,
+  isVueViewModel,
+  setAsyncContextStrategy,
+} from '@sentry/core/browser';
 import { vueIntegration } from './integration';
 import type { Options } from './types';
+import { normalizeStringifyValue as browserNormalizeStringifyValue } from '@sentry-internal/browser-utils';
 
 /**
  * Inits the Vue SDK
@@ -15,5 +21,20 @@ export function init(options: Partial<Omit<Options, 'tracingOptions'>> = {}): Cl
 
   applySdkMetadata(opts, 'vue');
 
-  return browserInit(opts);
+  const client = browserInit(opts);
+
+  // Add vue-specific stringification
+  setAsyncContextStrategy({
+    ...getStackAsyncContextStrategy(),
+    normalizeStringifyValue,
+  });
+
+  return client;
+}
+
+function normalizeStringifyValue(value: Exclude<unknown, string | number | boolean | null>): string | undefined {
+  if (isVueViewModel(value)) {
+    return (value as { __v_isVNode?: boolean }).__v_isVNode ? '[VueVNode]' : '[VueViewModel]';
+  }
+  return browserNormalizeStringifyValue(value);
 }

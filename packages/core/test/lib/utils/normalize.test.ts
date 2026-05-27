@@ -3,7 +3,13 @@
  */
 
 import { describe, expect, test, vi } from 'vitest';
-import { normalize, setNormalizationDepthOverrideHint, setSkipNormalizationHint } from '../../../src';
+import {
+  getStackAsyncContextStrategy,
+  normalize,
+  setAsyncContextStrategy,
+  setNormalizationDepthOverrideHint,
+  setSkipNormalizationHint,
+} from '../../../src';
 import * as isModule from '../../../src/utils/is';
 import * as stacktraceModule from '../../../src/utils/stacktrace';
 
@@ -335,34 +341,9 @@ describe('normalize()', () => {
     });
   });
 
-  describe('handles HTML elements', () => {
-    test('HTMLDivElement', () => {
-      const div2 = document.createElement('div');
-      div2.setAttribute('data-test-id', 'div2');
-      div2.classList.add('container');
-      expect(
-        normalize({
-          div: document.createElement('div'),
-          div2,
-        }),
-      ).toEqual({
-        div: '[HTMLElement: div]',
-        div2: '[HTMLElement: div.container]',
-      });
-    });
-
-    test('input elements', () => {
-      expect(
-        normalize({
-          input: document.createElement('input'),
-          select: document.createElement('select'),
-        }),
-      ).toEqual({
-        input: '[HTMLElement: input]',
-        select: '[HTMLElement: select]',
-      });
-    });
-  });
+  // HTMLElement / SyntheticEvent / VueViewModel rendering is now contributed by SDKs (browser-utils,
+  // react, vue) via the async-context strategy's `normalizeStringifyValue` hook — these cases are
+  // covered in those packages' tests. Here we just verify the hook plumbing.
 
   describe('calls toJSON if implemented', () => {
     test('primitive values', () => {
@@ -475,30 +456,6 @@ describe('normalize()', () => {
         wat: {
           no: '[NaN]',
         },
-      });
-    });
-
-    test("known classes like React's `SyntheticEvent`", () => {
-      const obj = {
-        foo: {
-          nativeEvent: 'wat',
-          preventDefault: 'wat',
-          stopPropagation: 'wat',
-        },
-      };
-      expect(normalize(obj)).toEqual({
-        foo: '[SyntheticEvent]',
-      });
-    });
-
-    test('known classes like `VueViewModel`', () => {
-      const obj = {
-        foo: {
-          _isVue: true,
-        },
-      };
-      expect(normalize(obj)).toEqual({
-        foo: '[VueViewModel]',
       });
     });
 
@@ -634,42 +591,57 @@ describe('normalize()', () => {
     });
   });
 
-  test("normalizes value on every iteration of decycle and takes care of things like React's `SyntheticEvent`", () => {
-    const obj = {
-      foo: {
-        nativeEvent: 'wat',
-        preventDefault: 'wat',
-        stopPropagation: 'wat',
-      },
-      baz: NaN,
-      qux: function qux(): void {
-        /* no-empty */
-      },
-    };
-    const result = normalize(obj);
-    expect(result).toEqual({
-      foo: '[SyntheticEvent]',
-      baz: '[NaN]',
-      qux: '[Function: qux]',
+  test('runs registered `normalizeStringifyValue` for each visited value', () => {
+    // Plug a stub stringifier into the async-context strategy and verify normalize
+    // consults it on every visited object — including iterating through decycle.
+    const stub = vi.fn((value: unknown): string | undefined => {
+      if (typeof value === 'object' && value !== null && (value as { foo?: unknown }).foo === 'mark-me') {
+        return '[StubMarker]';
+      }
+      return undefined;
     });
+    setAsyncContextStrategy({ ...getStackAsyncContextStrategy(), normalizeStringifyValue: stub });
+    try {
+      const obj = {
+        marker: { foo: 'mark-me' },
+        nested: { inner: { foo: 'mark-me' } },
+        baz: NaN,
+        qux: function qux(): void {
+          /* no-empty */
+        },
+      };
+      const result = normalize(obj);
+      expect(result).toEqual({
+        marker: '[StubMarker]',
+        nested: { inner: '[StubMarker]' },
+        baz: '[NaN]',
+        qux: '[Function: qux]',
+      });
+      // Stub is consulted on every non-primitive value visited.
+      expect(stub).toHaveBeenCalled();
+    } finally {
+      setAsyncContextStrategy(undefined);
+    }
   });
 
-  test('normalizes value on every iteration of decycle and takes care of things like `VueViewModel`', () => {
-    const obj = {
-      foo: {
-        _isVue: true,
-      },
-      baz: NaN,
-      qux: function qux(): void {
-        /* no-empty */
-      },
-    };
-    const result = normalize(obj);
-    expect(result).toEqual({
-      foo: '[VueViewModel]',
-      baz: '[NaN]',
-      qux: '[Function: qux]',
-    });
+  test('falls back to default representation when the registered stringifier returns undefined', () => {
+    const stub = vi.fn(() => undefined);
+    setAsyncContextStrategy({ ...getStackAsyncContextStrategy(), normalizeStringifyValue: stub });
+    try {
+      expect(normalize({ a: 1, b: NaN })).toEqual({ a: 1, b: '[NaN]' });
+      expect(stub).toHaveBeenCalled();
+    } finally {
+      setAsyncContextStrategy(undefined);
+    }
+  });
+
+  test('works without any registered stringifier (default ACS)', () => {
+    // Sanity: with no ACS hook configured, runtime-specific objects are walked as plain
+    // objects rather than collapsed to a runtime-specific string. The browser SDK
+    // installs a stringifier that turns `HTMLDivElement` into `[HTMLElement: div]`;
+    // here in core, with no stringifier installed, we just get the element's enumerable
+    // own properties (typically none).
+    expect(normalize({ d: document.createElement('div') })).toEqual({ d: {} });
   });
 
   describe('regression: JSON cannot spoof skip-normalization via string keys', () => {
