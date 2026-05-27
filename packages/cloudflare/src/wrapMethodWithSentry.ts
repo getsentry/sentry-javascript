@@ -115,9 +115,25 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
             const teardown = async (): Promise<void> => {
               if (startNewTrace && storage) {
-                await storeSpanContext(storage, methodName);
+                storeSpanContext(storage, methodName);
               }
               await flushAndDispose(clientToDispose);
+            };
+
+            const onFulfilled = (res: unknown) => {
+              waitUntil?.(teardown());
+              return res;
+            };
+
+            const onRejected = (e: unknown) => {
+              captureException(e, {
+                mechanism: {
+                  type: 'auto.faas.cloudflare.durable_object',
+                  handled: false,
+                },
+              });
+              waitUntil?.(teardown());
+              throw e;
             };
 
             if (!wrapperOptions.spanName) {
@@ -129,35 +145,12 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                 const result = Reflect.apply(target, thisArg, args);
 
                 if (isThenable(result)) {
-                  return result.then(
-                    (res: unknown) => {
-                      waitUntil?.(teardown());
-                      return res;
-                    },
-                    (e: unknown) => {
-                      captureException(e, {
-                        mechanism: {
-                          type: 'auto.faas.cloudflare.durable_object',
-                          handled: false,
-                        },
-                      });
-                      waitUntil?.(teardown());
-                      throw e;
-                    },
-                  );
+                  return result.then(onFulfilled, onRejected);
                 } else {
-                  waitUntil?.(teardown());
-                  return result;
+                  return onFulfilled(result);
                 }
               } catch (e) {
-                captureException(e, {
-                  mechanism: {
-                    type: 'auto.faas.cloudflare.durable_object',
-                    handled: false,
-                  },
-                });
-                waitUntil?.(teardown());
-                throw e;
+                return onRejected(e);
               }
             }
 
@@ -170,70 +163,33 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
             const executeSpan = (): unknown => {
               return startSpan({ name: methodName, attributes }, span => {
-                // When linking to a previous trace, fetch the stored context in parallel with the
-                // user's handler and await it before the span ends, so `sentry.previous_trace` lands
-                // on the serialized transaction. Awaiting it ties the lookup into the handler's
-                // async lifecycle, so a separate `waitUntil` is not needed.
-                let linkPromise: Promise<void> | undefined;
-
                 if (startNewTrace && storage) {
-                  linkPromise = getStoredSpanContext(storage, methodName).then(storedContext => {
-                    if (storedContext) {
-                      span.addLinks(buildSpanLinks(storedContext));
-                      // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
-                      // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
-                      // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
-                      // to check this at v11 time :)
-                      const sampledFlag = storedContext.sampled ? '1' : '0';
-                      span.setAttribute(
-                        'sentry.previous_trace',
-                        `${storedContext.traceId}-${storedContext.spanId}-${sampledFlag}`,
-                      );
-                    }
-                  });
-                }
+                  const storedContext = getStoredSpanContext(storage, methodName);
 
-                const awaitLink = async (): Promise<void> => {
-                  if (linkPromise) {
-                    await linkPromise.catch(() => undefined);
+                  if (storedContext) {
+                    span.addLinks(buildSpanLinks(storedContext));
+                    // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
+                    // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
+                    // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
+                    // to check this at v11 time :)
+                    const sampledFlag = storedContext.sampled ? '1' : '0';
+                    span.setAttribute(
+                      'sentry.previous_trace',
+                      `${storedContext.traceId}-${storedContext.spanId}-${sampledFlag}`,
+                    );
                   }
-                };
+                }
 
                 try {
                   const result = Reflect.apply(target, thisArg, args);
 
                   if (isThenable(result)) {
-                    return result.then(
-                      async (res: unknown) => {
-                        await awaitLink();
-                        waitUntil?.(teardown());
-                        return res;
-                      },
-                      async (e: unknown) => {
-                        await awaitLink();
-                        captureException(e, {
-                          mechanism: {
-                            type: 'auto.faas.cloudflare.durable_object',
-                            handled: false,
-                          },
-                        });
-                        waitUntil?.(teardown());
-                        throw e;
-                      },
-                    );
+                    return result.then(onFulfilled, onRejected);
                   } else {
-                    waitUntil?.(teardown());
-                    return result;
+                    return onFulfilled(result);
                   }
                 } catch (e) {
-                  captureException(e, {
-                    mechanism: {
-                      type: 'auto.faas.cloudflare.durable_object',
-                      handled: false,
-                    },
-                  });
-                  waitUntil?.(teardown());
-                  throw e;
+                  return onRejected(e);
                 }
               });
             };

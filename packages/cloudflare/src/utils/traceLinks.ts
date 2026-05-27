@@ -26,7 +26,7 @@ export function getTraceLinkKey(methodName: string): string {
  * Uses the original uninstrumented storage to avoid creating spans for internal operations.
  * Errors are silently ignored to prevent internal storage failures from propagating to user code.
  */
-export async function storeSpanContext(originalStorage: DurableObjectStorage, methodName: string): Promise<void> {
+export function storeSpanContext(originalStorage: DurableObjectStorage, methodName: string): void {
   try {
     const activeSpan = getActiveSpan();
     if (activeSpan) {
@@ -36,7 +36,8 @@ export async function storeSpanContext(originalStorage: DurableObjectStorage, me
         spanId: spanContext.spanId,
         sampled: spanIsSampled(activeSpan),
       };
-      await originalStorage.put(getTraceLinkKey(methodName), storedContext);
+
+      originalStorage.kv.put(getTraceLinkKey(methodName), storedContext);
     }
   } catch (error) {
     // Silently ignore storage errors to prevent internal failures from affecting user code
@@ -47,15 +48,11 @@ export async function storeSpanContext(originalStorage: DurableObjectStorage, me
 /**
  * Retrieves a stored span context from Durable Object storage.
  */
-export async function getStoredSpanContext(
+export function getStoredSpanContext(
   originalStorage: DurableObjectStorage,
   methodName: string,
-): Promise<StoredSpanContext | undefined> {
-  try {
-    return await originalStorage.get<StoredSpanContext>(getTraceLinkKey(methodName));
-  } catch {
-    return undefined;
-  }
+): StoredSpanContext | undefined {
+  return originalStorage.kv.get<StoredSpanContext>(getTraceLinkKey(methodName));
 }
 
 /**
