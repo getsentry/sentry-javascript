@@ -31,7 +31,7 @@ import {
 import { KoaLayerType, KoaInstrumentationConfig } from './types';
 import { SDK_VERSION } from '@sentry/core';
 import { getMiddlewareMetadata, isLayerIgnored } from './utils';
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
+import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 import { Next, kLayerPatched, KoaContext, KoaMiddleware, KoaPatchedMiddleware } from './internal-types';
 
 const PACKAGE_NAME = '@sentry/instrumentation-koa';
@@ -156,10 +156,8 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
         attributes: metadata.attributes,
       });
 
-      const rpcMetadata = getRPCMetadata(api.context.active());
-
-      if (rpcMetadata?.type === RPCType.HTTP && context._matchedRoute) {
-        rpcMetadata.route = context._matchedRoute.toString();
+      if (context._matchedRoute) {
+        setHttpServerSpanRouteAttribute(context._matchedRoute.toString());
       }
 
       const { requestHook } = this.getConfig();

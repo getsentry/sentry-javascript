@@ -1,5 +1,4 @@
 import { context, createContextKey } from '@opentelemetry/api';
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
   debug,
@@ -253,11 +252,6 @@ function updateRootSpanWithRoute(method: string, pattern: string | undefined, ur
 
   const hasPattern = !!pattern;
   const routeName = hasPattern ? normalizeRoutePath(pattern) || urlPath : urlPath;
-
-  const rpcMetadata = getRPCMetadata(context.active());
-  if (rpcMetadata?.type === RPCType.HTTP) {
-    rpcMetadata.route = routeName;
-  }
 
   const transactionName = `${method} ${routeName}`;
   updateSpanName(rootSpan, transactionName);

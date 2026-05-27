@@ -22,7 +22,7 @@
 /* eslint-disable */
 
 import * as api from '@opentelemetry/api';
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
+import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 import {
   InstrumentationBase,
   InstrumentationConfig,
@@ -309,10 +309,7 @@ export class HapiInstrumentation extends InstrumentationBase {
         if (api.trace.getSpan(api.context.active()) === undefined) {
           return await oldHandler.call(this, ...params);
         }
-        const rpcMetadata = getRPCMetadata(api.context.active());
-        if (rpcMetadata?.type === RPCType.HTTP) {
-          rpcMetadata.route = route.path;
-        }
+        setHttpServerSpanRouteAttribute(route.path);
         const metadata = getRouteMetadata(route, instrumentation._semconvStability, pluginName);
         const span = instrumentation.tracer.startSpan(metadata.name, {
           attributes: metadata.attributes,
