@@ -6,10 +6,6 @@ import { logAndExitProcess } from '../utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
 
-type TaggedListener = NodeJS.UncaughtExceptionListener & {
-  tag?: string;
-};
-
 interface OnUncaughtExceptionOptions {
   /**
    * Controls if the SDK should register a handler to exit the process on uncaught errors:
@@ -83,17 +79,15 @@ export function makeErrorHandler(client: NodeClient, options: OnUncaughtExceptio
       // exit behaviour of the SDK accordingly:
       // - If other listeners are attached, do not exit.
       // - If the only listener attached is ours, exit.
-      const userProvidedListenersCount = (global.process.listeners('uncaughtException') as TaggedListener[]).filter(
-        listener => {
-          // There are 3 listeners we ignore:
-          return (
-            // as soon as we're using domains this listener is attached by node itself
-            listener.name !== 'domainUncaughtExceptionClear' &&
-            // the handler we register in this integration
-            (listener as ErrorHandler)._errorHandler !== true
-          );
-        },
-      ).length;
+      const userProvidedListenersCount = global.process.listeners('uncaughtException').filter(listener => {
+        // There are 3 listeners we ignore:
+        return (
+          // as soon as we're using domains this listener is attached by node itself
+          listener.name !== 'domainUncaughtExceptionClear' &&
+          // the handler we register in this integration
+          (listener as ErrorHandler)._errorHandler !== true
+        );
+      }).length;
 
       const processWouldExit = userProvidedListenersCount === 0;
       const shouldApplyFatalHandlingLogic = options.exitEvenIfOtherHandlersAreRegistered || processWouldExit;
