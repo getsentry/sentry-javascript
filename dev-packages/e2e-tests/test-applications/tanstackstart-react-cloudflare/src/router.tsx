@@ -9,14 +9,7 @@ export const getRouter = () => {
   });
 
   if (!router.isServer) {
-    Sentry.init({
-      environment: 'qa',
-      dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      integrations: [Sentry.browserTracingIntegration()],
-      tracesSampleRate: 1.0,
-      release: 'e2e-test',
-      tunnel: 'http://localhost:3031/',
-    });
+    Sentry.addIntegration(Sentry.browserTracingIntegration());
   }
 
   return router;

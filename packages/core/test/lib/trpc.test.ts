@@ -3,6 +3,7 @@ import { type Client, setCurrentClient, type Span, trpcMiddleware } from '../../
 import * as currentScopes from '../../src/currentScopes';
 import * as exports from '../../src/exports';
 import * as tracing from '../../src/tracing';
+import { resolveDataCollectionOptions } from '../../src/utils/data-collection/resolveDataCollectionOptions';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('trpcMiddleware', () => {
@@ -13,6 +14,7 @@ describe('trpcMiddleware', () => {
       normalizeDepth: 3,
       sendDefaultPii: false,
     }),
+    getDataCollectionOptions: vi.fn().mockReturnValue(resolveDataCollectionOptions({ sendDefaultPii: false })),
     captureException: vi.fn(),
   } as unknown as Client;
 

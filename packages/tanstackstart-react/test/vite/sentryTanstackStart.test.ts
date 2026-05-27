@@ -35,6 +35,16 @@ const mockTunnelRoutePlugin: Plugin = {
   transform: vi.fn(),
 };
 
+const mockRoutePatternPlugin: Plugin = {
+  name: 'sentry-tanstackstart-route-patterns',
+  enforce: 'pre',
+  config: vi.fn(),
+};
+
+vi.mock('../../src/vite/routePatterns', () => ({
+  makeRoutePatternPlugin: vi.fn(() => mockRoutePatternPlugin),
+}));
+
 vi.mock('../../src/vite/sourceMaps', () => ({
   makeAddSentryVitePlugin: vi.fn(() => [mockSourceMapsConfigPlugin, mockSentryVitePlugin]),
   makeEnableSourceMapsVitePlugin: vi.fn(() => [mockEnableSourceMapsPlugin]),
@@ -62,7 +72,12 @@ describe('sentryTanstackStart()', () => {
     it('returns source maps plugins in production mode', () => {
       const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockEnableSourceMapsPlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+        mockEnableSourceMapsPlugin,
+      ]);
     });
 
     it('returns no plugins in development mode when tunnelRoute is not configured', () => {
@@ -70,7 +85,7 @@ describe('sentryTanstackStart()', () => {
 
       const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false });
 
-      expect(plugins).toEqual([]);
+      expect(plugins).toEqual([mockRoutePatternPlugin]);
     });
 
     it('returns only the tunnel route plugin in development mode when tunnelRoute is configured', () => {
@@ -81,7 +96,7 @@ describe('sentryTanstackStart()', () => {
         tunnelRoute: { allowedDsns: ['https://public@o0.ingest.sentry.io/0'] },
       });
 
-      expect(plugins).toEqual([mockTunnelRoutePlugin]);
+      expect(plugins).toEqual([mockRoutePatternPlugin, mockTunnelRoutePlugin]);
     });
 
     it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is true', () => {
@@ -90,7 +105,7 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: true },
       });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+      expect(plugins).toEqual([mockRoutePatternPlugin, mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
     });
 
     it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is "disable-upload"', () => {
@@ -99,7 +114,7 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: 'disable-upload' },
       });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+      expect(plugins).toEqual([mockRoutePatternPlugin, mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
     });
 
     it('returns Sentry Vite plugins and enable source maps plugin when sourcemaps.disable is false', () => {
@@ -108,7 +123,12 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: false },
       });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockEnableSourceMapsPlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+        mockEnableSourceMapsPlugin,
+      ]);
     });
   });
 
@@ -116,7 +136,12 @@ describe('sentryTanstackStart()', () => {
     it('includes middleware plugin by default', () => {
       const plugins = sentryTanstackStart({ sourcemaps: { disable: true } });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockMiddlewarePlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+        mockMiddlewarePlugin,
+      ]);
     });
 
     it('includes middleware plugin when autoInstrumentMiddleware is true', () => {
@@ -125,7 +150,12 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: true },
       });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockMiddlewarePlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+        mockMiddlewarePlugin,
+      ]);
     });
 
     it('does not include middleware plugin when autoInstrumentMiddleware is false', () => {
@@ -134,7 +164,7 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: true },
       });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+      expect(plugins).toEqual([mockRoutePatternPlugin, mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
     });
 
     it('passes correct options to makeAutoInstrumentMiddlewarePlugin', () => {
@@ -161,9 +191,10 @@ describe('sentryTanstackStart()', () => {
       });
 
       expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockTunnelRoutePlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
-        mockTunnelRoutePlugin,
         mockMiddlewarePlugin,
       ]);
     });

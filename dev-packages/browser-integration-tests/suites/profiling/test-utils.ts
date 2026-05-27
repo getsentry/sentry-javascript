@@ -99,8 +99,8 @@ export function validateProfile(
     expect(frame).toHaveProperty('function');
     expect(typeof frame.function).toBe('string');
 
-    // Some browser functions (fetch, setTimeout) may not have file locations
-    if (frame.function !== 'fetch' && frame.function !== 'setTimeout') {
+    // Some browser functions (fetch, setTimeout, clearTimeout) may not have file locations
+    if (frame.function !== 'fetch' && frame.function !== 'setTimeout' && frame.function !== 'clearTimeout') {
       expect(frame).toHaveProperty('abs_path');
       expect(frame).toHaveProperty('lineno');
       expect(frame).toHaveProperty('colno');

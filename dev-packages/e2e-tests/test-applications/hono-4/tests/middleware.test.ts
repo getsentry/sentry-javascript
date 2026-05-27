@@ -248,3 +248,70 @@ test.describe('inline middleware spans (sub-app)', () => {
     }
   }
 });
+
+const MAIN_INLINE_PREFIX = '/test-main-inline';
+
+const MAIN_INLINE_CASES = [
+  { name: '.get()', path: '/get', method: 'GET', expectedMiddlewareName: 'mainInlineGet' },
+  { name: '.post()', path: '/post', method: 'POST', expectedMiddlewareName: 'mainInlinePost' },
+  { name: '.all()', path: '/all', method: 'GET', expectedMiddlewareName: 'mainInlineAll' },
+] as const;
+
+test.describe('inline middleware spans (main app)', () => {
+  MAIN_INLINE_CASES.forEach(({ name, path, method, expectedMiddlewareName }) => {
+    test(`creates middleware span for inline middleware via ${name}`, async ({ baseURL }) => {
+      const fullPath = `${MAIN_INLINE_PREFIX}${path}`;
+
+      const transactionPromise = waitForTransaction(APP_NAME, event => {
+        return event.contexts?.trace?.op === 'http.server' && event.transaction === `${method} ${fullPath}`;
+      });
+
+      const response = await fetch(`${baseURL}${fullPath}`, { method });
+      expect(response.status).toBe(200);
+
+      const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe(`${method} ${fullPath}`);
+
+      const spans = transaction.spans || [];
+      const inlineSpan = spans.find(s => s.description === expectedMiddlewareName);
+
+      expect(inlineSpan).toBeDefined();
+      expect(inlineSpan?.op).toBe('middleware.hono');
+      expect(inlineSpan?.origin).toBe('auto.middleware.hono');
+      expect(inlineSpan?.status).not.toBe('internal_error');
+
+      const middlewareSpans = spans.filter(s => s.op === 'middleware.hono');
+      expect(middlewareSpans).toHaveLength(1);
+    });
+  });
+
+  test('creates spans for both .use() middleware and inline middleware via .get()', async ({ baseURL }) => {
+    const fullPath = `${MAIN_INLINE_PREFIX}/combined/resource`;
+
+    const transactionPromise = waitForTransaction(APP_NAME, event => {
+      return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${fullPath}`;
+    });
+
+    const response = await fetch(`${baseURL}${fullPath}`);
+    expect(response.status).toBe(200);
+
+    const transaction = await transactionPromise;
+    expect(transaction.transaction).toBe(`GET ${fullPath}`);
+
+    const spans = transaction.spans || [];
+    const middlewareSpans = spans.filter(s => s.op === 'middleware.hono');
+
+    expect(middlewareSpans).toHaveLength(2);
+
+    const [spanA, spanB] = middlewareSpans.sort((a, b) => (a.description ?? '').localeCompare(b.description ?? ''));
+    expect(spanA?.description).toBe('combinedInlineMw');
+    expect(spanA?.op).toBe('middleware.hono');
+    expect(spanA?.origin).toBe('auto.middleware.hono');
+    expect(spanA?.status).not.toBe('internal_error');
+
+    expect(spanB?.description).toBe('middlewareA');
+    expect(spanB?.op).toBe('middleware.hono');
+    expect(spanB?.origin).toBe('auto.middleware.hono');
+    expect(spanB?.status).not.toBe('internal_error');
+  });
+});
