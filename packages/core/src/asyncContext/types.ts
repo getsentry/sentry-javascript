@@ -80,16 +80,4 @@ export interface AsyncContextStrategy {
 
   /** Start a new trace, ensuring all spans in the callback share the same traceId. */
   startNewTrace?: typeof startNewTrace;
-
-  /**
-   * Runtime-specific stringification for values that `normalize()` walks. Called from
-   * `stringifyValue` *before* the runtime-agnostic defaults; if it returns a string,
-   * that string is used and the defaults are skipped. Returning `undefined` falls
-   * through to the default behavior.
-   *
-   * Browser SDKs register this to handle DOM-specific values
-   * (`window` / `document` / `HTMLElement`s, Vue ViewModels, React SyntheticEvents)
-   * without forcing core itself to carry that code.
-   */
-  normalizeStringifyValue?: (value: Exclude<unknown, string | number | boolean | null>) => string | undefined;
 }
