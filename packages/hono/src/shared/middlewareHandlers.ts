@@ -38,12 +38,12 @@ export function responseHandler(
   context: Context,
   shouldHandleError?: SentryHonoMiddlewareOptions['shouldHandleError'],
 ): void {
-  const shouldCaptureError = (shouldHandleError ?? defaultShouldHandleError)(context.error);
-
-  if (context.error && shouldCaptureError) {
-    getClient()?.captureException(context.error, {
-      mechanism: { handled: false, type: 'auto.http.hono.context_error' },
-    });
+  if (context.error) {
+    if ((shouldHandleError ?? defaultShouldHandleError)(context.error)) {
+      getClient()?.captureException(context.error, {
+        mechanism: { handled: false, type: 'auto.http.hono.context_error' },
+      });
+    }
   }
 }
 
