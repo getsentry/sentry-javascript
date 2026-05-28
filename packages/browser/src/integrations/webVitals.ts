@@ -1,12 +1,9 @@
 import type { Client, IntegrationFn } from '@sentry/core/browser';
-import { defineIntegration, hasSpanStreamingEnabled } from '@sentry/core/browser';
+import { defineIntegration } from '@sentry/core/browser';
 import {
   registerInpInteractionListener,
   startTrackingINP,
   startTrackingWebVitals,
-  trackClsAsSpan,
-  trackInpAsSpan,
-  trackLcpAsSpan,
 } from '@sentry-internal/browser-utils';
 
 export const WEB_VITALS_INTEGRATION_NAME = 'WebVitals';
@@ -39,28 +36,15 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
   return {
     name: WEB_VITALS_INTEGRATION_NAME,
     setup(client) {
-      const spanStreamingEnabled = hasSpanStreamingEnabled(client);
-
       collectWebVitalsCallbacks.set(
         client,
         startTrackingWebVitals({
-          recordClsStandaloneSpans: spanStreamingEnabled || disabled.has('cls') ? undefined : false,
-          recordLcpStandaloneSpans: spanStreamingEnabled || disabled.has('lcp') ? undefined : false,
-          client,
+          recordClsOnPageloadSpan: !disabled.has('cls'),
+          recordLcpOnPageloadSpan: !disabled.has('lcp'),
         }),
       );
 
-      if (spanStreamingEnabled) {
-        if (!disabled.has('lcp')) {
-          trackLcpAsSpan(client);
-        }
-        if (!disabled.has('cls')) {
-          trackClsAsSpan(client);
-        }
-        if (!disabled.has('inp')) {
-          trackInpAsSpan();
-        }
-      } else if (!disabled.has('inp')) {
+      if (!disabled.has('inp')) {
         startTrackingINP();
       }
     },

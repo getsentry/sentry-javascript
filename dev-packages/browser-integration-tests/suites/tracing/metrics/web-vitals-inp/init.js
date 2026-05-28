@@ -6,23 +6,14 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
     Sentry.browserTracingIntegration({
-      idleTimeout: 4000,
+      idleTimeout: 5000,
       enableLongTask: false,
       enableInp: true,
-      instrumentPageLoad: false,
-      instrumentNavigation: false,
+      beforeStartSpan: options => ({ ...options, name: 'test-url' }),
     }),
+    Sentry.spanStreamingIntegration(),
   ],
+  traceLifecycle: 'stream',
   tracesSampleRate: 1,
   debug: true,
-});
-
-const client = Sentry.getClient();
-
-// Force page load transaction name to a testable value
-Sentry.startBrowserTracingPageLoadSpan(client, {
-  name: 'test-url',
-  attributes: {
-    [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-  },
 });

@@ -1,16 +1,11 @@
-import type { Span, SpanAttributes } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
   isBrowser,
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
+  spanToStreamedSpanJSON,
 } from '@sentry/core';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
@@ -20,7 +15,8 @@ import {
   addPerformanceInstrumentationHandler,
   isPerformanceEventTiming,
 } from './instrument';
-import { getBrowserPerformanceAPI, msToSec, startStandaloneWebVitalSpan } from './utils';
+import { sendInpSpanEnvelope } from './inpSpanEnvelope';
+import { getBrowserPerformanceAPI, msToSec } from './utils';
 
 interface InteractionContext {
   span: Span | undefined;
@@ -115,6 +111,9 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
 
   const { interactionId } = entry;
   const interactionType = INP_ENTRY_MAP[entry.name];
+  if (!interactionType) {
+    return;
+  }
 
   /** Build the INP span, create an envelope from the span, and then send the envelope */
   const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
@@ -127,32 +126,21 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
 
   const spanToUse = cachedInteractionContext?.span || rootSpan;
 
-  // Else, we try to use the active span.
-  // Finally, we fall back to look at the transactionName on the scope
-  const routeName = spanToUse ? spanToJSON(spanToUse).description : getCurrentScope().getScopeData().transactionName;
-
+  const routeName = spanToUse
+    ? spanToStreamedSpanJSON(spanToUse).name
+    : getCurrentScope().getScopeData().transactionName;
   const name = cachedInteractionContext?.elementName || htmlTreeAsString(entry.target);
-  const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.inp',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.interaction.${interactionType}`,
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
-  };
 
-  const span = startStandaloneWebVitalSpan({
+  sendInpSpanEnvelope({
+    duration,
+    entryDuration: entry.duration,
     name,
-    transaction: routeName,
-    attributes,
+    routeName,
     startTime,
+    interactionType,
+    parentSpan: spanToUse,
+    value: metric.value,
   });
-
-  if (span) {
-    span.addEvent('inp', {
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
-    });
-
-    span.end(startTime + duration);
-  }
 };
 
 /**

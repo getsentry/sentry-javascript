@@ -1,19 +1,12 @@
 import { expect } from '@playwright/test';
-import type { SpanEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  getMultipleSentryEnvelopeRequests,
-  hidePage,
-  properFullEnvelopeRequestParser,
-  shouldSkipTracingTest,
-} from '../../../../utils/helpers';
+import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest(
   'should capture an INP click event span during pageload for a parametrized transaction',
   async ({ browserName, getLocalTestUrl, page }) => {
-    const supportedBrowsers = ['chromium'];
-
-    if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
+    if (shouldSkipTracingTest() || browserName !== 'chromium') {
       sentryTest.skip();
     }
 
@@ -21,71 +14,24 @@ sentryTest(
 
     await page.goto(url);
 
-    const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-      page,
-      1,
-      { envelopeType: 'span' },
-      properFullEnvelopeRequestParser,
-    );
+    const inpSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'ui.interaction.click');
 
     await page.locator('[data-test-id=normal-button]').click();
     await page.locator('.clicked[data-test-id=normal-button]').isVisible();
 
     await page.waitForTimeout(500);
-
-    // Page hide to trigger INP
     await hidePage(page);
 
-    // Get the INP span envelope
-    const spanEnvelope = (await spanEnvelopePromise)[0];
+    const inpSpan = await inpSpanPromise;
 
-    const spanEnvelopeHeaders = spanEnvelope[0];
-    const spanEnvelopeItem = spanEnvelope[1][0][1];
+    expect(inpSpan.name).toBe('body > NormalButton');
+    expect(inpSpan.attributes?.['sentry.op']).toEqual({ type: 'string', value: 'ui.interaction.click' });
+    expect(inpSpan.attributes?.['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.inp' });
+    expect(inpSpan.attributes?.['sentry.transaction']?.value).toBe('test-route');
+    expect(inpSpan.attributes?.['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
 
-    const traceId = spanEnvelopeHeaders.trace!.trace_id;
-    expect(traceId).toMatch(/[a-f\d]{32}/);
-
-    expect(spanEnvelopeHeaders).toEqual({
-      sent_at: expect.any(String),
-      trace: {
-        environment: 'production',
-        public_key: 'public',
-        sample_rate: '1',
-        sampled: 'true',
-        trace_id: traceId,
-        transaction: 'test-route',
-        sample_rand: expect.any(String),
-      },
-    });
-
-    const inpValue = spanEnvelopeItem.measurements?.inp.value;
+    const inpValue = inpSpan.attributes?.['browser.web_vital.inp.value']?.value as number;
     expect(inpValue).toBeGreaterThan(0);
-
-    expect(spanEnvelopeItem).toEqual({
-      data: {
-        'sentry.exclusive_time': inpValue,
-        'sentry.op': 'ui.interaction.click',
-        'sentry.origin': 'auto.http.browser.inp',
-        transaction: 'test-route',
-        'user_agent.original': expect.stringContaining('Chrome'),
-      },
-      measurements: {
-        inp: {
-          unit: 'millisecond',
-          value: inpValue,
-        },
-      },
-      description: 'body > NormalButton',
-      exclusive_time: inpValue,
-      op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
-      segment_id: expect.not.stringMatching(spanEnvelopeItem.span_id!),
-      // parent is the pageload span
-      parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
-      span_id: expect.stringMatching(/[a-f\d]{16}/),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      trace_id: traceId,
-    });
+    expect(inpSpan.attributes?.['sentry.exclusive_time']?.value).toBeGreaterThan(0);
   },
 );

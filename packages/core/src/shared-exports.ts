@@ -76,7 +76,7 @@ export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { withStreamedSpan } from './tracing/spans/beforeSendSpan';
 export { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
-export { safeSetSpanJSONAttributes } from './tracing/spans/captureSpan';
+export { captureSpan as _INTERNAL_captureSpan, safeSetSpanJSONAttributes } from './tracing/spans/captureSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
@@ -99,6 +99,7 @@ export {
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
+  streamedSpanJsonToSerializedSpan as _INTERNAL_streamedSpanJsonToSerializedSpan,
   updateSpanName,
 } from './utils/spanUtils';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
@@ -196,6 +197,7 @@ export type {
 export type { GoogleGenAIIstrumentedMethod } from './tracing/google-genai/types';
 export { SpanBuffer } from './tracing/spans/spanBuffer';
 export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
+export { createStreamedSpanEnvelope as _INTERNAL_createStreamedSpanEnvelope } from './tracing/spans/envelope';
 export { spanStreamingIntegration } from './integrations/spanStreaming';
 export type { FeatureFlag } from './utils/featureFlags';
 export {

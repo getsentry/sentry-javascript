@@ -4,17 +4,11 @@ import { collectWebVitalsForClient, webVitalsIntegration } from '../../src/integ
 const mockRegisterInpInteractionListener = vi.hoisted(() => vi.fn());
 const mockStartTrackingINP = vi.hoisted(() => vi.fn());
 const mockStartTrackingWebVitals = vi.hoisted(() => vi.fn());
-const mockTrackClsAsSpan = vi.hoisted(() => vi.fn());
-const mockTrackInpAsSpan = vi.hoisted(() => vi.fn());
-const mockTrackLcpAsSpan = vi.hoisted(() => vi.fn());
 
 vi.mock('@sentry-internal/browser-utils', () => ({
   registerInpInteractionListener: mockRegisterInpInteractionListener,
   startTrackingINP: mockStartTrackingINP,
   startTrackingWebVitals: mockStartTrackingWebVitals,
-  trackClsAsSpan: mockTrackClsAsSpan,
-  trackInpAsSpan: mockTrackInpAsSpan,
-  trackLcpAsSpan: mockTrackLcpAsSpan,
 }));
 
 describe('webVitalsIntegration', () => {
@@ -35,18 +29,14 @@ describe('webVitalsIntegration', () => {
     integration.afterAllSetup?.(client as never);
 
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      recordClsStandaloneSpans: false,
-      recordLcpStandaloneSpans: false,
-      client,
+      recordClsOnPageloadSpan: true,
+      recordLcpOnPageloadSpan: true,
     });
     expect(mockStartTrackingINP).toHaveBeenCalledTimes(1);
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
-    expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
-    expect(mockTrackClsAsSpan).not.toHaveBeenCalled();
-    expect(mockTrackInpAsSpan).not.toHaveBeenCalled();
   });
 
-  it('tracks LCP, CLS and INP as streamed spans when span streaming is enabled', () => {
+  it('tracks LCP and CLS as pageload measurements when span streaming is enabled', () => {
     const client = { getOptions: () => ({ traceLifecycle: 'stream' }) };
     const integration = webVitalsIntegration();
 
@@ -54,14 +44,10 @@ describe('webVitalsIntegration', () => {
     integration.afterAllSetup?.(client as never);
 
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      recordClsStandaloneSpans: undefined,
-      recordLcpStandaloneSpans: undefined,
-      client,
+      recordClsOnPageloadSpan: true,
+      recordLcpOnPageloadSpan: true,
     });
-    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client);
-    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
-    expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
-    expect(mockStartTrackingINP).not.toHaveBeenCalled();
+    expect(mockStartTrackingINP).toHaveBeenCalledTimes(1);
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
   });
 
@@ -73,12 +59,10 @@ describe('webVitalsIntegration', () => {
     integration.afterAllSetup?.(client as never);
 
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      recordClsStandaloneSpans: undefined,
-      recordLcpStandaloneSpans: undefined,
-      client,
+      recordClsOnPageloadSpan: false,
+      recordLcpOnPageloadSpan: false,
     });
     expect(mockStartTrackingINP).not.toHaveBeenCalled();
-    expect(mockTrackInpAsSpan).not.toHaveBeenCalled();
     expect(mockRegisterInpInteractionListener).not.toHaveBeenCalled();
   });
 

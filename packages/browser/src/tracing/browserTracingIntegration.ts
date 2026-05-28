@@ -457,10 +457,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         collectWebVitalsForClient(client);
         const spanStreamingEnabled = hasSpanStreamingEnabled(client);
         addPerformanceEntries(span, {
-          recordClsOnPageloadSpan: !spanStreamingEnabled,
-          recordLcpOnPageloadSpan: !spanStreamingEnabled,
           ignoreResourceSpans,
           ignorePerformanceApiSpans,
+          recordClsOnPageloadSpan: true,
+          recordLcpOnPageloadSpan: true,
           spanStreamingEnabled,
         });
         setActiveIdleSpan(client, undefined);

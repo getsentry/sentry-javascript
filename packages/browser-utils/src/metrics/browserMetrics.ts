@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Client, Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
+import type { Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
@@ -14,7 +14,6 @@ import {
 } from '@sentry/core';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
-import { trackClsAsStandaloneSpan } from './cls';
 import {
   addClsInstrumentationHandler,
   addLcpInstrumentationHandler,
@@ -22,7 +21,7 @@ import {
   addTtfbInstrumentationHandler,
   type PerformanceLongAnimationFrameTiming,
 } from './instrument';
-import { isValidLcpMetric, trackLcpAsStandaloneSpan } from './lcp';
+import { isValidLcpMetric } from './lcp';
 import { resourceTimingToSpanAttributes } from './resourceTiming';
 import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
@@ -76,33 +75,19 @@ let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
 
 interface StartTrackingWebVitalsOptions {
-  /**
-   * When `true`, CLS is tracked as a standalone span. When `false`, CLS is
-   * recorded as a measurement on the pageload span. When `undefined`, CLS
-   * tracking is skipped entirely (e.g. because span streaming handles it).
-   */
-  recordClsStandaloneSpans: boolean | undefined;
-  /**
-   * When `true`, LCP is tracked as a standalone span. When `false`, LCP is
-   * recorded as a measurement on the pageload span. When `undefined`, LCP
-   * tracking is skipped entirely (e.g. because span streaming handles it).
-   */
-  recordLcpStandaloneSpans: boolean | undefined;
-  client: Client;
+  recordClsOnPageloadSpan?: boolean;
+  recordLcpOnPageloadSpan?: boolean;
 }
 
 /**
  * Start tracking web vitals.
  * The callback returned by this function can be used to stop tracking & ensure all measurements are final & captured.
- *
- * @deprecated this function will be removed and streamlined once we stop supporting standalone v1
  * @returns A function that forces web vitals collection
  */
 export function startTrackingWebVitals({
-  recordClsStandaloneSpans,
-  recordLcpStandaloneSpans,
-  client,
-}: StartTrackingWebVitalsOptions): () => void {
+  recordClsOnPageloadSpan = true,
+  recordLcpOnPageloadSpan = true,
+}: StartTrackingWebVitalsOptions = {}): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin()) {
     // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
@@ -110,18 +95,8 @@ export function startTrackingWebVitals({
       WINDOW.performance.mark('sentry-tracing-init');
     }
 
-    const lcpCleanupCallback = recordLcpStandaloneSpans
-      ? trackLcpAsStandaloneSpan(client)
-      : recordLcpStandaloneSpans === false
-        ? _trackLCP()
-        : undefined;
-
-    const clsCleanupCallback = recordClsStandaloneSpans
-      ? trackClsAsStandaloneSpan(client)
-      : recordClsStandaloneSpans === false
-        ? _trackCLS()
-        : undefined;
-
+    const lcpCleanupCallback = recordLcpOnPageloadSpan ? _trackLCP() : undefined;
+    const clsCleanupCallback = recordClsOnPageloadSpan ? _trackCLS() : undefined;
     const ttfbCleanupCallback = _trackTtfb();
 
     return (): void => {
@@ -305,20 +280,12 @@ function _trackTtfb(): () => void {
 
 interface AddPerformanceEntriesOptions {
   /**
-   * Flag to determine if CLS should be recorded as a measurement on the pageload span or
-   * sent as a standalone span instead.
-   * Sending it as a standalone span will yield more accurate LCP values.
-   *
-   * Default: `false` for backwards compatibility.
+   * Whether CLS should be recorded on the pageload span.
    */
   recordClsOnPageloadSpan: boolean;
 
   /**
-   * Flag to determine if LCP should be recorded as a measurement on the pageload span or
-   * sent as a standalone span instead.
-   * Sending it as a standalone span will yield more accurate LCP values.
-   *
-   * Default: `false` for backwards compatibility.
+   * Whether LCP should be recorded on the pageload span.
    */
   recordLcpOnPageloadSpan: boolean;
 
@@ -429,14 +396,22 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     _addTtfbRequestTimeToMeasurements(_measurements);
 
     if (spanStreamingEnabled) {
+      if (!recordClsOnPageloadSpan) {
+        delete _measurements.cls;
+      }
+
+      if (!recordLcpOnPageloadSpan) {
+        delete _measurements.lcp;
+      }
+
       const setAttr = (shortWebVitalName: string, value: number, customAttrName?: string) => {
         const attrKey = customAttrName ?? `browser.web_vital.${shortWebVitalName}.value`;
         span.setAttribute(attrKey, value);
         DEBUG_BUILD && debug.log('Setting web vital attribute', { [attrKey]: value }, 'on pageload span');
       };
-      // for streamed pageload spans, we add the web vital measurements as attributes.
-      // We omit LCP, CLS and INP because they're tracked separately as spans
-      ['ttfb', 'fp', 'fcp'].forEach(measurementName => {
+      // For streamed pageload spans, we add the web vital measurements as attributes.
+      // INP is tracked separately as a span v2 envelope.
+      ['ttfb', 'fp', 'fcp', 'lcp', 'cls'].forEach(measurementName => {
         if (_measurements[measurementName]) {
           setAttr(measurementName, _measurements[measurementName].value);
         }
@@ -445,14 +420,12 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
         setAttr('ttfb.requestTime', _measurements['ttfb.requestTime'].value, 'browser.web_vital.ttfb.request_time');
       }
     } else {
-      // TODO (V11): Remove this else branch once we remove v1 standalone spans and transactions
+      // TODO (V11): Remove this else branch once we remove transactions
 
-      // If CLS standalone spans are enabled, don't record CLS as a measurement
       if (!recordClsOnPageloadSpan) {
         delete _measurements.cls;
       }
 
-      // If LCP standalone spans are enabled, don't record LCP as a measurement
       if (!recordLcpOnPageloadSpan) {
         delete _measurements.lcp;
       }
@@ -820,10 +793,7 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
 
 /** Add LCP / CLS data to span to allow debugging */
 function _setWebVitalAttributes(span: Span, options: AddPerformanceEntriesOptions): void {
-  // Only add LCP attributes if LCP is being recorded on the pageload span
   if (_lcpEntry && options.recordLcpOnPageloadSpan) {
-    // Capture Properties of the LCP element that contributes to the LCP.
-
     if (_lcpEntry.element) {
       span.setAttribute('lcp.element', htmlTreeAsString(_lcpEntry.element));
     }
@@ -833,26 +803,20 @@ function _setWebVitalAttributes(span: Span, options: AddPerformanceEntriesOption
     }
 
     if (_lcpEntry.url) {
-      // Trim URL to the first 200 characters.
       span.setAttribute('lcp.url', _lcpEntry.url.trim().slice(0, 200));
     }
 
     if (_lcpEntry.loadTime != null) {
-      // loadTime is the time of LCP that's related to receiving the LCP element response..
       span.setAttribute('lcp.loadTime', _lcpEntry.loadTime);
     }
 
     if (_lcpEntry.renderTime != null) {
-      // renderTime is loadTime + rendering time
-      // it's 0 if the LCP element is loaded from a 3rd party origin that doesn't send the
-      // `Timing-Allow-Origin` header.
       span.setAttribute('lcp.renderTime', _lcpEntry.renderTime);
     }
 
     span.setAttribute('lcp.size', _lcpEntry.size);
   }
 
-  // Only add CLS attributes if CLS is being recorded on the pageload span
   if (_clsEntry?.sources && options.recordClsOnPageloadSpan) {
     _clsEntry.sources.forEach((source, index) =>
       span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
