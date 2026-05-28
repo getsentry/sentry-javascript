@@ -36,8 +36,8 @@
   "private": true,
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:transpile": "rollup -c rollup.worker.config.mjs",
-    "build:examples": "rollup -c rollup.examples.config.mjs",
+    "build:transpile": "rolldown -c rollup.worker.config.mjs",
+    "build:examples": "rolldown -c rollup.examples.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
