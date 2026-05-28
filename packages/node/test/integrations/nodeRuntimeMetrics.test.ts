@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { metrics } from '@sentry/core';
 import { nodeRuntimeMetricsIntegration } from '../../src/integrations/nodeRuntimeMetrics';
+
+const { mockGauge, mockCount } = vi.hoisted(() => ({ mockGauge: vi.fn(), mockCount: vi.fn() }));
 
 const { mockHistogram, mockMonitorEventLoopDelay, mockPerformance } = vi.hoisted(() => {
   const mockHistogram = {
@@ -38,17 +39,14 @@ vi.mock('perf_hooks', () => ({
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
-  return { ...actual };
+  return { ...actual, metrics: { ...actual.metrics, gauge: mockGauge, count: mockCount } };
 });
 
 describe('nodeRuntimeMetricsIntegration', () => {
-  let gaugeSpy: ReturnType<typeof vi.spyOn>;
-  let countSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
     vi.useFakeTimers();
-    gaugeSpy = vi.spyOn(metrics, 'gauge');
-    countSpy = vi.spyOn(metrics, 'count');
+    mockGauge.mockClear();
+    mockCount.mockClear();
 
     vi.spyOn(process, 'cpuUsage').mockReturnValue({ user: 500_000, system: 200_000 });
     vi.spyOn(process, 'memoryUsage').mockReturnValue({
@@ -98,9 +96,9 @@ describe('nodeRuntimeMetricsIntegration', () => {
       const integration = nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 });
       integration.setup();
 
-      expect(gaugeSpy).not.toHaveBeenCalled();
+      expect(mockGauge).not.toHaveBeenCalled();
       vi.advanceTimersByTime(1_000);
-      expect(gaugeSpy).toHaveBeenCalled();
+      expect(mockGauge).toHaveBeenCalled();
     });
   });
 
@@ -114,7 +112,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.utilization', expect.any(Number), ORIGIN);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.cpu.utilization', expect.any(Number), ORIGIN);
     });
 
     it('does not emit cpu.user / cpu.system by default (opt-in)', () => {
@@ -122,8 +120,8 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).not.toHaveBeenCalledWith('node.runtime.cpu.user', expect.anything(), expect.anything());
-      expect(gaugeSpy).not.toHaveBeenCalledWith('node.runtime.cpu.system', expect.anything(), expect.anything());
+      expect(mockGauge).not.toHaveBeenCalledWith('node.runtime.cpu.user', expect.anything(), expect.anything());
+      expect(mockGauge).not.toHaveBeenCalledWith('node.runtime.cpu.system', expect.anything(), expect.anything());
     });
 
     it('emits cpu.user / cpu.system when cpuTime is opted in', () => {
@@ -134,8 +132,8 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.user', expect.any(Number), SECOND);
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.system', expect.any(Number), SECOND);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.cpu.user', expect.any(Number), SECOND);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.cpu.system', expect.any(Number), SECOND);
     });
 
     it('emits mem.rss, mem.heap_used, mem.heap_total (default on)', () => {
@@ -143,9 +141,9 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.rss', 50_000_000, BYTE);
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.heap_used', 20_000_000, BYTE);
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.heap_total', 30_000_000, BYTE);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.mem.rss', 50_000_000, BYTE);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.mem.heap_used', 20_000_000, BYTE);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.mem.heap_total', 30_000_000, BYTE);
     });
 
     it('does not emit mem.external / mem.array_buffers by default (opt-in)', () => {
@@ -153,8 +151,12 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).not.toHaveBeenCalledWith('node.runtime.mem.external', expect.anything(), expect.anything());
-      expect(gaugeSpy).not.toHaveBeenCalledWith('node.runtime.mem.array_buffers', expect.anything(), expect.anything());
+      expect(mockGauge).not.toHaveBeenCalledWith('node.runtime.mem.external', expect.anything(), expect.anything());
+      expect(mockGauge).not.toHaveBeenCalledWith(
+        'node.runtime.mem.array_buffers',
+        expect.anything(),
+        expect.anything(),
+      );
     });
 
     it('emits mem.external / mem.array_buffers when opted in', () => {
@@ -165,8 +167,8 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.external', 1_000_000, BYTE);
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.array_buffers', 500_000, BYTE);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.mem.external', 1_000_000, BYTE);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.mem.array_buffers', 500_000, BYTE);
     });
 
     it('emits event_loop.delay.p50 and p99 (default on) and resets histogram', () => {
@@ -174,8 +176,8 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.p50', expect.any(Number), SECOND);
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.p99', expect.any(Number), SECOND);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.event_loop.delay.p50', expect.any(Number), SECOND);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.event_loop.delay.p99', expect.any(Number), SECOND);
       expect(mockHistogram.reset).toHaveBeenCalledOnce();
     });
 
@@ -185,7 +187,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       vi.advanceTimersByTime(1_000);
 
       for (const suffix of ['min', 'max', 'mean', 'p90']) {
-        expect(gaugeSpy).not.toHaveBeenCalledWith(
+        expect(mockGauge).not.toHaveBeenCalledWith(
           `node.runtime.event_loop.delay.${suffix}`,
           expect.anything(),
           expect.anything(),
@@ -207,11 +209,11 @@ describe('nodeRuntimeMetricsIntegration', () => {
       vi.advanceTimersByTime(1_000);
 
       // min: (2_000_000 - 10_000_000) clamped to 0 → 0s
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.min', 0, SECOND);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.event_loop.delay.min', 0, SECOND);
       // max: (20_000_000 - 10_000_000) / 1e9 → 0.01s
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.max', 0.01, SECOND);
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.mean', 0, SECOND);
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.p90', expect.any(Number), SECOND);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.event_loop.delay.max', 0.01, SECOND);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.event_loop.delay.mean', 0, SECOND);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.event_loop.delay.p90', expect.any(Number), SECOND);
     });
 
     it('emits event loop utilization metric', () => {
@@ -219,7 +221,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.utilization', 0.3, ORIGIN);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.event_loop.utilization', 0.3, ORIGIN);
     });
 
     it('emits uptime counter', () => {
@@ -227,7 +229,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(countSpy).toHaveBeenCalledWith('node.runtime.process.uptime', expect.any(Number), SECOND);
+      expect(mockCount).toHaveBeenCalledWith('node.runtime.process.uptime', expect.any(Number), SECOND);
     });
 
     it('does not emit event loop delay metrics if monitorEventLoopDelay threw', () => {
@@ -239,7 +241,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).not.toHaveBeenCalledWith(
+      expect(mockGauge).not.toHaveBeenCalledWith(
         'node.runtime.event_loop.delay.p99',
         expect.anything(),
         expect.anything(),
@@ -256,7 +258,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).not.toHaveBeenCalledWith('node.runtime.cpu.utilization', expect.anything(), expect.anything());
+      expect(mockGauge).not.toHaveBeenCalledWith('node.runtime.cpu.utilization', expect.anything(), expect.anything());
     });
 
     it('skips mem.rss when memRss is false', () => {
@@ -267,7 +269,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).not.toHaveBeenCalledWith('node.runtime.mem.rss', expect.anything(), expect.anything());
+      expect(mockGauge).not.toHaveBeenCalledWith('node.runtime.mem.rss', expect.anything(), expect.anything());
     });
 
     it('skips event loop delay metrics when all delay flags are false', () => {
@@ -280,7 +282,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       expect(mockMonitorEventLoopDelay).not.toHaveBeenCalled();
       vi.advanceTimersByTime(1_000);
       for (const suffix of ['min', 'max', 'mean', 'p50', 'p90', 'p99']) {
-        expect(gaugeSpy).not.toHaveBeenCalledWith(
+        expect(mockGauge).not.toHaveBeenCalledWith(
           `node.runtime.event_loop.delay.${suffix}`,
           expect.anything(),
           expect.anything(),
@@ -296,12 +298,12 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).not.toHaveBeenCalledWith(
+      expect(mockGauge).not.toHaveBeenCalledWith(
         'node.runtime.event_loop.delay.p99',
         expect.anything(),
         expect.anything(),
       );
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.p50', expect.any(Number), SECOND);
+      expect(mockGauge).toHaveBeenCalledWith('node.runtime.event_loop.delay.p50', expect.any(Number), SECOND);
     });
 
     it('skips event loop utilization when eventLoopUtilization is false', () => {
@@ -312,7 +314,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).not.toHaveBeenCalledWith(
+      expect(mockGauge).not.toHaveBeenCalledWith(
         'node.runtime.event_loop.utilization',
         expect.anything(),
         expect.anything(),
@@ -327,7 +329,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(countSpy).not.toHaveBeenCalledWith('node.runtime.process.uptime', expect.anything(), expect.anything());
+      expect(mockCount).not.toHaveBeenCalledWith('node.runtime.process.uptime', expect.anything(), expect.anything());
     });
 
     it('enforces minimum collectionIntervalMs of 1000ms and warns', () => {
@@ -341,10 +343,10 @@ describe('nodeRuntimeMetricsIntegration', () => {
 
       // Should fire at the minimum 1000ms, not at 100ms
       vi.advanceTimersByTime(100);
-      expect(gaugeSpy).not.toHaveBeenCalled();
+      expect(mockGauge).not.toHaveBeenCalled();
 
       vi.advanceTimersByTime(900);
-      expect(gaugeSpy).toHaveBeenCalled();
+      expect(mockGauge).toHaveBeenCalled();
 
       warnSpy.mockRestore();
     });
@@ -359,10 +361,10 @@ describe('nodeRuntimeMetricsIntegration', () => {
 
       // Should fire at the default 30000ms, not at 1000ms
       vi.advanceTimersByTime(1000);
-      expect(gaugeSpy).not.toHaveBeenCalled();
+      expect(mockGauge).not.toHaveBeenCalled();
 
       vi.advanceTimersByTime(29_000);
-      expect(gaugeSpy).toHaveBeenCalled();
+      expect(mockGauge).toHaveBeenCalled();
 
       warnSpy.mockRestore();
     });

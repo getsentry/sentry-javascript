@@ -1,48 +1,42 @@
 /**
- * Rollup config docs: https://rollupjs.org/guide/en/#big-list-of-options
+ * Rolldown config docs: https://rolldown.rs/reference/config-options
  */
 
-import { builtinModules } from 'module';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import deepMerge from 'deepmerge';
 
 import {
+  makeBannerOptions,
   makeBrowserBuildPlugin,
-  makeCommonJSPlugin,
-  makeEsbuildPlugin,
   makeIsDebugBuildPlugin,
-  makeLicensePlugin,
-  makeNodeResolvePlugin,
+  makeMinifierOptions,
   makeRrwebBuildPlugin,
   makeSetSDKSourcePlugin,
-  makeTerserPlugin,
 } from './plugins/index.mjs';
-import { mergePlugins } from './utils.mjs';
+import { getNodeBuiltIns, mergePlugins, treeShakePreset } from './utils.mjs';
 import { makeProductionReplacePlugin } from './plugins/npmPlugins.mjs';
 
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
-export function makeBaseBundleConfig(options) {
-  const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig, esbuild } = options;
+const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
 
-  const nodeResolvePlugin = makeNodeResolvePlugin();
-  const transpilePlugin = makeEsbuildPlugin(esbuild);
+export function makeBaseBundleConfig(options) {
+  const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig } = options;
+
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
-  const licensePlugin = makeLicensePlugin(licenseTitle);
+  const banner = makeBannerOptions(licenseTitle, packageDotJSON.version);
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeIframe: false,
     excludeShadowDom: false,
   });
   const productionReplacePlugin = makeProductionReplacePlugin();
 
-  // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
-  // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
-  // at all, and without `transformMixedEsModules`, they're only included if they're imported, not if they're required.)
-  const commonJSPlugin = makeCommonJSPlugin({ transformMixedEsModules: true });
-
   // used by `@sentry/browser`
   const standAloneBundleConfig = {
     output: {
+      banner,
       format: 'iife',
       name: 'Sentry',
       intro: () => {
@@ -50,7 +44,7 @@ export function makeBaseBundleConfig(options) {
       },
     },
     context: 'window',
-    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin, licensePlugin],
+    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
   };
 
   // used by `@sentry/wasm` & pluggable integrations from core/browser (bundles which need to be combined with a stand-alone SDK bundle)
@@ -61,7 +55,7 @@ export function makeBaseBundleConfig(options) {
       format: 'cjs',
 
       // code to add before the CJS wrapper
-      banner: '(function (__window) {',
+      banner: `${banner}\n(function (__window) {`,
 
       // code to add just inside the CJS wrapper, before any of the wrapped code
       intro: 'var exports = {};',
@@ -84,30 +78,41 @@ export function makeBaseBundleConfig(options) {
       // code to add after the CJS wrapper
       footer: '}(window));',
     },
-    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin, licensePlugin],
+    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
   };
 
   const workerBundleConfig = {
     output: {
+      banner,
       format: 'esm',
+      minify: makeMinifierOptions(),
     },
-    plugins: [commonJSPlugin, makeTerserPlugin(), licensePlugin],
     // Don't bundle any of Node's core modules
-    external: builtinModules,
+    external: getNodeBuiltIns(),
   };
 
   const awsLambdaExtensionBundleConfig = {
     output: {
       format: 'esm',
+      minify: makeMinifierOptions(),
     },
-    plugins: [commonJSPlugin, makeIsDebugBuildPlugin(true), makeTerserPlugin()],
+    plugins: [makeIsDebugBuildPlugin(true)],
     // Don't bundle any of Node's core modules
-    external: builtinModules,
+    external: getNodeBuiltIns(),
   };
 
   // used by all bundles
   const sharedBundleConfig = {
     input: entrypoints,
+
+    // Point at the package's tsconfig so rolldown picks up its TypeScript & JSX settings.
+    tsconfig: path.resolve(process.cwd(), './tsconfig.json'),
+
+    // ES2020 is our floor: keeps `?.`/`??` native and downlevels everything newer.
+    transform: {
+      target: 'es2020',
+    },
+
     output: {
       // a file extension will be added to this base value when we specify either a minified or non-minified build
       entryFileNames: outputFileBase,
@@ -116,8 +121,8 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    plugins: [productionReplacePlugin, transpilePlugin, nodeResolvePlugin],
-    treeshake: 'smallest',
+    plugins: [productionReplacePlugin],
+    treeshake: treeShakePreset('smallest'),
   };
 
   const bundleTypeConfigMap = {
@@ -147,7 +152,7 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
 
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
   const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
-  const terserPlugin = makeTerserPlugin();
+  const minify = makeMinifierOptions();
   const setSdkSourcePlugin = makeSetSDKSourcePlugin('cdn');
 
   // The additional options to use for each variant we're going to create.
@@ -162,15 +167,17 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
     '.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.min.js`,
+        minify,
       },
-      plugins: [stripDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
+      plugins: [stripDebuggingPlugin, setSdkSourcePlugin],
     },
 
     '.debug.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.debug.min.js`,
+        minify,
       },
-      plugins: [includeDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
+      plugins: [includeDebuggingPlugin, setSdkSourcePlugin],
     },
   };
 

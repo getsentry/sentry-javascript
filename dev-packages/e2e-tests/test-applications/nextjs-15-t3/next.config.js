@@ -1,11 +1,11 @@
-await import('./src/env.js');
+require('./src/env.js');
 
 /** @type {import("next").NextConfig} */
 const config = {};
 
-import { withSentryConfig } from '@sentry/nextjs/config';
+const { withSentryConfig } = require('@sentry/nextjs/config');
 
-export default withSentryConfig(config, {
+module.exports = withSentryConfig(config, {
   webpack: {
     treeshake: {
       removeDebugLogging: true,

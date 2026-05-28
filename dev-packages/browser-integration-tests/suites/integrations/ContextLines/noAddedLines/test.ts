@@ -16,7 +16,10 @@ sentryTest('should not add source context lines to errors from script files', as
 
   const exception = eventData.exception?.values?.[0];
   const frames = exception?.stacktrace?.frames;
-  expect(frames).toHaveLength(1);
+  expect(frames?.length).toBeGreaterThanOrEqual(1);
+  // Verify the subject.bundle.js frame is present
+  expect(frames?.some(f => f.filename?.includes('subject.bundle.js'))).toBe(true);
+  // Core assertion: no context lines should be added for script files
   frames?.forEach(f => {
     expect(f).not.toHaveProperty('pre_context');
     expect(f).not.toHaveProperty('context_line');

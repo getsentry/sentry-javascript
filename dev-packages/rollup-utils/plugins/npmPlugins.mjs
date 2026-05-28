@@ -1,56 +1,8 @@
 /**
- * Rollup plugin hooks docs: https://rollupjs.org/guide/en/#build-hooks and
- * https://rollupjs.org/guide/en/#output-generation-hooks
- *
- * esbuild plugin docs: https://github.com/egoist/rollup-plugin-esbuild
- * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
+ * Replace plugin docs: https://rolldown.rs/builtin-plugins/replace#replace-plugin
  */
 
-import json from '@rollup/plugin-json';
-import replace from '@rollup/plugin-replace';
-import esbuild from 'rollup-plugin-esbuild';
-
-/**
- * Create a plugin to transpile TS/JSX syntax using `esbuild`.
- *
- * `target: 'es2020'` keeps ES2020-native syntax (`?.`, `??`, optional catch binding) and
- * downlevels everything newer (logical assignment, numeric separators, class private
- * fields, static class blocks, ...).
- *
- * `esbuildOptions` are forwarded to `rollup-plugin-esbuild` verbatim and can override
- * any of the pinned defaults (e.g. JSX-related keys like `jsxFactory` / `jsxFragment`
- * for packages that use a non-React pragma).
- */
-export function makeEsbuildPlugin(esbuildOptions = {}) {
-  const plugin = esbuild({
-    // `.json` is handled by the JSON plugin further down the pipeline.
-    exclude: ['**/*.json'],
-    // ES2020 is our floor — keeps `?.`/`??` native, downlevels everything newer.
-    target: 'es2020',
-    // Don't read per-package tsconfig (they vary and can pull in unrelated settings).
-    // Pin only the compilerOptions that affect codegen.
-    tsconfig: false,
-    tsconfigRaw: {
-      compilerOptions: {
-        // Match the project tsconfig's effective behavior at target=es2020: class
-        // field initializers compile to `this.x = v` (set semantics), not via the
-        // `Object.defineProperty`-based `__publicField` helper esbuild emits by
-        // default. This is what tsc itself outputs at this target.
-        useDefineForClassFields: false,
-      },
-    },
-    sourceMap: true,
-    ...esbuildOptions,
-  });
-
-  // Force a stable plugin name so the plugin sort order in utils.mjs can target it.
-  plugin.name = 'esbuild';
-  return plugin;
-}
-
-export function makeJsonPlugin() {
-  return json();
-}
+import { replacePlugin } from 'rolldown/plugins';
 
 /**
  * Create a plugin which can be used to pause the build process at the given hook.
@@ -107,24 +59,23 @@ export function makeDebuggerPlugin(hookName) {
  * a) evaluates to `true`
  * b) can easily be modified by our users' bundlers to evaluate to false, facilitating the treeshaking of logger code.
  *
- * @returns A `@rollup/plugin-replace` instance.
+ * @returns A `rolldown` replace plugin instance.
  */
 export function makeDebugBuildStatementReplacePlugin() {
-  const plugin = replace({
-    preventAssignment: false,
-    values: {
+  return replacePlugin(
+    {
       __DEBUG_BUILD__: "(typeof __SENTRY_DEBUG__ === 'undefined' || __SENTRY_DEBUG__)",
     },
-  });
-  plugin.name = 'replace-debug-build-statement';
-  return plugin;
+    {
+      preventAssignment: true,
+    },
+  );
 }
 
-// Markers use the `/*! ... */` legal-comment syntax so esbuild preserves them through
-// transpile. We still run as a `transform` (per-module) hook rather than `renderChunk`:
-// the block typically uses imports declared at the module top, and stripping it before
-// rollup analyses module-graph imports lets those now-unused imports be tree-shaken away.
-// The plugin sort order in utils.mjs pins this before `esbuild`.
+// Markers use the `/*! ... */` legal-comment syntax so rolldown's transpile preserves them.
+// We run as a `transform` (per-module) hook rather than `renderChunk`: the block typically uses
+// imports declared at the module top, and stripping it before the module graph is analysed lets
+// those now-unused imports be tree-shaken away.
 const REMOVE_DEV_BLOCK =
   /\/\*! rollup-include-development-only \*\/[\s\S]*?\/\*! rollup-include-development-only-end \*\/\s*/g;
 
@@ -175,10 +126,7 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
     values['__RRWEB_EXCLUDE_IFRAME__'] = excludeIframe;
   }
 
-  const plugin = replace({
+  return replacePlugin(values, {
     preventAssignment: true,
-    values,
   });
-  plugin.name = 'replace-rrweb-build-flags';
-  return plugin;
 }
