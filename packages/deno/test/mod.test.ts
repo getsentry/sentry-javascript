@@ -1,5 +1,6 @@
 import type { Envelope, Event, Log } from '@sentry/core';
-import { createStackParser, forEachEnvelopeItem, nodeStackLineParser } from '@sentry/core';
+import { createStackParser, forEachEnvelopeItem } from '@sentry/core';
+import { nodeStackLineParser } from '@sentry-internal/server-utils';
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
 import { DenoClient, getCurrentScope, getDefaultIntegrations, logger, metrics, Scope } from '../build/esm/index.js';

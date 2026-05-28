@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { StackLineParser } from '../../../src';
 import type { Client } from '../../../src/client';
 import { thirdPartyErrorFilterIntegration } from '../../../src/integrations/third-party-errors-filter';
 import { addMetadataToStackFrames } from '../../../src/metadata';
 import type { Event } from '../../../src/types/event';
-import { nodeStackLineParser } from '../../../src/utils/node-stack-trace';
 import { createStackParser } from '../../../src/utils/stacktrace';
 import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
 
@@ -12,7 +12,16 @@ function clone<T>(data: T): T {
 }
 
 const stack = new Error().stack || '';
-const stackParser = createStackParser(nodeStackLineParser());
+// Minimal Node-style stack-line parser. Sufficient for the `Error().stack` lines
+// parsed below; the full Node parser now lives in `@sentry-internal/server-utils`.
+const nodeStackLineFixture: StackLineParser = [
+  90,
+  (line: string) => {
+    const m = line.match(/at (?:async )?(?:(.+?)\s+\()?(.+):(\d+):(\d+)\)?/);
+    return m ? { function: m[1], filename: m[2], lineno: +m[3]!, colno: +m[4]! } : undefined;
+  },
+];
+const stackParser = createStackParser(nodeStackLineFixture);
 
 const eventWithThirdAndFirstPartyFrames: Event = {
   exception: {

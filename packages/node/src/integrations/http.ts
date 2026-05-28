@@ -1,12 +1,15 @@
 import type { RequestOptions } from 'node:http';
-import type { HttpClientRequest, HttpIncomingMessage, HttpServerResponse, Span } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import type { HttpClientRequest, HttpIncomingMessage, HttpServerResponse } from '@sentry-internal/server-utils';
 import {
   defineIntegration,
   hasSpansEnabled,
   SEMANTIC_ATTRIBUTE_URL_FULL,
   stripDataUrlContent,
-  getRequestUrlFromClientRequest,
 } from '@sentry/core';
+import {
+  getRequestUrlFromClientRequest,
+} from '@sentry-internal/server-utils';
 import type {
   NodeClient,
   SentryHttpInstrumentationOptions,

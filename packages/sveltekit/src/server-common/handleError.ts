@@ -1,4 +1,5 @@
-import { captureException, consoleSandbox, flushIfServerless } from '@sentry/core';
+import { captureException, consoleSandbox } from '@sentry/core';
+import { flushIfServerless } from '@sentry-internal/server-utils';
 import type { HandleServerError } from '@sveltejs/kit';
 
 // The SvelteKit default error handler just logs the error's stack trace to the console

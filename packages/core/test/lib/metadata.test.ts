@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { StackLineParser } from '../../src';
 import {
   addMetadataToStackFrames,
   getFilenameToMetadataMap,
@@ -6,11 +7,20 @@ import {
   stripMetadataFromStackFrames,
 } from '../../src/metadata';
 import type { Event } from '../../src/types/event';
-import { nodeStackLineParser } from '../../src/utils/node-stack-trace';
 import { createStackParser } from '../../src/utils/stacktrace';
 import { GLOBAL_OBJ } from '../../src/utils/worldwide';
 
-const parser = createStackParser(nodeStackLineParser());
+// Minimal Node-style stack-line parser. Sufficient for the `Error().stack` lines
+// generated below; the full Node parser now lives in `@sentry-internal/server-utils`.
+const nodeStackLineFixture: StackLineParser = [
+  90,
+  (line: string) => {
+    const m = line.match(/at (?:async )?(?:(.+?)\s+\()?(.+):(\d+):(\d+)\)?/);
+    return m ? { function: m[1], filename: m[2], lineno: +m[3]!, colno: +m[4]! } : undefined;
+  },
+];
+
+const parser = createStackParser(nodeStackLineFixture);
 
 const stack = new Error().stack || '';
 

@@ -1,5 +1,6 @@
-import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { _INTERNAL_flushLogsBuffer, SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry-internal/server-utils';
+import { _INTERNAL_flushLogsBuffer, SDK_VERSION } from '@sentry/core';
+import { ServerRuntimeClient } from '@sentry-internal/server-utils';
 import type { DenoClientOptions } from './types';
 
 function getHostName(): string | undefined {

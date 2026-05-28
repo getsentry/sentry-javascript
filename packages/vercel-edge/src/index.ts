@@ -90,11 +90,9 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  trpcMiddleware,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
-  wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,
   createLangChainCallbackHandler,
@@ -105,6 +103,10 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
+export {
+  trpcMiddleware,
+  wrapMcpServerWithSentry,
+} from '@sentry-internal/server-utils';
 
 export { VercelEdgeClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';

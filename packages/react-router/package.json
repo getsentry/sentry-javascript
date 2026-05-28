@@ -49,6 +49,7 @@
     "@opentelemetry/core": "^2.6.1",
     "@opentelemetry/instrumentation": "^0.214.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
+    "@sentry-internal/server-utils": "10.54.0",
     "@sentry/browser": "10.54.0",
     "@sentry/cli": "^2.58.6",
     "@sentry/core": "10.54.0",

@@ -2,7 +2,6 @@
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
-  flushIfServerless,
   getIsolationScope,
   getRootSpan,
   objectify,
@@ -11,6 +10,7 @@ import {
   stripUrlQueryAndFragment,
   winterCGRequestToRequestData,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry-internal/server-utils';
 import {
   captureException,
   continueTrace,

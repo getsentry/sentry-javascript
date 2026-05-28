@@ -1,9 +1,19 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { nodeStackLineParser } from '../../../src';
+import type { StackLineParser } from '../../../src';
 import { clearDebugIdCache, getDebugImagesForResources, getFilenameToDebugIdMap } from '../../../src/utils/debug-ids';
 import { createStackParser } from '../../../src/utils/stacktrace';
 
-const nodeStackParser = createStackParser(nodeStackLineParser());
+// Minimal Node-style stack-line parser. Sufficient for the fixture lines used
+// below; the full Node parser now lives in `@sentry-internal/server-utils`.
+const nodeStackLineFixture: StackLineParser = [
+  90,
+  (line: string) => {
+    const m = line.match(/at (?:async )?(?:(.+?)\s+\()?(.+):(\d+):(\d+)\)?/);
+    return m ? { function: m[1], filename: m[2]?.replace(/^file:\/\//, ''), lineno: +m[3]!, colno: +m[4]! } : undefined;
+  },
+];
+
+const nodeStackParser = createStackParser(nodeStackLineFixture);
 
 describe('getDebugImagesForResources', () => {
   beforeEach(() => {

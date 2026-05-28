@@ -21,10 +21,21 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-import type { StackLineParser, StackLineParserFn } from '../types/stacktrace';
-import { normalizeStackTracePath, UNKNOWN_FUNCTION } from './stacktrace';
+import type { StackLineParser, StackLineParserFn } from '@sentry/core';
+import { UNKNOWN_FUNCTION } from '@sentry/core';
 
 export type GetModuleFn = (filename: string | undefined) => string | undefined;
+
+// Vendored from `@sentry/core`'s private `utils/stacktrace.ts`. Strips a leading
+// `file://` and the extra leading slash on Windows paths so stack frame
+// filenames match the runtime paths users care about.
+function normalizeStackTracePath(path: string | undefined): string | undefined {
+  let filename = path?.startsWith('file://') ? path.slice(7) : path;
+  if (filename?.match(/\/[A-Z]:/)) {
+    filename = filename.slice(1);
+  }
+  return filename;
+}
 
 /**
  * Does this filename look like it's part of the app code?

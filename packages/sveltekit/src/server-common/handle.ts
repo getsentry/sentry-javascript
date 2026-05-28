@@ -2,7 +2,6 @@ import type { Span } from '@sentry/core';
 import {
   continueTrace,
   debug,
-  flushIfServerless,
   getClient,
   getCurrentScope,
   getDefaultIsolationScope,
@@ -20,6 +19,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry-internal/server-utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';

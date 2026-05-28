@@ -19,12 +19,14 @@ import type { IntegrationFn, Span } from '@sentry/core';
 import {
   debug,
   defineIntegration,
-  instrumentPostgresJsSql,
   replaceExports,
   SDK_VERSION,
   SPAN_STATUS_ERROR,
   startSpanManual,
 } from '@sentry/core';
+import {
+  instrumentPostgresJsSql,
+} from '@sentry-internal/server-utils';
 import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../debug-build';
 

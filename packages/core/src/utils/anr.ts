@@ -1,6 +1,6 @@
-import type { StackFrame } from '../types/stackframe';
+import type { StackFrame } from '@sentry/core';
+import { UNKNOWN_FUNCTION } from '@sentry/core';
 import { filenameIsInApp } from './node-stack-trace';
-import { UNKNOWN_FUNCTION } from './stacktrace';
 
 type WatchdogReturn = {
   /** Resets the watchdog timer */

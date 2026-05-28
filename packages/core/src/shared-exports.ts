@@ -156,8 +156,9 @@ export * as logger from './logs/public-api';
 export { consoleLoggingIntegration } from './logs/console-integration';
 export {
   _INTERNAL_captureMetric,
-  _INTERNAL_flushMetricsBuffer,
   _INTERNAL_captureSerializedMetric,
+  _INTERNAL_flushMetricsBuffer,
+  _INTERNAL_getMetricBuffer,
 } from './metrics/internal';
 export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
@@ -543,3 +544,11 @@ export {
   safeMathRandom as _INTERNAL_safeMathRandom,
   safeDateNow as _INTERNAL_safeDateNow,
 } from './utils/randomSafeContext';
+
+// Exposed so that `@sentry-internal/server-utils` can build `ServerRuntimeClient`
+// on top of `Client` without copying these internal helpers.
+export { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
+export { addUserAgentToTransportHeaders } from './transports/userAgent';
+export { _getTraceInfoFromScope } from './utils/trace-info';
+export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
+export { isNodeEnv, loadModule } from './utils/node';

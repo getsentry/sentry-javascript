@@ -1,5 +1,6 @@
-import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry-internal/server-utils';
+import { applySdkMetadata } from '@sentry/core';
+import { ServerRuntimeClient } from '@sentry-internal/server-utils';
 import * as os from 'os';
 import type { BunClientOptions } from './types';
 

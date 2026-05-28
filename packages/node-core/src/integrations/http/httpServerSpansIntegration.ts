@@ -13,15 +13,17 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import type {
   Event,
-  HttpClientRequest,
-  HttpIncomingMessage,
-  HttpServerResponse,
   Integration,
   IntegrationFn,
   Span,
   SpanAttributes,
   SpanStatus,
 } from '@sentry/core';
+import type {
+  HttpClientRequest,
+  HttpIncomingMessage,
+  HttpServerResponse,
+} from '@sentry-internal/server-utils';
 import {
   debug,
   getIsolationScope,

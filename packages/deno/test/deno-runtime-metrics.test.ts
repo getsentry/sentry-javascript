@@ -1,7 +1,8 @@
 // <reference lib="deno.ns" />
 
 import type { Envelope } from '@sentry/core';
-import { createStackParser, forEachEnvelopeItem, nodeStackLineParser } from '@sentry/core';
+import { createStackParser, forEachEnvelopeItem } from '@sentry/core';
+import { nodeStackLineParser } from '@sentry-internal/server-utils';
 import { assertEquals, assertNotEquals, assertStringIncludes } from 'https://deno.land/std@0.212.0/assert/mod.ts';
 import {
   DenoClient,

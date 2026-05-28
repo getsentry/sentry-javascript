@@ -1,9 +1,9 @@
 import {
-  flushIfServerless,
   handleCallbackErrors,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry-internal/server-utils';
 import { captureException, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON, startSpan } from '@sentry/node';
 import { isRedirect } from './utils';
 

@@ -3,15 +3,18 @@ import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
+import type { DynamicSamplingContext, Scope, TraceContext } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry-internal/server-utils';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
   applySdkMetadata,
   debug,
   SDK_VERSION,
-  ServerRuntimeClient,
 } from '@sentry/core';
+import {
+  ServerRuntimeClient,
+} from '@sentry-internal/server-utils';
 import { type AsyncLocalStorageLookup, getTraceContextForScope } from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';

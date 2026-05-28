@@ -1,4 +1,5 @@
-import { flushIfServerless, getTraceMetaTags } from '@sentry/core';
+import { getTraceMetaTags } from '@sentry/core';
+import { flushIfServerless } from '@sentry-internal/server-utils';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,

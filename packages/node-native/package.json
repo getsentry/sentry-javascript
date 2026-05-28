@@ -63,6 +63,7 @@
   },
   "dependencies": {
     "@sentry-internal/node-native-stacktrace": "^0.5.0",
+    "@sentry-internal/server-utils": "10.54.0",
     "@sentry/core": "10.54.0",
     "@sentry/node": "10.54.0"
   },

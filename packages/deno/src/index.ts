@@ -78,7 +78,6 @@ export {
   rewriteFramesIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
-  instrumentPostgresJsSql,
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -91,7 +90,6 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
-  wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
   withStreamedSpan,
@@ -99,6 +97,10 @@ export {
   consoleLoggingIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
+export {
+  instrumentPostgresJsSql,
+  wrapMcpServerWithSentry,
+} from '@sentry-internal/server-utils';
 
 export { DenoClient } from './client';
 

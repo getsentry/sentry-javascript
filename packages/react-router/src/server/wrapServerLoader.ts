@@ -2,7 +2,6 @@ import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes } from '@sentry/core';
 import {
   debug,
-  flushIfServerless,
   getActiveSpan,
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -12,6 +11,7 @@ import {
   startSpan,
   updateSpanName,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry-internal/server-utils';
 import type { LoaderFunctionArgs } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { isInstrumentationApiUsed } from './serverGlobals';

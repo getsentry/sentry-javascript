@@ -2,7 +2,6 @@ import { context } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
-  flushIfServerless,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
@@ -10,6 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   updateSpanName,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry-internal/server-utils';
 import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
 import { isInstrumentationApiUsed } from './serverGlobals';
 

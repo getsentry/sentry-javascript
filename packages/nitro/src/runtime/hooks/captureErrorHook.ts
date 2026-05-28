@@ -1,6 +1,5 @@
 import {
   captureException,
-  flushIfServerless,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -8,6 +7,7 @@ import {
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry-internal/server-utils';
 import { HTTPError } from 'h3';
 import type { CapturedErrorContext } from 'nitro/types';
 

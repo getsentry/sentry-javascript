@@ -12,25 +12,13 @@
   "files": [
     "/build",
     "browser.js",
-    "browser.d.ts",
-    "server.js",
-    "server.d.ts"
+    "browser.d.ts"
   ],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
-    "./server": {
-      "import": {
-        "types": "./build/types/server.d.ts",
-        "default": "./build/esm/server.js"
-      },
-      "require": {
-        "types": "./build/types/server.d.ts",
-        "default": "./build/cjs/server.js"
-      }
-    },
     "./browser": {
       "import": {
         "types": "./build/types/browser.d.ts",
@@ -59,9 +47,6 @@
       ],
       "browser": [
         "build/types-ts3.8/browser.d.ts"
-      ],
-      "server": [
-        "build/types-ts3.8/server.d.ts"
       ]
     }
   },
@@ -92,40 +77,7 @@
     "extends": "../../package.json"
   },
   "sideEffects": false,
-  "dependencies": {
-    "@sentry-internal/server-utils": "10.54.0"
-  },
   "devDependencies": {
     "zod": "^3.24.1"
-  },
-  "nx": {
-    "targets": {
-      "build:transpile": {
-        "dependsOn": []
-      },
-      "build:types": {
-        "dependsOn": []
-      },
-      "build:dev": {
-        "dependsOn": []
-      },
-      "build:tarball": {
-        "dependsOn": [
-          "build:transpile",
-          "build:types"
-        ]
-      },
-      "test:unit": {
-        "dependsOn": [
-          "build:transpile",
-          "build:types"
-        ]
-      },
-      "lint": {
-        "dependsOn": [
-          "build:types"
-        ]
-      }
-    }
   }
 }

@@ -1,17 +1,20 @@
 import { subscribe } from 'node:diagnostics_channel';
 import type { RequestOptions } from 'node:http';
-import type { HttpClientRequest, HttpIncomingMessage, Integration, IntegrationFn } from '@sentry/core';
+import type { Integration, IntegrationFn } from '@sentry/core';
+import type { HttpClientRequest, HttpIncomingMessage } from '@sentry-internal/server-utils';
+import {
+  getCurrentScope,
+  SUPPRESS_TRACING_KEY,
+} from '@sentry/core';
 import {
   addOutgoingRequestBreadcrumb,
-  getCurrentScope,
   getHttpClientSubscriptions,
   getHttpServerSubscriptions,
   getRequestOptions,
   getRequestUrlFromClientRequest,
   HTTP_ON_CLIENT_REQUEST,
   HTTP_ON_SERVER_REQUEST,
-  SUPPRESS_TRACING_KEY,
-} from '@sentry/core';
+} from '@sentry-internal/server-utils';
 import type { ClientRequest } from 'node:http';
 import { errorMonitor } from 'node:events';
 import { NODE_VERSION } from '../../nodeVersion';

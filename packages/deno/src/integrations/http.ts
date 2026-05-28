@@ -1,16 +1,19 @@
 import { subscribe } from 'node:diagnostics_channel';
 import { errorMonitor } from 'node:events';
 import type { ClientRequest, RequestOptions } from 'node:http';
-import type { HttpIncomingMessage, Integration, IntegrationFn, Span } from '@sentry/core';
+import type { Integration, IntegrationFn, Span } from '@sentry/core';
+import type { HttpIncomingMessage } from '@sentry-internal/server-utils';
 import {
   debug,
   defineIntegration,
+} from '@sentry/core';
+import {
   getHttpClientSubscriptions,
   getHttpServerSubscriptions,
   getRequestOptions,
   HTTP_ON_CLIENT_REQUEST,
   HTTP_ON_SERVER_REQUEST,
-} from '@sentry/core';
+} from '@sentry-internal/server-utils';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 import {
   DENO_VERSION,

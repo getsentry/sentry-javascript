@@ -109,7 +109,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  trpcMiddleware,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
@@ -117,3 +116,6 @@ export {
   withStreamedSpan,
   featureFlagsIntegration,
 } from '@sentry/core';
+export {
+  trpcMiddleware,
+} from '@sentry-internal/server-utils';

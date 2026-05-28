@@ -3,7 +3,6 @@ import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
   debug,
-  flushIfServerless,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
@@ -14,6 +13,7 @@ import {
   startSpan,
   updateSpanName,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry-internal/server-utils';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { InstrumentableRequestHandler, InstrumentableRoute, ServerInstrumentation } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';

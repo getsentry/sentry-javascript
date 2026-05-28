@@ -1,5 +1,5 @@
 import type { RequestOptions } from 'node:http';
-import type { HttpIncomingMessage } from '@sentry/core';
+import type { HttpIncomingMessage } from '@sentry-internal/server-utils';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';

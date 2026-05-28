@@ -5,14 +5,24 @@ import {
   createTransport,
   GLOBAL_OBJ,
   moduleMetadataIntegration,
-  nodeStackLineParser,
   parseEnvelope,
   setCurrentClient,
+  type StackLineParser,
 } from '../../../src';
 import type { Event } from '../../../src/types/event';
+
+// Minimal Node-style stack-line parser. Sufficient for the `Error().stack` lines
+// generated below; the full Node parser now lives in `@sentry-internal/server-utils`.
+const nodeStackLineFixture: StackLineParser = [
+  90,
+  (line: string) => {
+    const m = line.match(/at (?:async )?(?:(.+?)\s+\()?(.+):(\d+):(\d+)\)?/);
+    return m ? { function: m[1], filename: m[2], lineno: +m[3]!, colno: +m[4]! } : undefined;
+  },
+];
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
-const stackParser = createStackParser(nodeStackLineParser());
+const stackParser = createStackParser(nodeStackLineFixture);
 
 const stack = new Error().stack || '';
 

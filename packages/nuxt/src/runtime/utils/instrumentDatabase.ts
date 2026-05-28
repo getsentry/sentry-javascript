@@ -2,7 +2,6 @@ import {
   addBreadcrumb,
   captureException,
   debug,
-  flushIfServerless,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   type Span,
@@ -10,6 +9,7 @@ import {
   startSpan,
   type StartSpanOptions,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry-internal/server-utils';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
 

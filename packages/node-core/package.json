@@ -105,6 +105,7 @@
     }
   },
   "dependencies": {
+    "@sentry-internal/server-utils": "10.54.0",
     "@sentry/core": "10.54.0",
     "@sentry/opentelemetry": "10.54.0",
     "import-in-the-middle": "^3.0.0"

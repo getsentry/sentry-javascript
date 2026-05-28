@@ -5,15 +5,18 @@ import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'node:http';
 import type {
+  Span,
+} from '@sentry/core';
+import type {
   HttpClientRequest,
   HttpIncomingMessage,
   HttpInstrumentationOptions,
   HttpModuleExport,
-  Span,
-} from '@sentry/core';
-import { getHttpClientSubscriptions, patchHttpModuleClient, SDK_VERSION, getRequestOptions } from '@sentry/core';
+} from '@sentry-internal/server-utils';
+import { SDK_VERSION } from '@sentry/core';
+import { getHttpClientSubscriptions, patchHttpModuleClient, getRequestOptions } from '@sentry-internal/server-utils';
 import { INSTRUMENTATION_NAME } from './constants';
-import { HTTP_ON_CLIENT_REQUEST } from '@sentry/core';
+import { HTTP_ON_CLIENT_REQUEST } from '@sentry-internal/server-utils';
 import { NODE_VERSION } from '../../nodeVersion';
 import { errorMonitor } from 'node:events';
 import * as http from 'node:http';

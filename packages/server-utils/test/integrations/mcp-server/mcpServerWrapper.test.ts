@@ -1,0 +1,219 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as sentryCore from '@sentry/core';
+import { wrapMcpServerWithSentry } from '../../../src/integrations/mcp-server';
+import {
+  createMockMcpServer,
+  createMockMcpServerWithPreregisteredHandlers,
+  createMockMcpServerWithRegisterApi,
+} from './testUtils';
+
+describe('wrapMcpServerWithSentry', () => {
+  const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+  const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
+  const getClientSpy = vi.spyOn(sentryCore, 'getClient');
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Mock client to return sendDefaultPii:
+    getClientSpy.mockReturnValue({
+      getOptions: () => ({ sendDefaultPii: true }),
+      getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
+      emit: vi.fn(),
+    } as any);
+  });
+
+  it('should return the same instance (modified) if it is a valid MCP server instance', () => {
+    const mockMcpServer = createMockMcpServer();
+    const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+
+    expect(wrappedMcpServer).toBe(mockMcpServer);
+  });
+
+  it('should return the input unchanged if it is not a valid MCP server instance', () => {
+    const invalidMcpServer = {
+      resource: () => {},
+      tool: () => {},
+      // Missing required methods
+    };
+
+    const result = wrapMcpServerWithSentry(invalidMcpServer);
+    expect(result).toBe(invalidMcpServer);
+
+    // Methods should not be wrapped
+    expect(result.resource).toBe(invalidMcpServer.resource);
+    expect(result.tool).toBe(invalidMcpServer.tool);
+
+    // No calls to startSpan or startInactiveSpan
+    expect(startSpanSpy).not.toHaveBeenCalled();
+    expect(startInactiveSpanSpy).not.toHaveBeenCalled();
+  });
+
+  it('should accept a server with only the new register* API (no legacy methods)', () => {
+    const mockServer = createMockMcpServerWithRegisterApi();
+    const result = wrapMcpServerWithSentry(mockServer);
+    expect(result).toBe(mockServer);
+  });
+
+  it('should reject a server with neither legacy nor register* methods', () => {
+    const invalidServer = { connect: vi.fn() };
+    const result = wrapMcpServerWithSentry(invalidServer);
+    expect(result).toBe(invalidServer);
+    expect(startSpanSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not wrap the same instance twice', () => {
+    const mockMcpServer = createMockMcpServer();
+
+    const wrappedOnce = wrapMcpServerWithSentry(mockMcpServer);
+    const wrappedTwice = wrapMcpServerWithSentry(wrappedOnce);
+
+    expect(wrappedTwice).toBe(wrappedOnce);
+  });
+
+  it('should wrap the connect method to intercept transport', () => {
+    const mockMcpServer = createMockMcpServer();
+    const originalConnect = mockMcpServer.connect;
+
+    const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+
+    expect(wrappedMcpServer.connect).not.toBe(originalConnect);
+    expect(typeof wrappedMcpServer.connect).toBe('function');
+  });
+
+  it('should wrap handler methods (tool, resource, prompt)', () => {
+    const mockMcpServer = createMockMcpServer();
+    const originalTool = mockMcpServer.tool;
+    const originalResource = mockMcpServer.resource;
+    const originalPrompt = mockMcpServer.prompt;
+
+    const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+
+    expect(wrappedMcpServer.tool).not.toBe(originalTool);
+    expect(wrappedMcpServer.resource).not.toBe(originalResource);
+    expect(wrappedMcpServer.prompt).not.toBe(originalPrompt);
+  });
+
+  it('should wrap handler methods (registerTool, registerResource, registerPrompt)', () => {
+    const mockServer = createMockMcpServerWithRegisterApi();
+    const originalRegisterTool = mockServer.registerTool;
+    const originalRegisterResource = mockServer.registerResource;
+    const originalRegisterPrompt = mockServer.registerPrompt;
+
+    const wrapped = wrapMcpServerWithSentry(mockServer);
+
+    expect(wrapped.registerTool).not.toBe(originalRegisterTool);
+    expect(wrapped.registerResource).not.toBe(originalRegisterResource);
+    expect(wrapped.registerPrompt).not.toBe(originalRegisterPrompt);
+  });
+
+  describe('Handler Wrapping', () => {
+    let mockMcpServer: ReturnType<typeof createMockMcpServer>;
+    let wrappedMcpServer: ReturnType<typeof createMockMcpServer>;
+
+    beforeEach(() => {
+      mockMcpServer = createMockMcpServer();
+      wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+    });
+
+    it('should register tool handlers without throwing errors', () => {
+      const toolHandler = vi.fn();
+
+      expect(() => {
+        wrappedMcpServer.tool('test-tool', toolHandler);
+      }).not.toThrow();
+    });
+
+    it('should register resource handlers without throwing errors', () => {
+      const resourceHandler = vi.fn();
+
+      expect(() => {
+        wrappedMcpServer.resource('test-resource', resourceHandler);
+      }).not.toThrow();
+    });
+
+    it('should register prompt handlers without throwing errors', () => {
+      const promptHandler = vi.fn();
+
+      expect(() => {
+        wrappedMcpServer.prompt('test-prompt', promptHandler);
+      }).not.toThrow();
+    });
+
+    it('should handle multiple arguments when registering handlers', () => {
+      const nonFunctionArg = { config: 'value' };
+
+      expect(() => {
+        wrappedMcpServer.tool('test-tool', nonFunctionArg, 'other-arg');
+      }).not.toThrow();
+    });
+  });
+
+  describe('Retroactive handler wrapping (handlers registered before wrapMcpServerWithSentry)', () => {
+    it('should replace executor/readCallback/handler on pre-registered entries with wrapped versions', () => {
+      const server = createMockMcpServerWithPreregisteredHandlers();
+      const { toolExecutor, resourceReadCallback, resourceTemplateReadCallback, promptHandler } = server._originals;
+
+      wrapMcpServerWithSentry(server);
+
+      expect(server._registeredTools['my-tool']!.executor).not.toBe(toolExecutor);
+      expect(server._registeredResources['res://my-resource']!.readCallback).not.toBe(resourceReadCallback);
+      expect(server._registeredResourceTemplates['my-template']!.readCallback).not.toBe(resourceTemplateReadCallback);
+      expect(server._registeredPrompts['my-prompt']!.handler).not.toBe(promptHandler);
+    });
+
+    it('should still wrap the registration methods for future handlers', () => {
+      const server = createMockMcpServerWithPreregisteredHandlers();
+      const originalRegisterTool = server.registerTool;
+
+      wrapMcpServerWithSentry(server);
+
+      expect(server.registerTool).not.toBe(originalRegisterTool);
+    });
+
+    it('should not double-wrap if called twice on the same instance with pre-registered handlers', () => {
+      const server = createMockMcpServerWithPreregisteredHandlers();
+
+      wrapMcpServerWithSentry(server);
+      const executorAfterFirstWrap = server._registeredTools['my-tool']!.executor;
+
+      wrapMcpServerWithSentry(server);
+      const executorAfterSecondWrap = server._registeredTools['my-tool']!.executor;
+
+      expect(executorAfterFirstWrap).toBe(executorAfterSecondWrap);
+    });
+  });
+
+  describe('Handler Wrapping (register* API)', () => {
+    let mockServer: ReturnType<typeof createMockMcpServerWithRegisterApi>;
+    let wrappedServer: ReturnType<typeof createMockMcpServerWithRegisterApi>;
+
+    beforeEach(() => {
+      mockServer = createMockMcpServerWithRegisterApi();
+      wrappedServer = wrapMcpServerWithSentry(mockServer);
+    });
+
+    it('should register tool handlers via registerTool without throwing errors', () => {
+      const toolHandler = vi.fn();
+
+      expect(() => {
+        wrappedServer.registerTool('test-tool', {}, toolHandler);
+      }).not.toThrow();
+    });
+
+    it('should register resource handlers via registerResource without throwing errors', () => {
+      const resourceHandler = vi.fn();
+
+      expect(() => {
+        wrappedServer.registerResource('test-resource', 'res://test', {}, resourceHandler);
+      }).not.toThrow();
+    });
+
+    it('should register prompt handlers via registerPrompt without throwing errors', () => {
+      const promptHandler = vi.fn();
+
+      expect(() => {
+        wrappedServer.registerPrompt('test-prompt', {}, promptHandler);
+      }).not.toThrow();
+    });
+  });
+});

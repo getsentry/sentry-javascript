@@ -2,13 +2,15 @@ import { PassThrough } from 'node:stream';
 import { RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
-  flushIfServerless,
   getActiveSpan,
   getRootSpan,
   getTraceMetaTags,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
+import {
+  flushIfServerless,
+} from '@sentry-internal/server-utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
 import { wrapSentryHandleRequest } from '../../src/server/wrapSentryHandleRequest';

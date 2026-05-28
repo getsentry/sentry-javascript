@@ -6,16 +6,18 @@ import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 
 import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 import {
-  type ExpressIntegrationOptions,
   type IntegrationFn,
   debug,
-  patchExpressModule,
   SDK_VERSION,
   defineIntegration,
+} from '@sentry/core';
+import {
+  type ExpressIntegrationOptions,
+  patchExpressModule,
   setupExpressErrorHandler as coreSetupExpressErrorHandler,
   type ExpressHandlerOptions,
-} from '@sentry/core';
-export { expressErrorHandler } from '@sentry/core';
+} from '@sentry-internal/server-utils';
+export { expressErrorHandler } from '@sentry-internal/server-utils';
 import { DEBUG_BUILD } from '../../debug-build';
 
 const INTEGRATION_NAME = 'Express';

@@ -7,8 +7,8 @@ import {
   DEV_ENVIRONMENT,
   flush,
   getGlobalScope,
-  vercelWaitUntil,
 } from '@sentry/core';
+import { vercelWaitUntil } from '@sentry-internal/server-utils'
 import {
   getDefaultIntegrations as getDefaultNodeIntegrations,
   httpIntegration,

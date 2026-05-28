@@ -1,6 +1,7 @@
 import * as os from 'node:os';
-import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { _INTERNAL_flushLogsBuffer, applySdkMetadata, debug, ServerRuntimeClient } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry-internal/server-utils';
+import { _INTERNAL_flushLogsBuffer, applySdkMetadata, debug } from '@sentry/core';
+import { ServerRuntimeClient } from '@sentry-internal/server-utils';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';

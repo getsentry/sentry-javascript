@@ -1,6 +1,5 @@
 import {
   captureException,
-  flushIfServerless,
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
@@ -10,6 +9,7 @@ import {
   SPAN_STATUS_OK,
   startSpanManual,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry-internal/server-utils';
 import { tracingChannel, type TracingChannelContextWithSpan } from '@sentry/opentelemetry/tracing-channel';
 import type { TraceContext } from 'unstorage/tracing';
 

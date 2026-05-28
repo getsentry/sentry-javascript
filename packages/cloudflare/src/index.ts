@@ -86,19 +86,16 @@ export {
   moduleMetadataIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
-  instrumentPostgresJsSql,
   zodErrorsIntegration,
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  trpcMiddleware,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
-  wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,
   createLangChainCallbackHandler,
@@ -112,6 +109,11 @@ export {
   instrumentLangGraph,
   instrumentCreateReactAgent,
 } from '@sentry/core';
+export {
+  instrumentPostgresJsSql,
+  trpcMiddleware,
+  wrapMcpServerWithSentry,
+} from '@sentry-internal/server-utils';
 
 export { withSentry } from './withSentry';
 export { instrumentDurableObjectWithSentry } from './durableobject';

@@ -3,7 +3,6 @@ import { parentPort, workerData } from 'node:worker_threads';
 import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/core';
 import {
   applyScopeDataToEvent,
-  callFrameToStackFrame,
   createEventEnvelope,
   createSessionEnvelope,
   generateSpanId,
@@ -13,8 +12,11 @@ import {
   stripSentryFramesAndReverse,
   updateSession,
   uuid4,
-  watchdogTimer,
 } from '@sentry/core';
+import {
+  callFrameToStackFrame,
+  watchdogTimer,
+} from '@sentry-internal/server-utils';
 import { makeNodeTransport } from '../../transports';
 import { createGetModuleFromFilename } from '../../utils/module';
 import type { WorkerStartData } from './common';

@@ -39,6 +39,6 @@ const settings = {
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     ...settings,
-    entrypoints: ['src/index.ts', 'src/server.ts', 'src/browser.ts'],
+    entrypoints: ['src/index.ts', 'src/browser.ts'],
   }),
 );

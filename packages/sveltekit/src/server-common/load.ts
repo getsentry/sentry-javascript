@@ -1,10 +1,10 @@
 import {
   addNonEnumerableProperty,
-  flushIfServerless,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry-internal/server-utils';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 import type { SentryWrappedFlag } from '../common/utils';
 import { getRouteId } from '../common/utils';

@@ -4,7 +4,6 @@ import {
   applyScopeDataToEvent,
   createEventEnvelope,
   createSessionEnvelope,
-  filenameIsInApp,
   generateSpanId,
   getEnvelopeEndpointWithUrlEncodedAuth,
   makeSession,
@@ -15,6 +14,9 @@ import {
   updateSession,
   uuid4,
 } from '@sentry/core';
+import {
+  filenameIsInApp,
+} from '@sentry-internal/server-utils';
 import { makeNodeTransport } from '@sentry/node';
 import { captureStackTrace, getThreadsLastSeen } from '@sentry-internal/node-native-stacktrace';
 import type { ThreadState, WorkerStartData } from './common';

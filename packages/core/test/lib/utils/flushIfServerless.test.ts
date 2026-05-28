@@ -1,8 +1,8 @@
+import * as flushModule from '@sentry/core';
+import { GLOBAL_OBJ } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import * as flushModule from '../../../src/exports';
-import { flushIfServerless } from '../../../src/utils/flushIfServerless';
-import * as vercelWaitUntilModule from '../../../src/utils/vercelWaitUntil';
-import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
+import { flushIfServerless } from '../../src/utils/flushIfServerless';
+import * as vercelWaitUntilModule from '../../src/utils/vercelWaitUntil';
 
 describe('flushIfServerless', () => {
   let originalProcess: typeof process;

@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
+    "@sentry-internal/server-utils": "10.54.0",
     "@sentry/core": "10.54.0"
   },
   "peerDependencies": {

@@ -14,11 +14,13 @@ import {
   hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
-  nodeStackLineParser,
   requestDataIntegration,
   spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
+import {
+  nodeStackLineParser,
+} from '@sentry-internal/server-utils';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
   getSentryResource,

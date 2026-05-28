@@ -1,7 +1,8 @@
 import type { Span as WriteableSpan } from '@opentelemetry/api';
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import type { ClientOptions, Options, SamplingContext, Scope, ServerRuntimeOptions, Span } from '@sentry/core';
+import type { ClientOptions, Options, SamplingContext, Scope, Span } from '@sentry/core';
+import type { ServerRuntimeOptions } from '@sentry-internal/server-utils';
 import type { NodeTransportOptions } from './transports';
 
 /**

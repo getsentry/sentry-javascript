@@ -1,5 +1,7 @@
-import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
-import { applySdkMetadata, debug, ServerRuntimeClient } from '@sentry/core';
+import type { ClientOptions, Options } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry-internal/server-utils';
+import { applySdkMetadata, debug } from '@sentry/core';
+import { ServerRuntimeClient } from '@sentry-internal/server-utils';
 import { DEBUG_BUILD } from './debug-build';
 import type { makeFlushLock } from './flush';
 import type { CloudflareTransportOptions } from './transport';
