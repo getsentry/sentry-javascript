@@ -1,16 +1,15 @@
 /* eslint-disable max-lines-per-function */
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
+import type { ResolvedDataCollection } from '../types/datacollection';
 import type { PolymorphicRequest } from '../types/polymorphics';
 import type { RequestEventData } from '../types/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types/webfetchapi';
 import { debug } from './debug-logger';
+import { defaultPiiToCollectionOptions } from './data-collection/defaultPiiToCollectionOptions';
+import { FILTERED_VALUE, SENSITIVE_COOKIE_NAME_SNIPPETS } from './data-collection/filtering-snippets';
+import { filterKeyValueData } from './data-collection/filterKeyValueData';
 import { safeUnref } from './timer';
-import {
-  PII_HEADER_SNIPPETS,
-  SENSITIVE_COOKIE_NAME_SNIPPETS,
-  SENSITIVE_KEY_SNIPPETS,
-} from '../utils/data-collection/filtering-snippets';
 
 /**
  * Maximum size of incoming HTTP request bodies attached to events.
@@ -278,55 +277,66 @@ function getAbsoluteUrl({
  */
 export function httpHeadersToSpanAttributes(
   headers: Record<string, string | string[] | undefined>,
-  sendDefaultPii: boolean = false,
+  // TODO(v11): Remove boolean support once sendDefaultPii is fully removed.
+  // Internally, always pass ResolvedDataCollection from client.getDataCollectionOptions().
+  dataCollection: ResolvedDataCollection | boolean = false,
   lifecycle: 'request' | 'response' = 'request',
 ): Record<string, string> {
+  const resolvedDataCollection =
+    typeof dataCollection === 'boolean' ? defaultPiiToCollectionOptions(dataCollection) : dataCollection;
+
+  const headerBehavior =
+    lifecycle === 'request' ? resolvedDataCollection.httpHeaders.request : resolvedDataCollection.httpHeaders.response;
+  const cookieBehavior = resolvedDataCollection.cookies;
+  const prefix = `http.${lifecycle}.header.`;
+
   const spanAttributes: Record<string, string> = {};
 
   try {
-    Object.entries(headers).forEach(([key, value]) => {
+    const regularHeaders: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(headers)) {
       if (value == null) {
-        return;
+        continue;
       }
 
-      const lowerCasedHeaderKey = key.toLowerCase();
-      const isCookieHeader = lowerCasedHeaderKey === 'cookie' || lowerCasedHeaderKey === 'set-cookie';
+      const lowerKey = key.toLowerCase();
+      const isCookieHeader = lowerKey === 'cookie' || lowerKey === 'set-cookie';
 
-      if (isCookieHeader && typeof value === 'string' && value !== '') {
-        // Set-Cookie: single cookie with attributes ("name=value; HttpOnly; Secure")
-        // Cookie: multiple cookies separated by "; " ("cookie1=value1; cookie2=value2")
-        const isSetCookie = lowerCasedHeaderKey === 'set-cookie';
-        const semicolonIndex = value.indexOf(';');
-        const cookieString = isSetCookie && semicolonIndex !== -1 ? value.substring(0, semicolonIndex) : value;
-        const cookies = isSetCookie ? [cookieString] : cookieString.split('; ');
+      if (isCookieHeader) {
+        if (cookieBehavior === false) {
+          continue;
+        }
 
-        for (const cookie of cookies) {
-          // Split only at the first '=' to preserve '=' characters in cookie values
-          const equalSignIndex = cookie.indexOf('=');
-          const cookieKey = equalSignIndex !== -1 ? cookie.substring(0, equalSignIndex) : cookie;
-          const cookieValue = equalSignIndex !== -1 ? cookie.substring(equalSignIndex + 1) : '';
-
-          const lowerCasedCookieKey = cookieKey.toLowerCase();
-
-          addSpanAttribute({
-            spanAttributes,
-            headerKey: lowerCasedHeaderKey,
-            cookieKey: lowerCasedCookieKey,
-            value: cookieValue,
-            sendDefaultPii,
-            lifecycle,
-          });
+        if (typeof value === 'string' && value !== '') {
+          const parsed = parseCookieHeader(value, lowerKey === 'set-cookie');
+          const filtered = filterKeyValueData(parsed, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS);
+          for (const [cookieKey, cookieValue] of Object.entries(filtered)) {
+            spanAttributes[`${prefix}${normalizeAttributeKey(lowerKey)}.${normalizeAttributeKey(cookieKey)}`] =
+              cookieValue;
+          }
+        } else {
+          spanAttributes[`${prefix}${normalizeAttributeKey(lowerKey)}`] = FILTERED_VALUE;
         }
       } else {
-        addSpanAttribute({
-          spanAttributes,
-          headerKey: lowerCasedHeaderKey,
-          value,
-          sendDefaultPii,
-          lifecycle,
-        });
+        if (headerBehavior === false) {
+          continue;
+        }
+
+        if (Array.isArray(value)) {
+          regularHeaders[lowerKey] = value.map(v => (v != null ? String(v) : v)).join(';');
+        } else if (typeof value === 'string') {
+          regularHeaders[lowerKey] = value;
+        }
       }
-    });
+    }
+
+    if (headerBehavior !== false) {
+      const filtered = filterKeyValueData(regularHeaders, headerBehavior);
+      for (const [headerKey, headerValue] of Object.entries(filtered)) {
+        spanAttributes[`${prefix}${normalizeAttributeKey(headerKey)}`] = headerValue;
+      }
+    }
   } catch {
     // Return empty object if there's an error
   }
@@ -338,62 +348,21 @@ function normalizeAttributeKey(key: string): string {
   return key.replace(/-/g, '_');
 }
 
-type AddSpanAttributeOptions = {
-  spanAttributes: Record<string, string>;
-  /** Lowercased HTTP header name (e.g. `cookie`, `set-cookie`, `accept`). */
-  headerKey: string;
-  /**
-   * Lowercased cookie name when this attribute comes from a parsed `Cookie` / `Set-Cookie` value.
-   * Omit for non-cookie headers; when present and non-empty, cookie-specific sensitivity rules apply.
-   */
-  cookieKey?: string;
-  value: string | string[] | undefined;
-  sendDefaultPii: boolean;
-  lifecycle: 'request' | 'response';
-};
+function parseCookieHeader(value: string, isSetCookie: boolean): Record<string, string> {
+  // Set-Cookie: single cookie with attributes ("name=value; HttpOnly; Secure")
+  // Cookie: multiple cookies separated by "; " ("cookie1=value1; cookie2=value2")
+  const semicolonIndex = value.indexOf(';');
+  const cookieString = isSetCookie && semicolonIndex !== -1 ? value.substring(0, semicolonIndex) : value;
+  const cookies = isSetCookie ? [cookieString] : cookieString.split('; ');
 
-function addSpanAttribute({
-  spanAttributes,
-  headerKey,
-  cookieKey,
-  value,
-  sendDefaultPii,
-  lifecycle,
-}: AddSpanAttributeOptions): void {
-  const isCookieSubKey = Boolean(cookieKey);
-  const nameForSensitivity = cookieKey || headerKey;
-  const headerValue = handleHttpHeader(nameForSensitivity, value, sendDefaultPii, isCookieSubKey);
-  if (headerValue == null) {
-    return;
+  const result: Record<string, string> = {};
+  for (const cookie of cookies) {
+    const equalSignIndex = cookie.indexOf('=');
+    const cookieKey = (equalSignIndex !== -1 ? cookie.substring(0, equalSignIndex) : cookie).toLowerCase();
+    const cookieValue = equalSignIndex !== -1 ? cookie.substring(equalSignIndex + 1) : '';
+    result[cookieKey] = cookieValue;
   }
-
-  const normalizedKey = `http.${lifecycle}.header.${normalizeAttributeKey(headerKey)}${cookieKey ? `.${normalizeAttributeKey(cookieKey)}` : ''}`;
-  spanAttributes[normalizedKey] = headerValue;
-}
-
-function handleHttpHeader(
-  lowerCasedKey: string,
-  value: string | string[] | undefined,
-  sendPii: boolean,
-  isCookieSubKey: boolean = false,
-): string | undefined {
-  const snippetsForSensitivity = isCookieSubKey
-    ? [...SENSITIVE_KEY_SNIPPETS, ...SENSITIVE_COOKIE_NAME_SNIPPETS]
-    : SENSITIVE_KEY_SNIPPETS;
-
-  const isSensitive = sendPii
-    ? snippetsForSensitivity.some(snippet => lowerCasedKey.includes(snippet))
-    : [...PII_HEADER_SNIPPETS, ...snippetsForSensitivity].some(snippet => lowerCasedKey.includes(snippet));
-
-  if (isSensitive) {
-    return '[Filtered]';
-  } else if (Array.isArray(value)) {
-    return value.map(v => (v != null ? String(v) : v)).join(';');
-  } else if (typeof value === 'string') {
-    return value;
-  }
-
-  return undefined;
+  return result;
 }
 
 /** Extract the query params from an URL. */

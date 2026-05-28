@@ -5,7 +5,6 @@ import {
   debug,
   getActiveSpan,
   getComponentName,
-  htmlTreeAsString,
   isPrimitive,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -13,6 +12,7 @@ import {
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
+import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
 import { trackClsAsStandaloneSpan } from './cls';
 import {

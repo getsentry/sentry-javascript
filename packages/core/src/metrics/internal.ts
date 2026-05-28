@@ -230,7 +230,7 @@ export function _INTERNAL_flushMetricsBuffer(client: Client, maybeMetricBuffer?:
     clientOptions._metadata,
     clientOptions.tunnel,
     client.getDsn(),
-    clientOptions.sendDefaultPii,
+    client.getDataCollectionOptions().userInfo,
   );
 
   // Clear the metric buffer after envelopes have been constructed.

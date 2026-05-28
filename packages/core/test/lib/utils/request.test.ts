@@ -8,6 +8,7 @@ import {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
 } from '../../../src/utils/request';
+import type { ResolvedDataCollection } from '../../../src/types/datacollection';
 import type { Scope } from '../../../src/scope';
 
 describe('request utils', () => {
@@ -862,6 +863,171 @@ describe('request utils', () => {
           'http.response.header.x_sso_token': '[Filtered]',
           'http.response.header.set_cookie.session': '[Filtered]',
           'http.response.header.cookie.session': '[Filtered]',
+        });
+      });
+    });
+
+    describe('with ResolvedDataCollection', () => {
+      const defaultDataCollection: ResolvedDataCollection = {
+        userInfo: false,
+        cookies: true,
+        httpHeaders: { request: true, response: true },
+        httpBodies: [],
+        queryParams: true,
+        genAI: { inputs: true, outputs: true },
+        stackFrameVariables: true,
+        frameContextLines: 5,
+      };
+
+      it('filters headers with allowList mode', () => {
+        const headers = {
+          'Content-Type': 'application/json',
+          'X-Request-Id': 'abc-123',
+          'X-Trace-Id': 'trace-456',
+          'User-Agent': 'test-agent',
+        };
+
+        const dc: ResolvedDataCollection = {
+          ...defaultDataCollection,
+          httpHeaders: {
+            request: { allow: ['x-request-id', 'content-type'] },
+            response: true,
+          },
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, dc);
+
+        expect(result).toEqual({
+          'http.request.header.content_type': 'application/json',
+          'http.request.header.x_request_id': 'abc-123',
+          'http.request.header.x_trace_id': '[Filtered]',
+          'http.request.header.user_agent': '[Filtered]',
+        });
+      });
+
+      it('filters headers with custom denyList terms', () => {
+        const headers = {
+          'Content-Type': 'application/json',
+          'X-Custom-Secret': 'secret-value',
+          'X-Forwarded-For': '192.168.1.1',
+          Accept: 'text/html',
+        };
+
+        const dc: ResolvedDataCollection = {
+          ...defaultDataCollection,
+          httpHeaders: {
+            request: { deny: ['x-custom'] },
+            response: true,
+          },
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, dc);
+
+        expect(result).toEqual({
+          'http.request.header.content_type': 'application/json',
+          'http.request.header.x_custom_secret': '[Filtered]',
+          'http.request.header.x_forwarded_for': '192.168.1.1',
+          'http.request.header.accept': 'text/html',
+        });
+      });
+
+      it('skips all headers when httpHeaders behavior is off', () => {
+        const headers = {
+          'Content-Type': 'application/json',
+          Cookie: 'theme=dark',
+        };
+
+        const dc: ResolvedDataCollection = {
+          ...defaultDataCollection,
+          httpHeaders: { request: false, response: true },
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, dc);
+
+        expect(result).toEqual({
+          'http.request.header.cookie.theme': 'dark',
+        });
+      });
+
+      it('skips all cookies when cookies behavior is off', () => {
+        const headers = {
+          'Content-Type': 'application/json',
+          Cookie: 'session=abc123; theme=dark',
+          'Set-Cookie': 'pref=1; HttpOnly',
+        };
+
+        const dc: ResolvedDataCollection = {
+          ...defaultDataCollection,
+          cookies: false,
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, dc);
+
+        expect(result).toEqual({
+          'http.request.header.content_type': 'application/json',
+        });
+      });
+
+      it('filters cookies with allowList mode', () => {
+        const headers = {
+          Cookie: 'theme=dark; locale=en; session=secret',
+        };
+
+        const dc: ResolvedDataCollection = {
+          ...defaultDataCollection,
+          cookies: { allow: ['theme', 'locale'] },
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, dc);
+
+        expect(result).toEqual({
+          'http.request.header.cookie.theme': 'dark',
+          'http.request.header.cookie.locale': 'en',
+          'http.request.header.cookie.session': '[Filtered]',
+        });
+      });
+
+      it('uses response behavior when lifecycle is response', () => {
+        const headers = {
+          'Content-Type': 'application/json',
+          'X-Custom': 'value',
+        };
+
+        const dc: ResolvedDataCollection = {
+          ...defaultDataCollection,
+          httpHeaders: {
+            request: true,
+            response: { allow: ['content-type'] },
+          },
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, dc, 'response');
+
+        expect(result).toEqual({
+          'http.response.header.content_type': 'application/json',
+          'http.response.header.x_custom': '[Filtered]',
+        });
+      });
+
+      it('still filters sensitive keys even in allowList mode', () => {
+        const headers = {
+          Authorization: 'Bearer token',
+          'X-Request-Id': 'abc-123',
+        };
+
+        const dc: ResolvedDataCollection = {
+          ...defaultDataCollection,
+          httpHeaders: {
+            request: { allow: ['authorization', 'x-request-id'] },
+            response: true,
+          },
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, dc);
+
+        expect(result).toEqual({
+          'http.request.header.authorization': '[Filtered]',
+          'http.request.header.x_request_id': 'abc-123',
         });
       });
     });

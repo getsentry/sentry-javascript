@@ -4,9 +4,108 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.55.0
+
+### Important Changes
+
+- **feat(hono): Promote `@sentry/hono` to stable and deprecate `honoIntegration` ([#21208](https://github.com/getsentry/sentry-javascript/pull/21208))**
+
+  The `@sentry/hono` SDK is now stable. See the [Sentry Hono SDK docs](https://docs.sentry.io/platforms/javascript/guides/hono/) to get started.
+
+- **docs(tanstackstart-react): Promote SDK status to beta ([#21175](https://github.com/getsentry/sentry-javascript/pull/21175))**
+
+  This release promotes the `@sentry/tanstackstart-react` SDK to beta. For details on how to use it, check out the
+  [Sentry TanStack Start SDK docs](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/). Please reach out on
+  [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
+
+- **feat(hono): Add `shouldHandleError` option to `sentry()` middleware ([#21205](https://github.com/getsentry/sentry-javascript/pull/21205))**
+
+  The `sentry()` middleware now accepts a `shouldHandleError` callback to control which errors are captured and sent to Sentry. By default, 3xx/4xx HTTP errors are ignored and 5xx errors and plain `Error` objects are captured. Return `true` from the callback to capture an error, `false` to suppress it.
+
+  ```ts
+  app.use(
+    sentry(app, {
+      dsn: '__DSN__',
+      shouldHandleError(error) {
+        const status = (error as { status?: number })?.status;
+        // Capture 401/403 in addition to the default 5xx errors
+        return status === 401 || status === 403 || typeof status !== 'number' || status >= 500;
+      },
+    }),
+  );
+  ```
+
+- **test(tanstackstart-react): Move initialization to client entry point ([#21161](https://github.com/getsentry/sentry-javascript/pull/21161))**
+
+  Change the recommended setup for the SDK to do `Sentry.init()` in the client entry file to capture telemetry that is emitted ahead of page hydration.
+
+- **feat(tanstackstart-react): Add distributed tracing ([#21144](https://github.com/getsentry/sentry-javascript/pull/21144))**
+
+  Server and client traces are now automatically connected, allowing you to see the full request lifecycle from server-side rendering through client-side hydration in a single trace.
+
+- **feat(tanstackstart-react): Add server-side route parametrization ([#21147](https://github.com/getsentry/sentry-javascript/pull/21147))**
+
+  Server transaction names are now parametrized automatically (e.g., `GET /users/123` becomes `GET /users/$userId`), improving transaction grouping in Sentry.
+
+- **feat(tanstackstart-react): Show readable server function names in traces ([#21190](https://github.com/getsentry/sentry-javascript/pull/21190))**
+
+  Server function spans now show human-readable names (e.g., `GET /_serverFn/greet` instead of `GET /_serverFn/a10e70b3...`). The `tanstackstart.function.hash.sha256` span attribute has been renamed to `tanstackstart.function.id`.
+
+### Other Changes
+
+- feat(core): Migrate request data to `dataCollection` ([#21071](https://github.com/getsentry/sentry-javascript/pull/21071))
+- feat(hono): Add warning in Bun for double init ([#21195](https://github.com/getsentry/sentry-javascript/pull/21195))
+- feat(hono): Instrument main-app inline middleware spans ([#20999](https://github.com/getsentry/sentry-javascript/pull/20999))
+- feat(metrics): Migrate metrics to use `dataCollection` instead of `sendDefaultPii` ([#21078](https://github.com/getsentry/sentry-javascript/pull/21078))
+- feat(tanstackstart-react): Enable component tracking ([#21149](https://github.com/getsentry/sentry-javascript/pull/21149))
+- feat(tanstackstart-react): Filter noisy dev transactions ([#21145](https://github.com/getsentry/sentry-javascript/pull/21145))
+- fix(cloudflare): Use original waitUntil to not create a deadlock ([#21197](https://github.com/getsentry/sentry-javascript/pull/21197))
+- fix(elysia): Widen accepted `Elysia` app type to support Elysia options ([#21164](https://github.com/getsentry/sentry-javascript/pull/21164))
+- fix(tanstackstart-react): Add server-side replayIntegration no-op stub ([#21148](https://github.com/getsentry/sentry-javascript/pull/21148))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(changelog): clarify array attributes impact on `beforeSend*` callbacks ([#21186](https://github.com/getsentry/sentry-javascript/pull/21186))
+- chore(ci): Update bugbot instructions ([#21168](https://github.com/getsentry/sentry-javascript/pull/21168))
+- chore(sentry-cli): Upgrade to 2.58.6 ([#21165](https://github.com/getsentry/sentry-javascript/pull/21165))
+- chore(size-limit): weekly auto-bump ([#21123](https://github.com/getsentry/sentry-javascript/pull/21123))
+- feat(deps-dev): Bump @sveltejs/kit from 2.52.2 to 2.60.1 in /dev-packages/e2e-tests/test-applications/sveltekit-cloudflare-pages ([#21162](https://github.com/getsentry/sentry-javascript/pull/21162))
+- fix(e2e): Fix `astro-6` e2e test build by relaxing astro version range ([#21211](https://github.com/getsentry/sentry-javascript/pull/21211))
+- meta(agents): Update AI commit attribution guidance ([#21166](https://github.com/getsentry/sentry-javascript/pull/21166))
+- ref(browser): Extract browser-specific `normalize` code out of core ([#21172](https://github.com/getsentry/sentry-javascript/pull/21172))
+- ref(node): Stop custom-handling normalization of Domain/DomainEmitter ([#21182](https://github.com/getsentry/sentry-javascript/pull/21182))
+- ref(node): Stop using `registerSpanErrorInstrumentation()` on server ([#21169](https://github.com/getsentry/sentry-javascript/pull/21169))
+- test(nitro-3): Update e2e tests for h3 route handler tracing ([#21152](https://github.com/getsentry/sentry-javascript/pull/21152))
+- test(nuxt): Fix flaky test and add note about hydration timing to skill ([#21054](https://github.com/getsentry/sentry-javascript/pull/21054))
+
+</details>
+
 ## 10.54.0
 
 ### Important Changes
+
+- **feat(core): Support array attributes for spans, logs, and metrics ([#20427](https://github.com/getsentry/sentry-javascript/pull/20427))**
+
+  Arrays of primitive values (`string`, `number`, `boolean`) are now accepted as attribute values. Arrays containing non-primitive elements will be dropped and won't show up in Sentry. Array attributes on logs and metrics were previously stringified and will now be sent as actual arrays instead. **If you have custom rules that process attribute values in any `beforeSend*` callbacks (e.g., data scrubbing), you may need to update them to correctly handle array values.**
+
+  For instance, here's how you can update a `beforeSendLog` callback to handle arrays:
+
+  ```ts
+  beforeSendLog: log => {
+    const attributes = log.attributes;
+    Object.keys(attributes).forEach(key => {
+      const value = attributes[key];
+      if (typeof value === 'string') {
+        attributes[key] = scrubData(value);
+      }
+      if (Array.isArray(value)) {
+        attributes[key] = value.map(v => (typeof v === 'string' ? scrubData(v) : v));
+      }
+    });
+    return log;
+  };
+  ```
 
 - **feat(browser): Add `fetchStreamPerformanceIntegration` for streamed response tracking ([#20778](https://github.com/getsentry/sentry-javascript/pull/20778))**
 
@@ -15,10 +114,6 @@
 - **feat(core): Add `dataCollection` client option ([#20965](https://github.com/getsentry/sentry-javascript/pull/20965))**
 
   Adds a new `dataCollection` client option for controlling what data the SDK collects and sends to Sentry. This provides a centralized way to configure data collection behavior across different SDK features. In the future, this option will be used for fine-granular data filtering, while the simple `sendDefaultPii` boolean option will be deprecated and removed in a future release.
-
-- **feat(core): Support array attributes for spans, logs, and metrics ([#20427](https://github.com/getsentry/sentry-javascript/pull/20427))**
-
-  Arrays of primitive values (`string`, `number`, `boolean`) are now accepted as attribute values. Arrays containing non-primitive elements will be dropped and won't show up in Sentry. Note that array attributes on logs and metrics were previously stringified in certain cases and will now be sent as arrays instead.
 
 - **feat(hono): Add `hono.request` spans for internal `.request()` calls ([#20843](https://github.com/getsentry/sentry-javascript/pull/20843))**
 

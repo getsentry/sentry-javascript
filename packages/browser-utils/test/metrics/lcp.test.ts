@@ -1,5 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { htmlTreeAsString } from '../../src/htmlTreeAsString';
 import { _sendStandaloneLcpSpan, isValidLcpMetric, MAX_PLAUSIBLE_LCP_DURATION } from '../../src/metrics/lcp';
 import * as WebVitalUtils from '../../src/metrics/utils';
 
@@ -9,9 +10,12 @@ vi.mock('@sentry/core', async () => {
     ...actual,
     browserPerformanceTimeOrigin: vi.fn(),
     getCurrentScope: vi.fn(),
-    htmlTreeAsString: vi.fn(),
   };
 });
+
+vi.mock('../../src/htmlTreeAsString', () => ({
+  htmlTreeAsString: vi.fn(),
+}));
 
 describe('isValidLcpMetric', () => {
   it('returns true for plausible lcp values', () => {
@@ -43,7 +47,7 @@ describe('_sendStandaloneLcpSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
-    vi.mocked(SentryCore.htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
+    vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.spyOn(WebVitalUtils, 'startStandaloneWebVitalSpan').mockReturnValue(mockSpan as any);
   });
 

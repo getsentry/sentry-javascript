@@ -9,6 +9,7 @@ type FlushLock = {
 
 type FlushLockRegistry = {
   readonly locks: Set<FlushLockInternal>;
+  readonly originalWaitUntil: ExecutionContext['waitUntil'];
 };
 
 type FlushLockInternal = FlushLock & {
@@ -17,6 +18,27 @@ type FlushLockInternal = FlushLock & {
 };
 
 const flushLockRegistries = new WeakMap<ExecutionContext['waitUntil'], FlushLockRegistry>();
+
+/**
+ * Returns the original (un-instrumented) waitUntil function for a context.
+ * This should be used when calling waitUntil with flushAndDispose to avoid deadlock.
+ *
+ * The flush lock mechanism wraps context.waitUntil to track pending tasks.
+ * If we call waitUntil(flushAndDispose(client)) through the instrumented version,
+ * it creates a deadlock because:
+ * 1. The instrumented waitUntil acquires the flush lock
+ * 2. flushAndDispose calls client.flush() which waits for the lock to be released
+ * 3. The lock won't be released until the waitUntil promise completes
+ * 4. The waitUntil promise won't complete until flush() returns
+ *
+ * By using the original waitUntil for flush operations, we bypass this issue.
+ */
+export function getOriginalWaitUntil(context: ExecutionContext): ExecutionContext['waitUntil'] | undefined {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const currentWaitUntil = context.waitUntil;
+  const original = flushLockRegistries.get(currentWaitUntil)?.originalWaitUntil;
+  return original ?? currentWaitUntil;
+}
 
 /**
  * Enhances the given execution context by wrapping its `waitUntil` method with a proxy
@@ -67,8 +89,8 @@ function getOrCreateFlushLockRegistry(context: ExecutionContext): FlushLockRegis
     return existingRegistry;
   }
 
-  const registry: FlushLockRegistry = { locks: new Set() };
   const originalWaitUntil = context.waitUntil.bind(context) as typeof context.waitUntil;
+  const registry: FlushLockRegistry = { locks: new Set(), originalWaitUntil };
   const instrumentedWaitUntil: typeof context.waitUntil = promise => {
     // Snapshot active locks so locks created after this call do not wait for earlier waitUntil work.
     const locks = [...registry.locks];

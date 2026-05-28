@@ -44,6 +44,39 @@ export function addRoutes(app: HonoType<{ Bindings?: { E2E_TEST_DSN: string } }>
   // Inline middleware patterns: direct method, .all(), .on() with inline/separate middleware
   app.route('/test-inline-middleware', subAppWithInlineMiddleware);
 
+  // Inline middleware on the main app via HTTP method registration (not .use()).
+  app.get(
+    '/test-main-inline/get',
+    async function mainInlineGet(_c, next) {
+      await next();
+    },
+    c => c.text('main inline get'),
+  );
+  app.post(
+    '/test-main-inline/post',
+    async function mainInlinePost(_c, next) {
+      await next();
+    },
+    c => c.text('main inline post'),
+  );
+  app.all(
+    '/test-main-inline/all',
+    async function mainInlineAll(_c, next) {
+      await next();
+    },
+    c => c.text('main inline all'),
+  );
+
+  // Combined: .use() middleware + inline middleware via .get() on the same path.
+  app.use('/test-main-inline/combined/*', middlewareA);
+  app.get(
+    '/test-main-inline/combined/resource',
+    async function combinedInlineMw(_c, next) {
+      await next();
+    },
+    c => c.text('combined response'),
+  );
+
   // Route patterns: HTTP methods, .all(), .on(), sync/async, errors
   app.route('/test-routes', routePatterns);
 

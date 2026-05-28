@@ -3,7 +3,6 @@ import {
   browserPerformanceTimeOrigin,
   debug,
   getCurrentScope,
-  htmlTreeAsString,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
@@ -11,6 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { htmlTreeAsString } from '../htmlTreeAsString';
 import { addLcpInstrumentationHandler } from './instrument';
 import type { WebVitalReportEvent } from './utils';
 import { listenForWebVitalReportEvents, msToSec, startStandaloneWebVitalSpan, supportsWebVital } from './utils';

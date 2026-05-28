@@ -12,7 +12,8 @@ import {
 import type { Context } from 'hono';
 import { routePath } from 'hono/route';
 import { hasFetchEvent } from '../utils/hono-context';
-import { isExpectedError } from './isExpectedError';
+import { defaultShouldHandleError } from './defaultShouldHandleError';
+import { type SentryHonoMiddlewareOptions } from '../shared/types';
 
 /**
  * Request handler for Hono framework
@@ -33,11 +34,16 @@ export function requestHandler(context: Context): void {
 /**
  * Response handler for Hono framework
  */
-export function responseHandler(context: Context): void {
-  if (context.error && !isExpectedError(context.error)) {
-    getClient()?.captureException(context.error, {
-      mechanism: { handled: false, type: 'auto.http.hono.context_error' },
-    });
+export function responseHandler(
+  context: Context,
+  shouldHandleError?: SentryHonoMiddlewareOptions['shouldHandleError'],
+): void {
+  if (context.error) {
+    if ((shouldHandleError ?? defaultShouldHandleError)(context.error)) {
+      getClient()?.captureException(context.error, {
+        mechanism: { handled: false, type: 'auto.http.hono.context_error' },
+      });
+    }
   }
 }
 

@@ -74,6 +74,9 @@ const _honoIntegration = (() => {
  *
  * For more information, see the [hono documentation](https://docs.sentry.io/platforms/javascript/guides/hono/).
  *
+ * @deprecated Use the `@sentry/hono` package instead. The `sentry()` middleware from `@sentry/hono/node` handles
+ * tracing and error capturing automatically without needing this integration or `setupHonoErrorHandler`.
+ *
  * @example
  * ```javascript
  * const Sentry = require('@sentry/node');
@@ -127,6 +130,9 @@ function honoErrorHandler(options?: Partial<HonoHandlerOptions>): MiddlewareHand
  *
  * @param app The Hono instances
  * @param options Configuration options for the handler
+ *
+ * @deprecated Use the `@sentry/hono` package instead. The `sentry()` middleware from `@sentry/hono/node` handles
+ * error capturing automatically without needing this function or `honoIntegration`.
  *
  * @example
  * ```javascript
