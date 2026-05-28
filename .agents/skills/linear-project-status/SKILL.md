@@ -94,7 +94,7 @@ First, check presence — a target date is required on every project:
 
 To judge realism, compare days remaining to the open scope. Rough heuristic:
 
-- `bad` if target date is within 14 days AND there are open issues with no recent activity, OR open issues outnumber completed ones.
+- `bad` if target date is within 14 days AND (there are open issues with no recent activity, OR open issues outnumber completed ones). Both sub-conditions are scoped to the 14-day window — a young project with mostly-open issues isn't `bad`, only one about to ship that isn't ready.
 - `warn` if target date is within 30 days AND >40% of issues are still open, OR the target date is already in the past while the project is not completed.
 - `ok` otherwise.
 
