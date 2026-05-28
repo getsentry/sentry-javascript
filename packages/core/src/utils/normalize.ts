@@ -1,8 +1,22 @@
 import type { Primitive } from '../types/misc';
-import { isSyntheticEvent, isVueViewModel } from './is';
 import { getNormalizationDepthOverrideHint, hasSkipNormalizationHint } from './normalizationHints';
 import { convertToPlainObject } from './object';
-import { getFunctionName, getVueInternalName } from './stacktrace';
+import { getFunctionName } from './stacktrace';
+
+type Stringifier = (value: Exclude<unknown, string | number | boolean | null>) => string | undefined;
+
+// We store a custom stringifier in module scope, which is not bullet proof
+// however, we currently only really use this for browser-specific values, where this should work just fine, generally.
+let stringifier: Stringifier | undefined;
+
+/**
+ * Set a custom stringifier for the normalize function.
+ * If this returns a non-empty string, it will be used instead of the default stringification.
+ * Return undefined to fall back to the generic behavior.
+ */
+export function setNormalizeStringifier(newStringifier: Stringifier | undefined): void {
+  stringifier = newStringifier;
+}
 
 type Prototype = { constructor?: (...args: unknown[]) => unknown };
 // This is a hack to placate TS, relying on the fact that technically, arrays are objects with integer keys. Normally we
@@ -180,37 +194,25 @@ function visit(
  * @param value The value to stringify
  * @returns A stringified representation of the given value
  */
-function stringifyValue(
+export function stringifyValue(
   key: unknown,
   // this type is a tiny bit of a cheat, since this function does handle NaN (which is technically a number), but for
   // our internal use, it'll do
   value: Exclude<unknown, string | number | boolean | null>,
 ): string {
   try {
-    // It's safe to use `global`, `window`, and `document` here in this manner, as we are asserting using `typeof` first
-    // which won't throw if they are not present.
+    // Runtime-specific stringifications (browser, framework integrations) are registered on the
+    // async-context strategy. Consult them before the universal fallbacks below.
+    if (stringifier) {
+      const stringified = stringifier(value);
+      // Safe to ignore empty strings here as well, we wont stringify to this
+      if (stringified) {
+        return stringified;
+      }
+    }
 
     if (typeof global !== 'undefined' && value === global) {
       return '[Global]';
-    }
-
-    // eslint-disable-next-line no-restricted-globals
-    if (typeof window !== 'undefined' && value === window) {
-      return '[Window]';
-    }
-
-    // eslint-disable-next-line no-restricted-globals
-    if (typeof document !== 'undefined' && value === document) {
-      return '[Document]';
-    }
-
-    if (isVueViewModel(value)) {
-      return getVueInternalName(value);
-    }
-
-    // React's SyntheticEvent thingy
-    if (isSyntheticEvent(value)) {
-      return '[SyntheticEvent]';
     }
 
     if (typeof value === 'number' && !Number.isFinite(value)) {
@@ -235,11 +237,6 @@ function stringifyValue(
     // `"[object Object]"`. If we instead look at the constructor's name (which is the same as the name of the class),
     // we can make sure that only plain objects come out that way.
     const objName = getConstructorName(value);
-
-    // Handle HTML Elements
-    if (/^HTML(\w*)Element$/.test(objName)) {
-      return `[HTMLElement: ${objName}]`;
-    }
 
     return `[object ${objName}]`;
   } catch (err) {

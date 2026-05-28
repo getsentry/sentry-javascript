@@ -42,6 +42,7 @@ export {
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
 export { elementTimingIntegration } from '@sentry-internal/browser-utils';
+export { normalizeStringifyValue } from './normalizeStringifyValue';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 export { spanStreamingIntegration } from './integrations/spanstreaming';

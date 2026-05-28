@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DEBUG_BUILD } from '../debug-build';
 import type { WrappedFunction } from '../types/wrappedfunction';
-import { htmlTreeAsString } from './browser';
 import { debug } from './debug-logger';
-import { isElement, isError, isEvent, isInstanceOf, isPrimitive } from './is';
+import { isError, isEvent, isPrimitive } from './is';
 
 /**
  * Replace a method in an object with a wrapped version of itself.
@@ -132,21 +131,7 @@ export function getOriginalFunction<T extends Function>(func: WrappedFunction<T>
  * @returns An Event or Error turned into an object - or the value argument itself, when value is neither an Event nor
  *  an Error.
  */
-export function convertToPlainObject<V>(value: V):
-  | {
-      [ownProps: string]: unknown;
-      type: string;
-      target: string;
-      currentTarget: string;
-      detail?: unknown;
-    }
-  | {
-      [ownProps: string]: unknown;
-      message: string;
-      name: string;
-      stack?: string;
-    }
-  | V {
+export function convertToPlainObject<V>(value: V): Record<string, unknown> | V {
   if (isError(value)) {
     return {
       message: value.message,
@@ -154,37 +139,21 @@ export function convertToPlainObject<V>(value: V):
       stack: value.stack,
       ...getOwnProperties(value),
     };
-  } else if (isEvent(value)) {
-    const newObj: {
-      [ownProps: string]: unknown;
-      type: string;
-      target: string;
-      currentTarget: string;
-      detail?: unknown;
-    } = {
-      type: value.type,
-      target: serializeEventTarget(value.target),
-      currentTarget: serializeEventTarget(value.currentTarget),
+  }
+
+  // This handles browser events specifically, where certain properties are non-enumerable and need to be unpacked.
+  if (isEvent(value)) {
+    const { type, target, currentTarget, detail } = value;
+    return {
+      type,
+      target,
+      currentTarget,
+      ...(detail ? { detail } : {}),
       ...getOwnProperties(value),
     };
-
-    if (typeof CustomEvent !== 'undefined' && isInstanceOf(value, CustomEvent)) {
-      newObj.detail = value.detail;
-    }
-
-    return newObj;
-  } else {
-    return value;
   }
-}
 
-/** Creates a string representation of the target of an `Event` object */
-function serializeEventTarget(target: unknown): string {
-  try {
-    return isElement(target) ? htmlTreeAsString(target) : Object.prototype.toString.call(target);
-  } catch {
-    return '<unknown>';
-  }
+  return value;
 }
 
 /** Filters out all but an object's own properties */
