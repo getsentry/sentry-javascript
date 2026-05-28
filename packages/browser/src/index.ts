@@ -47,6 +47,7 @@ export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 export { spanStreamingIntegration } from './integrations/spanstreaming';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
+export { webVitalsIntegration } from './integrations/webVitals';
 
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
