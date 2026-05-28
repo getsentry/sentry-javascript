@@ -4,8 +4,9 @@ import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { applyPatches } from '../shared/applyPatches';
+import type { SentryHonoMiddlewareOptions } from '../shared/types';
 
-export interface HonoCloudflareOptions extends Options<BaseTransportOptions> {}
+export interface HonoCloudflareOptions extends Options<BaseTransportOptions>, SentryHonoMiddlewareOptions {}
 
 /**
  * Sentry middleware for Hono on Cloudflare Workers.
@@ -36,10 +37,15 @@ export function sentry<E extends Env>(
   applyPatches(app);
 
   return async (context, next) => {
+    const shouldHandleError =
+      typeof options === 'function'
+        ? options(context.env as E['Bindings']).shouldHandleError
+        : options.shouldHandleError;
+
     requestHandler(context);
 
     await next(); // Handler runs in between Request above ⤴ and Response below ⤵
 
-    responseHandler(context);
+    responseHandler(context, shouldHandleError);
   };
 }

@@ -12,7 +12,7 @@ import {
 import type { Context } from 'hono';
 import { routePath } from 'hono/route';
 import { hasFetchEvent } from '../utils/hono-context';
-import { isExpectedError } from './isExpectedError';
+import { shouldCaptureError } from './defaultShouldHandleError';
 
 /**
  * Request handler for Hono framework
@@ -33,8 +33,8 @@ export function requestHandler(context: Context): void {
 /**
  * Response handler for Hono framework
  */
-export function responseHandler(context: Context): void {
-  if (context.error && !isExpectedError(context.error)) {
+export function responseHandler(context: Context, shouldHandleError?: (error: unknown) => boolean): void {
+  if (context.error && shouldCaptureError(context.error, shouldHandleError)) {
     getClient()?.captureException(context.error, {
       mechanism: { handled: false, type: 'auto.http.hono.context_error' },
     });

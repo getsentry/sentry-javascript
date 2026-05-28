@@ -11,12 +11,10 @@ vi.mock('@sentry/core', async () => {
       setStatus: vi.fn(),
       end: vi.fn(),
     })),
-    captureException: vi.fn(),
   };
 });
 
 const startInactiveSpanMock = SentryCore.startInactiveSpan as ReturnType<typeof vi.fn>;
-const captureExceptionMock = SentryCore.captureException as ReturnType<typeof vi.fn>;
 
 describe('patchAppUse (middleware spans)', () => {
   beforeEach(() => {
@@ -94,7 +92,7 @@ describe('patchAppUse (middleware spans)', () => {
     expect(startInactiveSpanMock).toHaveBeenCalled();
   });
 
-  it('calls captureException when middleware throws', async () => {
+  it('sets span error status when middleware throws a 5xx-like error', async () => {
     const app = new Hono();
     patchAppUse(app);
 
@@ -106,9 +104,8 @@ describe('patchAppUse (middleware spans)', () => {
     const res = await app.fetch(new Request('http://localhost/'));
     expect(res.status).toBe(500);
 
-    expect(captureExceptionMock).toHaveBeenCalledWith(err, {
-      mechanism: { handled: false, type: 'auto.middleware.hono' },
-    });
+    const spanFromCall = startInactiveSpanMock.mock.results[0]?.value;
+    expect(spanFromCall?.setStatus).toHaveBeenCalledWith({ code: expect.any(Number), message: 'internal_error' });
   });
 
   it('creates sibling spans for multiple middlewares (onion order, not parent-child)', async () => {
