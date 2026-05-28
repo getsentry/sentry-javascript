@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(hono): Add `shouldHandleError` option to `sentry()` middleware**
+
+  The `sentry()` middleware now accepts a `shouldHandleError` callback to control which errors are captured and sent to Sentry. By default, 3xx/4xx HTTP errors are ignored and 5xx errors and plain `Error` objects are captured. Return `true` from the callback to capture an error, `false` to suppress it.
+
 - **test(tanstackstart-react): Move initialization to client entry point ([#21161](https://github.com/getsentry/sentry-javascript/pull/21161))**
 
   Change the recommended setup for the SDK to do `Sentry.init()` in the client entry file to capture telemetry that is emitted ahead of page hydration.
