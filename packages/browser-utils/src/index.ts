@@ -34,4 +34,8 @@ export { getBodyString, getFetchRequestArgBody, serializeFormData, parseXhrRespo
 
 export { resourceTimingToSpanAttributes } from './metrics/resourceTiming';
 
+export { htmlTreeAsString } from './htmlTreeAsString';
+
+export { isElement } from './is';
+
 export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';

@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **docs(tanstackstart-react): Promote SDK status to beta ([#21175](https://github.com/getsentry/sentry-javascript/pull/21175))**
+
+  This release promotes the `@sentry/tanstackstart-react` SDK to beta. For details on how to use it, check out the
+  [Sentry TanStack Start SDK docs](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/). Please reach out on
+  [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
+
 - **test(tanstackstart-react): Move initialization to client entry point ([#21161](https://github.com/getsentry/sentry-javascript/pull/21161))**
 
   Change the recommended setup for the SDK to do `Sentry.init()` in the client entry file to capture telemetry that is emitted ahead of page hydration.
@@ -16,9 +22,35 @@
 
   Server transaction names are now parametrized automatically (e.g., `GET /users/123` becomes `GET /users/$userId`), improving transaction grouping in Sentry.
 
+- **feat(tanstackstart-react): Show readable server function names in traces ([#21190](https://github.com/getsentry/sentry-javascript/pull/21190))**
+
+  Server function spans now show human-readable names (e.g., `GET /_serverFn/greet` instead of `GET /_serverFn/a10e70b3...`). The `tanstackstart.function.hash.sha256` span attribute has been renamed to `tanstackstart.function.id`.
+
 ## 10.54.0
 
 ### Important Changes
+
+- **feat(core): Support array attributes for spans, logs, and metrics ([#20427](https://github.com/getsentry/sentry-javascript/pull/20427))**
+
+  Arrays of primitive values (`string`, `number`, `boolean`) are now accepted as attribute values. Arrays containing non-primitive elements will be dropped and won't show up in Sentry. Array attributes on logs and metrics were previously stringified and will now be sent as actual arrays instead. **If you have custom rules that process attribute values in any `beforeSend*` callbacks (e.g., data scrubbing), you may need to update them to correctly handle array values.**
+
+  For instance, here's how you can update a `beforeSendLog` callback to handle arrays:
+
+  ```ts
+  beforeSendLog: log => {
+    const attributes = log.attributes;
+    Object.keys(attributes).forEach(key => {
+      const value = attributes[key];
+      if (typeof value === 'string') {
+        attributes[key] = scrubData(value);
+      }
+      if (Array.isArray(value)) {
+        attributes[key] = value.map(v => (typeof v === 'string' ? scrubData(v) : v));
+      }
+    });
+    return log;
+  };
+  ```
 
 - **feat(browser): Add `fetchStreamPerformanceIntegration` for streamed response tracking ([#20778](https://github.com/getsentry/sentry-javascript/pull/20778))**
 
@@ -27,10 +59,6 @@
 - **feat(core): Add `dataCollection` client option ([#20965](https://github.com/getsentry/sentry-javascript/pull/20965))**
 
   Adds a new `dataCollection` client option for controlling what data the SDK collects and sends to Sentry. This provides a centralized way to configure data collection behavior across different SDK features. In the future, this option will be used for fine-granular data filtering, while the simple `sendDefaultPii` boolean option will be deprecated and removed in a future release.
-
-- **feat(core): Support array attributes for spans, logs, and metrics ([#20427](https://github.com/getsentry/sentry-javascript/pull/20427))**
-
-  Arrays of primitive values (`string`, `number`, `boolean`) are now accepted as attribute values. Arrays containing non-primitive elements will be dropped and won't show up in Sentry. Note that array attributes on logs and metrics were previously stringified in certain cases and will now be sent as arrays instead.
 
 - **feat(hono): Add `hono.request` spans for internal `.request()` calls ([#20843](https://github.com/getsentry/sentry-javascript/pull/20843))**
 

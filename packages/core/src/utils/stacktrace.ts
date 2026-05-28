@@ -172,6 +172,8 @@ export function getFramesFromEvent(event: Event): StackFrame[] | undefined {
  * Get the internal name of an internal Vue value, to represent it in a stacktrace.
  *
  * @param value The value to get the internal name of.
+ * @deprecated This is Vue-specific and will be removed from `@sentry/core` in a future major version.
+ * The `@sentry/vue` SDK inlines its own equivalent — there's no replacement export from core.
  */
 export function getVueInternalName(value: VueViewModel | VNode): string {
   // Check if it's a VNode (has __v_isVNode) or a component instance (has _isVue/__isVue)
