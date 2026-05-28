@@ -87,9 +87,7 @@ export function subscribeRedisDiagnosticChannels(responseHook?: IORedisInstrumen
 
   try {
     setupCommandChannel<RedisCommandData>(CHANNEL_REDIS_COMMAND, data => data.args.slice(1));
-    setupBatchChannel<RedisBatchData>(CHANNEL_REDIS_BATCH, data =>
-      data.batchMode === 'PIPELINE' ? 'PIPELINE' : 'MULTI',
-    );
+    setupBatchChannel(CHANNEL_REDIS_BATCH, data => (data.batchMode === 'PIPELINE' ? 'PIPELINE' : 'MULTI'));
     setupConnectChannel(CHANNEL_REDIS_CONNECT);
     setupCommandChannel<IORedisCommandData>(CHANNEL_IOREDIS_COMMAND, data => data.args);
     setupConnectChannel(CHANNEL_IOREDIS_CONNECT);
