@@ -83,6 +83,9 @@ const _honoIntegration = ((options: Partial<Options> = {}) => {
  *
  * The integration is enabled by default.
  *
+ * @deprecated Use the `@sentry/hono` package instead. The `sentry()` middleware from `@sentry/hono/cloudflare`
+ * handles error capturing automatically without needing this integration.
+ *
  * @example
  * integrations: [
  *   honoIntegration({

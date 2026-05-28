@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(hono): Promote `@sentry/hono` to stable and deprecate `honoIntegration`**
+
+  The `@sentry/hono` SDK is now stable. See the [Sentry Hono SDK docs](https://docs.sentry.io/platforms/javascript/guides/hono/) to get started.
+
 - **docs(tanstackstart-react): Promote SDK status to beta ([#21175](https://github.com/getsentry/sentry-javascript/pull/21175))**
 
   This release promotes the `@sentry/tanstackstart-react` SDK to beta. For details on how to use it, check out the

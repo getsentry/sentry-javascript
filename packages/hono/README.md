@@ -4,14 +4,13 @@
   </a>
 </p>
 
-# Official Sentry SDK for Hono (BETA)
+# Official Sentry SDK for Hono
 
 [![npm version](https://img.shields.io/npm/v/@sentry/hono.svg)](https://www.npmjs.com/package/@sentry/hono)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/hono.svg)](https://www.npmjs.com/package/@sentry/hono)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/hono.svg)](https://www.npmjs.com/package/@sentry/hono)
 
-This SDK is compatible with Hono 4+ and is currently in BETA. Beta features are still in progress and may have bugs.
-Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
+This SDK is compatible with Hono 4+.
 
 ## Links
 
