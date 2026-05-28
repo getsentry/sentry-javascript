@@ -19,9 +19,6 @@ type FlushLockInternal = FlushLock & {
 
 const flushLockRegistries = new WeakMap<ExecutionContext['waitUntil'], FlushLockRegistry>();
 
-// Map from instrumented waitUntil to its original function
-const originalWaitUntilMap = new WeakMap<ExecutionContext['waitUntil'], ExecutionContext['waitUntil']>();
-
 /**
  * Returns the original (un-instrumented) waitUntil function for a context.
  * This should be used when calling waitUntil with flushAndDispose to avoid deadlock.
@@ -39,7 +36,7 @@ const originalWaitUntilMap = new WeakMap<ExecutionContext['waitUntil'], Executio
 export function getOriginalWaitUntil(context: ExecutionContext): ExecutionContext['waitUntil'] | undefined {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const currentWaitUntil = context.waitUntil;
-  const original = originalWaitUntilMap.get(currentWaitUntil);
+  const original = flushLockRegistries.get(currentWaitUntil)?.originalWaitUntil;
   return original ?? currentWaitUntil;
 }
 
@@ -112,7 +109,6 @@ function getOrCreateFlushLockRegistry(context: ExecutionContext): FlushLockRegis
   };
 
   flushLockRegistries.set(instrumentedWaitUntil, registry);
-  originalWaitUntilMap.set(instrumentedWaitUntil, originalWaitUntil);
   context.waitUntil = instrumentedWaitUntil;
 
   return registry;
