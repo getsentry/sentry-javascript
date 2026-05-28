@@ -17,11 +17,3 @@ export function defaultShouldHandleError(error: unknown): boolean {
 
   return !(typeof status === 'number' && status >= 300 && status < 500);
 }
-
-/**
- * Determines whether an error should be captured and sent to Sentry.
- * Uses `shouldHandleError` when provided, otherwise falls back to `defaultShouldHandleError`.
- */
-export function shouldCaptureError(error: unknown, shouldHandleError?: (error: unknown) => boolean): boolean {
-  return (shouldHandleError ?? defaultShouldHandleError)(error);
-}

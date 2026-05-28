@@ -43,8 +43,8 @@ export function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHa
       try {
         return await handler(context, next);
       } catch (error) {
-        // Error capture is handled by `responseHandler` via `context.error`, so this
-        // wrapper only sets span status and rethrows (no `captureException`).
+        // Error capture is handled by `responseHandler` via `context.error`, so this wrapper only sets
+        // span status (based on our default "error" conditions) and rethrows (no `captureException`).
         if (defaultShouldHandleError(error)) {
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         }

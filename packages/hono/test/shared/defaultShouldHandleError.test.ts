@@ -1,6 +1,6 @@
 import { HTTPException } from 'hono/http-exception';
 import { describe, expect, it } from 'vitest';
-import { defaultShouldHandleError, shouldCaptureError } from '../../src/shared/defaultShouldHandleError';
+import { defaultShouldHandleError } from '../../src/shared/defaultShouldHandleError';
 
 describe('defaultShouldHandleError', () => {
   describe('HTTPException', () => {
@@ -73,49 +73,6 @@ describe('defaultShouldHandleError', () => {
     it('returns true for 2xx status (capture)', () => {
       expect(defaultShouldHandleError({ status: 200 })).toBe(true);
       expect(defaultShouldHandleError({ status: 299 })).toBe(true);
-    });
-  });
-});
-
-describe('shouldCaptureError', () => {
-  describe('without shouldHandleError (falls back to defaultShouldHandleError)', () => {
-    it('returns false for 4xx errors', () => {
-      expect(shouldCaptureError(new HTTPException(404))).toBe(false);
-      expect(shouldCaptureError(new HTTPException(401))).toBe(false);
-    });
-
-    it('returns false for 3xx errors', () => {
-      expect(shouldCaptureError({ status: 301 })).toBe(false);
-    });
-
-    it('returns true for 5xx errors', () => {
-      expect(shouldCaptureError(new HTTPException(500))).toBe(true);
-      expect(shouldCaptureError(new HTTPException(503))).toBe(true);
-    });
-
-    it('returns true for plain errors without a status', () => {
-      expect(shouldCaptureError(new Error('boom'))).toBe(true);
-    });
-  });
-
-  describe('with shouldHandleError (overrides defaultShouldHandleError)', () => {
-    it('returns true for a 4xx error when shouldHandleError returns true', () => {
-      expect(shouldCaptureError(new HTTPException(404), () => true)).toBe(true);
-    });
-
-    it('returns false for a 5xx error when shouldHandleError returns false', () => {
-      expect(shouldCaptureError(new HTTPException(500), () => false)).toBe(false);
-    });
-
-    it('returns false for a plain error when shouldHandleError returns false', () => {
-      expect(shouldCaptureError(new Error('boom'), () => false)).toBe(false);
-    });
-
-    it('passes the error to shouldHandleError', () => {
-      const err = new HTTPException(404);
-      const fn = (e: unknown) => e === err;
-      expect(shouldCaptureError(err, fn)).toBe(true);
-      expect(shouldCaptureError(new HTTPException(404), fn)).toBe(false);
     });
   });
 });
