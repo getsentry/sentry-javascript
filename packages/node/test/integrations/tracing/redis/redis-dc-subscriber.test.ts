@@ -21,7 +21,6 @@ const CHANNEL_COMMAND = 'node-redis:command';
 const CHANNEL_BATCH = 'node-redis:batch';
 const CHANNEL_CONNECT = 'node-redis:connect';
 const CHANNEL_IOREDIS_COMMAND = 'ioredis:command';
-const CHANNEL_IOREDIS_BATCH = 'ioredis:batch';
 const CHANNEL_IOREDIS_CONNECT = 'ioredis:connect';
 
 const subs = (name: string) =>
@@ -242,6 +241,22 @@ describe('redis-dc-subscriber', () => {
         expect(responseHook).toHaveBeenCalledWith(mockSpan, 'mget', ['key1', 'key2', 'key3'], ['v1', 'v2', 'v3']);
       });
 
+      it('handles batch metadata on ioredis command payloads without a separate batch channel', () => {
+        const data = {
+          command: 'set',
+          args: ['cache:key', '?'],
+          batchMode: 'MULTI',
+          batchSize: 2,
+          result: 'OK',
+          _sentrySpan: mockSpan,
+        };
+        subs(CHANNEL_IOREDIS_COMMAND).asyncEnd(data);
+
+        expect(channels['ioredis:batch']).toBeUndefined();
+        expect(responseHook).toHaveBeenCalledWith(mockSpan, 'set', ['cache:key', '?'], 'OK');
+        expect(mockSpan.end).toHaveBeenCalledTimes(1);
+      });
+
       it('sets error status and ends the span in the error handler', () => {
         const error = new Error('WRONGTYPE');
         const data = { command: 'hset', args: ['key', 'field', '?'], error, _sentrySpan: mockSpan };
@@ -259,24 +274,6 @@ describe('redis-dc-subscriber', () => {
         subs(CHANNEL_IOREDIS_COMMAND).asyncEnd(data);
 
         expect(responseHook).not.toHaveBeenCalled();
-        expect(mockSpan.end).toHaveBeenCalledTimes(1);
-      });
-    });
-
-    describe('batch channel', () => {
-      it('ends the span', () => {
-        const data = { batchMode: 'MULTI', batchSize: 3, _sentrySpan: mockSpan };
-        subs(CHANNEL_IOREDIS_BATCH).asyncEnd(data);
-
-        expect(mockSpan.end).toHaveBeenCalledTimes(1);
-      });
-
-      it('sets error status and ends the span in the error handler', () => {
-        const error = new Error('EXECABORT');
-        const data = { batchMode: 'MULTI', error, _sentrySpan: mockSpan };
-        subs(CHANNEL_IOREDIS_BATCH).error(data);
-
-        expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'EXECABORT' });
         expect(mockSpan.end).toHaveBeenCalledTimes(1);
       });
     });

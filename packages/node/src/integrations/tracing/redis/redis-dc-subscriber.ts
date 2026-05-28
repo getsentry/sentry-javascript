@@ -21,7 +21,6 @@ const CHANNEL_REDIS_COMMAND = 'node-redis:command';
 const CHANNEL_REDIS_BATCH = 'node-redis:batch';
 const CHANNEL_REDIS_CONNECT = 'node-redis:connect';
 const CHANNEL_IOREDIS_COMMAND = 'ioredis:command';
-const CHANNEL_IOREDIS_BATCH = 'ioredis:batch';
 const CHANNEL_IOREDIS_CONNECT = 'ioredis:connect';
 
 const ORIGIN = 'auto.db.redis.diagnostic_channel';
@@ -39,6 +38,8 @@ interface RedisCommandData {
 interface IORedisCommandData {
   command: string;
   args: string[];
+  batchMode?: 'MULTI';
+  batchSize?: number;
   database?: number;
   serverAddress?: string;
   serverPort?: number;
@@ -51,16 +52,6 @@ interface RedisBatchData {
   batchSize?: number;
   database?: number;
   clientId?: string | number;
-  serverAddress?: string;
-  serverPort?: number;
-  result?: unknown[];
-  error?: Error;
-}
-
-interface IORedisBatchData {
-  batchMode?: 'MULTI';
-  batchSize?: number;
-  database?: number;
   serverAddress?: string;
   serverPort?: number;
   result?: unknown[];
@@ -101,7 +92,6 @@ export function subscribeRedisDiagnosticChannels(responseHook?: IORedisInstrumen
     );
     setupConnectChannel(CHANNEL_REDIS_CONNECT);
     setupCommandChannel<IORedisCommandData>(CHANNEL_IOREDIS_COMMAND, data => data.args);
-    setupBatchChannel<IORedisBatchData>(CHANNEL_IOREDIS_BATCH, () => 'MULTI');
     setupConnectChannel(CHANNEL_IOREDIS_CONNECT);
     subscribed = true;
   } catch {
@@ -155,11 +145,8 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
   });
 }
 
-function setupBatchChannel<T extends RedisBatchData | IORedisBatchData>(
-  channelName: string,
-  getOperationName: (data: T) => string,
-): void {
-  const channel = tracingChannel<T>(channelName, data => {
+function setupBatchChannel(channelName: string, getOperationName: (data: RedisBatchData) => string): void {
+  const channel = tracingChannel<RedisBatchData>(channelName, data => {
     return startSpanManual(
       {
         name: getOperationName(data),
