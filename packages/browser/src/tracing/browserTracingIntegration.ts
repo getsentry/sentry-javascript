@@ -303,8 +303,6 @@ export interface BrowserTracingOptions {
    */
   _experiments: Partial<{
     enableInteractions: boolean;
-    enableStandaloneClsSpans: boolean;
-    enableStandaloneLcpSpans: boolean;
   }>;
 
   /**
@@ -386,7 +384,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     enableInp,
     enableLongTask,
     enableLongAnimationFrame,
-    _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans },
+    _experiments: { enableInteractions },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -459,8 +457,8 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         collectWebVitalsForClient(client);
         const spanStreamingEnabled = hasSpanStreamingEnabled(client);
         addPerformanceEntries(span, {
-          recordClsOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneClsSpans,
-          recordLcpOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneLcpSpans,
+          recordClsOnPageloadSpan: !spanStreamingEnabled,
+          recordLcpOnPageloadSpan: !spanStreamingEnabled,
           ignoreResourceSpans,
           ignorePerformanceApiSpans,
           spanStreamingEnabled,
@@ -660,10 +658,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         client.addIntegration(
           webVitalsIntegration({
             disable: enableInp ? [] : ['inp'],
-            _experiments: {
-              enableStandaloneClsSpans,
-              enableStandaloneLcpSpans,
-            },
           }),
         );
       }

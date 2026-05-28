@@ -18,14 +18,6 @@ export interface WebVitalsOptions {
    * Web vitals to skip.
    */
   disable?: WebVitalName[];
-
-  /**
-   * @experimental
-   */
-  _experiments?: Partial<{
-    enableStandaloneClsSpans: boolean;
-    enableStandaloneLcpSpans: boolean;
-  }>;
 }
 
 const collectWebVitalsCallbacks = new WeakMap<Client, () => void>();
@@ -48,15 +40,12 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
     name: WEB_VITALS_INTEGRATION_NAME,
     setup(client) {
       const spanStreamingEnabled = hasSpanStreamingEnabled(client);
-      const { enableStandaloneClsSpans, enableStandaloneLcpSpans } = options._experiments ?? {};
 
       collectWebVitalsCallbacks.set(
         client,
         startTrackingWebVitals({
-          recordClsStandaloneSpans:
-            spanStreamingEnabled || disabled.has('cls') ? undefined : enableStandaloneClsSpans || false,
-          recordLcpStandaloneSpans:
-            spanStreamingEnabled || disabled.has('lcp') ? undefined : enableStandaloneLcpSpans || false,
+          recordClsStandaloneSpans: spanStreamingEnabled || disabled.has('cls') ? undefined : false,
+          recordLcpStandaloneSpans: spanStreamingEnabled || disabled.has('lcp') ? undefined : false,
           client,
         }),
       );

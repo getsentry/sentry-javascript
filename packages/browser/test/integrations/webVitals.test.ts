@@ -46,24 +46,6 @@ describe('webVitalsIntegration', () => {
     expect(mockTrackInpAsSpan).not.toHaveBeenCalled();
   });
 
-  it('keeps standalone LCP and CLS experiments working', () => {
-    const client = { getOptions: () => ({}) };
-    const integration = webVitalsIntegration({
-      _experiments: {
-        enableStandaloneClsSpans: true,
-        enableStandaloneLcpSpans: true,
-      },
-    });
-
-    integration.setup?.(client as never);
-
-    expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      recordClsStandaloneSpans: true,
-      recordLcpStandaloneSpans: true,
-      client,
-    });
-  });
-
   it('tracks LCP, CLS and INP as streamed spans when span streaming is enabled', () => {
     const client = { getOptions: () => ({ traceLifecycle: 'stream' }) };
     const integration = webVitalsIntegration();
