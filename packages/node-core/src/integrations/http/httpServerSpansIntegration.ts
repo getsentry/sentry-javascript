@@ -167,10 +167,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               'http.flavor': httpVersion,
               'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
               ...getRequestContentLengthAttribute(request),
-              ...httpHeadersToSpanAttributes(
-                normalizedRequest.headers || {},
-                client.getOptions().sendDefaultPii ?? false,
-              ),
+              ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
             },
           });
 
