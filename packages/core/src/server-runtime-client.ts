@@ -3,7 +3,6 @@ import { Client } from './client';
 import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
-import { registerSpanErrorInstrumentation } from './tracing';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import { addUserAgentToTransportHeaders } from './transports/userAgent';
 import type { CheckIn, MonitorConfig, SerializedCheckIn } from './types/checkin';
@@ -38,9 +37,6 @@ export class ServerRuntimeClient<
    * @param options Configuration options for this SDK.
    */
   public constructor(options: O) {
-    // Server clients always support tracing
-    registerSpanErrorInstrumentation();
-
     addUserAgentToTransportHeaders(options);
 
     super(options);

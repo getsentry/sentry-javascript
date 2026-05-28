@@ -6,7 +6,6 @@ import {
   startSpan,
 } from '@sentry/node';
 import { updateSpanWithRouteParametrization } from './routeParametrization';
-import { extractServerFunctionSha256 } from './utils';
 
 declare const __SENTRY_ROUTE_PATTERNS__: string[] | undefined;
 
@@ -143,20 +142,16 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
 
           // instrument server functions
           if (url.pathname.includes('_serverFn') || url.pathname.includes('createServerFn')) {
-            const functionSha256 = extractServerFunctionSha256(url.pathname);
             const op = 'function.tanstackstart';
-
-            const serverFunctionSpanAttributes = {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
-              'tanstackstart.function.hash.sha256': functionSha256,
-            };
 
             return await startSpan(
               {
-                op: op,
+                op,
                 name: `${method} ${url.pathname}`,
-                attributes: serverFunctionSpanAttributes,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+                },
               },
               async () => {
                 return target.apply(thisArg, args);
