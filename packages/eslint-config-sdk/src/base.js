@@ -236,6 +236,8 @@ module.exports = {
           balanced: true,
           // ... unless they're jsdoc-style block comments, which end with `**/`
           exceptions: ['*'],
+          // Allow /*! for legal/preserved comments
+          markers: ['!'],
         },
       },
     ],

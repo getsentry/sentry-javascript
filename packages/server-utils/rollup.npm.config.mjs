@@ -1,7 +1,6 @@
 import { builtinModules } from 'node:module';
-import commonjs from '@rollup/plugin-commonjs';
 import license from 'rollup-plugin-license';
-import { defineConfig } from 'rollup';
+import { defineConfig } from 'rolldown';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 // The orchestrion runtime dependency chain (`@apm-js-collab/tracing-hooks` →
@@ -24,25 +23,73 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 // build-time and runtime transforms always ship the same `code-transformer` version, and so this
 // package has no `@apm-js-collab/*` install footprint at all.
 //
-// `requireReturnsDefault: 'auto'`: node-resolve prefers a dependency's ESM build even for CJS
-// `require()`s inside the vendored graph. Default-export-only ESM (e.g. esquery) must then resolve
-// to the default itself, not a `{ default }` namespace — CJS callers use it as
-// `require('esquery').parse(...)`.
+// Rolldown converts CommonJS natively, so the `@rollup/plugin-commonjs` instance this config used
+// to carry (and its `transformMixedEsModules` / `requireReturnsDefault` / `strictRequires` tuning)
+// is gone. What it does not do is convert the vendored graph's `require()` of node builtins: those
+// survive into the ESM build as rolldown's `__require` helper, which throws in every ESM runtime
+// (plain Node ESM included, since `require` is not defined there).
 //
-// `strictRequires: false`: the default `'auto'` wraps conditionally-required modules (e.g.
-// `debug`'s browser/node split) in lazy initializers exported as `__require` — an export name that
-// downstream re-bundlers mishandle (Turbopack renames it, producing `.require is not a function`
-// crashes in Next.js on Cloudflare). Hoisting is safe here: the vendored graph is closed (nothing
-// optional/missing) and has no require cycles that depend on lazy evaluation.
-const commonJSOptions = { transformMixedEsModules: true, requireReturnsDefault: 'auto', strictRequires: false };
-const commonJSPlugin = commonjs(commonJSOptions);
+// Neither knob rolldown offers fixes it. `platform: 'node'` makes `__require` a real
+// `createRequire(import.meta.url)`, but that lands a static `node:module` import in the *shared*
+// runtime chunk, which every module here imports for `__toESM` - including the entry
+// `@sentry/vercel-edge` pulls in, so edge and browser bundlers then fail to resolve `node:`. And
+// evaluating `createRequire(import.meta.url)` at module scope crashes with ERR_INVALID_ARG_VALUE
+// once a downstream bundler re-bundles our ESM to CJS (see node-integration-tests' `esbuild` suite).
+//
+// So do what the commonjs plugin used to: turn each `require('<builtin>')` into a static import.
+// `preserveModules` gives every vendored file its own chunk, so the `node:` imports land only in
+// the Node-only chunks that actually need them and never in the shared runtime chunk.
+function makeBuiltinRequireShim() {
+  let replaced = false;
+
+  return {
+    name: 'builtin-require-shim',
+    renderChunk(code, _chunk, outputOptions) {
+      // The CJS variant has a real `require`; rolldown never emits the helper there.
+      if (outputOptions.format !== 'es' && outputOptions.format !== 'esm') return null;
+
+      const imports = new Map();
+      // Built per call: rolldown renders chunks concurrently, and a shared global regex would
+      // carry `lastIndex` across those calls and skip matches.
+      const rewritten = code.replace(/__require\("([^"]+)"\)/g, (_match, specifier) => {
+        const bare = specifier.replace(/^node:/, '');
+        if (!builtinModules.includes(bare)) {
+          throw new Error(
+            `The vendored graph \`require()\`s "${specifier}", which is not a node builtin. This shim only knows how to hoist builtins into static imports - handle that dependency explicitly instead.`,
+          );
+        }
+
+        const identifier = `__sentryRequire_${bare.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        imports.set(identifier, specifier);
+
+        return identifier;
+      });
+
+      if (!imports.size) return null;
+      replaced = true;
+
+      const preamble = [...imports].map(([identifier, specifier]) => `import ${identifier} from "${specifier}";`);
+
+      return { code: `${preamble.join('\n')}\n${rewritten}` };
+    },
+    generateBundle(outputOptions) {
+      if (outputOptions.format !== 'es' && outputOptions.format !== 'esm') return;
+
+      if (!replaced) {
+        throw new Error(
+          'Expected rolldown to emit `__require(...)` calls for the vendored graph so they could be hoisted into static imports, but no chunk contained one. Rolldown likely changed how it compiles `require()` of externals - re-check this shim against the emitted chunks.',
+        );
+      }
+      replaced = false;
+    },
+  };
+}
 
 // Always vendor `debug`'s Node build. Its default entry picks browser vs node at require time,
-// which drags the browser build into this server-only bundle — and, hoisted by
-// `strictRequires: false`, the browser build's storage detection probes `localStorage` at import
-// time, which on Node >= 26 emits an ExperimentalWarning that pollutes stderr and console
-// breadcrumbs in every user app. `order: 'pre'` because the base config's node-resolve plugin
-// sorts ahead of package-specific plugins and would otherwise resolve `debug` first.
+// which drags the browser build into this server-only bundle, and the browser build's storage
+// detection probes `localStorage` at import time, which on Node >= 26 emits an ExperimentalWarning
+// that pollutes stderr and console breadcrumbs in every user app. `order: 'pre'` so this wins over
+// rolldown's own resolution.
 const debugNodeAlias = {
   name: 'debug-node-alias',
   resolveId: {
@@ -53,8 +100,24 @@ const debugNodeAlias = {
   },
 };
 
-// Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
-// repo root, so `preserveModules` names our own files `packages/server-utils/src/...` — strip that
+// `esquery` publishes a `module` field, so rolldown resolves the CJS `require('esquery')` inside the
+// vendored graph to its ESM build and then converts that namespace with `__toCommonJS`, handing the
+// caller `{ default: fn }` instead of the function itself - `esquery.parse` ends up undefined and
+// every orchestrion injection fails. `@rollup/plugin-commonjs` used to settle this with
+// `requireReturnsDefault: 'auto'`. Point the CJS caller at the CJS build instead, which needs no
+// interop guesswork at all.
+const esqueryCjsAlias = {
+  name: 'esquery-cjs-alias',
+  resolveId: {
+    order: 'pre',
+    handler(source, importer) {
+      return source === 'esquery' ? this.resolve('esquery/dist/esquery.min.js', importer, { skipSelf: true }) : null;
+    },
+  },
+};
+
+// Bundling files from the repo-root `node_modules` moves the common source ancestor up to the repo
+// root, so `preserveModules` names our own files `packages/server-utils/src/...` — strip that
 // prefix to keep the `build/cjs/index.js` layout the `exports` map points at. And npm never packs
 // `node_modules` directories, so the vendored dependencies must not be emitted under that name.
 const sanitizedFileNames = info =>
@@ -66,7 +129,9 @@ const sanitizedFileNames = info =>
 // banners, so instead we aggregate them into a single `build/THIRD-PARTY-LICENSES.txt`. The default
 // template emits each dependency's license text AND its NOTICE text, which covers the MIT/ISC/BSD
 // notice requirement and the Apache-2.0 §4(d) NOTICE requirement. Only bundled (non-external)
-// packages are collected — our own `@sentry/*` deps stay external and are excluded.
+// packages are collected — our own `@sentry/*` deps stay external and are excluded. The plugin only
+// uses hooks rolldown implements (`renderChunk` / `generateBundle` plus `this.getModuleIds()`), so
+// it keeps working unchanged on rolldown.
 //
 // Both the CJS and ESM build variants run this and bundle the same dependency set, so each writes
 // the same file; the last write wins and the content is identical.
@@ -123,18 +188,13 @@ export default [
         'src/orchestrion/bundler/esbuild.ts',
       ],
       packageSpecificConfig: {
-        plugins: [debugNodeAlias, commonJSPlugin, thirdPartyLicensePlugin],
+        plugins: [debugNodeAlias, esqueryCjsAlias, thirdPartyLicensePlugin, makeBuiltinRequireShim()],
         output: {
           // set exports to 'named' or 'auto' so that rollup doesn't warn
           exports: 'named',
           // set preserveModules to true because we don't want to bundle everything into one file.
           preserveModules: true,
           entryFileNames: sanitizedFileNames,
-          // The repo default `interop: 'esModule'` dereferences `.default` on default imports of
-          // externals. The commonjs-converted vendored dependencies import Node builtins that way
-          // (e.g. `require('path')` → default import of `path`), and builtins have no `.default` in
-          // CJS — so builtins need `'default'` interop (the module itself is the default export).
-          interop: id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule'),
           // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which
           // Deno rejects outright and vite-node (Node 26) misresolves as a relative path. Emit them
           // `node:`-prefixed.

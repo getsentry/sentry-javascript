@@ -108,11 +108,11 @@
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "run-p build:transpile:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
+    "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "clean": "rimraf build coverage sentry-server-utils-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",

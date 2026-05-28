@@ -12,6 +12,10 @@
  * - Completely reworked to no longer reference OpenTelemetry.
  * - The upstream `fs_error` span attribute (the error message) was replaced with the conventions-backed
  *   `error.type` (the syscall error code, e.g. `ENOENT`).
+ * - `fs` is default-imported rather than namespace-imported. A namespace import compiles to a copied
+ *   namespace object whose properties are getter-only, so the patching below would write to the copy
+ *   and leave the real module untouched. The default export is the module itself in both output
+ *   formats, so patching it reaches every other consumer of `require('fs')` / `import 'fs'`.
  */
 
 import { ERROR_TYPE } from '@sentry/conventions/attributes';
@@ -26,7 +30,7 @@ import {
   suppressTracing,
   withActiveSpan,
 } from '@sentry/core';
-import * as fs from 'fs';
+import fs from 'fs';
 import { promisify } from 'util';
 import { CALLBACK_FUNCTIONS, PROMISE_FUNCTIONS, SYNC_FUNCTIONS } from './constants';
 import type { FMember, FPMember, FsInstrumentationConfig, GenericFunction } from './types';
