@@ -6,6 +6,7 @@ import {
   getIntegrationsToSetup,
   inboundFiltersIntegration,
   initAndBind,
+  setNormalizeStringifier,
   stackParserFromStackParserOptions,
 } from '@sentry/core/browser';
 import type { BrowserClientOptions, BrowserOptions } from './client';
@@ -20,6 +21,7 @@ import { linkedErrorsIntegration } from './integrations/linkederrors';
 import { spotlightBrowserIntegration } from './integrations/spotlight';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
+import { normalizeStringifyValue } from './normalizeStringifyValue';
 import { checkAndWarnIfIsEmbeddedBrowserExtension } from './utils/detectBrowserExtension';
 
 /** Get the default integrations for the browser SDK. */
@@ -118,6 +120,9 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     }),
     transport: options.transport || makeFetchTransport,
   };
+
+  setNormalizeStringifier(normalizeStringifyValue);
+
   return initAndBind(BrowserClient, clientOptions);
 }
 

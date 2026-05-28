@@ -3,7 +3,12 @@
  *
  * @module
  */
-export { getComponentName, getLocationHref, htmlTreeAsString } from './utils/browser';
+export {
+  getComponentName,
+  getLocationHref,
+  // eslint-disable-next-line deprecation/deprecation
+  htmlTreeAsString,
+} from './utils/browser';
 export { supportsDOMError, supportsHistory, supportsNativeFetch, supportsReportingObserver } from './utils/supports';
 export type { XhrBreadcrumbData, XhrBreadcrumbHint } from './types/breadcrumb';
 export type {

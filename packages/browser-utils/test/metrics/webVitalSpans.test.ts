@@ -1,5 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { htmlTreeAsString } from '../../src/htmlTreeAsString';
 import * as inpModule from '../../src/metrics/inp';
 import { MAX_PLAUSIBLE_LCP_DURATION } from '../../src/metrics/lcp';
 import { _emitWebVitalSpan, _sendClsSpan, _sendInpSpan, _sendLcpSpan } from '../../src/metrics/webVitalSpans';
@@ -11,7 +12,6 @@ vi.mock('@sentry/core', async () => {
     browserPerformanceTimeOrigin: vi.fn(),
     timestampInSeconds: vi.fn(),
     getCurrentScope: vi.fn(),
-    htmlTreeAsString: vi.fn(),
     startInactiveSpan: vi.fn(),
     getActiveSpan: vi.fn(),
     getRootSpan: vi.fn(),
@@ -19,6 +19,10 @@ vi.mock('@sentry/core', async () => {
     spanToStreamedSpanJSON: vi.fn(),
   };
 });
+
+vi.mock('../../src/htmlTreeAsString', () => ({
+  htmlTreeAsString: vi.fn(),
+}));
 
 // Mock WINDOW
 vi.mock('../../src/types', () => ({
@@ -210,7 +214,7 @@ describe('_sendLcpSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
-    vi.mocked(SentryCore.htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
+    vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
       attributes: { 'sentry.op': 'pageload' },
@@ -296,7 +300,7 @@ describe('_sendClsSpan', () => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
     vi.mocked(SentryCore.timestampInSeconds).mockReturnValue(1.5);
-    vi.mocked(SentryCore.htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
+    vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
       attributes: { 'sentry.op': 'pageload' },
@@ -324,7 +328,7 @@ describe('_sendClsSpan', () => {
       toJSON: vi.fn(),
     };
 
-    vi.mocked(SentryCore.htmlTreeAsString)
+    vi.mocked(htmlTreeAsString)
       .mockReturnValueOnce('<div>') // for the name
       .mockReturnValueOnce('<div>') // for source 1
       .mockReturnValueOnce('<span>'); // for source 2
@@ -377,7 +381,7 @@ describe('_sendInpSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
-    vi.mocked(SentryCore.htmlTreeAsString).mockReturnValue('<button>');
+    vi.mocked(htmlTreeAsString).mockReturnValue('<button>');
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
     vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({ attributes: {} } as any);

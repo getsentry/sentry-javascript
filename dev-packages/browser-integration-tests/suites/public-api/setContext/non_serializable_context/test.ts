@@ -8,6 +8,6 @@ sentryTest('should normalize non-serializable context', async ({ getLocalTestUrl
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
-  expect(eventData.contexts?.non_serializable).toEqual('[HTMLElement: HTMLBodyElement]');
+  expect(eventData.contexts?.non_serializable).toEqual('[HTMLElement: body]');
   expect(eventData.message).toBe('non_serializable');
 });

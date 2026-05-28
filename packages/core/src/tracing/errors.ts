@@ -33,10 +33,6 @@ export function registerSpanErrorInstrumentation(): void {
     }
   }
 
-  // The function name will be lost when bundling but we need to be able to identify this listener later to maintain the
-  // node.js default exit behaviour
-  errorCallback.tag = 'sentry_tracingErrorCallback';
-
   errorsInstrumented = true;
   addGlobalErrorInstrumentationHandler(errorCallback);
   addGlobalUnhandledRejectionInstrumentationHandler(errorCallback);

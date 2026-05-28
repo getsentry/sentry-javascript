@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **docs(tanstackstart-react): Promote SDK status to beta ([#21175](https://github.com/getsentry/sentry-javascript/pull/21175))**
+
+  This release promotes the `@sentry/tanstackstart-react` SDK to beta. For details on how to use it, check out the
+  [Sentry TanStack Start SDK docs](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/). Please reach out on
+  [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
+
 - **test(tanstackstart-react): Move initialization to client entry point ([#21161](https://github.com/getsentry/sentry-javascript/pull/21161))**
 
   Change the recommended setup for the SDK to do `Sentry.init()` in the client entry file to capture telemetry that is emitted ahead of page hydration.
@@ -15,6 +21,10 @@
 - **feat(tanstackstart-react): Add server-side route parametrization ([#21147](https://github.com/getsentry/sentry-javascript/pull/21147))**
 
   Server transaction names are now parametrized automatically (e.g., `GET /users/123` becomes `GET /users/$userId`), improving transaction grouping in Sentry.
+
+- **feat(tanstackstart-react): Show readable server function names in traces ([#21190](https://github.com/getsentry/sentry-javascript/pull/21190))**
+
+  Server function spans now show human-readable names (e.g., `GET /_serverFn/greet` instead of `GET /_serverFn/a10e70b3...`). The `tanstackstart.function.hash.sha256` span attribute has been renamed to `tanstackstart.function.id`.
 
 ## 10.54.0
 

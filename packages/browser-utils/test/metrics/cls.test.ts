@@ -1,5 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { htmlTreeAsString } from '../../src/htmlTreeAsString';
 import { _sendStandaloneClsSpan } from '../../src/metrics/cls';
 import * as WebVitalUtils from '../../src/metrics/utils';
 
@@ -11,9 +12,12 @@ vi.mock('@sentry/core', async () => {
     browserPerformanceTimeOrigin: vi.fn(),
     timestampInSeconds: vi.fn(),
     getCurrentScope: vi.fn(),
-    htmlTreeAsString: vi.fn(),
   };
 });
+
+vi.mock('../../src/htmlTreeAsString', () => ({
+  htmlTreeAsString: vi.fn(),
+}));
 
 describe('_sendStandaloneClsSpan', () => {
   const mockSpan = {
@@ -35,7 +39,7 @@ describe('_sendStandaloneClsSpan', () => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
     vi.mocked(SentryCore.timestampInSeconds).mockReturnValue(1.5);
-    vi.mocked(SentryCore.htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
+    vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.spyOn(WebVitalUtils, 'startStandaloneWebVitalSpan').mockReturnValue(mockSpan as any);
   });
 
@@ -136,14 +140,14 @@ describe('_sendStandaloneClsSpan', () => {
     };
     const pageloadSpanId = '789';
 
-    vi.mocked(SentryCore.htmlTreeAsString)
+    vi.mocked(htmlTreeAsString)
       .mockReturnValueOnce('<div>') // for the name
       .mockReturnValueOnce('<div>') // for source 1
       .mockReturnValueOnce('<span>'); // for source 2
 
     _sendStandaloneClsSpan(clsValue, mockEntry, pageloadSpanId, 'navigation');
 
-    expect(SentryCore.htmlTreeAsString).toHaveBeenCalledTimes(3);
+    expect(htmlTreeAsString).toHaveBeenCalledTimes(3);
     expect(WebVitalUtils.startStandaloneWebVitalSpan).toHaveBeenCalledWith({
       name: '<div>',
       transaction: 'test-transaction',

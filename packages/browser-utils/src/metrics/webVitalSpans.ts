@@ -5,7 +5,6 @@ import {
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
-  htmlTreeAsString,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -14,6 +13,7 @@ import {
   timestampInSeconds,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
 import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION } from './inp';
 import type { InstrumentationHandlerCallback } from './instrument';
