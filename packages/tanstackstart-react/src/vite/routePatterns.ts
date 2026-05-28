@@ -20,7 +20,7 @@ export function makeRoutePatternPlugin(): Plugin {
       resolvedRoot = config.root || process.cwd();
     },
 
-    transform(code, id) {
+    transform(code, _id) {
       // this is set in the `wrapFetchWithSentry` where the paths are getting replaced by their parametrized counterparts
       // so this extraction should only happen once during the build (for the `wrapFetchWithSentry` file)
       if (!code.includes('__SENTRY_ROUTE_PATTERNS__')) {
