@@ -146,7 +146,7 @@ test.describe('middleware errors', () => {
 
     const errorEvent = await errorPromise;
     expect(errorEvent.exception?.values?.[0]?.value).toBe('Service Unavailable from middleware');
-    expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe('auto.middleware.hono');
+    expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe('auto.http.hono.context_error');
     expect(errorEvent.exception?.values?.[0]?.mechanism?.handled).toBe(false);
     expect(errorEvent.transaction).toBe('GET /test-errors/middleware-http-exception');
 
