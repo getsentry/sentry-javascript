@@ -14,7 +14,7 @@ import {
 } from '@sentry/core';
 import { captureIncomingRequestBody } from './integrations/httpServer';
 import type { CloudflareOptions } from './client';
-import { flushAndDispose } from './flush';
+import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
 import { classifyResponseStreaming } from './utils/streaming';
@@ -47,7 +47,12 @@ export function wrapRequestHandler(
     const { options, request, captureErrors = true } = wrapperOptions;
     const context = wrapperOptions.context;
 
-    const waitUntil = context?.waitUntil?.bind?.(context);
+    // Use getOriginalWaitUntil to get the un-instrumented waitUntil function.
+    // This is crucial to avoid deadlock: the flush lock mechanism wraps waitUntil
+    // to track pending tasks. If we use the instrumented version for flushAndDispose,
+    // it acquires the lock, then flushAndDispose tries to wait for the same lock,
+    // creating a deadlock.
+    const waitUntil = context ? getOriginalWaitUntil(context)?.bind(context) : undefined;
 
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);

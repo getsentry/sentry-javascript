@@ -85,7 +85,8 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
 
   const { name, transaction, attributes: passedAttributes, startTime } = options;
 
-  const { release, environment, sendDefaultPii } = client.getOptions();
+  const { release, environment } = client.getOptions();
+  const { userInfo } = client.getDataCollectionOptions();
   // We need to get the replay, user, and activeTransaction from the current scope
   // so that we can associate replay id, profile id, and a user display to the span
   const replay = client.getIntegrationByName<Integration & { getReplayId: () => string }>('Replay');
@@ -120,7 +121,7 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
     'user_agent.original': WINDOW.navigator?.userAgent,
 
     // This tells Sentry to infer the IP address from the request
-    'client.address': sendDefaultPii ? '{{auto}}' : undefined,
+    'client.address': userInfo ? '{{auto}}' : undefined,
 
     ...passedAttributes,
   };

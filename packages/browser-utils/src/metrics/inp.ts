@@ -4,7 +4,6 @@ import {
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
-  htmlTreeAsString,
   isBrowser,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
@@ -13,6 +12,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
+import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
 import type { InstrumentationHandlerCallback } from './instrument';
 import {
