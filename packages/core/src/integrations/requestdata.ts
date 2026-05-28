@@ -1,6 +1,8 @@
+import type { Client } from '../client';
 import { getIsolationScope } from '../currentScopes';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS } from '../semanticAttributes';
+import type { ResolvedDataCollection } from '../types/datacollection';
 import type { Event } from '../types/event';
 import type { IntegrationFn } from '../types/integration';
 import type { QueryParams, RequestEventData } from '../types/request';
@@ -26,22 +28,41 @@ type RequestDataIntegrationOptions = {
   include?: RequestDataIncludeOptions;
 };
 
-// TODO(v11): Change defaults based on `sendDefaultPii`
-const DEFAULT_INCLUDE: RequestDataIncludeOptions = {
-  cookies: true,
-  data: true,
-  headers: true,
-  query_string: true,
-  url: true,
-};
-
 const INTEGRATION_NAME = 'RequestData';
 
 const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) => {
-  const include = {
-    ...DEFAULT_INCLUDE,
-    ...options.include,
-  };
+  // Per spec, integration-level options override global dataCollection.
+  // When include overrides a category back on that dataCollection turned off,
+  // we flip the dataCollection behavior to true (default denylist filtering).
+  function resolveIncludeAndDataCollection(client: Client): {
+    include: RequestDataIncludeOptions;
+    dataCollection: ResolvedDataCollection;
+  } {
+    const dc = client.getDataCollectionOptions();
+    const dataCollection: ResolvedDataCollection = {
+      ...dc,
+      ...(options.include?.cookies === true && dc.cookies === false && { cookies: true as const }),
+      ...(options.include?.headers === true &&
+        dc.httpHeaders.request === false && {
+          httpHeaders: { ...dc.httpHeaders, request: true as const },
+        }),
+    };
+
+    return {
+      dataCollection,
+      include: {
+        cookies: dataCollection.cookies !== false,
+        // Always attach body data that's already on the scope — dataCollection.httpBodies gates write-time, not read-time
+        data: true,
+        headers: dataCollection.httpHeaders.request !== false,
+        ip: dataCollection.userInfo,
+        query_string: dataCollection.queryParams !== false,
+        // No dataCollection equivalent — URL is always included
+        url: true,
+        ...options.include,
+      },
+    };
+  }
 
   return {
     name: INTEGRATION_NAME,
@@ -49,13 +70,10 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
       const { sdkProcessingMetadata = {} } = event;
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
 
-      const includeWithDefaultPiiApplied: RequestDataIncludeOptions = {
-        ...include,
-        ip: include.ip ?? client.getOptions().sendDefaultPii,
-      };
+      const { include } = resolveIncludeAndDataCollection(client);
 
       if (normalizedRequest) {
-        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, includeWithDefaultPiiApplied);
+        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, include);
       }
 
       return event;
@@ -68,13 +86,9 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
         return;
       }
 
-      const { sendDefaultPii } = client.getOptions();
-      const includeWithDefaultPiiApplied: RequestDataIncludeOptions = {
-        ...include,
-        ip: include.ip ?? sendDefaultPii,
-      };
+      const { include, dataCollection } = resolveIncludeAndDataCollection(client);
 
-      addNormalizedRequestDataToSpan(span, normalizedRequest, ipAddress, includeWithDefaultPiiApplied, sendDefaultPii);
+      addNormalizedRequestDataToSpan(span, normalizedRequest, ipAddress, include, dataCollection);
     },
   };
 }) satisfies IntegrationFn;
@@ -117,7 +131,7 @@ function addNormalizedRequestDataToSpan(
   normalizedRequest: RequestEventData,
   ipAddress: string | undefined,
   include: RequestDataIncludeOptions,
-  sendDefaultPii: boolean | undefined,
+  dataCollection: ResolvedDataCollection,
 ): void {
   const requestData = extractNormalizedRequestData(normalizedRequest, include);
   const attributes: Record<string, unknown> = {};
@@ -142,12 +156,12 @@ function addNormalizedRequestDataToSpan(
     const cookieString = Object.entries(requestData.cookies)
       .map(([name, value]) => `${name}=${value}`)
       .join('; ');
-    const cookieAttributes = httpHeadersToSpanAttributes({ cookie: cookieString }, sendDefaultPii ?? false, 'request');
+    const cookieAttributes = httpHeadersToSpanAttributes({ cookie: cookieString }, dataCollection, 'request');
     safeSetSpanJSONAttributes(span, cookieAttributes);
   }
 
   if (requestData.headers) {
-    const headerAttributes = httpHeadersToSpanAttributes(requestData.headers, sendDefaultPii ?? false, 'request');
+    const headerAttributes = httpHeadersToSpanAttributes(requestData.headers, dataCollection, 'request');
     safeSetSpanJSONAttributes(span, headerAttributes);
   }
 
