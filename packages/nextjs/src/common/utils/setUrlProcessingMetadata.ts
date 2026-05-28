@@ -16,11 +16,6 @@ export function setUrlProcessingMetadata(event: Event): void {
     return;
   }
 
-  // todo(v11): Replace with a dataCollection gate once URL collection is covered by the spec.
-  if (!client.getOptions().sendDefaultPii) {
-    return;
-  }
-
   const traceData = event.contexts.trace.data;
 
   // Get the route from trace data
