@@ -16,15 +16,16 @@ import {
 } from './vendored/semconv';
 import type { IORedisInstrumentationConfig } from './vendored/types';
 
-// Channel names as published by node-redis >= 5.12.0.
-// Hardcoded so we don't import `redis` at module-load time.
-const CHANNEL_COMMAND = 'node-redis:command';
-const CHANNEL_BATCH = 'node-redis:batch';
-const CHANNEL_CONNECT = 'node-redis:connect';
+// Channel names as published by node-redis >= 5.12.0 and ioredis >= 5.11.0.
+const CHANNEL_REDIS_COMMAND = 'node-redis:command';
+const CHANNEL_REDIS_BATCH = 'node-redis:batch';
+const CHANNEL_REDIS_CONNECT = 'node-redis:connect';
+const CHANNEL_IOREDIS_COMMAND = 'ioredis:command';
+const CHANNEL_IOREDIS_CONNECT = 'ioredis:connect';
 
 const ORIGIN = 'auto.db.redis.diagnostic_channel';
 
-interface CommandData {
+interface RedisCommandData {
   command: string;
   args: Array<string | Buffer>;
   database?: number;
@@ -34,7 +35,19 @@ interface CommandData {
   error?: Error;
 }
 
-interface BatchData {
+interface IORedisCommandData {
+  command: string;
+  args: string[];
+  batchMode?: 'MULTI';
+  batchSize?: number;
+  database?: number;
+  serverAddress?: string;
+  serverPort?: number;
+  result?: unknown;
+  error?: Error;
+}
+
+interface RedisBatchData {
   batchMode?: 'MULTI' | 'PIPELINE';
   batchSize?: number;
   database?: number;
@@ -73,9 +86,11 @@ export function subscribeRedisDiagnosticChannels(responseHook?: IORedisInstrumen
   if (subscribed) return;
 
   try {
-    setupCommandChannel();
-    setupBatchChannel();
-    setupConnectChannel();
+    setupCommandChannel<RedisCommandData>(CHANNEL_REDIS_COMMAND, data => data.args.slice(1));
+    setupBatchChannel(CHANNEL_REDIS_BATCH, data => (data.batchMode === 'PIPELINE' ? 'PIPELINE' : 'MULTI'));
+    setupConnectChannel(CHANNEL_REDIS_CONNECT);
+    setupCommandChannel<IORedisCommandData>(CHANNEL_IOREDIS_COMMAND, data => data.args);
+    setupConnectChannel(CHANNEL_IOREDIS_CONNECT);
     subscribed = true;
   } catch {
     // tracingChannel from @sentry/opentelemetry requires `node:diagnostics_channel`.
@@ -83,12 +98,13 @@ export function subscribeRedisDiagnosticChannels(responseHook?: IORedisInstrumen
   }
 }
 
-function setupCommandChannel(): void {
-  const channel = tracingChannel<CommandData>(CHANNEL_COMMAND, data => {
-    // node-redis >= 5.12.0 includes the command name as args[0] in the DC payload.
-    // Strip it so serialization and cache key extraction see only the actual arguments.
-    const actualArgs = data.args.slice(1);
-    const statement = safeSerialize(data.command, actualArgs);
+function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
+  channelName: string,
+  getCommandArgs: (data: T) => Array<string | Buffer>,
+): void {
+  const channel = tracingChannel<T>(channelName, data => {
+    const args = getCommandArgs(data);
+    const statement = safeSerialize(data.command, args);
     return startSpanManual(
       {
         name: `redis-${data.command}`,
@@ -113,8 +129,7 @@ function setupCommandChannel(): void {
       const span = data._sentrySpan;
       // only end if error handler isn't going to
       if (!span || data.error) return;
-      // Same slice: strip command name from args before passing to the response hook.
-      runResponseHook(span, data.command, data.args.slice(1), data.result);
+      runResponseHook(span, data.command, getCommandArgs(data), data.result);
       span.end();
     },
     error: data => {
@@ -128,13 +143,11 @@ function setupCommandChannel(): void {
   });
 }
 
-function setupBatchChannel(): void {
-  const channel = tracingChannel<BatchData>(CHANNEL_BATCH, data => {
-    const operationName = data.batchMode === 'PIPELINE' ? 'PIPELINE' : 'MULTI';
-
+function setupBatchChannel(channelName: string, getOperationName: (data: RedisBatchData) => string): void {
+  const channel = tracingChannel<RedisBatchData>(channelName, data => {
     return startSpanManual(
       {
-        name: operationName,
+        name: getOperationName(data),
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
@@ -167,8 +180,8 @@ function setupBatchChannel(): void {
   });
 }
 
-function setupConnectChannel(): void {
-  const channel = tracingChannel<ConnectData>(CHANNEL_CONNECT, data => {
+function setupConnectChannel(channelName: string): void {
+  const channel = tracingChannel<ConnectData>(channelName, data => {
     return startSpanManual(
       {
         name: 'redis-connect',
