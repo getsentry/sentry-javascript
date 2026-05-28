@@ -18,6 +18,7 @@ import {
 import { isCjs } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { SentryNuxtServerOptions } from '../common/types';
+import { subscribeNuxtDiagnosticChannels } from './nuxt-dc-subscriber';
 
 /**
  * Initializes the server-side of the Nuxt SDK
@@ -38,6 +39,8 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 
   getGlobalScope().addEventProcessor(lowQualityTransactionsFilter(options));
   getGlobalScope().addEventProcessor(clientSourceMapErrorFilter(options));
+
+  subscribeNuxtDiagnosticChannels();
 
   return client;
 }
