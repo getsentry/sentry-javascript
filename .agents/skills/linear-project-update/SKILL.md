@@ -30,6 +30,7 @@ If they did not provide one, help them pick:
    `<Project name> — target: <YYYY-MM-DD or "—"> · last update: <X days ago or "never">`
 
    Put the project most likely to need an update first (e.g., longest since last update among In Progress projects).
+
 6. Once picked, continue with that project's UUID.
 
 If `get_project` errors or the user has no led projects, stop and tell them — don't fabricate.
