@@ -10,8 +10,8 @@ import {
   type RedisTracingChannel,
   type RedisTracingChannelFactory,
   type RedisTracingChannelSubscribers,
-} from '../../../../src/integrations/redis/redis-dc-subscriber';
-import { SPAN_STATUS_ERROR } from '../../../../src/tracing/spanstatus';
+} from '../../src/redis/redis-dc-subscriber';
+import { SPAN_STATUS_ERROR } from '@sentry/core';
 
 interface RecordedChannel {
   subs: Partial<RedisTracingChannelSubscribers<unknown>>;

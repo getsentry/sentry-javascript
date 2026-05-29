@@ -55,19 +55,28 @@ export class LocalLambdaStack extends Stack {
       const packageLockPath = path.join(lambdaPath, 'package-lock.json');
       const nodeModulesPath = path.join(lambdaPath, 'node_modules');
 
-      const packagesToLink = ['aws-serverless', 'node', 'core', 'node-core', 'opentelemetry'];
+      // `dir` is the package directory under `packages/`; `name` is the published
+      // npm name (most are `@sentry/<dir>`, but `server-utils` is `@sentry-internal`).
+      const packagesToLink: Array<{ dir: string; name: string }> = [
+        { dir: 'aws-serverless', name: '@sentry/aws-serverless' },
+        { dir: 'node', name: '@sentry/node' },
+        { dir: 'core', name: '@sentry/core' },
+        { dir: 'node-core', name: '@sentry/node-core' },
+        { dir: 'opentelemetry', name: '@sentry/opentelemetry' },
+        { dir: 'server-utils', name: '@sentry-internal/server-utils' },
+      ];
       const dependencies: Record<string, string> = {};
 
       const packagesDir = resolvePackagesDir();
-      for (const pkgName of packagesToLink) {
-        const pkgDir = path.join(packagesDir, pkgName);
+      for (const { dir, name } of packagesToLink) {
+        const pkgDir = path.join(packagesDir, dir);
         if (!fs.existsSync(pkgDir)) {
           throw new Error(
-            `[LocalLambdaStack] Workspace package ${pkgName} not found at ${pkgDir}. Did you run the build?`,
+            `[LocalLambdaStack] Workspace package ${name} not found at ${pkgDir}. Did you run the build?`,
           );
         }
         const relativePath = path.relative(lambdaPath, pkgDir);
-        dependencies[`@sentry/${pkgName}`] = `file:${relativePath.replace(/\\/g, '/')}`;
+        dependencies[name] = `file:${relativePath.replace(/\\/g, '/')}`;
       }
 
       console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);

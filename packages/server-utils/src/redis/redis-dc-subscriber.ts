@@ -1,9 +1,12 @@
-import { DEBUG_BUILD } from '../../debug-build';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { SPAN_STATUS_ERROR } from '../../tracing/spanstatus';
-import { startSpanManual } from '../../tracing/trace';
-import type { Span } from '../../types/span';
-import { debug } from '../../utils/debug-logger';
+import type { Span } from '@sentry/core';
+import {
+  debug,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startSpanManual,
+} from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
 
 // Channel names published by node-redis >= 5.12.0 and ioredis >= 5.11.0.
 // Hardcoded so the subscriber does not have to import either library — the
