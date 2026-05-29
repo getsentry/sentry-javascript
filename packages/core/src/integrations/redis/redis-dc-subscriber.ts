@@ -165,10 +165,8 @@ export function subscribeRedisDiagnosticChannels(
     setupConnectChannel(tracingChannel, IOREDIS_DC_CHANNEL_CONNECT);
   } catch {
     // The factory may rely on `node:diagnostics_channel`, which isn't always
-    // available. Fail closed — the SDK simply won't emit redis spans here.
-    if (DEBUG_BUILD) {
-      debug.log('Redis node:diagnostics_channel subscription failed.');
-    }
+    // available. Fail closed; the SDK simply won't emit redis spans here.
+    DEBUG_BUILD && debug.log('Redis node:diagnostics_channel subscription failed.');
   }
 }
 
