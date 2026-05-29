@@ -659,7 +659,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       if (client.addIntegration && !client.getIntegrationByName?.(WEB_VITALS_INTEGRATION_NAME)) {
         client.addIntegration(
           webVitalsIntegration({
-            disable: enableInp ? [] : ['inp'],
+            ignore: enableInp ? [] : ['inp'],
             _experiments: {
               enableStandaloneClsSpans,
               enableStandaloneLcpSpans,

@@ -17,7 +17,7 @@ export interface WebVitalsOptions {
   /**
    * Web vitals to skip.
    */
-  disable?: WebVitalName[];
+  ignore?: WebVitalName[];
 
   /**
    * @experimental
@@ -42,7 +42,7 @@ export function collectWebVitalsForClient(client: Client): void {
  * needed to customize options or to use it without `browserTracingIntegration`.
  */
 export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions = {}) => {
-  const disabled = new Set(options.disable ?? []);
+  const ignored = new Set(options.ignore ?? []);
 
   return {
     name: WEB_VITALS_INTEGRATION_NAME,
@@ -54,29 +54,29 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
         client,
         startTrackingWebVitals({
           recordClsStandaloneSpans:
-            spanStreamingEnabled || disabled.has('cls') ? undefined : enableStandaloneClsSpans || false,
+            spanStreamingEnabled || ignored.has('cls') ? undefined : enableStandaloneClsSpans || false,
           recordLcpStandaloneSpans:
-            spanStreamingEnabled || disabled.has('lcp') ? undefined : enableStandaloneLcpSpans || false,
+            spanStreamingEnabled || ignored.has('lcp') ? undefined : enableStandaloneLcpSpans || false,
           client,
         }),
       );
 
       if (spanStreamingEnabled) {
-        if (!disabled.has('lcp')) {
+        if (!ignored.has('lcp')) {
           trackLcpAsSpan(client);
         }
-        if (!disabled.has('cls')) {
+        if (!ignored.has('cls')) {
           trackClsAsSpan(client);
         }
-        if (!disabled.has('inp')) {
+        if (!ignored.has('inp')) {
           trackInpAsSpan();
         }
-      } else if (!disabled.has('inp')) {
+      } else if (!ignored.has('inp')) {
         startTrackingINP();
       }
     },
     afterAllSetup() {
-      if (!disabled.has('inp')) {
+      if (!ignored.has('inp')) {
         registerInpInteractionListener();
       }
     },

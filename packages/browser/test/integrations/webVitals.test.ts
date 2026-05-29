@@ -83,9 +83,9 @@ describe('webVitalsIntegration', () => {
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
   });
 
-  it('supports disabling selected web vitals for browserTracingIntegration compatibility', () => {
+  it('supports ignoring selected web vitals for browserTracingIntegration compatibility', () => {
     const client = { getOptions: () => ({}) };
-    const integration = webVitalsIntegration({ disable: ['cls', 'inp', 'lcp'] });
+    const integration = webVitalsIntegration({ ignore: ['cls', 'inp', 'lcp'] });
 
     integration.setup?.(client as never);
     integration.afterAllSetup?.(client as never);
