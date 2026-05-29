@@ -378,7 +378,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
                   method: request.method,
                   ...httpHeadersToSpanAttributes(
                     winterCGHeadersToDict(request.headers),
-                    clientOptions.sendDefaultPii ?? false,
+                    getClient()?.getDataCollectionOptions(),
                   ),
                 },
               },
