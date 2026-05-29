@@ -16,6 +16,9 @@ targets:
   - name: npm
     id: '@sentry/node-core'
     includeNames: /^sentry-node-core-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry-internal/server-utils'
+    includeNames: /^sentry-internal-server-utils-\d.*\.tgz$/
   ## 1.3 Browser Utils package
   - name: npm
     id: '@sentry-internal/browser-utils'
