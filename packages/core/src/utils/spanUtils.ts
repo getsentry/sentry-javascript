@@ -353,7 +353,6 @@ type SpanWithPotentialChildren = Span & {
 
 /**
  * Adds an opaque child span reference to a span.
- * Uses WeakRef to allow child spans to be garbage collected when no longer needed.
  */
 export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
   // We store the root span reference on the child span
@@ -361,12 +360,16 @@ export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: S
   const rootSpan = span[ROOT_SPAN_FIELD] || span;
   addNonEnumerableProperty(childSpan as SpanWithPotentialChildren, ROOT_SPAN_FIELD, rootSpan);
 
-  const ref = makeWeakRef(childSpan);
-
-  if (span[CHILD_SPANS_FIELD]) {
-    span[CHILD_SPANS_FIELD].add(ref);
+  const children = span[CHILD_SPANS_FIELD];
+  if (children) {
+    for (const ref of children) {
+      if (derefWeakRef(ref) === childSpan) {
+        return;
+      }
+    }
+    children.add(makeWeakRef(childSpan));
   } else {
-    addNonEnumerableProperty(span, CHILD_SPANS_FIELD, new Set([ref]));
+    addNonEnumerableProperty(span, CHILD_SPANS_FIELD, new Set([makeWeakRef(childSpan)]));
   }
 }
 
