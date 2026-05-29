@@ -823,7 +823,9 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
     if (isMeasurementValue(connection.rtt)) {
       if (spanStreamingEnabled) {
         span.setAttribute('network.connection.rtt', connection.rtt);
-      } else {
+      } else if (spanToJSON(span).op === 'pageload') {
+        // Measurements are only recorded on the pageload span, matching the historical
+        // behavior where `connection.rtt` was only flushed for pageload transactions.
         setMeasurement('connection.rtt', connection.rtt, 'millisecond');
       }
     }
