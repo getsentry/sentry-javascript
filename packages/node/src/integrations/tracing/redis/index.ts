@@ -9,7 +9,9 @@ import {
   spanToJSON,
   truncate,
 } from '@sentry/core';
+import { subscribeRedisDiagnosticChannels } from '@sentry/core/server';
 import { generateInstrumentOnce } from '@sentry/node-core';
+import { tracingChannel as otelTracingChannel } from '@sentry/opentelemetry/tracing-channel';
 import type { IORedisCommandArgs } from '../../../utils/redisCache';
 import {
   calculateCacheItemSize,
@@ -22,7 +24,6 @@ import {
 import type { IORedisResponseCustomAttributeFunction } from './vendored/types';
 import { IORedisInstrumentation } from './vendored/ioredis-instrumentation';
 import { RedisInstrumentation } from './vendored/redis-instrumentation';
-import { subscribeRedisDiagnosticChannels } from './redis-dc-subscriber';
 
 interface RedisOptions {
   /**
@@ -113,16 +114,20 @@ const instrumentRedisModule = generateInstrumentOnce(`${INTEGRATION_NAME}.Redis`
   });
 });
 
-/** To be able to preload all Redis OTel instrumentations with just one ID ("Redis"), all the instrumentations are generated in this one function  */
+/**
+ * To be able to preload all Redis OTel instrumentations with just one ID
+ * ("Redis"), all the instrumentations are generated in this one function
+ */
 export const instrumentRedis = Object.assign(
   (): void => {
     instrumentIORedis();
     instrumentRedisModule();
-    // node-redis >= 5.12.0 publishes via diagnostics_channel. The subscriber uses
-    // `@sentry/opentelemetry/tracing-channel`, which needs the Sentry OTel context manager
-    // to be registered before it can `bindStore`. `initOpenTelemetry()` runs after integration
-    // `setupOnce`, so defer to the next tick.
-    void Promise.resolve().then(() => subscribeRedisDiagnosticChannels(cacheResponseHook));
+    // node-redis >= 5.12.0 and ioredis >= 5.11.0 publish via diagnostics_channel.
+    // We pass `@sentry/opentelemetry/tracing-channel` as the factory so the span
+    // becomes the active OTel context via `bindStore`. That factory needs the
+    // Sentry OTel context manager to be registered, which `initOpenTelemetry()`
+    // does after integration `setupOnce`, so defer to the next tick.
+    void Promise.resolve().then(() => subscribeRedisDiagnosticChannels(otelTracingChannel, cacheResponseHook));
 
     // todo: implement them gradually
     // new LegacyRedisInstrumentation({}),
