@@ -19,7 +19,7 @@
  */
 /* eslint-disable */
 
-import { DiagLogger, HrTime, Meter, Span, SpanAttributes, SpanKind, Tracer } from '@opentelemetry/api';
+import { DiagLogger, Meter, Span, SpanAttributes, SpanKind, Tracer } from '@opentelemetry/api';
 import { SemconvStability } from '@opentelemetry/instrumentation';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
 
@@ -53,7 +53,7 @@ export interface ServiceExtension {
     span: Span,
     tracer: Tracer,
     config: AwsSdkInstrumentationConfig,
-    startTime: HrTime,
+    startTime: number,
   ) => any | undefined;
 
   updateMetricInstruments?: (meter: Meter) => void;

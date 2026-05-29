@@ -25,7 +25,7 @@ import * as diagch from 'diagnostics_channel';
 import { URL } from 'url';
 
 import { InstrumentationBase, safeExecuteInTheMiddle } from '@opentelemetry/instrumentation';
-import type { Attributes, Histogram, HrTime, Span } from '@opentelemetry/api';
+import type { Attributes, Histogram, Span } from '@opentelemetry/api';
 import {
   context,
   INVALID_SPAN_CONTEXT,
@@ -35,7 +35,6 @@ import {
   trace,
   ValueType,
 } from '@opentelemetry/api';
-import { hrTime, hrTimeDuration, hrTimeToMilliseconds } from '@opentelemetry/core';
 import {
   ATTR_ERROR_TYPE,
   ATTR_HTTP_REQUEST_METHOD,
@@ -62,12 +61,12 @@ import type {
 } from './internal-types';
 import type { UndiciInstrumentationConfig, UndiciRequest } from './types';
 
-import { SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, timestampInSeconds } from '@sentry/core';
 
 interface InstrumentationRecord {
   span: Span;
   attributes: Attributes;
-  startTime: HrTime;
+  startTime: number;
 }
 
 const PACKAGE_NAME = '@sentry/instrumentation-undici';
@@ -225,7 +224,7 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
       return;
     }
 
-    const startTime = hrTime();
+    const startTime = timestampInSeconds();
     let requestUrl;
     try {
       requestUrl = new URL(request.path, request.origin);
@@ -475,7 +474,7 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     this.recordRequestDuration(attributes, startTime);
   }
 
-  private recordRequestDuration(attributes: Attributes, startTime: HrTime) {
+  private recordRequestDuration(attributes: Attributes, startTime: number) {
     // Time to record metrics
     const metricsAttributes: Attributes = {};
     // Get the attribs already in span attributes
@@ -494,7 +493,7 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     });
 
     // Take the duration and record it
-    const durationSeconds = hrTimeToMilliseconds(hrTimeDuration(startTime, hrTime())) / 1000;
+    const durationSeconds = timestampInSeconds() - startTime;
     this._httpClientDurationHistogram.record(durationSeconds, metricsAttributes);
   }
 
