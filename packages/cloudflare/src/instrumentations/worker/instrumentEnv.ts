@@ -1,5 +1,6 @@
 import type { CloudflareOptions } from '../../client';
-import { isDurableObjectNamespace, isJSRPC, isQueue } from '../../utils/isBinding';
+import { isDurableObjectNamespace, isFlagship, isJSRPC, isQueue } from '../../utils/isBinding';
+import { instrumentFlagship } from './instrumentFlagship';
 import { appendRpcMeta } from '../../utils/rpcMeta';
 import { getEffectiveRpcPropagation } from '../../utils/rpcOptions';
 import { instrumentDurableObjectNamespace, STUB_NON_RPC_METHODS } from '../instrumentDurableObjectNamespace';
@@ -54,6 +55,12 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
         return instrumented;
       }
 
+      if (isFlagship(item)) {
+        const instrumented = instrumentFlagship(item);
+        instrumentedBindings.set(item, instrumented);
+        return instrumented;
+      }
+
       if (!rpcPropagation) {
         return item;
       }
@@ -70,7 +77,7 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
             const value = Reflect.get(target, p);
 
             if (p === 'fetch' && typeof value === 'function') {
-              return instrumentFetcher((...args) => Reflect.apply(value, target, args));
+              return instrumentFetcher((...args: unknown[]) => Reflect.apply(value, target, args));
             }
 
             if (typeof value === 'function' && typeof p === 'string' && !STUB_NON_RPC_METHODS.has(p)) {
