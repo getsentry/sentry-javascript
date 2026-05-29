@@ -18,22 +18,22 @@ If the user provided a project (URL, slug, or UUID), pass whatever they gave you
 
 If they did not provide one, help them pick:
 
-1. Identify the current user. Try `mcp__claude_ai_Linear__list_users` with `query: "me"` first; if that doesn't return the authenticated user, fall back to whatever mechanism Linear's MCP exposes for the current user.
-2. Fetch the user's projects via `mcp__claude_ai_Linear__list_projects`, filtered to ones they lead. If the MCP doesn't accept a direct `lead` filter, list projects and filter client-side by `lead.id == <current-user-id>`.
-3. For each project, you need: name, status, target date, and the timestamp of the last status update. The last-update timestamp may not come back in the project payload — if not, call `mcp__claude_ai_Linear__get_status_updates` with `type: "project", project: <uuid>, limit: 1, orderBy: "createdAt"` per project. Do these in parallel.
-4. Sort the projects:
-   - **In Progress / Started** first (the user is most likely to be updating one of these).
+1. **Get the current user's ID.** Call `mcp__claude_ai_Linear__get_user` with `query: "me"` and extract the `id` field. You'll need it for filtering in step 3.
+2. **List the user's projects.** Call `mcp__claude_ai_Linear__list_projects` with `member: "me"` and `orderBy: "updatedAt"`. The `member: "me"` filter returns projects the user is a member of _or_ leads — exactly the set you need, in a single call. In practice this returns a small list (usually <30 across all teams) and `hasNextPage` is false; paginate only if it isn't.
+
+   **Do not** list projects per team and filter client-side. `list_projects` has no direct `lead` filter, and big workspaces have hundreds of projects per team — paginating teams is slow, expensive, and unnecessary when `member: "me"` does the job in one call.
+
+3. **Filter to led + active projects.** From the response, keep only projects where `lead.id == <current-user-id>`. Then drop any with `status.type` of `completed` or `canceled` — updating a Done or Canceled project almost never makes sense, and surfacing them clutters the picker. (If after this filter you have zero projects, stop and tell the user; don't fabricate. Offer the URL fallback: "paste a project URL if you want to update one you don't lead.")
+4. **Fetch the last-update timestamp per project, in parallel.** The project payload doesn't carry it. For each surviving project, call `mcp__claude_ai_Linear__get_status_updates` with `type: "project", project: <uuid>, limit: 1, orderBy: "createdAt"` — all in the same turn, not sequentially.
+5. **Sort:**
+   - **In Progress / Started** first — most likely to be the target.
    - Then other active statuses (Planned, Paused, Backlog).
-   - Completed / Canceled last — usually omit unless the user has nothing active.
-5. Present the list with `AskUserQuestion`. Format each option so the user can see at a glance which projects need attention:
+   - Within each band, put the project most likely to need an update first — typically the one with the longest gap since its last status update.
+6. **Present the list with `AskUserQuestion`.** Format each option so the user can see at a glance which projects need attention:
 
-   `<Project name> — target: <YYYY-MM-DD or "—"> · last update: <X days ago or "never">`
+   `<Project name> — status: <Status> · target: <YYYY-MM-DD or "—"> · last update: <X days ago or "never">`
 
-   Put the project most likely to need an update first (e.g., longest since last update among In Progress projects).
-
-6. Once picked, continue with that project's UUID.
-
-If `get_project` errors or the user has no led projects, stop and tell them — don't fabricate.
+7. Once picked, continue with that project's UUID.
 
 ### Step 2 — Audit project status
 
