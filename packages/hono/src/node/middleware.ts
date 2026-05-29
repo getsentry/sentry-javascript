@@ -1,4 +1,4 @@
-import { type BaseTransportOptions, debug, type Options, getClient } from '@sentry/core';
+import { type BaseTransportOptions, consoleSandbox, debug, getClient, type Options } from '@sentry/core';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { applyPatches } from '../shared/applyPatches';
@@ -21,8 +21,19 @@ export const sentry = <E extends Env>(app: Hono<E>, options?: SentryHonoMiddlewa
       'Sentry is not initialized. Call `init()` from @sentry/hono/node in an `instrument.ts` file loaded via `--import` to set up Sentry for your application.',
     );
   } else {
-    sentryClient.getOptions().debug &&
-      debug.log('Sentry is initialized, proceeding to set up Hono `sentry` middleware.');
+    const isInitializedWithHonoSdk = sentryClient.getOptions()._metadata?.sdk?.name === 'sentry.javascript.hono';
+
+    if (!isInitializedWithHonoSdk) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[Sentry] Detected `Sentry.init` call from `@sentry/node` instead of `@sentry/hono/node`. Import from `@sentry/hono/node` to ensure Hono-specific instrumentation is applied correctly.',
+        );
+      });
+    } else {
+      sentryClient.getOptions().debug &&
+        debug.log('Sentry is initialized, proceeding to set up Hono `sentry` middleware.');
+    }
   }
 
   applyPatches(app);

@@ -72,15 +72,52 @@ describe('Hono Node Middleware', () => {
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Sentry is not initialized'));
     });
 
-    it('does not emit a warning when Sentry is already initialized', () => {
+    it('does not emit a warning when Sentry is already initialized with @sentry/hono/node', () => {
       const warnSpy = vi.spyOn(SentryCore.debug, 'warn');
-      const fakeClient = { getOptions: () => ({ debug: false }) };
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const fakeClient = {
+        getOptions: () => ({
+          debug: false,
+          _metadata: { sdk: { name: 'sentry.javascript.hono' } },
+        }),
+      };
       vi.spyOn(SentryCore, 'getClient').mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       const app = new Hono();
       sentry(app);
 
       expect(warnSpy).not.toHaveBeenCalled();
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('emits a console.warn when Sentry is initialized with @sentry/node instead of @sentry/hono/node', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const fakeClient = {
+        getOptions: () => ({
+          debug: false,
+          _metadata: { sdk: { name: 'sentry.javascript.node' } },
+        }),
+      };
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue(fakeClient as unknown as SentryCore.Client);
+
+      const app = new Hono();
+      sentry(app);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('@sentry/hono/node'));
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('emits a console.warn when Sentry is initialized without any SDK metadata', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const fakeClient = { getOptions: () => ({ debug: false }) };
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue(fakeClient as unknown as SentryCore.Client);
+
+      const app = new Hono();
+      sentry(app);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('@sentry/hono/node'));
+      consoleWarnSpy.mockRestore();
     });
   });
 
@@ -145,16 +182,24 @@ describe('Hono Node Middleware', () => {
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Sentry is not initialized'));
     });
 
-    it('does not emit a warning when Sentry is already initialized', () => {
+    it('does not emit a warning when Sentry is already initialized with @sentry/hono/node', () => {
       const warnSpy = vi.spyOn(SentryCore.debug, 'warn');
-      const fakeClient = { getOptions: () => ({ debug: false }) };
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const fakeClient = {
+        getOptions: () => ({
+          debug: false,
+          _metadata: { sdk: { name: 'sentry.javascript.hono' } },
+        }),
+      };
       vi.spyOn(SentryCore, 'getClient').mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       const app = new Hono();
       const middleware = sentry(app);
 
       expect(warnSpy).not.toHaveBeenCalled();
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
       expect(middleware.constructor.name).toBe('AsyncFunction');
+      consoleWarnSpy.mockRestore();
     });
   });
 
