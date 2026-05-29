@@ -456,14 +456,13 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadSpan,
       beforeSpanEnd: span => {
-        collectWebVitalsForClient(client);
-        const spanStreamingEnabled = hasSpanStreamingEnabled(client);
+        // The webVitalsIntegration owns all web vital logic; it finalizes the collected
+        // web vitals and writes them onto the pageload span.
+        collectWebVitalsForClient(client, span);
         addPerformanceEntries(span, {
-          recordClsOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneClsSpans,
-          recordLcpOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneLcpSpans,
           ignoreResourceSpans,
           ignorePerformanceApiSpans,
-          spanStreamingEnabled,
+          spanStreamingEnabled: hasSpanStreamingEnabled(client),
         });
         setActiveIdleSpan(client, undefined);
 

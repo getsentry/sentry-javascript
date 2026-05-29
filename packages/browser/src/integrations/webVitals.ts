@@ -1,6 +1,7 @@
-import type { Client, IntegrationFn } from '@sentry/core/browser';
+import type { Client, IntegrationFn, Span } from '@sentry/core/browser';
 import { defineIntegration, hasSpanStreamingEnabled } from '@sentry/core/browser';
 import {
+  addWebVitalsToSpan,
   registerInpInteractionListener,
   startTrackingINP,
   startTrackingWebVitals,
@@ -28,10 +29,14 @@ export interface WebVitalsOptions {
   }>;
 }
 
-const collectWebVitalsCallbacks = new WeakMap<Client, () => void>();
+const collectWebVitalsCallbacks = new WeakMap<Client, (span: Span) => void>();
 
-export function collectWebVitalsForClient(client: Client): void {
-  collectWebVitalsCallbacks.get(client)?.();
+/**
+ * Finalizes the collected web vitals and writes them onto the given (pageload) span.
+ * Called by `browserTracingIntegration` when the pageload/navigation span ends.
+ */
+export function collectWebVitalsForClient(client: Client, span: Span): void {
+  collectWebVitalsCallbacks.get(client)?.(span);
 }
 
 /**
@@ -50,16 +55,27 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
       const spanStreamingEnabled = hasSpanStreamingEnabled(client);
       const { enableStandaloneClsSpans, enableStandaloneLcpSpans } = options._experiments ?? {};
 
-      collectWebVitalsCallbacks.set(
+      const recordClsStandaloneSpans =
+        spanStreamingEnabled || ignored.has('cls') ? undefined : enableStandaloneClsSpans || false;
+      const recordLcpStandaloneSpans =
+        spanStreamingEnabled || ignored.has('lcp') ? undefined : enableStandaloneLcpSpans || false;
+
+      const finalizeWebVitals = startTrackingWebVitals({
+        recordClsStandaloneSpans,
+        recordLcpStandaloneSpans,
         client,
-        startTrackingWebVitals({
-          recordClsStandaloneSpans:
-            spanStreamingEnabled || ignored.has('cls') ? undefined : enableStandaloneClsSpans || false,
-          recordLcpStandaloneSpans:
-            spanStreamingEnabled || ignored.has('lcp') ? undefined : enableStandaloneLcpSpans || false,
-          client,
-        }),
-      );
+      });
+
+      collectWebVitalsCallbacks.set(client, span => {
+        finalizeWebVitals();
+        addWebVitalsToSpan(span, {
+          // CLS/LCP are recorded as pageload span measurements only when they're neither
+          // tracked as standalone spans nor handled by span streaming (and not ignored).
+          recordClsOnPageloadSpan: recordClsStandaloneSpans === false,
+          recordLcpOnPageloadSpan: recordLcpStandaloneSpans === false,
+          spanStreamingEnabled,
+        });
+      });
 
       if (spanStreamingEnabled) {
         if (!ignored.has('lcp')) {

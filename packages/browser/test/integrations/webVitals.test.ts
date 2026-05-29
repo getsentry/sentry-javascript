@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { collectWebVitalsForClient, webVitalsIntegration } from '../../src/integrations/webVitals';
 
+const mockAddWebVitalsToSpan = vi.hoisted(() => vi.fn());
 const mockRegisterInpInteractionListener = vi.hoisted(() => vi.fn());
 const mockStartTrackingINP = vi.hoisted(() => vi.fn());
 const mockStartTrackingWebVitals = vi.hoisted(() => vi.fn());
@@ -9,6 +10,7 @@ const mockTrackInpAsSpan = vi.hoisted(() => vi.fn());
 const mockTrackLcpAsSpan = vi.hoisted(() => vi.fn());
 
 vi.mock('@sentry-internal/browser-utils', () => ({
+  addWebVitalsToSpan: mockAddWebVitalsToSpan,
   registerInpInteractionListener: mockRegisterInpInteractionListener,
   startTrackingINP: mockStartTrackingINP,
   startTrackingWebVitals: mockStartTrackingWebVitals,
@@ -100,14 +102,51 @@ describe('webVitalsIntegration', () => {
     expect(mockRegisterInpInteractionListener).not.toHaveBeenCalled();
   });
 
-  it('exposes the web vital collection callback for browserTracingIntegration finalization', () => {
-    const collectWebVitals = vi.fn();
+  it('finalizes web vitals and writes them onto the span when collected for the client', () => {
+    const finalizeWebVitals = vi.fn();
     const client = { getOptions: () => ({}) };
-    mockStartTrackingWebVitals.mockReturnValue(collectWebVitals);
+    const span = {};
+    mockStartTrackingWebVitals.mockReturnValue(finalizeWebVitals);
 
     webVitalsIntegration().setup?.(client as never);
-    collectWebVitalsForClient(client as never);
+    collectWebVitalsForClient(client as never, span as never);
 
-    expect(collectWebVitals).toHaveBeenCalledTimes(1);
+    expect(finalizeWebVitals).toHaveBeenCalledTimes(1);
+    expect(mockAddWebVitalsToSpan).toHaveBeenCalledWith(span, {
+      recordClsOnPageloadSpan: true,
+      recordLcpOnPageloadSpan: true,
+      spanStreamingEnabled: false,
+    });
+  });
+
+  it('does not record CLS/LCP on the pageload span when span streaming is enabled', () => {
+    const client = { getOptions: () => ({ traceLifecycle: 'stream' }) };
+    const span = {};
+
+    webVitalsIntegration().setup?.(client as never);
+    collectWebVitalsForClient(client as never, span as never);
+
+    expect(mockAddWebVitalsToSpan).toHaveBeenCalledWith(span, {
+      recordClsOnPageloadSpan: false,
+      recordLcpOnPageloadSpan: false,
+      spanStreamingEnabled: true,
+    });
+  });
+
+  it('does not record CLS/LCP on the pageload span when standalone spans are enabled', () => {
+    const client = { getOptions: () => ({}) };
+    const span = {};
+    const integration = webVitalsIntegration({
+      _experiments: { enableStandaloneClsSpans: true, enableStandaloneLcpSpans: true },
+    });
+
+    integration.setup?.(client as never);
+    collectWebVitalsForClient(client as never, span as never);
+
+    expect(mockAddWebVitalsToSpan).toHaveBeenCalledWith(span, {
+      recordClsOnPageloadSpan: false,
+      recordLcpOnPageloadSpan: false,
+      spanStreamingEnabled: false,
+    });
   });
 });
