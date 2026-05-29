@@ -43,7 +43,6 @@ export type {
   RedisTracingChannelFactory,
   RedisTracingChannelSubscribers,
 } from './integrations/redis/redis-dc-subscriber';
-export { defaultDbStatementSerializer } from './integrations/redis/redis-statement-serializer';
 
 export { patchHttpModuleClient } from './integrations/http/client-patch';
 export { getHttpClientSubscriptions } from './integrations/http/client-subscriptions';

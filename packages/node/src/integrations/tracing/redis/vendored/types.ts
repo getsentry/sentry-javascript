@@ -56,7 +56,7 @@ export interface RedisInstrumentationConfig extends InstrumentationConfig {
 
 // ---- ioredis types ----
 
-export type CommandArgs = Array<string | Buffer | Uint8Array | number | any[]>;
+export type CommandArgs = Array<string | Buffer | number | any[]>;
 
 /**
  * Function that can be used to serialize db.statement tag for ioredis

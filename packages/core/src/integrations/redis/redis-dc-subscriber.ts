@@ -4,7 +4,6 @@ import { SPAN_STATUS_ERROR } from '../../tracing/spanstatus';
 import { startSpanManual } from '../../tracing/trace';
 import type { Span } from '../../types/span';
 import { debug } from '../../utils/debug-logger';
-import { defaultDbStatementSerializer } from './redis-statement-serializer';
 
 // Channel names published by node-redis >= 5.12.0 and ioredis >= 5.11.0.
 // Hardcoded so the subscriber does not have to import either library — the
@@ -28,11 +27,19 @@ const DB_SYSTEM_VALUE_REDIS = 'redis';
 
 const NOOP = (): void => {};
 
-/** Shape of the `node-redis:command` channel payload published by node-redis. */
+/**
+ * Shape of the `node-redis:command` channel payload published by node-redis.
+ *
+ * Both `command` and `args` are already redacted by node-redis itself (see
+ * `sanitizeArgs` in @redis/client) using the OTel `redis-common` rules. The
+ * arg array is `[<command>, <safe arg>, ..., '?', ...]` — `?` replaces any
+ * value the library considers sensitive. Subscribers can emit `args` directly
+ * as `db.statement` without further serialization.
+ */
 export interface RedisCommandData {
   command: string;
-  /** First arg is the command name itself in node-redis >= 5.12.0; consumers should slice it off. */
-  args: Array<string | Uint8Array>;
+  /** First arg is the command name itself; consumers should slice it off. */
+  args: string[];
   database?: number;
   serverAddress?: string;
   serverPort?: number;
@@ -40,10 +47,16 @@ export interface RedisCommandData {
   error?: Error;
 }
 
-/** Shape of the `ioredis:command` channel payload published by ioredis >= 5.11.0. */
+/**
+ * Shape of the `ioredis:command` channel payload published by ioredis >= 5.11.0.
+ *
+ * As with node-redis, args are already sanitized by ioredis (`sanitizeArgs` in
+ * `lib/tracing.ts`) before publishing. Unlike node-redis, the command name is
+ * NOT prepended to `args`.
+ */
 export interface IORedisCommandData {
   command: string;
-  args: Array<string | Uint8Array>;
+  args: string[];
   batchMode?: 'MULTI';
   batchSize?: number;
   database?: number;
@@ -83,7 +96,7 @@ export interface RedisConnectData {
 export type RedisDiagnosticChannelResponseHook = (
   span: Span,
   cmdName: string,
-  cmdArgs: Array<string | Uint8Array>,
+  cmdArgs: string[],
   result: unknown,
 ) => void;
 
@@ -151,7 +164,7 @@ export function subscribeRedisDiagnosticChannels(
 
   try {
     // node-redis: command name appears as args[0] in the channel payload, so
-    // strip it before serialization and the response hook see it.
+    // strip it before the statement and response hook see it.
     setupCommandChannel<RedisCommandData>(tracingChannel, REDIS_DC_CHANNEL_COMMAND, data => data.args.slice(1));
     setupBatchChannel(tracingChannel, REDIS_DC_CHANNEL_BATCH, data =>
       data.batchMode === 'PIPELINE' ? 'PIPELINE' : 'MULTI',
@@ -173,11 +186,14 @@ export function subscribeRedisDiagnosticChannels(
 function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
   tracingChannel: RedisTracingChannelFactory,
   channelName: string,
-  getCommandArgs: (data: T) => Array<string | Uint8Array>,
+  getCommandArgs: (data: T) => string[],
 ): void {
   const channel = tracingChannel<T>(channelName, data => {
+    // `args` is already sanitized by the publishing library (node-redis /
+    // ioredis call their own `sanitizeArgs` before publishing). Join with
+    // spaces to mirror the format the libraries themselves intend.
     const args = getCommandArgs(data);
-    const statement = safeSerialize(data.command, args);
+    const statement = args.length ? `${data.command} ${args.join(' ')}` : data.command;
     return startSpanManual(
       {
         name: `redis-${data.command}`,
@@ -185,7 +201,7 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
           [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
-          ...(statement != null ? { [ATTR_DB_STATEMENT]: statement } : {}),
+          [ATTR_DB_STATEMENT]: statement,
           ...(data.serverAddress != null ? { [ATTR_NET_PEER_NAME]: data.serverAddress } : {}),
           ...(data.serverPort != null ? { [ATTR_NET_PEER_PORT]: data.serverPort } : {}),
         },
@@ -291,21 +307,13 @@ function setupConnectChannel(tracingChannel: RedisTracingChannelFactory, channel
   });
 }
 
-function runResponseHook(span: Span, command: string, args: Array<string | Uint8Array>, result: unknown): void {
+function runResponseHook(span: Span, command: string, args: string[], result: unknown): void {
   const hook = currentResponseHook;
   if (!hook) return;
   try {
     hook(span, command, args, result);
   } catch {
     // never let user hooks break instrumentation
-  }
-}
-
-function safeSerialize(command: string, args: Array<string | Uint8Array>): string | undefined {
-  try {
-    return defaultDbStatementSerializer(command, args);
-  } catch {
-    return undefined;
   }
 }
 
