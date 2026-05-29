@@ -1,7 +1,7 @@
-import { TraceState } from '@opentelemetry/core';
 import type { DynamicSamplingContext } from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/core';
 import { SENTRY_TRACE_STATE_DSC, SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from '../constants';
+import { TraceState } from './TraceState';
 
 /**
  * Generate a TraceState for the given data.

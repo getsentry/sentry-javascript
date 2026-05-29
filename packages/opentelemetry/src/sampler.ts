@@ -1,7 +1,7 @@
 /* eslint-disable complexity */
 import type { Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
 import { isSpanContextValid, SpanKind, trace } from '@opentelemetry/api';
-import { TraceState } from '@opentelemetry/core';
+import { TraceState } from './utils/TraceState';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import {
