@@ -45,7 +45,7 @@ Keep the audit output handy — you'll cite specifics in the proposal (e.g., "3 
 
 The audit tells you what Linear knows. The user knows what Linear doesn't. Ask once, broadly, rather than peppering them with separate questions:
 
-> "Anything I should know that isn't in Linear before I draft this? PTO or absences (yours or the team's), blockers, competing priorities, or general context you want stakeholders to hear. Or just say 'no extra context' to skip."
+> "Anything I should know that isn't in Linear before I draft this? PTO or absences (yours or the team's), blockers, competing priorities, or general context you want stakeholders to hear. Or just say 'no' to skip."
 
 Wait for their reply. Treat empty / "skip" as a valid answer.
 
