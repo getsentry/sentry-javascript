@@ -62,18 +62,18 @@ describe('Hono Node Middleware', () => {
       expect(middleware.constructor.name).toBe('AsyncFunction');
     });
 
-    it('emits a warning when Sentry is not initialized', () => {
-      const warnSpy = vi.spyOn(SentryCore.debug, 'warn');
+    it('emits a console.warn when Sentry is not initialized', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
 
       const app = new Hono();
       sentry(app);
 
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Sentry is not initialized'));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Sentry is not initialized'));
+      consoleWarnSpy.mockRestore();
     });
 
     it('does not emit a warning when Sentry is already initialized with @sentry/hono/node', () => {
-      const warnSpy = vi.spyOn(SentryCore.debug, 'warn');
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       const fakeClient = {
         getOptions: () => ({
@@ -86,7 +86,6 @@ describe('Hono Node Middleware', () => {
       const app = new Hono();
       sentry(app);
 
-      expect(warnSpy).not.toHaveBeenCalled();
       expect(consoleWarnSpy).not.toHaveBeenCalled();
       consoleWarnSpy.mockRestore();
     });
@@ -172,18 +171,18 @@ describe('Hono Node Middleware', () => {
       expect(middleware.constructor.name).toBe('AsyncFunction');
     });
 
-    it('emits a warning when Sentry is not initialized', () => {
-      const warnSpy = vi.spyOn(SentryCore.debug, 'warn');
+    it('emits a console.warn when Sentry is not initialized', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
 
       const app = new Hono();
       sentry(app);
 
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Sentry is not initialized'));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Sentry is not initialized'));
+      consoleWarnSpy.mockRestore();
     });
 
     it('does not emit a warning when Sentry is already initialized with @sentry/hono/node', () => {
-      const warnSpy = vi.spyOn(SentryCore.debug, 'warn');
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       const fakeClient = {
         getOptions: () => ({
@@ -196,7 +195,6 @@ describe('Hono Node Middleware', () => {
       const app = new Hono();
       const middleware = sentry(app);
 
-      expect(warnSpy).not.toHaveBeenCalled();
       expect(consoleWarnSpy).not.toHaveBeenCalled();
       expect(middleware.constructor.name).toBe('AsyncFunction');
       consoleWarnSpy.mockRestore();

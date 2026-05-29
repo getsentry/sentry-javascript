@@ -17,9 +17,12 @@ export interface HonoNodeOptions extends Options<BaseTransportOptions> {}
 export const sentry = <E extends Env>(app: Hono<E>, options?: SentryHonoMiddlewareOptions): MiddlewareHandler => {
   const sentryClient = getClient();
   if (sentryClient === undefined) {
-    debug.warn(
-      'Sentry is not initialized. Call `init()` from @sentry/hono/node in an `instrument.ts` file loaded via `--import` to set up Sentry for your application.',
-    );
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[@sentry/hono] Sentry is not initialized. Call `init()` from `@sentry/hono/node` in an `instrument.ts` file loaded via `--import` to set up Sentry for your application.',
+      );
+    });
   } else {
     const isInitializedWithHonoSdk = sentryClient.getOptions()._metadata?.sdk?.name === 'sentry.javascript.hono';
 
