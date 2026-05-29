@@ -44,16 +44,15 @@ describe('tracing utils', () => {
       expect(retrieved.isolationScope).toBeUndefined();
     });
 
-    it('uses WeakRef for both scopes', () => {
+    it('uses WeakRef only for isolation scope, stores scope directly', () => {
       const span = createMockSpan();
       const scope = new Scope();
       const isolationScope = new Scope();
 
       setCapturedScopesOnSpan(span, scope, isolationScope);
 
-      // Check that both scopes are wrapped with WeakRef
       const spanWithScopes = span as any;
-      expect(spanWithScopes._sentryScope).toBeInstanceOf(WeakRef);
+      expect(spanWithScopes._sentryScope).toBe(scope);
       expect(spanWithScopes._sentryIsolationScope).toBeInstanceOf(WeakRef);
 
       // Verify we can still retrieve the scopes
@@ -90,38 +89,33 @@ describe('tracing utils', () => {
       }
     });
 
-    it('handles WeakRef deref returning undefined gracefully', () => {
+    it('handles WeakRef deref returning undefined gracefully for isolation scope', () => {
       const span = createMockSpan();
+      const scope = new Scope();
+      const isolationScope = new Scope();
 
-      // Mock WeakRef.deref to return undefined (simulating garbage collection)
+      setCapturedScopesOnSpan(span, scope, isolationScope);
+
+      // Mock isolation scope WeakRef to return undefined (simulating garbage collection)
       const spanWithScopes = span as any;
-      const mockScopeWeakRef = {
-        deref: vi.fn().mockReturnValue(undefined),
-      };
       const mockIsolationScopeWeakRef = {
         deref: vi.fn().mockReturnValue(undefined),
       };
 
-      spanWithScopes._sentryScope = mockScopeWeakRef;
       spanWithScopes._sentryIsolationScope = mockIsolationScopeWeakRef;
 
       const retrieved = getCapturedScopesOnSpan(span);
-      expect(retrieved.scope).toBeUndefined();
+      expect(retrieved.scope).toBe(scope);
       expect(retrieved.isolationScope).toBeUndefined();
-      expect(mockScopeWeakRef.deref).toHaveBeenCalled();
       expect(mockIsolationScopeWeakRef.deref).toHaveBeenCalled();
     });
 
-    it('handles corrupted WeakRef objects gracefully', () => {
+    it('handles corrupted WeakRef objects gracefully for isolation scope', () => {
       const span = createMockSpan();
+      const scope = new Scope();
 
-      // Set up corrupted WeakRefs that throw on deref
       const spanWithScopes = span as any;
-      spanWithScopes._sentryScope = {
-        deref: vi.fn().mockImplementation(() => {
-          throw new Error('WeakRef deref failed');
-        }),
-      };
+      spanWithScopes._sentryScope = scope;
       spanWithScopes._sentryIsolationScope = {
         deref: vi.fn().mockImplementation(() => {
           throw new Error('WeakRef deref failed');
@@ -129,7 +123,7 @@ describe('tracing utils', () => {
       };
 
       const retrieved = getCapturedScopesOnSpan(span);
-      expect(retrieved.scope).toBeUndefined();
+      expect(retrieved.scope).toBe(scope);
       expect(retrieved.isolationScope).toBeUndefined();
     });
 
