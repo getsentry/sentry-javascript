@@ -1,7 +1,7 @@
 ---
 name: linear-project-update
 description: Help the user draft and (with their explicit approval) post a status update to a Linear project they lead. Use whenever the user wants to "post a project update", "write a status update", "update my Linear project", "send a project update", or asks for help with weekly/biweekly project updates. Also trigger when the user pastes a Linear project URL and asks for an update, mentions wanting to write an update for their project, or wants help drafting a status message for stakeholders. Even when the user doesn't explicitly say "post" or "status update" — if the underlying request is "help me write an update for my Linear project", trigger this skill. The user always keeps final control of the words; this skill drafts a proposal and never posts without explicit confirmation in the same turn.
-argument-hint: [linear-project-url-or-id-or-slug]
+argument-hint: <linear-project-url-or-id-or-slug-optional>
 ---
 
 # Linear Project Update
