@@ -13,7 +13,6 @@ import {
   spanToJSON,
   withScope,
 } from '../../../src';
-import { derefWeakRef } from '../../../src/utils/weakRef';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import {
   continueTrace,
@@ -787,7 +786,7 @@ describe('startSpan', () => {
     expect.assertions(1);
     startSpan({ name: 'outer' }, (outerSpan: any) => {
       startSpan({ name: 'inner' }, innerSpan => {
-        const childSpans = Array.from(outerSpan._sentryChildSpans).map(derefWeakRef);
+        const childSpans = Array.from(outerSpan._sentryChildSpans);
         expect(childSpans).toContain(innerSpan);
       });
     });
@@ -1336,7 +1335,7 @@ describe('startSpanManual', () => {
     expect.assertions(1);
     startSpan({ name: 'outer' }, (outerSpan: any) => {
       startSpanManual({ name: 'inner' }, innerSpan => {
-        const childSpans = Array.from(outerSpan._sentryChildSpans).map(derefWeakRef);
+        const childSpans = Array.from(outerSpan._sentryChildSpans);
         expect(childSpans).toContain(innerSpan);
       });
     });
@@ -1803,7 +1802,7 @@ describe('startInactiveSpan', () => {
     expect.assertions(1);
     startSpan({ name: 'outer' }, (outerSpan: any) => {
       const innerSpan = startInactiveSpan({ name: 'inner' });
-      const childSpans = Array.from(outerSpan._sentryChildSpans).map(derefWeakRef);
+      const childSpans = Array.from(outerSpan._sentryChildSpans);
       expect(childSpans).toContain(innerSpan);
     });
   });
