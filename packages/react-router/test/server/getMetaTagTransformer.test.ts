@@ -3,11 +3,6 @@ import { PassThrough } from 'stream';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
 
-vi.mock('@opentelemetry/core', () => ({
-  RPCType: { HTTP: 'http' },
-  getRPCMetadata: vi.fn(),
-}));
-
 vi.mock('@sentry/core', () => ({
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
