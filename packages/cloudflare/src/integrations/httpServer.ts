@@ -14,10 +14,11 @@ export interface HttpServerIntegrationOptions {
    * Available options:
    * - `'none'`: No request bodies will be attached
    * - `'small'`: Request bodies up to 1,000 bytes will be attached
-   * - `'medium'`: Request bodies up to 10,000 bytes will be attached (default)
+   * - `'medium'`: Request bodies up to 10,000 bytes will be attached
    * - `'always'`: Request bodies will always be attached (up to 1MB limit)
    *
-   * @default 'medium'
+   * When not set, falls back to `dataCollection.httpBodies`: if `'incomingRequest'`
+   * is listed, bodies are captured at `'medium'` size; otherwise no bodies are captured.
    */
   maxRequestBodySize?: MaxRequestBodySize;
 
@@ -42,14 +43,14 @@ export interface HttpServerIntegrationOptions {
 
 interface HttpServerIntegrationInstance {
   name: string;
-  maxRequestBodySize: MaxRequestBodySize;
+  maxRequestBodySize: MaxRequestBodySize | undefined;
   ignoreRequestBody?: (url: string, request: Request) => boolean;
 }
 
 const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}): HttpServerIntegrationInstance => {
   return {
     name: INTEGRATION_NAME,
-    maxRequestBodySize: options.maxRequestBodySize ?? 'medium',
+    maxRequestBodySize: options.maxRequestBodySize,
     ignoreRequestBody: options.ignoreRequestBody,
   };
 }) satisfies IntegrationFn;
@@ -85,7 +86,10 @@ export async function captureIncomingRequestBody(client: Client, request: Reques
     return;
   }
 
-  const maxRequestBodySize = integration.maxRequestBodySize;
+  // Integration-level option takes precedence; fall back to dataCollection.httpBodies
+  const maxRequestBodySize =
+    integration.maxRequestBodySize ??
+    (client.getDataCollectionOptions().httpBodies.includes('incomingRequest') ? 'medium' : 'none');
 
   if (maxRequestBodySize === 'none') {
     return;

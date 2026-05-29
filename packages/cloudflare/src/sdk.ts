@@ -24,7 +24,6 @@ import { defaultStackParser } from './vendor/stacktrace';
 
 /** Get the default integrations for the Cloudflare SDK. */
 export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
-  const sendDefaultPii = options.sendDefaultPii ?? false;
   return [
     // The Dedupe integration should not be used in workflows because we want to
     // capture all step failures, even if they are the same error.
@@ -38,8 +37,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     fetchIntegration(),
     honoIntegration(),
     httpServerIntegration(),
-    // TODO(v11): the `include` object should be defined directly in the integration based on `sendDefaultPii`
-    requestDataIntegration(sendDefaultPii ? undefined : { include: { cookies: false } }),
+    requestDataIntegration(),
     consoleIntegration(),
   ];
 }
