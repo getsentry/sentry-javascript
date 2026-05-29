@@ -104,7 +104,7 @@ describe('Hono Node Middleware', () => {
       const app = new Hono();
       sentry(app);
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('@sentry/hono/node'));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('not initialized with `@sentry/hono/node`'));
       consoleWarnSpy.mockRestore();
     });
 
@@ -116,7 +116,7 @@ describe('Hono Node Middleware', () => {
       const app = new Hono();
       sentry(app);
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('@sentry/hono/node'));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('not initialized with `@sentry/hono/node`'));
       consoleWarnSpy.mockRestore();
     });
   });

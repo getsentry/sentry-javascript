@@ -27,7 +27,7 @@ export const sentry = <E extends Env>(app: Hono<E>, options?: SentryHonoMiddlewa
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
         console.warn(
-          '[Sentry] Detected `Sentry.init` call from `@sentry/node` instead of `@sentry/hono/node`. Import from `@sentry/hono/node` to ensure Hono-specific instrumentation is applied correctly.',
+          '[Sentry] Sentry was not initialized with `@sentry/hono/node`. Please import from `@sentry/hono/node` to ensure Hono-specific instrumentation is applied correctly.',
         );
       });
     } else {
