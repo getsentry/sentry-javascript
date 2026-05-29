@@ -47,7 +47,7 @@ The audit tells you what Linear knows. The user knows what Linear doesn't. Ask o
 
 > "Anything I should know that isn't in Linear before I draft this? PTO or absences (yours or the team's), blockers, competing priorities, or general context you want stakeholders to hear. Or just say 'no' to skip."
 
-Wait for their reply. Treat empty / "skip" as a valid answer.
+Wait for their reply. Treat any short negation as a valid skip — "no", "nope", "skip", "nothing", or an empty reply all mean "proceed without extra context". Don't re-prompt.
 
 ### Step 4 — Draft the proposal
 
