@@ -1,5 +1,5 @@
 import type { Span } from '@opentelemetry/api';
-import type { IntegrationFn, RedisDiagnosticChannelResponseHook } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
 import {
   defineIntegration,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
