@@ -18,7 +18,7 @@ describe('addHeadersAsAttributes', () => {
     expect(result).toEqual({});
   });
 
-  it('includes all headers with sensitive filtering when httpHeaders.request is true', () => {
+  it('passes PII headers through when httpHeaders.request is true', () => {
     vi.spyOn(SentryCore, 'getClient').mockReturnValue({
       getDataCollectionOptions: () => ({
         httpHeaders: { request: true, response: true },
@@ -27,37 +27,28 @@ describe('addHeadersAsAttributes', () => {
 
     const result = addHeadersAsAttributes({
       'content-type': 'application/json',
-      accept: 'text/html',
+      'x-forwarded-for': '127.0.0.1',
     });
 
     expect(result).toMatchObject({
       'http.request.header.content_type': 'application/json',
-      'http.request.header.accept': 'text/html',
+      'http.request.header.x_forwarded_for': '127.0.0.1',
     });
   });
 
-  it('applies stricter PII filtering when httpHeaders.request is a deny list', () => {
+  it('filters denied headers when httpHeaders.request is a deny list', () => {
     vi.spyOn(SentryCore, 'getClient').mockReturnValue({
       getDataCollectionOptions: () => ({
-        httpHeaders: { request: { deny: [] }, response: true },
+        httpHeaders: { request: { deny: ['forwarded'] }, response: true },
       }),
     } as unknown as SentryCore.Client);
 
     const result = addHeadersAsAttributes({
       'content-type': 'application/json',
-      accept: 'text/html',
+      'x-forwarded-for': '127.0.0.1',
     });
 
-    expect(result).toMatchObject({
-      'http.request.header.content_type': 'application/json',
-      'http.request.header.accept': 'text/html',
-    });
-  });
-
-  it('returns empty object when no client is available', () => {
-    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
-
-    const result = addHeadersAsAttributes({ 'content-type': 'application/json' });
-    expect(result).toEqual({});
+    expect(result['http.request.header.content_type']).toBe('application/json');
+    expect(result['http.request.header.x_forwarded_for']).toBe('[Filtered]');
   });
 });
