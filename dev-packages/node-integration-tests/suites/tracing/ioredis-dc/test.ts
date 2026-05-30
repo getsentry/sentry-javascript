@@ -15,8 +15,8 @@ describe('ioredis v5.11 diagnostics_channel auto instrumentation', () => {
         data: expect.objectContaining({
           'sentry.op': 'db.redis',
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.system': 'redis',
-          'db.statement': 'set dc-test-key ?',
+          'db.system.name': 'redis',
+          'db.query.text': 'set dc-test-key ?',
         }),
       }),
       expect.objectContaining({
@@ -25,7 +25,7 @@ describe('ioredis v5.11 diagnostics_channel auto instrumentation', () => {
         origin: 'auto.db.redis.diagnostic_channel',
         data: expect.objectContaining({
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.statement': 'set dc-cache:test-key ?',
+          'db.query.text': 'set dc-cache:test-key ?',
           'cache.key': ['dc-cache:test-key'],
           'cache.item_size': 2,
         }),
@@ -36,7 +36,7 @@ describe('ioredis v5.11 diagnostics_channel auto instrumentation', () => {
         origin: 'auto.db.redis.diagnostic_channel',
         data: expect.objectContaining({
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.statement': 'set dc-cache:test-key-ex ? ? ?',
+          'db.query.text': 'set dc-cache:test-key-ex ? ? ?',
           'cache.key': ['dc-cache:test-key-ex'],
           'cache.item_size': 2,
         }),
@@ -47,8 +47,8 @@ describe('ioredis v5.11 diagnostics_channel auto instrumentation', () => {
         data: expect.objectContaining({
           'sentry.op': 'db.redis',
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.system': 'redis',
-          'db.statement': 'get dc-test-key',
+          'db.system.name': 'redis',
+          'db.query.text': 'get dc-test-key',
         }),
       }),
       expect.objectContaining({
@@ -57,7 +57,7 @@ describe('ioredis v5.11 diagnostics_channel auto instrumentation', () => {
         origin: 'auto.db.redis.diagnostic_channel',
         data: expect.objectContaining({
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.statement': 'get dc-cache:test-key',
+          'db.query.text': 'get dc-cache:test-key',
           'cache.hit': true,
           'cache.key': ['dc-cache:test-key'],
           'cache.item_size': 10,
@@ -69,7 +69,7 @@ describe('ioredis v5.11 diagnostics_channel auto instrumentation', () => {
         origin: 'auto.db.redis.diagnostic_channel',
         data: expect.objectContaining({
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.statement': 'get dc-cache:unavailable-data',
+          'db.query.text': 'get dc-cache:unavailable-data',
           'cache.hit': false,
           'cache.key': ['dc-cache:unavailable-data'],
         }),
@@ -80,8 +80,8 @@ describe('ioredis v5.11 diagnostics_channel auto instrumentation', () => {
         data: expect.objectContaining({
           'sentry.op': 'db.redis',
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.system': 'redis',
-          'db.statement': 'mget ? ? ?',
+          'db.system.name': 'redis',
+          'db.query.text': 'mget ? ? ?',
         }),
       }),
     ]),
