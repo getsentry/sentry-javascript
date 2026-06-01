@@ -26,10 +26,10 @@ import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
   safeExecuteInTheMiddle,
-  InstrumentationNodeModuleFile,
   SemconvStability,
   semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import {
   context,
   trace,

@@ -23,12 +23,12 @@ import { context, trace, Span, SpanKind, SpanStatusCode, UpDownCounter, type Att
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
   isWrapped,
   safeExecuteInTheMiddle,
   SemconvStability,
   semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import {
   ATTR_DB_COLLECTION_NAME,
   ATTR_DB_NAMESPACE,

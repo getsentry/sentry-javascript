@@ -35,12 +35,12 @@ import { timestampInSeconds } from '@sentry/core';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
   isWrapped,
   safeExecuteInTheMiddle,
   SemconvStability,
   semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import { ATTR_MESSAGING_OPERATION } from './semconv';
 import {
   ATTR_MESSAGING_DESTINATION,

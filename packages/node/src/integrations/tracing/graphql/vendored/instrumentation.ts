@@ -26,9 +26,9 @@ import {
   isWrapped,
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import type {
   DefinitionNode,
   DocumentNode,
