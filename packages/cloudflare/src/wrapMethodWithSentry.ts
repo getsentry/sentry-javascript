@@ -1,5 +1,5 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
-import type { SerializedTraceData } from '@sentry/core';
+import type { SerializedTraceData, Span } from '@sentry/core';
 import {
   captureException,
   continueTrace,
@@ -18,11 +18,38 @@ import { flushAndDispose } from './flush';
 import { ensureInstrumented } from './instrument';
 import { init } from './sdk';
 import { extractRpcMeta } from './utils/rpcMeta';
-import { buildSpanLinks, getStoredSpanContext, storeSpanContext } from './utils/traceLinks';
+import {
+  buildSpanLinks,
+  getStoredSpanContext,
+  storeSpanContext,
+} from './utils/traceLinks';
 
 /** Extended DurableObjectState with originalStorage exposed by instrumentContext */
 interface InstrumentedDurableObjectState extends DurableObjectState {
   originalStorage?: DurableObjectStorage;
+}
+
+/**
+ * Resolves uninstrumented DO storage for the current invocation.
+ * Prefer `thisArg.ctx` (the live Durable Object instance) over the context captured at
+ * construction time to avoid cross-DO I/O errors in the same isolate.
+ */
+function resolveOriginalStorage(
+  context: ExecutionContext | InstrumentedDurableObjectState | undefined,
+  thisArg: unknown,
+): DurableObjectStorage | undefined {
+  if (thisArg && typeof thisArg === 'object' && 'ctx' in thisArg) {
+    const doCtx = (thisArg as { ctx: InstrumentedDurableObjectState }).ctx;
+    if (doCtx?.originalStorage) {
+      return doCtx.originalStorage;
+    }
+  }
+
+  if (context && 'originalStorage' in context && context.originalStorage) {
+    return context.originalStorage;
+  }
+
+  return undefined;
 }
 
 type MethodWrapperOptions = {
@@ -94,7 +121,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             const context: typeof wrapperOptions.context | undefined = wrapperOptions.context;
 
             const waitUntil = context?.waitUntil?.bind?.(context);
-            const storage = context && 'originalStorage' in context ? context.originalStorage : undefined;
+            const storage = resolveOriginalStorage(context, thisArg);
 
             let scopeClient = scope.getClient();
             // Check if client exists AND is still usable (transport not disposed)
