@@ -38,13 +38,25 @@ describe('mysql auto instrumentation', () => {
   ])('%s', (instrumentation, instrumentFile) => {
     // esm is not supported for the otel instrumentation
     const failsOnEsm = instrumentation === 'opentelemetry-based';
+
+    // The orchestrion path is activated via the `--import @sentry/node/orchestrion`
+    // CLI flag. That single ESM hook instruments both ESM and CJS user code (via
+    // `Module.registerHooks` where available, otherwise `Module.register` + the
+    // CJS `Module._compile` patch), so the same flag covers the esm and cjs
+    // scenarios. The OTel path needs no extra flag.
+    const orchestrionFlags = instrumentation === 'orchestrion-based' ? ['--import', '@sentry/node/orchestrion'] : [];
+
     createEsmAndCjsTests(
       __dirname,
       'scenario-withConnect.mjs',
       instrumentFile,
       (createRunner, test) => {
         test('should auto-instrument `mysql` package when using connection.connect()', async () => {
-          await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+          await createRunner()
+            .withFlags(...orchestrionFlags)
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
         });
       },
       { failsOnEsm },
@@ -56,7 +68,11 @@ describe('mysql auto instrumentation', () => {
       instrumentFile,
       (createRunner, test) => {
         test('should auto-instrument `mysql` package when using query without callback', async () => {
-          await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+          await createRunner()
+            .withFlags(...orchestrionFlags)
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
         });
       },
       { failsOnEsm },
@@ -68,7 +84,11 @@ describe('mysql auto instrumentation', () => {
       instrumentFile,
       (createRunner, test) => {
         test('should auto-instrument `mysql` package without connection.connect()', async () => {
-          await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+          await createRunner()
+            .withFlags(...orchestrionFlags)
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
         });
       },
       { failsOnEsm },

@@ -7,8 +7,8 @@ import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sent
 // also covers CJS-internal `require()` calls — no separate `--require` hook is
 // needed. We pass it through rollup only to copy it into `build/` at the path
 // the package.json `exports` map expects; `external: /.*/` keeps every import
-// (e.g. `@sentry/node/orchestrion/config`) as a runtime resolution against the
-// installed package.
+// (e.g. `@sentry/server-utils/orchestrion/import-hook`) as a runtime
+// resolution against the installed package.
 const orchestrionRuntimeHooks = [
   defineConfig({
     input: 'src/orchestrion/runtime/import-hook.mjs',
@@ -22,18 +22,11 @@ export default [
   ...orchestrionRuntimeHooks,
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      // `src/orchestrion/config.ts` and `src/orchestrion/bundler/vite.ts` are
-      // loaded via dedicated subpath exports (`@sentry/node/orchestrion/config`,
-      // `@sentry/node/orchestrion/vite`) — neither is reachable from `src/index.ts`,
-      // so we list them as separate entrypoints to guarantee they end up in
-      // build/esm and build/cjs.
-      entrypoints: [
-        'src/index.ts',
-        'src/init.ts',
-        'src/preload.ts',
-        'src/orchestrion/config.ts',
-        'src/orchestrion/bundler/vite.ts',
-      ],
+      // `src/orchestrion/bundler/vite.ts` is loaded via the dedicated
+      // `@sentry/node/orchestrion/vite` subpath export and is not reachable from
+      // `src/index.ts`, so we list it as a separate entrypoint to guarantee it
+      // ends up in build/esm and build/cjs.
+      entrypoints: ['src/index.ts', 'src/init.ts', 'src/preload.ts', 'src/orchestrion/bundler/vite.ts'],
       packageSpecificConfig: {
         external: [/^@sentry\/opentelemetry/],
         output: {
