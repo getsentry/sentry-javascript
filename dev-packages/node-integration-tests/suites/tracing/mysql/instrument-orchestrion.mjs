@@ -1,4 +1,6 @@
-import '@sentry/node/orchestrion';
+// The orchestrion runtime hook is loaded via the `--import @sentry/node/orchestrion`
+// CLI flag (see test.ts), mirroring real usage. That single ESM hook instruments
+// both ESM and CJS user code, so the same flag works for the esm and cjs scenarios.
 import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 

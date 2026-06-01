@@ -33,7 +33,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
  *
  * Kept as a plain string set (instead of importing the orchestrion integrations
  * themselves) so the orchestrion code path stays tree-shakable: `init()` never
- * pulls in anything from `../orchestrion/*`.
+ * pulls in anything from `server-utils/orchestrion/*`.
  */
 const ORCHESTRION_REPLACED_INTEGRATIONS = new Set<string>(['Mysql']);
 
