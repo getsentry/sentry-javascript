@@ -445,6 +445,7 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
   const origin = browserPerformanceTimeOrigin();
   if (!getBrowserPerformanceAPI()?.getEntries || !origin) {
     // Gatekeeper if performance API not available
+    resetWebVitalState();
     return;
   }
 
@@ -506,6 +507,10 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
     );
   }
 
+  resetWebVitalState();
+}
+
+function resetWebVitalState(): void {
   _lcpEntry = undefined;
   _clsEntry = undefined;
   _measurements = {};
