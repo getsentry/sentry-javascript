@@ -127,6 +127,26 @@ describe('traceLinks', () => {
 
       expect(result).toBeUndefined();
     });
+
+    it('returns undefined when sync KV API is unavailable', () => {
+      const mockStorage = createMockStorage();
+      mockStorage.kv = undefined;
+
+      const result = getStoredSpanContext(mockStorage, 'alarm');
+
+      expect(result).toBeUndefined();
+    });
+
+    it('returns undefined when storage throws', () => {
+      const mockStorage = createMockStorage();
+      mockStorage.kv.get = vi.fn().mockImplementation(() => {
+        throw new Error('Storage error');
+      });
+
+      const result = getStoredSpanContext(mockStorage, 'alarm');
+
+      expect(result).toBeUndefined();
+    });
   });
 
   describe('buildSpanLinks', () => {

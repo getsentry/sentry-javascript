@@ -47,12 +47,19 @@ export function storeSpanContext(originalStorage: DurableObjectStorage, methodNa
 
 /**
  * Retrieves a stored span context from Durable Object storage.
+ * Errors are silently ignored to prevent internal storage failures from propagating to user code.
  */
 export function getStoredSpanContext(
   originalStorage: DurableObjectStorage,
   methodName: string,
 ): StoredSpanContext | undefined {
-  return originalStorage.kv.get<StoredSpanContext>(getTraceLinkKey(methodName));
+  try {
+    return originalStorage.kv.get<StoredSpanContext>(getTraceLinkKey(methodName));
+  } catch (error) {
+    // Silently ignore storage errors to prevent internal failures from affecting user code
+    DEBUG_BUILD && debug.log(`[CloudflareClient] Error retrieving span context for method ${methodName}`, error);
+    return undefined;
+  }
 }
 
 /**
