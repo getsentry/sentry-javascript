@@ -129,7 +129,7 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
-        ...(params && client.getOptions().sendDefaultPii && { ...params }),
+        ...(params && { ...params }),
       },
     },
     { sentryTrace, baggage },
