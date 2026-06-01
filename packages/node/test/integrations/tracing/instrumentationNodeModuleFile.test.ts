@@ -21,22 +21,12 @@ describe('InstrumentationNodeModuleFile import guard', () => {
           walkDir(fullPath);
         } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.test.ts')) {
           const content = fs.readFileSync(fullPath, 'utf-8');
-          if (
-            content.includes('InstrumentationNodeModuleFile') &&
-            content.includes("from '@opentelemetry/instrumentation'")
-          ) {
-            const lines = content.split('\n');
-            const hasDirectImport = lines.some(
-              line => line.includes('InstrumentationNodeModuleFile') && line.includes('@opentelemetry/instrumentation'),
-            );
-            const hasNamedImport = lines.some(line =>
-              /import\s*\{[^}]*InstrumentationNodeModuleFile[^}]*\}\s*from\s*'@opentelemetry\/instrumentation'/.test(
-                line,
-              ),
-            );
-            if (hasDirectImport || hasNamedImport) {
-              offendingFiles.push(path.relative(TRACING_DIR, fullPath));
-            }
+          // Match multi-line imports: look for an import block from @opentelemetry/instrumentation
+          // that includes InstrumentationNodeModuleFile as a named import
+          const importBlockRegex =
+            /import\s*\{[^}]*InstrumentationNodeModuleFile[^}]*\}\s*from\s*['"]@opentelemetry\/instrumentation['"]/s;
+          if (importBlockRegex.test(content)) {
+            offendingFiles.push(path.relative(TRACING_DIR, fullPath));
           }
         }
       }
