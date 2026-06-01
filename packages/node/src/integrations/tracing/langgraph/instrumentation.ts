@@ -3,8 +3,8 @@ import {
   type InstrumentationConfig,
   type InstrumentationModuleDefinition,
   InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../InstrumentationNodeModuleFile';
 import type { CompiledGraph, LangGraphOptions } from '@sentry/core';
 import { getClient, instrumentCreateReactAgent, instrumentLangGraph, SDK_VERSION } from '@sentry/core';
 

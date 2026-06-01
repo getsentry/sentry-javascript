@@ -26,11 +26,11 @@ import * as constants from './constants';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
   isWrapped,
   SemconvStability,
   semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import * as utils from './utils';
 import { KnexInstrumentationConfig } from './types';
 import {
