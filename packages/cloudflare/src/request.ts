@@ -74,7 +74,7 @@ export function wrapRequestHandler(
       attributes,
       httpHeadersToSpanAttributes(
         winterCGHeadersToDict(request.headers),
-        getClient()?.getOptions().sendDefaultPii ?? false,
+        getClient()?.getDataCollectionOptions() ?? false,
       ),
     );
 
