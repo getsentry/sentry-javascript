@@ -84,7 +84,7 @@ Cross-repo searches (only when clearly relevant):
 
 #### Changelog investigation (when a version is mentioned)
 
-If the issue states a version where the problem started (e.g. "works in 7.x, broken since 8.2.0"), **check `CHANGELOG.md`** for that version range. 
+If the issue states a version where the problem started (e.g. "works in 7.x, broken since 8.2.0"), **check `CHANGELOG.md`** for that version range.
 Start with `grep -n "^## " CHANGELOG.md | head -60` to orient, then read the relevant entries.
 Surface any relevant changelog delta in the triage report under **Root cause** or **Information gaps**. If nothing relevant is found, note that explicitly.
 
