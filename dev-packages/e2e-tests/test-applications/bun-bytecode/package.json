@@ -1,0 +1,22 @@
+{
+  "name": "bun-bytecode-test",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
+    "test:build": "pnpm install && bun build src/main.ts --compile --bytecode --format=esm --outfile dist/main",
+    "test:assert": "dist/main"
+  },
+  "dependencies": {
+    "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz"
+  },
+  "devDependencies": {
+    "bun-types": "^1.2.9"
+  },
+  "sentryTest": {
+    "optional": true
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
