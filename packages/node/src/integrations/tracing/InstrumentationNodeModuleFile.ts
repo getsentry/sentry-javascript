@@ -20,6 +20,7 @@
  *   re-export chain, which Bun's bytecode bundler renames and loses scope for.
  * - This copy imports `normalize` directly from 'path' to break that chain.
  */
+/* oxlint-disable */
 
 import { normalize } from 'path';
 import type { InstrumentationModuleFile } from '@opentelemetry/instrumentation';
