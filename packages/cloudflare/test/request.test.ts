@@ -205,7 +205,10 @@ describe('withSentry', () => {
       expect(sentryEvent.contexts?.culture).toEqual({ timezone: 'UTC' });
     });
 
-    test('does not capture request body by default (dataCollection.httpBodies is empty)', async () => {
+    // TODO(v11): Body capture should be gated on `dataCollection.httpBodies` (only capture when
+    // `'incomingRequest'` is listed). Until then we keep the historical behavior of capturing
+    // incoming request bodies by default at `'medium'`, consistent with the Node SDK.
+    test('captures request body with default integration (medium size)', async () => {
       let sentryEvent: Event = {};
       const context = createMockExecutionContext();
 
@@ -213,36 +216,7 @@ describe('withSentry', () => {
         {
           options: {
             ...MOCK_OPTIONS,
-            beforeSend(event) {
-              sentryEvent = event;
-              return null;
-            },
-          },
-          request: new Request('https://example.com', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ username: 'test', data: 'value' }),
-          }),
-          context,
-        },
-        () => {
-          SentryCore.captureMessage('request body');
-          return new Response('test');
-        },
-      );
-
-      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toBeUndefined();
-    });
-
-    test('captures request body when dataCollection.httpBodies includes incomingRequest', async () => {
-      let sentryEvent: Event = {};
-      const context = createMockExecutionContext();
-
-      await wrapRequestHandler(
-        {
-          options: {
-            ...MOCK_OPTIONS,
-            dataCollection: { httpBodies: ['incomingRequest'] },
+            // Default integrations include httpServerIntegration with 'medium' default
             beforeSend(event) {
               sentryEvent = event;
               return null;
@@ -264,6 +238,82 @@ describe('withSentry', () => {
       expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toEqual(
         JSON.stringify({ username: 'test', data: 'value' }),
       );
+    });
+
+    // TODO(v11): Cookies should be attached (subject to denylist filtering) by default. Until then we keep the
+    // historical Cloudflare behavior of not attaching cookies unless the user explicitly opts in.
+    test('does not capture cookies by default', async () => {
+      let sentryEvent: Event = {};
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com', { headers: { cookie: 'foo=bar' } }),
+          context: createMockExecutionContext(),
+        },
+        () => {
+          SentryCore.captureMessage('cookies');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.request?.cookies).toBeUndefined();
+    });
+
+    test('captures cookies when dataCollection.cookies is enabled', async () => {
+      let sentryEvent: Event = {};
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            dataCollection: { cookies: true },
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com', { headers: { cookie: 'foo=bar' } }),
+          context: createMockExecutionContext(),
+        },
+        () => {
+          SentryCore.captureMessage('cookies');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.request?.cookies).toEqual({ foo: 'bar' });
+    });
+
+    test('captures cookies when sendDefaultPii is enabled', async () => {
+      let sentryEvent: Event = {};
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            sendDefaultPii: true,
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com', { headers: { cookie: 'foo=bar' } }),
+          context: createMockExecutionContext(),
+        },
+        () => {
+          SentryCore.captureMessage('cookies');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.request?.cookies).toEqual({ foo: 'bar' });
     });
 
     test('does not capture request body for GET requests', async () => {
