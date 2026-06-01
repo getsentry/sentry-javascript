@@ -1,17 +1,10 @@
-import type { Integration } from '@sentry/core';
 import { debug } from '@sentry/core';
+import type { SetupOrchestrionOptions } from '@sentry/server-utils/orchestrion';
+import { setupOrchestrion } from '@sentry/server-utils/orchestrion';
 import type { NodeClient } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../debug-build';
-import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
-import { detectOrchestrionSetup } from './detect';
 
-export interface ExperimentalSetupOrchestrionOptions {
-  /**
-   * Override the default set of channel-based integrations.
-   * If omitted, all orchestrion integrations shipped by @sentry/node are added.
-   */
-  integrations?: Integration[];
-}
+export type ExperimentalSetupOrchestrionOptions = SetupOrchestrionOptions;
 
 /**
  * EXPERIMENTAL — wires up orchestrion-driven channel integrations.
@@ -24,28 +17,22 @@ export interface ExperimentalSetupOrchestrionOptions {
  * _experimentalSetupOrchestrion(client);
  * ```
  *
- * This is the ONLY exported entry into `packages/node/src/orchestrion/*`. Bundlers
- * can statically determine that apps which never import this drop the entire
+ * This is the ONLY exported entry into the orchestrion code path. Bundlers can
+ * statically determine that apps which never import this drop the entire
  * `orchestrion/` subtree from their output — that is the tree-shaking guarantee.
+ *
+ * The actual implementation lives in `@sentry/server-utils`; this Node
+ * wrapper only adds the experimental opt-in check tied to `NodeOptions`.
  */
 export function _experimentalSetupOrchestrion(
   client: NodeClient | undefined,
   options: ExperimentalSetupOrchestrionOptions = {},
 ): void {
-  DEBUG_BUILD && debug.log('[orchestrion] _experimentalSetupOrchestrion() called');
-
-  if (!client) {
-    DEBUG_BUILD &&
-      debug.warn(
-        '[Sentry] _experimentalSetupOrchestrion() was called without a client. ' +
-          'Pass the value returned by `Sentry.init()`.',
-      );
-    return;
-  }
-
-  // Verify the user remembered to set the flag on init().
-  const clientOptions = client.getOptions() as { _experimentalUseOrchestrion?: boolean };
-  if (!clientOptions._experimentalUseOrchestrion) {
+  // Node-specific: verify the user remembered to set the experimental flag on
+  // init(), which is what makes `init()` skip the OTel integrations these
+  // channel-based ones replace. Without it, both systems instrument the same
+  // library and produce duplicate spans.
+  if (client && !(client.getOptions() as { _experimentalUseOrchestrion?: boolean })._experimentalUseOrchestrion) {
     DEBUG_BUILD &&
       debug.warn(
         '[Sentry] _experimentalSetupOrchestrion() called but Sentry.init() was not given ' +
@@ -54,15 +41,5 @@ export function _experimentalSetupOrchestrion(
       );
   }
 
-  detectOrchestrionSetup();
-
-  const integrations = options.integrations ?? [mysqlChannelIntegration()];
-  DEBUG_BUILD &&
-    debug.log(
-      '[orchestrion] registering channel integrations:',
-      integrations.map(i => i.name),
-    );
-  for (const integration of integrations) {
-    client.addIntegration(integration);
-  }
+  setupOrchestrion(client, options);
 }
