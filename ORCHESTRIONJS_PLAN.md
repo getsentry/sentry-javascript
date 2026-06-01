@@ -1,11 +1,25 @@
 # Orchestrion.js Auto-Instrumentation Experiment Plan
 
+> **Update (out of date):** the sections below describing a separate CJS
+> `runtime/require-hook.cjs` (and a `require` arm on the `./orchestrion` subpath
+> export) are obsolete. The implemented ESM `import-hook.mjs`, loaded via
+> `--import`, already instruments **both** ESM and CJS user code — via
+> `Module.registerHooks` where available, otherwise `Module.register` plus the
+> CJS `Module._compile` patch (`ModulePatch.patch()`). So `--import` is the
+> single runtime entry point for both module systems; no `require-hook`/`require`
+> condition is needed. CJS apps run `node --import @sentry/node/orchestrion app.js`.
+>
 > Experiment branch: `experiment/orchestrionjs-auto-instrumentation`
 >
 > Goal: prototype a future where `@sentry/node` does its own auto-instrumentation
 > via Node.js [`TracingChannel`](https://nodejs.org/api/diagnostics_channel.html#class-tracingchannel),
 > with channel injection driven by [orchestrion.js](https://github.com/nodejs/orchestrion-js)
-> instead of OpenTelemetry's `require-in-the-middle` / `import-in-the-middle` machinery.
+> instead of OpenTelemetry's `require-in-the-middle` /
+> `import-in-the-middle` machinery.
+>
+> The `orchestrion.js` machinery lives in the shared
+> `server-utils` package, for eventual use in the bun and deno
+> SDKs, which will be done as a subsequent project.
 >
 > First target: the `mysql` integration.
 
@@ -34,7 +48,7 @@ This means **one config array** can drive both the runtime hook and every bundle
 ## Architectural goals
 
 1. **Integrations only know channels.** A Sentry integration (e.g. `mysqlIntegration`) subscribes to a published channel name and creates spans. It never imports orchestrion, never knows how the channel got there, and would work identically against a native `diagnostics_channel` that some library already publishes itself.
-2. **Single source of truth for orchestrion config.** Channel names + module matchers + function queries live in **one** TypeScript module. Both the runtime hook and the bundler plugin import from it. Adding a new instrumentation = one edit.
+2. **Single source of truth for orchestrion config.** Channel names + module matchers + function queries live in **one** TypeScript module. Both the runtime hook and the bundler plugin import from it. Adding a new instrumentation = one edit. When this config is being consumed by multiple SDKs, one edit can add instrumentation to multiple platforms.
 3. **Two equally good user paths, one of which must be active.**
    - **Bundler path** (preferred when bundling): the user adds `sentryOrchestrionPlugin()` to their `vite.config.ts`. Nothing else.
    - **Runtime path** (preferred for unbundled Node servers): the user runs `node --import @sentry/node/orchestrion app.js` (ESM) or `node --require @sentry/node/orchestrion app.js` (CJS). The same import path resolves to the ESM `import-hook.mjs` or the CJS `require-hook.cjs` based on the active loader condition, so the user doesn't have to know which one to pick.
@@ -74,7 +88,7 @@ All channel-consumer integrations live together under `integrations/tracing-chan
 
 ## Central config — the load-bearing file
 
-`packages/node/src/orchestrion/channels.ts`
+`packages/server-utils/src/orchestrion/channels.ts`
 
 ```ts
 // String constants shared between config.ts (producer) and integrations (consumer).
@@ -85,7 +99,7 @@ export const CHANNELS = {
 } as const;
 ```
 
-`packages/node/src/orchestrion/config.ts`
+`packages/server-utils/src/orchestrion/config.ts`
 
 ```ts
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
@@ -105,7 +119,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
 
 ## The integration — channel consumer
 
-`packages/node/src/integrations/tracing-channel/mysql.ts` (sketch):
+`packages/server-utils/src/integrations/tracing-channel/mysql.ts` (sketch):
 
 ```ts
 import { channel, tracingChannel } from 'node:diagnostics_channel';
@@ -160,8 +174,8 @@ Add to `packages/node/package.json`:
 "exports": {
   // … existing entries …
   "./orchestrion": {
-    // Single subpath, two condition arms — Node picks the right file based on
-    // whether the user passed `--import` (ESM hook) or `--require` (CJS hook).
+    // Only a --import hook is supported; this fully covers both
+    // CJS and ESM modules.
     "import": { "default": "./build/orchestrion/import-hook.mjs" },
     "require": { "default": "./build/orchestrion/require-hook.cjs" }
   },
@@ -191,7 +205,7 @@ No `instrumentations: [...]` array to copy-paste, no channel names to remember.
 
 ## Runtime hook — `--import` ESM target
 
-`packages/node/src/orchestrion/runtime/import-hook.mjs`
+`packages/server-utils/src/orchestrion/runtime/import-hook.mjs`
 
 ```js
 import { register } from 'node:module';
@@ -210,26 +224,11 @@ if (g.runtime) {
 }
 ```
 
-`packages/node/src/orchestrion/runtime/require-hook.cjs`
-
-```js
-const ModulePatch = require('@apm-js-collab/tracing-hooks');
-const { SENTRY_INSTRUMENTATIONS } = require('@sentry/node/orchestrion/config');
-
-const g = (globalThis.__SENTRY_ORCHESTRION__ ??= {});
-if (g.runtime) {
-  console.warn('[Sentry] @sentry/node/orchestrion was loaded twice via --require. Ignoring.');
-} else {
-  g.runtime = true;
-  new ModulePatch({ instrumentations: SENTRY_INSTRUMENTATIONS }).patch();
-}
-```
-
-Both files set `globalThis.__SENTRY_ORCHESTRION__.runtime = true`. That marker is how `detect.ts` knows the runtime path is active later.
+The import hook sets `globalThis.__SENTRY_ORCHESTRION__.runtime = true`. That marker is how `detect.ts` knows the runtime path is active later.
 
 ## Vite plugin — build-time path
 
-`packages/node/src/orchestrion/bundler/vite.ts`
+`packages/server-utils/src/orchestrion/bundler/vite.ts`
 
 ```ts
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
@@ -266,7 +265,7 @@ the plugin injects runtime JS into the bundle, not just a build-time flag. Build
 
 ## Detection — `detect.ts`
 
-`packages/node/src/orchestrion/detect.ts`
+`packages/server-utils/src/orchestrion/detect.ts`
 
 ```ts
 import { logger } from '@sentry/core';
@@ -303,10 +302,15 @@ export function detectOrchestrionSetup(): void {
 
 The opt-in is deliberately split so the orchestrion code path stays tree-shakable. `Sentry.init()` only learns about a boolean flag; it does **not** import anything from `orchestrion/`. The orchestrion-specific code only runs if the user explicitly imports and calls `_experimentalSetupOrchestrion()` after `init()`.
 
+This is used by for the Node orchestrion integration to keep it
+opt-in, since it replaces existing working integrations. Other
+SDKs that use orchestrion for net-new integrations will be
+automatically enabled if available.
+
 ### Step 1 — `_experimentalUseOrchestrion` flag on `NodeOptions`
 
 ```ts
-// packages/node-core/src/types.ts (or wherever NodeOptions lives)
+// packages/node/src/types.ts (or wherever NodeOptions lives)
 export interface NodeOptions extends ClientOptions {
   // … existing options …
   /**
@@ -340,7 +344,7 @@ const ORCHESTRION_REPLACED_INTEGRATIONS = new Set<string>([
 ]);
 ```
 
-The list of replaced integration names is a plain string set defined alongside `init()` itself — it does not import from `orchestrion/`, so toggling the flag doesn't pull orchestrion code into a user's bundle.
+The list of replaced integration names is a plain string set defined alongside `init()` itself — it does not import from `server-utils/orchestrion/`, so toggling the flag doesn't pull orchestrion code into a user's bundle.
 
 ### Step 2 — `_experimentalSetupOrchestrion()` as a separate export
 
