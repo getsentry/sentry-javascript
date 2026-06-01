@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import type { D1Database, D1PreparedStatement, D1Response } from '@cloudflare/workers-types';
+import type { D1Database, D1DatabaseSession, D1PreparedStatement, D1Response } from '@cloudflare/workers-types';
 import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
 import { addBreadcrumb, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
 import { ensureInstrumented } from '../../instrument';
@@ -107,35 +107,105 @@ function getAttributesFromD1Response(d1Result: D1Response): SpanAttributes {
   };
 }
 
-function createD1Breadcrumb(query: string, type: 'first' | 'run' | 'all' | 'raw', d1Result?: D1Response): void {
+type D1QueryType = 'first' | 'run' | 'all' | 'raw' | 'batch' | 'exec';
+
+function createD1Breadcrumb(query: string, type: D1QueryType, d1Result?: D1Response): void {
   addBreadcrumb({
     category: 'query',
     message: query,
     data: {
       ...(d1Result ? getAttributesFromD1Response(d1Result) : {}),
-      'cloudflare.d1.query_type': type,
+      'db.operation.name': type,
     },
   });
 }
 
-function createStartSpanOptions(query: string, type: 'first' | 'run' | 'all' | 'raw'): StartSpanOptions {
+function createStartSpanOptions(query: string, type: D1QueryType): StartSpanOptions {
   return {
     op: 'db.query',
     name: query,
     attributes: {
-      'cloudflare.d1.query_type': type,
+      'db.system.name': 'cloudflare-d1',
+      'db.operation.name': type,
+      'db.query.text': query,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
     },
   };
 }
 
-function _instrumentD1(db: D1Database): D1Database {
-  db.prepare = new Proxy(db.prepare, {
-    apply(target, thisArg, args: Parameters<typeof db.prepare>) {
+function instrumentPrepare(
+  prepare: D1Database['prepare'] | D1DatabaseSession['prepare'],
+): D1Database['prepare'] | D1DatabaseSession['prepare'] {
+  return new Proxy(prepare, {
+    apply(target, thisArg, args: Parameters<typeof prepare>) {
       const [query] = args;
       return instrumentD1PreparedStatement(Reflect.apply(target, thisArg, args), query);
     },
   });
+}
+
+function instrumentBatch(
+  batch: D1Database['batch'] | D1DatabaseSession['batch'],
+): D1Database['batch'] | D1DatabaseSession['batch'] {
+  return new Proxy(batch, {
+    apply(target, thisArg, args: Parameters<typeof batch>) {
+      const statements = args[0];
+      // D1PreparedStatement exposes a `statement` property at runtime, but it's not in @cloudflare/workers-types.
+      // https://github.com/cloudflare/workerd/blob/dc12d7650b4f5d4f9ba6a47aa45fad769cdf8db4/src/cloudflare/internal/d1-api.ts#L210
+      const queryText = statements
+        .map(statement => (statement as unknown as { statement?: string }).statement ?? '')
+        .join('\n');
+
+      return startSpan(
+        {
+          op: 'db.query',
+          name: 'D1 batch',
+          attributes: {
+            'db.system.name': 'cloudflare-d1',
+            'db.operation.name': 'batch',
+            'db.query.text': queryText || undefined,
+            'db.operation.batch.size': statements.length,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
+          },
+        },
+        async () => {
+          const res = await Reflect.apply(target, thisArg, args);
+          createD1Breadcrumb('D1 batch', 'batch');
+          return res;
+        },
+      );
+    },
+  });
+}
+
+function instrumentD1Session(session: D1DatabaseSession): D1DatabaseSession {
+  session.prepare = instrumentPrepare(session.prepare);
+  session.batch = instrumentBatch(session.batch);
+  return session;
+}
+
+function _instrumentD1(db: D1Database): D1Database {
+  db.prepare = instrumentPrepare(db.prepare);
+  db.batch = instrumentBatch(db.batch);
+
+  db.exec = new Proxy(db.exec, {
+    apply(target, thisArg, args: Parameters<typeof db.exec>) {
+      const [query] = args;
+      return startSpan(createStartSpanOptions(query, 'exec'), async () => {
+        const res = await Reflect.apply(target, thisArg, args);
+        createD1Breadcrumb(query, 'exec');
+        return res;
+      });
+    },
+  });
+
+  if ('withSession' in db && typeof db.withSession === 'function') {
+    db.withSession = new Proxy(db.withSession, {
+      apply(target, thisArg, args: [unknown]) {
+        return instrumentD1Session(Reflect.apply(target, thisArg, args) as D1DatabaseSession);
+      },
+    });
+  }
 
   return db;
 }
