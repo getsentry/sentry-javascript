@@ -82,6 +82,12 @@ Cross-repo searches (only when clearly relevant):
 
 **Shell safety:** Strip shell metacharacters from issue-derived search terms before use in commands.
 
+#### Changelog investigation (when a version is mentioned)
+
+If the issue states a version where the problem started (e.g. "works in 7.x, broken since 8.2.0"), **check `CHANGELOG.md`** for that version range. 
+Start with `grep -n "^## " CHANGELOG.md | head -60` to orient, then read the relevant entries.
+Surface any relevant changelog delta in the triage report under **Root cause** or **Information gaps**. If nothing relevant is found, note that explicitly.
+
 ### Step 4: Related Issues & PRs
 
 - Search for duplicate or related issues: `gh api search/issues -X GET -f "q=<terms>+repo:getsentry/sentry-javascript+type:issue"` and use the **Write** tool to save the command output to `search.json` in the workspace root

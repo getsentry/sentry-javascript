@@ -121,7 +121,7 @@ INJECTION_PATTERNS = [
     (r"\b(admin|developer|system)[\s_-]mode", 8, "Mode manipulation"),
 
     # Sensitive file paths (10 points) - legitimate issues rarely reference these
-    (r"(~/\.aws/|~/\.ssh/|/root/|/etc/passwd|/etc/shadow)", 10, "System credentials path"),
+    (r"(~/\.aws/|~/\.ssh/|(?<!\w)/root/|/etc/passwd|/etc/shadow)", 10, "System credentials path"),
     (r"(\.aws/credentials|id_rsa|\.ssh/id_)", 10, "Credentials file reference"),
 
     # Environment variable exfiltration (8 points)
