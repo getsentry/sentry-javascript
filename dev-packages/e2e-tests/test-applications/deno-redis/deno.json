@@ -1,0 +1,8 @@
+{
+  "imports": {
+    "@sentry/deno": "npm:@sentry/deno",
+    "ioredis": "npm:ioredis@^5.11.0",
+    "redis": "npm:redis@^5.12.0"
+  },
+  "nodeModulesDir": "manual"
+}

@@ -180,7 +180,7 @@ async function instrumentHandle(
           'sveltekit.tracing.original_name': originalName,
           ...httpHeadersToSpanAttributes(
             winterCGHeadersToDict(event.request.headers),
-            getClient()?.getOptions().sendDefaultPii ?? false,
+            getClient()?.getDataCollectionOptions() ?? false,
           ),
         });
       }
@@ -209,7 +209,7 @@ async function instrumentHandle(
               'http.method': event.request.method,
               ...httpHeadersToSpanAttributes(
                 winterCGHeadersToDict(event.request.headers),
-                getClient()?.getOptions().sendDefaultPii ?? false,
+                getClient()?.getDataCollectionOptions() ?? false,
               ),
             },
             name: routeName,

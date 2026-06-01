@@ -16,9 +16,14 @@ import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
-import { HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED, HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED } from './denoVersion';
+import {
+  HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
+  HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
+  TRACING_CHANNEL_SUPPORTED,
+} from './denoVersion';
 import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
+import { denoRedisIntegration } from './integrations/redis';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
@@ -47,6 +52,8 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     ...(HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED || HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED
       ? [denoHttpIntegration()]
       : []),
+    // node:diagnostics_channel.tracingChannel exists on Deno 1.44.3+.
+    ...(TRACING_CHANNEL_SUPPORTED ? [denoRedisIntegration()] : []),
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),

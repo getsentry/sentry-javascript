@@ -221,7 +221,7 @@ async function instrumentRequestStartHttpServerSpan(
             url: stripUrlQueryAndFragment(ctx.url.href),
             ...httpHeadersToSpanAttributes(
               winterCGHeadersToDict(request.headers),
-              getClient()?.getOptions().sendDefaultPii ?? false,
+              getClient()?.getDataCollectionOptions() ?? false,
             ),
           };
 
