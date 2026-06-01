@@ -85,7 +85,7 @@ Cross-repo searches (only when clearly relevant):
 #### Changelog investigation (when a version is mentioned)
 
 If the issue states a version where the problem started (e.g. "works in 7.x, broken since 8.2.0"), **check `CHANGELOG.md`** for that version range.
-Start with `grep -n "^## " CHANGELOG.md | head -60` to orient, then read the relevant entries.
+Use the **Grep** tool (pattern `^## ` on `CHANGELOG.md`) to list version headings, then use the **Read** tool to read the relevant entries. Do NOT use Bash `grep`/`head` — the native Grep/Read tools are read-only and require no extra Bash permissions in CI.
 Surface any relevant changelog delta in the triage report under **Root cause** or **Information gaps**. If nothing relevant is found, note that explicitly.
 
 ### Step 4: Related Issues & PRs
