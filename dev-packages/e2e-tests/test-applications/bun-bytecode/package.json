@@ -13,9 +13,6 @@
   "devDependencies": {
     "bun-types": "^1.2.9"
   },
-  "sentryTest": {
-    "optional": true
-  },
   "volta": {
     "extends": "../../package.json"
   }
