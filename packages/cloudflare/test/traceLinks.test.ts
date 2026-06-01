@@ -31,7 +31,7 @@ describe('traceLinks', () => {
   });
 
   describe('storeSpanContext', () => {
-    it('stores span context with sampled=true when traceFlags is SAMPLED', async () => {
+    it('stores span context with sampled=true when traceFlags is SAMPLED', () => {
       const mockSpanContext = {
         traceId: 'abc123def456789012345678901234ab',
         spanId: '1234567890abcdef',
@@ -43,16 +43,16 @@ describe('traceLinks', () => {
       vi.mocked(sentryCore.getActiveSpan).mockReturnValue(mockSpan as any);
 
       const mockStorage = createMockStorage();
-      await storeSpanContext(mockStorage, 'alarm');
+      storeSpanContext(mockStorage, 'alarm');
 
-      expect(mockStorage.put).toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm', {
+      expect(mockStorage.kv.put).toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm', {
         traceId: 'abc123def456789012345678901234ab',
         spanId: '1234567890abcdef',
         sampled: true,
       });
     });
 
-    it('stores span context with sampled=false when traceFlags is NONE', async () => {
+    it('stores span context with sampled=false when traceFlags is NONE', () => {
       const mockSpanContext = {
         traceId: 'abc123def456789012345678901234ab',
         spanId: '1234567890abcdef',
@@ -64,25 +64,25 @@ describe('traceLinks', () => {
       vi.mocked(sentryCore.getActiveSpan).mockReturnValue(mockSpan as any);
 
       const mockStorage = createMockStorage();
-      await storeSpanContext(mockStorage, 'alarm');
+      storeSpanContext(mockStorage, 'alarm');
 
-      expect(mockStorage.put).toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm', {
+      expect(mockStorage.kv.put).toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm', {
         traceId: 'abc123def456789012345678901234ab',
         spanId: '1234567890abcdef',
         sampled: false,
       });
     });
 
-    it('does not store when no active span', async () => {
+    it('does not store when no active span', () => {
       vi.mocked(sentryCore.getActiveSpan).mockReturnValue(undefined);
 
       const mockStorage = createMockStorage();
-      await storeSpanContext(mockStorage, 'alarm');
+      storeSpanContext(mockStorage, 'alarm');
 
-      expect(mockStorage.put).not.toHaveBeenCalled();
+      expect(mockStorage.kv.put).not.toHaveBeenCalled();
     });
 
-    it('silently ignores storage errors', async () => {
+    it('silently ignores storage errors', () => {
       const mockSpanContext = {
         traceId: 'abc123def456789012345678901234ab',
         spanId: '1234567890abcdef',
@@ -94,42 +94,56 @@ describe('traceLinks', () => {
       vi.mocked(sentryCore.getActiveSpan).mockReturnValue(mockSpan as any);
 
       const mockStorage = createMockStorage();
-      mockStorage.put = vi.fn().mockRejectedValue(new Error('Storage quota exceeded'));
+      mockStorage.kv.put = vi.fn().mockImplementation(() => {
+        throw new Error('Storage quota exceeded');
+      });
 
-      await expect(storeSpanContext(mockStorage, 'alarm')).resolves.toBeUndefined();
+      // Should not throw
+      expect(() => storeSpanContext(mockStorage, 'alarm')).not.toThrow();
     });
   });
 
   describe('getStoredSpanContext', () => {
-    it('retrieves stored span context', async () => {
+    it('retrieves stored span context using sync KV API', () => {
       const storedContext = {
         traceId: 'abc123def456789012345678901234ab',
         spanId: '1234567890abcdef',
         sampled: true,
       };
       const mockStorage = createMockStorage();
-      mockStorage.get = vi.fn().mockResolvedValue(storedContext);
+      mockStorage.kv.get = vi.fn().mockReturnValue(storedContext);
 
-      const result = await getStoredSpanContext(mockStorage, 'alarm');
+      const result = getStoredSpanContext(mockStorage, 'alarm');
 
-      expect(mockStorage.get).toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm');
+      expect(mockStorage.kv.get).toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm');
       expect(result).toEqual(storedContext);
     });
 
-    it('returns undefined when no stored context', async () => {
+    it('returns undefined when no stored context', () => {
       const mockStorage = createMockStorage();
-      mockStorage.get = vi.fn().mockResolvedValue(undefined);
+      mockStorage.kv.get = vi.fn().mockReturnValue(undefined);
 
-      const result = await getStoredSpanContext(mockStorage, 'alarm');
+      const result = getStoredSpanContext(mockStorage, 'alarm');
 
       expect(result).toBeUndefined();
     });
 
-    it('returns undefined when storage throws', async () => {
+    it('returns undefined when sync KV API is unavailable', () => {
       const mockStorage = createMockStorage();
-      mockStorage.get = vi.fn().mockRejectedValue(new Error('Storage error'));
+      mockStorage.kv = undefined;
 
-      const result = await getStoredSpanContext(mockStorage, 'alarm');
+      const result = getStoredSpanContext(mockStorage, 'alarm');
+
+      expect(result).toBeUndefined();
+    });
+
+    it('returns undefined when storage throws', () => {
+      const mockStorage = createMockStorage();
+      mockStorage.kv.get = vi.fn().mockImplementation(() => {
+        throw new Error('Storage error');
+      });
+
+      const result = getStoredSpanContext(mockStorage, 'alarm');
 
       expect(result).toBeUndefined();
     });
@@ -183,6 +197,12 @@ describe('traceLinks', () => {
 });
 
 function createMockStorage(): any {
+  const mockKv = {
+    get: vi.fn().mockReturnValue(undefined),
+    put: vi.fn(),
+    delete: vi.fn().mockReturnValue(false),
+  };
+
   return {
     get: vi.fn().mockResolvedValue(undefined),
     put: vi.fn().mockResolvedValue(undefined),
@@ -197,5 +217,6 @@ function createMockStorage(): any {
     sql: {
       exec: vi.fn(),
     },
+    kv: mockKv,
   };
 }

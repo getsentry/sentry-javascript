@@ -63,7 +63,7 @@ export function instrumentDurableObjectStorage(
               // We use the original (uninstrumented) storage (target) to avoid creating a span
               // for this internal operation. The storage is deferred via waitUntil to not block.
               if (methodName === 'setAlarm') {
-                await storeSpanContext(target, 'alarm');
+                storeSpanContext(target, 'alarm');
               }
             };
 
