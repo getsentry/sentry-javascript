@@ -321,6 +321,181 @@ Deno.test('Deno.serve should capture request headers and set response context', 
   assertEquals(transaction?.contexts?.trace?.data?.['http.response.header.x_custom_header'], 'test');
 });
 
+Deno.test('Deno.serve should capture client address and port when userInfo data collection is enabled', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    dataCollection: { userInfo: true },
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
+    return new Response('OK');
+  });
+  await p;
+
+  const res = await fetch(`http://localhost:${server.addr.port}/test`);
+  assertEquals(await res.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  const [transaction] = transactionEvents;
+
+  assertExists(transaction?.contexts?.trace?.data?.['client.address']);
+  assertExists(transaction?.contexts?.trace?.data?.['client.port']);
+});
+
+Deno.test('Deno.serve should capture client address and port when sendDefaultPii is enabled', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    sendDefaultPii: true,
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
+    return new Response('OK');
+  });
+  await p;
+
+  const res = await fetch(`http://localhost:${server.addr.port}/test`);
+  assertEquals(await res.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  const [transaction] = transactionEvents;
+
+  assertExists(transaction?.contexts?.trace?.data?.['client.address']);
+  assertExists(transaction?.contexts?.trace?.data?.['client.port']);
+});
+
+Deno.test('Deno.serve should not capture client address by default', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
+    return new Response('OK');
+  });
+  await p;
+
+  const res = await fetch(`http://localhost:${server.addr.port}/test`);
+  assertEquals(await res.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  const [transaction] = transactionEvents;
+
+  assertEquals(transaction?.contexts?.trace?.data?.['client.address'], undefined);
+  assertEquals(transaction?.contexts?.trace?.data?.['client.port'], undefined);
+});
+
+Deno.test('Deno.serve should keep PII request headers when dataCollection enables header collection', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    dataCollection: { httpHeaders: { request: true } },
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
+    return new Response('OK');
+  });
+  await p;
+
+  const res = await fetch(`http://localhost:${server.addr.port}/test`, {
+    headers: { 'X-Forwarded-For': '203.0.113.7' },
+  });
+  assertEquals(await res.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  const [transaction] = transactionEvents;
+
+  assertEquals(transaction?.contexts?.trace?.data?.['http.request.header.x_forwarded_for'], '203.0.113.7');
+});
+
+Deno.test('Deno.serve should filter PII request headers by default', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
+    return new Response('OK');
+  });
+  await p;
+
+  const res = await fetch(`http://localhost:${server.addr.port}/test`, {
+    headers: { 'X-Forwarded-For': '203.0.113.7' },
+  });
+  assertEquals(await res.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  const [transaction] = transactionEvents;
+
+  assertEquals(transaction?.contexts?.trace?.data?.['http.request.header.x_forwarded_for'], '[Filtered]');
+});
+
 Deno.test('Deno.serve should support distributed tracing with sentry-trace header', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
