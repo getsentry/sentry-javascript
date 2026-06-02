@@ -80,9 +80,9 @@ let cachedTimeOrigin: number | null | undefined = null;
 /**
  * Gets the time origin and the mode used to determine it.
  *
- * Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
- * performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
- * data as reliable if they are within a reasonable threshold of the current time.
+ * Unfortunately browsers may report inaccurate time origin data through performance.timeOrigin,
+ * which results in poor results in performance data. We only treat time origin data as reliable
+ * if it is within a reasonable threshold of the current time.
  *
  * TODO: move to `@sentry/browser-utils` package.
  */
@@ -104,25 +104,7 @@ function getBrowserTimeOrigin(): number | undefined {
     }
   }
 
-  // TODO: Remove all code related to `performance.timing.navigationStart` once we drop support for Safari 14.
-  // `performance.timeSince` is available in Safari 15.
-  // see: https://caniuse.com/mdn-api_performance_timeorigin
-
-  // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
-  // is not as widely supported. Namely, performance.timeOrigin is undefined in Safari as of writing.
-  // Also as of writing, performance.timing is not available in Web Workers in mainstream browsers, so it is not always
-  // a valid fallback. In the absence of an initial time provided by the browser, fallback to the current time from the
-  // Date API.
-  // eslint-disable-next-line deprecation/deprecation
-  const navigationStart = performance.timing?.navigationStart;
-  if (typeof navigationStart === 'number') {
-    const navigationStartDelta = Math.abs(navigationStart + performanceNow - dateNow);
-    if (navigationStartDelta < threshold) {
-      return navigationStart;
-    }
-  }
-
-  // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to subtracting
+  // timeOrigin is skewed or unavailable, fallback to subtracting
   // `performance.now()` from `Date.now()`.
   return dateNow - performanceNow;
 }
