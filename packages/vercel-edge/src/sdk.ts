@@ -56,8 +56,11 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     linkedErrorsIntegration(),
     winterCGFetchIntegration(),
     consoleIntegration(),
-    // TODO(v11): integration can be included - but integration should not add IP address etc
-    ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
+    // TODO(v11): integration can be included - but integration should not add IP address etc.
+    // Until then, only attach request data when the user opts in via `sendDefaultPii` or by configuring
+    // `dataCollection` (the integration itself respects the granular `dataCollection` settings).
+    // eslint-disable-next-line deprecation/deprecation
+    ...(options.sendDefaultPii || options.dataCollection != null ? [requestDataIntegration()] : []),
   ];
 }
 
