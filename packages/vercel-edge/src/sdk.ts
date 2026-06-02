@@ -45,7 +45,8 @@ declare const process: {
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
 /** Get the default integrations for the browser SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  // todo(v11): remove options parameter
   return [
     dedupeIntegration(),
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
