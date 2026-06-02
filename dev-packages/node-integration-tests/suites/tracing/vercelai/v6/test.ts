@@ -30,7 +30,7 @@ describe('Vercel AI integration (V6)', () => {
     'scenario.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('creates ai related spans with sendDefaultPii: false', async () => {
+      test('creates ai related spans with genAI recording disabled', async () => {
         await createRunner()
           .expect({ transaction: { transaction: 'main' } })
           .expect({
@@ -143,7 +143,7 @@ describe('Vercel AI integration (V6)', () => {
     'scenario.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('creates ai related spans with sendDefaultPii: true', async () => {
+      test('creates ai related spans with genAI recording enabled', async () => {
         await createRunner()
           .expect({ transaction: { transaction: 'main' } })
           .expect({
