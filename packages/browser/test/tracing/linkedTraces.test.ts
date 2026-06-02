@@ -286,6 +286,45 @@ describe('addPreviousTraceSpanLink', () => {
     });
   });
 
+  it('prefers sample rate from span over sample rate from DSC', () => {
+    const currentSpanStart = timestampInSeconds();
+
+    const previousTraceInfo: PreviousTraceInfo = {
+      spanContext: { traceId: '123', spanId: '456', traceFlags: 1 },
+      startTimestamp: currentSpanStart - PREVIOUS_TRACE_MAX_DURATION + 1,
+      sampleRand: 0.0126,
+      sampleRate: 0.4,
+    };
+
+    const currentSpan = new SentrySpan({
+      name: 'test',
+      startTimestamp: currentSpanStart,
+      parentSpanId: '789',
+      spanId: 'abc',
+      traceId: 'def',
+      sampled: true,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 0.5,
+      },
+    });
+
+    const oldPropagationContext: PropagationContext = {
+      sampleRand: 0.0126,
+      traceId: '123',
+      sampled: true,
+      dsc: { sample_rand: '0.0126', sample_rate: '0.6' },
+    };
+
+    const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan, oldPropagationContext);
+
+    expect(updatedPreviousTraceInfo).toEqual({
+      spanContext: currentSpan.spanContext(),
+      startTimestamp: currentSpanStart,
+      sampleRand: 0.0126,
+      sampleRate: 0.5,
+    });
+  });
+
   it('logs a debug message when adding a previous trace link (with stringified context)', () => {
     const debugLogSpy = vi.spyOn(debug, 'log');
 
