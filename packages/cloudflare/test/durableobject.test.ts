@@ -81,6 +81,69 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
   });
 
+  it('does not create RPC spans without metadata when both RPC options are set', () => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+
+    const testClass = class {
+      rpcMethod() {
+        return 'result';
+      }
+    };
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({
+        enableRpcTracePropagation: true,
+        instrumentPrototypeMethods: true,
+      }),
+      testClass as any,
+    );
+    const obj = Reflect.construct(instrumented, []);
+
+    expect(obj.rpcMethod()).toBe('result');
+    expect(startSpanSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not create RPC spans without metadata when enableRpcTracePropagation is true', () => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+
+    const testClass = class {
+      rpcMethod() {
+        return 'result';
+      }
+    };
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({
+        enableRpcTracePropagation: true,
+        instrumentPrototypeMethods: false,
+      }),
+      testClass as any,
+    );
+    const obj = Reflect.construct(instrumented, []);
+
+    expect(obj.rpcMethod()).toBe('result');
+    expect(startSpanSpy).not.toHaveBeenCalled();
+  });
+
+  it('creates RPC spans without metadata when using deprecated instrumentPrototypeMethods', () => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan').mockImplementation((_, callback) => callback({} as any));
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+
+    const testClass = class {
+      rpcMethod() {
+        return 'result';
+      }
+    };
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({ instrumentPrototypeMethods: true }),
+      testClass as any,
+    );
+    const obj = Reflect.construct(instrumented, []);
+
+    expect(obj.rpcMethod()).toBe('result');
+    expect(startSpanSpy).toHaveBeenCalled();
+  });
+
   it('Binds prototype methods to original object when enableRpcTracePropagation is true', () => {
     const testClass = class {
       method() {

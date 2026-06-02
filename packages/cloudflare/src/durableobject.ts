@@ -133,7 +133,7 @@ export function instrumentDurableObjectWithSentry<
 
       // When using the deprecated `instrumentPrototypeMethods` option, always create spans.
       // When using the new `enableRpcTracePropagation`, only create spans when RPC metadata is present.
-      const alwaysTrace = options.instrumentPrototypeMethods !== undefined;
+      const alwaysTrace = options.enableRpcTracePropagation === undefined;
 
       // Return a Proxy that binds all methods to the original object and creates spans
       // for RPC calls that have Sentry trace context propagated.

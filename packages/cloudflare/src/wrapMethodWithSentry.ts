@@ -1,5 +1,5 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
-import type { SerializedTraceData, Span } from '@sentry/core';
+import type { SerializedTraceData } from '@sentry/core';
 import {
   captureException,
   continueTrace,
@@ -18,11 +18,7 @@ import { flushAndDispose } from './flush';
 import { ensureInstrumented } from './instrument';
 import { init } from './sdk';
 import { extractRpcMeta } from './utils/rpcMeta';
-import {
-  buildSpanLinks,
-  getStoredSpanContext,
-  storeSpanContext,
-} from './utils/traceLinks';
+import { buildSpanLinks, getStoredSpanContext, storeSpanContext } from './utils/traceLinks';
 
 /** Extended DurableObjectState with originalStorage exposed by instrumentContext */
 interface InstrumentedDurableObjectState extends DurableObjectState {
