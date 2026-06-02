@@ -7,7 +7,7 @@ export function register() {
       dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
       tunnel: `http://localhost:3031/`, // proxy server
       tracesSampleRate: 1,
-      sendDefaultPii: true,
+      dataCollection: { userInfo: true },
       transportOptions: {
         // We are doing a lot of events at once in this test app
         bufferSize: 1000,
