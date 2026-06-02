@@ -15,6 +15,8 @@ export default Sentry.withSentry(
     async fetch(request, env, _ctx) {
       const url = new URL(request.url);
 
+      await env.DB.exec('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)');
+
       if (url.pathname === '/prepare') {
         await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(1).all();
         return new Response('ok');
@@ -29,6 +31,11 @@ export default Sentry.withSentry(
 
         const isSameRef = prepareBeforeManual === prepareAfterManual ? 'true' : 'false';
         return new Response(isSameRef);
+      }
+
+      if (url.pathname === '/error') {
+        await env.DB.prepare('SELECT * FROM non_existent_table').all();
+        return new Response('ok');
       }
 
       return new Response('not found', { status: 404 });

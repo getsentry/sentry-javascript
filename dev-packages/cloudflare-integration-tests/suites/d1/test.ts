@@ -52,6 +52,48 @@ it('instruments D1 prepare().all() automatically via env', async ({ signal }) =>
   await runner.completed();
 });
 
+it('captures error event when a D1 query references a non-existent table', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .ignore('transaction')
+    .expect((envelope: Envelope) => {
+      expect(envelopeItemType(envelope)).toBe('event');
+      const event = envelopeItem(envelope);
+      expect(event.level).toBe('error');
+
+      const values = (event.exception as { values: Array<Record<string, unknown>> })?.values;
+      expect(values).toHaveLength(2);
+
+      expect(values).toEqual([
+        {
+          type: 'Error',
+          value: 'no such table: non_existent_table: SQLITE_ERROR',
+          stacktrace: expect.any(Object),
+          mechanism: {
+            type: 'auto.http.cloudflare',
+            handled: false,
+            source: 'cause',
+            exception_id: 1,
+            parent_id: 0,
+          },
+        },
+        {
+          type: 'Error',
+          value: 'D1_ERROR: no such table: non_existent_table: SQLITE_ERROR',
+          stacktrace: expect.any(Object),
+          mechanism: {
+            type: 'generic',
+            handled: true,
+            exception_id: 0,
+          },
+        },
+      ]);
+    })
+    .start(signal);
+
+  await runner.makeRequest('get', '/error', { expectError: true });
+  await runner.completed();
+});
+
 it('does not double-instrument when instrumentD1WithSentry is used on top of env instrumentation', async ({
   signal,
 }) => {

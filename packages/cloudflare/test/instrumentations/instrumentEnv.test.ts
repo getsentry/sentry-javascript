@@ -36,7 +36,7 @@ describe('instrumentEnv', () => {
     const instrumented = instrumentEnv(env);
 
     const db = instrumented.DB as typeof d1Database;
-    await db.exec('SELECT 1');
+    await db.prepare('SELECT 1').first();
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({ op: 'db.query', name: 'SELECT 1' }),
