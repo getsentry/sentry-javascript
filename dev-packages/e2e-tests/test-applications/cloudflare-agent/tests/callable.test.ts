@@ -3,7 +3,6 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('@callable() methods work correctly with Sentry instrumentDurableObjectWithSentry', async ({ page, baseURL }) => {
   const transactionPromise = waitForTransaction('cloudflare-agent', transactionEvent => {
-    console.log(transactionEvent);
     return (
       transactionEvent.transaction === 'GET /agents/my-agent/user-123' &&
       transactionEvent.contexts?.trace?.parent_span_id !== undefined
