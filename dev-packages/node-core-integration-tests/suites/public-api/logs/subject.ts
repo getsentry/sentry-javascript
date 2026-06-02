@@ -7,7 +7,7 @@ const client = new Sentry.NodeClient({
   stackParser: Sentry.defaultStackParser,
   integrations: [],
   enableLogs: true,
-  sendDefaultPii: true,
+  dataCollection: { userInfo: true },
 });
 
 const customScope = new Sentry.Scope();
