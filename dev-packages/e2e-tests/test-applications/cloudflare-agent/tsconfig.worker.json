@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.worker.tsbuildinfo",
+    "types": ["@cloudflare/workers-types", "vite/client"],
+    "erasableSyntaxOnly": false
+  },
+  "include": ["./worker-configuration.d.ts", "worker"]
+}

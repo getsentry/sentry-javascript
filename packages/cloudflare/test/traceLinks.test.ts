@@ -82,6 +82,17 @@ describe('traceLinks', () => {
       expect(mockStorage.kv.put).not.toHaveBeenCalled();
     });
 
+    it('silently ignores sync read errors', () => {
+      const mockStorage = createMockStorage();
+      mockStorage.kv.get = vi.fn().mockImplementation(() => {
+        throw new Error('Cannot perform I/O on behalf of a different Durable Object');
+      });
+
+      const result = getStoredSpanContext(mockStorage, 'alarm');
+
+      expect(result).toBeUndefined();
+    });
+
     it('silently ignores storage errors', () => {
       const mockSpanContext = {
         traceId: 'abc123def456789012345678901234ab',

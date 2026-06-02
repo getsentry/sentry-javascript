@@ -8,17 +8,9 @@ import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { instrumentContext } from './utils/instrumentContext';
+import { extractRpcMeta } from './utils/rpcMeta';
 import { getEffectiveRpcPropagation } from './utils/rpcOptions';
 import { type UncheckedMethod, wrapMethodWithSentry } from './wrapMethodWithSentry';
-
-const BUILT_IN_DO_METHODS = new Set([
-  'constructor',
-  'fetch',
-  'alarm',
-  'webSocketError',
-  'webSocketClose',
-  'webSocketMessage',
-]);
 
 /**
  * Instruments a Durable Object class to capture errors and performance data.
@@ -139,51 +131,70 @@ export function instrumentDurableObjectWithSentry<
         : undefined;
       const allowSet = instrumentPrototypeMethods ? new Set(instrumentPrototypeMethods) : null;
 
-      // Return a Proxy that lazily wraps prototype methods on access.
-      // This avoids iterating the prototype chain at construction time —
-      // we only check if a property is an RPC method when it's accessed.
-      const rpcMethodCache = new Map<string, UncheckedMethod>();
+      // When using the deprecated `instrumentPrototypeMethods` option, always create spans.
+      // When using the new `enableRpcTracePropagation`, only create spans when RPC metadata is present.
+      const alwaysTrace = options.enableRpcTracePropagation === undefined;
+
+      // Return a Proxy that binds all methods to the original object and creates spans
+      // for RPC calls that have Sentry trace context propagated.
+      // Binding is required because frameworks may use private fields (babel WeakMap pattern),
+      // which fail if `this` is the Proxy instead of the original object.
+      const methodCache = new Map<string, UncheckedMethod>();
 
       return new Proxy(obj, {
         get(proxyTarget, prop, receiver) {
           const value = Reflect.get(proxyTarget, prop, receiver);
 
-          if (typeof prop !== 'string' || BUILT_IN_DO_METHODS.has(prop)) {
+          if (typeof prop !== 'string' || typeof value !== 'function' || prop === 'constructor') {
             return value;
           }
 
-          const cached = rpcMethodCache.get(prop);
+          const cached = methodCache.get(prop);
 
           if (cached) {
             return cached;
           }
 
+          const boundMethod = (value as UncheckedMethod).bind(proxyTarget);
+
           if (
-            typeof value !== 'function' ||
+            prop in Object.prototype ||
             Object.prototype.hasOwnProperty.call(proxyTarget, prop) ||
-            (allowSet && !allowSet.has(prop)) ||
-            // Exclude inherited Object.prototype methods (toString, valueOf, etc.)
-            // These are not RPC methods and should not create spans
-            prop in Object.prototype
+            (allowSet && !allowSet.has(prop))
           ) {
-            return value;
+            methodCache.set(prop, boundMethod);
+
+            return boundMethod;
           }
 
-          // Bind the method to the original object to ensure private fields work correctly.
-          // When called via the Proxy, `this` would be the Proxy, but private fields require
-          // the original object. Bound functions ignore the thisArg passed via Reflect.apply.
-          const boundValue = (value as UncheckedMethod).bind(proxyTarget);
-
-          const wrapped = wrapMethodWithSentry(
+          // Pre-create the traced version
+          const tracedMethod = wrapMethodWithSentry(
             { options, context, spanName: prop, spanOp: 'rpc' },
-            boundValue,
+            boundMethod,
             undefined,
             true,
           );
 
-          rpcMethodCache.set(prop, wrapped);
+          // For deprecated `instrumentPrototypeMethods`, always trace.
+          // For new `enableRpcTracePropagation`, only trace when RPC metadata is present.
+          if (alwaysTrace) {
+            methodCache.set(prop, tracedMethod);
 
-          return wrapped;
+            return tracedMethod;
+          }
+
+          // Wrapper that checks for Sentry RPC metadata at call time
+          const wrappedMethod = ((...args: unknown[]) => {
+            const { rpcMeta } = extractRpcMeta(args);
+
+            // If Sentry RPC metadata is present, use the traced version (creates span)
+            // Otherwise, call the bound method directly (no span)
+            return rpcMeta ? tracedMethod(...args) : boundMethod(...args);
+          }) as UncheckedMethod;
+
+          methodCache.set(prop, wrappedMethod);
+
+          return wrappedMethod;
         },
       });
     },
