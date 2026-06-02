@@ -91,24 +91,20 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
     applySdkMetadata(opts, 'browser', ['browser'], sdkSource);
 
-    // Only allow IP inferral by Relay if sendDefaultPii is true
+    super(opts);
+
+    const { userInfo } = this.getDataCollectionOptions();
+
     if (opts._metadata?.sdk) {
       opts._metadata.sdk.settings = {
-        infer_ip: opts.sendDefaultPii ? 'auto' : 'never',
+        // Only allow IP inferral by Relay if the user opted in via dataCollection
+        infer_ip: userInfo ? 'auto' : 'never',
         // purposefully allowing already passed settings to override the default
         ...opts._metadata.sdk.settings,
       };
     }
 
-    super(opts);
-
-    const {
-      sendDefaultPii,
-      sendClientReports,
-      enableLogs,
-      _experiments,
-      enableMetrics: enableMetricsOption,
-    } = this._options;
+    const { sendClientReports, enableLogs, _experiments, enableMetrics: enableMetricsOption } = this._options;
 
     // todo(v11): Remove the experimental flag
     // eslint-disable-next-line deprecation/deprecation
@@ -133,7 +129,7 @@ export class BrowserClient extends Client<BrowserClientOptions> {
       });
     }
 
-    if (sendDefaultPii) {
+    if (userInfo) {
       this.on('beforeSendSession', addAutoIpAddressToSession);
     }
   }

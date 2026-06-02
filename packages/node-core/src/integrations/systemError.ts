@@ -56,7 +56,7 @@ export const systemErrorIntegration = defineIntegration((options: Options = {}) 
         ...(error as SystemErrorContext),
       };
 
-      if (!client.getOptions().sendDefaultPii && options.includePaths !== true) {
+      if (!client.getDataCollectionOptions().userInfo && options.includePaths !== true) {
         delete errorContext.path;
         delete errorContext.dest;
       }

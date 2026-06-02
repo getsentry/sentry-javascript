@@ -25,6 +25,29 @@ interface InstrumentedDurableObjectState extends DurableObjectState {
   originalStorage?: DurableObjectStorage;
 }
 
+/**
+ * Resolves uninstrumented DO storage for the current invocation.
+ * Prefer `thisArg.ctx` (the live Durable Object instance) over the context captured at
+ * construction time to avoid cross-DO I/O errors in the same isolate.
+ */
+function resolveOriginalStorage(
+  context: ExecutionContext | InstrumentedDurableObjectState | undefined,
+  thisArg: unknown,
+): DurableObjectStorage | undefined {
+  if (thisArg && typeof thisArg === 'object' && 'ctx' in thisArg) {
+    const doCtx = (thisArg as { ctx: InstrumentedDurableObjectState }).ctx;
+    if (doCtx?.originalStorage) {
+      return doCtx.originalStorage;
+    }
+  }
+
+  if (context && 'originalStorage' in context && context.originalStorage) {
+    return context.originalStorage;
+  }
+
+  return undefined;
+}
+
 type MethodWrapperOptions = {
   spanName?: string;
   spanOp?: string;
@@ -94,7 +117,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             const context: typeof wrapperOptions.context | undefined = wrapperOptions.context;
 
             const waitUntil = context?.waitUntil?.bind?.(context);
-            const storage = context && 'originalStorage' in context ? context.originalStorage : undefined;
+            const storage = resolveOriginalStorage(context, thisArg);
 
             let scopeClient = scope.getClient();
             // Check if client exists AND is still usable (transport not disposed)
@@ -115,9 +138,25 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
             const teardown = async (): Promise<void> => {
               if (startNewTrace && storage) {
-                await storeSpanContext(storage, methodName);
+                storeSpanContext(storage, methodName);
               }
               await flushAndDispose(clientToDispose);
+            };
+
+            const onFulfilled = (res: unknown) => {
+              waitUntil?.(teardown());
+              return res;
+            };
+
+            const onRejected = (e: unknown) => {
+              captureException(e, {
+                mechanism: {
+                  type: 'auto.faas.cloudflare.durable_object',
+                  handled: false,
+                },
+              });
+              waitUntil?.(teardown());
+              throw e;
             };
 
             if (!wrapperOptions.spanName) {
@@ -129,35 +168,12 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                 const result = Reflect.apply(target, thisArg, args);
 
                 if (isThenable(result)) {
-                  return result.then(
-                    (res: unknown) => {
-                      waitUntil?.(teardown());
-                      return res;
-                    },
-                    (e: unknown) => {
-                      captureException(e, {
-                        mechanism: {
-                          type: 'auto.faas.cloudflare.durable_object',
-                          handled: false,
-                        },
-                      });
-                      waitUntil?.(teardown());
-                      throw e;
-                    },
-                  );
+                  return result.then(onFulfilled, onRejected);
                 } else {
-                  waitUntil?.(teardown());
-                  return result;
+                  return onFulfilled(result);
                 }
               } catch (e) {
-                captureException(e, {
-                  mechanism: {
-                    type: 'auto.faas.cloudflare.durable_object',
-                    handled: false,
-                  },
-                });
-                waitUntil?.(teardown());
-                throw e;
+                return onRejected(e);
               }
             }
 
@@ -170,60 +186,33 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
             const executeSpan = (): unknown => {
               return startSpan({ name: methodName, attributes }, span => {
-                // When linking to previous trace, fetch the stored context and add links asynchronously
-                // This avoids blocking the response while fetching from storage
                 if (startNewTrace && storage) {
-                  waitUntil?.(
-                    getStoredSpanContext(storage, methodName).then(storedContext => {
-                      if (storedContext) {
-                        span.addLinks(buildSpanLinks(storedContext));
-                        // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
-                        // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
-                        // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
-                        // to check this at v11 time :)
-                        const sampledFlag = storedContext.sampled ? '1' : '0';
-                        span.setAttribute(
-                          'sentry.previous_trace',
-                          `${storedContext.traceId}-${storedContext.spanId}-${sampledFlag}`,
-                        );
-                      }
-                    }),
-                  );
+                  const storedContext = getStoredSpanContext(storage, methodName);
+
+                  if (storedContext) {
+                    span.addLinks(buildSpanLinks(storedContext));
+                    // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
+                    // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
+                    // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
+                    // to check this at v11 time :)
+                    const sampledFlag = storedContext.sampled ? '1' : '0';
+                    span.setAttribute(
+                      'sentry.previous_trace',
+                      `${storedContext.traceId}-${storedContext.spanId}-${sampledFlag}`,
+                    );
+                  }
                 }
 
                 try {
                   const result = Reflect.apply(target, thisArg, args);
 
                   if (isThenable(result)) {
-                    return result.then(
-                      (res: unknown) => {
-                        waitUntil?.(teardown());
-                        return res;
-                      },
-                      (e: unknown) => {
-                        captureException(e, {
-                          mechanism: {
-                            type: 'auto.faas.cloudflare.durable_object',
-                            handled: false,
-                          },
-                        });
-                        waitUntil?.(teardown());
-                        throw e;
-                      },
-                    );
+                    return result.then(onFulfilled, onRejected);
                   } else {
-                    waitUntil?.(teardown());
-                    return result;
+                    return onFulfilled(result);
                   }
                 } catch (e) {
-                  captureException(e, {
-                    mechanism: {
-                      type: 'auto.faas.cloudflare.durable_object',
-                      handled: false,
-                    },
-                  });
-                  waitUntil?.(teardown());
-                  throw e;
+                  return onRejected(e);
                 }
               });
             };

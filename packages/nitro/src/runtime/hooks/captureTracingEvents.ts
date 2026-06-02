@@ -160,10 +160,9 @@ function setupSrvxTracingChannels(): void {
       method: data.request.method,
     });
 
-    const sendDefaultPii = getClient()?.getOptions().sendDefaultPii ?? false;
     const headerAttributes = httpHeadersToSpanAttributes(
       Object.fromEntries(data.request.headers.entries()),
-      sendDefaultPii,
+      getClient()?.getDataCollectionOptions() ?? false,
     );
 
     return startSpanManual(

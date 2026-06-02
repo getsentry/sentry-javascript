@@ -173,6 +173,34 @@ describe('SDK metadata', () => {
       expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('auto');
     });
 
+    it('sets infer_ip to "auto" if dataCollection.userInfo is true', () => {
+      const options = getDefaultBrowserClientOptions({
+        dataCollection: { userInfo: true },
+      });
+      const client = new BrowserClient(options);
+
+      expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('auto');
+    });
+
+    it('sets infer_ip to "never" if dataCollection.userInfo is false', () => {
+      const options = getDefaultBrowserClientOptions({
+        dataCollection: { userInfo: false },
+      });
+      const client = new BrowserClient(options);
+
+      expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
+    });
+
+    it('dataCollection.userInfo takes precedence over sendDefaultPii', () => {
+      const options = getDefaultBrowserClientOptions({
+        sendDefaultPii: true,
+        dataCollection: { userInfo: false },
+      });
+      const client = new BrowserClient(options);
+
+      expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
+    });
+
     it("doesn't override already set sdk metadata settings", () => {
       const options = getDefaultBrowserClientOptions({
         sendDefaultPii: true,

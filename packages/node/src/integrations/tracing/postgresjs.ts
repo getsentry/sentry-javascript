@@ -5,9 +5,9 @@ import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from './InstrumentationNodeModuleFile';
 import {
   ATTR_DB_OPERATION_NAME,
   ATTR_DB_QUERY_TEXT,

@@ -1,5 +1,3 @@
-import { context } from '@opentelemetry/api';
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
   flushIfServerless,
@@ -72,13 +70,6 @@ export function wrapSentryHandleRequest(
     if (parameterizedPath && rootSpan) {
       // Normalize route name - avoid "//" for root routes
       const routeName = parameterizedPath.startsWith('/') ? parameterizedPath : `/${parameterizedPath}`;
-
-      // The express instrumentation writes on the rpcMetadata and that ends up stomping on the `http.route` attribute.
-      const rpcMetadata = getRPCMetadata(context.active());
-
-      if (rpcMetadata?.type === RPCType.HTTP) {
-        rpcMetadata.route = routeName;
-      }
 
       const transactionName = `${request.method} ${routeName}`;
 

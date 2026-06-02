@@ -21,11 +21,11 @@
 /* eslint-disable */
 
 import { context, Span, SpanOptions } from '@opentelemetry/api';
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import type { ServerResponse } from 'http';
 import { AttributeNames, ConnectNames, ConnectTypes } from './enums/AttributeNames';
 import { HandleFunction, NextFunction, Server, PatchedRequest, Use, UseArgs, UseArgs2 } from './internal-types';
 import { SDK_VERSION } from '@sentry/core';
+import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 import {
   InstrumentationBase,
   InstrumentationConfig,
@@ -119,9 +119,8 @@ export class ConnectInstrumentation extends InstrumentationBase {
 
       replaceCurrentStackRoute(req, routeName);
 
-      const rpcMetadata = getRPCMetadata(context.active());
-      if (routeName && rpcMetadata?.type === RPCType.HTTP) {
-        rpcMetadata.route = generateRoute(req);
+      if (routeName) {
+        setHttpServerSpanRouteAttribute(generateRoute(req));
       }
 
       let spanName = '';

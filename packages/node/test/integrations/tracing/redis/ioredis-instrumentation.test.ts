@@ -59,10 +59,10 @@ describe('IORedisInstrumentation', () => {
       expect(defs[0]!.name).toBe('ioredis');
     });
 
-    it('should support ioredis versions >=2.0.0 <6', () => {
+    it('should support ioredis versions >=2.0.0 <5.11.0', () => {
       const defs = instrumentation.init();
       const supportedVersions = defs[0]!.supportedVersions;
-      expect(supportedVersions).toContain('>=2.0.0 <6');
+      expect(supportedVersions).toContain('>=2.0.0 <5.11.0');
     });
   });
 

@@ -26,10 +26,10 @@ import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
   safeExecuteInTheMiddle,
-  InstrumentationNodeModuleFile,
   SemconvStability,
   semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import {
   context,
   trace,
@@ -39,7 +39,6 @@ import {
   Histogram,
   ValueType,
   Attributes,
-  HrTime,
   UpDownCounter,
 } from '@opentelemetry/api';
 import type { PgClient } from './pg-types';
@@ -54,10 +53,9 @@ import {
 import { PgInstrumentationConfig } from './types';
 import * as utils from './utils';
 import { addSqlCommenterComment } from '../../utils/sql-common';
-import { SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, timestampInSeconds } from '@sentry/core';
 const PACKAGE_NAME = '@sentry/instrumentation-pg';
 import { SpanNames } from './enums/SpanNames';
-import { hrTime, hrTimeDuration, hrTimeToMilliseconds } from '@opentelemetry/core';
 import {
   ATTR_ERROR_TYPE,
   ATTR_SERVER_PORT,
@@ -252,7 +250,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
     };
   }
 
-  private recordOperationDuration(attributes: Attributes, startTime: HrTime) {
+  private recordOperationDuration(attributes: Attributes, startTime: number) {
     const metricsAttributes: Attributes = {};
     const keysToCopy: string[] = [
       ATTR_DB_NAMESPACE,
@@ -274,7 +272,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
       }
     });
 
-    const durationSeconds = hrTimeToMilliseconds(hrTimeDuration(startTime, hrTime())) / 1000;
+    const durationSeconds = timestampInSeconds() - startTime;
     this._operationDuration.record(durationSeconds, metricsAttributes);
   }
 
@@ -286,7 +284,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
         if (utils.shouldSkipInstrumentation(plugin.getConfig())) {
           return original.apply(this, args as never);
         }
-        const startTime = hrTime();
+        const startTime = timestampInSeconds();
 
         // client.query(text, cb?), client.query(text, values, cb?), and
         // client.query(configObj, cb?) are all valid signatures. We construct

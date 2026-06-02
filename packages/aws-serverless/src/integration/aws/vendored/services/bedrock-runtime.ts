@@ -19,7 +19,7 @@
  */
 /* eslint-disable */
 
-import { Attributes, DiagLogger, diag, Histogram, HrTime, Meter, Span, Tracer, ValueType } from '@opentelemetry/api';
+import { Attributes, DiagLogger, diag, Histogram, Meter, Span, Tracer, ValueType } from '@opentelemetry/api';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import {
   ATTR_GEN_AI_SYSTEM,
@@ -41,7 +41,7 @@ import {
   METRIC_GEN_AI_CLIENT_TOKEN_USAGE,
 } from '../semconv';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
-import { hrTime, hrTimeDuration, hrTimeToMilliseconds } from '@opentelemetry/core';
+import { timestampInSeconds } from '@sentry/core';
 
 // Simplified types inlined from @aws-sdk/client-bedrock-runtime
 // Only the fields accessed by this instrumentation are included
@@ -295,7 +295,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     span: Span,
     tracer: Tracer,
     config: AwsSdkInstrumentationConfig,
-    startTime: HrTime,
+    startTime: number,
   ) {
     if (!span.isRecording()) {
       return;
@@ -318,7 +318,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     span: Span,
     tracer: Tracer,
     config: AwsSdkInstrumentationConfig,
-    startTime: HrTime,
+    startTime: number,
   ) {
     const { stopReason, usage } = response.data;
 
@@ -331,7 +331,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     span: Span,
     tracer: Tracer,
     config: AwsSdkInstrumentationConfig,
-    startTime: HrTime,
+    startTime: number,
   ) {
     return {
       ...response.data,
@@ -345,7 +345,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     response: NormalizedResponse,
     stream: AsyncIterable<ConverseStreamOutput>,
     span: Span,
-    startTime: HrTime,
+    startTime: number,
   ) {
     try {
       let usage: TokenUsage | undefined;
@@ -366,14 +366,14 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     }
   }
 
-  private setUsage(response: NormalizedResponse, span: Span, usage: TokenUsage | undefined, startTime: HrTime) {
+  private setUsage(response: NormalizedResponse, span: Span, usage: TokenUsage | undefined, startTime: number) {
     const sharedMetricAttrs: Attributes = {
       [ATTR_GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
       [ATTR_GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_CHAT,
       [ATTR_GEN_AI_REQUEST_MODEL]: response.request.commandInput.modelId,
     };
 
-    const durationSecs = hrTimeToMilliseconds(hrTimeDuration(startTime, hrTime())) / 1000;
+    const durationSecs = timestampInSeconds() - startTime;
     this.operationDuration.record(durationSecs, sharedMetricAttrs);
 
     if (usage) {

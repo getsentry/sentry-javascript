@@ -89,6 +89,18 @@ class WrappedWorkflowStep implements WorkflowStep {
     const config = typeof configOrCallback === 'function' ? undefined : configOrCallback;
 
     const instrumentedCallback = async (...args: unknown[]): Promise<T> => {
+      // Feature detection: Cloudflare Workflows (April 2026+) pass a step context
+      // with `attempt` and `config.retries.limit`. When available, we only capture
+      // errors on the final attempt to avoid duplicates during retries.
+      const stepContext = args[0] as { attempt?: number; config?: { retries?: { limit?: number } } } | undefined;
+      const attempt = stepContext?.attempt;
+      const retryLimit = stepContext?.config?.retries?.limit;
+      const hasStepContext = typeof attempt === 'number' && typeof retryLimit === 'number';
+
+      // Only capture error on final attempt (attempt > retryLimit means no more retries left)
+      // or when step context is unavailable (legacy behavior - capture all errors)
+      const isFinalAttempt = !hasStepContext || attempt > retryLimit;
+
       return startSpan(
         {
           op: 'function.step.do',
@@ -99,6 +111,7 @@ class WrappedWorkflowStep implements WorkflowStep {
             'cloudflare.workflow.retries.backoff': config?.retries?.backoff,
             'cloudflare.workflow.retries.delay': config?.retries?.delay,
             'cloudflare.workflow.retries.limit': config?.retries?.limit,
+            'cloudflare.workflow.attempt': attempt,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
           },
@@ -109,7 +122,9 @@ class WrappedWorkflowStep implements WorkflowStep {
             span.setStatus({ code: 1 });
             return result;
           } catch (error) {
-            captureException(error, { mechanism: { handled: true, type: 'auto.faas.cloudflare.workflow' } });
+            if (isFinalAttempt) {
+              captureException(error, { mechanism: { handled: true, type: 'auto.faas.cloudflare.workflow' } });
+            }
             throw error;
           } finally {
             this._waitUntil(flush(2000));

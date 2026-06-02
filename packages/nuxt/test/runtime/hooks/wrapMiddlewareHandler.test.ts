@@ -40,7 +40,18 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
 
     // Setup minimal required mocks
     (SentryCore.startSpan as any).mockImplementation((_config: any, callback: any) => callback(mockSpan));
-    (SentryCore.getClient as any).mockReturnValue({ getOptions: () => ({ sendDefaultPii: false }) });
+    (SentryCore.getClient as any).mockReturnValue({
+      getDataCollectionOptions: () => ({
+        userInfo: false,
+        cookies: true,
+        httpHeaders: { request: true, response: true },
+        httpBodies: [],
+        queryParams: true,
+        genAI: { inputs: false, outputs: false },
+        stackFrameVariables: true,
+        frameContextLines: 5,
+      }),
+    });
     (SentryCore.httpHeadersToSpanAttributes as any).mockReturnValue({ 'http.request.header.user_agent': 'test-agent' });
     (SentryCore.flushIfServerless as any).mockResolvedValue(undefined);
   });

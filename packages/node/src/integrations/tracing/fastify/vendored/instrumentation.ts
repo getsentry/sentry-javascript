@@ -31,7 +31,6 @@
 
 import * as dc from 'node:diagnostics_channel';
 import { context, trace, SpanStatusCode, propagation, diag, type Span } from '@opentelemetry/api';
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import {
   ATTR_HTTP_ROUTE,
   ATTR_HTTP_RESPONSE_STATUS_CODE,
@@ -40,6 +39,7 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import { InstrumentationBase, type InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { SDK_VERSION } from '@sentry/core';
+import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 
 const PACKAGE_VERSION = SDK_VERSION;
 const PACKAGE_NAME = '@sentry/instrumentation-fastify';
@@ -254,10 +254,8 @@ export class FastifyOtelInstrumentation extends InstrumentationBase<FastifyOtelI
             ctx = propagation.extract(ctx, request.headers);
           }
 
-          const rpcMetadata = getRPCMetadata(ctx);
-
-          if (request.routeOptions.url != null && rpcMetadata?.type === RPCType.HTTP) {
-            rpcMetadata.route = request.routeOptions.url;
+          if (request.routeOptions.url != null) {
+            setHttpServerSpanRouteAttribute(request.routeOptions.url);
           }
 
           const attributes: Record<string, string> = {

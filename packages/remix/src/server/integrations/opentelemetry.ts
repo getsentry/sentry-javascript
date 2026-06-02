@@ -22,7 +22,9 @@ const _remixIntegration = (() => {
       const options = client?.getOptions() as RemixOptions | undefined;
 
       instrumentRemix({
-        actionFormDataAttributes: options?.sendDefaultPii ? options?.captureActionFormDataKeys : undefined,
+        actionFormDataAttributes: client?.getDataCollectionOptions().httpBodies.includes('incomingRequest')
+          ? options?.captureActionFormDataKeys
+          : undefined,
       });
     },
 

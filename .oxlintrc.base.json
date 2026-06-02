@@ -3,7 +3,7 @@
   "plugins": ["typescript", "import", "jsdoc", "vitest"],
   "rules": {
     "no-unused-vars": [
-      "warn",
+      "error",
       { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }
     ],
 
@@ -55,7 +55,7 @@
         "typescript/prefer-optional-chain": ["error"],
         "typescript/no-redundant-type-constituents": "off",
         "typescript/restrict-template-expressions": "off",
-        "typescript/await-thenable": "warn",
+        "typescript/await-thenable": "error",
         "typescript/no-base-to-string": "off"
       }
     },

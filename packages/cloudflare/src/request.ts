@@ -19,6 +19,11 @@ import { addCloudResourceContext, addCultureContext, addRequest } from './scope-
 import { init } from './sdk';
 import { classifyResponseStreaming } from './utils/streaming';
 
+function getRequestErrorMechanismType(context: ExecutionContext | undefined): string {
+  // Durable Object fetch handlers use DO state as context (see instrumentDurableObjectWithSentry)
+  return context && 'storage' in context ? 'auto.faas.cloudflare.durable_object' : 'auto.http.cloudflare';
+}
+
 interface RequestHandlerWrapperOptions {
   options: CloudflareOptions;
   request: Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>>;
@@ -53,6 +58,7 @@ export function wrapRequestHandler(
     // it acquires the lock, then flushAndDispose tries to wait for the same lock,
     // creating a deadlock.
     const waitUntil = context ? getOriginalWaitUntil(context)?.bind(context) : undefined;
+    const errorMechanismType = getRequestErrorMechanismType(context);
 
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
@@ -74,7 +80,7 @@ export function wrapRequestHandler(
       attributes,
       httpHeadersToSpanAttributes(
         winterCGHeadersToDict(request.headers),
-        getClient()?.getOptions().sendDefaultPii ?? false,
+        getClient()?.getDataCollectionOptions() ?? false,
       ),
     );
 
@@ -96,7 +102,7 @@ export function wrapRequestHandler(
         return await handler();
       } catch (e) {
         if (captureErrors) {
-          captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
+          captureException(e, { mechanism: { handled: false, type: errorMechanismType } });
         }
         throw e;
       } finally {
@@ -129,7 +135,7 @@ export function wrapRequestHandler(
           } catch (e) {
             span.end();
             if (captureErrors) {
-              captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
+              captureException(e, { mechanism: { handled: false, type: errorMechanismType } });
             }
             waitUntil?.(flushAndDispose(client));
             throw e;

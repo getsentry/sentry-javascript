@@ -20,7 +20,7 @@
 /* eslint-disable */
 
 import { Span, SpanKind, context, trace, diag, SpanStatusCode } from '@opentelemetry/api';
-import { hrTime, suppressTracing } from '@opentelemetry/core';
+import { suppressTracing } from '@opentelemetry/core';
 import { AttributeNames } from './enums';
 import { ServicesExtensions } from './services';
 import {
@@ -57,7 +57,7 @@ import { propwrap } from './propwrap';
 import { RequestMetadata } from './services/ServiceExtension';
 import { ATTR_HTTP_STATUS_CODE } from './semconv';
 import { ATTR_HTTP_RESPONSE_STATUS_CODE } from '@opentelemetry/semantic-conventions';
-import { SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, timestampInSeconds } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-aws-sdk';
 
@@ -298,7 +298,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
           self._diag,
           self._dbSemconvStability,
         );
-        const startTime = hrTime();
+        const startTime = timestampInSeconds();
         const span = self._startAwsV3Span(normalizedRequest, requestMetadata);
         const activeContextWithSpan = trace.setSpan(context.active(), span);
 
