@@ -7,7 +7,7 @@ import {
 } from '../../../../utils/helpers';
 
 sentryTest(
-  'sets user.ip_address to "auto" on transactions when sendDefaultPii: true',
+  'sets user.ip_address to "auto" on transactions when dataCollection.userInfo: true',
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
