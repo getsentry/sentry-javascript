@@ -1,5 +1,12 @@
-import type { Span } from '@sentry/core/browser';
-import { addChildSpanToSpan, debug, SentrySpan, spanToJSON, timestampInSeconds } from '@sentry/core/browser';
+import type { PropagationContext, Span } from '@sentry/core/browser';
+import {
+  addChildSpanToSpan,
+  debug,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SentrySpan,
+  spanToJSON,
+  timestampInSeconds,
+} from '@sentry/core/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../../src';
 import type { PreviousTraceInfo } from '../../src/tracing/linkedTraces';
@@ -198,6 +205,84 @@ describe('addPreviousTraceSpanLink', () => {
       startTimestamp: currentSpanStart,
       sampleRand: 0.0126,
       sampleRate: 0.5,
+    });
+  });
+
+  it.each([NaN, undefined])(
+    'falls back to sampleRate 0 if the sample rate in the previous trace info is %s',
+    sampleRate => {
+      const currentSpanStart = timestampInSeconds();
+
+      const previousTraceInfo: PreviousTraceInfo = {
+        spanContext: { traceId: '123', spanId: '456', traceFlags: 1 },
+        startTimestamp: currentSpanStart - PREVIOUS_TRACE_MAX_DURATION + 1,
+        sampleRand: 0.0126,
+        sampleRate: sampleRate as number,
+      };
+
+      const currentSpan = new SentrySpan({
+        name: 'test',
+        startTimestamp: currentSpanStart,
+        parentSpanId: '789',
+        spanId: 'abc',
+        traceId: 'def',
+        sampled: true,
+      });
+
+      const oldPropagationContext: PropagationContext = {
+        sampleRand: 0.0126,
+        traceId: '123',
+        sampled: true,
+        dsc: { sample_rand: '0.0126', sample_rate: String(sampleRate) },
+      };
+
+      const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan, oldPropagationContext);
+
+      expect(updatedPreviousTraceInfo).toEqual({
+        spanContext: currentSpan.spanContext(),
+        startTimestamp: currentSpanStart,
+        sampleRand: 0.0126,
+        sampleRate: 0,
+      });
+    },
+  );
+
+  it.each([NaN, undefined])('falls back to sampleRate 0 if the sample rate on the spa or DSC is %s', sampleRate => {
+    const currentSpanStart = timestampInSeconds();
+
+    const previousTraceInfo: PreviousTraceInfo = {
+      spanContext: { traceId: '123', spanId: '456', traceFlags: 1 },
+      startTimestamp: currentSpanStart - PREVIOUS_TRACE_MAX_DURATION + 1,
+      sampleRand: 0.0126,
+      sampleRate: 0,
+    };
+
+    const currentSpan = new SentrySpan({
+      name: 'test',
+      startTimestamp: currentSpanStart,
+      parentSpanId: '789',
+      spanId: 'abc',
+      traceId: 'def',
+      sampled: true,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
+      },
+    });
+
+    const oldPropagationContext: PropagationContext = {
+      sampleRand: 0.0126,
+      traceId: '123',
+      sampled: true,
+      dsc: { sample_rand: '0.0126', sample_rate: String(sampleRate) },
+    };
+
+    const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan, oldPropagationContext);
+
+    expect(updatedPreviousTraceInfo).toEqual({
+      spanContext: currentSpan.spanContext(),
+      startTimestamp: currentSpanStart,
+      sampleRand: 0.0126,
+      sampleRate: 0,
     });
   });
 
