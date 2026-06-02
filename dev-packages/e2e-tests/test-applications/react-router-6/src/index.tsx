@@ -40,7 +40,7 @@ Sentry.init({
   replaysOnErrorSampleRate: 0.0,
 
   tunnel: 'http://localhost:3031',
-  sendDefaultPii: true,
+  dataCollection: { userInfo: true },
 });
 
 const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);

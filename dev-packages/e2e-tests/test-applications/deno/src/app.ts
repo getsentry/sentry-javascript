@@ -23,7 +23,7 @@ Sentry.init({
   debug: !!Deno.env.get('DEBUG'),
   tunnel: 'http://localhost:3031/',
   tracesSampleRate: 1,
-  sendDefaultPii: true,
+  dataCollection: { userInfo: true },
   enableLogs: true,
 });
 
