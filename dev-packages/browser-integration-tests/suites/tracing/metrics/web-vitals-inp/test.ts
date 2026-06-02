@@ -123,13 +123,8 @@ sentryTest(
 
     await page.waitForTimeout(500);
 
-    // Important: Purposefully not using hidePage() here to test the hidden state
-    // via the `pagehide` event. This is necessary because iOS Safari 14.4
-    // still doesn't fully emit the `visibilitychange` events but it's the lower
-    // bound for Safari on iOS that we support.
-    await page.evaluate(() => {
-      window.dispatchEvent(new Event('pagehide'));
-    });
+    // Page hide to trigger INP reporting
+    await hidePage(page);
 
     const inpSpan = getSpansFromEnvelope(await spanEnvelopePromise).find(s => getSpanOp(s) === 'ui.interaction.click')!;
 
