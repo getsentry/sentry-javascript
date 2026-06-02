@@ -3,7 +3,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
 sentryTest(
-  'sets sdk.settings.infer_ip to "auto" on replay events when sendDefaultPii: true',
+  'sets sdk.settings.infer_ip to "auto" on replay events when dataCollection.userInfo: true',
   async ({ getLocalTestUrl, page, browserName }) => {
     // We only test this against the NPM package and replay bundles
     // and only on chromium as most performance entries are only available in chromium

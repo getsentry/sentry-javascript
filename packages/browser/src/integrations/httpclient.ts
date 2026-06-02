@@ -433,6 +433,7 @@ function _getDataCollectionSettings() {
   // collect headers/cookies with deny-list filtering even without sendDefaultPii).
   const options = client.getOptions();
   if (options.dataCollection == null) {
+    // eslint-disable-next-line deprecation/deprecation
     const enabled = Boolean(options.sendDefaultPii);
     return { cookies: enabled, requestHeaders: enabled, responseHeaders: enabled };
   }

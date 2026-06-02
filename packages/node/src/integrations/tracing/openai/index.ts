@@ -36,13 +36,14 @@ const _openAiIntegration = ((options: OpenAiOptions = {}) => {
  *
  * ## Options
  *
- * - `recordInputs`: Whether to record prompt messages (default: follows `sendDefaultPii` or `dataCollection.genAI.inputs`)
- * - `recordOutputs`: Whether to record response text (default: follows `sendDefaultPii` or `dataCollection.genAI.outputs`)
+ * - `recordInputs`: Whether to record input messages/prompts (default: follows `dataCollection.genAI.inputs`, or the deprecated `sendDefaultPii` option)
+ * - `recordOutputs`: Whether to record response text (default: follows `dataCollection.genAI.outputs`, or the deprecated `sendDefaultPii` option)
  *
  * ### Default Behavior
  *
  * By default, the integration will:
- * - Record inputs and outputs based on `sendDefaultPii` or `dataCollection.genAI` in your Sentry client options
+ * - Record inputs and outputs based on `dataCollection.genAI` in your Sentry client options
+ *   (or the deprecated `sendDefaultPii` option, for backwards compatibility)
  * - Integration-level `recordInputs`/`recordOutputs` options take precedence over global config
  *
  * @example
