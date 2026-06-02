@@ -154,7 +154,7 @@ describe('Anthropic integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates anthropic related spans with sendDefaultPii: false', async () => {
+    test('creates anthropic related spans with genAI recording disabled', async () => {
       await createRunner()
         .expect({ event: EXPECTED_MODEL_ERROR })
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
@@ -202,7 +202,7 @@ describe('Anthropic integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates anthropic related spans with sendDefaultPii: true', async () => {
+    test('creates anthropic related spans with genAI recording enabled', async () => {
       await createRunner()
         .expect({ event: EXPECTED_MODEL_ERROR })
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
