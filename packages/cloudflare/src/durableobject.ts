@@ -145,7 +145,7 @@ export function instrumentDurableObjectWithSentry<
         get(proxyTarget, prop, receiver) {
           const value = Reflect.get(proxyTarget, prop, receiver);
 
-          if (typeof prop !== 'string' || typeof value !== 'function') {
+          if (typeof prop !== 'string' || typeof value !== 'function' || prop === 'constructor') {
             return value;
           }
 

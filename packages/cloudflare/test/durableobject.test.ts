@@ -216,6 +216,22 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(obj.rpcMethod()).toBe('rpc');
   });
 
+  it('preserves constructor identity on the proxy', () => {
+    const testClass = class MyDO {
+      rpcMethod() {
+        return 'result';
+      }
+    };
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+      testClass as any,
+    );
+    const obj = Reflect.construct(instrumented, []);
+
+    // constructor must remain the original class reference for identity/type checks
+    expect(obj.constructor).toBe(testClass);
+  });
+
   it('Does not instrument RPC methods when instrumentPrototypeMethods is not set', () => {
     const testClass = class {
       rpcMethod() {
