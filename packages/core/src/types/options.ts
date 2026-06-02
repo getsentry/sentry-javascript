@@ -390,7 +390,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * each category of collected data individually. `sendDefaultPii` will be removed in the next major
    * version (v11). For backwards compatibility, setting `sendDefaultPii: true` currently behaves like
    * enabling all `dataCollection` categories. If both `sendDefaultPii` and `dataCollection` are set,
-   * `dataCollection` takes precedence.
+   * `sendDefaultPii` will be ignored.
    */
   sendDefaultPii?: boolean;
 
