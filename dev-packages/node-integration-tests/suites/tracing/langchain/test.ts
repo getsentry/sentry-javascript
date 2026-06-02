@@ -29,7 +29,7 @@ describe('LangChain integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates langchain related spans with sendDefaultPii: false', async () => {
+    test('creates langchain related spans with genAI recording disabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -107,7 +107,7 @@ describe('LangChain integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates langchain related spans with sendDefaultPii: true', async () => {
+    test('creates langchain related spans with genAI recording enabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -358,7 +358,7 @@ describe('LangChain integration', () => {
   // =========================================================================
 
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates embedding spans with sendDefaultPii: false', async () => {
+    test('creates embedding spans with genAI recording disabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -414,7 +414,7 @@ describe('LangChain integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates embedding spans with sendDefaultPii: true', async () => {
+    test('creates embedding spans with genAI recording enabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
