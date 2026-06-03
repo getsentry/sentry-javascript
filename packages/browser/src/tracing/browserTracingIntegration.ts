@@ -47,11 +47,7 @@ import {
 import { DEBUG_BUILD } from '../debug-build';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import { fetchStreamPerformanceIntegration } from '../integrations/fetchStreamPerformance';
-import {
-  collectWebVitalsForClient,
-  WEB_VITALS_INTEGRATION_NAME,
-  webVitalsIntegration,
-} from '../integrations/webVitals';
+import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integrations/webVitals';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
@@ -456,9 +452,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadSpan,
       beforeSpanEnd: span => {
-        // The webVitalsIntegration owns all web vital logic; it finalizes the collected
-        // web vitals and writes them onto the pageload span.
-        collectWebVitalsForClient(client, span);
         addPerformanceEntries(span, {
           ignoreResourceSpans,
           ignorePerformanceApiSpans,

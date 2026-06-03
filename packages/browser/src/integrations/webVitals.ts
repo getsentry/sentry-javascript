@@ -1,4 +1,4 @@
-import type { Client, IntegrationFn, Span } from '@sentry/core/browser';
+import type { IntegrationFn, Span } from '@sentry/core/browser';
 import { defineIntegration, hasSpanStreamingEnabled } from '@sentry/core/browser';
 import {
   addWebVitalsToSpan,
@@ -29,16 +29,6 @@ export interface WebVitalsOptions {
   }>;
 }
 
-const collectWebVitalsCallbacks = new WeakMap<Client, (span: Span) => void>();
-
-/**
- * Finalizes the collected web vitals and writes them onto the given (pageload) span.
- * Called by `browserTracingIntegration` when the pageload/navigation span ends.
- */
-export function collectWebVitalsForClient(client: Client, span: Span): void {
-  collectWebVitalsCallbacks.get(client)?.(span);
-}
-
 /**
  * Captures Core Web Vitals (LCP, CLS, INP) and related pageload vitals.
  *
@@ -66,14 +56,16 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
         client,
       });
 
-      collectWebVitalsCallbacks.set(client, span => {
-        finalizeWebVitals();
-        addWebVitalsToSpan(span, {
-          // CLS/LCP are recorded as pageload span measurements only when they're neither
-          // tracked as standalone spans nor handled by span streaming (and not ignored).
-          recordClsOnPageloadSpan: recordClsStandaloneSpans === false,
-          recordLcpOnPageloadSpan: recordLcpStandaloneSpans === false,
-          spanStreamingEnabled,
+      client.on('afterStartPageLoadSpan', span => {
+        wrapPageloadSpanEnd(span, () => {
+          finalizeWebVitals();
+          addWebVitalsToSpan(span, {
+            // CLS/LCP are recorded as pageload span measurements only when they're neither
+            // tracked as standalone spans nor handled by span streaming (and not ignored).
+            recordClsOnPageloadSpan: recordClsStandaloneSpans === false,
+            recordLcpOnPageloadSpan: recordLcpStandaloneSpans === false,
+            spanStreamingEnabled,
+          });
         });
       });
 
@@ -98,3 +90,17 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
     },
   };
 }) satisfies IntegrationFn;
+
+function wrapPageloadSpanEnd(span: Span, beforeEnd: () => void): void {
+  let hasEnded = false;
+  const originalEnd = span.end.bind(span);
+
+  span.end = (...args: Parameters<Span['end']>): void => {
+    if (!hasEnded) {
+      hasEnded = true;
+      beforeEnd();
+    }
+
+    originalEnd(...args);
+  };
+}
