@@ -67,3 +67,12 @@ export function isDurableObjectNamespace(item: unknown): item is DurableObjectNa
 export function isQueue(item: unknown): item is Queue {
   return item != null && isNotJSRPC(item) && typeof item.send === 'function' && typeof item.sendBatch === 'function';
 }
+export function isFlagship(item: unknown): boolean {
+  return (
+    item != null &&
+    isNotJSRPC(item) &&
+    typeof (item as Record<string, unknown>).getBooleanValue === 'function' &&
+    typeof (item as Record<string, unknown>).getStringValue === 'function' &&
+    typeof (item as Record<string, unknown>).getBooleanDetails === 'function'
+  );
+}
