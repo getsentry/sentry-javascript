@@ -5,7 +5,7 @@ import { applySdkMetadata, ServerRuntimeClient } from "@sentry/core";
 import type { NormalizedOptions } from "../options-mapping";
 import { SENTRY_SAAS_URL } from "../options-mapping";
 import { Scope } from "@sentry/core";
-import { createStackParser, nodeStackLineParser } from "@sentry/utils";
+import { createStackParser, nodeStackLineParser } from "@sentry/core";
 import { makeOptionallyEnabledNodeTransport } from "./transports";
 import { getProjects } from "../utils";
 import { LIB_VERSION } from "../version";

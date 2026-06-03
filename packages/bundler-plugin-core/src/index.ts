@@ -3,7 +3,7 @@ import componentNameAnnotatePlugin, {
   experimentalComponentNameAnnotatePlugin,
 } from "@sentry/babel-plugin-component-annotate";
 import SentryCli from "@sentry/cli";
-import { logger } from "@sentry/utils";
+import { debug } from "@sentry/core";
 import * as fs from "fs";
 import { CodeInjection, containsOnlyImports, stripQueryAndHashFromPath } from "./utils";
 
@@ -118,7 +118,7 @@ export function createComponentNameAnnotateHooks(
           map: result?.map,
         };
       } catch (e) {
-        logger.error(`Failed to apply react annotate plugin`, e);
+        debug.error(`Failed to apply react annotate plugin`, e);
       }
 
       return { code };

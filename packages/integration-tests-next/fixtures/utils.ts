@@ -81,7 +81,8 @@ export function readAllFiles(
             .replace(/"duration":[\d.]+/g, '"duration":DURATION')
             .replace(/"start_timestamp":[\d.]+/g, '"start_timestamp":START_TIMESTAMP')
             .replace(/"timestamp":[\d.]+/g, '"timestamp":TIMESTAMP')
-            .replace(/"release":"[\d.]+"/g, '"release":"PLUGIN_VERSION"');
+            .replace(/"release":"[\d.]+"/g, '"release":"PLUGIN_VERSION"')
+            .replace(/"sample_rand":"\d.?\d*"/g, '"sample_rand":"SAMPLE_RAND"');
         } else {
           // Normalize Windows line endings for cross-platform snapshots
           contents = contents.replace(/\r\n/g, "\n");
