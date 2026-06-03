@@ -177,8 +177,6 @@ export function setOpenTelemetryContextAsyncContextStrategy(
   if (!useOpenTelemetrySpanCreation) {
     setAsyncContextStrategy({
       ...baseStrategy,
-      // Keep OTEL Context and Sentry Scope active-span state in sync, but let
-      // the core tracing implementation create and send spans.
       withActiveSpan: withActiveSpanContextOnly as typeof defaultWithActiveSpan,
     });
     return;

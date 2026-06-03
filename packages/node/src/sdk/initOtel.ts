@@ -1,7 +1,7 @@
 import { context, propagation, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { debug as coreDebug, spanToTraceContext } from '@sentry/core';
+import { debug as coreDebug } from '@sentry/core';
 import {
   initializeEsmLoader,
   type NodeClient,
@@ -9,7 +9,6 @@ import {
   setupOpenTelemetryLogger,
 } from '@sentry/node-core';
 import {
-  _INTERNAL_getSpanForRecordedException,
   applyOtelSpanData,
   type AsyncLocalStorageLookup,
   getSentryResource,
@@ -148,23 +147,6 @@ function setupSentryTraceProvider(
 
   client.on('spanEnd', span => {
     applyOtelSpanData(span, { finalizeStatus: true });
-  });
-
-  client.addEventProcessor((event, hint) => {
-    // Some frameworks capture exceptions after the OTel context has already
-    // unwound. If a provider-created span recorded this exact exception first,
-    // keep the error event linked to that span instead of the ambient parent.
-    const span = _INTERNAL_getSpanForRecordedException(hint.originalException);
-    if (!span) {
-      return event;
-    }
-
-    event.contexts = {
-      ...event.contexts,
-      trace: spanToTraceContext(span),
-    };
-
-    return event;
   });
 
   client.on('preprocessEvent', event => {

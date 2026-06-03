@@ -12,11 +12,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SentryAsyncLocalStorageContextManager } from '../src/asyncLocalStorageContextManager';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
-import {
-  _INTERNAL_getSpanForRecordedException,
-  applyOtelSpanData,
-  SentryTraceProvider,
-} from '../src/sentryTraceProvider';
+import { applyOtelSpanData, SentryTraceProvider } from '../src/sentryTraceProvider';
 import { cleanupOtel } from './helpers/mockSdkInit';
 import { init as initTestClient } from './helpers/TestClient';
 
@@ -170,25 +166,6 @@ describe('SentryTraceProvider', () => {
     expect(json.data?.['otel.kind']).toBe('SERVER');
   });
 
-  it('remembers the closest provider-created span that recorded an exception', () => {
-    const error = new Error('test error');
-
-    trace.getTracer('test').startActiveSpan('outer', outer => {
-      let innerSpan: unknown;
-
-      trace.getTracer('test').startActiveSpan('inner', inner => {
-        innerSpan = inner;
-        inner.recordException(error);
-        inner.end();
-      });
-
-      outer.recordException(error);
-
-      expect(_INTERNAL_getSpanForRecordedException(error)).toBe(innerSpan);
-      outer.end();
-    });
-  });
-
   it('finalizes span statuses like the OpenTelemetry exporter', () => {
     const okSpan = trace.getTracer('test').startSpan('ok');
     applyOtelSpanData(okSpan as Span, { finalizeStatus: true });
@@ -214,12 +191,12 @@ describe('SentryTraceProvider', () => {
     expect(spanToJSON(customErrorSpan as Span).status).toBe('internal_error');
   });
 
-  it('does not keep default custom source on provider-created spans', () => {
+  it('keeps default custom source on provider-created spans', () => {
     const span = trace.getTracer('test').startSpan('custom-source');
     span.setAttribute('sentry.source', 'custom');
 
     applyOtelSpanData(span as Span, { finalizeStatus: true });
 
-    expect(spanToJSON(span as Span).data?.['sentry.source']).toBeUndefined();
+    expect(spanToJSON(span as Span).data?.['sentry.source']).toBe('custom');
   });
 });

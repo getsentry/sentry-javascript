@@ -1,6 +1,7 @@
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { captureException, setCurrentClient } from '@sentry/core';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
@@ -29,6 +30,7 @@ describe('setupEventContextTrace', () => {
     client.init();
 
     setupEventContextTrace(client);
+    setOpenTelemetryContextAsyncContextStrategy({ useOpenTelemetrySpanCreation: true });
     [provider] = setupOtel(client);
   });
 

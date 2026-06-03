@@ -27,7 +27,7 @@ import {
   startNewTrace,
   withScope,
 } from '@sentry/core';
-import type { Span, SpanAttributes, SpanLink, SpanStatus, SpanTimeInput } from '@sentry/core';
+import type { Span, SpanAttributes, SpanLink, SpanStatus } from '@sentry/core';
 import { inferSpanData } from './utils/parseSpanDescription';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { setIsSetup } from './utils/setupCheck';
@@ -36,34 +36,12 @@ type SentrySpanWithOtelKind = Span & { kind?: SpanKind };
 type SentrySpanWithOtelSourceInference = Span & { _sentryOtelInferSource?: boolean };
 type SentryTraceProviderSpan = Span & { _sentryTraceProviderSpan?: true };
 
-const recordedExceptionSpans = new WeakMap<object, Span>();
-
 export function isSentryTraceProviderSpan(span: Span | undefined): boolean {
   return (span as SentryTraceProviderSpan | undefined)?._sentryTraceProviderSpan === true;
 }
 
-export function _INTERNAL_getSpanForRecordedException(exception: unknown): Span | undefined {
-  if (exception === null || (typeof exception !== 'object' && typeof exception !== 'function')) {
-    return undefined;
-  }
-
-  return recordedExceptionSpans.get(exception);
-}
-
 function markSentryTraceProviderSpan(span: Span): Span {
   addNonEnumerableProperty(span as SentryTraceProviderSpan, '_sentryTraceProviderSpan', true);
-  const originalRecordException = span.recordException.bind(span);
-  addNonEnumerableProperty(span, 'recordException', function (this: Span, exception: unknown, time?: SpanTimeInput) {
-    if (exception !== null && (typeof exception === 'object' || typeof exception === 'function')) {
-      // Preserve the closest span that recorded this exception. Frameworks like Nest
-      // may capture after OTel context has unwound to a parent request span.
-      if (!recordedExceptionSpans.has(exception)) {
-        recordedExceptionSpans.set(exception, span);
-      }
-    }
-
-    return originalRecordException(exception, time);
-  });
   return span;
 }
 
@@ -306,15 +284,6 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
         span.setAttribute(key, value);
       }
     });
-  }
-
-  if (
-    mayInferSource &&
-    !hasCustomSpanName &&
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom' &&
-    (inferred.source === undefined || inferred.source === 'custom')
-  ) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, undefined);
   }
 
   if (options.finalizeStatus) {
