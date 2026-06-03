@@ -486,7 +486,7 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
       }
 
       Object.entries(_measurements).forEach(([measurementName, measurement]) => {
-        setMeasurement(measurementName, measurement.value, measurement.unit);
+        setMeasurement(measurementName, measurement.value, measurement.unit, span);
       });
 
       _setWebVitalAttributes(span, options);
