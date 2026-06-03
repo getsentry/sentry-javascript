@@ -116,3 +116,5 @@ export const SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE = 'sentry.link.type';
  * For LangGraph: configurable.thread_id
  */
 export const GEN_AI_CONVERSATION_ID_ATTRIBUTE = 'gen_ai.conversation.id';
+
+export const SEMANTIC_ATTRIBUTE_SESSION_ID = 'session.id';
