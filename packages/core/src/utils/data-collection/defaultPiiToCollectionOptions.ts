@@ -14,7 +14,7 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): Resolve
         queryParams: true,
         genAI: { inputs: true, outputs: true },
         stackFrameVariables: true,
-        frameContextLines: 5,
+        frameContextLines: 7, // default should be 5, but ContextLines integration uses 7
       }
     : {
         userInfo: false,
@@ -24,6 +24,6 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): Resolve
         queryParams: { deny: PII_HEADER_SNIPPETS },
         genAI: { inputs: false, outputs: false },
         stackFrameVariables: true,
-        frameContextLines: 5,
+        frameContextLines: 7, // default should be 5, but ContextLines integration uses 7
       };
 }
