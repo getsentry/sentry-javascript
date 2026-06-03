@@ -16,6 +16,7 @@ export interface Contexts extends Record<string, Context | undefined> {
   state?: StateContext;
   profile?: ProfileContext;
   flags?: FeatureFlagContext;
+  session?: SessionContext;
 }
 
 export interface StateContext extends Record<string, unknown> {
@@ -138,4 +139,8 @@ export interface MissingInstrumentationContext extends Record<string, unknown> {
  */
 export interface FeatureFlagContext extends Record<string, unknown> {
   values: FeatureFlag[];
+}
+
+export interface SessionContext extends Record<string, unknown> {
+  id?: string;
 }

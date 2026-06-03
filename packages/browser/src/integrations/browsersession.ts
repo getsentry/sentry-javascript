@@ -54,6 +54,7 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
       // for errors and transactions (non-streamed spans)
       client.addEventProcessor(event => {
         if (event.type && event.type !== 'transaction') {
+          // ignore other events than errors and transactions for now
           return event;
         }
 
@@ -62,20 +63,20 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
           return event;
         }
 
-        if (!event.tags?.[SEMANTIC_ATTRIBUTE_SESSION_ID]) {
-          event.tags = {
-            ...event.tags,
-            [SEMANTIC_ATTRIBUTE_SESSION_ID]: sessionId,
-          };
-        }
+        // set a session context on the event. Relay will extract the `session.id`
+        // tag from this context which will make it queryable in the UI.
+        event.contexts = {
+          session: {
+            id: sessionId,
+          },
+          ...event.contexts,
+        };
 
         event.spans?.forEach(span => {
-          if (!span.data?.[SEMANTIC_ATTRIBUTE_SESSION_ID]) {
-            span.data = {
-              ...span.data,
-              [SEMANTIC_ATTRIBUTE_SESSION_ID]: sessionId,
-            };
-          }
+          span.data = {
+            [SEMANTIC_ATTRIBUTE_SESSION_ID]: sessionId,
+            ...span.data,
+          };
         });
 
         return event;
