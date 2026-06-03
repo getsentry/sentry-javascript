@@ -40,19 +40,14 @@ import {
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
-  registerInpInteractionListener,
-  startTrackingINP,
   startTrackingInteractions,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
-  startTrackingWebVitals,
-  trackClsAsSpan,
-  trackInpAsSpan,
-  trackLcpAsSpan,
 } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import { fetchStreamPerformanceIntegration } from '../integrations/fetchStreamPerformance';
+import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integrations/webVitals';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
@@ -415,7 +410,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
   const _isBot = isBotUserAgent();
 
-  let _collectWebVitals: undefined | (() => void);
   let lastInteractionTimestamp: number | undefined;
 
   let _pageloadSpan: Span | undefined;
@@ -458,16 +452,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadSpan,
       beforeSpanEnd: span => {
-        // This will generally always be defined here, because it is set in `setup()` of the integration
-        // but technically, it is optional, so we guard here to be extra safe
-        _collectWebVitals?.();
-        const spanStreamingEnabled = hasSpanStreamingEnabled(client);
         addPerformanceEntries(span, {
-          recordClsOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneClsSpans,
-          recordLcpOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneLcpSpans,
           ignoreResourceSpans,
           ignorePerformanceApiSpans,
-          spanStreamingEnabled,
+          spanStreamingEnabled: hasSpanStreamingEnabled(client),
         });
         setActiveIdleSpan(client, undefined);
 
@@ -523,24 +511,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       }
 
       registerSpanErrorInstrumentation();
-
-      const spanStreamingEnabled = hasSpanStreamingEnabled(client);
-
-      _collectWebVitals = startTrackingWebVitals({
-        recordClsStandaloneSpans: spanStreamingEnabled ? undefined : enableStandaloneClsSpans || false,
-        recordLcpStandaloneSpans: spanStreamingEnabled ? undefined : enableStandaloneLcpSpans || false,
-        client,
-      });
-
-      if (spanStreamingEnabled) {
-        trackLcpAsSpan(client);
-        trackClsAsSpan(client);
-        if (enableInp) {
-          trackInpAsSpan();
-        }
-      } else if (enableInp) {
-        startTrackingINP();
-      }
 
       if (
         enableLongAnimationFrame &&
@@ -675,6 +645,21 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         return;
       }
 
+      // Auto-register webVitalsIntegration if the user hasn't added one. We do this in
+      // afterAllSetup so that a user-provided webVitalsIntegration - which may be ordered after
+      // browserTracingIntegration in the integrations array - has already been installed.
+      if (client.addIntegration && !client.getIntegrationByName?.(WEB_VITALS_INTEGRATION_NAME)) {
+        client.addIntegration(
+          webVitalsIntegration({
+            ignore: enableInp ? [] : ['inp'],
+            _experiments: {
+              enableStandaloneClsSpans,
+              enableStandaloneLcpSpans,
+            },
+          }),
+        );
+      }
+
       let startingUrl: string | undefined = getLocationHref();
 
       if (linkPreviousTrace !== 'off') {
@@ -738,10 +723,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       if (enableInteractions) {
         registerInteractionListener(client, idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
-      }
-
-      if (enableInp) {
-        registerInpInteractionListener();
       }
 
       instrumentOutgoingRequests(client, {

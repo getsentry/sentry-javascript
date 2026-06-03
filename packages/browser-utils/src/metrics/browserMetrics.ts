@@ -123,9 +123,11 @@ export function startTrackingWebVitals({
         : undefined;
 
     const ttfbCleanupCallback = _trackTtfb();
+    const fpFcpCleanupCallback = _trackFpFcp();
 
     return (): void => {
       ttfbCleanupCallback();
+      fpFcpCleanupCallback();
       lcpCleanupCallback?.();
       clsCleanupCallback?.();
     };
@@ -303,25 +305,24 @@ function _trackTtfb(): () => void {
   });
 }
 
+/** Starts tracking First Paint and First Contentful Paint on the current page. */
+function _trackFpFcp(): () => void {
+  return addPerformanceInstrumentationHandler('paint', ({ entries }) => {
+    const firstHidden = getVisibilityWatcher();
+    for (const entry of entries) {
+      // Only report if the page wasn't hidden prior to the web vital.
+      const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
+      if (entry.name === 'first-paint' && shouldRecord) {
+        _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
+      }
+      if (entry.name === 'first-contentful-paint' && shouldRecord) {
+        _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
+      }
+    }
+  });
+}
+
 interface AddPerformanceEntriesOptions {
-  /**
-   * Flag to determine if CLS should be recorded as a measurement on the pageload span or
-   * sent as a standalone span instead.
-   * Sending it as a standalone span will yield more accurate LCP values.
-   *
-   * Default: `false` for backwards compatibility.
-   */
-  recordClsOnPageloadSpan: boolean;
-
-  /**
-   * Flag to determine if LCP should be recorded as a measurement on the pageload span or
-   * sent as a standalone span instead.
-   * Sending it as a standalone span will yield more accurate LCP values.
-   *
-   * Default: `false` for backwards compatibility.
-   */
-  recordLcpOnPageloadSpan: boolean;
-
   /**
    * Resource spans with `op`s matching strings in the array will not be emitted.
    *
@@ -344,6 +345,31 @@ interface AddPerformanceEntriesOptions {
   spanStreamingEnabled?: boolean;
 }
 
+interface AddWebVitalsToSpanOptions {
+  /**
+   * Flag to determine if CLS should be recorded as a measurement on the pageload span or
+   * sent as a standalone span instead.
+   * Sending it as a standalone span will yield more accurate LCP values.
+   *
+   * Default: `false` for backwards compatibility.
+   */
+  recordClsOnPageloadSpan: boolean;
+
+  /**
+   * Flag to determine if LCP should be recorded as a measurement on the pageload span or
+   * sent as a standalone span instead.
+   * Sending it as a standalone span will yield more accurate LCP values.
+   *
+   * Default: `false` for backwards compatibility.
+   */
+  recordLcpOnPageloadSpan: boolean;
+
+  /**
+   * Whether span streaming is enabled.
+   */
+  spanStreamingEnabled?: boolean;
+}
+
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
@@ -353,13 +379,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     return;
   }
 
-  const {
-    spanStreamingEnabled,
-    ignorePerformanceApiSpans,
-    ignoreResourceSpans,
-    recordClsOnPageloadSpan,
-    recordLcpOnPageloadSpan,
-  } = options;
+  const { spanStreamingEnabled, ignorePerformanceApiSpans, ignoreResourceSpans } = options;
 
   const timeOrigin = msToSec(origin);
 
@@ -390,18 +410,6 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       case 'paint':
       case 'measure': {
         _addMeasureSpans(span, entry, startTime, duration, timeOrigin, ignorePerformanceApiSpans);
-
-        // capture web vitals
-        const firstHidden = getVisibilityWatcher();
-        // Only report if the page wasn't hidden prior to the web vital.
-        const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
-
-        if (entry.name === 'first-paint' && shouldRecord) {
-          _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
-        }
-        if (entry.name === 'first-contentful-paint' && shouldRecord) {
-          _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
-        }
         break;
       }
       case 'resource': {
@@ -423,9 +431,29 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
   _performanceCursor = Math.max(performanceEntries.length - 1, 0);
 
   _trackNavigator(span, spanStreamingEnabled);
+}
+
+/**
+ * Writes the collected web vitals (LCP, CLS, INP, TTFB, FP, FCP) onto the pageload span,
+ * either as measurements/attributes (v1) or as web vital attributes (span streaming).
+ *
+ * This should be called when the pageload span ends, after the web vitals have been finalized.
+ * It is a no-op for non-pageload spans, but always resets the collected web vital state so it
+ * doesn't leak into a subsequent navigation.
+ */
+export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOptions): void {
+  const origin = browserPerformanceTimeOrigin();
+  if (!getBrowserPerformanceAPI()?.getEntries || !origin) {
+    // Gatekeeper if performance API not available
+    resetWebVitalState();
+    return;
+  }
+
+  const { spanStreamingEnabled, recordClsOnPageloadSpan, recordLcpOnPageloadSpan } = options;
+  const timeOrigin = msToSec(origin);
 
   // Measurements are only available for pageload transactions
-  if (op === 'pageload') {
+  if (spanToJSON(span).op === 'pageload') {
     _addTtfbRequestTimeToMeasurements(_measurements);
 
     if (spanStreamingEnabled) {
@@ -458,7 +486,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       }
 
       Object.entries(_measurements).forEach(([measurementName, measurement]) => {
-        setMeasurement(measurementName, measurement.value, measurement.unit);
+        setMeasurement(measurementName, measurement.value, measurement.unit, span);
       });
 
       _setWebVitalAttributes(span, options);
@@ -479,6 +507,10 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     );
   }
 
+  resetWebVitalState();
+}
+
+function resetWebVitalState(): void {
   _lcpEntry = undefined;
   _clsEntry = undefined;
   _measurements = {};
@@ -794,9 +826,12 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
     }
 
     if (isMeasurementValue(connection.rtt)) {
-      _measurements['connection.rtt'] = { value: connection.rtt, unit: 'millisecond' };
       if (spanStreamingEnabled) {
         span.setAttribute('network.connection.rtt', connection.rtt);
+      } else if (spanToJSON(span).op === 'pageload') {
+        // Measurements are only recorded on the pageload span, matching the historical
+        // behavior where `connection.rtt` was only flushed for pageload transactions.
+        setMeasurement('connection.rtt', connection.rtt, 'millisecond');
       }
     }
   }
@@ -819,7 +854,7 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
 }
 
 /** Add LCP / CLS data to span to allow debugging */
-function _setWebVitalAttributes(span: Span, options: AddPerformanceEntriesOptions): void {
+function _setWebVitalAttributes(span: Span, options: AddWebVitalsToSpanOptions): void {
   // Only add LCP attributes if LCP is being recorded on the pageload span
   if (_lcpEntry && options.recordLcpOnPageloadSpan) {
     // Capture Properties of the LCP element that contributes to the LCP.
