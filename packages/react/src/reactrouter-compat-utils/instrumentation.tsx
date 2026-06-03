@@ -14,7 +14,6 @@ import {
   debug,
   getClient,
   getCurrentScope,
-  isBrowser,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -64,8 +63,9 @@ const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
 // Detect navigations in a layout effect so the navigation trace is set up before child route components'
 // passive mount effects fire requests (else they propagate the stale pageload trace).
-// The `isBrowser()` guard just avoids a harmless SSR warning.
-const useIsomorphicLayoutEffect = isBrowser() ? React.useLayoutEffect : React.useEffect;
+// Guard on `document` (present in real browsers and jsdom) so we only fall back to `useEffect` in true
+// SSR, where `useLayoutEffect` warns and effects don't run anyway.
+const useIsomorphicLayoutEffect = WINDOW?.document ? React.useLayoutEffect : React.useEffect;
 
 // Prevents duplicate spans when router.subscribe fires multiple times
 const activeNavigationSpans = new WeakMap<
