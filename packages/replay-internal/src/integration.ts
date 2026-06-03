@@ -363,6 +363,9 @@ export class Replay implements Integration {
     const replayId = this.getReplayId(true);
     if (replayId) {
       safeSetSpanJSONAttributes(span, { 'sentry.replay_id': replayId });
+      if (this.getRecordingMode() === 'buffer') {
+        safeSetSpanJSONAttributes(span, { 'sentry._internal.replay_is_buffering': true });
+      }
     }
   }
 
