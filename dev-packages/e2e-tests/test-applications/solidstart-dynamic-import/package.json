@@ -2,7 +2,7 @@
   "name": "solidstart-dynamic-import-e2e-testapp",
   "version": "0.0.0",
   "scripts": {
-    "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",
+    "clean": "pnpx rimraf node_modules .vinxi .output",
     "dev": "vinxi dev",
     "build": "vinxi build",
     "preview": "HOST=localhost PORT=3030 vinxi start",

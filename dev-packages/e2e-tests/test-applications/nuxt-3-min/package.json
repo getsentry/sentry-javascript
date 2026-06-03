@@ -25,12 +25,6 @@
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
-  "pnpm": {
-    "overrides": {
-      "ofetch": "1.4.0",
-      "@vercel/nft": "0.29.4"
-    }
-  },
   "volta": {
     "extends": "../../package.json"
   }

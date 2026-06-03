@@ -9,7 +9,7 @@
     "emulate": "firebase emulators:start --project demo-functions",
     "start": "pnpm run -r start",
     "test": "playwright test",
-    "clean": "npx rimraf node_modules **/node_modules pnpm-lock.yaml **/dist *-debug.log test-results",
+    "clean": "npx rimraf node_modules **/node_modules **/dist *-debug.log test-results",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm firebase emulators:exec --project demo-functions 'pnpm test'"
   },

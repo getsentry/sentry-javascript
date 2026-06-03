@@ -6,7 +6,7 @@
     "dev": "remix vite:dev",
     "start": "NODE_OPTIONS='--require=./instrument.server.cjs' remix-serve build/server/index.js",
     "typecheck": "tsc",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm playwright test"
   },

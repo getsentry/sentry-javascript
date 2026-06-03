@@ -1031,6 +1031,9 @@ jobs:
       - name: Copy to temp
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
         working-directory: dev-packages/e2e-tests
+        env:
+          # On develop/master, ignore lockfiles to test with fresh dependencies
+          E2E_IGNORE_LOCKFILE: ${{ github.event_name != 'pull_request' }}
 
       - name: Add pnpm overrides
         run:
@@ -1147,6 +1150,9 @@ jobs:
       - name: Copy to temp
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
         working-directory: dev-packages/e2e-tests
+        env:
+          # On develop/master, ignore lockfiles to test with fresh dependencies
+          E2E_IGNORE_LOCKFILE: ${{ github.event_name != 'pull_request' }}
 
       - name: Add pnpm overrides
         run:

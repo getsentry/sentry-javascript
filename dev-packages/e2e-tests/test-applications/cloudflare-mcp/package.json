@@ -30,11 +30,5 @@
   "volta": {
     "node": "24.15.0",
     "extends": "../../package.json"
-  },
-  "pnpm": {
-    "overrides": {
-      "strip-literal": "~2.0.0",
-      "@modelcontextprotocol/sdk": "1.25.2"
-    }
   }
 }

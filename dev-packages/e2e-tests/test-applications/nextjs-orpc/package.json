@@ -7,7 +7,7 @@
     "build": "next build",
     "dev": "next dev -p 3030",
     "start": "next start -p 3030",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
     "test:build": "pnpm install && pnpm build",

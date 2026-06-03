@@ -21,6 +21,12 @@ current state.
 - Run `yarn build:tarball` in the root of the repository (needs to be rerun after every update in /packages for the
   changes to have effect on the tests).
 
+### Environment Variables
+
+| Variable              | Description                                                                                                                                                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `E2E_IGNORE_LOCKFILE` | Set to `true` to delete `pnpm-lock.yaml` before installing dependencies. This forces fresh dependency resolution, ignoring the committed lockfile. Used in CI on `develop`/`master` branches to catch compatibility issues early. |
+
 To finally run all of the tests:
 
 ```bash

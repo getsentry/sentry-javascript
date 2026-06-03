@@ -9,7 +9,7 @@
     "start": "vite preview",
     "preview": "vite preview",
     "typecheck": "react-router typegen && tsc",
-    "clean": "pnpx rimraf node_modules pnpm-lock.yaml",
+    "clean": "pnpx rimraf node_modules",
     "test:build": "pnpm install && pnpm build",
     "test:ts": "pnpm typecheck",
     "test:prod": "playwright test",

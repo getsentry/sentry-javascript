@@ -7,7 +7,7 @@
     "build": "vite build && cp instrument.server.mjs .output/server",
     "start": "node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
     "test": "playwright test",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules",
     "test:build": "pnpm install && pnpm build",
     "test:build:tunnel-generated": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build:tunnel-static": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=static E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",

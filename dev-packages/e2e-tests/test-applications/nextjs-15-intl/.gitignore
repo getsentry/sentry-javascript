@@ -42,7 +42,6 @@ next-env.d.ts
 # Sentry
 .sentryclirc
 
-pnpm-lock.yaml
 .tmp_dev_server_logs
 .tmp_build_stdout
 .tmp_build_stderr

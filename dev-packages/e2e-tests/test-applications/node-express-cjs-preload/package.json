@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node --require @sentry/node/preload src/app.js",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules",
     "test:build": "pnpm install",
     "test:assert": "playwright test"
   },

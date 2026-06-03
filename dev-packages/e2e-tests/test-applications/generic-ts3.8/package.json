@@ -20,11 +20,6 @@
     "@sentry-internal/replay": "file:../../packed/sentry-internal-replay-packed.tgz",
     "@sentry/wasm": "file:../../packed/sentry-wasm-packed.tgz"
   },
-  "pnpm": {
-    "overrides": {
-      "@opentelemetry/api": "1.9.0"
-    }
-  },
   "volta": {
     "extends": "../../package.json"
   }
