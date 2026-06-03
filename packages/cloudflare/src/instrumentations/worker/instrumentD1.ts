@@ -144,10 +144,12 @@ export function instrumentD1(db: D1Database): D1Database {
   return ensureInstrumented(db, _instrumentD1);
 }
 
+// todo(v11): Remove this export
 /**
  * Instruments Cloudflare D1 bindings with Sentry.
  *
- * @deprecated Use `withSentry()` instead, which automatically instruments all D1 bindings via env.
+ * @deprecated `withSentry()` automatically instruments all D1 bindings via `env`
+ * so this function is not needed anymore.
  *
  * @example
  *
