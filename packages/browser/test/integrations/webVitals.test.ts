@@ -125,15 +125,15 @@ describe('webVitalsIntegration', () => {
     expect(mockRegisterInpInteractionListener).not.toHaveBeenCalled();
   });
 
-  it('finalizes web vitals and writes them onto the pageload span before it ends', () => {
+  it('finalizes web vitals and writes them onto the pageload span when it ends', () => {
     const finalizeWebVitals = vi.fn();
     const client = getMockClient();
-    const span = { end: vi.fn() };
+    const span = {};
     mockStartTrackingWebVitals.mockReturnValue(finalizeWebVitals);
 
     webVitalsIntegration().setup?.(client as never);
     client.emit('afterStartPageLoadSpan', span);
-    span.end();
+    client.emit('spanEnd', span);
 
     expect(finalizeWebVitals).toHaveBeenCalledTimes(1);
     expect(mockAddWebVitalsToSpan).toHaveBeenCalledWith(span, {
@@ -143,13 +143,25 @@ describe('webVitalsIntegration', () => {
     });
   });
 
+  it('does not write web vitals onto non-pageload spans', () => {
+    const finalizeWebVitals = vi.fn();
+    const client = getMockClient();
+    mockStartTrackingWebVitals.mockReturnValue(finalizeWebVitals);
+
+    webVitalsIntegration().setup?.(client as never);
+    client.emit('spanEnd', {});
+
+    expect(finalizeWebVitals).not.toHaveBeenCalled();
+    expect(mockAddWebVitalsToSpan).not.toHaveBeenCalled();
+  });
+
   it('does not record CLS/LCP on the pageload span when span streaming is enabled', () => {
     const client = getMockClient({ traceLifecycle: 'stream' });
-    const span = { end: vi.fn() };
+    const span = {};
 
     webVitalsIntegration().setup?.(client as never);
     client.emit('afterStartPageLoadSpan', span);
-    span.end();
+    client.emit('spanEnd', span);
 
     expect(mockAddWebVitalsToSpan).toHaveBeenCalledWith(span, {
       recordClsOnPageloadSpan: false,
@@ -160,14 +172,14 @@ describe('webVitalsIntegration', () => {
 
   it('does not record CLS/LCP on the pageload span when standalone spans are enabled', () => {
     const client = getMockClient();
-    const span = { end: vi.fn() };
+    const span = {};
     const integration = webVitalsIntegration({
       _experiments: { enableStandaloneClsSpans: true, enableStandaloneLcpSpans: true },
     });
 
     integration.setup?.(client as never);
     client.emit('afterStartPageLoadSpan', span);
-    span.end();
+    client.emit('spanEnd', span);
 
     expect(mockAddWebVitalsToSpan).toHaveBeenCalledWith(span, {
       recordClsOnPageloadSpan: false,

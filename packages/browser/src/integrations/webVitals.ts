@@ -56,16 +56,24 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
         client,
       });
 
+      const pageloadSpans = new WeakSet<Span>();
+
       client.on('afterStartPageLoadSpan', span => {
-        wrapPageloadSpanEnd(span, () => {
-          finalizeWebVitals();
-          addWebVitalsToSpan(span, {
-            // CLS/LCP are recorded as pageload span measurements only when they're neither
-            // tracked as standalone spans nor handled by span streaming (and not ignored).
-            recordClsOnPageloadSpan: recordClsStandaloneSpans === false,
-            recordLcpOnPageloadSpan: recordLcpStandaloneSpans === false,
-            spanStreamingEnabled,
-          });
+        pageloadSpans.add(span);
+      });
+
+      client.on('spanEnd', span => {
+        if (!pageloadSpans.delete(span)) {
+          return;
+        }
+
+        finalizeWebVitals();
+        addWebVitalsToSpan(span, {
+          // CLS/LCP are recorded as pageload span measurements only when they're neither
+          // tracked as standalone spans nor handled by span streaming (and not ignored).
+          recordClsOnPageloadSpan: recordClsStandaloneSpans === false,
+          recordLcpOnPageloadSpan: recordLcpStandaloneSpans === false,
+          spanStreamingEnabled,
         });
       });
 
@@ -90,17 +98,3 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
     },
   };
 }) satisfies IntegrationFn;
-
-function wrapPageloadSpanEnd(span: Span, beforeEnd: () => void): void {
-  let hasEnded = false;
-  const originalEnd = span.end.bind(span);
-
-  span.end = (...args: Parameters<Span['end']>): void => {
-    if (!hasEnded) {
-      hasEnded = true;
-      beforeEnd();
-    }
-
-    originalEnd(...args);
-  };
-}
