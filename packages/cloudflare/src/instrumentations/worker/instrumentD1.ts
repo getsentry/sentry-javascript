@@ -149,7 +149,7 @@ export function instrumentD1(db: D1Database): D1Database {
  * Instruments Cloudflare D1 bindings with Sentry.
  *
  * @deprecated `withSentry()` automatically instruments all D1 bindings via `env`
- * so this function is not needed anymore.
+ * so this function is not needed anymore. It will be removed in the next major version of the SDK.
  *
  * @example
  *
