@@ -1,4 +1,0 @@
-fail-on-severity: "critical"
-allow-ghsas:
-  # If we support webpack v5.0.0, we need to use those types and test that version
-  - GHSA-hc6q-2mpp-qw7j
