@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { IntegrationFn } from '@sentry/core';
+import { GLOBAL_OBJ, type IntegrationFn } from '@sentry/core';
 import { isCjs } from '../utils/detection';
 
 type ModuleInfo = Record<string, string>;
@@ -12,10 +12,29 @@ const INTEGRATION_NAME = 'Modules';
 declare const __SENTRY_SERVER_MODULES__: Record<string, string>;
 
 /**
- * `__SENTRY_SERVER_MODULES__` can be replaced at build time with the modules loaded by the server.
- * Right now, we leverage this in Next.js to circumvent the problem that we do not get access to these things at runtime.
+ * Reads the modules that were injected at build time into `__SENTRY_SERVER_MODULES__`
+ * (e.g. by the Next.js SDK, to work around not having access to these at runtime).
+ *
+ * This MUST be read lazily (on every call) rather than captured once at module-evaluation
+ * time, because the two supported bundlers inject the value differently:
+ * - webpack replaces the `__SENTRY_SERVER_MODULES__` token with a literal via `DefinePlugin`
+ *   (available as soon as this module is evaluated).
+ * - Turbopack assigns `globalThis.__SENTRY_SERVER_MODULES__` at runtime, from a value-injection
+ *   loader applied to `instrumentation.*`. The instrumentation file's ESM imports are hoisted
+ *   above that assignment, so this module is evaluated *before* the global is set. A
+ *   module-level `const` capture would therefore always be empty under Turbopack, silently
+ *   disabling every module-detection-based auto integration (Vercel AI, OpenAI, Anthropic,
+ *   Google GenAI, LangChain, LangGraph). See getsentry/sentry-javascript#19147.
  */
-const SERVER_MODULES = typeof __SENTRY_SERVER_MODULES__ === 'undefined' ? {} : __SENTRY_SERVER_MODULES__;
+function getServerModules(): Record<string, string> {
+  // webpack: the token is replaced with a literal at build time.
+  if (typeof __SENTRY_SERVER_MODULES__ !== 'undefined') {
+    return __SENTRY_SERVER_MODULES__;
+  }
+  // Turbopack: the value is assigned onto the global object at runtime.
+  return (GLOBAL_OBJ as typeof GLOBAL_OBJ & { __SENTRY_SERVER_MODULES__?: Record<string, string> })
+    .__SENTRY_SERVER_MODULES__ ?? {};
+}
 
 const _modulesIntegration = (() => {
   return {
@@ -52,7 +71,7 @@ function getRequireCachePaths(): string[] {
 /** Extract information about package.json modules */
 function collectModules(): ModuleInfo {
   return {
-    ...SERVER_MODULES,
+    ...getServerModules(),
     ...getModulesFromPackageJson(),
     ...(isCjs() ? collectRequireModules() : {}),
   };
