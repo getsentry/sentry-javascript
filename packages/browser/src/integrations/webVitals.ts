@@ -5,9 +5,7 @@ import {
   registerInpInteractionListener,
   startTrackingINP,
   startTrackingWebVitals,
-  trackClsAsSpan,
   trackInpAsSpan,
-  trackLcpAsSpan,
 } from '@sentry/browser-utils';
 
 export const WEB_VITALS_INTEGRATION_NAME = 'WebVitals';
@@ -19,14 +17,6 @@ export interface WebVitalsOptions {
    * Web vitals to skip.
    */
   ignore?: WebVitalName[];
-
-  /**
-   * @experimental
-   */
-  _experiments?: Partial<{
-    enableStandaloneClsSpans: boolean;
-    enableStandaloneLcpSpans: boolean;
-  }>;
 }
 
 /**
@@ -43,16 +33,13 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
     name: WEB_VITALS_INTEGRATION_NAME,
     setup(client) {
       const spanStreamingEnabled = hasSpanStreamingEnabled(client);
-      const { enableStandaloneClsSpans, enableStandaloneLcpSpans } = options._experiments ?? {};
 
-      const recordClsStandaloneSpans =
-        spanStreamingEnabled || ignored.has('cls') ? undefined : enableStandaloneClsSpans || false;
-      const recordLcpStandaloneSpans =
-        spanStreamingEnabled || ignored.has('lcp') ? undefined : enableStandaloneLcpSpans || false;
+      const trackCls = !ignored.has('cls');
+      const trackLcp = !ignored.has('lcp');
 
       const finalizeWebVitals = startTrackingWebVitals({
-        recordClsStandaloneSpans,
-        recordLcpStandaloneSpans,
+        trackCls,
+        trackLcp,
         client,
       });
 
@@ -69,21 +56,13 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
 
         finalizeWebVitals();
         addWebVitalsToSpan(span, {
-          // CLS/LCP are recorded as pageload span measurements only when they're neither
-          // tracked as standalone spans nor handled by span streaming (and not ignored).
-          recordClsOnPageloadSpan: recordClsStandaloneSpans === false,
-          recordLcpOnPageloadSpan: recordLcpStandaloneSpans === false,
+          recordClsOnPageloadSpan: trackCls,
+          recordLcpOnPageloadSpan: trackLcp,
           spanStreamingEnabled,
         });
       });
 
       if (spanStreamingEnabled) {
-        if (!ignored.has('lcp')) {
-          trackLcpAsSpan(client);
-        }
-        if (!ignored.has('cls')) {
-          trackClsAsSpan(client);
-        }
         if (!ignored.has('inp')) {
           trackInpAsSpan();
         }

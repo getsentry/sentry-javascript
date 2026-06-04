@@ -97,8 +97,8 @@ describe('addWebVitalsToSpan', () => {
     });
 
     const cleanupWebVitals = startTrackingWebVitals({
-      recordClsStandaloneSpans: undefined,
-      recordLcpStandaloneSpans: undefined,
+      trackCls: true,
+      trackLcp: true,
       client: getClient()!,
     });
 
