@@ -112,5 +112,22 @@ export const onFCP = (onReport: (metric: FCPMetric) => void, opts: ReportOpts = 
     if (po) {
       report = bindReporter(onReport, metric, FCPThresholds, opts.reportAllChanges);
     }
+
+    if (softNavsEnabled) {
+      const handleSoftNavEntries = (entries: SoftNavigationEntry[]) => {
+        entries.forEach(entry => {
+          handleEntries(po!.takeRecords() as FCPMetric['entries']);
+          const fcpTime = (entry.presentationTime || entry.paintTime || 0) - entry.startTime;
+          const softNavEntry = getSoftNavigationEntry(entry.navigationId);
+          const softNavEntryStartTime = softNavEntry?.startTime ?? 0;
+          if (softNavEntryStartTime > metricNavStartTime) {
+            initNewFCPMetric('soft-navigation', entry.navigationId);
+            metric.value = Math.max(fcpTime, 0);
+            report(true);
+          }
+        });
+      };
+      observe('soft-navigation', handleSoftNavEntries, opts);
+    }
   });
 };

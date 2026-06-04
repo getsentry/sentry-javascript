@@ -26,6 +26,7 @@ export const initMetric = <MetricName extends MetricType['name']>(
   value: number = -1,
   navigation?: MetricType['navigationType'],
   navigationId?: string,
+  interactionId?: number,
 ) => {
   const hardNavId = getNavigationEntry()?.navigationId || '1';
   const hardNavEntry = getNavigationEntry();
@@ -46,6 +47,7 @@ export const initMetric = <MetricName extends MetricType['name']>(
 
   // Use `entries` type specific for the metric.
   const entries: Extract<MetricType, { name: MetricName }>['entries'] = [];
+  const softNavEntry = getSoftNavigationEntry(navigationId);
   return {
     name,
     value,
@@ -55,6 +57,8 @@ export const initMetric = <MetricName extends MetricType['name']>(
     id: generateUniqueID(),
     navigationType,
     navigationId: navigationId || hardNavId,
-    navigationURL: getSoftNavigationEntry(navigationId)?.name || getNavigationEntry()?.name,
+    interactionId: interactionId ?? softNavEntry?.interactionId,
+    navigationURL: softNavEntry?.name || getNavigationEntry()?.name,
+    navigationStartTime: softNavEntry?.startTime || 0,
   };
 };

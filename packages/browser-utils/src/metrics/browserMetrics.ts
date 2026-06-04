@@ -133,7 +133,7 @@ function _emitSoftNavWebVitalSpan(name: string, value: number, unit: string): vo
 interface StartTrackingWebVitalsOptions {
   recordClsStandaloneSpans: boolean | undefined;
   recordLcpStandaloneSpans: boolean | undefined;
-  reportSoftNavs: boolean;
+  reportSoftNavs?: boolean;
   client: Client;
 }
 
@@ -320,26 +320,34 @@ export { registerInpInteractionListener, startTrackingINP } from './inp';
  * to the `_measurements` object which ultimately is applied to the pageload span's measurements.
  */
 function _trackCLS(reportSoftNavs?: boolean): () => void {
-  return addClsInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
-    if (!entry) {
-      return;
-    }
-    _emitMeasurement(metric, 'cls', metric.value, '');
-    _clsEntry = entry;
-  }, !reportSoftNavs, reportSoftNavs);
+  return addClsInstrumentationHandler(
+    ({ metric }) => {
+      const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
+      if (!entry) {
+        return;
+      }
+      _emitMeasurement(metric, 'cls', metric.value, '');
+      _clsEntry = entry;
+    },
+    !reportSoftNavs,
+    reportSoftNavs,
+  );
 }
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
 function _trackLCP(reportSoftNavs?: boolean): () => void {
-  return addLcpInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries[metric.entries.length - 1];
-    if (!entry || !isValidLcpMetric(metric.value)) {
-      return;
-    }
-    _emitMeasurement(metric, 'lcp', metric.value, 'millisecond');
-    _lcpEntry = entry as LargestContentfulPaint;
-  }, !reportSoftNavs, reportSoftNavs);
+  return addLcpInstrumentationHandler(
+    ({ metric }) => {
+      const entry = metric.entries[metric.entries.length - 1];
+      if (!entry || !isValidLcpMetric(metric.value)) {
+        return;
+      }
+      _emitMeasurement(metric, 'lcp', metric.value, 'millisecond');
+      _lcpEntry = entry as LargestContentfulPaint;
+    },
+    !reportSoftNavs,
+    reportSoftNavs,
+  );
 }
 
 function _trackTtfb(reportSoftNavs?: boolean): () => void {

@@ -100,6 +100,12 @@ declare global {
 
   // https://github.com/WICG/soft-navigations
   interface SoftNavigationEntry extends PerformanceEntry {
+    readonly interactionId: number;
+    readonly navigationType?: NavigationType;
+    readonly paintTime?: number;
+    readonly presentationTime?: number;
+    readonly largestInteractionContentfulPaint: InteractionContentfulPaint;
+    readonly getLargestInteractionContentfulPaint?: () => InteractionContentfulPaint | null;
     navigationId?: string;
   }
 

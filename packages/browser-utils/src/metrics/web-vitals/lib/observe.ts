@@ -59,7 +59,11 @@ export const observe = <K extends keyof PerformanceEntryMap>(
         // See: https://github.com/GoogleChrome/web-vitals/issues/277
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         Promise.resolve().then(() => {
-          callback(list.getEntries() as PerformanceEntryMap[K]);
+          const entries = list.getEntries();
+          entries.sort((a, b) => {
+            return a.startTime + a.duration - (b.startTime + b.duration);
+          });
+          callback(entries as PerformanceEntryMap[K]);
         });
       });
       po.observe({

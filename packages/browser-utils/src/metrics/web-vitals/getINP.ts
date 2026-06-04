@@ -94,7 +94,7 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: INPReportOpts
     };
 
     const updateINPMetric = () => {
-      const inp = interactionManager._estimateP98LongestInteraction();
+      const inp = interactionManager._estimateP98LongestInteraction(metric.navigationType);
 
       if (inp && (inp._latency !== metric.value || opts.reportAllChanges)) {
         metric.value = inp._latency;
@@ -149,6 +149,9 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: INPReportOpts
 
       visibilityWatcher.onHidden(() => {
         handleEntries(po.takeRecords() as INPMetric['entries']);
+        if (metric.navigationType === 'soft-navigation') {
+          updateINPMetric();
+        }
         report(true);
       });
 
