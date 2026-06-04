@@ -19,10 +19,12 @@ Enabled via `_experiments.enableSoftNavWebVitals` on `browserTracingIntegration`
 ### Key bug found and fixed
 
 When the pageload span ended, `_collectWebVitals()` called cleanup callbacks that:
+
 1. Disconnected the PerformanceObserver (`stopOnCallback=true`)
 2. Removed the handler from the `handlers` array
 
 This killed LCP/CLS observation before any soft nav could occur. Fix:
+
 - Pass `stopOnCallback=!reportSoftNavs` so observers stay alive when soft navs enabled
 - Skip calling `lcpCleanupCallback`/`clsCleanupCallback` in the cleanup function when soft navs enabled
 
@@ -39,6 +41,7 @@ Soft nav web vitals must be delivered as **measurements** on the navigation span
 ### Span-first / v2 (future)
 
 Investigated rebasing on `lms/feat-span-first` (span streaming). Findings:
+
 - **v2 `StreamedSpanJSON` has no `measurements` field** — vitals would become attributes instead
 - **Web vitals haven't been migrated** to the span-first model yet (no open PR)
 - **Backend doesn't consume v2 web vitals** — no point targeting a format nothing reads yet
@@ -63,23 +66,24 @@ browserTracingIntegration (enableSoftNavWebVitals)
 ### Metric routing
 
 The `_setMeasurement()` helper routes based on `metric.navigationType`:
+
 - **Hard nav**: `_measurements[name] = { value, unit }` (flushed onto pageload span)
 - **Soft nav**: `_softNavMeasurements.get(navigationId)[name] = { value, unit }` (flushed onto navigation span by matching `navigationId`)
 
 ## Files modified
 
-| File | Changes |
-|------|---------|
-| `packages/browser/src/tracing/browserTracingIntegration.ts` | Added `enableSoftNavWebVitals` to `_experiments`, passes to tracking functions |
-| `packages/browser-utils/src/metrics/browserMetrics.ts` | `_setMeasurement` helper, `_softNavMeasurements` Map, flush logic in `addPerformanceEntries`, observer lifecycle fix |
-| `packages/browser-utils/src/metrics/instrument.ts` | `navigationId` on Metric interface, `reportSoftNavs` param on all handler functions |
-| `packages/browser-utils/src/metrics/inp.ts` | `reportSoftNavs` param forwarding |
-| `packages/browser-utils/src/metrics/web-vitals/getLCP.ts` | Vendored soft nav support |
-| `packages/browser-utils/src/metrics/web-vitals/getCLS.ts` | Vendored soft nav support |
-| `packages/browser-utils/src/metrics/web-vitals/getINP.ts` | Vendored soft nav support |
-| `packages/browser-utils/src/metrics/web-vitals/onTTFB.ts` | Vendored soft nav support |
-| `packages/browser-utils/src/metrics/web-vitals/onFCP.ts` | Vendored soft nav support |
-| `packages/browser-utils/src/metrics/web-vitals/lib/*` | `softNavs.ts`, `observe.ts`, `initMetric.ts`, `bindReporter.ts`, `getVisibilityWatcher.ts`, `LCPEntryManager.ts`, etc. |
+| File                                                        | Changes                                                                                                                |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `packages/browser/src/tracing/browserTracingIntegration.ts` | Added `enableSoftNavWebVitals` to `_experiments`, passes to tracking functions                                         |
+| `packages/browser-utils/src/metrics/browserMetrics.ts`      | `_setMeasurement` helper, `_softNavMeasurements` Map, flush logic in `addPerformanceEntries`, observer lifecycle fix   |
+| `packages/browser-utils/src/metrics/instrument.ts`          | `navigationId` on Metric interface, `reportSoftNavs` param on all handler functions                                    |
+| `packages/browser-utils/src/metrics/inp.ts`                 | `reportSoftNavs` param forwarding                                                                                      |
+| `packages/browser-utils/src/metrics/web-vitals/getLCP.ts`   | Vendored soft nav support                                                                                              |
+| `packages/browser-utils/src/metrics/web-vitals/getCLS.ts`   | Vendored soft nav support                                                                                              |
+| `packages/browser-utils/src/metrics/web-vitals/getINP.ts`   | Vendored soft nav support                                                                                              |
+| `packages/browser-utils/src/metrics/web-vitals/onTTFB.ts`   | Vendored soft nav support                                                                                              |
+| `packages/browser-utils/src/metrics/web-vitals/onFCP.ts`    | Vendored soft nav support                                                                                              |
+| `packages/browser-utils/src/metrics/web-vitals/lib/*`       | `softNavs.ts`, `observe.ts`, `initMetric.ts`, `bindReporter.ts`, `getVisibilityWatcher.ts`, `LCPEntryManager.ts`, etc. |
 
 ## Open items
 

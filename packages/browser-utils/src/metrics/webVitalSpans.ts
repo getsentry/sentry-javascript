@@ -112,7 +112,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
 /**
  * Tracks LCP as a streamed span.
  */
-export function trackLcpAsSpan(client: Client): void {
+export function trackLcpAsSpan(client: Client, reportSoftNavs?: boolean): void {
   let lcpValue = 0;
   let lcpEntry: LargestContentfulPaint | undefined;
 
@@ -120,14 +120,18 @@ export function trackLcpAsSpan(client: Client): void {
     return;
   }
 
-  const cleanupLcpHandler = addLcpInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries[metric.entries.length - 1] as LargestContentfulPaint | undefined;
-    if (!entry || !isValidLcpMetric(metric.value)) {
-      return;
-    }
-    lcpValue = metric.value;
-    lcpEntry = entry;
-  }, true);
+  const cleanupLcpHandler = addLcpInstrumentationHandler(
+    ({ metric }) => {
+      const entry = metric.entries[metric.entries.length - 1] as LargestContentfulPaint | undefined;
+      if (!entry || !isValidLcpMetric(metric.value)) {
+        return;
+      }
+      lcpValue = metric.value;
+      lcpEntry = entry;
+    },
+    true,
+    reportSoftNavs,
+  );
 
   listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
     _sendLcpSpan(lcpValue, lcpEntry, pageloadSpan, reportEvent);
@@ -181,7 +185,7 @@ export function _sendLcpSpan(
 /**
  * Tracks CLS as a streamed span.
  */
-export function trackClsAsSpan(client: Client): void {
+export function trackClsAsSpan(client: Client, reportSoftNavs?: boolean): void {
   let clsValue = 0;
   let clsEntry: LayoutShift | undefined;
 
@@ -189,14 +193,18 @@ export function trackClsAsSpan(client: Client): void {
     return;
   }
 
-  const cleanupClsHandler = addClsInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
-    if (!entry) {
-      return;
-    }
-    clsValue = metric.value;
-    clsEntry = entry;
-  }, true);
+  const cleanupClsHandler = addClsInstrumentationHandler(
+    ({ metric }) => {
+      const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
+      if (!entry) {
+        return;
+      }
+      clsValue = metric.value;
+      clsEntry = entry;
+    },
+    true,
+    reportSoftNavs,
+  );
 
   listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
     _sendClsSpan(clsValue, clsEntry, pageloadSpan, reportEvent);
@@ -247,7 +255,7 @@ export function _sendClsSpan(
  * Requires `registerInpInteractionListener()` to be called separately for
  * cached element names and root spans per interaction.
  */
-export function trackInpAsSpan(): void {
+export function trackInpAsSpan(reportSoftNavs?: boolean): void {
   const performance = getBrowserPerformanceAPI();
   if (!performance || !browserPerformanceTimeOrigin()) {
     return;
@@ -273,7 +281,7 @@ export function trackInpAsSpan(): void {
     _sendInpSpan(metric.value, entry);
   };
 
-  addInpInstrumentationHandler(onInp);
+  addInpInstrumentationHandler(onInp, reportSoftNavs);
 }
 
 /**

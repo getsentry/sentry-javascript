@@ -263,21 +263,27 @@ function instrumentLcp(reportSoftNavs?: boolean): StopListening {
 }
 
 function instrumentTtfb(reportSoftNavs?: boolean): StopListening {
-  return onTTFB(metric => {
-    triggerHandlers('ttfb', {
-      metric,
-    });
-    _previousTtfb = metric;
-  }, { reportSoftNavs });
+  return onTTFB(
+    metric => {
+      triggerHandlers('ttfb', {
+        metric,
+      });
+      _previousTtfb = metric;
+    },
+    { reportSoftNavs },
+  );
 }
 
 function instrumentInp(reportSoftNavs?: boolean): void {
-  return onINP(metric => {
-    triggerHandlers('inp', {
-      metric,
-    });
-    _previousInp = metric;
-  }, { reportSoftNavs });
+  return onINP(
+    metric => {
+      triggerHandlers('inp', {
+        metric,
+      });
+      _previousInp = metric;
+    },
+    { reportSoftNavs },
+  );
 }
 
 function addMetricObserver(

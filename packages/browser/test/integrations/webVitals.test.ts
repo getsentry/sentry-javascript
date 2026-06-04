@@ -62,9 +62,10 @@ describe('webVitalsIntegration', () => {
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
       recordClsStandaloneSpans: false,
       recordLcpStandaloneSpans: false,
+      reportSoftNavs: undefined,
       client,
     });
-    expect(mockStartTrackingINP).toHaveBeenCalledTimes(1);
+    expect(mockStartTrackingINP).toHaveBeenCalledWith(undefined);
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
     expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
     expect(mockTrackClsAsSpan).not.toHaveBeenCalled();
@@ -85,6 +86,7 @@ describe('webVitalsIntegration', () => {
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
       recordClsStandaloneSpans: true,
       recordLcpStandaloneSpans: true,
+      reportSoftNavs: undefined,
       client,
     });
   });
@@ -99,11 +101,12 @@ describe('webVitalsIntegration', () => {
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
       recordClsStandaloneSpans: undefined,
       recordLcpStandaloneSpans: undefined,
+      reportSoftNavs: undefined,
       client,
     });
-    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client);
-    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
-    expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, undefined);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, undefined);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(undefined);
     expect(mockStartTrackingINP).not.toHaveBeenCalled();
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
   });
@@ -118,6 +121,7 @@ describe('webVitalsIntegration', () => {
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
       recordClsStandaloneSpans: undefined,
       recordLcpStandaloneSpans: undefined,
+      reportSoftNavs: undefined,
       client,
     });
     expect(mockStartTrackingINP).not.toHaveBeenCalled();

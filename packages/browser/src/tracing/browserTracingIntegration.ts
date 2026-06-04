@@ -383,7 +383,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     enableInp,
     enableLongTask,
     enableLongAnimationFrame,
-    _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans },
+    _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans, enableSoftNavWebVitals },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -656,6 +656,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
             _experiments: {
               enableStandaloneClsSpans,
               enableStandaloneLcpSpans,
+              enableSoftNavWebVitals,
             },
           }),
         );

@@ -26,6 +26,7 @@ export interface WebVitalsOptions {
   _experiments?: Partial<{
     enableStandaloneClsSpans: boolean;
     enableStandaloneLcpSpans: boolean;
+    enableSoftNavWebVitals: boolean;
   }>;
 }
 
@@ -43,7 +44,7 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
     name: WEB_VITALS_INTEGRATION_NAME,
     setup(client) {
       const spanStreamingEnabled = hasSpanStreamingEnabled(client);
-      const { enableStandaloneClsSpans, enableStandaloneLcpSpans } = options._experiments ?? {};
+      const { enableStandaloneClsSpans, enableStandaloneLcpSpans, enableSoftNavWebVitals } = options._experiments ?? {};
 
       const recordClsStandaloneSpans =
         spanStreamingEnabled || ignored.has('cls') ? undefined : enableStandaloneClsSpans || false;
@@ -53,6 +54,7 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
       const finalizeWebVitals = startTrackingWebVitals({
         recordClsStandaloneSpans,
         recordLcpStandaloneSpans,
+        reportSoftNavs: enableSoftNavWebVitals,
         client,
       });
 
@@ -79,16 +81,16 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
 
       if (spanStreamingEnabled) {
         if (!ignored.has('lcp')) {
-          trackLcpAsSpan(client);
+          trackLcpAsSpan(client, enableSoftNavWebVitals);
         }
         if (!ignored.has('cls')) {
-          trackClsAsSpan(client);
+          trackClsAsSpan(client, enableSoftNavWebVitals);
         }
         if (!ignored.has('inp')) {
-          trackInpAsSpan();
+          trackInpAsSpan(enableSoftNavWebVitals);
         }
       } else if (!ignored.has('inp')) {
-        startTrackingINP();
+        startTrackingINP(enableSoftNavWebVitals);
       }
     },
     afterAllSetup() {
