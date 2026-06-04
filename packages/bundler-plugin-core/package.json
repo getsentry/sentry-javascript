@@ -33,8 +33,7 @@
   "module": "dist/esm/index.mjs",
   "types": "dist/types/index.d.ts",
   "scripts": {
-    "prebuild": "node -p \"'export const LIB_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/version.ts",
-    "build": "premove ./out && run-p build:rollup build:types && run-s build:npm",
+    "build": "premove ./dist && run-p build:rollup build:types && run-s build:npm",
     "build:watch": "run-p build:rollup:watch build:types:watch",
     "build:rollup": "rolldown --config rollup.config.mjs",
     "build:rollup:watch": "rolldown --config rollup.config.mjs --watch --no-watch.clearScreen",
@@ -47,26 +46,15 @@
     "clean": "run-s clean:build",
     "clean:all": "run-p clean clean:deps",
     "clean:build": "premove ./dist *.tgz",
-    "clean:deps": "premove node_modules",
-    "pretest": "yarn prebuild",
-    "test": "vitest run"
+    "clean:deps": "premove node_modules"
   },
   "dependencies": {
-    "@babel/core": "^7.18.5",
-    "@sentry/babel-plugin-component-annotate": "5.3.0",
-    "@sentry/cli": "^2.58.6",
-    "dotenv": "^16.3.1",
-    "find-up": "^5.0.0",
-    "glob": "^13.0.6",
-    "magic-string": "~0.30.8"
+    "@sentry/bundler-plugins": "5.3.0"
   },
   "devDependencies": {
-    "@sentry/core": "10.56.0",
-    "@sentry/types": "10.56.0",
     "@types/node": "^18.6.3",
     "premove": "^4.0.0",
-    "rolldown": "^1.0.0",
-    "vitest": "^4.0.0"
+    "rolldown": "^1.0.0"
   },
   "volta": {
     "extends": "../../package.json"

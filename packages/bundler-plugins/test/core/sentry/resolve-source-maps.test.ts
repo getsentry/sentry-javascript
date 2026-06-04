@@ -1,8 +1,8 @@
 import * as path from "path";
 import * as fs from "fs";
 import * as url from "url";
-import { determineSourceMapPathFromBundle } from "../../src/debug-id-upload";
-import { createLogger } from "../../src/logger";
+import { determineSourceMapPathFromBundle } from "../../../src/core/debug-id-upload";
+import { createLogger } from "../../../src/core/logger";
 import { describe, it, expect, vi } from "vitest";
 
 const logger = createLogger({ prefix: "[resolve-source-maps-test]", silent: false, debug: false });

@@ -1,6 +1,6 @@
-import type { Options } from "../src";
-import type { NormalizedOptions } from "../src/options-mapping";
-import { normalizeUserOptions, validateOptions } from "../src/options-mapping";
+import type { Options } from "../../src/core";
+import type { NormalizedOptions } from "../../src/core/options-mapping";
+import { normalizeUserOptions, validateOptions } from "../../src/core/options-mapping";
 import { describe, it, test, expect, afterEach, vi, beforeEach } from "vitest";
 
 describe("normalizeUserOptions()", () => {

@@ -1,4 +1,4 @@
-import { sentryVitePlugin } from "../src";
+import { sentryVitePlugin } from "../../src/vite";
 import { describe, it, expect, test, beforeEach, vi } from "vitest";
 
 test("Vite plugin should exist", () => {

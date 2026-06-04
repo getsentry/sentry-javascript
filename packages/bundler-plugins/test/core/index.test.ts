@@ -1,5 +1,5 @@
-import { getDebugIdSnippet } from "../src";
-import { containsOnlyImports } from "../src/utils";
+import { getDebugIdSnippet } from "../../src/core";
+import { containsOnlyImports } from "../../src/core/utils";
 import { describe, it, expect } from "vitest";
 
 describe("getDebugIdSnippet", () => {

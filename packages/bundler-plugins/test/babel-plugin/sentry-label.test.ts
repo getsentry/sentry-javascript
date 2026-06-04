@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { BabelFileResult } from "@babel/core";
 import { transform } from "@babel/core";
-import plugin from "../src/index";
+import plugin from "../../src/babel-plugin/index";
 
 function transformWith(code: string, opts: Record<string, unknown> = {}): BabelFileResult | null {
   return transform(code, {

@@ -1,10 +1,10 @@
 import {
   createSentryBuildPluginManager,
   _resetDeployedReleasesForTesting,
-} from "../src/build-plugin-manager";
+} from "../../src/core/build-plugin-manager";
 import fs from "fs";
-import { globFiles } from "../src/glob";
-import { prepareBundleForDebugIdUpload } from "../src/debug-id-upload";
+import { globFiles } from "../../src/core/glob";
+import { prepareBundleForDebugIdUpload } from "../../src/core/debug-id-upload";
 import type { MockedFunction } from "vitest";
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 
@@ -32,8 +32,8 @@ vi.mock("@sentry/cli", () => ({
   },
 }));
 
-vi.mock("../src/sentry/telemetry", async () => ({
-  ...(await vi.importActual("../src/sentry/telemetry")),
+vi.mock("../../src/core/sentry/telemetry", async () => ({
+  ...(await vi.importActual("../../src/core/sentry/telemetry")),
   safeFlushTelemetry: vi.fn(),
 }));
 
@@ -42,8 +42,8 @@ vi.mock("@sentry/core", async () => ({
   startSpan: vi.fn((options: unknown, callback: () => unknown) => callback()),
 }));
 
-vi.mock("../src/glob");
-vi.mock("../src/debug-id-upload");
+vi.mock("../../src/core/glob");
+vi.mock("../../src/core/debug-id-upload");
 
 const mockGlobFiles = globFiles as MockedFunction<typeof globFiles>;
 const mockPrepareBundleForDebugIdUpload =

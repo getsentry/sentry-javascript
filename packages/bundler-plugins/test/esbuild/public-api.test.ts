@@ -1,4 +1,4 @@
-import { sentryEsbuildPlugin } from "../src";
+import { sentryEsbuildPlugin } from "../../src/esbuild";
 import type { Plugin } from "esbuild";
 import { describe, it, expect, test } from "vitest";
 

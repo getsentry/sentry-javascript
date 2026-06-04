@@ -44,12 +44,10 @@
     "clean:all": "run-p clean clean:deps",
     "clean:build": "premove ./dist *.tgz",
     "clean:deps": "premove node_modules",
-    "test": "vitest run",
     "prepack": "node ./prepack.mjs"
   },
   "dependencies": {
-    "@sentry/bundler-plugin-core": "5.3.0",
-    "magic-string": "~0.30.8"
+    "@sentry/bundler-plugins": "5.3.0"
   },
   "peerDependencies": {
     "rollup": ">=3.2.0"
@@ -62,7 +60,6 @@
   "devDependencies": {
     "@sentry-internal/dev-utils": "5.3.0",
     "@types/node": "^18.6.3",
-    "vitest": "^4.0.0",
     "premove": "^4.0.0",
     "rolldown": "^1.0.0"
   },

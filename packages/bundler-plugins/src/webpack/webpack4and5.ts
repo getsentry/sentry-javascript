@@ -1,4 +1,4 @@
-import type { Options } from "@sentry/bundler-plugin-core";
+import type { Options } from "../core/index";
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -8,22 +8,34 @@ import {
   CodeInjection,
   getDebugIdSnippet,
   createDebugIdUploadFunction,
-} from "@sentry/bundler-plugin-core";
+} from "../core/index";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { randomUUID } from "node:crypto";
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore Rollup transpiles import.meta for us for CJS
-const dirname = path.dirname(fileURLToPath(import.meta.url));
+const _req = createRequire(import.meta.url);
 
-const COMPONENT_ANNOTATION_LOADER = path.resolve(
-  dirname,
-  typeof __dirname !== "undefined"
-    ? "component-annotation-transform.js" // CJS
-    : "component-annotation-transform.mjs" // ESM
-);
+// Resolve the loader path via the package's own exports.
+// webpack4and5.ts may end up in a shared chunk (_chunks/) whose import.meta.url
+// does not point to the webpack/ directory where the transform file lives, so
+// a path-relative lookup would fail. Using require.resolve on the package export
+// always finds the correct installed file regardless of chunk placement.
+let COMPONENT_ANNOTATION_LOADER: string;
+try {
+  COMPONENT_ANNOTATION_LOADER = _req.resolve("@sentry/bundler-plugins/webpack-loader");
+} catch {
+  // Fallback for non-packaged environments (e.g., monorepo source runs without dist)
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore Rollup transpiles import.meta for us for CJS
+  const dirname = path.dirname(fileURLToPath(import.meta.url));
+  COMPONENT_ANNOTATION_LOADER = path.resolve(
+    dirname,
+    typeof __dirname !== "undefined"
+      ? "component-annotation-transform.js" // CJS
+      : "component-annotation-transform.mjs" // ESM
+  );
+}
 
 // since webpack 5.1 compiler contains webpack module so plugins always use correct webpack version
 // https://github.com/webpack/webpack/commit/65eca2e529ce1d79b79200d4bdb1ce1b81141459

@@ -1,9 +1,11 @@
 import packageJson from "./package.json" with { type: "json" };
 
+const deps = Object.keys(packageJson.dependencies ?? {});
+
 export default {
   platform: "node",
   input: ["src/index.ts"],
-  external: Object.keys(packageJson.dependencies),
+  external: (id) => deps.some((dep) => id === dep || id.startsWith(`${dep}/`)),
   output: [
     {
       file: packageJson.module,

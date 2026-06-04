@@ -10,6 +10,7 @@
   },
   "pnpm": {
     "overrides": {
+      "@sentry/bundler-plugins": "file:../../../bundler-plugins/sentry-bundler-plugins-5.3.0.tgz",
       "@sentry/bundler-plugin-core": "file:../../../bundler-plugin-core/sentry-bundler-plugin-core-5.3.0.tgz",
       "@sentry/rollup-plugin": "file:../../../rollup-plugin/sentry-rollup-plugin-5.3.0.tgz",
       "@sentry/babel-plugin-component-annotate": "file:../../../babel-plugin-component-annotate/sentry-babel-plugin-component-annotate-5.3.0.tgz"

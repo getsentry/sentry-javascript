@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { prepareBundleForDebugIdUpload } from "../src/debug-id-upload";
-import type { RewriteSourcesHook } from "../src/types";
-import type { Logger } from "../src";
+import { prepareBundleForDebugIdUpload } from "../../src/core/debug-id-upload";
+import type { RewriteSourcesHook } from "../../src/core/types";
+import type { Logger } from "../../src/core";
 
 describe("prepareBundleForDebugIdUpload", () => {
   let tmpDir: string;

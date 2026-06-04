@@ -8,6 +8,7 @@
   "workspaces": [
     "packages/babel-plugin-component-annotate",
     "packages/bundler-plugin-core",
+    "packages/bundler-plugins",
     "packages/dev-utils",
     "packages/esbuild-plugin",
     "packages/playground",

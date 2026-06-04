@@ -25,7 +25,7 @@
 
 import { describe, it, expect } from "vitest";
 import { transform } from "@babel/core";
-import plugin from "../src/index";
+import plugin from "../../src/babel-plugin/index";
 
 const BananasPizzaAppStandardInput = `import React, { Component } from 'react';
 import { StyleSheet, Text, TextInput, View, Image, UIManager } from 'react-native';

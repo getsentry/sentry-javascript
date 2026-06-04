@@ -1,4 +1,4 @@
-import { sentryRollupPlugin } from "../src";
+import { sentryRollupPlugin } from "../../src/rollup";
 import type { Plugin, SourceMap } from "rollup";
 import { describe, it, expect, test, beforeEach, vi } from "vitest";
 

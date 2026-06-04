@@ -1,5 +1,5 @@
 import type { WebpackPluginInstance } from "webpack";
-import { sentryWebpackPlugin } from "../src";
+import { sentryWebpackPlugin } from "../../src/webpack/index";
 import { describe, it, expect, test } from "vitest";
 
 test("Webpack plugin should exist", () => {

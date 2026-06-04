@@ -1,4 +1,4 @@
-import { createLogger } from "../../src/logger";
+import { createLogger } from "../../../src/core/logger";
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 describe("Logger", () => {

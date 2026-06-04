@@ -1,7 +1,10 @@
 import type { Scope } from "@sentry/core";
-import type { NormalizedOptions } from "../../src/options-mapping";
-import { normalizeUserOptions } from "../../src/options-mapping";
-import { allowedToSendTelemetry, setTelemetryDataOnScope } from "../../src/sentry/telemetry";
+import type { NormalizedOptions } from "../../../src/core/options-mapping";
+import { normalizeUserOptions } from "../../../src/core/options-mapping";
+import {
+  allowedToSendTelemetry,
+  setTelemetryDataOnScope,
+} from "../../../src/core/sentry/telemetry";
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 
 const { mockCliExecute } = vi.hoisted(() => ({

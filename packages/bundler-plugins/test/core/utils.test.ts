@@ -7,7 +7,7 @@ import {
   replaceBooleanFlagsInCode,
   serializeIgnoreOptions,
   stringToUUID,
-} from "../src/utils";
+} from "../../src/core/utils";
 
 import fs from "fs";
 import { describe, it, expect, test, vi } from "vitest";
@@ -23,7 +23,7 @@ describe("getPackageJson", () => {
   test("it works for this package", () => {
     const packageJson = getPackageJson();
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const expected = require("../package.json") as PackageJson;
+    const expected = require("../../package.json") as PackageJson;
 
     expect(packageJson).toEqual(expected);
   });
