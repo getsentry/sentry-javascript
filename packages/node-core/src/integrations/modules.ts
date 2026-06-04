@@ -32,8 +32,10 @@ function getServerModules(): Record<string, string> {
     return __SENTRY_SERVER_MODULES__;
   }
   // Turbopack: the value is assigned onto the global object at runtime.
-  return (GLOBAL_OBJ as typeof GLOBAL_OBJ & { __SENTRY_SERVER_MODULES__?: Record<string, string> })
-    .__SENTRY_SERVER_MODULES__ ?? {};
+  return (
+    (GLOBAL_OBJ as typeof GLOBAL_OBJ & { __SENTRY_SERVER_MODULES__?: Record<string, string> })
+      .__SENTRY_SERVER_MODULES__ ?? {}
+  );
 }
 
 const _modulesIntegration = (() => {
