@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **fix(node-core): Read `__SENTRY_SERVER_MODULES__` lazily so Turbopack injection is honored [#21339](https://github.com/getsentry/sentry-javascript/pull/21339)**
+
+  On Next.js 16 / Turbopack production builds, `modulesIntegration` captured `__SENTRY_SERVER_MODULES__` at module-evaluation time, before Turbopack's runtime `globalThis` assignment ran. This silently disabled module-detection-based auto integrations (Vercel AI, OpenAI, Anthropic, Google GenAI, LangChain, LangGraph) and left `event.modules` empty. The value is now read lazily, supporting both the webpack (`DefinePlugin`) and Turbopack (runtime global) injection styles.
+
 - **ref(core): Deprecate `sendDefaultPii` in favor of `dataCollection` [#21277](https://github.com/getsentry/sentry-javascript/pull/21277)**
 
   `sendDefaultPii` is deprecated and will be removed in v11. The new `dataCollection` option lets you control each category of collected data.
