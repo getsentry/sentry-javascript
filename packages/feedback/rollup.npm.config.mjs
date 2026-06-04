@@ -15,10 +15,5 @@ export default makeNPMConfigVariants(
             : Boolean(process.env.SENTRY_BUILD_PRESERVE_MODULES),
       },
     },
-    esbuild: {
-      // The feedback widget uses preact, so override esbuild's React defaults.
-      jsxFactory: 'h',
-      jsxFragment: 'Fragment',
-    },
   }),
 );
