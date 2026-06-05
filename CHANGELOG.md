@@ -14,14 +14,16 @@ Work in this release was contributed by @zhongrenfei1-hub. Thank you for your co
 
   `sendDefaultPii` is deprecated and will be removed in v11. The new `dataCollection` option lets you control each category of collected data.
   `sendDefaultPii: true` still works and maps to enabling all `dataCollection` categories.
-  `dataCollection.userInfo` defaults to `false` and only gates auto-populated `user.*` fields (e.g. IP address from a request).
-  Data you set explicitly via `Sentry.setUser()` is always sent regardless.
+  `dataCollection.userInfo` defaults to `true` when `dataCollection` is provided, meaning auto-populated `user.*` fields (e.g. IP address from a request) are collected by default.
+  Data you set explicitly (like via `Sentry.setUser()`) is always sent regardless.
+  When `dataCollection` is not set at all, the legacy `sendDefaultPii` behavior applies (`userInfo: false` by default) to preserve backward compatibility.
 
   Note that an empty `dataCollection: {}` falls back to more permissive defaults than `sendDefaultPii: false`, so replicate the old behavior by opting out explicitly:
 
   ```js
   Sentry.init({
     dataCollection: {
+      userInfo: false,
       genAI: { inputs: false, outputs: false },
       httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       cookies: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },

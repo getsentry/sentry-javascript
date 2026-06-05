@@ -3,7 +3,7 @@ import { resolveDataCollectionOptions } from '../../../../src/utils/data-collect
 
 describe('resolveDataCollectionOptions', () => {
   const SPEC_DEFAULTS = {
-    userInfo: false,
+    userInfo: true,
     cookies: true,
     httpHeaders: { request: true, response: true },
     httpBodies: [],
@@ -17,7 +17,7 @@ describe('resolveDataCollectionOptions', () => {
     it('falls through to sendDefaultPii: undefined bridge when neither option is set', () => {
       const result = resolveDataCollectionOptions({});
 
-      // sendDefaultPii undefined → restrictive bridge (backward compat)
+      // sendDefaultPii undefined → restrictive bridge (backward compat; userInfo defaults to true only when dataCollection is set)
       expect(result.userInfo).toBe(false);
       expect(result.httpBodies).toEqual([]);
       expect(result.genAI).toEqual({ inputs: false, outputs: false });
