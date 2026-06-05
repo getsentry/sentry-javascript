@@ -2336,6 +2336,42 @@ describe('span hooks', () => {
     expect(startedSpans).toEqual(['span1', 'span2', 'span3', 'span5', 'span4']);
     expect(endedSpans).toEqual(['span5', 'span3', 'span2', 'span1']);
   });
+
+  it('does not emit spanStart for non-recording child spans', () => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 0 });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const startedSpans: Span[] = [];
+    const endedSpans: Span[] = [];
+
+    client.on('spanStart', span => {
+      startedSpans.push(span);
+    });
+
+    client.on('spanEnd', span => {
+      endedSpans.push(span);
+    });
+
+    startSpan({ name: 'root' }, () => {
+      startSpan({ name: 'child1' }, () => {
+        // nested child
+      });
+      const child2 = startInactiveSpan({ name: 'child2' });
+      child2.end();
+    });
+
+    // Root span is always a SentrySpan (even unsampled), so it emits spanStart/spanEnd.
+    // Child spans with tracesSampleRate: 0 are SentryNonRecordingSpan and should NOT emit.
+    expect(startedSpans).toHaveLength(1);
+    expect(endedSpans).toHaveLength(1);
+    expect(startedSpans[0]).toBeInstanceOf(SentrySpan);
+  });
 });
 
 describe('suppressTracing', () => {

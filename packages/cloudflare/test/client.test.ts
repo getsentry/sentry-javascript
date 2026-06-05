@@ -1,7 +1,10 @@
+import { getClient, startInactiveSpan, startSpan } from '@sentry/core';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 import { CloudflareClient, type CloudflareClientOptions } from '../src/client';
 import { makeFlushLock } from '../src/flush';
+import { init } from '../src/sdk';
+import { resetSdk } from './testUtils';
 
 const MOCK_CLIENT_OPTIONS: CloudflareClientOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -307,6 +310,76 @@ describe('CloudflareClient', () => {
       // Emit spanStart after dispose - should not be tracked
       client.emit('spanStart', mockSpan as any);
       expect(privateClient._pendingSpans.has('test-span-id')).toBe(false);
+    });
+  });
+
+  describe('pending spans with tracesSampleRate: 0', () => {
+    beforeEach(() => {
+      resetSdk();
+    });
+
+    it('does not accumulate pending spans when tracesSampleRate is 0', () => {
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        tracesSampleRate: 0,
+        skipOpenTelemetrySetup: true,
+      });
+
+      const client = getClient() as CloudflareClient;
+      const privateClient = client as unknown as { _pendingSpans: Set<string> };
+
+      startSpan({ name: 'root' }, () => {
+        for (let i = 0; i < 100; i++) {
+          const child = startInactiveSpan({ name: `child-${i}` });
+          child.end();
+        }
+      });
+
+      expect(privateClient._pendingSpans.size).toBe(0);
+    });
+
+    it('flush resolves immediately when tracesSampleRate is 0', async () => {
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        tracesSampleRate: 0,
+        skipOpenTelemetrySetup: true,
+      });
+
+      const client = getClient() as CloudflareClient;
+
+      startSpan({ name: 'root' }, () => {
+        for (let i = 0; i < 50; i++) {
+          const child = startInactiveSpan({ name: `child-${i}` });
+          child.end();
+        }
+      });
+
+      const start = Date.now();
+      await client.flush(2000);
+      const elapsed = Date.now() - start;
+
+      // Should resolve near-instantly, not wait for the 2s timeout
+      expect(elapsed).toBeLessThan(500);
+    });
+
+    it('still tracks recording spans with tracesSampleRate: 1', () => {
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        tracesSampleRate: 1,
+        skipOpenTelemetrySetup: true,
+      });
+
+      const client = getClient() as CloudflareClient;
+      const privateClient = client as unknown as { _pendingSpans: Set<string> };
+
+      startSpan({ name: 'root' }, () => {
+        const child = startInactiveSpan({ name: 'child' });
+        // Child is started but not ended — should be pending
+        expect(privateClient._pendingSpans.size).toBeGreaterThan(0);
+        child.end();
+      });
+
+      expect(privateClient._pendingSpans.size).toBe(0);
     });
   });
 });
