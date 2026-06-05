@@ -27,6 +27,8 @@ export function instrumentDurableObjectSyncKvStorage(syncKv: SyncKvStorage): Syn
             op: 'db',
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+              // keeping the value as close as possible to the Cloudflare Worker KV instrumentation
+              // https://github.com/cloudflare/workerd/blob/6b8b11787e2b2a800ab0edd0690bfab3857b0529/src/workerd/api/sync-kv.c%2B%2B#L19
               'db.system.name': 'cloudflare-durable-object-sql',
               'db.operation.name': methodName,
             },
