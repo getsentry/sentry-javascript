@@ -50,6 +50,7 @@ describe('createSentryHandleRequest', () => {
     routeModules: {},
     future: {
       v8_middleware: false,
+      v8_passThroughRequests: false,
       unstable_trailingSlashAwareDataRequests: false,
     },
     isSpaMode: false,
