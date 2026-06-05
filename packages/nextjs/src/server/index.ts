@@ -29,6 +29,9 @@ import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
 export * from '@sentry/node';
 
+// Explicitly re-export so it is statically detectable by turbopack
+export { pinoIntegration } from '@sentry/node';
+
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 // Override core span methods with Next.js-specific implementations that support Cache Components
