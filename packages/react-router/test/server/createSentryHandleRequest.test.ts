@@ -49,7 +49,6 @@ describe('createSentryHandleRequest', () => {
     },
     routeModules: {},
     future: {
-      unstable_subResourceIntegrity: false,
       v8_middleware: false,
       unstable_trailingSlashAwareDataRequests: false,
     },
