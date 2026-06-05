@@ -35,6 +35,8 @@ export * from '@sentry/vercel-edge';
 export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
+export { pinoIntegration } from '../common/pinoIntegrationShim';
+
 // Override core span methods with Next.js-specific implementations that support Cache Components
 export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/nextSpan';
 export { wrapApiHandlerWithSentry } from './wrapApiHandlerWithSentry';
