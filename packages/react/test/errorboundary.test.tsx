@@ -220,7 +220,6 @@ describe('ErrorBoundary', () => {
     mockCaptureException.mockClear();
     mockShowReportDialog.mockClear();
     mockClientOn.mockClear();
-    (mockScope.setContext as any).mockClear();
   });
 
   it('renders null if not given a valid `fallback` prop', () => {
