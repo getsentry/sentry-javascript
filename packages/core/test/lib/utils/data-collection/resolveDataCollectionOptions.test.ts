@@ -22,7 +22,7 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.httpBodies).toEqual([]);
       expect(result.genAI).toEqual({ inputs: false, outputs: false });
       expect(result.stackFrameVariables).toBe(true);
-      expect(result.frameContextLines).toBe(5);
+      expect(result.frameContextLines).toBe(7);
     });
 
     it('returns spec defaults when dataCollection is explicitly set to empty object', () => {
