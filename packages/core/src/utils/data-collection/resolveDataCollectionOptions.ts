@@ -5,7 +5,7 @@ const DEFAULTS: ResolvedDataCollection = {
   userInfo: false,
   cookies: true,
   httpHeaders: { request: true, response: true },
-  httpBodies: [],
+  httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
   queryParams: true,
   genAI: { inputs: true, outputs: true },
   stackFrameVariables: true,

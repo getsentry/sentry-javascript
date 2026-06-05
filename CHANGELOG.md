@@ -23,6 +23,7 @@ Work in this release was contributed by @zhongrenfei1-hub. Thank you for your co
   Sentry.init({
     dataCollection: {
       genAI: { inputs: false, outputs: false },
+      httpBodies: [],
       httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       cookies: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
