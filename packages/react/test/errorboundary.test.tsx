@@ -686,7 +686,6 @@ describe('ErrorBoundary', () => {
         expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Object), {
           mechanism: { handled: expected, type: 'auto.function.react.error_boundary' },
         });
-
       },
     );
   });
