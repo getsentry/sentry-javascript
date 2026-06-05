@@ -54,6 +54,7 @@ describe('createSentryHandleRequest', () => {
       unstable_trailingSlashAwareDataRequests: false,
     },
     isSpaMode: false,
+    branches: [],
     staticHandlerContext: {
       matches: [
         {
