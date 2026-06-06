@@ -82,18 +82,18 @@ export function spanToTraceContext(span: Span): TraceContext {
  * Convert a Span to a Sentry trace header.
  */
 export function spanToTraceHeader(span: Span): string {
-  const { traceId, spanId } = span.spanContext();
-  const sampled = spanToTraceSamplingDecision(span);
-  return generateSentryTraceHeader(traceId, spanId, sampled);
+  const spanContext = span.spanContext();
+  const sampled = 'sampled' in spanContext ? spanContext.sampled : spanIsSampled(span);
+  return generateSentryTraceHeader(spanContext.traceId, spanContext.spanId, sampled);
 }
 
 /**
  * Convert a Span to a W3C traceparent header.
  */
 export function spanToTraceparentHeader(span: Span): string {
-  const { traceId, spanId } = span.spanContext();
-  const sampled = spanToTraceSamplingDecision(span);
-  return generateTraceparentHeader(traceId, spanId, sampled);
+  const spanContext = span.spanContext();
+  const sampled = 'sampled' in spanContext ? spanContext.sampled : spanIsSampled(span);
+  return generateTraceparentHeader(spanContext.traceId, spanContext.spanId, sampled);
 }
 
 /**
@@ -312,21 +312,6 @@ export function spanIsSampled(span: Span): boolean {
   // So we also check for sampled the same way they do.
   const { traceFlags } = span.spanContext();
   return traceFlags === TRACE_FLAG_SAMPLED;
-}
-
-/**
- * Returns the sampling decision to propagate for trace headers.
- * This intentionally differs from `spanIsSampled`: non-recording spans can
- * represent either "sampled false" or "no decision yet" in TwP mode.
- */
-export function spanToTraceSamplingDecision(span: Span): boolean | undefined {
-  const spanContext = span.spanContext();
-
-  if ('sampled' in spanContext) {
-    return spanContext.sampled;
-  }
-
-  return spanIsSampled(span);
 }
 
 /** Get the status message to use for a JSON representation of a span. */

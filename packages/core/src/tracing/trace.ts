@@ -22,17 +22,16 @@ import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
-import { dropUndefinedKeys } from '../utils/object';
 import { generateTraceId } from '../utils/propagationContext';
 import { safeMathRandom } from '../utils/randomSafeContext';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
+import { dropUndefinedKeys } from '../utils/object';
 import {
   addChildSpanToSpan,
   getRootSpan,
   spanIsSampled,
   spanTimeInputToSeconds,
   spanToJSON,
-  spanToTraceSamplingDecision,
 } from '../utils/spanUtils';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
@@ -355,37 +354,25 @@ function createChildOrRootSpan({
   const isolationScope = getIsolationScope();
 
   if (!hasSpansEnabled()) {
-    let propagationContext: {
+    const propagationContext: {
       traceId: string;
-      parentSpanId?: string | undefined;
-      sampled?: boolean | undefined;
-      dsc?: Partial<DynamicSamplingContext> | undefined;
-    };
-
-    if (parentSpan) {
-      const parentSpanContext = parentSpan.spanContext();
-
-      propagationContext = {
-        traceId: parentSpanContext.traceId,
-        parentSpanId: parentSpanContext.spanId,
-        sampled: spanToTraceSamplingDecision(parentSpan),
-        dsc: undefined,
-      };
-    } else {
-      propagationContext = {
-        ...isolationScope.getPropagationContext(),
-        ...scope.getPropagationContext(),
-      };
-    }
+      parentSpanId?: string;
+      dsc?: Partial<DynamicSamplingContext>;
+    } = parentSpan
+      ? {
+          traceId: parentSpan.spanContext().traceId,
+          parentSpanId: parentSpan.spanContext().spanId,
+        }
+      : {
+          ...isolationScope.getPropagationContext(),
+          ...scope.getPropagationContext(),
+        };
 
     const span = new SentryNonRecordingSpan({
       traceId: propagationContext.traceId,
       parentSpanId: propagationContext.parentSpanId,
-      sampled: propagationContext.sampled,
     });
 
-    // If this is a root span, we ensure to freeze a DSC
-    // So we can have at least partial data here
     if (forceTransaction || !parentSpan) {
       const dsc = dropUndefinedKeys({
         ...(propagationContext.dsc || getDynamicSamplingContextFromSpan(span)),
@@ -407,8 +394,8 @@ function createChildOrRootSpan({
 
     return new SentryNonRecordingSpan({
       dropReason: 'ignored',
-      traceId: parentSpan?.spanContext().traceId ?? scope.getPropagationContext().traceId,
       sampled: false,
+      traceId: parentSpan?.spanContext().traceId ?? scope.getPropagationContext().traceId,
     });
   }
 
@@ -563,7 +550,7 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
         traceId,
         sampled,
       })
-    : new SentryNonRecordingSpan({ traceId, sampled });
+    : new SentryNonRecordingSpan({ traceId, sampled: false });
 
   addChildSpanToSpan(parentSpan, childSpan);
 
