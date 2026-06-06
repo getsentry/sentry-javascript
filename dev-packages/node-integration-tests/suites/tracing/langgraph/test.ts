@@ -64,7 +64,7 @@ describe('LangGraph integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('should instrument LangGraph with sendDefaultPii: true', async () => {
+    test('should instrument LangGraph with genAI recording enabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'langgraph-test' } })

@@ -70,7 +70,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
   callback: A,
 ): Promise<ReturnType<A>> {
   return withIsolationScope(async isolationScope => {
-    const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
+    const shouldRecordResponse = getClient()?.getDataCollectionOptions().httpBodies.includes('outgoingResponse');
 
     let sentryTraceHeader;
     let baggageHeader;
@@ -138,7 +138,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
                 }
               });
 
-              if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
+              if (options.recordResponse !== undefined ? options.recordResponse : shouldRecordResponse) {
                 getIsolationScope().setExtra('server_action_result', result);
               }
 

@@ -112,9 +112,9 @@ describe('pagesRouterInstrumentPageLoad', () => {
 
   it.each([
     [
-      'https://example.com/lforst/posts/1337?q=42',
+      'https://example.com/chargome/posts/1337?q=42',
       '/[user]/posts/[id]',
-      { user: 'lforst', id: '1337', q: '42' },
+      { user: 'chargome', id: '1337', q: '42' },
       {
         pageProps: {
           _sentryTraceData: 'c82b8554881b4d28ad977de04a4fb40a-a755953cd3394d5f-1',
@@ -128,6 +128,9 @@ describe('pagesRouterInstrumentPageLoad', () => {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
           'sentry.source': 'route',
+          user: 'chargome',
+          id: '1337',
+          q: '42',
         },
       },
     ],

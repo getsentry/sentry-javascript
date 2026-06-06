@@ -26,12 +26,12 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
   isWrapped,
   safeExecuteInTheMiddle,
   SemconvStability,
   semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import {
   ATTR_DB_OPERATION_NAME,
   ATTR_DB_QUERY_TEXT,

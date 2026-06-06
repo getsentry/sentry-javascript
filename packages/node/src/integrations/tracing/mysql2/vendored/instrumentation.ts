@@ -26,12 +26,12 @@ import { SDK_VERSION } from '@sentry/core';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
   isWrapped,
   safeExecuteInTheMiddle,
   SemconvStability,
   semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import { DB_SYSTEM_VALUE_MYSQL, ATTR_DB_STATEMENT, ATTR_DB_SYSTEM } from './semconv';
 import { addSqlCommenterComment } from '../../utils/sql-common';
 import type { Connection, Query, QueryOptions, QueryError, FieldPacket, FormatFunction } from './mysql2-types';

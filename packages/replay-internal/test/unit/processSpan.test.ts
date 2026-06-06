@@ -25,11 +25,30 @@ const replay = new Replay();
 describe('Replay.processSpan', () => {
   it('sets sentry.replay_id when replay is active', () => {
     vi.spyOn(replay, 'getReplayId').mockReturnValue('abc123sessionid');
+    vi.spyOn(replay, 'getRecordingMode').mockReturnValue('session');
 
     const span = makeSpanJSON();
     replay.processSpan(span);
 
     expect(span.attributes).toEqual(expect.objectContaining({ 'sentry.replay_id': 'abc123sessionid' }));
+    expect(span.attributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
+
+    vi.restoreAllMocks();
+  });
+
+  it('sets replay_is_buffering when recording mode is buffer', () => {
+    vi.spyOn(replay, 'getReplayId').mockReturnValue('abc123sessionid');
+    vi.spyOn(replay, 'getRecordingMode').mockReturnValue('buffer');
+
+    const span = makeSpanJSON();
+    replay.processSpan(span);
+
+    expect(span.attributes).toEqual(
+      expect.objectContaining({
+        'sentry.replay_id': 'abc123sessionid',
+        'sentry._internal.replay_is_buffering': true,
+      }),
+    );
 
     vi.restoreAllMocks();
   });
@@ -41,12 +60,14 @@ describe('Replay.processSpan', () => {
     replay.processSpan(span);
 
     expect(span.attributes).not.toHaveProperty('sentry.replay_id');
+    expect(span.attributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
 
     vi.restoreAllMocks();
   });
 
   it('does not overwrite an existing sentry.replay_id attribute', () => {
     vi.spyOn(replay, 'getReplayId').mockReturnValue('new-id');
+    vi.spyOn(replay, 'getRecordingMode').mockReturnValue('session');
 
     const span = makeSpanJSON({ attributes: { 'sentry.replay_id': 'existing-id' } });
     replay.processSpan(span);

@@ -87,6 +87,7 @@
     "packages/replay-internal",
     "packages/replay-canvas",
     "packages/replay-worker",
+    "packages/server-utils",
     "packages/solid",
     "packages/solidstart",
     "packages/svelte",

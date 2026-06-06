@@ -1,9 +1,6 @@
 import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
-import {
-  InstrumentationBase,
-  InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
-} from '@opentelemetry/instrumentation';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../InstrumentationNodeModuleFile';
 import type { GoogleGenAIClient, GoogleGenAIOptions } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,

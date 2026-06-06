@@ -1,12 +1,8 @@
 import type { Span, Tracer } from '@opentelemetry/api';
 import { context, diag, SpanKind, trace } from '@opentelemetry/api';
 import type { InstrumentationBase } from '@opentelemetry/instrumentation';
-import {
-  InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
-  isWrapped,
-  safeExecuteInTheMiddle,
-} from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleDefinition, isWrapped, safeExecuteInTheMiddle } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../../../InstrumentationNodeModuleFile';
 import type { SpanAttributes } from '@sentry/core';
 import type { FirebaseInstrumentation } from '../firebaseInstrumentation';
 import type {

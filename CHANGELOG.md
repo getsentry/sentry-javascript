@@ -4,6 +4,75 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @zhongrenfei1-hub. Thank you for your contribution!
+
+- **feat(angular): Add support for Angular 22**
+
+  `@sentry/angular` now officially supports Angular 22.
+
+- **ref(core): Deprecate `sendDefaultPii` in favor of `dataCollection` [#21277](https://github.com/getsentry/sentry-javascript/pull/21277)**
+
+  `sendDefaultPii` is deprecated and will be removed in v11. The new `dataCollection` option lets you control each category of collected data.
+  `sendDefaultPii: true` still works and maps to enabling all `dataCollection` categories.
+  `dataCollection.userInfo` defaults to `false` and only gates auto-populated `user.*` fields (e.g. IP address from a request).
+  Data you set explicitly via `Sentry.setUser()` is always sent regardless.
+
+  Note that an empty `dataCollection: {}` falls back to more permissive defaults than `sendDefaultPii: false`, so replicate the old behavior by opting out explicitly:
+
+  ```js
+  Sentry.init({
+    dataCollection: {
+      genAI: { inputs: false, outputs: false },
+      httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      cookies: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+    },
+  });
+  ```
+
+## 10.56.0
+
+### Important Changes
+
+- **feat(deno): Redis diagnostics channel based integration for Deno ([#21087](https://github.com/getsentry/sentry-javascript/pull/21087))**
+
+  Adds Redis integration support for Deno, covering both `redis` and `ioredis` clients.
+
+### Other Changes
+
+- feat(cloudflare): Only capture workflow step error on final retry attempt ([#21025](https://github.com/getsentry/sentry-javascript/pull/21025))
+- feat(hono): Emit warning if `@sentry/node` was imported instead of `@sentry/hono/node` ([#21240](https://github.com/getsentry/sentry-javascript/pull/21240))
+- feat(node): Use ioredis tracing channels ([#21187](https://github.com/getsentry/sentry-javascript/pull/21187))
+- fix(browser): Correctly parse sampleRate when `consistentTraceSampling` is enabled ([#21281](https://github.com/getsentry/sentry-javascript/pull/21281))
+- fix(cloudflare): Fix `instrumentDurableObjectWithSentry` breaking Cloudflare Agents ([#21101](https://github.com/getsentry/sentry-javascript/pull/21101))
+- fix(cloudflare): Wait for span links to be set ([#21167](https://github.com/getsentry/sentry-javascript/pull/21167))
+- fix(core): Use `WeakRef` for Span-Scope circular references ([#21242](https://github.com/getsentry/sentry-javascript/pull/21242))
+- fix(node): Vendor `InstrumentationNodeModuleFile` to fix Bun `--bytecode` crash ([#21262](https://github.com/getsentry/sentry-javascript/pull/21262))
+- fix(profiling-node): Ensure node version support warning includes latest 26 ([#21229](https://github.com/getsentry/sentry-javascript/pull/21229))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Ignore scheduled_tasks.lock ([#21252](https://github.com/getsentry/sentry-javascript/pull/21252))
+- chore: Promote lint warnings to errors ([#21213](https://github.com/getsentry/sentry-javascript/pull/21213))
+- chore(docs): Document how to support a new node version ([#21228](https://github.com/getsentry/sentry-javascript/pull/21228))
+- chore(size-limit): Weekly auto-bump ([#21243](https://github.com/getsentry/sentry-javascript/pull/21243))
+- chore(skills): Add linear-project-status skill ([#21214](https://github.com/getsentry/sentry-javascript/pull/21214))
+- chore(skills): Add linear-project-update skill ([#21233](https://github.com/getsentry/sentry-javascript/pull/21233))
+- chore(skills): Improve triage-issue skill ([#21257](https://github.com/getsentry/sentry-javascript/pull/21257))
+- chore(skills): Update linear-project-status skill with more details & context ([#21234](https://github.com/getsentry/sentry-javascript/pull/21234))
+- feat(deps): Bump axios from 1.15.0 to 1.16.0 in /dev-packages/e2e-tests/test-applications/nestjs-basic ([#21263](https://github.com/getsentry/sentry-javascript/pull/21263))
+- feat(server-utils): Initial scaffolding ([#21200](https://github.com/getsentry/sentry-javascript/pull/21200))
+- ref(cloudflare): Move D1 instrumentation ([#21266](https://github.com/getsentry/sentry-javascript/pull/21266))
+- ref(node): Refactor usage of `hrTime` utilities from `@opentelemetry/core` ([#21191](https://github.com/getsentry/sentry-javascript/pull/21191))
+- ref(node): Stop mutating OTel RPC metadata to set `http.route` ([#21193](https://github.com/getsentry/sentry-javascript/pull/21193))
+- ref(opentelemetry): Vendor minimal `TraceState` implementation ([#21192](https://github.com/getsentry/sentry-javascript/pull/21192))
+- test(browser): Add unit test for http client header collection behavior ([#21273](https://github.com/getsentry/sentry-javascript/pull/21273))
+- test(browser): Move browser integration tests to `dataCollection` ([#21282](https://github.com/getsentry/sentry-javascript/pull/21282))
+- test(cloudflare): Remove vitest in CF e2e tests ([#21259](https://github.com/getsentry/sentry-javascript/pull/21259))
+
+</details>
+
 ## 10.55.0
 
 ### Important Changes

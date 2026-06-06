@@ -3,15 +3,14 @@
 // On older runtimes the integration becomes a no-op.
 import * as dc from 'node:diagnostics_channel';
 import type {
-  Integration,
-  IntegrationFn,
   RedisDiagnosticChannelResponseHook,
   RedisTracingChannel,
   RedisTracingChannelFactory,
   RedisTracingChannelSubscribers,
-  Span,
-} from '@sentry/core';
-import { defineIntegration, subscribeRedisDiagnosticChannels } from '@sentry/core';
+} from '@sentry-internal/server-utils';
+import { subscribeRedisDiagnosticChannels } from '@sentry-internal/server-utils';
+import type { Integration, IntegrationFn, Span } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 
 const INTEGRATION_NAME = 'DenoRedis';

@@ -11,7 +11,6 @@ import type { ErrorBoundaryProps, FallbackRender } from '../src/errorboundary';
 import { ErrorBoundary, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
 
 const mockScope = new Scope();
-const scopeSetContextSpy = vi.spyOn(mockScope, 'setContext');
 const mockCaptureException = vi.fn();
 const mockShowReportDialog = vi.fn();
 const mockClientOn = vi.fn();
@@ -221,7 +220,6 @@ describe('ErrorBoundary', () => {
     mockCaptureException.mockClear();
     mockShowReportDialog.mockClear();
     mockClientOn.mockClear();
-    (mockScope.setContext as any).mockClear();
   });
 
   it('renders null if not given a valid `fallback` prop', () => {
@@ -388,16 +386,13 @@ describe('ErrorBoundary', () => {
         mechanism: { handled: true, type: 'auto.function.react.error_boundary' },
       });
 
-      expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
-      expect(scopeSetContextSpy).toHaveBeenCalledWith('react', { componentStack: expect.any(String) });
-
       expect(mockOnError.mock.calls[0]?.[0]).toEqual(mockCaptureException.mock.calls[0]?.[0]);
 
       // Check if error.cause -> react component stack
       const error = mockCaptureException.mock.calls[0]?.[0];
       const cause = error.cause;
 
-      expect(cause.stack).toEqual(scopeSetContextSpy.mock.calls[0]?.[1]?.componentStack);
+      expect(cause.stack).toEqual(expect.any(String));
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(error.message);
     });
@@ -447,9 +442,6 @@ describe('ErrorBoundary', () => {
         mechanism: { handled: true, type: 'auto.function.react.error_boundary' },
       });
 
-      expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
-      expect(scopeSetContextSpy).toHaveBeenCalledWith('react', { componentStack: expect.any(String) });
-
       // Check if error.cause -> react component stack
       const error = mockCaptureException.mock.calls[0]?.[0];
       expect(error.cause).not.toBeDefined();
@@ -486,16 +478,13 @@ describe('ErrorBoundary', () => {
         mechanism: { handled: true, type: 'auto.function.react.error_boundary' },
       });
 
-      expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
-      expect(scopeSetContextSpy).toHaveBeenCalledWith('react', { componentStack: expect.any(String) });
-
       expect(mockOnError.mock.calls[0]?.[0]).toEqual(mockCaptureException.mock.calls[0]?.[0]);
 
       const thirdError = mockCaptureException.mock.calls[0]?.[0];
       const secondError = thirdError.cause;
       const firstError = secondError.cause;
       const cause = firstError.cause;
-      expect(cause.stack).toEqual(scopeSetContextSpy.mock.calls[0]?.[1]?.componentStack);
+      expect(cause.stack).toEqual(expect.any(String));
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(thirdError.message);
     });
@@ -530,15 +519,14 @@ describe('ErrorBoundary', () => {
         mechanism: { handled: true, type: 'auto.function.react.error_boundary' },
       });
 
-      expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
-      expect(scopeSetContextSpy).toHaveBeenCalledWith('react', { componentStack: expect.any(String) });
-
       expect(mockOnError.mock.calls[0]?.[0]).toEqual(mockCaptureException.mock.calls[0]?.[0]);
 
       const error = mockCaptureException.mock.calls[0]?.[0];
       const cause = error.cause;
-      // We need to make sure that recursive error.cause does not cause infinite loop
-      expect(cause.stack).not.toEqual(scopeSetContextSpy.mock.calls[0]?.[1]?.componentStack);
+      // We need to make sure that recursive error.cause does not cause infinite loop:
+      // when the cause chain loops, captureReactException bails out of setCause and
+      // leaves the original (non-ErrorBoundary) cause intact instead of overwriting
+      // it with `errorBoundaryError`.
       expect(cause.name).not.toContain('React ErrorBoundary');
     });
 
@@ -697,9 +685,6 @@ describe('ErrorBoundary', () => {
         expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Object), {
           mechanism: { handled: expected, type: 'auto.function.react.error_boundary' },
         });
-
-        expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
-        expect(scopeSetContextSpy).toHaveBeenCalledWith('react', { componentStack: expect.any(String) });
       },
     );
   });

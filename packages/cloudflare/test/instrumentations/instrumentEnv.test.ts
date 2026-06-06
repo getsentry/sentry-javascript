@@ -17,6 +17,46 @@ describe('instrumentEnv', () => {
     vi.clearAllMocks();
   });
 
+  it('detects and instruments D1Database bindings', async () => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    const mockStatement = {
+      bind: vi.fn(),
+      first: vi.fn().mockResolvedValue(null),
+      run: vi.fn().mockResolvedValue({ success: true, meta: { duration: 0, rows_read: 0, rows_written: 0 } }),
+      all: vi.fn().mockResolvedValue({ success: true, meta: { duration: 0, rows_read: 0, rows_written: 0 } }),
+      raw: vi.fn().mockResolvedValue([]),
+    };
+    const d1Database = {
+      prepare: vi.fn().mockReturnValue(mockStatement),
+      batch: vi.fn().mockResolvedValue([]),
+      exec: vi.fn().mockResolvedValue({ count: 0, duration: 0 }),
+      dump: vi.fn(),
+    };
+    const env = { DB: d1Database };
+    const instrumented = instrumentEnv(env);
+
+    const db = instrumented.DB as typeof d1Database;
+    await db.prepare('SELECT 1').first();
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ op: 'db.query', name: 'SELECT 1' }),
+      expect.any(Function),
+    );
+  });
+
+  it('caches instrumented D1 bindings across repeated access', () => {
+    const d1Database = {
+      prepare: vi.fn(),
+      batch: vi.fn(),
+      exec: vi.fn(),
+      dump: vi.fn(),
+    };
+    const env = { DB: d1Database };
+    const instrumented = instrumentEnv(env);
+
+    expect(instrumented.DB).toBe(instrumented.DB);
+  });
+
   it('returns primitive values unchanged', () => {
     const env = { SENTRY_DSN: 'https://key@sentry.io/123', PORT: 8080, DEBUG: true };
     const instrumented = instrumentEnv(env);

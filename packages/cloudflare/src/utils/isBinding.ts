@@ -31,7 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import type { DurableObjectNamespace, Queue } from '@cloudflare/workers-types';
+import type { D1Database, DurableObjectNamespace, Queue } from '@cloudflare/workers-types';
 
 /**
  * Checks if a value is a JSRPC proxy (service binding).
@@ -66,4 +66,18 @@ export function isDurableObjectNamespace(item: unknown): item is DurableObjectNa
  */
 export function isQueue(item: unknown): item is Queue {
   return item != null && isNotJSRPC(item) && typeof item.send === 'function' && typeof item.sendBatch === 'function';
+}
+
+/**
+ * Duck-type check for D1Database bindings.
+ * D1Database has `prepare`, `batch`, and `exec` methods.
+ */
+export function isD1Database(item: unknown): item is D1Database {
+  return (
+    item != null &&
+    isNotJSRPC(item) &&
+    typeof item.prepare === 'function' &&
+    typeof item.batch === 'function' &&
+    typeof item.exec === 'function'
+  );
 }

@@ -8,6 +8,7 @@ export {
 
 export {
   addPerformanceEntries,
+  addWebVitalsToSpan,
   startTrackingInteractions,
   startTrackingLongTasks,
   startTrackingLongAnimationFrames,
