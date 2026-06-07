@@ -12,7 +12,7 @@
 import Module from 'node:module';
 import { initialize, resolve, load } from '@apm-js-collab/tracing-hooks/hook-sync.mjs';
 import ModulePatch from '@apm-js-collab/tracing-hooks';
-import { SENTRY_INSTRUMENTATIONS } from '@sentry-internal/server-utils/orchestrion/config';
+import { SENTRY_INSTRUMENTATIONS } from '@sentry/server-utils/orchestrion/config';
 
 const DEBUG = !!(process.env.DEBUG || process.env.debug || process.env.SENTRY_DEBUG);
 // eslint-disable-next-line no-console
@@ -34,28 +34,32 @@ const stableSyncHooks =
 
 const g = (globalThis.__SENTRY_ORCHESTRION__ ??= {});
 
-g.runtime = true;
+// double-load guard
+if (!g.runtime) {
+  if (typeof Module.registerHooks === 'function' && stableSyncHooks) {
+    initialize({ instrumentations: SENTRY_INSTRUMENTATIONS });
+    Module.registerHooks({ resolve, load });
+    debug('Module.registerHooks() called for @apm-js-collab/tracing-hooks/hook-sync.mjs');
+  } else if (typeof Module.register === 'function' && !globalThis.Bun && !globalThis.Deno) {
+    Module.register('@apm-js-collab/tracing-hooks/hook.mjs', import.meta.url, {
+      data: { instrumentations: SENTRY_INSTRUMENTATIONS },
+    });
+    debug('Module.register() called for @apm-js-collab/tracing-hooks/hook.mjs');
 
-if (typeof Module.registerHooks === 'function' && stableSyncHooks) {
-  initialize({ instrumentations: SENTRY_INSTRUMENTATIONS });
-  Module.registerHooks({ resolve, load });
-  debug('Module.registerHooks() called for @apm-js-collab/tracing-hooks/hook-sync.mjs');
-} else if (typeof Module.register === 'function' && !globalThis.Bun && !globalThis.Deno) {
-  Module.register('@apm-js-collab/tracing-hooks/hook.mjs', import.meta.url, {
-    data: { instrumentations: SENTRY_INSTRUMENTATIONS },
-  });
-  debug('Module.register() called for @apm-js-collab/tracing-hooks/hook.mjs');
+    // ALSO patch `Module.prototype._compile` for the CJS side: when
+    // an ESM file `import`s a CJS package, Node loads the package's
+    // entry through the ESM bridge but resolves the package's
+    // INTERNAL `require()` calls through the CJS machinery.
+    // Those internal requires never reach the ESM resolve hook, so
+    // without this patch the file we actually want to instrument is
+    // loaded untransformed.
+    // This isn't necessary in the registerHooks case, because Node
+    // applies those hooks to all CJS and ESM modules.
+    new ModulePatch({ instrumentations: SENTRY_INSTRUMENTATIONS }).patch();
+  } else {
+    throw new Error('No available API to apply module load hooks');
+  }
 
-  // ALSO patch `Module.prototype._compile` for the CJS side: when
-  // an ESM file `import`s a CJS package, Node loads the package's
-  // entry through the ESM bridge but resolves the package's
-  // INTERNAL `require()` calls through the CJS machinery.
-  // Those internal requires never reach the ESM resolve hook, so
-  // without this patch the file we actually want to instrument is
-  // loaded untransformed.
-  // This isn't necessary in the registerHooks case, because Node
-  // applies those hooks to all CJS and ESM modules.
-  new ModulePatch({ instrumentations: SENTRY_INSTRUMENTATIONS }).patch();
-} else {
-  throw new Error('No available API to apply module load hooks');
+  // successfully added runtime hooks, set the flag.
+  g.runtime = true;
 }
