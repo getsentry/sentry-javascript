@@ -14,7 +14,7 @@ import {
   SEMATTRS_MESSAGING_SYSTEM,
   SEMATTRS_RPC_SERVICE,
 } from '@opentelemetry/semantic-conventions';
-import type { SpanAttributes, TransactionSource } from '@sentry/core';
+import type { Span, SpanAttributes, TransactionSource } from '@sentry/core';
 import {
   getSanitizedUrlString,
   parseUrl,
@@ -22,6 +22,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanToJSON,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
@@ -104,10 +105,19 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
  * Based on https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/7422ce2a06337f68a59b552b8c5a2ac125d6bae5/exporter/sentryexporter/sentry_exporter.go#L306
  */
 export function parseSpanDescription(span: AbstractSpan): SpanDescription {
-  const attributes = spanHasAttributes(span) ? span.attributes : {};
-  const name = spanHasName(span) ? span.name : '<unknown>';
-  const kind = getSpanKind(span);
+  let attributes: Attributes;
+  let name: string;
 
+  if (spanHasAttributes(span)) {
+    attributes = span.attributes;
+    name = spanHasName(span) ? span.name : '<unknown>';
+  } else {
+    const json = typeof (span as Span).spanContext === 'function' ? spanToJSON(span as Span) : undefined;
+    attributes = json?.data || {};
+    name = spanHasName(span) ? span.name : json?.description || '<unknown>';
+  }
+
+  const kind = getSpanKind(span);
   return inferSpanData(name, attributes, kind);
 }
 

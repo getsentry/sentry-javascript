@@ -1,14 +1,5 @@
 import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
-import {
-  continueTrace,
-  getActiveSpan,
-  getDynamicSamplingContextFromSpan,
-  getRootSpan,
-  spanToJSON,
-  SPAN_STATUS_ERROR,
-  startSpanManual,
-  type Span,
-} from '@sentry/core';
+import { getActiveSpan, spanToJSON, SPAN_STATUS_ERROR, startSpanManual, type Span } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SentryAsyncLocalStorageContextManager } from '../src/asyncLocalStorageContextManager';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
@@ -19,7 +10,7 @@ import { init as initTestClient } from './helpers/TestClient';
 describe('SentryTraceProvider', () => {
   beforeEach(() => {
     (global as { __SENTRY__?: unknown }).__SENTRY__ = {};
-    setOpenTelemetryContextAsyncContextStrategy({ useOpenTelemetrySpanCreation: false });
+    setOpenTelemetryContextAsyncContextStrategy();
     initTestClient({ tracesSampleRate: 1 });
     context.setGlobalContextManager(new SentryAsyncLocalStorageContextManager());
     trace.setGlobalTracerProvider(new SentryTraceProvider());
@@ -96,56 +87,11 @@ describe('SentryTraceProvider', () => {
     });
   });
 
-  it('does not replace active core spans with provider-created OpenTelemetry spans', () => {
-    const tracer = trace.getTracer('test');
-
-    tracer.startActiveSpan('otel-parent', otelParent => {
-      startSpanManual({ name: 'sentry-parent' }, sentryParent => {
-        const otelChild = tracer.startSpan('otel-child');
-        const otelChildContext = trace.setSpan(context.active(), otelChild);
-
-        context.with(otelChildContext, () => {
-          expect(getActiveSpan()).toBe(sentryParent);
-        });
-
-        otelChild.end();
-        sentryParent.end();
-      });
-
-      otelParent.end();
-    });
-  });
-
-  it('parents core spans to the active OpenTelemetry span in context-only mode', () => {
+  it('parents core spans to the active OpenTelemetry span', () => {
     trace.getTracer('test').startActiveSpan('parent', parent => {
       startSpanManual({ name: 'child' }, child => {
         expect(spanToJSON(child).parent_span_id).toBe(parent.spanContext().spanId);
         child.end();
-      });
-    });
-  });
-
-  it('continues remote OpenTelemetry contexts as root core spans in context-only mode', () => {
-    const traceId = '12312012123120121231201212312012';
-    const parentSpanId = '1121201211212012';
-    const remoteContext = trace.setSpanContext(context.active(), {
-      traceId,
-      spanId: parentSpanId,
-      isRemote: true,
-      traceFlags: TraceFlags.SAMPLED,
-    });
-
-    context.with(remoteContext, () => {
-      continueTrace({ sentryTrace: `${traceId}-${parentSpanId}-1`, baggage: undefined }, () => {
-        startSpanManual({ name: 'server' }, span => {
-          expect(getRootSpan(span)).toBe(span);
-          expect(spanToJSON(span)).toMatchObject({
-            trace_id: traceId,
-            parent_span_id: parentSpanId,
-          });
-          expect(getDynamicSamplingContextFromSpan(span)).toEqual({});
-          span.end();
-        });
       });
     });
   });

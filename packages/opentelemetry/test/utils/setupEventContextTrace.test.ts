@@ -30,7 +30,7 @@ describe('setupEventContextTrace', () => {
     client.init();
 
     setupEventContextTrace(client);
-    setOpenTelemetryContextAsyncContextStrategy({ useOpenTelemetrySpanCreation: true });
+    setOpenTelemetryContextAsyncContextStrategy();
     [provider] = setupOtel(client);
   });
 

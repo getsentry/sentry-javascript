@@ -92,7 +92,7 @@ export function setupOtel(
   options: AdditionalOpenTelemetryOptions = {},
 ): [OpenTelemetryTraceProvider | undefined, AsyncLocalStorageLookup | undefined] {
   if (client.getOptions()._experiments?.useSentryTraceProvider) {
-    setOpenTelemetryContextAsyncContextStrategy({ useOpenTelemetrySpanCreation: false });
+    setOpenTelemetryContextAsyncContextStrategy();
     return setupSentryTraceProvider(client, options);
   }
 

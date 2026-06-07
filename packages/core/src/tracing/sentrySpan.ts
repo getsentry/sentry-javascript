@@ -200,7 +200,16 @@ export class SentrySpan implements Span {
    */
   public updateName(name: string): this {
     this._name = name;
-    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+    // Only set source to 'custom' when the span already has a source.
+    // OTel instrumentations call updateName() on spans they create — in
+    // SentryTraceProvider mode those are SentrySpans, not OTel SDK spans.
+    // Child spans start without a source so that applyOtelSpanData can
+    // infer the correct one (e.g. 'route', 'task') at span end.
+    // Users who want to mark a name as intentionally chosen should use
+    // updateSpanName() which always sets source via setAttributes().
+    if (this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== undefined) {
+      this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+    }
     return this;
   }
 

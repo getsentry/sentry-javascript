@@ -8,6 +8,7 @@ export { SPAN_STATUS_ERROR, SPAN_STATUS_OK, SPAN_STATUS_UNSET } from './spanstat
 export {
   startSpan,
   startInactiveSpan,
+  _INTERNAL_startInactiveSpan,
   startSpanManual,
   continueTrace,
   withActiveSpan,

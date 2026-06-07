@@ -26,13 +26,7 @@ import { generateTraceId } from '../utils/propagationContext';
 import { safeMathRandom } from '../utils/randomSafeContext';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { dropUndefinedKeys } from '../utils/object';
-import {
-  addChildSpanToSpan,
-  getRootSpan,
-  spanIsSampled,
-  spanTimeInputToSeconds,
-  spanToJSON,
-} from '../utils/spanUtils';
+import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
@@ -197,6 +191,20 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
     return acs.startInactiveSpan(options);
   }
 
+  return _startInactiveSpanImpl(options);
+}
+
+/**
+ * Internal version of startInactiveSpan that bypasses the ACS check.
+ * Used by SentryTraceProvider to create spans without triggering recursion
+ * through ACS overrides.
+ * @hidden
+ */
+export function _INTERNAL_startInactiveSpan(options: StartSpanOptions): Span {
+  return _startInactiveSpanImpl(options);
+}
+
+function _startInactiveSpanImpl(options: StartSpanOptions): Span {
   const spanArguments = parseSentrySpanArguments(options);
   const { forceTransaction, parentSpan: customParentSpan } = options;
 
