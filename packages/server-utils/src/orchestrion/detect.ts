@@ -10,6 +10,9 @@ declare global {
  * Verifies that orchestrion has been setup, either:
  * - the runtime hook (`node --import @sentry/node/orchestrion app.js`), OR
  * - the bundler plugin (`sentryOrchestrionPlugin()`)
+ *
+ * Note: do NOT warn in production, only in debug builds, because
+ * production warnings are reserved for truly critical issues.
  */
 export function detectOrchestrionSetup(): void {
   if (!DEBUG_BUILD) return;
