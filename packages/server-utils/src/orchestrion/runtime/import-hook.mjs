@@ -22,9 +22,15 @@ debug('import-hook.mjs loaded, instrumentations:', SENTRY_INSTRUMENTATIONS);
 
 // detection to decide module loader hooks to use
 // registerHooks was present but not stable until 24.13 and 25.1
-const version = (process.versions.node ?? '0.0.0').split('.').map(n => parseInt(n, 10));
+const nodeVersion = (process.versions.node ?? '0.0.0').split('.').map(n => parseInt(n, 10));
+// registerHooks available in Deno 2.8.0
+const denoVersion = (globalThis.Deno?.version?.deno ?? '0.0.0').split('.').map(n => parseInt(n, 10));
 const stableSyncHooks =
-  version[0] > 25 || (version[0] === 25 && version[1] >= 1) || (version[0] === 24 && version[1] >= 13);
+  nodeVersion[0] > 25 ||
+  (nodeVersion[0] === 25 && nodeVersion[1] >= 1) ||
+  (nodeVersion[0] === 24 && nodeVersion[1] >= 13) ||
+  denoVersion[0] > 2 ||
+  (denoVersion[0] === 2 && denoVersion[1] >= 8);
 
 const g = (globalThis.__SENTRY_ORCHESTRION__ ??= {});
 
@@ -34,7 +40,7 @@ if (typeof Module.registerHooks === 'function' && stableSyncHooks) {
   initialize({ instrumentations: SENTRY_INSTRUMENTATIONS });
   Module.registerHooks({ resolve, load });
   debug('Module.registerHooks() called for @apm-js-collab/tracing-hooks/hook-sync.mjs');
-} else if (typeof Module.register === 'function') {
+} else if (typeof Module.register === 'function' && !globalThis.Bun && !globalThis.Deno) {
   Module.register('@apm-js-collab/tracing-hooks/hook.mjs', import.meta.url, {
     data: { instrumentations: SENTRY_INSTRUMENTATIONS },
   });
