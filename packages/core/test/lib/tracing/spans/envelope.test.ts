@@ -244,7 +244,8 @@ describe('createStreamedSpanEnvelope', () => {
       vi.mocked(isBrowser).mockReturnValue(true);
 
       const mockSpan = createMockSerializedSpan();
-      const mockClient = new TestClient(getDefaultTestClientOptions({ dataCollection: { userInfo: true } }));
+      // TODO(v11) Remove `dataCollection` as the defaults should be applied without explicitly adding the option
+      const mockClient = new TestClient(getDefaultTestClientOptions({ dataCollection: {} }));
       const dsc: Partial<DynamicSamplingContext> = {};
 
       const envelopeItems = createStreamedSpanEnvelope([mockSpan], dsc, mockClient)[1];
@@ -284,7 +285,8 @@ describe('createStreamedSpanEnvelope', () => {
 
     it('omits ingest_settings when not in browser', () => {
       const mockSpan = createMockSerializedSpan();
-      const mockClient = new TestClient(getDefaultTestClientOptions({ dataCollection: { userInfo: true } }));
+      // TODO(v11) Remove `dataCollection` as the defaults should be applied without explicitly adding the option
+      const mockClient = new TestClient(getDefaultTestClientOptions({ dataCollection: {} }));
       const dsc: Partial<DynamicSamplingContext> = {};
 
       const envelopeItems = createStreamedSpanEnvelope([mockSpan], dsc, mockClient)[1];
