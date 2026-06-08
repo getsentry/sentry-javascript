@@ -19,6 +19,7 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/npm/types/index.d.ts",
+      "react-native": "./build/npm/esm/prod/index.js",
       "development": {
         "import": "./build/npm/esm/dev/index.js",
         "require": "./build/npm/cjs/dev/index.js"
