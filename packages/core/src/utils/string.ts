@@ -1,4 +1,4 @@
-import { isPrimitive, isRegExp, isString } from './is';
+import { isElement, isPrimitive, isRegExp, isString } from './is';
 import { stringifyValue } from './normalize';
 
 export { escapeStringForRegex } from '../vendor/escapeStringForRegex';
@@ -81,6 +81,13 @@ export function safeJoin(input: unknown[], delimiter?: string): string {
       // While stringifyValue does not special-case errors, because we later handle them specifically based on the [object XXX] fallback,
       // in this method we want to render them more nicely
       output.push(value.message ? `${value.name}: ${value.message}` : value.name);
+    } else if (isElement(value)) {
+      // Serializing a console breadcrumb message must be side-effect free. For DOM
+      // elements, stringifyValue routes through the browser stringifier's
+      // htmlTreeAsString, which reads id/className/getAttribute and walks the DOM,
+      // invoking user-defined getters. String(value) yields a safe
+      // "[object HTMLDivElement]" representation instead. See #21353.
+      output.push(String(value));
     } else {
       output.push(stringifyValue(undefined, value));
     }
