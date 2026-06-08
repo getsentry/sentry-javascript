@@ -197,10 +197,11 @@ export function spanToJSON(span: Span): SpanJSON {
   }
 
   // Finally, at least we have `spanContext()`....
-  // This should not actually happen in reality, but we need to handle it for type safety.
+  // This covers SentryNonRecordingSpan and any other non-SDK span types.
   return {
     span_id,
     trace_id,
+    parent_span_id: (span as { parentSpanId?: string }).parentSpanId,
     start_timestamp: 0,
     data: {},
   };

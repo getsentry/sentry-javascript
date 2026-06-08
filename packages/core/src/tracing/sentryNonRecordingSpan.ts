@@ -21,6 +21,7 @@ interface SentryNonRecordingSpanArguments extends SentrySpanArguments {
 export class SentryNonRecordingSpan implements Span {
   private _traceId: string;
   private _spanId: string;
+  private _parentSpanId: string | undefined;
   private _sampled: boolean | undefined;
 
   /**
@@ -33,6 +34,7 @@ export class SentryNonRecordingSpan implements Span {
   public constructor(spanContext: SentryNonRecordingSpanArguments = {}) {
     this._traceId = spanContext.traceId || generateTraceId();
     this._spanId = spanContext.spanId || generateSpanId();
+    this._parentSpanId = spanContext.parentSpanId;
     this._sampled = spanContext.sampled;
     this.dropReason = spanContext.dropReason;
   }
@@ -92,6 +94,14 @@ export class SentryNonRecordingSpan implements Span {
   /** @inheritDoc */
   public addLinks(_links: unknown[]): this {
     return this;
+  }
+
+  /**
+   * @hidden
+   * @internal
+   */
+  public get parentSpanId(): string | undefined {
+    return this._parentSpanId;
   }
 
   /**
