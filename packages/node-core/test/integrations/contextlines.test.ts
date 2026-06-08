@@ -231,4 +231,56 @@ describe('ContextLines', () => {
       expect(readStreamSpy).not.toHaveBeenCalled();
     });
   });
+
+  describe('dataCollection.frameContextLines', () => {
+    function clientWithFrameContextLines(frameContextLines: number) {
+      return {
+        getDataCollectionOptions: () => ({ frameContextLines }),
+      } as unknown as Parameters<NonNullable<typeof contextLines.processEvent>>[2];
+    }
+
+    test('uses dataCollection.frameContextLines when no integration option is set', async () => {
+      contextLines = _contextLinesIntegration();
+      const frames = parseStackFrames(defaultStackParser, new Error('test'));
+
+      await contextLines.processEvent(
+        { exception: { values: [{ stacktrace: { frames } }] } },
+        {},
+        clientWithFrameContextLines(2),
+      );
+
+      const frame = frames.find(f => f.context_line !== undefined);
+      expect(frame?.pre_context).toHaveLength(2);
+      expect(frame?.post_context).toHaveLength(2);
+    });
+
+    test('does not read source files when dataCollection.frameContextLines is 0', async () => {
+      contextLines = _contextLinesIntegration();
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
+      const frames = parseStackFrames(defaultStackParser, new Error('test'));
+
+      await contextLines.processEvent(
+        { exception: { values: [{ stacktrace: { frames } }] } },
+        {},
+        clientWithFrameContextLines(0),
+      );
+
+      expect(readStreamSpy).not.toHaveBeenCalled();
+    });
+
+    test('integration option takes precedence over dataCollection.frameContextLines', async () => {
+      contextLines = _contextLinesIntegration({ frameContextLines: 1 });
+      const frames = parseStackFrames(defaultStackParser, new Error('test'));
+
+      await contextLines.processEvent(
+        { exception: { values: [{ stacktrace: { frames } }] } },
+        {},
+        clientWithFrameContextLines(5),
+      );
+
+      const frame = frames.find(f => f.context_line !== undefined);
+      expect(frame?.pre_context).toHaveLength(1);
+      expect(frame?.post_context).toHaveLength(1);
+    });
+  });
 });

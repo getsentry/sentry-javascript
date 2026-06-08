@@ -11,7 +11,7 @@ describe('defaultPiiToCollectionOptions', () => {
       queryParams: true,
       genAI: { inputs: true, outputs: true },
       stackFrameVariables: true,
-      frameContextLines: 5,
+      frameContextLines: 7,
     });
   });
 
@@ -27,7 +27,7 @@ describe('defaultPiiToCollectionOptions', () => {
       queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       genAI: { inputs: false, outputs: false },
       stackFrameVariables: true,
-      frameContextLines: 5,
+      frameContextLines: 7,
     });
   });
 
@@ -43,7 +43,7 @@ describe('defaultPiiToCollectionOptions', () => {
       queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       genAI: { inputs: false, outputs: false },
       stackFrameVariables: true,
-      frameContextLines: 5,
+      frameContextLines: 7,
     });
   });
 
@@ -59,7 +59,7 @@ describe('defaultPiiToCollectionOptions', () => {
       queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       genAI: { inputs: false, outputs: false },
       stackFrameVariables: true,
-      frameContextLines: 5,
+      frameContextLines: 7,
     });
   });
 });
