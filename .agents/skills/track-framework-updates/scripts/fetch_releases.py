@@ -23,21 +23,30 @@ Output shape:
   ]
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import subprocess
 import sys
+from datetime import datetime
+from typing import Any
 
 from _common import cutoff, gh_api, load_frameworks, parse_iso
 
-# Release notes can be long; keep enough for Claude to judge relevance without
-# bloating the raw artifact.
 MAX_BODY_CHARS = 8000
+RELEASES_PER_PAGE = 100
 
 
-def fetch_releases_for_repo(repo, since):
+def fetch_releases_for_repo(repo: str, since: datetime) -> list[dict[str, Any]]:
     """Return releases for `repo` published at/after `since`."""
-    releases = gh_api(f"repos/{repo}/releases") or []
+    releases = (
+        gh_api(
+            f"repos/{repo}/releases",
+            fields={"per_page": str(RELEASES_PER_PAGE)},
+        )
+        or []
+    )
     recent = []
     for rel in releases:
         published = parse_iso(rel.get("published_at"))
@@ -58,12 +67,12 @@ def fetch_releases_for_repo(repo, since):
     return recent
 
 
-def collect(since_days):
+def collect(since_days: int) -> list[dict[str, Any]]:
     since = cutoff(since_days)
     results = []
     for fw in load_frameworks():
         repo = (fw.get("github") or {}).get("repo")
-        entry = {
+        entry: dict[str, Any] = {
             "name": fw["name"],
             "sentryPackages": fw.get("sentryPackages", []),
             "category": fw.get("category"),
@@ -73,14 +82,16 @@ def collect(since_days):
             try:
                 entry["releases"] = fetch_releases_for_repo(repo, since)
             except subprocess.CalledProcessError as exc:
-                entry["error"] = f"gh api failed for {repo}: {exc.stderr.strip()[:300]}"
+                entry["error"] = (
+                    f"gh api failed for {repo}: {exc.stderr.strip()[:300]}"
+                )
             except (ValueError, KeyError) as exc:
                 entry["error"] = f"parse error for {repo}: {exc}"
         results.append(entry)
     return results
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--since-days", type=int, default=7)
     args = parser.parse_args()
