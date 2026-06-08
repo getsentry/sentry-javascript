@@ -18,22 +18,24 @@
  * - Upstream version: @opentelemetry/instrumentation-generic-pool@0.61.0
  * - Minor TypeScript strictness adjustments for this repository's compiler settings
  */
-/* eslint-disable */
 
 import * as api from '@opentelemetry/api';
-import {
-  InstrumentationBase,
-  InstrumentationConfig,
-  InstrumentationNodeModuleDefinition,
-  isWrapped,
-} from '@opentelemetry/instrumentation';
-
-import type * as genericPool from './generic-pool-types';
-
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import { SDK_VERSION } from '@sentry/core';
+import type * as genericPool from './generic-pool-types';
 
 const MODULE_NAME = 'generic-pool';
 const PACKAGE_NAME = '@sentry/instrumentation-generic-pool';
+
+type AcquireFn = (this: unknown, ...args: unknown[]) => unknown;
+interface PoolConstructor {
+  (...args: unknown[]): unknown;
+  prototype: { acquire: AcquireFn };
+}
+interface GenericPoolModule {
+  Pool: PoolConstructor;
+}
 
 export class GenericPoolInstrumentation extends InstrumentationBase {
   // only used for v2 - v2.3)
@@ -48,16 +50,16 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
       new InstrumentationNodeModuleDefinition(
         MODULE_NAME,
         ['>=3.0.0 <4'],
-        moduleExports => {
-          const Pool: any = moduleExports.Pool;
+        (moduleExports: GenericPoolModule) => {
+          const Pool = moduleExports.Pool;
           if (isWrapped(Pool.prototype.acquire)) {
             this._unwrap(Pool.prototype, 'acquire');
           }
           this._wrap(Pool.prototype, 'acquire', this._acquirePatcher.bind(this));
           return moduleExports;
         },
-        moduleExports => {
-          const Pool: any = moduleExports.Pool;
+        (moduleExports: GenericPoolModule) => {
+          const Pool = moduleExports.Pool;
           this._unwrap(Pool.prototype, 'acquire');
           return moduleExports;
         },
@@ -65,16 +67,16 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
       new InstrumentationNodeModuleDefinition(
         MODULE_NAME,
         ['>=2.4.0 <3'],
-        moduleExports => {
-          const Pool: any = moduleExports.Pool;
+        (moduleExports: GenericPoolModule) => {
+          const Pool = moduleExports.Pool;
           if (isWrapped(Pool.prototype.acquire)) {
             this._unwrap(Pool.prototype, 'acquire');
           }
           this._wrap(Pool.prototype, 'acquire', this._acquireWithCallbacksPatcher.bind(this));
           return moduleExports;
         },
-        moduleExports => {
-          const Pool: any = moduleExports.Pool;
+        (moduleExports: GenericPoolModule) => {
+          const Pool = moduleExports.Pool;
           this._unwrap(Pool.prototype, 'acquire');
           return moduleExports;
         },
@@ -82,7 +84,7 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
       new InstrumentationNodeModuleDefinition(
         MODULE_NAME,
         ['>=2.0.0 <2.4'],
-        moduleExports => {
+        (moduleExports: GenericPoolModule) => {
           this._isDisabled = false;
           if (isWrapped(moduleExports.Pool)) {
             this._unwrap(moduleExports, 'Pool');
@@ -90,7 +92,7 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
           this._wrap(moduleExports, 'Pool', this._poolWrapper.bind(this));
           return moduleExports;
         },
-        moduleExports => {
+        (moduleExports: GenericPoolModule) => {
           // since the object is created on the fly every time, we need to use
           // a boolean switch here to disable the instrumentation
           this._isDisabled = true;
@@ -100,14 +102,15 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
     ];
   }
 
-  private _acquirePatcher(original: genericPool.Pool<unknown>['acquire']) {
+  private _acquirePatcher(original: AcquireFn) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
-    return function wrapped_acquire(this: genericPool.Pool<unknown>, ...args: any[]) {
+    return function wrapped_acquire(this: genericPool.Pool<unknown>, ...args: unknown[]) {
       const parent = api.context.active();
       const span = instrumentation.tracer.startSpan('generic-pool.acquire', {}, parent);
 
       return api.context.with(api.trace.setSpan(parent, span), () => {
-        return original.call(this, ...args).then(
+        return (original.call(this, ...args) as PromiseLike<unknown>).then(
           (value: unknown) => {
             span.end();
             return value;
@@ -122,18 +125,24 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
     };
   }
 
-  private _poolWrapper(original: any) {
+  private _poolWrapper(original: AcquireFn) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
-    return function wrapped_pool(this: any) {
-      const pool = original.apply(this, arguments);
+    return function wrapped_pool(this: unknown, ...args: unknown[]) {
+      const pool = original.apply(this, args) as { acquire: AcquireFn };
       instrumentation._wrap(pool, 'acquire', instrumentation._acquireWithCallbacksPatcher.bind(instrumentation));
       return pool;
     };
   }
 
-  private _acquireWithCallbacksPatcher(original: any) {
+  private _acquireWithCallbacksPatcher(original: AcquireFn) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
-    return function wrapped_acquire(this: genericPool.Pool<unknown>, cb: Function, priority: number) {
+    return function wrapped_acquire(
+      this: genericPool.Pool<unknown>,
+      cb: (err: unknown, client: unknown) => unknown,
+      priority: number,
+    ) {
       // only used for v2 - v2.3
       if (instrumentation._isDisabled) {
         return original.call(this, cb, priority);
@@ -149,7 +158,7 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
             // Not checking whether cb is a function because
             // the original code doesn't do that either.
             if (cb) {
-              return cb(err, client);
+              cb(err, client);
             }
           },
           priority,
