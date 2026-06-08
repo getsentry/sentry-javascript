@@ -8,6 +8,7 @@
   "exports": {
     "./package.json": "./package.json",
     "./worker-bundler": {
+      "react-native": "./build/npm/esm/worker-bundler.js",
       "import": {
         "types": "./build/npm/types/worker-bundler.d.ts",
         "default": "./build/npm/esm/worker-bundler.js"
@@ -18,6 +19,7 @@
       }
     },
     ".": {
+      "react-native": "./build/npm/esm/index.js",
       "import": {
         "types": "./build/npm/types/index.d.ts",
         "default": "./build/npm/esm/index.js"
