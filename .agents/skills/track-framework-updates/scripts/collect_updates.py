@@ -13,16 +13,20 @@ show up in the digest's "Run notes" section instead of being silently lost.
 Usage:
   collect_updates.py [--since-days N] [--out PATH]
 
-Default output path is `framework-updates-raw.json` in the current directory.
+Default output path is the skill's output/ directory.
 """
 
 import argparse
 import json
+import os
 from datetime import datetime, timezone
 
 import fetch_discussions
 import fetch_releases
 import fetch_rss
+
+SKILL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUTPUT_DIR = os.path.join(SKILL_DIR, "output")
 
 
 def _index_by_name(entries):
@@ -68,8 +72,13 @@ def merge(since_days):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--since-days", type=int, default=7)
-    parser.add_argument("--out", default="framework-updates-raw.json")
+    parser.add_argument(
+        "--out",
+        default=os.path.join(OUTPUT_DIR, "framework-updates-raw.json"),
+    )
     args = parser.parse_args()
+
+    os.makedirs(os.path.dirname(args.out), exist_ok=True)
 
     frameworks = merge(args.since_days)
     payload = {

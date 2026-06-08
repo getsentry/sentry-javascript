@@ -24,15 +24,17 @@ Run from the repo root:
 python3 .agents/skills/track-framework-updates/scripts/collect_updates.py --since-days 7
 ```
 
-Produces `framework-updates-raw.json` in the current directory. If the command fails due to sandbox network restrictions, re-run with broader permissions.
+Produces `framework-updates-raw.json` in the skill's `output/` directory (`.agents/skills/track-framework-updates/output/`). That directory is git-ignored.
+If the command fails due to sandbox network restrictions, re-run with broader permissions.
 
 Override `--since-days` only when the user explicitly requests a different window.
 
 ### Step 2: Classify releases
 
-**Before classifying any release, read `assets/relevance-guidelines.md` in full.** It defines `high`, `medium`, and `low` relevance with precise rules tied to how the Sentry SDK instruments frameworks.
+**Before classifying any release, read `assets/relevance-guidelines.md` in full.**
+It defines `high`, `medium`, and `low` relevance with precise rules tied to how the Sentry SDK instruments frameworks.
 
-Read `framework-updates-raw.json`. For each framework with releases:
+Read `output/framework-updates-raw.json`. For each framework with releases:
 
 1. Classify each individual change within a release as `high`, `medium`, or `low` per the guidelines.
 2. A single release often spans multiple levels — group changes by level.
@@ -54,11 +56,11 @@ For each release or RFC that plausibly needs SDK work, draft one concrete, actio
 
 ### Step 5: Write output artifacts
 
-Produce **three files** in the current working directory:
+Produce **three files** in the skill's `output/` directory:
 
-1. **`framework-updates-raw.json`** — already written by Step 1.
-2. **`framework-updates-digest.json`** — structured, machine-readable digest. Follow the schema in `assets/digest-schema.json`.
-3. **`framework-updates-digest.md`** — human-readable digest. Follow the structure in `assets/digest-template.md`:
+1. **`output/framework-updates-raw.json`** — already written by Step 1.
+2. **`output/framework-updates-digest.json`** — structured, machine-readable digest. Follow the schema in `assets/digest-schema.json`.
+3. **`output/framework-updates-digest.md`** — human-readable digest. Follow the structure in `assets/digest-template.md`:
    - Group by Client-Side / Server-Side / Meta-Framework.
    - Omit frameworks with no activity.
    - Include a "Run notes" section only if a fetcher reported errors.
