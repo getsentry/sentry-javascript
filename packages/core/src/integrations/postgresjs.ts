@@ -217,8 +217,10 @@ function _wrapSingleQueryHandle(
 
   // IMPORTANT: We must replace the handle function directly, not use a Proxy,
   // because Query.then() internally calls this.handle(), which would bypass a Proxy wrapper.
-  const wrappedHandle = async function (this: unknown, ...args: unknown[]): Promise<unknown> {
-    if (!_shouldCreateSpans(options)) {
+  const wrappedHandle = async function (this: { executed?: boolean }, ...args: unknown[]): Promise<unknown> {
+    // postgres.js calls handle() from then/catch/finally — only the first call executes SQL,
+    // subsequent calls are no-ops (guarded by this.executed). Skip span creation for no-ops.
+    if (this.executed || !_shouldCreateSpans(options)) {
       return originalHandle.apply(this, args);
     }
 
