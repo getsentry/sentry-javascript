@@ -1,4 +1,4 @@
-import { htmlTreeAsString } from '@sentry-internal/browser-utils';
+import { htmlTreeAsString } from '@sentry/browser-utils';
 import type { Breadcrumb, HandlerDataDom } from '@sentry/core';
 import { record } from '@sentry-internal/rrweb';
 import type { serializedElementNodeWithId, serializedNodeWithId } from '@sentry-internal/rrweb-snapshot';

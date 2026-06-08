@@ -1,5 +1,5 @@
 import type { Breadcrumb } from '@sentry/core';
-import { setTimeout } from '@sentry-internal/browser-utils';
+import { setTimeout } from '@sentry/browser-utils';
 import { IncrementalSource, MouseInteractions, record } from '@sentry-internal/rrweb';
 import { WINDOW } from '../constants';
 import type {

@@ -6,9 +6,9 @@
 
 # Sentry JavaScript SDK Browser Utilities
 
-[![npm version](https://img.shields.io/npm/v/@sentry-internal/browser-utils.svg)](https://www.npmjs.com/package/@sentry-internal/browser-utils)
-[![npm dm](https://img.shields.io/npm/dm/@sentry-internal/browser-utils.svg)](https://www.npmjs.com/package/@sentry-internal/browser-utils)
-[![npm dt](https://img.shields.io/npm/dt/@sentry-internal/browser-utils.svg)](https://www.npmjs.com/package/@sentry-internal/browser-utils)
+[![npm version](https://img.shields.io/npm/v/@sentry/browser-utils.svg)](https://www.npmjs.com/package/@sentry/browser-utils)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/browser-utils.svg)](https://www.npmjs.com/package/@sentry/browser-utils)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/browser-utils.svg)](https://www.npmjs.com/package/@sentry/browser-utils)
 
 ## Links
 

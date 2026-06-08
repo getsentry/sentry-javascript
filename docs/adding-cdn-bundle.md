@@ -73,14 +73,14 @@ export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 **For REPLAY:**
 
 ```typescript
-export { replayIntegration, getReplay } from '@sentry-internal/replay';
+export { replayIntegration, getReplay } from '@sentry/replay';
 ```
 
 **For FEEDBACK:**
 
 ```typescript
 import { feedbackAsyncIntegration } from './feedbackAsync';
-export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
+export { getFeedback, sendFeedback } from '@sentry/feedback';
 export { feedbackAsyncIntegration as feedbackAsyncIntegration, feedbackAsyncIntegration as feedbackIntegration };
 ```
 

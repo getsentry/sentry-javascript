@@ -6,9 +6,9 @@
 
 # Official Sentry SDK eslint config
 
-[![npm version](https://img.shields.io/npm/v/@sentry-internal/eslint-config-sdk.svg)](https://www.npmjs.com/package/@sentry-internal/eslint-config-sdk)
-[![npm dm](https://img.shields.io/npm/dm/@sentry-internal/eslint-config-sdk.svg)](https://www.npmjs.com/package/@sentry-internal/eslint-config-sdk)
-[![npm dt](https://img.shields.io/npm/dt/@sentry-internal/eslint-config-sdk.svg)](https://www.npmjs.com/package/@sentry-internal/eslint-config-sdk)
+[![npm version](https://img.shields.io/npm/v/@sentry/eslint-config-sdk.svg)](https://www.npmjs.com/package/@sentry/eslint-config-sdk)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/eslint-config-sdk.svg)](https://www.npmjs.com/package/@sentry/eslint-config-sdk)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/eslint-config-sdk.svg)](https://www.npmjs.com/package/@sentry/eslint-config-sdk)
 
 ## Links
 
@@ -16,7 +16,7 @@
 
 ## General
 
-Install with `yarn add -D @sentry-internal/eslint-config-sdk`
+Install with `yarn add -D @sentry/eslint-config-sdk`
 
 ## Configuration
 
@@ -25,7 +25,7 @@ correctly use the typescript rules. This configuration comes with
 
 ```json
 {
-  "extends": ["@sentry-internal/sdk"],
+  "extends": ["@sentry/sdk"],
   "overrides": [
     {
       "files": ["*.ts", "*.tsx", "*.d.ts"],

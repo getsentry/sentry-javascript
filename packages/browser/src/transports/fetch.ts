@@ -1,6 +1,6 @@
 import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core/browser';
 import { createTransport, makePromiseBuffer } from '@sentry/core/browser';
-import { clearCachedImplementation, getNativeImplementation } from '@sentry-internal/browser-utils';
+import { clearCachedImplementation, getNativeImplementation } from '@sentry/browser-utils';
 import type { WINDOW } from '../helpers';
 import type { BrowserTransportOptions } from './types';
 

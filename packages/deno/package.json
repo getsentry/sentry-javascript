@@ -25,8 +25,8 @@
   ],
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry-internal/server-utils": "10.57.0",
-    "@sentry/core": "10.57.0"
+    "@sentry/core": "10.57.0",
+    "@sentry/server-utils": "10.57.0"
   },
   "scripts": {
     "deno-types": "node ./scripts/download-deno-types.mjs",

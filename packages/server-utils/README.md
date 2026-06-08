@@ -6,9 +6,9 @@
 
 # Sentry JavaScript SDK Server Utilities
 
-[![npm version](https://img.shields.io/npm/v/@sentry-internal/server-utils.svg)](https://www.npmjs.com/package/@sentry-internal/server-utils)
-[![npm dm](https://img.shields.io/npm/dm/@sentry-internal/server-utils.svg)](https://www.npmjs.com/package/@sentry-internal/server-utils)
-[![npm dt](https://img.shields.io/npm/dt/@sentry-internal/server-utils.svg)](https://www.npmjs.com/package/@sentry-internal/server-utils)
+[![npm version](https://img.shields.io/npm/v/@sentry/server-utils.svg)](https://www.npmjs.com/package/@sentry/server-utils)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/server-utils.svg)](https://www.npmjs.com/package/@sentry/server-utils)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/server-utils.svg)](https://www.npmjs.com/package/@sentry/server-utils)
 
 ## Links
 

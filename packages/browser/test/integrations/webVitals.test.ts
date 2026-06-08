@@ -9,7 +9,7 @@ const mockTrackClsAsSpan = vi.hoisted(() => vi.fn());
 const mockTrackInpAsSpan = vi.hoisted(() => vi.fn());
 const mockTrackLcpAsSpan = vi.hoisted(() => vi.fn());
 
-vi.mock('@sentry-internal/browser-utils', () => ({
+vi.mock('@sentry/browser-utils', () => ({
   addWebVitalsToSpan: mockAddWebVitalsToSpan,
   registerInpInteractionListener: mockRegisterInpInteractionListener,
   startTrackingINP: mockStartTrackingINP,

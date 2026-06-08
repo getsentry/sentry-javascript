@@ -9,7 +9,7 @@ import {
   spanToJSON,
   truncate,
 } from '@sentry/core';
-import { subscribeRedisDiagnosticChannels } from '@sentry-internal/server-utils';
+import { subscribeRedisDiagnosticChannels } from '@sentry/server-utils';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import { tracingChannel as otelTracingChannel } from '@sentry/opentelemetry/tracing-channel';
 import type { IORedisCommandArgs } from '../../../utils/redisCache';

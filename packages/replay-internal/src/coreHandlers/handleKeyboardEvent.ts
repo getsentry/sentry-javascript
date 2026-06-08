@@ -1,4 +1,4 @@
-import { htmlTreeAsString } from '@sentry-internal/browser-utils';
+import { htmlTreeAsString } from '@sentry/browser-utils';
 import type { Breadcrumb } from '@sentry/core';
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';

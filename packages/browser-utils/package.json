@@ -1,5 +1,5 @@
 {
-  "name": "@sentry-internal/browser-utils",
+  "name": "@sentry/browser-utils",
   "version": "10.57.0",
   "description": "Browser Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
@@ -53,7 +53,7 @@
     "build:dev:watch": "run-p build:transpile:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
-    "clean": "rimraf build coverage sentry-internal-browser-utils-*.tgz",
+    "clean": "rimraf build coverage sentry-browser-utils-*.tgz",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",

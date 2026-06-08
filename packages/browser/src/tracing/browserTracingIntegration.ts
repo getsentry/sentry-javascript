@@ -43,7 +43,7 @@ import {
   startTrackingInteractions,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
-} from '@sentry-internal/browser-utils';
+} from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import { fetchStreamPerformanceIntegration } from '../integrations/fetchStreamPerformance';

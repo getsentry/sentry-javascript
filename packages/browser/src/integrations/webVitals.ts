@@ -8,7 +8,7 @@ import {
   trackClsAsSpan,
   trackInpAsSpan,
   trackLcpAsSpan,
-} from '@sentry-internal/browser-utils';
+} from '@sentry/browser-utils';
 
 export const WEB_VITALS_INTEGRATION_NAME = 'WebVitals';
 
