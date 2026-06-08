@@ -18,6 +18,12 @@
 
 Shared typescript configuration used at Sentry.
 
+## Package Status
+
+This package is an internal library published for use by Sentry-owned JavaScript SDK packages and repositories. It is not
+part of the public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it
+directly.
+
 ## Installation
 
 ```sh

@@ -18,5 +18,7 @@
 
 Common utilities used by the Sentry JavaScript SDKs.
 
-Note: This package is only meant to be used internally, and as such is not part of our public API contract and does not
-follow semver.
+## Package Status
+
+This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
+public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.

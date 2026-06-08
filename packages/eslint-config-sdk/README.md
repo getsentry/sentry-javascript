@@ -18,6 +18,12 @@
 
 Install with `yarn add -D @sentry/eslint-config-sdk`
 
+## Package Status
+
+This package is an internal library published for use by Sentry-owned JavaScript SDK packages and repositories. It is not
+part of the public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it
+directly.
+
 ## Configuration
 
 Use `@sentry-internal` for base rules. Make sure to specify your tsconfig under `parserOptions.project` so that you can
