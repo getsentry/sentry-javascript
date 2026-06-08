@@ -20,23 +20,26 @@ Output shape:
   ]
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import sys
 import urllib.error
 import urllib.request
+from datetime import datetime
 from email.utils import parsedate_to_datetime
+from typing import Any
 from xml.etree import ElementTree
 
 from _common import cutoff, load_frameworks, parse_iso
 
 USER_AGENT = "sentry-javascript-track-framework-updates/1.0"
 TIMEOUT_SECONDS = 20
-
 ATOM_NS = "{http://www.w3.org/2005/Atom}"
 
 
-def _parse_date(value):
+def _parse_date(value: str | None) -> datetime | None:
     """Parse either an RFC-822 (RSS) or ISO-8601 (Atom) timestamp."""
     if not value:
         return None
@@ -50,8 +53,8 @@ def _parse_date(value):
         return None
 
 
-def _atom_link(entry):
-    # Prefer rel="alternate"; fall back to the first link with an href.
+def _atom_link(entry: ElementTree.Element) -> str | None:
+    """Extract the best link href from an Atom entry element."""
     fallback = None
     for link in entry.findall(f"{ATOM_NS}link"):
         href = link.get("href")
@@ -63,24 +66,31 @@ def _atom_link(entry):
     return fallback
 
 
-def parse_feed(xml_bytes):
+def parse_feed(xml_bytes: bytes) -> list[dict[str, str]]:
     """Return a list of {title, url, publishedAt} from an RSS or Atom document."""
     root = ElementTree.fromstring(xml_bytes)
-    items = []
+    items: list[dict[str, str]] = []
 
-    # RSS 2.0: <rss><channel><item>...
     for item in root.iter("item"):
+        pub_date = (
+            item.findtext("pubDate")
+            or item.findtext("{http://purl.org/dc/elements/1.1/}date")
+            or ""
+        )
         items.append(
             {
                 "title": (item.findtext("title") or "").strip(),
                 "url": (item.findtext("link") or "").strip(),
-                "publishedAt": (item.findtext("pubDate") or item.findtext("{http://purl.org/dc/elements/1.1/}date") or "").strip(),
+                "publishedAt": pub_date.strip(),
             }
         )
 
-    # Atom: <feed><entry>...
     for entry in root.iter(f"{ATOM_NS}entry"):
-        published = entry.findtext(f"{ATOM_NS}updated") or entry.findtext(f"{ATOM_NS}published") or ""
+        published = (
+            entry.findtext(f"{ATOM_NS}updated")
+            or entry.findtext(f"{ATOM_NS}published")
+            or ""
+        )
         items.append(
             {
                 "title": (entry.findtext(f"{ATOM_NS}title") or "").strip(),
@@ -92,18 +102,19 @@ def parse_feed(xml_bytes):
     return items
 
 
-def fetch_feed(url):
+def fetch_feed(url: str) -> bytes:
+    """Download a feed URL and return raw bytes."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
         return resp.read()
 
 
-def collect(since_days):
+def collect(since_days: int) -> list[dict[str, Any]]:
     since = cutoff(since_days)
     results = []
     for fw in load_frameworks():
         feeds = fw.get("rss") or []
-        entry = {
+        entry: dict[str, Any] = {
             "name": fw["name"],
             "sentryPackages": fw.get("sentryPackages", []),
             "items": [],
@@ -111,7 +122,11 @@ def collect(since_days):
         for feed_url in feeds:
             try:
                 parsed = parse_feed(fetch_feed(feed_url))
-            except (urllib.error.URLError, ElementTree.ParseError, ValueError) as exc:
+            except (
+                urllib.error.URLError,
+                ElementTree.ParseError,
+                ValueError,
+            ) as exc:
                 entry.setdefault("errors", []).append(f"{feed_url}: {exc}")
                 continue
             for item in parsed:
@@ -126,12 +141,14 @@ def collect(since_days):
                         "feed": feed_url,
                     }
                 )
-        entry["items"].sort(key=lambda i: i.get("publishedAt") or "", reverse=True)
+        entry["items"].sort(
+            key=lambda i: i.get("publishedAt") or "", reverse=True
+        )
         results.append(entry)
     return results
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--since-days", type=int, default=7)
     args = parser.parse_args()

@@ -26,14 +26,17 @@ Output shape:
   ]
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import subprocess
 import sys
+from datetime import datetime
+from typing import Any
 
 from _common import cutoff, gh_api, gh_graphql, load_frameworks, parse_iso
 
-# Most recent discussions are enough; the window filter trims the rest.
 DISCUSSIONS_QUERY = """
 query($owner: String!, $repo: String!) {
   repository(owner: $owner, name: $repo) {
@@ -50,10 +53,20 @@ query($owner: String!, $repo: String!) {
 """
 
 
-def fetch_discussions(repo, since, categories):
+def fetch_discussions(
+    repo: str, since: datetime, categories: list[str] | None
+) -> list[dict[str, Any]]:
+    """Return recently-updated discussions for `repo`."""
     owner, name = repo.split("/", 1)
     data = gh_graphql(DISCUSSIONS_QUERY, {"owner": owner, "repo": name})
-    nodes = (((data or {}).get("data") or {}).get("repository") or {}).get("discussions", {}).get("nodes", []) or []
+
+    nodes = (
+        (((data or {}).get("data") or {}).get("repository") or {})
+        .get("discussions", {})
+        .get("nodes")
+        or []
+    )
+
     wanted = {c.lower() for c in (categories or [])}
     out = []
     for node in nodes:
@@ -74,9 +87,20 @@ def fetch_discussions(repo, since, categories):
     return out
 
 
-def fetch_rfcs(rfcs_repo, since):
+def fetch_rfcs(rfcs_repo: str, since: datetime) -> list[dict[str, Any]]:
     """Recently-updated PRs in a dedicated RFCs repo (proposals live as PRs)."""
-    prs = gh_api(f"repos/{rfcs_repo}/pulls", fields={"state": "all", "sort": "updated", "direction": "desc", "per_page": "50"}) or []
+    prs = (
+        gh_api(
+            f"repos/{rfcs_repo}/pulls",
+            fields={
+                "state": "all",
+                "sort": "updated",
+                "direction": "desc",
+                "per_page": "50",
+            },
+        )
+        or []
+    )
     out = []
     for pr in prs:
         updated = parse_iso(pr.get("updated_at"))
@@ -93,12 +117,12 @@ def fetch_rfcs(rfcs_repo, since):
     return out
 
 
-def collect(since_days):
+def collect(since_days: int) -> list[dict[str, Any]]:
     since = cutoff(since_days)
     results = []
     for fw in load_frameworks():
         gh = fw.get("github") or {}
-        entry = {
+        entry: dict[str, Any] = {
             "name": fw["name"],
             "sentryPackages": fw.get("sentryPackages", []),
             "discussions": [],
@@ -107,23 +131,33 @@ def collect(since_days):
         repo = gh.get("repo")
         if repo and gh.get("discussions"):
             try:
-                entry["discussions"] = fetch_discussions(repo, since, gh.get("discussionCategories"))
+                entry["discussions"] = fetch_discussions(
+                    repo, since, gh.get("discussionCategories")
+                )
             except subprocess.CalledProcessError as exc:
-                entry.setdefault("errors", []).append(f"discussions {repo}: {exc.stderr.strip()[:300]}")
+                entry.setdefault("errors", []).append(
+                    f"discussions {repo}: {exc.stderr.strip()[:300]}"
+                )
             except (ValueError, KeyError) as exc:
-                entry.setdefault("errors", []).append(f"discussions {repo}: {exc}")
+                entry.setdefault("errors", []).append(
+                    f"discussions {repo}: {exc}"
+                )
         if gh.get("rfcsRepo"):
             try:
                 entry["rfcs"] = fetch_rfcs(gh["rfcsRepo"], since)
             except subprocess.CalledProcessError as exc:
-                entry.setdefault("errors", []).append(f"rfcs {gh['rfcsRepo']}: {exc.stderr.strip()[:300]}")
+                entry.setdefault("errors", []).append(
+                    f"rfcs {gh['rfcsRepo']}: {exc.stderr.strip()[:300]}"
+                )
             except (ValueError, KeyError) as exc:
-                entry.setdefault("errors", []).append(f"rfcs {gh['rfcsRepo']}: {exc}")
+                entry.setdefault("errors", []).append(
+                    f"rfcs {gh['rfcsRepo']}: {exc}"
+                )
         results.append(entry)
     return results
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--since-days", type=int, default=7)
     args = parser.parse_args()

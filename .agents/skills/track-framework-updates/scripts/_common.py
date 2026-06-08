@@ -5,27 +5,41 @@ Kept dependency-free (stdlib only) so the skill runs anywhere `python3` and the
 GitHub CLI (`gh`) are available, without touching the repo's package.json.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import subprocess
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
-SOURCES_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sources.json")
+__all__ = [
+    "SOURCES_PATH",
+    "cutoff",
+    "gh_api",
+    "gh_graphql",
+    "load_frameworks",
+    "parse_iso",
+]
+
+SOURCES_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sources.json"
+)
 
 
-def load_frameworks(sources_path=SOURCES_PATH):
+def load_frameworks(sources_path: str = SOURCES_PATH) -> list[dict[str, Any]]:
     """Load the framework list from sources.json."""
     with open(sources_path, "r", encoding="utf-8") as fh:
         data = json.load(fh)
     return data.get("frameworks", [])
 
 
-def cutoff(since_days):
+def cutoff(since_days: int) -> datetime:
     """Return a timezone-aware datetime `since_days` days ago (UTC)."""
     return datetime.now(timezone.utc) - timedelta(days=since_days)
 
 
-def parse_iso(value):
+def parse_iso(value: str | None) -> datetime | None:
     """Parse an ISO-8601 timestamp (GitHub style, e.g. 2024-01-01T00:00:00Z).
 
     Returns a tz-aware datetime, or None if the value can't be parsed.
@@ -33,7 +47,6 @@ def parse_iso(value):
     if not value:
         return None
     try:
-        # Python's fromisoformat dislikes the trailing "Z" on older versions.
         normalized = value.strip().replace("Z", "+00:00")
         dt = datetime.fromisoformat(normalized)
         if dt.tzinfo is None:
@@ -43,14 +56,18 @@ def parse_iso(value):
         return None
 
 
-def gh_api(path, *, method=None, fields=None, raw_input=None):
+def gh_api(
+    path: str,
+    *,
+    method: str | None = None,
+    fields: dict[str, str] | None = None,
+    raw_input: str | None = None,
+) -> Any:
     """Call `gh api` and return parsed JSON.
 
     Raises subprocess.CalledProcessError on failure so callers can fail soft.
     """
     cmd = ["gh", "api", path]
-    # gh switches to POST as soon as -f/-F fields are present unless a method is
-    # given explicitly. These are all read endpoints, so default to GET.
     if method is None and fields:
         method = "GET"
     if method:
@@ -69,7 +86,7 @@ def gh_api(path, *, method=None, fields=None, raw_input=None):
     return json.loads(result.stdout) if result.stdout.strip() else None
 
 
-def gh_graphql(query, variables=None):
+def gh_graphql(query: str, variables: dict[str, str] | None = None) -> Any:
     """Run a GraphQL query through `gh api graphql` and return parsed JSON."""
     cmd = ["gh", "api", "graphql", "-f", f"query={query}"]
     for key, val in (variables or {}).items():

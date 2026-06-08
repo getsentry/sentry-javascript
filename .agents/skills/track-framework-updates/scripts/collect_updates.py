@@ -16,10 +16,13 @@ Usage:
 Default output path is the skill's output/ directory.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
 from datetime import datetime, timezone
+from typing import Any
 
 import fetch_discussions
 import fetch_releases
@@ -29,23 +32,26 @@ SKILL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT_DIR = os.path.join(SKILL_DIR, "output")
 
 
-def _index_by_name(entries):
+def _index_by_name(entries: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {entry["name"]: entry for entry in entries}
 
 
-def merge(since_days):
+def merge(since_days: int) -> list[dict[str, Any]]:
     releases = _index_by_name(fetch_releases.collect(since_days))
     discussions = _index_by_name(fetch_discussions.collect(since_days))
     rss = _index_by_name(fetch_rss.collect(since_days))
 
-    names = list(releases.keys()) or list(discussions.keys()) or list(rss.keys())
+    # All three fetchers iterate the same sources.json, so they produce the same
+    # keys. Use a set union in case a fetcher ever changes to skip frameworks.
+    names = sorted(releases.keys() | discussions.keys() | rss.keys())
+
     merged = []
     for name in names:
         rel = releases.get(name, {})
         disc = discussions.get(name, {})
         feed = rss.get(name, {})
 
-        errors = []
+        errors: list[str] = []
         if rel.get("error"):
             errors.append(rel["error"])
         errors += disc.get("errors", [])
@@ -53,8 +59,16 @@ def merge(since_days):
 
         entry = {
             "name": name,
-            "sentryPackages": rel.get("sentryPackages") or disc.get("sentryPackages") or feed.get("sentryPackages", []),
-            "category": rel.get("category"),
+            "sentryPackages": (
+                rel.get("sentryPackages")
+                or disc.get("sentryPackages")
+                or feed.get("sentryPackages", [])
+            ),
+            "category": (
+                rel.get("category")
+                or disc.get("category")
+                or feed.get("category")
+            ),
             "releases": rel.get("releases", []),
             "discussions": disc.get("discussions", []),
             "rfcs": disc.get("rfcs", []),
@@ -62,14 +76,19 @@ def merge(since_days):
             "errors": errors,
         }
 
-        has_findings = entry["releases"] or entry["discussions"] or entry["rfcs"] or entry["rssItems"]
+        has_findings = (
+            entry["releases"]
+            or entry["discussions"]
+            or entry["rfcs"]
+            or entry["rssItems"]
+        )
         if has_findings or errors:
             merged.append(entry)
 
     return merged
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--since-days", type=int, default=7)
     parser.add_argument(
@@ -91,7 +110,10 @@ def main():
         fh.write("\n")
 
     total_releases = sum(len(f["releases"]) for f in frameworks)
-    total_links = sum(len(f["discussions"]) + len(f["rfcs"]) + len(f["rssItems"]) for f in frameworks)
+    total_links = sum(
+        len(f["discussions"]) + len(f["rfcs"]) + len(f["rssItems"])
+        for f in frameworks
+    )
     print(
         f"Wrote {args.out}: {len(frameworks)} frameworks with activity, "
         f"{total_releases} releases, {total_links} links "
