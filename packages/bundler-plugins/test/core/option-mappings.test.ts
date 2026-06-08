@@ -1,30 +1,30 @@
-import type { Options } from "../../src/core";
-import type { NormalizedOptions } from "../../src/core/options-mapping";
-import { normalizeUserOptions, validateOptions } from "../../src/core/options-mapping";
-import { describe, it, test, expect, afterEach, vi, beforeEach } from "vitest";
+import type { Options } from '../../src/core';
+import type { NormalizedOptions } from '../../src/core/options-mapping';
+import { normalizeUserOptions, validateOptions } from '../../src/core/options-mapping';
+import { describe, it, test, expect, afterEach, vi, beforeEach } from 'vitest';
 
-describe("normalizeUserOptions()", () => {
-  test("should return correct value for default input", () => {
+describe('normalizeUserOptions()', () => {
+  test('should return correct value for default input', () => {
     const userOptions: Options = {
-      org: "my-org",
-      project: "my-project",
-      authToken: "my-auth-token",
-      release: { name: "my-release", uploadLegacySourcemaps: "./out" }, // we have to define this even though it is an optional value because of auto discovery
+      org: 'my-org',
+      project: 'my-project',
+      authToken: 'my-auth-token',
+      release: { name: 'my-release', uploadLegacySourcemaps: './out' }, // we have to define this even though it is an optional value because of auto discovery
     };
 
     expect(normalizeUserOptions(userOptions)).toEqual({
-      authToken: "my-auth-token",
-      org: "my-org",
-      project: "my-project",
+      authToken: 'my-auth-token',
+      org: 'my-org',
+      project: 'my-project',
       debug: false,
       disable: false,
       release: {
-        name: "my-release",
+        name: 'my-release',
         finalize: true,
         inject: true,
         create: true,
-        vcsRemote: "origin",
-        uploadLegacySourcemaps: "./out",
+        vcsRemote: 'origin',
+        uploadLegacySourcemaps: './out',
         setCommits: {
           auto: true,
           shouldNotThrowOnFailure: true,
@@ -40,44 +40,44 @@ describe("normalizeUserOptions()", () => {
           metaFramework: undefined,
         },
       },
-      url: "https://sentry.io",
+      url: 'https://sentry.io',
     });
   });
 
-  test("should hoist top-level include options into include entries", () => {
+  test('should hoist top-level include options into include entries', () => {
     const userOptions: Options = {
-      org: "my-org",
-      project: "my-project",
-      authToken: "my-auth-token",
+      org: 'my-org',
+      project: 'my-project',
+      authToken: 'my-auth-token',
       release: {
-        name: "my-release", // we have to define this even though it is an optional value because of auto discovery
+        name: 'my-release', // we have to define this even though it is an optional value because of auto discovery
         uploadLegacySourcemaps: {
-          paths: ["./output", "./files"],
-          ignore: ["./files"],
+          paths: ['./output', './files'],
+          ignore: ['./files'],
           rewrite: true,
           sourceMapReference: false,
           stripCommonPrefix: true,
-          ext: ["js", "map", ".foo"],
+          ext: ['js', 'map', '.foo'],
         },
       },
     };
 
     expect(normalizeUserOptions(userOptions)).toEqual({
-      authToken: "my-auth-token",
-      org: "my-org",
-      project: "my-project",
+      authToken: 'my-auth-token',
+      org: 'my-org',
+      project: 'my-project',
       debug: false,
       disable: false,
       release: {
-        name: "my-release",
-        vcsRemote: "origin",
+        name: 'my-release',
+        vcsRemote: 'origin',
         finalize: true,
         create: true,
         inject: true,
         uploadLegacySourcemaps: {
-          ext: ["js", "map", ".foo"],
-          ignore: ["./files"],
-          paths: ["./output", "./files"],
+          ext: ['js', 'map', '.foo'],
+          ignore: ['./files'],
+          paths: ['./output', './files'],
           rewrite: true,
           sourceMapReference: false,
           stripCommonPrefix: true,
@@ -97,23 +97,23 @@ describe("normalizeUserOptions()", () => {
           metaFramework: undefined,
         },
       },
-      url: "https://sentry.io",
+      url: 'https://sentry.io',
     });
   });
 
-  test.each(["https://sentry.io", undefined])(
-    "should enable telemetry if `telemetry` is true and Sentry SaaS URL (%s) is used",
-    (url) => {
+  test.each(['https://sentry.io', undefined])(
+    'should enable telemetry if `telemetry` is true and Sentry SaaS URL (%s) is used',
+    url => {
       const options = {
-        include: "",
+        include: '',
         url,
       };
 
       expect(normalizeUserOptions(options).telemetry).toBe(true);
-    }
+    },
   );
 
-  describe("Vercel deploy detection", () => {
+  describe('Vercel deploy detection', () => {
     const originalEnv = process.env;
 
     beforeEach(() => {
@@ -124,36 +124,36 @@ describe("normalizeUserOptions()", () => {
       process.env = originalEnv;
     });
 
-    test("should automatically create deploy config when Vercel env vars are present", () => {
-      process.env["VERCEL"] = "1";
-      process.env["VERCEL_TARGET_ENV"] = "production";
-      process.env["VERCEL_URL"] = "my-app.vercel.app";
+    test('should automatically create deploy config when Vercel env vars are present', () => {
+      process.env['VERCEL'] = '1';
+      process.env['VERCEL_TARGET_ENV'] = 'production';
+      process.env['VERCEL_URL'] = 'my-app.vercel.app';
 
       const userOptions: Options = {
-        org: "my-org",
-        project: "my-project",
-        authToken: "my-auth-token",
-        release: { name: "my-release" },
+        org: 'my-org',
+        project: 'my-project',
+        authToken: 'my-auth-token',
+        release: { name: 'my-release' },
       };
 
       const normalizedOptions = normalizeUserOptions(userOptions);
 
       expect(normalizedOptions.release.deploy).toEqual({
-        env: "vercel-production",
-        url: "https://my-app.vercel.app",
+        env: 'vercel-production',
+        url: 'https://my-app.vercel.app',
       });
     });
 
-    test("should not create deploy config when deploy is explicitly set to false", () => {
-      process.env["VERCEL"] = "1";
-      process.env["VERCEL_TARGET_ENV"] = "production";
-      process.env["VERCEL_URL"] = "my-app.vercel.app";
+    test('should not create deploy config when deploy is explicitly set to false', () => {
+      process.env['VERCEL'] = '1';
+      process.env['VERCEL_TARGET_ENV'] = 'production';
+      process.env['VERCEL_URL'] = 'my-app.vercel.app';
 
       const userOptions: Options = {
-        org: "my-org",
-        project: "my-project",
-        authToken: "my-auth-token",
-        release: { name: "my-release", deploy: false },
+        org: 'my-org',
+        project: 'my-project',
+        authToken: 'my-auth-token',
+        release: { name: 'my-release', deploy: false },
       };
 
       const normalizedOptions = normalizeUserOptions(userOptions);
@@ -161,17 +161,17 @@ describe("normalizeUserOptions()", () => {
       expect(normalizedOptions.release.deploy).toBe(false);
     });
 
-    test("should not override manually provided deploy config", () => {
-      process.env["VERCEL"] = "1";
-      process.env["VERCEL_TARGET_ENV"] = "production";
-      process.env["VERCEL_URL"] = "my-app.vercel.app";
+    test('should not override manually provided deploy config', () => {
+      process.env['VERCEL'] = '1';
+      process.env['VERCEL_TARGET_ENV'] = 'production';
+      process.env['VERCEL_URL'] = 'my-app.vercel.app';
 
-      const manualDeployConfig = { env: "custom-env", name: "custom-deploy" };
+      const manualDeployConfig = { env: 'custom-env', name: 'custom-deploy' };
       const userOptions: Options = {
-        org: "my-org",
-        project: "my-project",
-        authToken: "my-auth-token",
-        release: { name: "my-release", deploy: manualDeployConfig },
+        org: 'my-org',
+        project: 'my-project',
+        authToken: 'my-auth-token',
+        release: { name: 'my-release', deploy: manualDeployConfig },
       };
 
       const normalizedOptions = normalizeUserOptions(userOptions);
@@ -179,12 +179,12 @@ describe("normalizeUserOptions()", () => {
       expect(normalizedOptions.release.deploy).toEqual(manualDeployConfig);
     });
 
-    test("should not create deploy config when Vercel env vars are missing", () => {
+    test('should not create deploy config when Vercel env vars are missing', () => {
       const userOptions: Options = {
-        org: "my-org",
-        project: "my-project",
-        authToken: "my-auth-token",
-        release: { name: "my-release" },
+        org: 'my-org',
+        project: 'my-project',
+        authToken: 'my-auth-token',
+        release: { name: 'my-release' },
       };
 
       const normalizedOptions = normalizeUserOptions(userOptions);
@@ -193,70 +193,70 @@ describe("normalizeUserOptions()", () => {
     });
   });
 
-  describe("multi-project support", () => {
-    test("should accept project as a string array", () => {
+  describe('multi-project support', () => {
+    test('should accept project as a string array', () => {
       const userOptions: Options = {
-        org: "my-org",
-        project: ["project-a", "project-b", "project-c"],
-        authToken: "my-auth-token",
-        release: { name: "my-release" },
+        org: 'my-org',
+        project: ['project-a', 'project-b', 'project-c'],
+        authToken: 'my-auth-token',
+        release: { name: 'my-release' },
       };
 
       const normalized = normalizeUserOptions(userOptions);
-      expect(normalized.project).toEqual(["project-a", "project-b", "project-c"]);
+      expect(normalized.project).toEqual(['project-a', 'project-b', 'project-c']);
     });
 
-    test("should parse comma-separated SENTRY_PROJECT env var", () => {
+    test('should parse comma-separated SENTRY_PROJECT env var', () => {
       const originalEnv = process.env;
       process.env = { ...originalEnv };
-      process.env["SENTRY_PROJECT"] = "proj1,proj2,proj3";
+      process.env['SENTRY_PROJECT'] = 'proj1,proj2,proj3';
 
       const userOptions: Options = {
-        org: "my-org",
-        authToken: "my-auth-token",
+        org: 'my-org',
+        authToken: 'my-auth-token',
       };
 
       const normalized = normalizeUserOptions(userOptions);
-      expect(normalized.project).toEqual(["proj1", "proj2", "proj3"]);
+      expect(normalized.project).toEqual(['proj1', 'proj2', 'proj3']);
 
       process.env = originalEnv;
     });
 
-    test("should trim whitespace from comma-separated projects", () => {
+    test('should trim whitespace from comma-separated projects', () => {
       const originalEnv = process.env;
       process.env = { ...originalEnv };
-      process.env["SENTRY_PROJECT"] = "proj1 , proj2 , proj3";
+      process.env['SENTRY_PROJECT'] = 'proj1 , proj2 , proj3';
 
       const userOptions: Options = {
-        org: "my-org",
-        authToken: "my-auth-token",
+        org: 'my-org',
+        authToken: 'my-auth-token',
       };
 
       const normalized = normalizeUserOptions(userOptions);
-      expect(normalized.project).toEqual(["proj1", "proj2", "proj3"]);
+      expect(normalized.project).toEqual(['proj1', 'proj2', 'proj3']);
 
       process.env = originalEnv;
     });
 
-    test("should keep single project as string (no comma)", () => {
+    test('should keep single project as string (no comma)', () => {
       const originalEnv = process.env;
       process.env = { ...originalEnv };
-      process.env["SENTRY_PROJECT"] = "single-project";
+      process.env['SENTRY_PROJECT'] = 'single-project';
 
       const userOptions: Options = {
-        org: "my-org",
-        authToken: "my-auth-token",
+        org: 'my-org',
+        authToken: 'my-auth-token',
       };
 
       const normalized = normalizeUserOptions(userOptions);
-      expect(normalized.project).toBe("single-project");
+      expect(normalized.project).toBe('single-project');
 
       process.env = originalEnv;
     });
   });
 });
 
-describe("validateOptions", () => {
+describe('validateOptions', () => {
   const mockedLogger = {
     debug: vi.fn(),
     info: vi.fn(),
@@ -268,64 +268,64 @@ describe("validateOptions", () => {
     vi.resetAllMocks();
   });
 
-  it("should return `true` if `injectRelease` is `true` and org is provided", () => {
-    const options = { injectReleasesMap: true, org: "my-org" } as Partial<NormalizedOptions>;
+  it('should return `true` if `injectRelease` is `true` and org is provided', () => {
+    const options = { injectReleasesMap: true, org: 'my-org' } as Partial<NormalizedOptions>;
 
     expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
     expect(mockedLogger.error).not.toHaveBeenCalled();
   });
 
-  it("should return `false` if `setCommits` is set but neither auto nor manual options are set", () => {
+  it('should return `false` if `setCommits` is set but neither auto nor manual options are set', () => {
     const options = { release: { setCommits: {} } } as Partial<NormalizedOptions>;
 
     expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(false);
     expect(mockedLogger.error).toHaveBeenCalledWith(
       expect.stringMatching(/setCommits.*missing.*properties/),
-      expect.stringMatching(/set.*either.*auto.*repo.*commit/)
+      expect.stringMatching(/set.*either.*auto.*repo.*commit/),
     );
   });
 
-  it("should return `true` but warn if `setCommits` is set and both auto nor manual options are set", () => {
-    const options = { release: { setCommits: { auto: true, repo: "myRepo", commit: "myCommit" } } };
+  it('should return `true` but warn if `setCommits` is set and both auto nor manual options are set', () => {
+    const options = { release: { setCommits: { auto: true, repo: 'myRepo', commit: 'myCommit' } } };
 
     expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
     expect(mockedLogger.error).not.toHaveBeenCalled();
     expect(mockedLogger.warn).toHaveBeenCalledWith(
       expect.stringMatching(/setCommits.*auto.*repo.*commit/),
       expect.stringMatching(/Ignoring.*repo.*commit/),
-      expect.stringMatching(/set.*either.*auto.*repo.*commit/)
+      expect.stringMatching(/set.*either.*auto.*repo.*commit/),
     );
   });
 
-  it("should return `false` if `deploy`is set but `env` is not provided", () => {
+  it('should return `false` if `deploy`is set but `env` is not provided', () => {
     const options = { release: { deploy: {} } } as Partial<NormalizedOptions>;
 
     expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(false);
     expect(mockedLogger.error).toHaveBeenCalledWith(
       expect.stringMatching(/deploy.*missing.*property/),
-      expect.stringMatching(/set.*env/)
+      expect.stringMatching(/set.*env/),
     );
   });
 
-  it("should return `true` if `deploy`is set and `env` is provided", () => {
-    const options = { release: { deploy: { env: "my-env" } } } as Partial<NormalizedOptions>;
+  it('should return `true` if `deploy`is set and `env` is provided', () => {
+    const options = { release: { deploy: { env: 'my-env' } } } as Partial<NormalizedOptions>;
 
     expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
     expect(mockedLogger.error).not.toHaveBeenCalled();
   });
 
-  it("should return `true` if `deploy` is set to `false`", () => {
+  it('should return `true` if `deploy` is set to `false`', () => {
     const options = { release: { deploy: false } } as Partial<NormalizedOptions>;
 
     expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
     expect(mockedLogger.error).not.toHaveBeenCalled();
   });
 
-  it("should return `true` for options without special cases", () => {
+  it('should return `true` for options without special cases', () => {
     const options = {
-      org: "my-org",
-      project: "my-project",
-      authToken: "my-auth-token",
+      org: 'my-org',
+      project: 'my-project',
+      authToken: 'my-auth-token',
       include: [{}],
       finalize: true,
     } as Partial<NormalizedOptions>;
@@ -334,36 +334,36 @@ describe("validateOptions", () => {
     expect(mockedLogger.error).not.toHaveBeenCalled();
   });
 
-  describe("multi-project validation", () => {
-    it("should return `false` if project array is empty", () => {
+  describe('multi-project validation', () => {
+    it('should return `false` if project array is empty', () => {
       const options = { project: [] } as Partial<NormalizedOptions>;
 
       expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(false);
       expect(mockedLogger.error).toHaveBeenCalledWith(
         expect.stringMatching(/project.*array.*empty/i),
-        expect.stringMatching(/at least one/i)
+        expect.stringMatching(/at least one/i),
       );
     });
 
-    it("should return `false` if project array contains invalid strings", () => {
-      const options = { project: ["valid", "", "  ", "also-valid"] } as Partial<NormalizedOptions>;
+    it('should return `false` if project array contains invalid strings', () => {
+      const options = { project: ['valid', '', '  ', 'also-valid'] } as Partial<NormalizedOptions>;
 
       expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(false);
       expect(mockedLogger.error).toHaveBeenCalledWith(
         expect.stringMatching(/invalid.*project/i),
-        expect.stringMatching(/non-empty strings/i)
+        expect.stringMatching(/non-empty strings/i),
       );
     });
 
-    it("should return `true` for valid project array", () => {
-      const options = { project: ["proj-a", "proj-b"] } as Partial<NormalizedOptions>;
+    it('should return `true` for valid project array', () => {
+      const options = { project: ['proj-a', 'proj-b'] } as Partial<NormalizedOptions>;
 
       expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
       expect(mockedLogger.error).not.toHaveBeenCalled();
     });
 
-    it("should return `true` for valid single project string", () => {
-      const options = { project: "single-project" } as Partial<NormalizedOptions>;
+    it('should return `true` for valid single project string', () => {
+      const options = { project: 'single-project' } as Partial<NormalizedOptions>;
 
       expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
       expect(mockedLogger.error).not.toHaveBeenCalled();

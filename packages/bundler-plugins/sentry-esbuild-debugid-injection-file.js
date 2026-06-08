@@ -1,12 +1,12 @@
 try {
   let globalObject =
-    "undefined" != typeof window
+    'undefined' != typeof window
       ? window
-      : "undefined" != typeof global
+      : 'undefined' != typeof global
         ? global
-        : "undefined" != typeof globalThis
+        : 'undefined' != typeof globalThis
           ? global
-          : "undefined" != typeof self
+          : 'undefined' != typeof self
             ? self
             : {};
 
@@ -14,7 +14,7 @@ try {
 
   if (stack) {
     globalObject._sentryDebugIds = globalObject._sentryDebugIds || {};
-    globalObject._sentryDebugIds[stack] = "__SENTRY_DEBUG_ID__";
-    globalObject._sentryDebugIdIdentifier = "sentry-dbid-__SENTRY_DEBUG_ID__";
+    globalObject._sentryDebugIds[stack] = '__SENTRY_DEBUG_ID__';
+    globalObject._sentryDebugIdIdentifier = 'sentry-dbid-__SENTRY_DEBUG_ID__';
   }
 } catch {}

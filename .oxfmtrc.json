@@ -9,7 +9,9 @@
   "ignorePatterns": [
     "packages/browser/test/loader.js",
     "packages/replay-worker/examples/worker.min.js",
-    "dev-packages/browser-integration-tests/fixtures",
+    "dev-packages/browser-integration-tests/fixtures/**",
+    "dev-packages/bundler-plugin-integration-tests/fixtures/**",
+    "packages/bundler-plugins/test/core/fixtures/**",
     "**/test.ts-snapshots/**",
     "/.nx/cache",
     "/.nx/workspace-data"

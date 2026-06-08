@@ -1,11 +1,9 @@
-import { transformAsync } from "@babel/core";
-import componentNameAnnotatePlugin, {
-  experimentalComponentNameAnnotatePlugin,
-} from "../babel-plugin";
-import SentryCli from "@sentry/cli";
-import { debug } from "@sentry/core";
-import * as fs from "fs";
-import { CodeInjection, containsOnlyImports, stripQueryAndHashFromPath } from "./utils";
+import { transformAsync } from '@babel/core';
+import componentNameAnnotatePlugin, { experimentalComponentNameAnnotatePlugin } from '../babel-plugin';
+import SentryCli from '@sentry/cli';
+import { debug } from '@sentry/core';
+import * as fs from 'fs';
+import { CodeInjection, containsOnlyImports, stripQueryAndHashFromPath } from './utils';
 
 /**
  * Determines whether the Sentry CLI binary is in its expected location.
@@ -28,7 +26,7 @@ export const COMMENT_USE_STRICT_REGEX =
  */
 export function isJsFile(fileName: string): boolean {
   const cleanFileName = stripQueryAndHashFromPath(fileName);
-  return [".js", ".mjs", ".cjs"].some((ext) => cleanFileName.endsWith(ext));
+  return ['.js', '.mjs', '.cjs'].some(ext => cleanFileName.endsWith(ext));
 }
 
 /**
@@ -45,33 +43,25 @@ export function isJsFile(fileName: string): boolean {
  * @param facadeModuleId - The facade module ID (if any) - HTML files create facade chunks
  * @returns true if the chunk should be skipped
  */
-export function shouldSkipCodeInjection(
-  code: string,
-  facadeModuleId: string | null | undefined
-): boolean {
+export function shouldSkipCodeInjection(code: string, facadeModuleId: string | null | undefined): boolean {
   // Skip empty chunks - these are placeholder chunks that should be optimized away
   if (code.trim().length === 0) {
     return true;
   }
 
   // For HTML facade chunks, only skip if they contain only import statements
-  if (facadeModuleId && stripQueryAndHashFromPath(facadeModuleId).endsWith(".html")) {
+  if (facadeModuleId && stripQueryAndHashFromPath(facadeModuleId).endsWith('.html')) {
     return containsOnlyImports(code);
   }
 
   return false;
 }
 
-export { globFiles } from "./glob";
+export { globFiles } from './glob';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function createComponentNameAnnotateHooks(
-  ignoredComponents: string[],
-  injectIntoHtml: boolean
-) {
-  type ParserPlugins = NonNullable<
-    NonNullable<Parameters<typeof transformAsync>[1]>["parserOpts"]
-  >["plugins"];
+export function createComponentNameAnnotateHooks(ignoredComponents: string[], injectIntoHtml: boolean) {
+  type ParserPlugins = NonNullable<NonNullable<Parameters<typeof transformAsync>[1]>['parserOpts']>['plugins'];
 
   return {
     async transform(this: void, code: string, id: string) {
@@ -83,27 +73,25 @@ export function createComponentNameAnnotateHooks(
       }
 
       // We will only apply this plugin on jsx and tsx files
-      if (![".jsx", ".tsx"].some((ending) => idWithoutQueryAndHash.endsWith(ending))) {
+      if (!['.jsx', '.tsx'].some(ending => idWithoutQueryAndHash.endsWith(ending))) {
         return null;
       }
 
       const parserPlugins: ParserPlugins = [];
-      if (idWithoutQueryAndHash.endsWith(".jsx")) {
-        parserPlugins.push("jsx");
-      } else if (idWithoutQueryAndHash.endsWith(".tsx")) {
-        parserPlugins.push("jsx", "typescript");
+      if (idWithoutQueryAndHash.endsWith('.jsx')) {
+        parserPlugins.push('jsx');
+      } else if (idWithoutQueryAndHash.endsWith('.tsx')) {
+        parserPlugins.push('jsx', 'typescript');
       }
 
-      const plugin = injectIntoHtml
-        ? experimentalComponentNameAnnotatePlugin
-        : componentNameAnnotatePlugin;
+      const plugin = injectIntoHtml ? experimentalComponentNameAnnotatePlugin : componentNameAnnotatePlugin;
 
       try {
         const result = await transformAsync(code, {
           plugins: [[plugin, { ignoredComponents }]],
           filename: id,
           parserOpts: {
-            sourceType: "module",
+            sourceType: 'module',
             allowAwaitOutsideFunction: true,
             plugins: parserPlugins,
           },
@@ -128,18 +116,18 @@ export function createComponentNameAnnotateHooks(
 
 export function getDebugIdSnippet(debugId: string): CodeInjection {
   return new CodeInjection(
-    `var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="${debugId}",e._sentryDebugIdIdentifier="sentry-dbid-${debugId}");`
+    `var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="${debugId}",e._sentryDebugIdIdentifier="sentry-dbid-${debugId}");`,
   );
 }
 
-export type { Logger } from "./logger";
-export type { Options, SentrySDKBuildFlags } from "./types";
+export type { Logger } from './logger';
+export type { Options, SentrySDKBuildFlags } from './types';
 export {
   CodeInjection,
   replaceBooleanFlagsInCode,
   stringToUUID,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
-} from "./utils";
-export { createSentryBuildPluginManager } from "./build-plugin-manager";
-export { createDebugIdUploadFunction } from "./debug-id-upload";
+} from './utils';
+export { createSentryBuildPluginManager } from './build-plugin-manager';
+export { createDebugIdUploadFunction } from './debug-id-upload';

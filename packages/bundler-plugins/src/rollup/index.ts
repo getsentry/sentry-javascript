@@ -1,4 +1,4 @@
-import type { Options } from "../core";
+import type { Options } from '../core';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -13,22 +13,19 @@ import {
   createComponentNameAnnotateHooks,
   replaceBooleanFlagsInCode,
   CodeInjection,
-} from "../core";
-import type { SourceMap } from "magic-string";
-import MagicString from "magic-string";
-import type { TransformResult } from "rollup";
-import * as path from "node:path";
-import { createRequire } from "node:module";
+} from '../core';
+import type { SourceMap } from 'magic-string';
+import MagicString from 'magic-string';
+import type { TransformResult } from 'rollup';
+import * as path from 'node:path';
+import { createRequire } from 'node:module';
 
 function hasExistingDebugID(code: string): boolean {
   // Check if a debug ID has already been injected to avoid duplicate injection (e.g. by another plugin or Sentry CLI)
   const chunkStartSnippet = code.slice(0, 6000);
   const chunkEndSnippet = code.slice(-500);
 
-  if (
-    chunkStartSnippet.includes("_sentryDebugIdIdentifier") ||
-    chunkEndSnippet.includes("//# debugId=")
-  ) {
+  if (chunkStartSnippet.includes('_sentryDebugIdIdentifier') || chunkEndSnippet.includes('//# debugId=')) {
     return true; // Debug ID already present, skip injection
   }
 
@@ -40,8 +37,8 @@ function getRollupMajorVersion(): string | undefined {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore - Rollup already transpiles this for us
     const req = createRequire(import.meta.url);
-    const rollup = req("rollup") as { VERSION?: string };
-    return rollup.VERSION?.split(".")[0];
+    const rollup = req('rollup') as { VERSION?: string };
+    return rollup.VERSION?.split('.')[0];
   } catch {
     // do nothing, we'll just not report a version
   }
@@ -55,8 +52,8 @@ function getRollupMajorVersion(): string | undefined {
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function _rollupPluginInternal(
   userOptions: Options = {},
-  buildTool: "rollup" | "vite",
-  buildToolMajorVersion?: string
+  buildTool: 'rollup' | 'vite',
+  buildToolMajorVersion?: string,
 ) {
   const sentryBuildPluginManager = createSentryBuildPluginManager(userOptions, {
     loggerPrefix: userOptions._metaOptions?.loggerPrefixOverride ?? `[sentry-${buildTool}-plugin]`,
@@ -74,14 +71,12 @@ export function _rollupPluginInternal(
 
   if (options.disable) {
     return {
-      name: "sentry-noop-plugin",
+      name: 'sentry-noop-plugin',
     };
   }
 
   if (process.cwd().match(/\\node_modules\\|\/node_modules\//)) {
-    logger.warn(
-      "Running Sentry plugin from within a `node_modules` folder. Some features may not work."
-    );
+    logger.warn('Running Sentry plugin from within a `node_modules` folder. Some features may not work.');
   }
 
   const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
@@ -90,19 +85,17 @@ export function _rollupPluginInternal(
   const staticInjectionCode = new CodeInjection();
 
   if (!options.release.inject) {
-    logger.debug(
-      "Release injection disabled via `release.inject` option. Will not inject release."
-    );
+    logger.debug('Release injection disabled via `release.inject` option. Will not inject release.');
   } else if (!options.release.name) {
     logger.debug(
-      "No release name provided. Will not inject release. Please set the `release.name` option to identify your release."
+      'No release name provided. Will not inject release. Please set the `release.name` option to identify your release.',
     );
   } else {
     staticInjectionCode.append(
       generateReleaseInjectorCode({
         release: options.release.name,
         injectBuildInformation: options._experiments.injectBuildInformation || false,
-      })
+      }),
     );
   }
 
@@ -113,7 +106,7 @@ export function _rollupPluginInternal(
   const transformAnnotations = options.reactComponentAnnotation?.enabled
     ? createComponentNameAnnotateHooks(
         options.reactComponentAnnotation?.ignoredComponents || [],
-        !!options.reactComponentAnnotation?._experimentalInjectIntoHtml
+        !!options.reactComponentAnnotation?._experimentalInjectIntoHtml,
       )
     : undefined;
 
@@ -148,7 +141,7 @@ export function _rollupPluginInternal(
     code: string,
     chunk: { fileName: string; facadeModuleId?: string | null },
     _?: unknown,
-    meta?: { magicString?: MagicString }
+    meta?: { magicString?: MagicString },
   ): {
     code: string;
     map?: SourceMap;
@@ -188,43 +181,41 @@ export function _rollupPluginInternal(
 
     // Rolldown can pass a native MagicString instance in meta.magicString
     // https://rolldown.rs/in-depth/native-magic-string#usage-examples
-    if (ms?.constructor?.name === "BindingMagicString") {
+    if (ms?.constructor?.name === 'BindingMagicString') {
       // Rolldown docs say to return the magic string instance directly in this case
       return { code: ms as unknown as string };
     }
 
     return {
       code: ms.toString(),
-      map: ms.generateMap({ file: chunk.fileName, hires: "boundary" as unknown as undefined }),
+      map: ms.generateMap({ file: chunk.fileName, hires: 'boundary' as unknown as undefined }),
     };
   }
 
   async function writeBundle(
     outputOptions: { dir?: string; file?: string },
-    bundle: { [fileName: string]: unknown }
+    bundle: { [fileName: string]: unknown },
   ): Promise<void> {
     try {
       await sentryBuildPluginManager.createRelease();
 
-      if (sourcemapsEnabled && options.sourcemaps?.disable !== "disable-upload") {
+      if (sourcemapsEnabled && options.sourcemaps?.disable !== 'disable-upload') {
         if (outputOptions.dir) {
           const outputDir = outputOptions.dir;
           const JS_AND_MAP_PATTERNS = [
-            "/**/*.js",
-            "/**/*.mjs",
-            "/**/*.cjs",
-            "/**/*.js.map",
-            "/**/*.mjs.map",
-            "/**/*.cjs.map",
-          ].map((q) => `${q}?(\\?*)?(#*)`); // We want to allow query and hash strings at the end of files
+            '/**/*.js',
+            '/**/*.mjs',
+            '/**/*.cjs',
+            '/**/*.js.map',
+            '/**/*.mjs.map',
+            '/**/*.cjs.map',
+          ].map(q => `${q}?(\\?*)?(#*)`); // We want to allow query and hash strings at the end of files
           const buildArtifacts = await globFiles(JS_AND_MAP_PATTERNS, { root: outputDir });
           await upload(buildArtifacts);
         } else if (outputOptions.file) {
           await upload([outputOptions.file]);
         } else {
-          const buildArtifacts = Object.keys(bundle).map((asset) =>
-            path.join(path.resolve(), asset)
-          );
+          const buildArtifacts = Object.keys(bundle).map(asset => path.join(path.resolve(), asset));
           await upload(buildArtifacts);
         }
       }
@@ -258,8 +249,8 @@ export function _rollupPluginInternal(
 export function sentryRollupPlugin(userOptions: Options = {}): any {
   // We return an array here so we don't break backwards compatibility with what
   // unplugin used to return
-  return [_rollupPluginInternal(userOptions, "rollup")];
+  return [_rollupPluginInternal(userOptions, 'rollup')];
 }
 
-export type { Options as SentryRollupPluginOptions } from "../core";
-export { sentryCliBinaryExists } from "../core";
+export type { Options as SentryRollupPluginOptions } from '../core';
+export { sentryCliBinaryExists } from '../core';

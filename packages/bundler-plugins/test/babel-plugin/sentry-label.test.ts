@@ -1,32 +1,29 @@
-import { describe, it, expect } from "vitest";
-import type { BabelFileResult } from "@babel/core";
-import { transform } from "@babel/core";
-import plugin from "../../src/babel-plugin/index";
+import { describe, it, expect } from 'vitest';
+import type { BabelFileResult } from '@babel/core';
+import { transform } from '@babel/core';
+import plugin from '../../src/babel-plugin/index';
 
 function transformWith(code: string, opts: Record<string, unknown> = {}): BabelFileResult | null {
   return transform(code, {
-    filename: "/filename-test.js",
+    filename: '/filename-test.js',
     configFile: false,
-    presets: ["@babel/preset-react"],
+    presets: ['@babel/preset-react'],
     plugins: [[plugin, { autoInjectSentryLabel: true, ...opts }]],
   });
 }
 
-function transformWithout(
-  code: string,
-  opts: Record<string, unknown> = {}
-): BabelFileResult | null {
+function transformWithout(code: string, opts: Record<string, unknown> = {}): BabelFileResult | null {
   return transform(code, {
-    filename: "/filename-test.js",
+    filename: '/filename-test.js',
     configFile: false,
-    presets: ["@babel/preset-react"],
+    presets: ['@babel/preset-react'],
     plugins: [[plugin, opts]],
   });
 }
 
-describe("autoInjectSentryLabel", () => {
-  describe("opt-in behavior", () => {
-    it("does not inject sentry-label when autoInjectSentryLabel is not set", () => {
+describe('autoInjectSentryLabel', () => {
+  describe('opt-in behavior', () => {
+    it('does not inject sentry-label when autoInjectSentryLabel is not set', () => {
       const result = transformWithout(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -39,10 +36,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("does not inject sentry-label when autoInjectSentryLabel is false", () => {
+    it('does not inject sentry-label when autoInjectSentryLabel is false', () => {
       const result = transformWithout(
         `
         import React from 'react';
@@ -56,12 +53,12 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `,
-        { autoInjectSentryLabel: false }
+        { autoInjectSentryLabel: false },
       );
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("injects sentry-label when autoInjectSentryLabel is true", () => {
+    it('injects sentry-label when autoInjectSentryLabel is true', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -78,8 +75,8 @@ describe("autoInjectSentryLabel", () => {
     });
   });
 
-  describe("basic static text extraction", () => {
-    it("extracts text from a Text child", () => {
+  describe('basic static text extraction', () => {
+    it('extracts text from a Text child', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, TouchableOpacity } from 'react-native';
@@ -95,7 +92,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Save workout"');
     });
 
-    it("extracts text from a nested Text within a View", () => {
+    it('extracts text from a nested Text within a View', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View, TouchableOpacity } from 'react-native';
@@ -113,7 +110,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Details"');
     });
 
-    it("works with arrow function components", () => {
+    it('works with arrow function components', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -127,7 +124,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Press me"');
     });
 
-    it("works with class components", () => {
+    it('works with class components', () => {
       const result = transformWith(`
         import React, { Component } from 'react';
         import { Text, View } from 'react-native';
@@ -146,8 +143,8 @@ describe("autoInjectSentryLabel", () => {
     });
   });
 
-  describe("multiple text children", () => {
-    it("joins text from multiple Text children with space", () => {
+  describe('multiple text children', () => {
+    it('joins text from multiple Text children with space', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -164,7 +161,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Add to cart"');
     });
 
-    it("joins text from multiple nested Text children", () => {
+    it('joins text from multiple nested Text children', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View, TouchableOpacity } from 'react-native';
@@ -184,8 +181,8 @@ describe("autoInjectSentryLabel", () => {
     });
   });
 
-  describe("skip conditions", () => {
-    it("skips when sentry-label already exists", () => {
+  describe('skip conditions', () => {
+    it('skips when sentry-label already exists', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -202,7 +199,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).not.toContain('"sentry-label": "Auto text"');
     });
 
-    it("skips dynamic expression children", () => {
+    it('skips dynamic expression children', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -215,10 +212,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("skips when Text child has a function call expression", () => {
+    it('skips when Text child has a function call expression', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -231,10 +228,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("skips when Text child has a template literal", () => {
+    it('skips when Text child has a template literal', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -247,10 +244,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("skips when text is empty or whitespace only", () => {
+    it('skips when text is empty or whitespace only', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -263,10 +260,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("skips when no Text children exist", () => {
+    it('skips when no Text children exist', () => {
       const result = transformWith(`
         import React from 'react';
         import { View, Image } from 'react-native';
@@ -279,10 +276,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("skips when expression container is at root level", () => {
+    it('skips when expression container is at root level', () => {
       const result = transformWith(`
         import React from 'react';
         import { View } from 'react-native';
@@ -295,12 +292,12 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
   });
 
-  describe("truncation", () => {
-    it("truncates text longer than 64 characters with ...", () => {
+  describe('truncation', () => {
+    it('truncates text longer than 64 characters with ...', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -315,15 +312,15 @@ describe("autoInjectSentryLabel", () => {
       `);
       const match = result?.code?.match(/"sentry-label": "([^"]+)"/);
       expect(match).toBeTruthy();
-      const label = match?.[1] ?? "";
+      const label = match?.[1] ?? '';
       expect(label.length).toBe(64);
-      expect(label.endsWith("...")).toBe(true);
-      expect(label).toBe("This is an extremely long text that definitely exceeds the si...");
+      expect(label.endsWith('...')).toBe(true);
+      expect(label).toBe('This is an extremely long text that definitely exceeds the si...');
     });
 
-    it("does not truncate text at exactly 64 characters", () => {
+    it('does not truncate text at exactly 64 characters', () => {
       // 64 chars exactly
-      const text64 = "A".repeat(64);
+      const text64 = 'A'.repeat(64);
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -340,8 +337,8 @@ describe("autoInjectSentryLabel", () => {
     });
   });
 
-  describe("depth limit", () => {
-    it("extracts text at depth 1 (direct child)", () => {
+  describe('depth limit', () => {
+    it('extracts text at depth 1 (direct child)', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -357,7 +354,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Direct child"');
     });
 
-    it("extracts text at depth 2 (nested in one wrapper)", () => {
+    it('extracts text at depth 2 (nested in one wrapper)', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -375,7 +372,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Nested once"');
     });
 
-    it("extracts text at depth 3 (nested in two wrappers)", () => {
+    it('extracts text at depth 3 (nested in two wrappers)', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -395,7 +392,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Nested twice"');
     });
 
-    it("does not extract text beyond depth limit", () => {
+    it('does not extract text beyond depth limit', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -414,10 +411,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("does not count fragments toward depth limit", () => {
+    it('does not count fragments toward depth limit', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -440,8 +437,8 @@ describe("autoInjectSentryLabel", () => {
     });
   });
 
-  describe("text component names", () => {
-    it("recognizes lowercase text component", () => {
+  describe('text component names', () => {
+    it('recognizes lowercase text component', () => {
       const result = transformWith(`
         import React from 'react';
 
@@ -456,7 +453,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Hello"');
     });
 
-    it("supports custom text component names via option", () => {
+    it('supports custom text component names via option', () => {
       const result = transformWith(
         `
         import React from 'react';
@@ -469,12 +466,12 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `,
-        { autoInjectSentryLabel: { textComponentNames: ["Label", "Text"] } }
+        { autoInjectSentryLabel: { textComponentNames: ['Label', 'Text'] } },
       );
       expect(result?.code).toContain('"sentry-label": "Custom text"');
     });
 
-    it("does not extract from non-text components by default", () => {
+    it('does not extract from non-text components by default', () => {
       const result = transformWith(`
         import React from 'react';
         import { View, Button } from 'react-native';
@@ -487,12 +484,12 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
   });
 
-  describe("nested text components (RN inline styling)", () => {
-    it("extracts text from nested Text inside Text", () => {
+  describe('nested text components (RN inline styling)', () => {
+    it('extracts text from nested Text inside Text', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -508,7 +505,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Hello world"');
     });
 
-    it("extracts text from deeply nested inline Text", () => {
+    it('extracts text from deeply nested inline Text', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -524,7 +521,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Press Save now to continue"');
     });
 
-    it("bails out when nested Text contains dynamic content", () => {
+    it('bails out when nested Text contains dynamic content', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -537,10 +534,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("skips non-text elements inside Text without bailing out", () => {
+    it('skips non-text elements inside Text without bailing out', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -556,7 +553,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Hello world"');
     });
 
-    it("extracts text from fragment children inside Text", () => {
+    it('extracts text from fragment children inside Text', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -572,7 +569,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Hello World more"');
     });
 
-    it("handles Text wrapping only a non-text element", () => {
+    it('handles Text wrapping only a non-text element', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -585,12 +582,12 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
   });
 
-  describe("web compatibility", () => {
-    it("uses hyphenated sentry-label attribute", () => {
+  describe('web compatibility', () => {
+    it('uses hyphenated sentry-label attribute', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -604,10 +601,10 @@ describe("autoInjectSentryLabel", () => {
         }
       `);
       expect(result?.code).toContain('"sentry-label"');
-      expect(result?.code).not.toContain("sentryLabel");
+      expect(result?.code).not.toContain('sentryLabel');
     });
 
-    it("uses sentry-label in native mode too", () => {
+    it('uses sentry-label in native mode too', () => {
       const result = transformWith(
         `
         import React from 'react';
@@ -621,14 +618,14 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `,
-        { native: true }
+        { native: true },
       );
       expect(result?.code).toContain('"sentry-label": "Hello"');
     });
   });
 
-  describe("fragment handling", () => {
-    it("injects on first element child when root is a fragment", () => {
+  describe('fragment handling', () => {
+    it('injects on first element child when root is a fragment', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, TouchableOpacity } from 'react-native';
@@ -646,7 +643,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Hello"');
     });
 
-    it("extracts text only from the target element, not sibling fragment children", () => {
+    it('extracts text only from the target element, not sibling fragment children', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -664,7 +661,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).not.toContain('"sentry-label": "A B"');
     });
 
-    it("skips root fragment when it has no element children", () => {
+    it('skips root fragment when it has no element children', () => {
       const result = transformWith(`
         import React from 'react';
 
@@ -676,10 +673,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("skips root fragment when first child already has sentry-label", () => {
+    it('skips root fragment when first child already has sentry-label', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -698,7 +695,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).not.toContain('"sentry-label": "Auto text"');
     });
 
-    it("traverses through fragment children to find text", () => {
+    it('traverses through fragment children to find text', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -717,8 +714,8 @@ describe("autoInjectSentryLabel", () => {
     });
   });
 
-  describe("edge cases", () => {
-    it("trims whitespace from extracted text", () => {
+  describe('edge cases', () => {
+    it('trims whitespace from extracted text', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -734,7 +731,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Hello world"');
     });
 
-    it("normalizes double spaces when joining text from multiple components", () => {
+    it('normalizes double spaces when joining text from multiple components', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -749,10 +746,10 @@ describe("autoInjectSentryLabel", () => {
         }
       `);
       expect(result?.code).toContain('"sentry-label": "Hello world"');
-      expect(result?.code).not.toContain("Hello  world");
+      expect(result?.code).not.toContain('Hello  world');
     });
 
-    it("collapses internal whitespace", () => {
+    it('collapses internal whitespace', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -768,7 +765,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Hello world"');
     });
 
-    it("still adds other sentry attributes alongside sentry-label", () => {
+    it('still adds other sentry attributes alongside sentry-label', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -781,12 +778,12 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).toContain("data-sentry-component");
-      expect(result?.code).toContain("data-sentry-source-file");
+      expect(result?.code).toContain('data-sentry-component');
+      expect(result?.code).toContain('data-sentry-source-file');
       expect(result?.code).toContain('"sentry-label": "Hello"');
     });
 
-    it("handles mixed static and dynamic children — skips all when dynamic present", () => {
+    it('handles mixed static and dynamic children — skips all when dynamic present', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -800,10 +797,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("respects ignoredComponents — does not inject sentry-label", () => {
+    it('respects ignoredComponents — does not inject sentry-label', () => {
       const result = transformWith(
         `
         import React from 'react';
@@ -817,12 +814,12 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `,
-        { ignoredComponents: ["IgnoredComp"] }
+        { ignoredComponents: ['IgnoredComp'] },
       );
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("respects ignoredComponents matching the element name", () => {
+    it('respects ignoredComponents matching the element name', () => {
       const result = transformWith(
         `
         import React from 'react';
@@ -837,12 +834,12 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `,
-        { ignoredComponents: ["CustomCard"] }
+        { ignoredComponents: ['CustomCard'] },
       );
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("extracts text from JSXText inside a fragment child of root", () => {
+    it('extracts text from JSXText inside a fragment child of root', () => {
       const result = transformWith(`
         import React from 'react';
 
@@ -853,7 +850,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Click me"');
     });
 
-    it("bails out when non-text element inside Text contains dynamic content", () => {
+    it('bails out when non-text element inside Text contains dynamic content', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -866,10 +863,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("handles direct JSXText on the root element", () => {
+    it('handles direct JSXText on the root element', () => {
       const result = transformWith(`
         import React from 'react';
 
@@ -880,7 +877,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Click me"');
     });
 
-    it("bails out entirely when dynamic content is nested inside a non-text wrapper", () => {
+    it('bails out entirely when dynamic content is nested inside a non-text wrapper', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -896,10 +893,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("does not match member-expression text components against simple name", () => {
+    it('does not match member-expression text components against simple name', () => {
       const result = transformWith(`
         import React from 'react';
         import { View } from 'react-native';
@@ -913,10 +910,10 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `);
-      expect(result?.code).not.toContain("sentry-label");
+      expect(result?.code).not.toContain('sentry-label');
     });
 
-    it("matches member-expression text components when configured", () => {
+    it('matches member-expression text components when configured', () => {
       const result = transformWith(
         `
         import React from 'react';
@@ -931,14 +928,14 @@ describe("autoInjectSentryLabel", () => {
           );
         }
       `,
-        { autoInjectSentryLabel: { textComponentNames: ["Text", "MyLib.Text"] } }
+        { autoInjectSentryLabel: { textComponentNames: ['Text', 'MyLib.Text'] } },
       );
       expect(result?.code).toContain('"sentry-label": "Matched"');
     });
   });
 
-  describe("multiple components in one file", () => {
-    it("injects independent labels on each component", () => {
+  describe('multiple components in one file', () => {
+    it('injects independent labels on each component', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';
@@ -963,7 +960,7 @@ describe("autoInjectSentryLabel", () => {
       expect(result?.code).toContain('"sentry-label": "Cancel"');
     });
 
-    it("only injects on components that have text, not on others", () => {
+    it('only injects on components that have text, not on others', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View, Image } from 'react-native';
@@ -990,8 +987,8 @@ describe("autoInjectSentryLabel", () => {
     });
   });
 
-  describe("ternary returns", () => {
-    it("injects labels on both branches of a ternary", () => {
+  describe('ternary returns', () => {
+    it('injects labels on both branches of a ternary', () => {
       const result = transformWith(`
         import React from 'react';
         import { Text, View } from 'react-native';

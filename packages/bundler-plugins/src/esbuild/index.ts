@@ -1,4 +1,4 @@
-import type { Options } from "../core";
+import type { Options } from '../core';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -6,10 +6,10 @@ import {
   getDebugIdSnippet,
   createDebugIdUploadFunction,
   CodeInjection,
-} from "../core";
-import * as path from "node:path";
-import { createRequire } from "node:module";
-import { randomUUID } from "node:crypto";
+} from '../core';
+import * as path from 'node:path';
+import { createRequire } from 'node:module';
+import { randomUUID } from 'node:crypto';
 
 interface EsbuildOnResolveArgs {
   path: string;
@@ -57,11 +57,11 @@ interface EsbuildPluginBuild {
   initialOptions: EsbuildInitialOptions;
   onLoad: (
     options: { filter: RegExp; namespace?: string },
-    callback: (args: EsbuildOnLoadArgs) => EsbuildOnLoadResult | null
+    callback: (args: EsbuildOnLoadArgs) => EsbuildOnLoadResult | null,
   ) => void;
   onResolve: (
     options: { filter: RegExp },
-    callback: (args: EsbuildOnResolveArgs) => EsbuildOnResolveResult | undefined
+    callback: (args: EsbuildOnResolveArgs) => EsbuildOnResolveResult | undefined,
   ) => void;
   onEnd: (callback: (result: EsbuildOnEndArgs) => void | Promise<void>) => void;
 }
@@ -71,9 +71,9 @@ function getEsbuildMajorVersion(): string | undefined {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore - esbuild transpiles this for us
     const req = createRequire(import.meta.url);
-    const esbuild = req("esbuild") as { version?: string };
+    const esbuild = req('esbuild') as { version?: string };
     // esbuild hasn't released a v1 yet, so we'll return the minor version as the major version
-    return esbuild.version?.split(".")[1];
+    return esbuild.version?.split('.')[1];
   } catch {
     // do nothing, we'll just not report a version
   }
@@ -81,13 +81,13 @@ function getEsbuildMajorVersion(): string | undefined {
   return undefined;
 }
 
-const pluginName = "sentry-esbuild-plugin";
+const pluginName = 'sentry-esbuild-plugin';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function sentryEsbuildPlugin(userOptions: Options = {}): any {
   const sentryBuildPluginManager = createSentryBuildPluginManager(userOptions, {
     loggerPrefix: userOptions._metaOptions?.loggerPrefixOverride ?? `[${pluginName}]`,
-    buildTool: "esbuild",
+    buildTool: 'esbuild',
     buildToolMajorVersion: getEsbuildMajorVersion(),
   });
 
@@ -101,7 +101,7 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
 
   if (options.disable) {
     return {
-      name: "sentry-esbuild-noop-plugin",
+      name: 'sentry-esbuild-noop-plugin',
       setup() {
         // noop plugin
       },
@@ -109,28 +109,24 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
   }
 
   if (process.cwd().match(/\\node_modules\\|\/node_modules\//)) {
-    logger.warn(
-      "Running Sentry plugin from within a `node_modules` folder. Some features may not work."
-    );
+    logger.warn('Running Sentry plugin from within a `node_modules` folder. Some features may not work.');
   }
 
   const sourcemapsEnabled = options.sourcemaps?.disable !== true;
   const staticInjectionCode = new CodeInjection();
 
   if (!options.release.inject) {
-    logger.debug(
-      "Release injection disabled via `release.inject` option. Will not inject release."
-    );
+    logger.debug('Release injection disabled via `release.inject` option. Will not inject release.');
   } else if (!options.release.name) {
     logger.debug(
-      "No release name provided. Will not inject release. Please set the `release.name` option to identify your release."
+      'No release name provided. Will not inject release. Please set the `release.name` option to identify your release.',
     );
   } else {
     staticInjectionCode.append(
       generateReleaseInjectorCode({
         release: options.release.name,
         injectBuildInformation: options._experiments.injectBuildInformation || false,
-      })
+      }),
     );
   }
 
@@ -141,7 +137,7 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
   // Component annotation warning
   if (options.reactComponentAnnotation?.enabled) {
     logger.warn(
-      "Component name annotation is not supported in esbuild. Please use a separate transform step or consider using a different bundler."
+      'Component name annotation is not supported in esbuild. Please use a separate transform step or consider using a different bundler.',
     );
   }
 
@@ -159,11 +155,11 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
     setup({ initialOptions, onLoad, onResolve, onEnd }: EsbuildPluginBuild) {
       // Release and/or metadata injection
       if (!staticInjectionCode.isEmpty()) {
-        const virtualInjectionFilePath = path.resolve("_sentry-injection-stub");
+        const virtualInjectionFilePath = path.resolve('_sentry-injection-stub');
         initialOptions.inject = initialOptions.inject || [];
         initialOptions.inject.push(virtualInjectionFilePath);
 
-        onResolve({ filter: /_sentry-injection-stub/ }, (args) => {
+        onResolve({ filter: /_sentry-injection-stub/ }, args => {
           return {
             path: args.path,
             sideEffects: true,
@@ -173,7 +169,7 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
 
         onLoad({ filter: /_sentry-injection-stub/ }, () => {
           return {
-            loader: "js",
+            loader: 'js',
             pluginName,
             contents: staticInjectionCode.code(),
           };
@@ -197,13 +193,13 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
 
         if (!initialOptions.bundle) {
           logger.warn(
-            "The Sentry esbuild plugin only supports esbuild with `bundle: true` being set in the esbuild build options. Esbuild will probably crash now. Sorry about that. If you need to upload sourcemaps without `bundle: true`, it is recommended to use Sentry CLI instead: https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/cli/"
+            'The Sentry esbuild plugin only supports esbuild with `bundle: true` being set in the esbuild build options. Esbuild will probably crash now. Sorry about that. If you need to upload sourcemaps without `bundle: true`, it is recommended to use Sentry CLI instead: https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/cli/',
           );
         }
 
         // Wrap entry points to inject debug IDs
-        onResolve({ filter: /.*/ }, (args) => {
-          if (args.kind !== "entry-point") {
+        onResolve({ filter: /.*/ }, args => {
+          if (args.kind !== 'entry-point') {
             return;
           }
 
@@ -213,9 +209,7 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
             return;
           }
 
-          const resolvedPath = path.isAbsolute(args.path)
-            ? args.path
-            : path.join(args.resolveDir, args.path);
+          const resolvedPath = path.isAbsolute(args.path) ? args.path : path.join(args.resolveDir, args.path);
 
           // Skip injecting debug IDs into paths that have already been wrapped
           if (debugIdWrappedPaths.has(resolvedPath)) {
@@ -237,21 +231,20 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
             // By setting a suffix we're telling esbuild that the entrypoint and proxy module are two different things,
             // making it re-resolve the entrypoint when it is imported from the proxy module.
             // Super confusing? Yes. Works? Apparently... Let's see.
-            suffix: "?sentryDebugIdProxy=true",
+            suffix: '?sentryDebugIdProxy=true',
           };
         });
 
-        onLoad({ filter: /.*/ }, (args) => {
+        onLoad({ filter: /.*/ }, args => {
           if (!(args.pluginData as { isDebugIdProxy?: boolean })?.isDebugIdProxy) {
             return null;
           }
 
           const originalPath = (args.pluginData as { originalPath: string }).originalPath;
-          const originalResolveDir = (args.pluginData as { originalResolveDir: string })
-            .originalResolveDir;
+          const originalResolveDir = (args.pluginData as { originalResolveDir: string }).originalResolveDir;
 
           return {
-            loader: "js",
+            loader: 'js',
             pluginName,
             contents: `
               import "_sentry-debug-id-injection-stub";
@@ -262,26 +255,23 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
           };
         });
 
-        onResolve({ filter: /_sentry-debug-id-injection-stub/ }, (args) => {
+        onResolve({ filter: /_sentry-debug-id-injection-stub/ }, args => {
           return {
             path: args.path,
             sideEffects: true,
             pluginName,
-            namespace: "sentry-debug-id-stub",
+            namespace: 'sentry-debug-id-stub',
             suffix: `?sentry-module-id=${randomUUID()}`,
           };
         });
 
-        onLoad(
-          { filter: /_sentry-debug-id-injection-stub/, namespace: "sentry-debug-id-stub" },
-          () => {
-            return {
-              loader: "js",
-              pluginName,
-              contents: getDebugIdSnippet(randomUUID()).code(),
-            };
-          }
-        );
+        onLoad({ filter: /_sentry-debug-id-injection-stub/, namespace: 'sentry-debug-id-stub' }, () => {
+          return {
+            loader: 'js',
+            pluginName,
+            contents: getDebugIdSnippet(randomUUID()).code(),
+          };
+        });
       }
 
       // Create release and optionally upload
@@ -289,11 +279,11 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
       const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
 
       initialOptions.metafile = true;
-      onEnd(async (result) => {
+      onEnd(async result => {
         try {
           await sentryBuildPluginManager.createRelease();
 
-          if (sourcemapsEnabled && options.sourcemaps?.disable !== "disable-upload") {
+          if (sourcemapsEnabled && options.sourcemaps?.disable !== 'disable-upload') {
             const buildArtifacts = result.metafile ? Object.keys(result.metafile.outputs) : [];
             await upload(buildArtifacts);
           }
@@ -308,5 +298,5 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default sentryEsbuildPlugin;
-export type { Options as SentryEsbuildPluginOptions } from "../core";
-export { sentryCliBinaryExists } from "../core";
+export type { Options as SentryEsbuildPluginOptions } from '../core';
+export { sentryCliBinaryExists } from '../core';

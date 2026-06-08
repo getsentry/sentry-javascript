@@ -1,4 +1,4 @@
-import type { Logger } from "./logger";
+import type { Logger } from './logger';
 import type {
   Options as UserOptions,
   SetCommitsOptions,
@@ -7,8 +7,8 @@ import type {
   IncludeEntry,
   ModuleMetadata,
   ModuleMetadataCallback,
-} from "./types";
-import { determineReleaseName } from "./utils";
+} from './types';
+import { determineReleaseName } from './utils';
 
 export type NormalizedOptions = {
   org: string | undefined;
@@ -23,7 +23,7 @@ export type NormalizedOptions = {
   disable: boolean;
   sourcemaps:
     | {
-        disable?: boolean | "disable-upload";
+        disable?: boolean | 'disable-upload';
         assets?: string | string[];
         ignore?: string | string[];
         rewriteSources?: RewriteSourcesHook;
@@ -76,6 +76,7 @@ export type NormalizedOptions = {
   _metaOptions: {
     telemetry: {
       metaFramework: string | undefined;
+      bundlerMajorVersion: string | undefined;
     };
   };
   applicationKey: string | undefined;
@@ -85,19 +86,19 @@ export type NormalizedOptions = {
   } & Record<string, unknown>;
 };
 
-export const SENTRY_SAAS_URL = "https://sentry.io";
+export const SENTRY_SAAS_URL = 'https://sentry.io';
 
 // oxlint-disable-next-line complexity
 export function normalizeUserOptions(userOptions: UserOptions): NormalizedOptions {
   const options = {
-    org: userOptions.org ?? process.env["SENTRY_ORG"],
+    org: userOptions.org ?? process.env['SENTRY_ORG'],
     project:
       userOptions.project ??
-      (process.env["SENTRY_PROJECT"]?.includes(",")
-        ? process.env["SENTRY_PROJECT"].split(",").map((p) => p.trim())
-        : process.env["SENTRY_PROJECT"]),
-    authToken: userOptions.authToken ?? process.env["SENTRY_AUTH_TOKEN"],
-    url: userOptions.url ?? process.env["SENTRY_URL"] ?? SENTRY_SAAS_URL,
+      (process.env['SENTRY_PROJECT']?.includes(',')
+        ? process.env['SENTRY_PROJECT'].split(',').map(p => p.trim())
+        : process.env['SENTRY_PROJECT']),
+    authToken: userOptions.authToken ?? process.env['SENTRY_AUTH_TOKEN'],
+    url: userOptions.url ?? process.env['SENTRY_URL'] ?? SENTRY_SAAS_URL,
     headers: userOptions.headers,
     debug: userOptions.debug ?? false,
     silent: userOptions.silent ?? false,
@@ -107,11 +108,11 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
     sourcemaps: userOptions.sourcemaps,
     release: {
       ...userOptions.release,
-      name: userOptions.release?.name ?? process.env["SENTRY_RELEASE"] ?? determineReleaseName(),
+      name: userOptions.release?.name ?? process.env['SENTRY_RELEASE'] ?? determineReleaseName(),
       inject: userOptions.release?.inject ?? true,
       create: userOptions.release?.create ?? true,
       finalize: userOptions.release?.finalize ?? true,
-      vcsRemote: userOptions.release?.vcsRemote ?? process.env["SENTRY_VSC_REMOTE"] ?? "origin",
+      vcsRemote: userOptions.release?.vcsRemote ?? process.env['SENTRY_VSC_REMOTE'] ?? 'origin',
       setCommits: userOptions.release?.setCommits as
         | (SetCommitsOptions & { shouldNotThrowOnFailure?: boolean })
         | false
@@ -132,20 +133,20 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
 
   if (options.release.setCommits === undefined) {
     if (
-      process.env["VERCEL"] &&
-      process.env["VERCEL_GIT_COMMIT_SHA"] &&
-      process.env["VERCEL_GIT_REPO_SLUG"] &&
-      process.env["VERCEL_GIT_REPO_OWNER"] &&
+      process.env['VERCEL'] &&
+      process.env['VERCEL_GIT_COMMIT_SHA'] &&
+      process.env['VERCEL_GIT_REPO_SLUG'] &&
+      process.env['VERCEL_GIT_REPO_OWNER'] &&
       // We only want to set commits for the production env because Sentry becomes extremely noisy (eg on slack) for
       // preview environments because the previous commit is always the "stem" commit of the preview/PR causing Sentry
       // to notify you for other people creating PRs.
-      process.env["VERCEL_TARGET_ENV"] === "production"
+      process.env['VERCEL_TARGET_ENV'] === 'production'
     ) {
       options.release.setCommits = {
         shouldNotThrowOnFailure: true,
-        commit: process.env["VERCEL_GIT_COMMIT_SHA"],
-        previousCommit: process.env["VERCEL_GIT_PREVIOUS_SHA"],
-        repo: `${process.env["VERCEL_GIT_REPO_OWNER"]}/${process.env["VERCEL_GIT_REPO_SLUG"]}`,
+        commit: process.env['VERCEL_GIT_COMMIT_SHA'],
+        previousCommit: process.env['VERCEL_GIT_PREVIOUS_SHA'],
+        repo: `${process.env['VERCEL_GIT_REPO_OWNER']}/${process.env['VERCEL_GIT_REPO_SLUG']}`,
         ignoreEmpty: true,
         ignoreMissing: true,
       };
@@ -159,14 +160,10 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
     }
   }
 
-  if (
-    options.release.deploy === undefined &&
-    process.env["VERCEL"] &&
-    process.env["VERCEL_TARGET_ENV"]
-  ) {
+  if (options.release.deploy === undefined && process.env['VERCEL'] && process.env['VERCEL_TARGET_ENV']) {
     options.release.deploy = {
-      env: `vercel-${process.env["VERCEL_TARGET_ENV"]}`,
-      url: process.env["VERCEL_URL"] ? `https://${process.env["VERCEL_URL"]}` : undefined,
+      env: `vercel-${process.env['VERCEL_TARGET_ENV']}`,
+      url: process.env['VERCEL_URL'] ? `https://${process.env['VERCEL_URL']}` : undefined,
     };
   }
 
@@ -190,28 +187,24 @@ export function validateOptions(options: NormalizedOptions, logger: Logger): boo
   if (setCommits) {
     if (!setCommits.auto && !(setCommits.repo && setCommits.commit)) {
       logger.error(
-        "The `setCommits` option was specified but is missing required properties.",
-        "Please set either `auto` or both, `repo` and `commit`."
+        'The `setCommits` option was specified but is missing required properties.',
+        'Please set either `auto` or both, `repo` and `commit`.',
       );
       return false;
     }
     if (setCommits.auto && setCommits.repo && setCommits) {
       logger.warn(
-        "The `setCommits` options includes `auto` but also `repo` and `commit`.",
-        "Ignoring `repo` and `commit`.",
-        "Please only set either `auto` or both, `repo` and `commit`."
+        'The `setCommits` options includes `auto` but also `repo` and `commit`.',
+        'Ignoring `repo` and `commit`.',
+        'Please only set either `auto` or both, `repo` and `commit`.',
       );
     }
   }
 
-  if (
-    options.release?.deploy &&
-    typeof options.release.deploy === "object" &&
-    !options.release.deploy.env
-  ) {
+  if (options.release?.deploy && typeof options.release.deploy === 'object' && !options.release.deploy.env) {
     logger.error(
-      "The `deploy` option was specified but is missing the required `env` property.",
-      "Please set the `env` property."
+      'The `deploy` option was specified but is missing the required `env` property.',
+      'Please set the `env` property.',
     );
     return false;
   }
@@ -219,18 +212,15 @@ export function validateOptions(options: NormalizedOptions, logger: Logger): boo
   if (options.project && Array.isArray(options.project)) {
     if (options.project.length === 0) {
       logger.error(
-        "The `project` option was specified as an array but is empty.",
-        "Please provide at least one project slug."
+        'The `project` option was specified as an array but is empty.',
+        'Please provide at least one project slug.',
       );
       return false;
     }
     // Check each project is a non-empty string
-    const invalidProjects = options.project.filter((p) => typeof p !== "string" || p.trim() === "");
+    const invalidProjects = options.project.filter(p => typeof p !== 'string' || p.trim() === '');
     if (invalidProjects.length > 0) {
-      logger.error(
-        "The `project` option contains invalid project slugs.",
-        "All projects must be non-empty strings."
-      );
+      logger.error('The `project` option contains invalid project slugs.', 'All projects must be non-empty strings.');
       return false;
     }
   }

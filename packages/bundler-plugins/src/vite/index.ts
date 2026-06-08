@@ -1,10 +1,10 @@
-import type { SentryRollupPluginOptions } from "../rollup";
-import { _rollupPluginInternal } from "../rollup";
-import { createRequire } from "node:module";
+import type { SentryRollupPluginOptions } from '../rollup';
+import { _rollupPluginInternal } from '../rollup';
+import { createRequire } from 'node:module';
 
 interface SentryVitePlugin {
   name: string;
-  enforce: "pre";
+  enforce: 'pre';
 }
 
 function getViteMajorVersion(): string | undefined {
@@ -12,8 +12,8 @@ function getViteMajorVersion(): string | undefined {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore - Rollup already transpiles this for us
     const req = createRequire(import.meta.url);
-    const vite = req("vite") as { version?: string };
-    return vite.version?.split(".")[0];
+    const vite = req('vite') as { version?: string };
+    return vite.version?.split('.')[0];
   } catch {
     // do nothing, we'll just not report a version
   }
@@ -24,11 +24,11 @@ function getViteMajorVersion(): string | undefined {
 export const sentryVitePlugin = (options?: SentryRollupPluginOptions): SentryVitePlugin[] => {
   return [
     {
-      enforce: "pre",
-      ..._rollupPluginInternal(options, "vite", getViteMajorVersion()),
+      enforce: 'pre',
+      ..._rollupPluginInternal(options, 'vite', getViteMajorVersion()),
     },
   ];
 };
 
-export type { Options as SentryVitePluginOptions } from "../core";
-export { sentryCliBinaryExists } from "../core";
+export type { Options as SentryVitePluginOptions } from '../core';
+export { sentryCliBinaryExists } from '../core';
