@@ -11,6 +11,7 @@ import {
   setAsyncContextStrategy,
   setCurrentClient,
   spanToJSON,
+  timestampInSeconds,
   withScope,
 } from '../../../src';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
@@ -2371,6 +2372,48 @@ describe('span hooks', () => {
     expect(startedSpans).toHaveLength(1);
     expect(endedSpans).toHaveLength(1);
     expect(startedSpans[0]).toBeInstanceOf(SentrySpan);
+  });
+
+  it('only emits spanStart and spanEnd once for spans that end immediately', () => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const startedSpans: string[] = [];
+    const endedSpans: string[] = [];
+
+    client.on('spanStart', span => {
+      startedSpans.push(spanToJSON(span).description || '');
+    });
+
+    client.on('spanEnd', span => {
+      endedSpans.push(spanToJSON(span).description || '');
+    });
+
+    startSpan({ name: 'root' }, () => {
+      // @ts-expect-error - intentionally setting endTimestamp here despite this prop not being
+      // part of the public API. It demonstratest that this currently works.
+      startSpan({ name: 'child1', endTimestamp: timestampInSeconds() + 1 }, () => {
+        // nested child
+      });
+
+      // @ts-expect-error - intentionally setting endTimestamp here despite this prop not being
+      // part of the public API. It demonstratest that this currently works.
+      const child2 = startInactiveSpan({ name: 'child2', endTimestamp: timestampInSeconds() + 1 });
+      // repeated .end() calls don't do anything
+      child2.end();
+      child2.end();
+    });
+
+    // Root span is always a SentrySpan (even unsampled), so it emits spanStart/spanEnd.
+    // Child spans with tracesSampleRate: 0 are SentryNonRecordingSpan and should NOT emit.
+    expect(startedSpans).toEqual(['root', 'child1', 'child2']);
+    expect(endedSpans).toEqual(['child1', 'child2', 'root']);
   });
 });
 
