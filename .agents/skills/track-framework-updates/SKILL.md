@@ -21,7 +21,7 @@ This deliberately has no persistent state — it looks only at a rolling window 
 
 ## Utility scripts
 
-Scripts live under `.claude/skills/track-framework-updates/scripts/` and are stdlib + `gh` only (no new dependencies).
+Scripts live under `.agents/skills/track-framework-updates/scripts/` and are stdlib + `gh` only.
 
 - **collect_updates.py** — orchestrator. Runs all three fetchers for one date window, merges per framework, drops frameworks with no activity, and writes `framework-updates-raw.json`. This is the only script you normally need to run.
 - **fetch_releases.py** — GitHub releases published in the window (`gh api` REST).
@@ -37,7 +37,7 @@ The framework → source mapping lives in **`sources.json`** (the link list). To
 Run the orchestrator from the repo root:
 
 ```bash
-python3 .claude/skills/track-framework-updates/scripts/collect_updates.py --since-days 7
+python3 .agents/skills/track-framework-updates/scripts/collect_updates.py --since-days 7
 ```
 
 This writes `framework-updates-raw.json`. Use a larger `--since-days` only for a manual catch-up run. If the command needs network access it isn't getting (sandbox), re-run with broader permissions rather than working around it.
@@ -48,19 +48,10 @@ Read `framework-updates-raw.json`. For each framework with activity:
 
 #### Releases
 
-Judge relevance to Sentry instrumentation.
+Classify each individual change within a release as `high`, `medium`, or `low` relevance by following the rules in **`assets/relevance-guidelines.md`**.
+Read that file before classifying. A single release will typically produce items across multiple relevance levels — group them by level in the output.
 
-- **High-signal**
-  - routing/navigation changes
-  - lifecycle/hook changes
-  - SSR/streaming/server-handler changes
-  - error-handling or error-boundary changes
-  - new public APIs we might want to instrument
-  - anything that could break existing instrumentation.
-- **Low-signal**
-  - docs, typos, internal refactors, dependency bumps.
-
-- Don't pad — a release with no SDK impact gets one short "no SDK impact expected" note.
+Don't pad (no filler words) — a release with no SDK impact gets one short "no SDK impact expected" note.
 
 #### Discussions / RFCs / RSS items
 
@@ -87,7 +78,17 @@ Produce both, so this run is useful now and ready for the future Action/Slack st
          "name": "React",
          "sentryPackages": ["@sentry/react"],
          "category": "client",
-         "releases": [{ "tag": "...", "url": "...", "relevance": "..." }],
+         "releases": [
+           {
+             "tag": "...",
+             "url": "...",
+             "changes": {
+               "high": ["short description of change", "..."],
+               "medium": ["short description of change", "..."],
+               "low": ["short description of change", "..."]
+             }
+           }
+         ],
          "links": [{ "title": "...", "url": "...", "type": "discussion|rfc|blog" }]
        }
      ],
