@@ -19,6 +19,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentryNonRecordingSpan,
+  getCapturedScopesOnSpan,
   getSpanStatusFromHttpCode,
   spanToJSON,
   SPAN_STATUS_ERROR,
@@ -28,6 +29,7 @@ import {
   withScope,
 } from '@sentry/core';
 import type { Span, SpanAttributes, SpanLink, SpanStatus } from '@sentry/core';
+import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY } from './constants';
 import { inferSpanData } from './utils/parseSpanDescription';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { setIsSetup } from './utils/setupCheck';
@@ -125,16 +127,14 @@ class SentryTracer implements Tracer {
       return this._createNonRecordingSpan(parentSpan);
     }
 
-    return context.with(parentContext, () => {
-      const span = this._startSentrySpan(name, options, parentSpan, ctx !== undefined);
+    const span = this._startSentrySpan(name, options, parentSpan, ctx !== undefined);
 
-      applyOtelSpanKind(span, options.kind);
-      if (options.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === undefined) {
-        addNonEnumerableProperty(span as SentrySpanWithOtelSourceInference, '_sentryOtelInferSource', true);
-      }
-      applyOtelSpanData(span);
-      return span as OpenTelemetrySpan;
-    });
+    applyOtelSpanKind(span, options.kind);
+    if (options.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === undefined) {
+      addNonEnumerableProperty(span as SentrySpanWithOtelSourceInference, '_sentryOtelInferSource', true);
+    }
+    applyOtelSpanData(span);
+    return span as OpenTelemetrySpan;
   }
 
   /** @inheritdoc */
@@ -163,7 +163,12 @@ class SentryTracer implements Tracer {
     ) as F;
 
     const span = this.startSpan(name, options, ctx);
-    const ctxWithSpan = trace.setSpan(ctx, span);
+    let ctxWithSpan = trace.setSpan(ctx, span);
+
+    const capturedIsolationScope = getCapturedScopesOnSpan(span as unknown as Span).isolationScope;
+    if (capturedIsolationScope) {
+      ctxWithSpan = ctxWithSpan.setValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY, capturedIsolationScope);
+    }
 
     return context.with(ctxWithSpan, () => {
       _INTERNAL_setSpanForScope(getCurrentScope(), span as unknown as Span);
