@@ -16,7 +16,7 @@ import {
   uuid4,
 } from '@sentry/core';
 import { makeNodeTransport } from '@sentry/node';
-import { captureStackTrace, getThreadsLastSeen } from '@sentry-internal/node-native-stacktrace';
+import { captureStackTrace, getThreadsLastSeen } from '@sentry/node-native-stacktrace';
 import type { ThreadState, WorkerStartData } from './common';
 import { POLL_RATIO } from './common';
 

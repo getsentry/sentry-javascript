@@ -2,7 +2,7 @@ import type { ProfileChunk, ProfilingIntegration, Transport } from '@sentry/core
 import { createEnvelope, debug, getMainCarrier, GLOBAL_OBJ } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
-import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
+import { CpuProfilerBindings } from '@sentry/node-cpu-profiler';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _nodeProfilingIntegration } from '../src/integration';
 import { NODE_VERSION } from '../src/nodeVersion';

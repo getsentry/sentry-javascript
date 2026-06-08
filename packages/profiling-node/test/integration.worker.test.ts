@@ -1,6 +1,6 @@
 import type { ProfilingIntegration, Transport } from '@sentry/core';
 import * as Sentry from '@sentry/node';
-import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
+import { CpuProfilerBindings } from '@sentry/node-cpu-profiler';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { _nodeProfilingIntegration } from '../src/integration';
 
