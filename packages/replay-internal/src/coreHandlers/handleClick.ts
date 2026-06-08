@@ -1,6 +1,6 @@
 import type { Breadcrumb } from '@sentry/core';
 import { setTimeout } from '@sentry/browser-utils';
-import { IncrementalSource, MouseInteractions, record } from '@sentry-internal/rrweb';
+import { IncrementalSource, MouseInteractions, record } from '@sentry/rrweb';
 import { WINDOW } from '../constants';
 import type {
   RecordingEvent,

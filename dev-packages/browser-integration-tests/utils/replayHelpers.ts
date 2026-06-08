@@ -10,8 +10,8 @@ import type {
 } from '@sentry/replay/build/npm/types/types';
 /* eslint-disable max-lines */
 import type { ReplayCanvasIntegrationOptions } from '@sentry/replay-canvas';
-import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
-import { EventType } from '@sentry-internal/rrweb';
+import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry/rrweb';
+import { EventType } from '@sentry/rrweb';
 import { decompressSync, strFromU8 } from 'fflate';
 import { envelopeRequestParser } from './helpers';
 
