@@ -1,0 +1,252 @@
+{
+  "_comment": "Link list for the track-framework-updates skill. One entry per upstream framework/library the JS SDK supports. `sentryPackages` ties findings back to the affected @sentry/* package. The fetcher scripts read `github`, `rss`. `changelog` is reference-only (shown in the digest, not fetched).",
+  "frameworks": [
+    {
+      "name": "Angular",
+      "sentryPackages": ["@sentry/angular"],
+      "category": "client",
+      "github": {
+        "repo": "angular/angular",
+        "discussions": true,
+        "rfcsRepo": null,
+        "discussionCategories": ["RFCs"]
+      },
+      "rss": ["https://blog.angular.dev/feed"],
+      "changelog": "https://github.com/angular/angular/blob/main/CHANGELOG.md"
+    },
+    {
+      "name": "React",
+      "sentryPackages": ["@sentry/react"],
+      "category": "client",
+      "github": {
+        "repo": "facebook/react",
+        "discussions": true,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": ["https://react.dev/rss.xml"],
+      "changelog": "https://github.com/facebook/react/blob/HEAD/CHANGELOG.md"
+    },
+    {
+      "name": "Vue",
+      "sentryPackages": ["@sentry/vue"],
+      "category": "client",
+      "github": {
+        "repo": "vuejs/core",
+        "discussions": true,
+        "rfcsRepo": "vuejs/rfcs",
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/vuejs/core/blob/main/CHANGELOG.md"
+    },
+    {
+      "name": "Svelte",
+      "sentryPackages": ["@sentry/svelte"],
+      "category": "client",
+      "github": {
+        "repo": "sveltejs/svelte",
+        "discussions": true,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": ["https://svelte.dev/blog/rss.xml"],
+      "changelog": "https://github.com/sveltejs/svelte/blob/main/packages/svelte/CHANGELOG.md"
+    },
+    {
+      "name": "Solid",
+      "sentryPackages": ["@sentry/solid"],
+      "category": "client",
+      "github": {
+        "repo": "solidjs/solid",
+        "discussions": false,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/solidjs/solid/blob/main/CHANGELOG.md"
+    },
+    {
+      "name": "Ember",
+      "sentryPackages": ["@sentry/ember"],
+      "category": "client",
+      "github": {
+        "repo": "emberjs/ember.js",
+        "discussions": false,
+        "rfcsRepo": "emberjs/rfcs",
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/emberjs/ember.js/blob/main/CHANGELOG.md"
+    },
+    {
+      "name": "Hono",
+      "sentryPackages": ["@sentry/hono"],
+      "category": "server",
+      "github": {
+        "repo": "honojs/hono",
+        "discussions": true,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/honojs/hono/releases"
+    },
+    {
+      "name": "Nitro",
+      "sentryPackages": ["@sentry/nitro"],
+      "category": "server",
+      "github": {
+        "repo": "nitrojs/nitro",
+        "discussions": false,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/nitrojs/nitro/blob/v2/CHANGELOG.md"
+    },
+    {
+      "name": "NestJS",
+      "sentryPackages": ["@sentry/nestjs"],
+      "category": "server",
+      "github": {
+        "repo": "nestjs/nest",
+        "discussions": false,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/nestjs/nest/releases"
+    },
+    {
+      "name": "Elysia",
+      "sentryPackages": ["@sentry/elysia"],
+      "category": "server",
+      "github": {
+        "repo": "elysiajs/elysia",
+        "discussions": false,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/elysiajs/elysia/blob/main/CHANGELOG.md"
+    },
+    {
+      "name": "Effect",
+      "sentryPackages": ["@sentry/effect"],
+      "category": "server",
+      "github": {
+        "repo": "Effect-TS/effect",
+        "discussions": true,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/Effect-TS/effect/releases"
+    },
+    {
+      "name": "Next.js",
+      "sentryPackages": ["@sentry/nextjs"],
+      "category": "meta-framework",
+      "github": {
+        "repo": "vercel/next.js",
+        "discussions": true,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/vercel/next.js/releases"
+    },
+    {
+      "name": "Nuxt",
+      "sentryPackages": ["@sentry/nuxt"],
+      "category": "meta-framework",
+      "github": {
+        "repo": "nuxt/nuxt",
+        "discussions": true,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/nuxt/nuxt/releases"
+    },
+    {
+      "name": "SvelteKit",
+      "sentryPackages": ["@sentry/sveltekit"],
+      "category": "meta-framework",
+      "github": {
+        "repo": "sveltejs/kit",
+        "discussions": true,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/sveltejs/kit/blob/main/packages/kit/CHANGELOG.md"
+    },
+    {
+      "name": "React Router / Remix",
+      "sentryPackages": ["@sentry/react-router", "@sentry/remix"],
+      "category": "meta-framework",
+      "github": {
+        "repo": "remix-run/react-router",
+        "discussions": true,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/remix-run/react-router/blob/main/CHANGELOG.md"
+    },
+    {
+      "name": "Astro",
+      "sentryPackages": ["@sentry/astro"],
+      "category": "meta-framework",
+      "github": {
+        "repo": "withastro/astro",
+        "discussions": true,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": ["https://astro.build/rss.xml"],
+      "changelog": "https://github.com/withastro/astro/releases"
+    },
+    {
+      "name": "Gatsby",
+      "sentryPackages": ["@sentry/gatsby"],
+      "category": "meta-framework",
+      "github": {
+        "repo": "gatsbyjs/gatsby",
+        "discussions": false,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/gatsbyjs/gatsby/releases"
+    },
+    {
+      "name": "TanStack Start",
+      "sentryPackages": ["@sentry/tanstackstart", "@sentry/tanstackstart-react"],
+      "category": "meta-framework",
+      "github": {
+        "repo": "TanStack/router",
+        "discussions": true,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/TanStack/router/releases"
+    },
+    {
+      "name": "SolidStart",
+      "sentryPackages": ["@sentry/solidstart"],
+      "category": "meta-framework",
+      "github": {
+        "repo": "solidjs/solid-start",
+        "discussions": false,
+        "rfcsRepo": null,
+        "discussionCategories": []
+      },
+      "rss": [],
+      "changelog": "https://github.com/solidjs/solid-start/releases"
+    }
+  ]
+}
