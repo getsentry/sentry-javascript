@@ -37,13 +37,6 @@ Work in this release was contributed by @zhongrenfei1-hub. Thank you for your co
   });
   ```
 
-<details>
-  <summary> <strong>Internal Changes</strong> </summary>
-
-- ref(core): Add `react-native` export condition to `@sentry/core`, `@sentry/browser`, and `@sentry/react` ([#21362](https://github.com/getsentry/sentry-javascript/pull/21362))
-
-</details>
-
 ## 10.56.0
 
 ### Important Changes
