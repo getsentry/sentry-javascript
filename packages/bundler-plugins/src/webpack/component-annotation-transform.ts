@@ -6,14 +6,11 @@ export default async function transform(
     async: () => (err: Error | null, content?: string, sourceMap?: unknown) => void;
     resourcePath: string;
     query: {
-      transform?: (
-        code: string,
-        id: string
-      ) => Promise<{ code: string; map?: unknown } | null | undefined | string>;
+      transform?: (code: string, id: string) => Promise<{ code: string; map?: unknown } | null | undefined | string>;
     };
   },
   source: string,
-  map: unknown
+  map: unknown,
 ): Promise<void> {
   const callback = this.async();
   const { transform: transformFn } = this.query;
@@ -28,7 +25,7 @@ export default async function transform(
 
     if (result == null) {
       callback(null, source, map);
-    } else if (typeof result === "string") {
+    } else if (typeof result === 'string') {
       callback(null, result, map);
     } else {
       callback(null, result.code, result.map || map);

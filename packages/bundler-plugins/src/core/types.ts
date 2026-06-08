@@ -110,7 +110,7 @@ export interface Options {
      *
      * @default false
      */
-    disable?: boolean | "disable-upload";
+    disable?: boolean | 'disable-upload';
 
     /**
      * A glob or an array of globs that specify the build artifacts and source maps that will be uploaded to Sentry.
@@ -434,7 +434,7 @@ export type RewriteSourcesHook = (source: string, map: any, context?: { mapDir: 
 
 export type ResolveSourceMapHook = (
   artifactPath: string,
-  sourceMappingUrl: string | undefined
+  sourceMappingUrl: string | undefined,
 ) => string | undefined | Promise<string | undefined>;
 
 export interface ModuleMetadata {

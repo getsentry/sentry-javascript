@@ -1,4 +1,4 @@
-import type { Options } from "../core/index";
+import type { Options } from '../core/index';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -8,11 +8,11 @@ import {
   CodeInjection,
   getDebugIdSnippet,
   createDebugIdUploadFunction,
-} from "../core/index";
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-import { createRequire } from "node:module";
-import { randomUUID } from "node:crypto";
+} from '../core/index';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+import { randomUUID } from 'node:crypto';
 
 const _req = createRequire(import.meta.url);
 
@@ -23,7 +23,7 @@ const _req = createRequire(import.meta.url);
 // always finds the correct installed file regardless of chunk placement.
 let COMPONENT_ANNOTATION_LOADER: string;
 try {
-  COMPONENT_ANNOTATION_LOADER = _req.resolve("@sentry/bundler-plugins/webpack-loader");
+  COMPONENT_ANNOTATION_LOADER = _req.resolve('@sentry/bundler-plugins/webpack-loader');
 } catch {
   // Fallback for non-packaged environments (e.g., monorepo source runs without dist)
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -31,9 +31,9 @@ try {
   const dirname = path.dirname(fileURLToPath(import.meta.url));
   COMPONENT_ANNOTATION_LOADER = path.resolve(
     dirname,
-    typeof __dirname !== "undefined"
-      ? "component-annotation-transform.js" // CJS
-      : "component-annotation-transform.mjs" // ESM
+    typeof __dirname !== 'undefined'
+      ? 'component-annotation-transform.js' // CJS
+      : 'component-annotation-transform.mjs', // ESM
   );
 }
 
@@ -75,10 +75,7 @@ type WebpackCompilationContext = {
       NormalModule?: {
         getCompilationHooks: (compilation: WebpackCompilationContext) => {
           loader: {
-            tap: (
-              name: string,
-              callback: (loaderContext: WebpackLoaderContext, module: WebpackModule) => void
-            ) => void;
+            tap: (name: string, callback: (loaderContext: WebpackLoaderContext, module: WebpackModule) => void) => void;
           };
         };
       };
@@ -86,10 +83,7 @@ type WebpackCompilationContext = {
   };
   hooks: {
     normalModuleLoader?: {
-      tap: (
-        name: string,
-        callback: (loaderContext: WebpackLoaderContext, module: WebpackModule) => void
-      ) => void;
+      tap: (name: string, callback: (loaderContext: WebpackLoaderContext, module: WebpackModule) => void) => void;
     };
   };
 };
@@ -107,10 +101,7 @@ type WebpackCompiler = {
       tap: (name: string, callback: (compilation: WebpackCompilationContext) => void) => void;
     };
     afterEmit: {
-      tapAsync: (
-        name: string,
-        callback: (compilation: WebpackCompilation, cb: () => void) => void
-      ) => void;
+      tapAsync: (name: string, callback: (compilation: WebpackCompilation, cb: () => void) => void) => void;
     };
     done: {
       tap: (name: string, callback: () => void) => void;
@@ -140,9 +131,9 @@ function getWebpackMajorVersion(): string | undefined {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore - Rollup already transpiles this for us
     const req = createRequire(import.meta.url);
-    const webpack = req("webpack") as { version?: string; default?: { version?: string } };
+    const webpack = req('webpack') as { version?: string; default?: { version?: string } };
     const version = webpack?.version ?? webpack?.default?.version;
-    const webpackMajorVersion = version?.split(".")[0]; // "4" or "5"
+    const webpackMajorVersion = version?.split('.')[0]; // "4" or "5"
     return webpackMajorVersion;
   } catch {
     return undefined;
@@ -166,8 +157,8 @@ export function sentryWebpackPluginFactory({
 } = {}) {
   return function sentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {}) {
     const sentryBuildPluginManager = createSentryBuildPluginManager(userOptions, {
-      loggerPrefix: userOptions._metaOptions?.loggerPrefixOverride ?? "[sentry-webpack-plugin]",
-      buildTool: "webpack",
+      loggerPrefix: userOptions._metaOptions?.loggerPrefixOverride ?? '[sentry-webpack-plugin]',
+      buildTool: 'webpack',
       buildToolMajorVersion: getWebpackMajorVersion(),
     });
 
@@ -188,28 +179,24 @@ export function sentryWebpackPluginFactory({
     }
 
     if (process.cwd().match(/\\node_modules\\|\/node_modules\//)) {
-      logger.warn(
-        "Running Sentry plugin from within a `node_modules` folder. Some features may not work."
-      );
+      logger.warn('Running Sentry plugin from within a `node_modules` folder. Some features may not work.');
     }
 
     const sourcemapsEnabled = options.sourcemaps?.disable !== true;
     const staticInjectionCode = new CodeInjection();
 
     if (!options.release.inject) {
-      logger.debug(
-        "Release injection disabled via `release.inject` option. Will not inject release."
-      );
+      logger.debug('Release injection disabled via `release.inject` option. Will not inject release.');
     } else if (!options.release.name) {
       logger.debug(
-        "No release name provided. Will not inject release. Please set the `release.name` option to identify your release."
+        'No release name provided. Will not inject release. Please set the `release.name` option to identify your release.',
       );
     } else {
       staticInjectionCode.append(
         generateReleaseInjectorCode({
           release: options.release.name,
           injectBuildInformation: options._experiments.injectBuildInformation || false,
-        })
+        }),
       );
     }
 
@@ -220,7 +207,7 @@ export function sentryWebpackPluginFactory({
     const transformAnnotations = options.reactComponentAnnotation?.enabled
       ? createComponentNameAnnotateHooks(
           options.reactComponentAnnotation?.ignoredComponents || [],
-          !!options.reactComponentAnnotation?._experimentalInjectIntoHtml
+          !!options.reactComponentAnnotation?._experimentalInjectIntoHtml,
         )
       : undefined;
 
@@ -240,7 +227,7 @@ export function sentryWebpackPluginFactory({
         if (!staticInjectionCode.isEmpty() || sourcemapsEnabled) {
           if (!BannerPlugin) {
             logger.warn(
-              "BannerPlugin is not available. Skipping code injection. This usually means webpack is not properly configured."
+              'BannerPlugin is not available. Skipping code injection. This usually means webpack is not properly configured.',
             );
           } else {
             compiler.options.plugins = compiler.options.plugins || [];
@@ -257,7 +244,7 @@ export function sentryWebpackPluginFactory({
                   }
                   return codeToInject.code();
                 },
-              })
+              }),
             );
           }
         }
@@ -275,7 +262,7 @@ export function sentryWebpackPluginFactory({
           compiler.options.module.rules.unshift({
             test: /\.[jt]sx$/,
             exclude: /node_modules/,
-            enforce: "pre",
+            enforce: 'pre',
             use: [
               {
                 loader: COMPONENT_ANNOTATION_LOADER,
@@ -288,7 +275,7 @@ export function sentryWebpackPluginFactory({
         }
 
         compiler.hooks.afterEmit.tapAsync(
-          "sentry-webpack-plugin",
+          'sentry-webpack-plugin',
           (compilation: WebpackCompilation, callback: (err?: Error) => void) => {
             const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
             const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
@@ -296,11 +283,9 @@ export function sentryWebpackPluginFactory({
             const run = async (): Promise<void> => {
               try {
                 await sentryBuildPluginManager.createRelease();
-                if (sourcemapsEnabled && options.sourcemaps?.disable !== "disable-upload") {
+                if (sourcemapsEnabled && options.sourcemaps?.disable !== 'disable-upload') {
                   const outputPath = compilation.outputOptions.path ?? path.resolve();
-                  const buildArtifacts = Object.keys(compilation.assets).map((asset) =>
-                    path.join(outputPath, asset)
-                  );
+                  const buildArtifacts = Object.keys(compilation.assets).map(asset => path.join(outputPath, asset));
                   await upload(buildArtifacts);
                 }
               } finally {
@@ -311,18 +296,15 @@ export function sentryWebpackPluginFactory({
 
             run().then(
               () => callback(),
-              (err: Error) => callback(err)
+              (err: Error) => callback(err),
             );
-          }
+          },
         );
 
-        if (
-          userOptions._experiments?.forceExitOnBuildCompletion &&
-          compiler.options.mode === "production"
-        ) {
-          compiler.hooks.done.tap("sentry-webpack-plugin", () => {
+        if (userOptions._experiments?.forceExitOnBuildCompletion && compiler.options.mode === 'production') {
+          compiler.hooks.done.tap('sentry-webpack-plugin', () => {
             setTimeout(() => {
-              logger.debug("Exiting process after debug file upload");
+              logger.debug('Exiting process after debug file upload');
               process.exit(0);
             });
           });
@@ -333,7 +315,7 @@ export function sentryWebpackPluginFactory({
 }
 
 export type SentryWebpackPluginOptions = Options & {
-  _experiments?: Options["_experiments"] & {
+  _experiments?: Options['_experiments'] & {
     /**
      * If enabled, the webpack plugin will exit the build process after the build completes.
      * Use this with caution, as it will terminate the process.

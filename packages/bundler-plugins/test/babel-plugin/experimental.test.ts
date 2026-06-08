@@ -23,9 +23,9 @@
  *
  */
 
-import { describe, it, expect } from "vitest";
-import { transform } from "@babel/core";
-import { experimentalComponentNameAnnotatePlugin as plugin } from "../../src/babel-plugin/index";
+import { describe, it, expect } from 'vitest';
+import { transform } from '@babel/core';
+import { experimentalComponentNameAnnotatePlugin as plugin } from '../../src/babel-plugin/index';
 
 const BananasPizzaAppStandardInput = `import React, { Component } from 'react';
 import { StyleSheet, Text, TextInput, View, Image, UIManager } from 'react-native';
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   }
 });`;
 
-it("unknown-element snapshot matches", () => {
+it('unknown-element snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -94,11 +94,11 @@ class componentName extends Component {
 export default componentName;
 `,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -113,7 +113,7 @@ export default componentName;
   `);
 });
 
-it("component-fragment snapshot matches", () => {
+it('component-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component, Fragment } from 'react';
 
@@ -126,11 +126,11 @@ class componentName extends Component {
 export default componentName;
 `,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component, Fragment } from 'react';
@@ -143,7 +143,7 @@ export default componentName;
   `);
 });
 
-it("component-react-fragment snapshot matches", () => {
+it('component-react-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -156,11 +156,11 @@ class componentName extends Component {
 export default componentName;
 `,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -173,7 +173,7 @@ export default componentName;
   `);
 });
 
-it("component-shorthand-fragment snapshot matches", () => {
+it('component-shorthand-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -186,11 +186,11 @@ class componentName extends Component {
 export default componentName;
 `,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -203,7 +203,7 @@ export default componentName;
   `);
 });
 
-it("component-annotate-shorthand-fragment snapshot matches", () => {
+it('component-annotate-shorthand-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -218,11 +218,11 @@ class componentName extends Component {
 export default componentName;
 `,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -237,7 +237,7 @@ export default componentName;
   `);
 });
 
-it("arrow-noreturn-fragment snapshot matches", () => {
+it('arrow-noreturn-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component, Fragment } from 'react';
 
@@ -250,11 +250,11 @@ const componentName = () => (
 export default componentName;
 `,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component, Fragment } from 'react';
@@ -265,7 +265,7 @@ export default componentName;
   `);
 });
 
-it("arrow-noreturn-shorthand-fragment snapshot matches", () => {
+it('arrow-noreturn-shorthand-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -278,11 +278,11 @@ const componentName = () => (
 export default componentName;
 `,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -293,7 +293,7 @@ export default componentName;
   `);
 });
 
-it("arrow-noreturn-react-fragment snapshot matches", () => {
+it('arrow-noreturn-react-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -306,9 +306,9 @@ const componentName = () => (
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -319,7 +319,7 @@ export default componentName;
   `);
 });
 
-it("arrow-noreturn-annotate-trivial-fragment snapshot matches", () => {
+it('arrow-noreturn-annotate-trivial-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component, Fragment } from 'react';
 
@@ -330,11 +330,11 @@ const componentName = () => (
 export default componentName;
 `,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component, Fragment } from 'react';
@@ -343,7 +343,7 @@ export default componentName;
   `);
 });
 
-it("arrow snapshot matches", () => {
+it('arrow snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -356,9 +356,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -371,7 +371,7 @@ export default componentName;
   `);
 });
 
-it("option-attribute snapshot matches", () => {
+it('option-attribute snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -384,9 +384,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -399,7 +399,7 @@ export default componentName;
   `);
 });
 
-it("component snapshot matches", () => {
+it('component snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -414,9 +414,9 @@ class componentName extends Component {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -431,7 +431,7 @@ export default componentName;
   `);
 });
 
-it("rawfunction-fragment snapshot matches", () => {
+it('rawfunction-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component, Fragment } from 'react';
 
@@ -448,9 +448,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component, Fragment } from 'react';
@@ -464,7 +464,7 @@ export default componentName;
   `);
 });
 
-it("rawfunction-react-fragment snapshot matches", () => {
+it('rawfunction-react-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -481,9 +481,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -497,7 +497,7 @@ export default componentName;
   `);
 });
 
-it("rawfunction-shorthand-fragment snapshot matches", () => {
+it('rawfunction-shorthand-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -514,9 +514,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -530,7 +530,7 @@ export default componentName;
   `);
 });
 
-it("arrow-noreturn snapshot matches", () => {
+it('arrow-noreturn snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -543,9 +543,9 @@ const componentName = () => (
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -556,7 +556,7 @@ export default componentName;
   `);
 });
 
-it("tags snapshot matches", () => {
+it('tags snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 import { StyleSheet, Text, TextInput, View, Image, UIManager } from 'react-native';
@@ -613,11 +613,11 @@ const styles = StyleSheet.create({
 });
 `,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [[plugin, { native: true }]],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
   `);
 });
 
-it("option-format snapshot matches", () => {
+it('option-format snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -709,9 +709,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -724,7 +724,7 @@ export default componentName;
   `);
 });
 
-it("pureComponent-fragment snapshot matches", () => {
+it('pureComponent-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Fragment } from 'react';
 
@@ -739,9 +739,9 @@ class PureComponentName extends React.PureComponent {
 export default PureComponentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Fragment } from 'react';
@@ -756,7 +756,7 @@ export default PureComponentName;
   `);
 });
 
-it("pureComponent-shorthand-fragment snapshot matches", () => {
+it('pureComponent-shorthand-fragment snapshot matches', () => {
   const result = transform(
     `import React from 'react';
 
@@ -771,9 +771,9 @@ class PureComponentName extends React.PureComponent {
 export default PureComponentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React from 'react';
@@ -788,7 +788,7 @@ export default PureComponentName;
   `);
 });
 
-it("pureComponent-react-fragment snapshot matches", () => {
+it('pureComponent-react-fragment snapshot matches', () => {
   const result = transform(
     `import React from 'react';
 
@@ -803,9 +803,9 @@ class PureComponentName extends React.PureComponent {
 export default PureComponentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React from 'react';
@@ -820,7 +820,7 @@ export default PureComponentName;
   `);
 });
 
-it("rawfunction snapshot matches", () => {
+it('rawfunction snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -837,9 +837,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -857,7 +857,7 @@ export default componentName;
   `);
 });
 
-it("arrow-fragment snapshot matches", () => {
+it('arrow-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component, Fragment } from 'react';
 
@@ -870,9 +870,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component, Fragment } from 'react';
@@ -885,7 +885,7 @@ export default componentName;
   `);
 });
 
-it("arrow-shorthand-fragment snapshot matches", () => {
+it('arrow-shorthand-fragment snapshot matches', () => {
   const result = transform(
     `import React from 'react';
 
@@ -898,9 +898,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React from 'react';
@@ -913,7 +913,7 @@ export default componentName;
   `);
 });
 
-it("arrow-react-fragment snapshot matches", () => {
+it('arrow-react-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -926,9 +926,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -941,7 +941,7 @@ export default componentName;
   `);
 });
 
-it("nonJSX snapshot matches", () => {
+it('nonJSX snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -954,9 +954,9 @@ class TestClass extends Component {
 export default TestClass;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -969,7 +969,7 @@ export default TestClass;
   `);
 });
 
-it("arrow-anonymous-fragment snapshot matches", () => {
+it('arrow-anonymous-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component, Fragment } from 'react';
 
@@ -982,9 +982,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component, Fragment } from 'react';
@@ -995,7 +995,7 @@ export default componentName;
   `);
 });
 
-it("arrow-anonymous-shorthand-fragment snapshot matches", () => {
+it('arrow-anonymous-shorthand-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -1008,9 +1008,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -1021,7 +1021,7 @@ export default componentName;
   `);
 });
 
-it("arrow-anonymous-react-fragment snapshot matches", () => {
+it('arrow-anonymous-react-fragment snapshot matches', () => {
   const result = transform(
     `import React, { Component } from 'react';
 
@@ -1034,9 +1034,9 @@ const componentName = () => {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -1047,7 +1047,7 @@ export default componentName;
   `);
 });
 
-it("pure snapshot matches", () => {
+it('pure snapshot matches', () => {
   const result = transform(
     `import React from 'react';
 
@@ -1062,9 +1062,9 @@ class PureComponentName extends React.PureComponent {
 export default PureComponentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React from 'react';
@@ -1079,7 +1079,7 @@ export default PureComponentName;
   `);
 });
 
-it("component-fragment-native snapshot matches", () => {
+it('component-fragment-native snapshot matches', () => {
   const result = transform(
     `import React, { Component, Fragment } from 'react';
 
@@ -1092,9 +1092,9 @@ class componentName extends Component {
 export default componentName;
 `,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [[plugin, { native: true }]],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component, Fragment } from 'react';
@@ -1107,7 +1107,7 @@ export default componentName;
   `);
 });
 
-it("pure-native snapshot matches", () => {
+it('pure-native snapshot matches', () => {
   const result = transform(
     `import React from 'react';
 
@@ -1122,11 +1122,11 @@ class PureComponentName extends React.PureComponent {
 export default PureComponentName;
 `,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [[plugin, { native: true }]],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "import React from 'react';
@@ -1141,11 +1141,11 @@ export default PureComponentName;
   `);
 });
 
-it("skips components marked in ignoredComponents", () => {
+it('skips components marked in ignoredComponents', () => {
   const result = transform(BananasPizzaAppStandardInput, {
-    filename: "/filename-test.js",
-    presets: ["@babel/preset-react"],
-    plugins: [[plugin, { native: true, ignoredComponents: ["Bananas"] }]],
+    filename: '/filename-test.js',
+    presets: ['@babel/preset-react'],
+    plugins: [[plugin, { native: true, ignoredComponents: ['Bananas'] }]],
   });
   expect(result?.code).toMatchInlineSnapshot(`
     "import React, { Component } from 'react';
@@ -1223,16 +1223,16 @@ it("skips components marked in ignoredComponents", () => {
   `);
 });
 
-it("handles ternary operation returned by function body", () => {
+it('handles ternary operation returned by function body', () => {
   const result = transform(
     `const maybeTrue = Math.random() > 0.5;
 export default function componentName() {
   return (maybeTrue ? '' : (<SubComponent />))
 }`,
     {
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
   expect(result?.code).toMatchInlineSnapshot(`
     "const maybeTrue = Math.random() > 0.5;
@@ -1242,7 +1242,7 @@ export default function componentName() {
   `);
 });
 
-it("ignores components with member expressions when in ignoredComponents", () => {
+it('ignores components with member expressions when in ignoredComponents', () => {
   const result = transform(
     `import React from 'react';
 import { Tab } from '@headlessui/react';
@@ -1264,19 +1264,17 @@ export default function TestComponent() {
   );
 }`,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
-      plugins: [
-        [plugin, { ignoredComponents: ["Tab.Group", "Tab.List", "Tab.Panels", "Tab.Panel"] }],
-      ],
-    }
+      presets: ['@babel/preset-react'],
+      plugins: [[plugin, { ignoredComponents: ['Tab.Group', 'Tab.List', 'Tab.Panels', 'Tab.Panel'] }]],
+    },
   );
 
   // The component should be transformed but Tab.* components should not have annotations
-  expect(result?.code).toContain("React.createElement(Tab.Group");
+  expect(result?.code).toContain('React.createElement(Tab.Group');
   expect(result?.code).not.toContain('"data-sentry-element": "Tab.Group"');
-  expect(result?.code).toContain("React.createElement(Tab.List");
+  expect(result?.code).toContain('React.createElement(Tab.List');
   expect(result?.code).not.toContain('"data-sentry-element": "Tab.List"');
   expect(result?.code).toMatchInlineSnapshot(`
     "import React from 'react';
@@ -1289,7 +1287,7 @@ export default function TestComponent() {
   `);
 });
 
-it("handles nested member expressions in component names", () => {
+it('handles nested member expressions in component names', () => {
   const result = transform(
     `import React from 'react';
 import { Components } from 'my-ui-library';
@@ -1303,17 +1301,17 @@ export default function TestComponent() {
   );
 }`,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
-      plugins: [[plugin, { ignoredComponents: ["Components.UI.Button"] }]],
-    }
+      presets: ['@babel/preset-react'],
+      plugins: [[plugin, { ignoredComponents: ['Components.UI.Button'] }]],
+    },
   );
 
   // Components.UI.Button should be ignored but Components.UI.Card.Header should be annotated
-  expect(result?.code).toContain("React.createElement(Components.UI.Button");
+  expect(result?.code).toContain('React.createElement(Components.UI.Button');
   expect(result?.code).not.toContain('"data-sentry-element": "Components.UI.Button"');
-  expect(result?.code).toContain("React.createElement(Components.UI.Card.Header");
+  expect(result?.code).toContain('React.createElement(Components.UI.Card.Header');
   expect(result?.code).toMatchInlineSnapshot(`
     "import React from 'react';
     import { Components } from 'my-ui-library';
@@ -1325,7 +1323,7 @@ export default function TestComponent() {
   `);
 });
 
-it("Only injects in root html elements", () => {
+it('Only injects in root html elements', () => {
   const result = transform(
     `import { Fragment as F } from 'react';
 
@@ -1340,11 +1338,11 @@ export default function TestComponent() {
   );
 }`,
     {
-      filename: "/filename-test.js",
+      filename: '/filename-test.js',
       configFile: false,
-      presets: ["@babel/preset-react"],
+      presets: ['@babel/preset-react'],
       plugins: [plugin],
-    }
+    },
   );
 
   expect(result?.code).toMatchInlineSnapshot(`
@@ -1357,8 +1355,8 @@ export default function TestComponent() {
   `);
 });
 
-describe("Fragment Detection", () => {
-  it("ignores React.Fragment with member expression handling", () => {
+describe('Fragment Detection', () => {
+  it('ignores React.Fragment with member expression handling', () => {
     const result = transform(
       `import React from 'react';
 
@@ -1370,14 +1368,14 @@ describe("Fragment Detection", () => {
     );
   }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
-    expect(result?.code).toContain("React.createElement(React.Fragment");
+    expect(result?.code).toContain('React.createElement(React.Fragment');
     expect(result?.code).not.toContain('"data-sentry-element": "React.Fragment"');
     expect(result?.code).toMatchInlineSnapshot(`
       "import React from 'react';
@@ -1389,7 +1387,7 @@ describe("Fragment Detection", () => {
     `);
   });
 
-  it("ignores JSX fragments (<>)", () => {
+  it('ignores JSX fragments (<>)', () => {
     const result = transform(
       `export default function TestComponent() {
   return (
@@ -1400,14 +1398,14 @@ describe("Fragment Detection", () => {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
-    expect(result?.code).toContain("React.createElement(React.Fragment");
+    expect(result?.code).toContain('React.createElement(React.Fragment');
     expect(result?.code).not.toContain('"data-sentry-element": "Fragment"');
     expect(result?.code).toMatchInlineSnapshot(`
       "export default function TestComponent() {
@@ -1420,7 +1418,7 @@ describe("Fragment Detection", () => {
     `);
   });
 
-  it("ignores Fragment imported with alias", () => {
+  it('ignores Fragment imported with alias', () => {
     const result = transform(
       `import { Fragment as F } from 'react';
 
@@ -1432,14 +1430,14 @@ export default function TestComponent() {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
-    expect(result?.code).toContain("React.createElement(F");
+    expect(result?.code).toContain('React.createElement(F');
     expect(result?.code).not.toContain('"data-sentry-element": "F"');
     expect(result?.code).toMatchInlineSnapshot(`
       "import { Fragment as F } from 'react';
@@ -1451,7 +1449,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("ignores Fragment assigned to variable", () => {
+  it('ignores Fragment assigned to variable', () => {
     const result = transform(
       `import { Fragment } from 'react';
 
@@ -1465,14 +1463,14 @@ export default function TestComponent() {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
-    expect(result?.code).toContain("React.createElement(MyFragment");
+    expect(result?.code).toContain('React.createElement(MyFragment');
     expect(result?.code).not.toContain('"data-sentry-element": "MyFragment"');
     expect(result?.code).toMatchInlineSnapshot(`
       "import { Fragment } from 'react';
@@ -1485,7 +1483,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("ignores Fragment with React namespace alias", () => {
+  it('ignores Fragment with React namespace alias', () => {
     const result = transform(
       `import * as MyReact from 'react';
 
@@ -1497,14 +1495,14 @@ export default function TestComponent() {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
-    expect(result?.code).toContain("React.createElement(MyReact.Fragment");
+    expect(result?.code).toContain('React.createElement(MyReact.Fragment');
     expect(result?.code).not.toContain('"data-sentry-element": "MyReact.Fragment"');
     expect(result?.code).toMatchInlineSnapshot(`
       "import * as MyReact from 'react';
@@ -1516,7 +1514,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("ignores React default import with Fragment", () => {
+  it('ignores React default import with Fragment', () => {
     const result = transform(
       `import MyReact from 'react';
 
@@ -1528,14 +1526,14 @@ export default function TestComponent() {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
-    expect(result?.code).toContain("React.createElement(MyReact.Fragment");
+    expect(result?.code).toContain('React.createElement(MyReact.Fragment');
     expect(result?.code).not.toContain('"data-sentry-element": "MyReact.Fragment"');
     expect(result?.code).toMatchInlineSnapshot(`
       "import MyReact from 'react';
@@ -1547,7 +1545,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("ignores multiple fragment patterns in same file", () => {
+  it('ignores multiple fragment patterns in same file', () => {
     const result = transform(
       `import React, { Fragment } from 'react';
 
@@ -1575,11 +1573,11 @@ export default function TestComponent() {
     );
   }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
     expect(result?.code).not.toContain('"data-sentry-element": "Fragment"');
@@ -1596,7 +1594,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("handles complex variable assignment chains", () => {
+  it('handles complex variable assignment chains', () => {
     const result = transform(
       `import { Fragment } from 'react';
 
@@ -1611,11 +1609,11 @@ export default function TestComponent() {
     );
   }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
     expect(result?.code).not.toContain('"data-sentry-element": "MyFragment"');
@@ -1632,7 +1630,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("works with annotate-fragments option disabled", () => {
+  it('works with annotate-fragments option disabled', () => {
     const result = transform(
       `import { Fragment as F } from 'react';
 
@@ -1644,11 +1642,11 @@ export default function TestComponent() {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
     expect(result?.code).not.toContain('"data-sentry-element": "F"');
@@ -1662,7 +1660,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("works with annotate-fragments option enabled", () => {
+  it('works with annotate-fragments option enabled', () => {
     const result = transform(
       `import { Fragment as F } from 'react';
 
@@ -1674,11 +1672,11 @@ export default function TestComponent() {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
     expect(result?.code).not.toContain('"data-sentry-element": "F"');
@@ -1692,7 +1690,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("ignores Fragment from React destructuring", () => {
+  it('ignores Fragment from React destructuring', () => {
     const result = transform(
       `import React from 'react';
 
@@ -1706,11 +1704,11 @@ export default function TestComponent() {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
     expect(result?.code).not.toContain('"data-sentry-element": "Fragment"');
@@ -1727,7 +1725,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("ignores Fragment with destructuring alias", () => {
+  it('ignores Fragment with destructuring alias', () => {
     const result = transform(
       `import React from 'react';
 
@@ -1741,11 +1739,11 @@ export default function TestComponent() {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
     expect(result?.code).not.toContain('"data-sentry-element": "MyFragment"');
@@ -1762,7 +1760,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("ignores Fragment from mixed destructuring", () => {
+  it('ignores Fragment from mixed destructuring', () => {
     const result = transform(
       `import React from 'react';
 
@@ -1776,11 +1774,11 @@ export default function TestComponent() {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
     expect(result?.code).not.toContain('"data-sentry-element": "Fragment"');
@@ -1799,7 +1797,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("handles destructuring from aliased React imports", () => {
+  it('handles destructuring from aliased React imports', () => {
     const result = transform(
       `import MyReact from 'react';
 
@@ -1813,11 +1811,11 @@ export default function TestComponent() {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
     expect(result?.code).not.toContain('"data-sentry-element": "Fragment"');
@@ -1834,7 +1832,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("handles destructuring from namespace imports", () => {
+  it('handles destructuring from namespace imports', () => {
     const result = transform(
       `import * as ReactLib from 'react';
 
@@ -1848,11 +1846,11 @@ export default function TestComponent() {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
     expect(result?.code).not.toContain('"data-sentry-element": "F"');
@@ -1869,7 +1867,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("handles multiple destructuring patterns in one file", () => {
+  it('handles multiple destructuring patterns in one file', () => {
     const result = transform(
       `import React from 'react';
 import * as MyReact from 'react';
@@ -1891,11 +1889,11 @@ export default function TestComponent() {
   );
 }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
     expect(result?.code).not.toContain('"data-sentry-element": "Fragment"');
@@ -1917,7 +1915,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("combines all fragment patterns correctly", () => {
+  it('combines all fragment patterns correctly', () => {
     const result = transform(
       `import React, { Fragment as ImportedF } from 'react';
   import * as MyReact from 'react';
@@ -1967,11 +1965,11 @@ export default function TestComponent() {
     );
   }`,
       {
-        filename: "/filename-test.js",
+        filename: '/filename-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
     expect(result?.code).not.toContain('"data-sentry-element": "ImportedF"');
@@ -2000,7 +1998,7 @@ export default function TestComponent() {
     `);
   });
 
-  it("handles Fragment aliased correctly when used by other non-Fragment components in a different scope", () => {
+  it('handles Fragment aliased correctly when used by other non-Fragment components in a different scope', () => {
     const result = transform(
       `import { Fragment as OriginalF } from 'react';
 import { OtherComponent } from 'some-library';
@@ -2028,11 +2026,11 @@ function AnotherComponent() {
 }
 `,
       {
-        filename: "/variable-assignment-test.js",
+        filename: '/variable-assignment-test.js',
         configFile: false,
-        presets: ["@babel/preset-react"],
+        presets: ['@babel/preset-react'],
         plugins: [plugin],
-      }
+      },
     );
 
     expect(result?.code).not.toContain('"data-sentry-element": "F"');
