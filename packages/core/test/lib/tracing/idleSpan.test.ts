@@ -10,7 +10,6 @@ import {
   SentryNonRecordingSpan,
   SentrySpan,
   setCurrentClient,
-  spanIsSampled,
   spanToJSON,
   startInactiveSpan,
   startSpan,
