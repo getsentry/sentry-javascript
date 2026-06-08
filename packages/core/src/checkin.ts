@@ -4,6 +4,7 @@ import type { CheckInEnvelope, CheckInItem, DynamicSamplingContext } from './typ
 import type { SdkMetadata } from './types/sdkmetadata';
 import { dsnToString } from './utils/dsn';
 import { createEnvelope } from './utils/envelope';
+import { safeDateNow } from './utils/randomSafeContext';
 
 /**
  * Create envelope from check in item.
@@ -16,7 +17,7 @@ export function createCheckInEnvelope(
   dsn?: DsnComponents,
 ): CheckInEnvelope {
   const headers: CheckInEnvelope[0] = {
-    sent_at: new Date().toISOString(),
+    sent_at: new Date(safeDateNow()).toISOString(),
   };
 
   if (metadata?.sdk) {
