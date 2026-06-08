@@ -13,6 +13,12 @@ import { SENTRY_TRACE_STATE_DSC, SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from
 export function getSamplingDecision(spanContext: SpanContext): boolean | undefined {
   const { traceFlags, traceState } = spanContext;
 
+  // SentrySpans carry an explicit `sampled` property on their span context.
+  // This is the most direct source of truth and avoids the need for trace state.
+  if ('sampled' in spanContext && (spanContext as { sampled?: boolean }).sampled !== undefined) {
+    return (spanContext as { sampled?: boolean }).sampled;
+  }
+
   const sampledNotRecording = traceState ? traceState.get(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING) === '1' : false;
 
   // If trace flag is `SAMPLED`, we interpret this as sampled
