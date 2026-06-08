@@ -36,6 +36,7 @@ from _common import cutoff, load_frameworks, parse_iso
 
 USER_AGENT = "sentry-javascript-track-framework-updates/1.0"
 TIMEOUT_SECONDS = 20
+MAX_FEED_BYTES = 5 * 1024 * 1024  # 5 MB — no legitimate RSS feed is this large
 ATOM_NS = "{http://www.w3.org/2005/Atom}"
 
 
@@ -102,11 +103,38 @@ def parse_feed(xml_bytes: bytes) -> list[dict[str, str]]:
     return items
 
 
+class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Block redirects to non-HTTPS URLs (prevents SSRF to internal services)."""
+
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: Any,
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
+    ) -> urllib.request.Request:
+        if not newurl.startswith("https://"):
+            raise urllib.error.URLError(
+                f"Refusing non-HTTPS redirect to {newurl}"
+            )
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_opener = urllib.request.build_opener(_SafeRedirectHandler)
+
+
 def fetch_feed(url: str) -> bytes:
     """Download a feed URL and return raw bytes."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
-        return resp.read()
+    with _opener.open(req, timeout=TIMEOUT_SECONDS) as resp:
+        data = resp.read(MAX_FEED_BYTES + 1)
+        if len(data) > MAX_FEED_BYTES:
+            raise ValueError(
+                f"Feed exceeds {MAX_FEED_BYTES} byte limit, refusing to parse"
+            )
+        return data
 
 
 def collect(since_days: int) -> list[dict[str, Any]]:
