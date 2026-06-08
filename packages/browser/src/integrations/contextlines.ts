@@ -7,22 +7,25 @@ const DEFAULT_LINES_OF_CONTEXT = 7;
 
 const INTEGRATION_NAME = 'ContextLines';
 
+// TODO(v11): Use `dataCollection.frameContextLines` default (5)
 interface ContextLinesOptions {
   /**
    * Sets the number of context lines for each frame when loading a file.
    * Defaults to 7.
    *
    * Set to 0 to disable loading and inclusion of source files.
+   *
+   * When set, this option takes precedence over `dataCollection.frameContextLines`.
    **/
   frameContextLines?: number;
 }
 
 const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
-  const contextLines = options.frameContextLines != null ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
-
   return {
     name: INTEGRATION_NAME,
-    processEvent(event) {
+    processEvent(event, _hint, client) {
+      const contextLines =
+        options.frameContextLines ?? client?.getDataCollectionOptions().frameContextLines ?? DEFAULT_LINES_OF_CONTEXT;
       return addSourceContext(event, contextLines);
     },
   };

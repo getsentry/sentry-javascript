@@ -54,6 +54,19 @@ describe('no-unsafe-random-apis', () => {
         {
           code: 'const x = performance.mark("test")',
         },
+        // `new Date(<value>)` does not read the ambient clock and is safe
+        {
+          code: 'const d = new Date(safeDateNow())',
+        },
+        {
+          code: 'const d = new Date(1234567890)',
+        },
+        {
+          code: 'const d = new Date("2021-01-01")',
+        },
+        {
+          code: 'withRandomSafeContext(() => new Date())',
+        },
       ],
       invalid: [
         // Direct Date.now() calls
@@ -137,6 +150,31 @@ describe('no-unsafe-random-apis', () => {
             },
             {
               messageId: 'unsafeMathRandom',
+            },
+          ],
+        },
+        // Bare `new Date()` constructor reads the ambient clock
+        {
+          code: 'const now = new Date()',
+          errors: [
+            {
+              messageId: 'unsafeDateConstructor',
+            },
+          ],
+        },
+        {
+          code: 'const iso = new Date().toISOString()',
+          errors: [
+            {
+              messageId: 'unsafeDateConstructor',
+            },
+          ],
+        },
+        {
+          code: 'someOtherWrapper(() => new Date())',
+          errors: [
+            {
+              messageId: 'unsafeDateConstructor',
             },
           ],
         },
