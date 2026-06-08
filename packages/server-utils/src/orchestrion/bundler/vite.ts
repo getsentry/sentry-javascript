@@ -13,8 +13,9 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type UnknownPlugin = any;
 
-import { SENTRY_INSTRUMENTATIONS } from '../config';
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
+import MagicString from 'magic-string';
+import { SENTRY_INSTRUMENTATIONS } from '../config';
 
 // `vite` types live in the package's ESM-only subpath; under Node16 module
 // resolution with TS treating @sentry/node as CJS, importing them produces a
@@ -78,9 +79,14 @@ function bundlerMarkerPlugin(): UnknownPlugin {
       // their additions.
       return { ssr: { noExternal: instrumentedModules } };
     },
-    renderChunk(code: string, chunk: { isEntry: boolean }): { code: string; map: null } | null {
+    renderChunk(code: string, chunk: { isEntry: boolean }): { code: string; map: unknown } | null {
       if (!chunk.isEntry) return null;
-      return { code: banner + code, map: null };
+      // Prepend via magic-string so the entry chunk's sourcemap stays aligned —
+      // returning `map: null` here would shift every mapping by the banner's
+      // line count and misattribute server stack traces.
+      const ms = new MagicString(code);
+      ms.prepend(banner);
+      return { code: ms.toString(), map: ms.generateMap({ hires: true }) };
     },
   };
 }

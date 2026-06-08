@@ -58,16 +58,6 @@
         "default": "./build/orchestrion/import-hook.mjs"
       }
     },
-    "./orchestrion/config": {
-      "import": {
-        "types": "./build/types/orchestrion/config.d.ts",
-        "default": "./build/esm/orchestrion/config.js"
-      },
-      "require": {
-        "types": "./build/types/orchestrion/config.d.ts",
-        "default": "./build/cjs/orchestrion/config.js"
-      }
-    },
     "./orchestrion/vite": {
       "import": {
         "types": "./build/types/orchestrion/bundler/vite.d.ts",

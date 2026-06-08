@@ -10,8 +10,7 @@
     "node": ">=18"
   },
   "files": [
-    "/build",
-    "/orchestrion.mjs"
+    "/build"
   ],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
@@ -94,7 +93,8 @@
     "@apm-js-collab/code-transformer-bundler-plugins": "^0.3.0",
     "@apm-js-collab/code-transformer": "^0.13.0",
     "@apm-js-collab/tracing-hooks": "^0.8.0",
-    "@sentry/core": "10.57.0"
+    "@sentry/core": "10.57.0",
+    "magic-string": "~0.30.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.1",
