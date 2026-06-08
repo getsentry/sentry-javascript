@@ -3,10 +3,10 @@ import { resolveDataCollectionOptions } from '../../../../src/utils/data-collect
 
 describe('resolveDataCollectionOptions', () => {
   const SPEC_DEFAULTS = {
-    userInfo: false,
+    userInfo: true,
     cookies: true,
     httpHeaders: { request: true, response: true },
-    httpBodies: [],
+    httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
     queryParams: true,
     genAI: { inputs: true, outputs: true },
     stackFrameVariables: true,
@@ -17,7 +17,7 @@ describe('resolveDataCollectionOptions', () => {
     it('falls through to sendDefaultPii: undefined bridge when neither option is set', () => {
       const result = resolveDataCollectionOptions({});
 
-      // sendDefaultPii undefined → restrictive bridge (backward compat)
+      // sendDefaultPii undefined → restrictive bridge (backward compat; userInfo defaults to true only when dataCollection is set)
       expect(result.userInfo).toBe(false);
       expect(result.httpBodies).toEqual([]);
       expect(result.genAI).toEqual({ inputs: false, outputs: false });
@@ -27,6 +27,12 @@ describe('resolveDataCollectionOptions', () => {
 
     it('returns spec defaults when dataCollection is explicitly set to empty object', () => {
       expect(resolveDataCollectionOptions({ dataCollection: {} })).toEqual(SPEC_DEFAULTS);
+    });
+
+    it('collects all body types by default when dataCollection is set without httpBodies', () => {
+      const result = resolveDataCollectionOptions({ dataCollection: {} });
+
+      expect(result.httpBodies).toEqual(['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']);
     });
   });
 
@@ -61,7 +67,7 @@ describe('resolveDataCollectionOptions', () => {
       // Explicit dataCollection override
       expect(result.userInfo).toBe(false);
       // Remaining fields use spec defaults (not sendDefaultPii bridge)
-      expect(result.httpBodies).toEqual([]);
+      expect(result.httpBodies).toEqual(['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']);
       expect(result.genAI).toEqual({ inputs: true, outputs: true });
     });
   });

@@ -10,19 +10,26 @@ Work in this release was contributed by @zhongrenfei1-hub. Thank you for your co
 
   `@sentry/angular` now officially supports Angular 22.
 
+- **fix(node-core): Read `__SENTRY_SERVER_MODULES__` lazily so Turbopack injection is honored [#21339](https://github.com/getsentry/sentry-javascript/pull/21339)**
+
+  On Next.js 16 / Turbopack production builds, `modulesIntegration` captured `__SENTRY_SERVER_MODULES__` at module-evaluation time, before Turbopack's runtime `globalThis` assignment ran. This silently disabled module-detection-based auto integrations (Vercel AI, OpenAI, Anthropic, Google GenAI, LangChain, LangGraph) and left `event.modules` empty. The value is now read lazily, supporting both the webpack (`DefinePlugin`) and Turbopack (runtime global) injection styles.
+
 - **ref(core): Deprecate `sendDefaultPii` in favor of `dataCollection` [#21277](https://github.com/getsentry/sentry-javascript/pull/21277)**
 
   `sendDefaultPii` is deprecated and will be removed in v11. The new `dataCollection` option lets you control each category of collected data.
   `sendDefaultPii: true` still works and maps to enabling all `dataCollection` categories.
-  `dataCollection.userInfo` defaults to `false` and only gates auto-populated `user.*` fields (e.g. IP address from a request).
-  Data you set explicitly via `Sentry.setUser()` is always sent regardless.
+  `dataCollection.userInfo` defaults to `true` when `dataCollection` is provided, meaning auto-populated `user.*` fields (e.g. IP address from a request) are collected by default.
+  Data you set explicitly (like via `Sentry.setUser()`) is always sent regardless.
+  When `dataCollection` is not set at all, the legacy `sendDefaultPii` behavior applies (`userInfo: false` by default) to preserve backward compatibility.
 
   Note that an empty `dataCollection: {}` falls back to more permissive defaults than `sendDefaultPii: false`, so replicate the old behavior by opting out explicitly:
 
   ```js
   Sentry.init({
     dataCollection: {
+      userInfo: false,
       genAI: { inputs: false, outputs: false },
+      httpBodies: [],
       httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       cookies: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
