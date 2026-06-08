@@ -4,17 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @zhongrenfei1-hub. Thank you for your contribution!
+## 10.57.0
 
-- **feat(angular): Add support for Angular 22**
+### Important Changes
+
+- **feat(angular): Add support for Angular 22 ([#21330](https://github.com/getsentry/sentry-javascript/pull/21330))**
 
   `@sentry/angular` now officially supports Angular 22.
 
-- **fix(node-core): Read `__SENTRY_SERVER_MODULES__` lazily so Turbopack injection is honored [#21339](https://github.com/getsentry/sentry-javascript/pull/21339)**
-
-  On Next.js 16 / Turbopack production builds, `modulesIntegration` captured `__SENTRY_SERVER_MODULES__` at module-evaluation time, before Turbopack's runtime `globalThis` assignment ran. This silently disabled module-detection-based auto integrations (Vercel AI, OpenAI, Anthropic, Google GenAI, LangChain, LangGraph) and left `event.modules` empty. The value is now read lazily, supporting both the webpack (`DefinePlugin`) and Turbopack (runtime global) injection styles.
-
-- **ref(core): Deprecate `sendDefaultPii` in favor of `dataCollection` [#21277](https://github.com/getsentry/sentry-javascript/pull/21277)**
+- **ref(core): Deprecate `sendDefaultPii` in favor of `dataCollection` ([#21277](https://github.com/getsentry/sentry-javascript/pull/21277))**
 
   `sendDefaultPii` is deprecated and will be removed in v11. The new `dataCollection` option lets you control each category of collected data.
   `sendDefaultPii: true` still works and maps to enabling all `dataCollection` categories.
@@ -36,6 +34,45 @@ Work in this release was contributed by @zhongrenfei1-hub. Thank you for your co
     },
   });
   ```
+
+### Other Changes
+
+- feat: Use `dataCollection.frameContextLines` for ContextLines integration ([#21323](https://github.com/getsentry/sentry-javascript/pull/21323))
+- feat(cloudflare): Auto instrument D1 based on env ([#21276](https://github.com/getsentry/sentry-javascript/pull/21276))
+- feat(core): Change default of `dataCollection.userInfo` to `true` ([#21348](https://github.com/getsentry/sentry-javascript/pull/21348))
+- feat(core): Default `dataCollection.httpBodies` to all valid body types ([#21352](https://github.com/getsentry/sentry-javascript/pull/21352))
+- feat(hono): Filter noisy transactions (`favicon` etc) ([#21365](https://github.com/getsentry/sentry-javascript/pull/21365))
+- fix(cloudflare): Don't track negatively sampled spans ([#21367](https://github.com/getsentry/sentry-javascript/pull/21367))
+- fix(core): Use `safeDateNow` calls for `new Date()` reads ([#21351](https://github.com/getsentry/sentry-javascript/pull/21351))
+- fix(nextjs): Shim `pinoIntegration` on edge runtime ([#21347](https://github.com/getsentry/sentry-javascript/pull/21347))
+- fix(node): Prevent PostgresJs integration from emitting duplicate spans per query ([#21364](https://github.com/getsentry/sentry-javascript/pull/21364))
+- fix(node-core): Read `__SENTRY_SERVER_MODULES__` lazily so Turbopack injection is honored ([#21339](https://github.com/getsentry/sentry-javascript/pull/21339))
+- fix(react): Detect React Router v6/v7 navigations in a layout effect to propagate the correct trace ([#21326](https://github.com/getsentry/sentry-javascript/pull/21326))
+- fix(react): Remove unused `react.componentStack` event context ([#21183](https://github.com/getsentry/sentry-javascript/pull/21183))
+- fix(replays): Record `sentry._internal.replay_is_buffering` for spans ([#21297](https://github.com/getsentry/sentry-javascript/pull/21297))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Bump volta node version from 20.19.2 to 20.19.5 ([#21359](https://github.com/getsentry/sentry-javascript/pull/21359))
+- chore: Remove git:\* allowed permissions ([#21328](https://github.com/getsentry/sentry-javascript/pull/21328))
+- chore(deps-dev): Bump eslint-plugin-regexp from 1.15.0 to 3.1.0 ([#21104](https://github.com/getsentry/sentry-javascript/pull/21104))
+- chore(deps-dev): Bump react-router from 7.13.0 to 7.15.0 ([#21337](https://github.com/getsentry/sentry-javascript/pull/21337))
+- chore(size-limit): weekly auto-bump ([#21344](https://github.com/getsentry/sentry-javascript/pull/21344))
+- docs(remix): Add notice about capturing http bodies for form data keys ([#21296](https://github.com/getsentry/sentry-javascript/pull/21296))
+- feat(deps): Bump @types/aws-lambda from 8.10.150 to 8.10.161 ([#21105](https://github.com/getsentry/sentry-javascript/pull/21105))
+- feat(deps): Bump axios from 1.15.2 to 1.16.0 ([#21251](https://github.com/getsentry/sentry-javascript/pull/21251))
+- feat(deps): Bump hono from 4.12.18 to 4.12.21 ([#21341](https://github.com/getsentry/sentry-javascript/pull/21341))
+- ref(browser): Split web vitals integration ([#21210](https://github.com/getsentry/sentry-javascript/pull/21210))
+- ref(node): Streamline lru-memoizer instrumentation ([#21350](https://github.com/getsentry/sentry-javascript/pull/21350))
+- ref(node): Streamline sql-common ([#21360](https://github.com/getsentry/sentry-javascript/pull/21360))
+- test(e2e): Migrate `sendDefaultPii` to `dataCollection` option ([#21288](https://github.com/getsentry/sentry-javascript/pull/21288))
+- test(nextjs): Remove assertion on conditional span ([#21329](https://github.com/getsentry/sentry-javascript/pull/21329))
+- test(node): Move node integration tests to data collection ([#21283](https://github.com/getsentry/sentry-javascript/pull/21283))
+
+</details>
+
+Work in this release was contributed by @zhongrenfei1-hub. Thank you for your contribution!
 
 ## 10.56.0
 
