@@ -18,9 +18,8 @@
  * - Upstream version: @opentelemetry/sql-common@0.41.2
  */
 
-/* eslint-disable */
-
-import { trace, Span, ROOT_CONTEXT, defaultTextMapSetter } from '@opentelemetry/api';
+import type { Span } from '@opentelemetry/api';
+import { defaultTextMapSetter, ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
 
 // NOTE: This function currently is returning false-positives
