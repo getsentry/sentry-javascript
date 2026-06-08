@@ -1,0 +1,39 @@
+{
+  "$comment": "Schema for framework-updates-digest.json. Follow this structure exactly.",
+  "generatedAt": "<ISO-8601 timestamp>",
+  "sinceDays": 7,
+  "summary": ["One short bullet per high-signal item across all frameworks."],
+  "backlogCandidates": [
+    {
+      "sentryPackage": "@sentry/react",
+      "summary": "Actionable description of what needs SDK work and why.",
+      "links": ["https://github.com/..."]
+    }
+  ],
+  "frameworks": [
+    {
+      "name": "React",
+      "sentryPackages": ["@sentry/react"],
+      "category": "client",
+      "releases": [
+        {
+          "tag": "v19.0.0",
+          "url": "https://github.com/facebook/react/releases/tag/v19.0.0",
+          "changes": {
+            "high": ["Description of high-relevance change"],
+            "medium": ["Description of medium-relevance change"],
+            "low": ["Description of low-relevance change"]
+          }
+        }
+      ],
+      "links": [
+        {
+          "title": "Discussion or blog title",
+          "url": "https://github.com/...",
+          "type": "discussion|rfc|blog"
+        }
+      ]
+    }
+  ],
+  "runNotes": ["Any fetcher errors. Empty array if none."]
+}

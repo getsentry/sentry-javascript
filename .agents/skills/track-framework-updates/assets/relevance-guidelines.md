@@ -1,10 +1,8 @@
-# Release & Blog Post Relevance Guidelines
+# Relevance Classification Rules
 
-Use these rules to classify each individual change within a release, blog post, or RFC as `high`, `medium`, or `low` relevance to the Sentry JavaScript SDK. A single release typically contains multiple changes — classify each one independently, then group them by relevance level in the output.
+Classify each individual change within a release as `high`, `medium`, or `low` relevance to the Sentry JavaScript SDK. A single release contains multiple changes — classify each independently, then group by level.
 
-## Context
-
-The Sentry JavaScript SDK instruments web frameworks and libraries by:
+## How the Sentry SDK instruments frameworks
 
 - Hooking into **routers** to create transactions and navigation spans
 - Wrapping **lifecycle hooks, middleware, and plugin systems** to attach tracing and error capture
@@ -49,11 +47,7 @@ A change is relevant when it touches any surface the SDK depends on, extends, or
 - The change does not match any `high` or `medium` criterion above
 - The change is limited to: documentation, typos, README updates, internal refactors with no public API or behavioral change, test-only changes, CI/CD pipeline changes, new examples/starter templates (unless they demonstrate a new architectural pattern), community or governance changes, contributor guidelines, dependency bumps (unless bumping a transitive dependency the SDK also depends on), or performance optimizations that do not alter API surface or behavior contracts
 
-## Grouping
+## Edge cases
 
-A single release will produce items across multiple relevance levels. In the output, list all items classified as `high` under a `high` heading, all `medium` items under a `medium` heading, and all `low` items under a `low` heading. Omit a heading if it has no items.
-
-## Handling edge cases
-
-- When you are uncertain whether a change is `high` or `medium`, classify it as `high` — false positives cost less than missed breakage.
-- When a changelog entry is too vague to classify (e.g., "internal improvements"), classify as `low` unless the diff or linked PR indicates otherwise.
+- Uncertain between `high` and `medium` → classify as `high`. False positives cost less than missed breakage.
+- Vague changelog entry (e.g., "internal improvements") → classify as `low` unless the linked PR indicates otherwise.
