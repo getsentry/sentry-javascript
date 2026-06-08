@@ -2,6 +2,7 @@ import * as SentryCore from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { init } from '../../src/node/sdk';
+import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../../src/shared/lowQualityTransactionPatterns';
 
 vi.mock('@sentry/node', () => ({
   init: vi.fn().mockReturnValue({
@@ -171,5 +172,31 @@ describe('Hono Node SDK – init()', () => {
 
     expect(initNodeMock).toHaveBeenCalledTimes(1);
     expect(applySdkMetadataMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('adds default low-quality transaction patterns to ignoreSpans', () => {
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+    const callArgs = (initNodeMock as Mock).mock.calls[0]?.[0];
+    expect(callArgs.ignoreSpans).toEqual(expect.arrayContaining(LOW_QUALITY_TRANSACTION_PATTERNS));
+  });
+
+  it('preserves user-supplied ignoreSpans and appends defaults', () => {
+    const userPattern = /^GET \/health$/;
+    init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      ignoreSpans: [userPattern],
+    });
+
+    const callArgs = (initNodeMock as Mock).mock.calls[0]?.[0];
+    expect(callArgs.ignoreSpans[0]).toBe(userPattern);
+    expect(callArgs.ignoreSpans).toEqual(expect.arrayContaining(LOW_QUALITY_TRANSACTION_PATTERNS));
+  });
+
+  it('handles undefined ignoreSpans gracefully', () => {
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+    const callArgs = (initNodeMock as Mock).mock.calls[0]?.[0];
+    expect(callArgs.ignoreSpans).toHaveLength(LOW_QUALITY_TRANSACTION_PATTERNS.length);
   });
 });
