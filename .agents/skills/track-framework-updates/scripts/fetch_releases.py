@@ -83,7 +83,7 @@ def collect(since_days: int) -> list[dict[str, Any]]:
                 entry["releases"] = fetch_releases_for_repo(repo, since)
             except subprocess.CalledProcessError as exc:
                 entry["error"] = (
-                    f"gh api failed for {repo}: {exc.stderr.strip()[:300]}"
+                    f"gh api failed for {repo} (exit code {exc.returncode})"
                 )
             except (ValueError, KeyError) as exc:
                 entry["error"] = f"parse error for {repo}: {exc}"

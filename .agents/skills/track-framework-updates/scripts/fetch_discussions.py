@@ -136,7 +136,7 @@ def collect(since_days: int) -> list[dict[str, Any]]:
                 )
             except subprocess.CalledProcessError as exc:
                 entry.setdefault("errors", []).append(
-                    f"discussions {repo}: {exc.stderr.strip()[:300]}"
+                    f"discussions {repo} (exit code {exc.returncode})"
                 )
             except (ValueError, KeyError) as exc:
                 entry.setdefault("errors", []).append(
@@ -147,7 +147,7 @@ def collect(since_days: int) -> list[dict[str, Any]]:
                 entry["rfcs"] = fetch_rfcs(gh["rfcsRepo"], since)
             except subprocess.CalledProcessError as exc:
                 entry.setdefault("errors", []).append(
-                    f"rfcs {gh['rfcsRepo']}: {exc.stderr.strip()[:300]}"
+                    f"rfcs {gh['rfcsRepo']} (exit code {exc.returncode})"
                 )
             except (ValueError, KeyError) as exc:
                 entry.setdefault("errors", []).append(

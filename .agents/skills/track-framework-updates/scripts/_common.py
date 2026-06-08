@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -27,11 +28,31 @@ SOURCES_PATH = os.path.join(
 )
 
 
+_REPO_PATTERN = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
+
+
+def _validate_framework(fw: dict[str, Any]) -> None:
+    """Reject sources.json entries with suspicious values."""
+    gh = fw.get("github") or {}
+    repo = gh.get("repo")
+    if repo and not _REPO_PATTERN.match(repo):
+        raise ValueError(f"Invalid github.repo format: {repo!r}")
+    rfcs_repo = gh.get("rfcsRepo")
+    if rfcs_repo and not _REPO_PATTERN.match(rfcs_repo):
+        raise ValueError(f"Invalid github.rfcsRepo format: {rfcs_repo!r}")
+    for url in fw.get("rss") or []:
+        if not url.startswith("https://"):
+            raise ValueError(f"RSS URL must use HTTPS: {url!r}")
+
+
 def load_frameworks(sources_path: str = SOURCES_PATH) -> list[dict[str, Any]]:
-    """Load the framework list from sources.json."""
+    """Load and validate the framework list from sources.json."""
     with open(sources_path, "r", encoding="utf-8") as fh:
         data = json.load(fh)
-    return data.get("frameworks", [])
+    frameworks = data.get("frameworks", [])
+    for fw in frameworks:
+        _validate_framework(fw)
+    return frameworks
 
 
 def cutoff(since_days: int) -> datetime:
