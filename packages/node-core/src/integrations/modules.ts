@@ -12,19 +12,12 @@ const INTEGRATION_NAME = 'Modules';
 declare const __SENTRY_SERVER_MODULES__: Record<string, string>;
 
 /**
- * Reads the modules that were injected at build time into `__SENTRY_SERVER_MODULES__`
- * (e.g. by the Next.js SDK, to work around not having access to these at runtime).
+ * Reads the modules injected at build time into `__SENTRY_SERVER_MODULES__` (e.g. by the Next.js SDK).
  *
- * This MUST be read lazily (on every call) rather than captured once at module-evaluation
- * time, because the two supported bundlers inject the value differently:
- * - webpack replaces the `__SENTRY_SERVER_MODULES__` token with a literal via `DefinePlugin`
- *   (available as soon as this module is evaluated).
- * - Turbopack assigns `globalThis.__SENTRY_SERVER_MODULES__` at runtime, from a value-injection
- *   loader applied to `instrumentation.*`. The instrumentation file's ESM imports are hoisted
- *   above that assignment, so this module is evaluated *before* the global is set. A
- *   module-level `const` capture would therefore always be empty under Turbopack, silently
- *   disabling every module-detection-based auto integration (Vercel AI, OpenAI, Anthropic,
- *   Google GenAI, LangChain, LangGraph). See getsentry/sentry-javascript#19147.
+ * Must be read lazily (per call), not captured at module-eval time: webpack replaces the token via
+ * `DefinePlugin` (available immediately), but Turbopack assigns `globalThis.__SENTRY_SERVER_MODULES__`
+ * at runtime, *after* this module's imports are hoisted and evaluated. A `const` capture would be
+ * empty under Turbopack. See getsentry/sentry-javascript#19147.
  */
 function getServerModules(): Record<string, string> {
   // webpack: the token is replaced with a literal at build time.
