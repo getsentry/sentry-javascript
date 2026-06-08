@@ -73,7 +73,7 @@
     "@sentry/core": "10.56.0",
     "@sentry/node": "10.56.0",
     "@sentry/node-core": "10.56.0",
-    "@types/aws-lambda": "^8.10.62"
+    "@types/aws-lambda": "^8.10.161"
   },
   "devDependencies": {
     "@types/node": "^18.19.1",
