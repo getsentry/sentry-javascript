@@ -14,9 +14,6 @@ const mockSetTransactionName = vi.fn();
 const mockSetSDKProcessingMetadata = vi.fn();
 const mockSetUser = vi.fn();
 
-// Minimal stand-in for a real span's attribute store. `setAttributes` delegates to `setAttribute`,
-// like a real span, so tests can assert on the resulting attribute *state* rather than on which
-// setter overload was used. Unset attributes read back as `undefined`, matching span behavior.
 let rootSpanAttributes: Record<string, unknown> = {};
 const mockRootSpan = {
   setAttribute: vi.fn((key: string, value: unknown) => {
