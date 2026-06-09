@@ -399,6 +399,7 @@ function createChildOrRootSpan({
       dropReason: 'ignored',
       sampled: false,
       traceId: parentSpan?.spanContext().traceId ?? scope.getPropagationContext().traceId,
+      parentSpanId: parentSpan?.spanContext().spanId ?? scope.getPropagationContext().parentSpanId,
     });
   }
 
@@ -553,7 +554,7 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
         traceId,
         sampled,
       })
-    : new SentryNonRecordingSpan({ traceId, sampled: false });
+    : new SentryNonRecordingSpan({ traceId, parentSpanId: spanId, sampled: false });
 
   addChildSpanToSpan(parentSpan, childSpan);
 

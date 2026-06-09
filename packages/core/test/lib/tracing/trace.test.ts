@@ -280,6 +280,22 @@ describe('startSpan', () => {
     expect(getDynamicSamplingContextFromSpan(span)).toEqual({});
   });
 
+  it('exposes parent_span_id on an unsampled non-recording child span', () => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 0 });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    startSpan({ name: 'parent' }, parentSpan => {
+      startSpan({ name: 'child' }, childSpan => {
+        expect(childSpan).toBeInstanceOf(SentryNonRecordingSpan);
+        expect(spanIsSampled(childSpan)).toBe(false);
+        // The non-recording child still links to its parent so `spanToJSON` can surface it.
+        expect(spanToJSON(childSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
+      });
+    });
+  });
+
   it('creates & finishes span', async () => {
     const span = startSpan({ name: 'GET users/[id]' }, span => {
       expect(span).toBeDefined();
@@ -2594,6 +2610,25 @@ describe('ignoreSpans (core path, streaming)', () => {
     });
 
     expect(spyOnDroppedEvent).toHaveBeenCalledWith('ignored', 'span');
+  });
+
+  it('exposes parent_span_id on an ignored child span', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored-child'],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    startSpan({ name: 'root' }, rootSpan => {
+      startSpan({ name: 'ignored-child' }, span => {
+        expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+        // The ignored span still links to its parent so `spanToJSON` can surface it.
+        expect(spanToJSON(span).parent_span_id).toBe(rootSpan.spanContext().spanId);
+      });
+    });
   });
 
   it('children of ignored child spans parent to grandparent', () => {
