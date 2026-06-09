@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  getCapturedScopesOnSpan,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -16,7 +17,6 @@ import {
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import {
   continueTrace,
-  getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
   registerSpanErrorInstrumentation,
   SentrySpan,
@@ -236,7 +236,9 @@ describe('startSpan', () => {
       sampleRand: 0.42,
     });
 
+    let scopeInCallback: Scope | undefined;
     const span = startSpan({ name: 'GET users/[id]' }, span => {
+      scopeInCallback = getCurrentScope();
       return span;
     });
 
@@ -248,6 +250,11 @@ describe('startSpan', () => {
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'GET users/[id]',
     });
+
+    // Scopes are captured on the placeholder so consumers (e.g. SentryTraceProvider) can read them.
+    // `startSpan` forks the scope, so the captured scope is the one active inside the callback.
+    expect(getCapturedScopesOnSpan(span).scope).toBe(scopeInCallback);
+    expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
   });
 
   it('freezes a continued trace empty DSC as-is when tracing is disabled', () => {
@@ -271,6 +278,22 @@ describe('startSpan', () => {
     expect(span.spanContext().traceId).toBe('12345678901234567890123456789012');
     // We are not head of trace: don't fabricate client fields or inject the local transaction.
     expect(getDynamicSamplingContextFromSpan(span)).toEqual({});
+  });
+
+  it('exposes parent_span_id on an unsampled non-recording child span', () => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 0 });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    startSpan({ name: 'parent' }, parentSpan => {
+      startSpan({ name: 'child' }, childSpan => {
+        expect(childSpan).toBeInstanceOf(SentryNonRecordingSpan);
+        expect(spanIsSampled(childSpan)).toBe(false);
+        // The non-recording child still links to its parent so `spanToJSON` can surface it.
+        expect(spanToJSON(childSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
+      });
+    });
   });
 
   it('creates & finishes span', async () => {
@@ -902,7 +925,9 @@ describe('startSpanManual', () => {
     setCurrentClient(client);
     client.init();
 
+    let scopeInCallback: Scope | undefined;
     const span = startSpanManual({ name: 'GET users/[id]' }, span => {
+      scopeInCallback = getCurrentScope();
       return span;
     });
 
@@ -913,6 +938,11 @@ describe('startSpanManual', () => {
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'GET users/[id]',
     });
+
+    // Scopes are captured on the placeholder so consumers (e.g. SentryTraceProvider) can read them.
+    // `startSpanManual` forks the scope, so the captured scope is the one active inside the callback.
+    expect(getCapturedScopesOnSpan(span).scope).toBe(scopeInCallback);
+    expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
   });
 
   it('creates & finishes span', async () => {
@@ -1424,11 +1454,9 @@ describe('startInactiveSpan', () => {
       transaction: 'GET users/[id]',
     });
 
-    // Non-recording spans must still carry the captured scopes, so consumers like
-    // SentryTraceProvider can read them to fork the isolation scope onto the context.
-    const captured = getCapturedScopesOnSpan(span);
-    expect(captured.scope).toBe(getCurrentScope());
-    expect(captured.isolationScope).toBe(getIsolationScope());
+    // Scopes are captured on the placeholder so consumers (e.g. SentryTraceProvider) can read them.
+    expect(getCapturedScopesOnSpan(span).scope).toBe(getCurrentScope());
+    expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
   });
 
   it('creates & finishes span', async () => {
@@ -2582,6 +2610,25 @@ describe('ignoreSpans (core path, streaming)', () => {
     });
 
     expect(spyOnDroppedEvent).toHaveBeenCalledWith('ignored', 'span');
+  });
+
+  it('exposes parent_span_id on an ignored child span', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored-child'],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    startSpan({ name: 'root' }, rootSpan => {
+      startSpan({ name: 'ignored-child' }, span => {
+        expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+        // The ignored span still links to its parent so `spanToJSON` can surface it.
+        expect(spanToJSON(span).parent_span_id).toBe(rootSpan.spanContext().spanId);
+      });
+    });
   });
 
   it('children of ignored child spans parent to grandparent', () => {
