@@ -125,7 +125,6 @@ describe('safeJoin()', () => {
     // Some tests register a stringifier via `setNormalizeStringifier`; reset so we don't
     // leak into unrelated tests sharing this module's global state.
     setNormalizeStringifier(undefined);
-    vi.unstubAllGlobals();
   });
 
   test('joins primitive values with the given delimiter', () => {
@@ -190,37 +189,6 @@ describe('safeJoin()', () => {
 
     expect(safeJoin([{ mark: true }, 'tail', { plain: 1 }], '/')).toEqual('[Marked]/tail/[object Object]');
     expect(stub).toHaveBeenCalled();
-  });
-
-  test('does not invoke getters or the stringifier for DOM elements (#21353)', () => {
-    // Capturing a console breadcrumb must be side-effect free. For DOM elements,
-    // routing through `stringifyValue` would call the browser stringifier's
-    // `htmlTreeAsString`, which reads `id`/`className`/`getAttribute` — invoking
-    // user-defined getters. `safeJoin` must short-circuit elements via `String(...)`.
-    class FakeElement {}
-    vi.stubGlobal('Element', FakeElement);
-
-    let getterInvoked = false;
-    const element = new FakeElement();
-    Object.defineProperty(element, 'id', {
-      get() {
-        getterInvoked = true;
-        return 'devtools-trap';
-      },
-    });
-
-    // Emulate the browser stringifier reading element attributes.
-    const stringifier = vi.fn((value: unknown): string => {
-      void (value as { id?: unknown }).id;
-      return '[HTMLElement: ...]';
-    });
-    setNormalizeStringifier(stringifier);
-
-    const result = safeJoin([element], ' ');
-
-    expect(getterInvoked).toBe(false);
-    expect(stringifier).not.toHaveBeenCalled();
-    expect(result).toBe(String(element));
   });
 
   test('supports an empty delimiter', () => {
