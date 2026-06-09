@@ -1,5 +1,5 @@
 {
-  "_comment": "Link list for the track-framework-updates skill. One entry per upstream framework/library the JS SDK supports. `sentryPackages` ties findings back to the affected @sentry/* package. The fetcher scripts read `github`, `rss`. `changelog` is reference-only (shown in the digest, not fetched).",
+  "_comment": "Link list for the track-framework-updates skill. One entry per upstream framework/library the JS SDK supports. `sentryPackages` ties findings back to the affected @sentry/* package. The fetcher scripts read `github` and `rss`. Releases URLs are derived from `github.repo` at runtime.",
   "frameworks": [
     {
       "name": "Angular",
@@ -8,11 +8,9 @@
       "github": {
         "repo": "angular/angular",
         "discussions": true,
-        "rfcsRepo": null,
-        "discussionCategories": ["RFCs"]
+        "rfcsRepo": null
       },
-      "rss": ["https://blog.angular.dev/feed"],
-      "changelog": "https://github.com/angular/angular/blob/main/CHANGELOG.md"
+      "rss": ["https://blog.angular.dev/feed"]
     },
     {
       "name": "React",
@@ -20,12 +18,10 @@
       "category": "client",
       "github": {
         "repo": "facebook/react",
-        "discussions": true,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "discussions": false,
+        "rfcsRepo": null
       },
-      "rss": ["https://react.dev/rss.xml"],
-      "changelog": "https://github.com/facebook/react/blob/HEAD/CHANGELOG.md"
+      "rss": ["https://react.dev/rss.xml"]
     },
     {
       "name": "Vue",
@@ -34,11 +30,9 @@
       "github": {
         "repo": "vuejs/core",
         "discussions": true,
-        "rfcsRepo": "vuejs/rfcs",
-        "discussionCategories": []
+        "rfcsRepo": "vuejs/rfcs"
       },
-      "rss": [],
-      "changelog": "https://github.com/vuejs/core/blob/main/CHANGELOG.md"
+      "rss": ["https://blog.vuejs.org/feed.rss"]
     },
     {
       "name": "Svelte",
@@ -47,11 +41,9 @@
       "github": {
         "repo": "sveltejs/svelte",
         "discussions": true,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": ["https://svelte.dev/blog/rss.xml"],
-      "changelog": "https://github.com/sveltejs/svelte/blob/main/packages/svelte/CHANGELOG.md"
+      "rss": ["https://svelte.dev/blog/rss.xml"]
     },
     {
       "name": "Solid",
@@ -60,11 +52,9 @@
       "github": {
         "repo": "solidjs/solid",
         "discussions": false,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/solidjs/solid/blob/main/CHANGELOG.md"
+      "rss": []
     },
     {
       "name": "Ember",
@@ -73,11 +63,9 @@
       "github": {
         "repo": "emberjs/ember.js",
         "discussions": false,
-        "rfcsRepo": "emberjs/rfcs",
-        "discussionCategories": []
+        "rfcsRepo": "emberjs/rfcs"
       },
-      "rss": [],
-      "changelog": "https://github.com/emberjs/ember.js/blob/main/CHANGELOG.md"
+      "rss": []
     },
     {
       "name": "Hono",
@@ -86,11 +74,9 @@
       "github": {
         "repo": "honojs/hono",
         "discussions": true,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/honojs/hono/releases"
+      "rss": []
     },
     {
       "name": "Nitro",
@@ -99,11 +85,9 @@
       "github": {
         "repo": "nitrojs/nitro",
         "discussions": false,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/nitrojs/nitro/blob/v2/CHANGELOG.md"
+      "rss": []
     },
     {
       "name": "NestJS",
@@ -112,11 +96,9 @@
       "github": {
         "repo": "nestjs/nest",
         "discussions": false,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/nestjs/nest/releases"
+      "rss": []
     },
     {
       "name": "Elysia",
@@ -125,11 +107,9 @@
       "github": {
         "repo": "elysiajs/elysia",
         "discussions": false,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/elysiajs/elysia/blob/main/CHANGELOG.md"
+      "rss": []
     },
     {
       "name": "Effect",
@@ -138,11 +118,9 @@
       "github": {
         "repo": "Effect-TS/effect",
         "discussions": true,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/Effect-TS/effect/releases"
+      "rss": ["https://effect.website/blog/rss.xml"]
     },
     {
       "name": "Next.js",
@@ -151,11 +129,9 @@
       "github": {
         "repo": "vercel/next.js",
         "discussions": true,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/vercel/next.js/releases"
+      "rss": ["https://nextjs.org/feed.xml"]
     },
     {
       "name": "Nuxt",
@@ -164,11 +140,9 @@
       "github": {
         "repo": "nuxt/nuxt",
         "discussions": true,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/nuxt/nuxt/releases"
+      "rss": ["https://nuxt.com/blog/rss.xml"]
     },
     {
       "name": "SvelteKit",
@@ -177,11 +151,9 @@
       "github": {
         "repo": "sveltejs/kit",
         "discussions": true,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/sveltejs/kit/blob/main/packages/kit/CHANGELOG.md"
+      "rss": []
     },
     {
       "name": "React Router / Remix",
@@ -190,11 +162,9 @@
       "github": {
         "repo": "remix-run/react-router",
         "discussions": true,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/remix-run/react-router/blob/main/CHANGELOG.md"
+      "rss": ["https://remix.run/blog/rss.xml"]
     },
     {
       "name": "Astro",
@@ -203,11 +173,9 @@
       "github": {
         "repo": "withastro/astro",
         "discussions": true,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": ["https://astro.build/rss.xml"],
-      "changelog": "https://github.com/withastro/astro/releases"
+      "rss": ["https://astro.build/rss.xml"]
     },
     {
       "name": "Gatsby",
@@ -216,11 +184,9 @@
       "github": {
         "repo": "gatsbyjs/gatsby",
         "discussions": false,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/gatsbyjs/gatsby/releases"
+      "rss": []
     },
     {
       "name": "TanStack Start",
@@ -229,11 +195,9 @@
       "github": {
         "repo": "TanStack/router",
         "discussions": true,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/TanStack/router/releases"
+      "rss": ["https://tanstack.com/rss.xml"]
     },
     {
       "name": "SolidStart",
@@ -242,11 +206,9 @@
       "github": {
         "repo": "solidjs/solid-start",
         "discussions": false,
-        "rfcsRepo": null,
-        "discussionCategories": []
+        "rfcsRepo": null
       },
-      "rss": [],
-      "changelog": "https://github.com/solidjs/solid-start/releases"
+      "rss": []
     }
   ]
 }

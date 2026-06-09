@@ -54,7 +54,7 @@ query($owner: String!, $repo: String!) {
 
 
 def fetch_discussions(
-    repo: str, since: datetime, categories: list[str] | None
+    repo: str, since: datetime
 ) -> list[dict[str, Any]]:
     """Return recently-updated discussions for `repo`."""
     owner, name = repo.split("/", 1)
@@ -67,15 +67,12 @@ def fetch_discussions(
         or []
     )
 
-    wanted = {c.lower() for c in (categories or [])}
     out = []
     for node in nodes:
         updated = parse_iso(node.get("updatedAt"))
         if updated is None or updated < since:
             continue
         category = (node.get("category") or {}).get("name") or ""
-        if wanted and category.lower() not in wanted:
-            continue
         out.append(
             {
                 "title": node.get("title"),
@@ -131,9 +128,7 @@ def collect(since_days: int) -> list[dict[str, Any]]:
         repo = gh.get("repo")
         if repo and gh.get("discussions"):
             try:
-                entry["discussions"] = fetch_discussions(
-                    repo, since, gh.get("discussionCategories")
-                )
+                entry["discussions"] = fetch_discussions(repo, since)
             except subprocess.CalledProcessError as exc:
                 entry.setdefault("errors", []).append(
                     f"discussions {repo} (exit code {exc.returncode})"
