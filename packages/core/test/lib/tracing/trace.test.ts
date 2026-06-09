@@ -16,6 +16,7 @@ import {
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import {
   continueTrace,
+  getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
   registerSpanErrorInstrumentation,
   SentrySpan,
@@ -1399,6 +1400,12 @@ describe('startInactiveSpan', () => {
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'GET users/[id]',
     });
+
+    // Non-recording spans must still carry the captured scopes, so consumers like
+    // SentryTraceProvider can read them to fork the isolation scope onto the context.
+    const captured = getCapturedScopesOnSpan(span);
+    expect(captured.scope).toBe(getCurrentScope());
+    expect(captured.isolationScope).toBe(getIsolationScope());
   });
 
   it('creates & finishes span', async () => {

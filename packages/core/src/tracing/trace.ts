@@ -392,6 +392,10 @@ function createChildOrRootSpan({
       freezeDscOnSpan(span, dsc);
     }
 
+    // Capture scopes even on non-recording spans so consumers (e.g. SentryTraceProvider)
+    // can read them to fork the isolation scope onto the active context.
+    setCapturedScopesOnSpan(span, scope, isolationScope);
+
     return span;
   }
 
@@ -403,11 +407,14 @@ function createChildOrRootSpan({
       client?.recordDroppedEvent('ignored', 'span');
     }
 
-    return new SentryNonRecordingSpan({
+    const ignoredSpan = new SentryNonRecordingSpan({
       dropReason: 'ignored',
       sampled: false,
       traceId: parentSpan?.spanContext().traceId ?? scope.getPropagationContext().traceId,
     });
+    setCapturedScopesOnSpan(ignoredSpan, scope, isolationScope);
+
+    return ignoredSpan;
   }
 
   let span: Span;
@@ -579,6 +586,10 @@ function _startChildSpan(
 
   addChildSpanToSpan(parentSpan, childSpan);
 
+  if (isolationScope) {
+    setCapturedScopesOnSpan(childSpan, scope, isolationScope);
+  }
+
   const client = getClient();
 
   if (!client) {
@@ -598,10 +609,6 @@ function _startChildSpan(
       childSpan.dropReason = 'sample_rate';
       client.recordDroppedEvent('sample_rate', 'span');
     }
-  }
-
-  if (isolationScope) {
-    setCapturedScopesOnSpan(childSpan, scope, isolationScope);
   }
 
   client.emit('spanStart', childSpan);
