@@ -64,8 +64,14 @@ export function eventEnvelope(
   {
     includeSamplingFields = false,
     includeSampleRand = false,
+    includeTransaction = true,
     sdk = 'cloudflare',
-  }: { includeSamplingFields?: boolean; includeSampleRand?: boolean; sdk?: 'cloudflare' | 'hono' } = {},
+  }: {
+    includeSamplingFields?: boolean;
+    includeSampleRand?: boolean;
+    includeTransaction?: boolean;
+    sdk?: 'cloudflare' | 'hono';
+  } = {},
 ): Envelope {
   return [
     {
@@ -78,7 +84,9 @@ export function eventEnvelope(
         trace_id: UUID_MATCHER,
         ...(includeSamplingFields && { sample_rate: expect.any(String), sampled: expect.any(String) }),
         ...(includeSampleRand && { sample_rand: expect.stringMatching(/^[01](\.\d+)?$/) }),
-        transaction: expect.any(String),
+        // In TwP mode the span name is omitted from the DSC when the span source is `url`
+        // (raw URLs may contain PII), mirroring `getDynamicSamplingContextFromSpan`.
+        ...(includeTransaction && { transaction: expect.any(String) }),
       },
     },
     [[{ type: 'event' }, expectedEvent(event, { sdk })]],
