@@ -11,7 +11,6 @@ import { GenericPoolInstrumentation } from '../../../src/integrations/tracing/ge
 import { cleanupOtel, mockSdkInit } from '../../helpers/mockSdkInit';
 
 // Create a fake `generic-pool` module.
-// A fresh class per test avoids patching a shared prototype across tests.
 function createPoolModule(): { Pool: new () => { acquire: () => Promise<string> } } {
   class FakePool {
     public acquire(): Promise<string> {
