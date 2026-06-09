@@ -246,18 +246,14 @@ describe('consoleLoggingIntegration', () => {
       expect(call.attributes).not.toHaveProperty('0');
     });
 
-    it('falls back when first arg is a number', () => {
+    it('does not generate template when first arg is a number', () => {
       triggerConsole('info', 42, 'is the answer');
 
       const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
       expect(call.message).toBe('42 is the answer');
-      expect(call.attributes).toEqual(
-        expect.objectContaining({
-          'sentry.origin': 'auto.log.console',
-          'sentry.message.template': '42 {}',
-          'sentry.message.parameter.0': 'is the answer',
-        }),
-      );
+      expect(call.attributes).toEqual({
+        'sentry.origin': 'auto.log.console',
+      });
     });
 
     it('falls back when first arg is an Error', () => {
@@ -289,9 +285,7 @@ describe('consoleLoggingIntegration', () => {
       });
 
       const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
-      expect(call.message).toBe(
-        'Deep {"level1":{"level2":{"level3":"[Object]"}},"simpleKey":"simple value"}',
-      );
+      expect(call.message).toBe('Deep {"level1":{"level2":{"level3":"[Object]"}},"simpleKey":"simple value"}');
       expect(call.attributes).toEqual(
         expect.objectContaining({
           'sentry.message.parameter.0': {
@@ -327,7 +321,7 @@ describe('consoleLoggingIntegration', () => {
       );
     });
 
-    it('does not treat class instances as plain objects', () => {
+    it('treats class instances as plain objects via isPlainObject', () => {
       class MyClass {
         public value = 42;
       }
@@ -335,7 +329,11 @@ describe('consoleLoggingIntegration', () => {
 
       const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
       expect(call.message).toContain('extra');
-      expect(call.attributes).not.toHaveProperty('value');
+      expect(call.attributes).toEqual(
+        expect.objectContaining({
+          value: 42,
+        }),
+      );
     });
 
     it('does not treat null as object-first', () => {
