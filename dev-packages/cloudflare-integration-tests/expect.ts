@@ -61,7 +61,11 @@ export function expectedEvent(event: Event, { sdk }: { sdk: 'cloudflare' | 'hono
 
 export function eventEnvelope(
   event: Event,
-  { includeSampleRand = false, sdk = 'cloudflare' }: { includeSampleRand?: boolean; sdk?: 'cloudflare' | 'hono' } = {},
+  {
+    includeSamplingFields = false,
+    includeSampleRand = false,
+    sdk = 'cloudflare',
+  }: { includeSamplingFields?: boolean; includeSampleRand?: boolean; sdk?: 'cloudflare' | 'hono' } = {},
 ): Envelope {
   return [
     {
@@ -72,9 +76,8 @@ export function eventEnvelope(
         environment: event.environment || 'production',
         public_key: 'public',
         trace_id: UUID_MATCHER,
-        sample_rate: expect.any(String),
+        ...(includeSamplingFields && { sample_rate: expect.any(String), sampled: expect.any(String) }),
         ...(includeSampleRand && { sample_rand: expect.stringMatching(/^[01](\.\d+)?$/) }),
-        sampled: expect.any(String),
         transaction: expect.any(String),
       },
     },

@@ -230,16 +230,20 @@ describe('startSpan', () => {
     setCurrentClient(client);
     client.init();
 
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+    });
+
     const span = startSpan({ name: 'GET users/[id]' }, span => {
       return span;
     });
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    expect(span.spanContext().traceId).toBe('12345678901234567890123456789012');
     expect(getDynamicSamplingContextFromSpan(span)).toEqual({
       environment: 'production',
-      sample_rate: '0',
-      sampled: 'false',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'GET users/[id]',
     });
@@ -882,8 +886,6 @@ describe('startSpanManual', () => {
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
     expect(getDynamicSamplingContextFromSpan(span)).toEqual({
       environment: 'production',
-      sample_rate: '0',
-      sampled: 'false',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'GET users/[id]',
     });
@@ -1394,8 +1396,6 @@ describe('startInactiveSpan', () => {
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
     expect(getDynamicSamplingContextFromSpan(span)).toEqual({
       environment: 'production',
-      sample_rate: '0',
-      sampled: 'false',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'GET users/[id]',
     });
