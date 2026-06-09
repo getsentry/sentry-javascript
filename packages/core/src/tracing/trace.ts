@@ -368,13 +368,15 @@ function createChildOrRootSpan({
     });
 
     if (forceTransaction || !parentSpan) {
-      const incomingDsc = propagationContext.dsc || getDynamicSamplingContextFromSpan(span);
-      // A continued trace's DSC is frozen and must win - only fall back to the
-      // local span name when there is no incoming/derived transaction.
-      const dsc = dropUndefinedKeys({
-        ...incomingDsc,
-        transaction: incomingDsc.transaction ?? spanArguments.name,
-      }) satisfies Partial<DynamicSamplingContext>;
+      // A continued trace's DSC is frozen and must win as-is, even when it's an empty `{}`
+      // (a `sentry-trace` header without baggage): we are not head of trace, so we neither
+      // fabricate client fields nor inject the local span name. Only when starting a new
+      // trace do we derive the DSC from the client and attach the local span name.
+      const dsc = (propagationContext.dsc ??
+        dropUndefinedKeys({
+          ...getDynamicSamplingContextFromSpan(span),
+          transaction: spanArguments.name,
+        })) satisfies Partial<DynamicSamplingContext>;
       freezeDscOnSpan(span, dsc);
     }
 

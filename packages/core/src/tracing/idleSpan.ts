@@ -134,13 +134,16 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       parentSpanId: propagationContext.parentSpanId,
     });
 
-    // In TwP mode, leave the sampling decision deferred (like `startSpan`) so baggage
-    // and the `sentry-trace` header agree. A continued trace's frozen DSC wins.
-    const incomingDsc = propagationContext.dsc || getDynamicSamplingContextFromSpan(span);
-    const dsc = dropUndefinedKeys({
-      ...incomingDsc,
-      transaction: incomingDsc.transaction ?? startSpanOptions.name,
-    }) satisfies Partial<DynamicSamplingContext>;
+    // In TwP mode, leave the sampling decision deferred (like `startSpan`) so baggage and the
+    // `sentry-trace` header agree. A continued trace's DSC is frozen and wins as-is, even when
+    // it's an empty `{}` (a `sentry-trace` header without baggage): we are not head of trace, so
+    // we neither fabricate client fields nor inject the local span name. Only a new trace derives
+    // the DSC from the client and attaches the local span name.
+    const dsc = (propagationContext.dsc ??
+      dropUndefinedKeys({
+        ...getDynamicSamplingContextFromSpan(span),
+        transaction: startSpanOptions.name,
+      })) satisfies Partial<DynamicSamplingContext>;
     freezeDscOnSpan(span, dsc);
 
     return span;
