@@ -76,6 +76,7 @@ def collect(since_days: int) -> list[dict[str, Any]]:
             "name": fw["name"],
             "sentryPackages": fw.get("sentryPackages", []),
             "category": fw.get("category"),
+            "releasesUrl": f"https://github.com/{repo}/releases" if repo else None,
             "releases": [],
         }
         if repo:
