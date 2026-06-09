@@ -73,5 +73,11 @@ packages/**/*.junit.xml
 # Triage report
 **/triage_report.md
 
+# Dependabot auto-triage run artifacts
+noise.json
+fix-candidates-runtime.json
+fix-candidates-dev.json
+pr-body-*.md
+
 # Environment variables
 .env
