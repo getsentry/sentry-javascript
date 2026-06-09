@@ -1,4 +1,4 @@
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
 import type { DynamicSamplingContext } from '../types/envelope';
@@ -6,6 +6,7 @@ import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { debug } from '../utils/debug-logger';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { dropUndefinedKeys } from '../utils/object';
 import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
@@ -120,21 +121,31 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   } = options;
 
   const client = getClient();
+  const scope = getCurrentScope();
 
   if (!client || !hasSpansEnabled()) {
-    const span = new SentryNonRecordingSpan();
+    const propagationContext = {
+      ...getIsolationScope().getPropagationContext(),
+      ...scope.getPropagationContext(),
+    };
 
-    const dsc = {
-      sample_rate: '0',
-      sampled: 'false',
-      ...getDynamicSamplingContextFromSpan(span),
-    } satisfies Partial<DynamicSamplingContext>;
+    const span = new SentryNonRecordingSpan({
+      traceId: propagationContext.traceId,
+      parentSpanId: propagationContext.parentSpanId,
+    });
+
+    // In TwP mode, leave the sampling decision deferred (like `startSpan`) so baggage
+    // and the `sentry-trace` header agree. A continued trace's frozen DSC wins.
+    const incomingDsc = propagationContext.dsc || getDynamicSamplingContextFromSpan(span);
+    const dsc = dropUndefinedKeys({
+      ...incomingDsc,
+      transaction: incomingDsc.transaction ?? startSpanOptions.name,
+    }) satisfies Partial<DynamicSamplingContext>;
     freezeDscOnSpan(span, dsc);
 
     return span;
   }
 
-  const scope = getCurrentScope();
   const previousActiveSpan = getActiveSpan();
   const span = _startIdleSpan(startSpanOptions);
 
