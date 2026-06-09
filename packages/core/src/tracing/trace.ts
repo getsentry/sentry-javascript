@@ -506,7 +506,7 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
     client.recordDroppedEvent('sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
   }
 
-  if (client) {
+  if (sampled && client) {
     client.emit('spanStart', rootSpan);
   }
 
@@ -554,11 +554,8 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
     }
   }
 
-  client.emit('spanStart', childSpan);
-  // If it has an endTimestamp, it's already ended
-  if (spanArguments.endTimestamp) {
-    client.emit('spanEnd', childSpan);
-    client.emit('afterSpanEnd', childSpan);
+  if (sampled) {
+    client.emit('spanStart', childSpan);
   }
 
   return childSpan;
