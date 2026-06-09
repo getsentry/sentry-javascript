@@ -18,6 +18,8 @@
   // → sentry.message.template: "Hello {} {}"
   ```
 
+Work in this release was contributed by @archievi. Thank you for your contribution!
+
 ## 10.57.0
 
 ### Important Changes
