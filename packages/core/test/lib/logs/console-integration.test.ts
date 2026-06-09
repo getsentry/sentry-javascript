@@ -238,12 +238,13 @@ describe('consoleLoggingIntegration', () => {
       expect(call.attributes).not.toHaveProperty('sentry.message.parameter.0');
     });
 
-    it('falls back when first arg is an array', () => {
+    it('does not treat arrays as objects for attribute extraction', () => {
       triggerConsole('info', [1, 2, 3], 'Array data');
 
       expect(formatConsoleArgs).toHaveBeenCalled();
       const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
       expect(call.message).toBe('[1,2,3] Array data');
+      // If arrays were treated as objects, their indices would leak as attribute keys ('0', '1', '2')
       expect(call.attributes).not.toHaveProperty('0');
     });
 
@@ -257,7 +258,10 @@ describe('consoleLoggingIntegration', () => {
       });
     });
 
-    it('falls back when first arg is an Error', () => {
+    // Errors are intentionally not treated as plain objects for attribute extraction.
+    // Extracting Error properties (message, name, stack, cause, custom fields) as log attributes
+    // would be complex and inconsistent. Only plain objects get structured extraction.
+    it('does not extract Error properties as attributes when Error is first arg', () => {
       const err = new Error('Test error');
       triggerConsole('error', err, 'context info');
 
@@ -268,7 +272,7 @@ describe('consoleLoggingIntegration', () => {
       expect(call.attributes).not.toHaveProperty('name');
     });
 
-    it('normalizes Error objects into message parameters', () => {
+    it('normalizes Error objects into message parameters when Error is a trailing arg', () => {
       const err = new Error('connection refused');
       triggerConsole('error', 'Error occurred:', err);
 
