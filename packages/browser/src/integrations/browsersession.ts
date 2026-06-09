@@ -1,4 +1,11 @@
-import { captureSession, debug, defineIntegration, getIsolationScope, startSession } from '@sentry/core/browser';
+import {
+  captureSession,
+  debug,
+  defineIntegration,
+  getIsolationScope,
+  SEMANTIC_ATTRIBUTE_SESSION_ID,
+  startSession,
+} from '@sentry/core/browser';
 import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -29,6 +36,52 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
 
   return {
     name: 'BrowserSession',
+    setup(client) {
+      function attachSessionId<T extends { attributes?: Record<string, unknown> | undefined }>(telemetryItem: T): T {
+        const session = getIsolationScope().getSession();
+        const attributes = telemetryItem.attributes ?? (telemetryItem.attributes = {});
+        if (session?.sid && !attributes?.[SEMANTIC_ATTRIBUTE_SESSION_ID]) {
+          attributes[SEMANTIC_ATTRIBUTE_SESSION_ID] = session.sid;
+        }
+        return telemetryItem;
+      }
+
+      client.on('processMetric', attachSessionId);
+      client.on('beforeCaptureLog', attachSessionId);
+      // only applies to streamed spans
+      client.on('processSpan', attachSessionId);
+
+      // for errors and transactions (non-streamed spans)
+      client.addEventProcessor(event => {
+        if (event.type && event.type !== 'transaction') {
+          // ignore other events than errors and transactions for now
+          return event;
+        }
+
+        const sessionId = getIsolationScope().getSession()?.sid;
+        if (!sessionId) {
+          return event;
+        }
+
+        // set a session context on the event. Relay will extract the `session.id`
+        // tag from this context which will make it queryable in the UI.
+        event.contexts = {
+          session: {
+            id: sessionId,
+          },
+          ...event.contexts,
+        };
+
+        event.spans?.forEach(span => {
+          span.data = {
+            [SEMANTIC_ATTRIBUTE_SESSION_ID]: sessionId,
+            ...span.data,
+          };
+        });
+
+        return event;
+      });
+    },
     setupOnce() {
       if (typeof WINDOW.document === 'undefined') {
         DEBUG_BUILD &&
