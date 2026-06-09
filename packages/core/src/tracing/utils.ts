@@ -6,9 +6,19 @@ import { derefWeakRef, makeWeakRef, type MaybeWeakRef } from '../utils/weakRef';
 const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
 const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
 
+// Brand marking a span whose `sentry.source` should be inferred OTel-style at span end (by
+// `applyOtelSpanData`) rather than pinned. `SentryTraceProvider` sets it on the spans it creates
+// so they behave like OTel SDK spans, which carry no Sentry source concept. We use `Symbol.for`
+// so the key is shared across duplicated copies of `@sentry/core`.
+const OTEL_SOURCE_INFERENCE_SPAN_FIELD = Symbol.for('sentry.otelSourceInference');
+
 type SpanWithScopes = Span & {
   [SCOPE_ON_START_SPAN_FIELD]?: Scope;
   [ISOLATION_SCOPE_ON_START_SPAN_FIELD]?: MaybeWeakRef<Scope>;
+};
+
+type SpanWithOtelSourceInference = Span & {
+  [OTEL_SOURCE_INFERENCE_SPAN_FIELD]?: boolean;
 };
 
 /** Store the scope & isolation scope for a span, which can the be used when it is finished. */
@@ -32,4 +42,18 @@ export function getCapturedScopesOnSpan(span: Span): { scope?: Scope; isolationS
     scope: spanWithScopes[SCOPE_ON_START_SPAN_FIELD],
     isolationScope: derefWeakRef(spanWithScopes[ISOLATION_SCOPE_ON_START_SPAN_FIELD]),
   };
+}
+
+/**
+ * Mark a span as eligible for OTel-style `sentry.source` inference at span end.
+ * Set by `SentryTraceProvider` on the spans it creates; read by `SentrySpan.updateName()` and
+ * `applyOtelSpanData()`.
+ */
+export function markSpanForOtelSourceInference(span: Span): void {
+  addNonEnumerableProperty(span, OTEL_SOURCE_INFERENCE_SPAN_FIELD, true);
+}
+
+/** Whether a span is marked for OTel-style `sentry.source` inference (see {@link markSpanForOtelSourceInference}). */
+export function spanShouldInferOtelSource(span: Span): boolean {
+  return (span as SpanWithOtelSourceInference)[OTEL_SOURCE_INFERENCE_SPAN_FIELD] === true;
 }

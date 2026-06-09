@@ -4,6 +4,7 @@ import { setCurrentClient } from '../../../src/sdk';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../../../src/semanticAttributes';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
+import { markSpanForOtelSourceInference } from '../../../src/tracing/utils';
 import type { SpanJSON } from '../../../src/types/span';
 import { spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 import { timestampInSeconds } from '../../../src/utils/time';
@@ -36,6 +37,27 @@ describe('SentrySpan', () => {
       const spanJson = spanToJSON(span);
       expect(spanJson.description).toEqual('new name');
       expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
+    });
+
+    it('sets the source to custom when calling updateName on a span without a source', () => {
+      const span = new SentrySpan({ name: 'original name' });
+
+      span.updateName('new name');
+
+      const spanJson = spanToJSON(span);
+      expect(spanJson.description).toEqual('new name');
+      expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
+    });
+
+    it('does not set the source when calling updateName on a span marked for OTel source inference', () => {
+      const span = new SentrySpan({ name: 'original name' });
+      markSpanForOtelSourceInference(span);
+
+      span.updateName('new name');
+
+      const spanJson = spanToJSON(span);
+      expect(spanJson.description).toEqual('new name');
+      expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBeUndefined();
     });
   });
 
