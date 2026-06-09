@@ -8,6 +8,7 @@ import {
   getGlobalScope,
   getIsolationScope,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentryNonRecordingSpan,
   SentrySpan,
   setCurrentClient,
@@ -141,6 +142,28 @@ describe('startIdleSpan', () => {
 
     // We are not head of trace: don't fabricate client fields or inject the local transaction.
     expect(getDynamicSamplingContextFromSpan(idleSpan)).toEqual({});
+  });
+
+  it('does not add a url-source span name to the DSC when tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({ dsn });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    // Mirrors a browser pageload/navigation span, whose name is the URL path.
+    const idleSpan = startIdleSpan({
+      name: '/users/123e4567-e89b-12d3-a456-426614174000',
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+    });
+
+    expect(idleSpan).toBeInstanceOf(SentryNonRecordingSpan);
+    // URLs might contain PII, so the span name must not end up in the DSC.
+    expect(getDynamicSamplingContextFromSpan(idleSpan)).toEqual({
+      environment: 'production',
+      public_key: '123',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    });
+    expect(spanToBaggageHeader(idleSpan)).not.toContain('sentry-transaction');
   });
 
   it('does not finish idle span if there are still active activities', () => {

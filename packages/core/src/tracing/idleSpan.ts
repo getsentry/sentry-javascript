@@ -1,6 +1,9 @@
 import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
 import type { DynamicSamplingContext } from '../types/envelope';
 import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
@@ -140,10 +143,16 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     // it's an empty `{}` (a `sentry-trace` header without baggage): we are not head of trace, so
     // we neither fabricate client fields nor inject the local span name. Only a new trace derives
     // the DSC from the client and attaches the local span name.
+    // As in `getDynamicSamplingContextFromSpan`, skip the span name when its source is
+    // "url" because URLs might contain PII.
+    // TODO(v11): Only read `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` again, once we renamed it to `sentry.span.source`
+    const source =
+      startSpanOptions.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] ??
+      startSpanOptions.attributes?.['sentry.span.source'];
     const dsc = (propagationContext.dsc ??
       dropUndefinedKeys({
         ...getDynamicSamplingContextFromSpan(span),
-        transaction: startSpanOptions.name,
+        transaction: source === 'url' ? undefined : startSpanOptions.name,
       })) satisfies Partial<DynamicSamplingContext>;
     freezeDscOnSpan(span, dsc);
 
