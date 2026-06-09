@@ -6,7 +6,7 @@ Sentry.init({
   dsn: 'https://public@o12345.ingest.us.sentry.io/67890',
   // No tunnel option - using tunnelRoute from withSentryConfig
   tracesSampleRate: 1.0,
-  sendDefaultPii: true,
+  dataCollection: { userInfo: true },
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

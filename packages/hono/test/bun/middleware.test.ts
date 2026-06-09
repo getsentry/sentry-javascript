@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { sentry } from '../../src/bun/middleware';
 import { init } from '../../src/bun/sdk';
+import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../../src/shared/lowQualityTransactionPatterns';
 
 vi.mock('@sentry/bun', () => ({
   init: vi.fn(),
@@ -203,6 +204,37 @@ describe('Hono Bun Middleware', () => {
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
       expect(initBunMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('ignoreSpans (low-quality transaction filtering)', () => {
+    it('adds default low-quality transaction patterns to ignoreSpans', () => {
+      const app = new Hono();
+      sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      const callArgs = (initBunMock as Mock).mock.calls[0]?.[0];
+      expect(callArgs.ignoreSpans).toEqual(expect.arrayContaining(LOW_QUALITY_TRANSACTION_PATTERNS));
+    });
+
+    it('preserves user-supplied ignoreSpans and appends defaults', () => {
+      const app = new Hono();
+      const userPattern = /^GET \/health$/;
+      sentry(app, {
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        ignoreSpans: [userPattern],
+      });
+
+      const callArgs = (initBunMock as Mock).mock.calls[0]?.[0];
+      expect(callArgs.ignoreSpans[0]).toBe(userPattern);
+      expect(callArgs.ignoreSpans).toEqual(expect.arrayContaining(LOW_QUALITY_TRANSACTION_PATTERNS));
+    });
+
+    it('handles undefined ignoreSpans gracefully', () => {
+      const app = new Hono();
+      sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      const callArgs = (initBunMock as Mock).mock.calls[0]?.[0];
+      expect(callArgs.ignoreSpans).toHaveLength(LOW_QUALITY_TRANSACTION_PATTERNS.length);
     });
   });
 });

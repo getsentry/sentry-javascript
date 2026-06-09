@@ -14,7 +14,7 @@ vi.mock('@opentelemetry/api', async () => {
 
 const mockContext = {
   clientContext: {
-    Custom: {
+    custom: {
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       baggage: 'sentry-environment=production',
     },
@@ -54,7 +54,7 @@ describe('getTraceData', () => {
   test('gets sentry trace data from the event if the context sentry trace is undefined', () => {
     const traceData = getAwsTraceData(mockEvent, {
       // @ts-expect-error, a partial context object is fine here
-      clientContext: { Custom: { 'sentry-trace': undefined, baggage: '' } },
+      clientContext: { custom: { 'sentry-trace': undefined, baggage: '' } },
     });
 
     expect(traceData['sentry-trace']).toEqual('12345678901234567890123456789012-1234567890123456-2');

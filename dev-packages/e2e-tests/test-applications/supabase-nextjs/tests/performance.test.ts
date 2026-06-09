@@ -57,7 +57,7 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
 
   const transactionEvent = await pageloadTransactionPromise;
 
-  // Client uses default sendDefaultPii: false — URL filters and bodies are not attached to spans/breadcrumbs.
+  // Client uses default data collection settings (no PII `userInfo`) — URL filters and bodies are not attached to spans/breadcrumbs.
   const redactedSelectSpan = expect.objectContaining({
     description: '[redacted] from(todos)',
     op: 'db',

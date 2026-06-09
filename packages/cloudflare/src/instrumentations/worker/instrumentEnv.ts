@@ -1,5 +1,6 @@
 import type { CloudflareOptions } from '../../client';
-import { isDurableObjectNamespace, isJSRPC, isQueue } from '../../utils/isBinding';
+import { isD1Database, isDurableObjectNamespace, isJSRPC, isQueue } from '../../utils/isBinding';
+import { instrumentD1 } from './instrumentD1';
 import { appendRpcMeta } from '../../utils/rpcMeta';
 import { getEffectiveRpcPropagation } from '../../utils/rpcOptions';
 import { instrumentDurableObjectNamespace, STUB_NON_RPC_METHODS } from '../instrumentDurableObjectNamespace';
@@ -45,6 +46,12 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
 
       if (cached) {
         return cached;
+      }
+
+      if (isD1Database(item)) {
+        const instrumented = instrumentD1(item);
+        instrumentedBindings.set(item, instrumented);
+        return instrumented;
       }
 
       if (isQueue(item)) {

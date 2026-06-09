@@ -4,6 +4,7 @@ import { DEBUG_BUILD } from '../../debug-build';
 import type { Scope } from '../../scope';
 import type { HttpServerResponse } from './types';
 import type { AggregationCounts } from '../../types/session';
+import { safeDateNow } from '../../utils/randomSafeContext';
 import { safeUnref } from '../../utils/timer';
 
 const clientToRequestSessionAggregatesMap = new WeakMap<
@@ -42,7 +43,7 @@ export function recordRequestSession(
     if (client && requestSession) {
       DEBUG_BUILD && debug.log(`Recorded request session with status: ${requestSession.status}`);
 
-      const roundedDate = new Date();
+      const roundedDate = new Date(safeDateNow());
       roundedDate.setSeconds(0, 0);
       const dateBucketKey = roundedDate.toISOString();
 

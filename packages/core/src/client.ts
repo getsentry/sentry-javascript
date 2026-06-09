@@ -1075,7 +1075,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'endPageloadSpan'): void;
 
   /**
-   * Emit a hook event for browser tracing integrations to trigger aafter the pageload span was started.
+   * Emit a hook event for browser tracing integrations to trigger after the pageload span was started.
    */
   public emit(hook: 'afterStartPageLoadSpan', span: Span): void;
 

@@ -29,7 +29,7 @@ describe('Google GenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates google genai related spans with sendDefaultPii: false', async () => {
+    test('creates google genai related spans with genAI recording disabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -83,7 +83,7 @@ describe('Google GenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates google genai related spans with sendDefaultPii: true', async () => {
+    test('creates google genai related spans with genAI recording enabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -232,7 +232,7 @@ describe('Google GenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates google genai streaming spans with sendDefaultPii: false', async () => {
+    test('creates google genai streaming spans with genAI recording disabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -290,7 +290,7 @@ describe('Google GenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates google genai streaming spans with sendDefaultPii: true', async () => {
+    test('creates google genai streaming spans with genAI recording enabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -419,7 +419,7 @@ describe('Google GenAI integration', () => {
   );
 
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates google genai embeddings spans with sendDefaultPii: false', async () => {
+    test('creates google genai embeddings spans with genAI recording disabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -458,7 +458,7 @@ describe('Google GenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates google genai embeddings spans with sendDefaultPii: true', async () => {
+    test('creates google genai embeddings spans with genAI recording enabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
