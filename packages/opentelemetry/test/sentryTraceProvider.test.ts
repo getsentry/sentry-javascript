@@ -1,6 +1,14 @@
 import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { getActiveSpan, spanToJSON, SPAN_STATUS_ERROR, startSpanManual, type Span } from '@sentry/core';
+import {
+  getActiveSpan,
+  getCapturedScopesOnSpan,
+  spanToJSON,
+  SPAN_STATUS_ERROR,
+  startSpanManual,
+  type Span,
+  withIsolationScope,
+} from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SentryAsyncLocalStorageContextManager } from '../src/asyncLocalStorageContextManager';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
@@ -74,6 +82,16 @@ describe('SentryTraceProvider', () => {
       expect(spanToJSON(child as Span).parent_span_id).toBe(parent.spanContext().spanId);
 
       parent.end();
+    });
+  });
+
+  it('captures scopes on suppressed spans so startActiveSpan can fork the isolation scope', () => {
+    withIsolationScope(isolationScope => {
+      const suppressedContext = suppressTracing(context.active());
+      const span = trace.getTracer('test').startSpan('child', {}, suppressedContext);
+
+      // Without captured scopes, startActiveSpan cannot fork the isolation scope onto the context.
+      expect(getCapturedScopesOnSpan(span as unknown as Span).isolationScope).toBe(isolationScope);
     });
   });
 

@@ -15,12 +15,14 @@ import {
   addNonEnumerableProperty,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
+  getIsolationScope,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentryNonRecordingSpan,
   getCapturedScopesOnSpan,
   getSpanStatusFromHttpCode,
+  setCapturedScopesOnSpan,
   spanToJSON,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
@@ -230,10 +232,14 @@ class SentryTracer implements Tracer {
 
   private _createNonRecordingSpan(parentSpan: OpenTelemetrySpan | undefined): OpenTelemetrySpan {
     const parentSpanContext = parentSpan?.spanContext();
-    return new SentryNonRecordingSpan({
+    const span = new SentryNonRecordingSpan({
       traceId: parentSpanContext?.traceId,
       parentSpanId: parentSpanContext?.spanId,
-    }) as OpenTelemetrySpan;
+    });
+    // Capture the scopes (mirroring `createChildOrRootSpan`) so `startActiveSpan` can
+    // fork the isolation scope onto the OTel context for work inside a suppressed span.
+    setCapturedScopesOnSpan(span, getCurrentScope(), getIsolationScope());
+    return span as OpenTelemetrySpan;
   }
 }
 
