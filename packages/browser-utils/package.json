@@ -18,6 +18,7 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "react-native": "./build/esm/index.js",
       "import": {
         "types": "./build/types/index.d.ts",
         "default": "./build/esm/index.js"
