@@ -2398,6 +2398,36 @@ describe('span hooks', () => {
     expect(startedSpans).toEqual(['span1', 'span2', 'span3', 'span5', 'span4']);
     expect(endedSpans).toEqual(['span5', 'span3', 'span2', 'span1']);
   });
+
+  it('captures scopes on a root span before the spanStart event fires', () => {
+    let scopeAtSpanStart: Scope | undefined;
+    let isolationScopeAtSpanStart: Scope | undefined;
+    client.on('spanStart', span => {
+      scopeAtSpanStart = getCapturedScopesOnSpan(span).scope;
+      isolationScopeAtSpanStart = getCapturedScopesOnSpan(span).isolationScope;
+    });
+
+    startInactiveSpan({ name: 'root span' });
+
+    expect(scopeAtSpanStart).toBe(getCurrentScope());
+    expect(isolationScopeAtSpanStart).toBe(getIsolationScope());
+  });
+
+  it('captures scopes on a child span before the spanStart event fires', () => {
+    let scopeAtSpanStart: Scope | undefined;
+    let isolationScopeAtSpanStart: Scope | undefined;
+    client.on('spanStart', span => {
+      scopeAtSpanStart = getCapturedScopesOnSpan(span).scope;
+      isolationScopeAtSpanStart = getCapturedScopesOnSpan(span).isolationScope;
+    });
+
+    startSpan({ name: 'parent span' }, () => {
+      startInactiveSpan({ name: 'child span' });
+
+      expect(scopeAtSpanStart).toBe(getCurrentScope());
+      expect(isolationScopeAtSpanStart).toBe(getIsolationScope());
+    });
+  });
 });
 
 describe('suppressTracing', () => {
@@ -2886,5 +2916,21 @@ describe('ignoreSpans (core path, streaming)', () => {
     const span = startInactiveSpan({ name: 'ignored-segment' });
     expect(span.spanContext().traceId).toBe(getCurrentScope().getPropagationContext().traceId);
     expect(span.spanContext().traceId).toBe('abc');
+  });
+
+  it('captures scopes on an ignored streamed span so its DSC can be resolved from the scope', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored'],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const span = startInactiveSpan({ name: 'ignored' });
+
+    expect(getCapturedScopesOnSpan(span).scope).toBe(getCurrentScope());
+    expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
   });
 });
