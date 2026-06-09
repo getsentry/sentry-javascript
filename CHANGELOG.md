@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @zhongrenfei1-hub. Thank you for your contribution!
+Work in this release was contributed by @zhongrenfei1-hub and @antonis. Thank you for your contributions!
 
 - **feat(angular): Add support for Angular 22**
 
