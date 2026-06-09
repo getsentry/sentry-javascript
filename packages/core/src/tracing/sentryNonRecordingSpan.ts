@@ -97,6 +97,10 @@ export class SentryNonRecordingSpan implements Span {
   }
 
   /**
+   * Exposes the parent span id so the generic `spanToJSON` fallback (which reads
+   * `.parentSpanId` off the instance) can surface `parent_span_id` for non-recording spans.
+   * Unlike `SentrySpan`, these have no serialization of their own.
+   *
    * @hidden
    * @internal
    */
