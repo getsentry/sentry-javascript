@@ -32,7 +32,6 @@ import type { Span, SpanAttributes, SpanLink, SpanStatus } from '@sentry/core';
 import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY } from './constants';
 import { inferSpanData } from './utils/parseSpanDescription';
 import { getSamplingDecision } from './utils/getSamplingDecision';
-import { setIsSetup } from './utils/setupCheck';
 
 type SentrySpanWithOtelKind = Span & { kind?: SpanKind };
 type SentrySpanWithOtelSourceInference = Span & { _sentryOtelInferSource?: boolean };
@@ -90,7 +89,6 @@ export class SentryTraceProvider implements TracerProvider {
 
   public constructor(options: { resource?: { attributes: SpanAttributes } } = {}) {
     this.resource = options.resource;
-    setIsSetup('SentryTraceProvider');
   }
 
   /** @inheritdoc */

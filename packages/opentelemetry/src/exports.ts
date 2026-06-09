@@ -48,7 +48,7 @@ export { SentrySampler, wrapSamplingDecision } from './sampler';
 export { applyOtelSpanData, SentryTraceProvider } from './sentryTraceProvider';
 export type { OpenTelemetryTraceProvider } from './types';
 
-export { openTelemetrySetupCheck } from './utils/setupCheck';
+export { openTelemetrySetupCheck, setIsSetup } from './utils/setupCheck';
 
 export { getSentryResource } from './resource';
 

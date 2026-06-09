@@ -17,6 +17,7 @@ import {
   SentrySampler,
   SentrySpanProcessor,
   SentryTraceProvider,
+  setIsSetup,
   setOpenTelemetryContextAsyncContextStrategy,
 } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
@@ -139,6 +140,11 @@ function setupSentryTraceProvider(
       );
     return [undefined, undefined];
   }
+
+  // Only mark the provider as set up once it is actually the registered global
+  // tracer provider, so setup validation doesn't skip required checks when
+  // registration failed.
+  setIsSetup('SentryTraceProvider');
 
   propagation.setGlobalPropagator(new SentryPropagator());
 
