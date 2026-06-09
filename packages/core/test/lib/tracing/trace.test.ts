@@ -9,6 +9,7 @@ import {
   Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setAsyncContextStrategy,
   setCurrentClient,
   spanToJSON,
@@ -278,6 +279,28 @@ describe('startSpan', () => {
     expect(span.spanContext().traceId).toBe('12345678901234567890123456789012');
     // We are not head of trace: don't fabricate client fields or inject the local transaction.
     expect(getDynamicSamplingContextFromSpan(span)).toEqual({});
+  });
+
+  it('does not add a url-source span name to the DSC when tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({});
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const span = startSpan(
+      {
+        name: '/users/123e4567-e89b-12d3-a456-426614174000',
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+      },
+      span => span,
+    );
+
+    expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    // URLs might contain PII, so the span name must not end up in the DSC.
+    expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+      environment: 'production',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    });
   });
 
   it('exposes parent_span_id on an unsampled non-recording child span', () => {

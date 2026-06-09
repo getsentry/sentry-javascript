@@ -386,10 +386,16 @@ function createChildOrRootSpan({
       // (a `sentry-trace` header without baggage): we are not head of trace, so we neither
       // fabricate client fields nor inject the local span name. Only when starting a new
       // trace do we derive the DSC from the client and attach the local span name.
+      // As in `getDynamicSamplingContextFromSpan`, skip the span name when its source is
+      // "url" because URLs might contain PII.
+      // TODO(v11): Only read `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` again, once we renamed it to `sentry.span.source`
+      const source =
+        spanArguments.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] ??
+        spanArguments.attributes?.['sentry.span.source'];
       const dsc = (propagationContext.dsc ??
         dropUndefinedKeys({
           ...getDynamicSamplingContextFromSpan(span),
-          transaction: spanArguments.name,
+          transaction: source === 'url' ? undefined : spanArguments.name,
         })) satisfies Partial<DynamicSamplingContext>;
       freezeDscOnSpan(span, dsc);
     }
