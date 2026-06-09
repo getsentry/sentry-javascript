@@ -1,3 +1,4 @@
+import { trace } from '@opentelemetry/api';
 import type { Integration } from '@sentry/core';
 import { debug, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
@@ -193,6 +194,53 @@ describe('init()', () => {
       const client = getClient<NodeClient>();
 
       expect(client?.traceProvider).not.toBeDefined();
+    });
+
+    it('uses the minimal Sentry trace provider when the experiment is enabled', () => {
+      init({ dsn: PUBLIC_DSN, _experiments: { useSentryTracerProvider: true } });
+
+      const client = getClient<NodeClient>();
+
+      expect(client?.traceProvider).toBeInstanceOf(SentryOpentelemetry.SentryTracerProvider);
+    });
+
+    it('warns and ignores additional span processors when the minimal Sentry trace provider is enabled', () => {
+      const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
+
+      init({
+        dsn: PUBLIC_DSN,
+        _experiments: { useSentryTracerProvider: true },
+        openTelemetrySpanProcessors: [
+          {
+            forceFlush: () => Promise.resolve(),
+            onStart: () => undefined,
+            onEnd: () => undefined,
+            shutdown: () => Promise.resolve(),
+          },
+        ],
+      });
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Ignoring `openTelemetrySpanProcessors` because `_experiments.useSentryTracerProvider` is enabled.',
+      );
+    });
+
+    it('does not mark SentryTracerProvider as set up when global registration fails', () => {
+      // Simulate another OpenTelemetry tracer provider already being registered.
+      const setGlobalSpy = vi.spyOn(trace, 'setGlobalTracerProvider').mockReturnValue(false);
+      const setIsSetupSpy = vi.spyOn(SentryOpentelemetry, 'setIsSetup');
+      const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
+
+      init({ dsn: PUBLIC_DSN, _experiments: { useSentryTracerProvider: true } });
+
+      expect(getClient<NodeClient>()?.traceProvider).not.toBeDefined();
+      expect(setIsSetupSpy).not.toHaveBeenCalledWith('SentryTracerProvider');
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Could not register SentryTracerProvider because another OpenTelemetry tracer provider is already registered.',
+      );
+
+      setGlobalSpy.mockRestore();
+      setIsSetupSpy.mockRestore();
     });
   });
 
