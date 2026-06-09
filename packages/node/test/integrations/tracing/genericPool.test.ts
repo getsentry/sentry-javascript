@@ -1,11 +1,17 @@
+/*
+ * Tests ported from @opentelemetry/instrumentation-generic-pool@0.61.0
+ * Original source: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/main/packages/instrumentation-generic-pool
+ * Licensed under the Apache License, Version 2.0
+ */
+
 import { context, trace } from '@opentelemetry/api';
 import { BasicTracerProvider, InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GenericPoolInstrumentation } from '../../../src/integrations/tracing/genericPool/vendored/instrumentation';
 import { cleanupOtel, mockSdkInit } from '../../helpers/mockSdkInit';
 
-// A minimal stand-in for the v3 `generic-pool` module: a `Pool` class with a promise-based `acquire`.
-// A fresh class per test keeps each test patching its own prototype (no cross-test contamination).
+// Create a fake `generic-pool` module.
+// A fresh class per test avoids patching a shared prototype across tests.
 function createPoolModule(): { Pool: new () => { acquire: () => Promise<string> } } {
   class FakePool {
     public acquire(): Promise<string> {
@@ -22,7 +28,6 @@ describe('GenericPoolInstrumentation', () => {
   let instrumentation: GenericPoolInstrumentation;
 
   beforeEach(() => {
-    // `mockSdkInit` gives us a working context manager so `context.with(...)` propagates the active span.
     mockSdkInit({ tracesSampleRate: 1 });
     instrumentation = new GenericPoolInstrumentation();
     instrumentation.setTracerProvider(provider);
@@ -34,9 +39,8 @@ describe('GenericPoolInstrumentation', () => {
     cleanupOtel();
   });
 
-  it('attaches the acquire span to the parent span', async () => {
+  it('should attach it to the parent span', async () => {
     const moduleExports = createPoolModule();
-    // index 0 is the v3 (`>=3.0.0 <4`) module definition with the promise-based patcher.
     const def = instrumentation.getModuleDefinitions()[0]!;
     def.patch!(moduleExports);
 
@@ -51,7 +55,7 @@ describe('GenericPoolInstrumentation', () => {
     expect(acquireSpan!.parentSpanContext?.spanId).toBe(parent.spanContext().spanId);
   });
 
-  it('does not create a span when disabled', async () => {
+  it('should not create anything if disabled', async () => {
     const moduleExports = createPoolModule();
     const def = instrumentation.getModuleDefinitions()[0]!;
     // Patch then unpatch to mimic the instrumentation being disabled.
