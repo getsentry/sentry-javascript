@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getActiveSpan,
+  getCapturedScopesOnSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
@@ -83,6 +84,10 @@ describe('startIdleSpan', () => {
     expect(spanToTraceHeader(idleSpan)).toBe(`12345678901234567890123456789012-${idleSpan.spanContext().spanId}`);
     expect(spanToBaggageHeader(idleSpan)).not.toContain('sentry-sampled');
     expect(spanToBaggageHeader(idleSpan)).not.toContain('sentry-sample_rate');
+
+    // Scopes are captured on the placeholder so consumers (e.g. SentryTraceProvider) can read them.
+    expect(getCapturedScopesOnSpan(idleSpan).scope).toBe(getCurrentScope());
+    expect(getCapturedScopesOnSpan(idleSpan).isolationScope).toBe(getIsolationScope());
 
     expect(getActiveSpan()).toBe(undefined);
   });

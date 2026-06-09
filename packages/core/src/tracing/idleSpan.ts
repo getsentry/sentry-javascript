@@ -22,6 +22,7 @@ import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
 import { startInactiveSpan } from './trace';
+import { setCapturedScopesOnSpan } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1_000,
@@ -145,6 +146,10 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
         transaction: startSpanOptions.name,
       })) satisfies Partial<DynamicSamplingContext>;
     freezeDscOnSpan(span, dsc);
+
+    // Capture scopes even on this non-recording placeholder so consumers (e.g. SentryTraceProvider)
+    // can read them, mirroring the non-recording paths in `createChildOrRootSpan`.
+    setCapturedScopesOnSpan(span, scope, getIsolationScope());
 
     return span;
   }
