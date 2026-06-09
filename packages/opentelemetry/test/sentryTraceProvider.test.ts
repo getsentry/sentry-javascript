@@ -1,4 +1,5 @@
 import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
+import { suppressTracing } from '@opentelemetry/core';
 import { getActiveSpan, spanToJSON, SPAN_STATUS_ERROR, startSpanManual, type Span } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SentryAsyncLocalStorageContextManager } from '../src/asyncLocalStorageContextManager';
@@ -60,6 +61,19 @@ describe('SentryTraceProvider', () => {
       const child = trace.getTracer('test').startSpan('child');
 
       expect(spanToJSON(child as Span).parent_span_id).toBe(parent.spanContext().spanId);
+    });
+  });
+
+  it('links non-recording spans to a suppressed active parent', () => {
+    trace.getTracer('test').startActiveSpan('parent', parent => {
+      const suppressedContext = suppressTracing(context.active());
+      const child = trace.getTracer('test').startSpan('child', {}, suppressedContext);
+
+      expect(child.isRecording()).toBe(false);
+      expect(spanToJSON(child as Span).trace_id).toBe(parent.spanContext().traceId);
+      expect(spanToJSON(child as Span).parent_span_id).toBe(parent.spanContext().spanId);
+
+      parent.end();
     });
   });
 

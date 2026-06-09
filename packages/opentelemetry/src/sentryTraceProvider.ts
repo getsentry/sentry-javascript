@@ -231,8 +231,10 @@ class SentryTracer implements Tracer {
   }
 
   private _createNonRecordingSpan(parentSpan: OpenTelemetrySpan | undefined): OpenTelemetrySpan {
+    const parentSpanContext = parentSpan?.spanContext();
     return new SentryNonRecordingSpan({
-      traceId: parentSpan?.spanContext().traceId,
+      traceId: parentSpanContext?.traceId,
+      parentSpanId: parentSpanContext?.spanId,
     }) as OpenTelemetrySpan;
   }
 }
