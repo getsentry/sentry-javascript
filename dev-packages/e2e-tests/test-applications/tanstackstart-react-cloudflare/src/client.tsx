@@ -1,15 +1,9 @@
-import * as Sentry from '@sentry/browser';
+// Imported first so Sentry.init() runs before any other import's side effects.
+import './instrument.client';
+import './early-side-effect';
 import { StartClient } from '@tanstack/react-start/client';
 import { StrictMode, startTransition } from 'react';
 import { hydrateRoot } from 'react-dom/client';
-
-Sentry.init({
-  environment: 'qa',
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  tracesSampleRate: 1.0,
-  release: 'e2e-test',
-  tunnel: 'http://localhost:3031/',
-});
 
 console.log('early-breadcrumb-from-client-entry');
 
