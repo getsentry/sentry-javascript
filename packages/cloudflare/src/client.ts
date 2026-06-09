@@ -1,5 +1,5 @@
 import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
-import { applySdkMetadata, debug, ServerRuntimeClient } from '@sentry/core';
+import { applySdkMetadata, debug, ServerRuntimeClient, spanIsSampled } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import type { makeFlushLock } from './flush';
 import type { CloudflareTransportOptions } from './transport';
@@ -44,6 +44,15 @@ export class CloudflareClient extends ServerRuntimeClient {
     this._unsubscribeSpanStart = this.on('spanStart', span => {
       const spanId = span.spanContext().spanId;
       DEBUG_BUILD && debug.log('[CloudflareClient] Span started:', spanId);
+
+      // Negatively sampled spans never emit spanEnd,
+      // so tracking them would cause _pendingSpans to grow unboundedly.
+      // We should fix the inconsistent behavior for NonRecordingSpans in the future but
+      // for now, we just ignore them.
+      if (!spanIsSampled(span)) {
+        return;
+      }
+
       this._pendingSpans.add(spanId);
 
       if (!this._spanCompletionPromise) {

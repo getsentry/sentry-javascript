@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _reconstructQuery, _sanitizeSqlQuery, instrumentPostgresJsSql } from '../../../src/integrations/postgresjs';
+import * as tracing from '../../../src/tracing';
 import * as spanUtils from '../../../src/utils/spanUtils';
 
 describe('PostgresJs portable instrumentation', () => {
@@ -553,6 +554,42 @@ describe('PostgresJs portable instrumentation', () => {
 
         // handle was wrapped
         expect((mockQuery.handle as any).__sentryWrapped).toBe(true);
+      });
+
+      it('only creates one span even when handle() is called multiple times', async () => {
+        const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
+        const startSpanManualSpy = vi
+          .spyOn(tracing, 'startSpanManual')
+          .mockImplementation((_opts, callback) => callback(mockSpan as any, () => {}));
+
+        const originalHandle = vi.fn().mockResolvedValue([]);
+        const mockQuery = {
+          handle: originalHandle,
+          strings: ['SELECT 1'],
+          resolve: vi.fn(),
+          reject: vi.fn(),
+          executed: false,
+        };
+        const mockSql = vi.fn().mockReturnValue(mockQuery);
+
+        const instrumented = instrumentPostgresJsSql(mockSql, { requireParentSpan: false });
+        instrumented(['SELECT 1']);
+
+        const wrappedHandle = mockQuery.handle as (...args: unknown[]) => Promise<unknown>;
+
+        // First call — executed is false, should create a span
+        await wrappedHandle.call(mockQuery);
+        expect(startSpanManualSpy).toHaveBeenCalledTimes(1);
+
+        // Simulate postgres.js setting executed = true after first handle()
+        mockQuery.executed = true;
+
+        // Second and third calls (from .then/.catch/.finally) — should NOT create more spans
+        await wrappedHandle.call(mockQuery);
+        await wrappedHandle.call(mockQuery);
+        expect(startSpanManualSpy).toHaveBeenCalledTimes(1);
+
+        startSpanManualSpy.mockRestore();
       });
     });
 

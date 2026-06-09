@@ -4,6 +4,7 @@ import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { sentry } from '../../src/cloudflare/middleware';
+import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../../src/shared/lowQualityTransactionPatterns';
 
 vi.mock('@sentry/cloudflare', { spy: true });
 vi.mock('@sentry/core', async () => {
@@ -115,6 +116,33 @@ describe('Hono Cloudflare Middleware', () => {
       const middleware = sentry(app, {});
 
       expect(middleware.constructor.name).toBe('AsyncFunction');
+    });
+
+    describe('ignoreSpans', () => {
+      it('adds universal low-quality transaction patterns to ignoreSpans', () => {
+        const app = new Hono();
+        sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+        const optionsCallback = withSentryMock.mock.calls[0]?.[0];
+        const result = optionsCallback();
+
+        expect(result.ignoreSpans).toEqual(expect.arrayContaining(LOW_QUALITY_TRANSACTION_PATTERNS));
+      });
+
+      it('preserves user-supplied ignoreSpans and appends defaults', () => {
+        const app = new Hono();
+        const userPattern = /^GET \/health$/;
+        sentry(app, {
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          ignoreSpans: [userPattern],
+        });
+
+        const optionsCallback = withSentryMock.mock.calls[0]?.[0];
+        const result = optionsCallback();
+
+        expect(result.ignoreSpans[0]).toBe(userPattern);
+        expect(result.ignoreSpans).toEqual(expect.arrayContaining(LOW_QUALITY_TRANSACTION_PATTERNS));
+      });
     });
 
     describe('when options is a function (env callback)', () => {
