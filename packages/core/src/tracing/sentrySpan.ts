@@ -143,7 +143,7 @@ export class SentrySpan implements Span {
    * @hidden
    * @internal
    */
-  public recordException(_exception: unknown, _time?: number | undefined): void {
+  public recordException(_exception: unknown, _time?: SpanTimeInput | undefined): void {
     // noop
   }
 

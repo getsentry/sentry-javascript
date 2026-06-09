@@ -37,11 +37,6 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
   function withScope<T>(callback: (scope: Scope) => T): T {
     const ctx = api.context.active();
 
-    // We depend on the otelContextManager to handle the context/hub
-    // We set the `SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY` context value, which is picked up by
-    // the OTEL context manager, which uses the presence of this key to determine if it should
-    // fork the isolation scope, or not
-    // as by default, we don't want to fork this, unless triggered explicitly by `withScope`
     return api.context.with(ctx, () => {
       return callback(getCurrentScope());
     });
@@ -50,9 +45,6 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
   function withSetScope<T>(scope: Scope, callback: (scope: Scope) => T): T {
     const ctx = getContextFromScope(scope) || api.context.active();
 
-    // We depend on the otelContextManager to handle the context/hub
-    // We set the `SENTRY_FORK_SET_SCOPE_CONTEXT_KEY` context value, which is picked up by
-    // the OTEL context manager, which picks up this scope as the current scope
     return api.context.with(ctx.setValue(SENTRY_FORK_SET_SCOPE_CONTEXT_KEY, scope), () => {
       return callback(scope);
     });
@@ -61,10 +53,6 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
   function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
     const ctx = api.context.active();
 
-    // We depend on the otelContextManager to handle the context/hub
-    // We set the `SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY` context value, which is picked up by
-    // the OTEL context manager, which uses the presence of this key to determine if it should
-    // fork the isolation scope, or not
     return api.context.with(ctx.setValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY, true), () => {
       return callback(getIsolationScope());
     });
@@ -73,10 +61,6 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
   function withSetIsolationScope<T>(isolationScope: Scope, callback: (isolationScope: Scope) => T): T {
     const ctx = api.context.active();
 
-    // We depend on the otelContextManager to handle the context/hub
-    // We set the `SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY` context value, which is picked up by
-    // the OTEL context manager, which uses the presence of this key to determine if it should
-    // fork the isolation scope, or not
     return api.context.with(ctx.setValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY, isolationScope), () => {
       return callback(getIsolationScope());
     });
@@ -105,8 +89,6 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     getTraceData,
     continueTrace,
     startNewTrace,
-    // The types here don't fully align, because our own `Span` type is narrower
-    // than the OTEL one - but this is OK for here, as we now we'll only have OTEL spans passed around
     withActiveSpan: withActiveSpan as typeof defaultWithActiveSpan,
   });
 }

@@ -181,6 +181,20 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
     return acs.startInactiveSpan(options);
   }
 
+  return _startInactiveSpanImpl(options);
+}
+
+/**
+ * Internal version of startInactiveSpan that bypasses the ACS check.
+ * Used by SentryTraceProvider to create spans without triggering recursion
+ * through ACS overrides.
+ * @hidden
+ */
+export function _INTERNAL_startInactiveSpan(options: StartSpanOptions): Span {
+  return _startInactiveSpanImpl(options);
+}
+
+function _startInactiveSpanImpl(options: StartSpanOptions): Span {
   const spanArguments = parseSentrySpanArguments(options);
   const { forceTransaction, parentSpan: customParentSpan } = options;
 

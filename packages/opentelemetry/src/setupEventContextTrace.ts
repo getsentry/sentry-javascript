@@ -1,6 +1,5 @@
 import type { Client } from '@sentry/core';
-import { getDynamicSamplingContextFromSpan, getRootSpan, spanToTraceContext } from '@sentry/core';
-import { getActiveSpan } from './utils/getActiveSpan';
+import { getActiveSpan, getDynamicSamplingContextFromSpan, getRootSpan, spanToTraceContext } from '@sentry/core';
 
 /** Ensure the `trace` context is set on all events. */
 export function setupEventContextTrace(client: Client): void {
