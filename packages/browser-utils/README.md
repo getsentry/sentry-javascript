@@ -10,6 +10,10 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/browser-utils.svg)](https://www.npmjs.com/package/@sentry/browser-utils)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/browser-utils.svg)](https://www.npmjs.com/package/@sentry/browser-utils)
 
+> [!NOTE]
+> This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
+> public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
@@ -17,8 +21,3 @@
 ## General
 
 Common utilities used by the Sentry JavaScript SDKs.
-
-## Package Status
-
-This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
-public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.

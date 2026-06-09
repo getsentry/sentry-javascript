@@ -10,6 +10,10 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/server-utils.svg)](https://www.npmjs.com/package/@sentry/server-utils)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/server-utils.svg)](https://www.npmjs.com/package/@sentry/server-utils)
 
+> [!NOTE]
+> This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
+> public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
@@ -18,8 +22,3 @@
 
 Common server-only utilities used by the Sentry JavaScript server SDKs (node, node-core, bun, deno, cloudflare,
 aws-serverless, google-cloud-serverless, vercel-edge).
-
-## Package Status
-
-This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
-public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.

@@ -10,11 +10,10 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
 
-## Package Status
-
-This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is re-exported from
-`@sentry/browser` and other browser-related SDKs like `@sentry/react` and `@sentry/vue`. It is not part of the public API
-contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
+> [!NOTE]
+> This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is re-exported from
+> `@sentry/browser` and other browser-related SDKs like `@sentry/react` and `@sentry/vue`. It is not part of the public
+> API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
 
 ## Pre-requisites
 
