@@ -25,7 +25,7 @@ const canonicalGrpcErrorCodesMap: Record<string, SpanStatus['message']> = {
   '16': 'unauthenticated',
 } as const;
 
-const isStatusErrorMessageValid = (message: string): boolean => {
+export const isStatusErrorMessageValid = (message: string): boolean => {
   return Object.values(canonicalGrpcErrorCodesMap).includes(message as SpanStatus['message']);
 };
 
@@ -72,7 +72,7 @@ export function mapStatus(span: AbstractSpan): SpanStatus {
   }
 }
 
-function inferStatusFromAttributes(attributes: SpanAttributes): SpanStatus | undefined {
+export function inferStatusFromAttributes(attributes: SpanAttributes): SpanStatus | undefined {
   // If the span status is UNSET, we try to infer it from HTTP or GRPC status codes.
 
   // eslint-disable-next-line typescript/no-deprecated
