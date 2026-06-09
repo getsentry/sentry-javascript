@@ -13,27 +13,37 @@ type SimpleNode = {
 type AccessorKey = 'parentNode' | 'tagName' | 'id' | 'className' | 'getAttribute' | 'dataset';
 const accessors: Partial<Record<AccessorKey, Function>> = {};
 
-if (typeof Node !== 'undefined') {
-  // oxlint-disable-next-line typescript-eslint(unbound-method)
-  accessors.parentNode = Object.getOwnPropertyDescriptor(Node.prototype, 'parentNode')!.get!;
+// oxlint-disable typescript-eslint(unbound-method)
+try {
+  if (typeof Node !== 'undefined') {
+    accessors.parentNode = Object.getOwnPropertyDescriptor(Node.prototype, 'parentNode')!.get!;
+  }
+  if (typeof Element !== 'undefined') {
+    accessors.tagName = Object.getOwnPropertyDescriptor(Element.prototype, 'tagName')!.get!;
+    accessors.id = Object.getOwnPropertyDescriptor(Element.prototype, 'id')!.get!;
+    accessors.className = Object.getOwnPropertyDescriptor(Element.prototype, 'className')!.get!;
+    accessors.getAttribute = Element.prototype.getAttribute;
+  }
+  if (typeof HTMLElement !== 'undefined') {
+    accessors.dataset = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'dataset')!.get!;
+  }
+} catch {
+  // Polyfilled or stubbed prototypes may not have the expected descriptors.
+  // _safeRead falls back to direct property access.
 }
-if (typeof Element !== 'undefined') {
-  // oxlint-disable-next-line typescript-eslint(unbound-method)
-  accessors.tagName = Object.getOwnPropertyDescriptor(Element.prototype, 'tagName')!.get!;
-  // oxlint-disable-next-line typescript-eslint(unbound-method)
-  accessors.id = Object.getOwnPropertyDescriptor(Element.prototype, 'id')!.get!;
-  // oxlint-disable-next-line typescript-eslint(unbound-method)
-  accessors.className = Object.getOwnPropertyDescriptor(Element.prototype, 'className')!.get!;
-  // oxlint-disable-next-line typescript-eslint(unbound-method)
-  accessors.getAttribute = Element.prototype.getAttribute;
-}
-if (typeof HTMLElement !== 'undefined') {
-  // oxlint-disable-next-line typescript-eslint(unbound-method)
-  accessors.dataset = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'dataset')!.get!;
-}
+// oxlint-enable typescript-eslint(unbound-method)
 
 function _safeRead<T>(el: unknown, prop: AccessorKey, arg?: string): T {
-  return accessors[prop]!.call(el, arg) as T;
+  const fn = accessors[prop];
+  if (fn) {
+    try {
+      return fn.call(el, arg) as T;
+    } catch {
+      // Fall through to direct access
+    }
+  }
+  const val = (el as Record<string, unknown>)[prop];
+  return typeof val === 'function' ? val.call(el, arg) : (val as T);
 }
 
 /**
