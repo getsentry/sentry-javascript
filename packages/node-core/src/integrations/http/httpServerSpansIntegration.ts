@@ -2,7 +2,7 @@ import { errorMonitor } from 'node:events';
 import type { IncomingHttpHeaders } from 'node:http';
 import { context, SpanKind, trace } from '@opentelemetry/api';
 import type { RPCMetadata } from '@opentelemetry/core';
-import { getRPCMetadata, RPCType, setRPCMetadata } from '@opentelemetry/core';
+import { RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
   HTTP_RESPONSE_STATUS_CODE,
   HTTP_ROUTE,
@@ -197,7 +197,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
               isEnded = true;
 
-              const newAttributes = getIncomingRequestAttributesOnResponse(request, response);
+              const newAttributes = getIncomingRequestAttributesOnResponse(request, response, rpcMetadata);
               span.setAttributes(newAttributes);
               span.setStatus(status);
               span.end();
@@ -369,6 +369,7 @@ function isCompressed(headers: IncomingHttpHeaders): boolean {
 function getIncomingRequestAttributesOnResponse(
   request: HttpIncomingMessage,
   response: HttpServerResponse,
+  rpcMetadata?: RPCMetadata,
 ): SpanAttributes {
   // take socket from the request,
   // since it may be detached from the response object in keep-alive mode
@@ -382,7 +383,6 @@ function getIncomingRequestAttributesOnResponse(
     'http.status_text': statusMessage?.toUpperCase(),
   };
 
-  const rpcMetadata = getRPCMetadata(context.active());
   if (socket) {
     const { localAddress, localPort, remoteAddress, remotePort } = socket;
     // eslint-disable-next-line typescript/no-deprecated
