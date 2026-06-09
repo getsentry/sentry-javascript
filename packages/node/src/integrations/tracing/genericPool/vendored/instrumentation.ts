@@ -30,7 +30,6 @@ const PACKAGE_NAME = '@sentry/instrumentation-generic-pool';
 
 type AcquireFn = (this: unknown, ...args: unknown[]) => unknown;
 interface PoolConstructor {
-  (...args: unknown[]): unknown;
   prototype: { acquire: AcquireFn };
 }
 interface GenericPoolModule {
@@ -125,11 +124,11 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
     };
   }
 
-  private _poolWrapper(original: AcquireFn) {
+  private _poolWrapper(original: (this: unknown, ...args: unknown[]) => { acquire: AcquireFn }) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
     return function wrapped_pool(this: unknown, ...args: unknown[]) {
-      const pool = original.apply(this, args) as { acquire: AcquireFn };
+      const pool = original.apply(this, args);
       instrumentation._wrap(pool, 'acquire', instrumentation._acquireWithCallbacksPatcher.bind(instrumentation));
       return pool;
     };
@@ -157,6 +156,7 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
             span.end();
             // Not checking whether cb is a function because
             // the original code doesn't do that either.
+            // The callback's return value is unused by generic-pool, so we don't return it.
             if (cb) {
               cb(err, client);
             }
