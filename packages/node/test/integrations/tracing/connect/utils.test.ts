@@ -5,13 +5,13 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { PatchedRequest } from '../../../src/integrations/tracing/connect/vendored/internal-types';
-import { _LAYERS_STORE_PROPERTY } from '../../../src/integrations/tracing/connect/vendored/internal-types';
+import type { PatchedRequest } from '../../../../src/integrations/tracing/connect/vendored/internal-types';
+import { _LAYERS_STORE_PROPERTY } from '../../../../src/integrations/tracing/connect/vendored/internal-types';
 import {
   addNewStackLayer,
   generateRoute,
   replaceCurrentStackRoute,
-} from '../../../src/integrations/tracing/connect/vendored/utils';
+} from '../../../../src/integrations/tracing/connect/vendored/utils';
 
 describe('utils', () => {
   describe('addNewStackLayer', () => {

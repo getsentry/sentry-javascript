@@ -60,11 +60,10 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   private _patchConstructor(original: () => Server): () => Server {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const instrumentation = this;
+    const patchApp = this._patchApp.bind(this);
     return function (this: Server, ...args: any[]) {
       const app = original.apply(this, args) as Server;
-      instrumentation._patchApp(app);
+      patchApp(app);
       return app;
     };
   }
@@ -103,12 +102,13 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   public _patchMiddleware(routeName: string, middleWare: HandleFunction): HandleFunction {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const instrumentation = this;
+    const isEnabled = this.isEnabled.bind(this);
+    const startSpan: (routeName: string, middleWare: HandleFunction) => Span = this._startSpan.bind(this);
+    const patchNext = this._patchNext.bind(this);
     const isErrorMiddleware = middleWare.length === 4;
 
     function patchedMiddleware(this: Use): void {
-      if (!instrumentation.isEnabled()) {
+      if (!isEnabled()) {
         return Reflect.apply(middleWare, this, arguments);
       }
       const [reqArgIdx, resArgIdx, nextArgIdx] = isErrorMiddleware ? [1, 2, 3] : [0, 1, 2];
@@ -122,7 +122,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
         setHttpServerSpanRouteAttribute(generateRoute(req));
       }
 
-      const span = instrumentation._startSpan(routeName, middleWare);
+      const span = startSpan(routeName, middleWare);
       let spanFinished = false;
 
       function finishSpan() {
@@ -134,7 +134,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
       }
 
       res.addListener('close', finishSpan);
-      arguments[nextArgIdx] = instrumentation._patchNext(next, finishSpan);
+      arguments[nextArgIdx] = patchNext(next, finishSpan);
 
       return Reflect.apply(middleWare, this, arguments);
     }
@@ -149,21 +149,19 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   public _patchUse(original: Server['use']): Use {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const instrumentation = this;
+    const patchMiddleware = this._patchMiddleware.bind(this);
     return function (this: Server, ...args: UseArgs): Server {
       const middleWare = args[args.length - 1] as HandleFunction;
       const routeName = (args[args.length - 2] || '') as string;
 
-      args[args.length - 1] = instrumentation._patchMiddleware(routeName, middleWare);
+      args[args.length - 1] = patchMiddleware(routeName, middleWare);
 
       return original.apply(this, args as UseArgs2);
     };
   }
 
   public _patchHandle(original: Server['handle']): Server['handle'] {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const instrumentation = this;
+    const patchOut = this._patchOut.bind(this);
     return function (this: Server): ReturnType<Server['handle']> {
       const [reqIdx, outIdx] = [0, 2];
       const req = arguments[reqIdx] as PatchedRequest;
@@ -171,7 +169,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
       const completeStack = addNewStackLayer(req);
 
       if (typeof out === 'function') {
-        arguments[outIdx] = instrumentation._patchOut(out as NextFunction, completeStack);
+        arguments[outIdx] = patchOut(out as NextFunction, completeStack);
       }
 
       return Reflect.apply(original, this, arguments);
