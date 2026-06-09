@@ -174,6 +174,31 @@ describe('getTraceData', () => {
     });
   });
 
+  it('preserves a continued trace DSC transaction when starting a TwP span', () => {
+    setupClient({ tracesSampleRate: undefined });
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+      dsc: {
+        environment: 'production',
+        public_key: '123',
+        trace_id: '12345678901234567890123456789012',
+        transaction: 'upstream-root',
+        sampled: 'true',
+        sample_rate: '0.5',
+      },
+    });
+
+    startSpan({ name: 'db.query' }, () => {
+      const data = getTraceData();
+
+      // The local span name must not overwrite the frozen DSC of the continued trace.
+      expect(data.baggage).toContain('sentry-transaction=upstream-root');
+      expect(data.baggage).not.toContain('db.query');
+    });
+  });
+
   it('allows to pass a span directly', () => {
     setupClient();
 

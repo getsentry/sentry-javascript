@@ -382,9 +382,12 @@ function createChildOrRootSpan({
     });
 
     if (forceTransaction || !parentSpan) {
+      const incomingDsc = propagationContext.dsc || getDynamicSamplingContextFromSpan(span);
+      // A continued trace's DSC is frozen and must win - only fall back to the
+      // local span name when there is no incoming/derived transaction.
       const dsc = dropUndefinedKeys({
-        ...(propagationContext.dsc || getDynamicSamplingContextFromSpan(span)),
-        transaction: spanArguments.name,
+        ...incomingDsc,
+        transaction: incomingDsc.transaction ?? spanArguments.name,
       }) satisfies Partial<DynamicSamplingContext>;
       freezeDscOnSpan(span, dsc);
     }
