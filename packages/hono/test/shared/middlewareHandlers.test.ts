@@ -12,21 +12,41 @@ vi.mock('../../src/utils/hono-context', () => ({
 
 const mockSetTransactionName = vi.fn();
 const mockSetSDKProcessingMetadata = vi.fn();
+const mockSetUser = vi.fn();
+
+// Minimal stand-in for a real span's attribute store. `setAttributes` delegates to `setAttribute`,
+// like a real span, so tests can assert on the resulting attribute *state* rather than on which
+// setter overload was used. Unset attributes read back as `undefined`, matching span behavior.
+let rootSpanAttributes: Record<string, unknown> = {};
+const mockRootSpan = {
+  setAttribute: vi.fn((key: string, value: unknown) => {
+    rootSpanAttributes[key] = value;
+  }),
+  setAttributes: vi.fn((attributes: Record<string, unknown>) => {
+    for (const [key, value] of Object.entries(attributes)) {
+      rootSpanAttributes[key] = value;
+    }
+  }),
+  updateName: vi.fn(),
+};
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
   return {
     ...actual,
     getActiveSpan: vi.fn(() => null),
+    getRootSpan: vi.fn(() => mockRootSpan),
     getIsolationScope: vi.fn(() => ({
       setTransactionName: mockSetTransactionName,
       setSDKProcessingMetadata: mockSetSDKProcessingMetadata,
+      setUser: mockSetUser,
     })),
     getClient: vi.fn(() => undefined),
   };
 });
 
 const getClientMock = SentryCore.getClient as ReturnType<typeof vi.fn>;
+const getActiveSpanMock = SentryCore.getActiveSpan as ReturnType<typeof vi.fn>;
 
 function createMockContext(status: number, error?: Error): unknown {
   return {
@@ -225,5 +245,118 @@ describe('responseHandler', () => {
 
       expect(mockSetTransactionName).toHaveBeenCalledWith('GET /test');
     });
+  });
+});
+
+describe('requestHandler — connection info', () => {
+  const activeSpan = { updateName: vi.fn(), setAttribute: vi.fn() };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    rootSpanAttributes = {};
+    getActiveSpanMock.mockReturnValue(activeSpan);
+  });
+
+  function getConnInfoStub(remote: Record<string, unknown>): () => { remote: Record<string, unknown> } {
+    return vi.fn(() => ({ remote }));
+  }
+
+  function mockUserInfo(userInfo: boolean): void {
+    getClientMock.mockReturnValue({
+      getDataCollectionOptions: () => ({ userInfo }),
+    });
+  }
+
+  it('sets non-PII attributes (port, transport, type) regardless of userInfo', () => {
+    mockUserInfo(false);
+    const getConnInfo = getConnInfoStub({ port: 54321, transport: 'tcp', addressType: 'IPv4' });
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    requestHandler(createMockContext(200) as any, getConnInfo as any);
+
+    expect(rootSpanAttributes['client.port']).toBe(54321);
+    expect(rootSpanAttributes['network.peer.port']).toBe(54321);
+    expect(rootSpanAttributes['network.transport']).toBe('tcp');
+    expect(rootSpanAttributes['network.type']).toBe('ipv4');
+    expect(rootSpanAttributes['client.address']).toBeUndefined();
+  });
+
+  it('sets IP-bearing attributes and user.ip_address when userInfo is true', () => {
+    mockUserInfo(true);
+    const getConnInfo = getConnInfoStub({ address: '203.0.113.5', port: 443, addressType: 'IPv6' });
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    requestHandler(createMockContext(200) as any, getConnInfo as any);
+
+    expect(rootSpanAttributes['client.address']).toBe('203.0.113.5');
+    expect(rootSpanAttributes['network.peer.address']).toBe('203.0.113.5');
+    expect(rootSpanAttributes['network.type']).toBe('ipv6');
+    expect(mockSetUser).toHaveBeenCalledWith({ ip_address: '203.0.113.5' });
+  });
+
+  it('omits IP-bearing attributes when userInfo is false', () => {
+    mockUserInfo(false);
+    const getConnInfo = getConnInfoStub({ address: '203.0.113.5', port: 8080 });
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    requestHandler(createMockContext(200) as any, getConnInfo as any);
+
+    expect(rootSpanAttributes['client.address']).toBeUndefined();
+    expect(rootSpanAttributes['network.peer.address']).toBeUndefined();
+    expect(mockSetUser).not.toHaveBeenCalled();
+    // Non-PII data is still recorded.
+    expect(rootSpanAttributes['client.port']).toBe(8080);
+  });
+
+  it('sets no connection attributes when remote info is empty', () => {
+    mockUserInfo(true);
+    const getConnInfo = getConnInfoStub({});
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    requestHandler(createMockContext(200) as any, getConnInfo as any);
+
+    expect(rootSpanAttributes['client.port']).toBeUndefined();
+    expect(rootSpanAttributes['network.peer.port']).toBeUndefined();
+    expect(rootSpanAttributes['network.transport']).toBeUndefined();
+    expect(rootSpanAttributes['network.type']).toBeUndefined();
+    expect(rootSpanAttributes['client.address']).toBeUndefined();
+    expect(mockSetUser).not.toHaveBeenCalled();
+  });
+
+  it('does not throw or set attributes when getConnInfo throws', () => {
+    mockUserInfo(true);
+    const getConnInfo = vi.fn(() => {
+      throw new Error('socket unavailable');
+    });
+
+    expect(() =>
+      // oxlint-disable-next-line typescript/no-explicit-any
+      requestHandler(createMockContext(200) as any, getConnInfo as any),
+    ).not.toThrow();
+    expect(rootSpanAttributes['client.port']).toBeUndefined();
+    expect(rootSpanAttributes['client.address']).toBeUndefined();
+    expect(mockSetUser).not.toHaveBeenCalled();
+  });
+
+  it('does not set connection attributes when there is no active span', () => {
+    mockUserInfo(true);
+    getActiveSpanMock.mockReturnValue(null);
+    const getConnInfo = getConnInfoStub({ address: '203.0.113.5', port: 443 });
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    requestHandler(createMockContext(200) as any, getConnInfo as any);
+
+    expect(getConnInfo).not.toHaveBeenCalled();
+    expect(rootSpanAttributes).toEqual({});
+  });
+
+  it('is a no-op when getConnInfo is not provided', () => {
+    mockUserInfo(true);
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    requestHandler(createMockContext(200) as any);
+
+    expect(rootSpanAttributes['client.port']).toBeUndefined();
+    expect(mockSetUser).not.toHaveBeenCalled();
   });
 });

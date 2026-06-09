@@ -1,5 +1,6 @@
 import { withSentry } from '@sentry/cloudflare';
 import { applySdkMetadata, type BaseTransportOptions, debug, type Options } from '@sentry/core';
+import { getConnInfo } from 'hono/cloudflare-workers';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
 import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../shared/lowQualityTransactionPatterns';
@@ -44,7 +45,7 @@ export function sentry<E extends Env>(
         ? options(context.env as E['Bindings']).shouldHandleError
         : options.shouldHandleError;
 
-    requestHandler(context);
+    requestHandler(context, getConnInfo);
 
     await next(); // Handler runs in between Request above ⤴ and Response below ⤵
 
