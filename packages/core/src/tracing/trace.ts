@@ -380,6 +380,10 @@ function createChildOrRootSpan({
       freezeDscOnSpan(span, dsc);
     }
 
+    // Capture scopes even on this non-recording placeholder so consumers (e.g. SentryTraceProvider)
+    // can read them, consistent with the recording path below and `startIdleSpan`.
+    setCapturedScopesOnSpan(span, scope, isolationScope);
+
     return span;
   }
 

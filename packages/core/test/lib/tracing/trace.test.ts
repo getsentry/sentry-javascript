@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  getCapturedScopesOnSpan,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -235,7 +236,9 @@ describe('startSpan', () => {
       sampleRand: 0.42,
     });
 
+    let scopeInCallback: Scope | undefined;
     const span = startSpan({ name: 'GET users/[id]' }, span => {
+      scopeInCallback = getCurrentScope();
       return span;
     });
 
@@ -247,6 +250,11 @@ describe('startSpan', () => {
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'GET users/[id]',
     });
+
+    // Scopes are captured on the placeholder so consumers (e.g. SentryTraceProvider) can read them.
+    // `startSpan` forks the scope, so the captured scope is the one active inside the callback.
+    expect(getCapturedScopesOnSpan(span).scope).toBe(scopeInCallback);
+    expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
   });
 
   it('freezes a continued trace empty DSC as-is when tracing is disabled', () => {
@@ -901,7 +909,9 @@ describe('startSpanManual', () => {
     setCurrentClient(client);
     client.init();
 
+    let scopeInCallback: Scope | undefined;
     const span = startSpanManual({ name: 'GET users/[id]' }, span => {
+      scopeInCallback = getCurrentScope();
       return span;
     });
 
@@ -912,6 +922,11 @@ describe('startSpanManual', () => {
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'GET users/[id]',
     });
+
+    // Scopes are captured on the placeholder so consumers (e.g. SentryTraceProvider) can read them.
+    // `startSpanManual` forks the scope, so the captured scope is the one active inside the callback.
+    expect(getCapturedScopesOnSpan(span).scope).toBe(scopeInCallback);
+    expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
   });
 
   it('creates & finishes span', async () => {
@@ -1422,6 +1437,10 @@ describe('startInactiveSpan', () => {
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'GET users/[id]',
     });
+
+    // Scopes are captured on the placeholder so consumers (e.g. SentryTraceProvider) can read them.
+    expect(getCapturedScopesOnSpan(span).scope).toBe(getCurrentScope());
+    expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
   });
 
   it('creates & finishes span', async () => {
