@@ -165,8 +165,8 @@ function setupSentryTraceProvider(
       ...(typeof event.contexts?.trace?.data?.['http.response.status_code'] === 'number'
         ? {
             response: {
-              status_code: event.contexts.trace.data['http.response.status_code'],
               ...event.contexts.response,
+              status_code: event.contexts.trace.data['http.response.status_code'],
             },
           }
         : undefined),
