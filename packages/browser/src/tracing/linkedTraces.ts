@@ -2,7 +2,6 @@ import type { Client, PropagationContext, Span, SpanContextData } from '@sentry/
 import {
   debug,
   getCurrentScope,
-  getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
@@ -60,11 +59,7 @@ export function linkTraces(
 
   let inMemoryPreviousTraceInfo = useSessionStorage ? getPreviousTraceFromSessionStorage() : undefined;
 
-  client.on('spanStart', span => {
-    if (getRootSpan(span) !== span) {
-      return;
-    }
-
+  client.on('segmentSpanCreated', span => {
     const oldPropagationContext = getCurrentScope().getPropagationContext();
     inMemoryPreviousTraceInfo = addPreviousTraceSpanLink(inMemoryPreviousTraceInfo, span, oldPropagationContext);
 

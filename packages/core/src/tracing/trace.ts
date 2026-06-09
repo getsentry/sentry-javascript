@@ -506,6 +506,10 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
     client.recordDroppedEvent('sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
   }
 
+  if (client) {
+    client.emit('segmentSpanCreated', rootSpan);
+  }
+
   if (sampled && client) {
     client.emit('spanStart', rootSpan);
   }
