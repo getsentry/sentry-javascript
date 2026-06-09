@@ -4,6 +4,20 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(core): Extract objects as structured logs in `consoleLoggingIntegration`**
+
+  The `consoleLoggingIntegration` now extracts structured log attributes when the first argument is a plain object.
+
+  ```js
+  // Object keys become log attributes
+  console.log({ userId: 123, action: 'login' }, 'User logged in');
+  // → attributes: { userId: 123, action: "login" }
+
+  // Non-object first args use template + parameters (unchanged)
+  console.log('Hello', 'world', 123);
+  // → sentry.message.template: "Hello {} {}"
+  ```
+
 ## 10.57.0
 
 ### Important Changes
