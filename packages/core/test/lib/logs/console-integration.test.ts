@@ -11,6 +11,7 @@ vi.mock('../../../src/logs/internal', () => ({
 }));
 
 vi.mock('../../../src/logs/utils', async importOriginal => {
+  // oxlint-disable-next-line typescript/consistent-type-imports
   const actual: typeof import('../../../src/logs/utils') = await importOriginal();
   return {
     ...actual,
