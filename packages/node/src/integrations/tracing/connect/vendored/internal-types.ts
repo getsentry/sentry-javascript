@@ -18,7 +18,6 @@
  * - Upstream version: @opentelemetry/instrumentation-connect@0.61.0
  * - Some types vendored from @types/connect
  */
-/* eslint-disable */
 
 import type * as http from 'http';
 

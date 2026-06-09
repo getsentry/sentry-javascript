@@ -18,26 +18,21 @@
  * - Upstream version: @opentelemetry/instrumentation-connect@0.61.0
  * - Minor TypeScript strictness adjustments for this repository's compiler settings
  */
-/* eslint-disable */
 
-import { context, Span, SpanOptions } from '@opentelemetry/api';
+import type { Span, SpanOptions } from '@opentelemetry/api';
 import type { ServerResponse } from 'http';
 import { AttributeNames, ConnectNames, ConnectTypes } from './enums/AttributeNames';
-import { HandleFunction, NextFunction, Server, PatchedRequest, Use, UseArgs, UseArgs2 } from './internal-types';
+import type { HandleFunction, NextFunction, PatchedRequest, Server, Use, UseArgs, UseArgs2 } from './internal-types';
 import { SDK_VERSION } from '@sentry/core';
 import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
-import {
-  InstrumentationBase,
-  InstrumentationConfig,
-  InstrumentationNodeModuleDefinition,
-  isWrapped,
-} from '@opentelemetry/instrumentation';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import { replaceCurrentStackRoute, addNewStackLayer, generateRoute } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-connect';
 
-export const ANONYMOUS_NAME = 'anonymous';
+const ANONYMOUS_NAME = 'anonymous';
 
 /** Connect instrumentation for OpenTelemetry */
 export class ConnectInstrumentation extends InstrumentationBase {
@@ -54,15 +49,18 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   private _patchApp(patchedApp: Server) {
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- only checking the wrapped flag, not calling it
     if (!isWrapped(patchedApp.use)) {
       this._wrap(patchedApp, 'use', this._patchUse.bind(this));
     }
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- only checking the wrapped flag, not calling it
     if (!isWrapped(patchedApp.handle)) {
       this._wrap(patchedApp, 'handle', this._patchHandle.bind(this));
     }
   }
 
   private _patchConstructor(original: () => Server): () => Server {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
     return function (this: Server, ...args: any[]) {
       const app = original.apply(this, args) as Server;
@@ -105,12 +103,13 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   public _patchMiddleware(routeName: string, middleWare: HandleFunction): HandleFunction {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
     const isErrorMiddleware = middleWare.length === 4;
 
     function patchedMiddleware(this: Use): void {
       if (!instrumentation.isEnabled()) {
-        return (middleWare as any).apply(this, arguments);
+        return Reflect.apply(middleWare, this, arguments);
       }
       const [reqArgIdx, resArgIdx, nextArgIdx] = isErrorMiddleware ? [1, 2, 3] : [0, 1, 2];
       const req = arguments[reqArgIdx] as PatchedRequest;
@@ -123,23 +122,13 @@ export class ConnectInstrumentation extends InstrumentationBase {
         setHttpServerSpanRouteAttribute(generateRoute(req));
       }
 
-      let spanName = '';
-      if (routeName) {
-        spanName = `request handler - ${routeName}`;
-      } else {
-        spanName = `middleware - ${middleWare.name || ANONYMOUS_NAME}`;
-      }
       const span = instrumentation._startSpan(routeName, middleWare);
-      instrumentation._diag.debug('start span', spanName);
       let spanFinished = false;
 
       function finishSpan() {
         if (!spanFinished) {
           spanFinished = true;
-          instrumentation._diag.debug(`finishing span ${(span as any).name}`);
           span.end();
-        } else {
-          instrumentation._diag.debug(`span ${(span as any).name} - already finished`);
         }
         res.removeListener('close', finishSpan);
       }
@@ -147,7 +136,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
       res.addListener('close', finishSpan);
       arguments[nextArgIdx] = instrumentation._patchNext(next, finishSpan);
 
-      return (middleWare as any).apply(this, arguments);
+      return Reflect.apply(middleWare, this, arguments);
     }
 
     Object.defineProperty(patchedMiddleware, 'length', {
@@ -160,6 +149,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   public _patchUse(original: Server['use']): Use {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
     return function (this: Server, ...args: UseArgs): Server {
       const middleWare = args[args.length - 1] as HandleFunction;
@@ -172,6 +162,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   public _patchHandle(original: Server['handle']): Server['handle'] {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
     return function (this: Server): ReturnType<Server['handle']> {
       const [reqIdx, outIdx] = [0, 2];
@@ -183,7 +174,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
         arguments[outIdx] = instrumentation._patchOut(out as NextFunction, completeStack);
       }
 
-      return (original as any).apply(this, arguments);
+      return Reflect.apply(original, this, arguments);
     };
   }
 
