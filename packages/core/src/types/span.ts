@@ -319,5 +319,5 @@ export interface Span {
   /**
    * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
    */
-  recordException(exception: unknown, time?: number): void;
+  recordException(exception: unknown, time?: SpanTimeInput): void;
 }
