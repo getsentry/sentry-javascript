@@ -6,16 +6,18 @@
 
 # Sentry Session Replay
 
-[![npm version](https://img.shields.io/npm/v/@sentry-internal/replay.svg)](https://www.npmjs.com/package/@sentry-internal/replay)
-[![npm dm](https://img.shields.io/npm/dm/@sentry-internal/replay.svg)](https://www.npmjs.com/package/@sentry-internal/replay)
-[![npm dt](https://img.shields.io/npm/dt/@sentry-internal/replay.svg)](https://www.npmjs.com/package/@sentry-internal/replay)
+[![npm version](https://img.shields.io/npm/v/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
 
-This is an internal package that is being re-exported in `@sentry/browser` and other browser-related SDKs like
-`@sentry/react` or `@sentry/vue`.
+> [!NOTE]
+> This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is re-exported from
+> `@sentry/browser` and other browser-related SDKs like `@sentry/react` and `@sentry/vue`. It is not part of the public
+> API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
 
 ## Pre-requisites
 
-`@sentry-internal/replay` requires Node 14+, and browsers newer than IE11.
+`@sentry/replay` requires Node 14+, and browsers newer than IE11.
 
 ## Installation
 

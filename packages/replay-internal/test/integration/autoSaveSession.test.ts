@@ -3,7 +3,7 @@
  */
 
 import '../utils/mock-internal-setTimeout';
-import { EventType } from '@sentry-internal/rrweb';
+import { EventType } from '@sentry/rrweb';
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import { saveSession } from '../../src/session/saveSession';
 import type { RecordingEvent } from '../../src/types';

@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { mutationData } from '@sentry-internal/rrweb-types';
+import type { mutationData } from '@sentry/rrweb-types';
 import { sentryTest } from '../../../utils/fixtures';
 import type { RecordingSnapshot } from '../../../utils/replayHelpers';
 import { collectReplayRequests, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';

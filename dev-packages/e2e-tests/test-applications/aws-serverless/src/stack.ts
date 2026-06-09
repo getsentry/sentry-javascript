@@ -63,7 +63,7 @@ export class LocalLambdaStack extends Stack {
         { dir: 'core', name: '@sentry/core' },
         { dir: 'node-core', name: '@sentry/node-core' },
         { dir: 'opentelemetry', name: '@sentry/opentelemetry' },
-        { dir: 'server-utils', name: '@sentry-internal/server-utils' },
+        { dir: 'server-utils', name: '@sentry/server-utils' },
       ];
       const dependencies: Record<string, string> = {};
 

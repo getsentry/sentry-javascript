@@ -8,7 +8,7 @@ export default [
       bundleType: 'addon',
       entrypoints: ['src/screenshot/integration.ts'],
       jsVersion: 'es6',
-      licenseTitle: '@sentry-internal/feedback',
+      licenseTitle: '@sentry/feedback',
       outputFileBase: () => 'bundles/feedback-screenshot',
       esbuild: {
         // The feedback widget uses preact, so override esbuild's React defaults.
@@ -22,7 +22,7 @@ export default [
       bundleType: 'addon',
       entrypoints: ['src/modal/integration.tsx'],
       jsVersion: 'es6',
-      licenseTitle: '@sentry-internal/feedback',
+      licenseTitle: '@sentry/feedback',
       outputFileBase: () => 'bundles/feedback-modal',
       esbuild: {
         // The feedback widget uses preact, so override esbuild's React defaults.

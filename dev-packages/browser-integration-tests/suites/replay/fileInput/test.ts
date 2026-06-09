@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
-import type { inputData } from '@sentry-internal/rrweb';
-import { IncrementalSource } from '@sentry-internal/rrweb';
+import type { inputData } from '@sentry/rrweb';
+import { IncrementalSource } from '@sentry/rrweb';
 import { sentryTest } from '../../../utils/fixtures';
 import type { IncrementalRecordingSnapshot } from '../../../utils/replayHelpers';
 import {
