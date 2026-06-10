@@ -1,6 +1,6 @@
 import { handleRequest } from '../../server/middleware';
 
-type MiddlewareNext = (rewritePayload?: unknown) => Promise<Response>;
+type MiddlewareNext = () => Promise<Response>;
 type MiddlewareHandler = (
   ctx: unknown,
   next: MiddlewareNext,
