@@ -1,7 +1,11 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import type { TanStackMiddlewareBase } from '../common/types';
+import type {
+  SentryGlobalFunctionMiddleware,
+  SentryGlobalRequestMiddleware,
+  TanStackMiddlewareBase,
+} from '../common/types';
 import type { CreateSentryTunnelRouteOptions } from '../server/tunnelRoute';
 
 export * from '@sentry/react';
@@ -20,13 +24,21 @@ export function wrapMiddlewaresWithSentry<T extends TanStackMiddlewareBase>(midd
  * No-op stub for client-side builds.
  * The actual implementation is server-only, but this stub is needed to prevent rendering errors.
  */
-export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = { '~types': undefined, options: {} };
+export const sentryGlobalRequestMiddleware: SentryGlobalRequestMiddleware = {
+  '~types': undefined as unknown as SentryGlobalRequestMiddleware['~types'],
+  _types: undefined as unknown as SentryGlobalRequestMiddleware['_types'],
+  options: {},
+};
 
 /**
  * No-op stub for client-side builds.
  * The actual implementation is server-only, but this stub is needed to prevent rendering errors.
  */
-export const sentryGlobalFunctionMiddleware: TanStackMiddlewareBase = { '~types': undefined, options: {} };
+export const sentryGlobalFunctionMiddleware: SentryGlobalFunctionMiddleware = {
+  '~types': undefined as unknown as SentryGlobalFunctionMiddleware['~types'],
+  _types: undefined as unknown as SentryGlobalFunctionMiddleware['_types'],
+  options: {},
+};
 
 /**
  * No-op stub for client-side builds.
