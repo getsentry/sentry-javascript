@@ -28,6 +28,7 @@ export declare const consoleIntegration: typeof serverSdk.consoleIntegration;
 export declare const pinoIntegration: typeof serverSdk.pinoIntegration;
 export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
 export declare const withStreamedSpan: typeof clientSdk.withStreamedSpan;
+export declare const captureRouterTransitionStart: typeof clientSdk.captureRouterTransitionStart;
 
 // Different implementation in server and worker
 export declare const vercelAIIntegration: typeof serverSdk.vercelAIIntegration;
