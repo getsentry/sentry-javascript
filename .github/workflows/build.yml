@@ -998,7 +998,7 @@ jobs:
       - name: Set up Deno
         if:
           matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed' || matrix.test-application ==
-          'deno-redis' || matrix.test-application == 'hono-4'
+          'deno-redis' || matrix.test-application == 'hono-4' || matrix.test-application == 'deno-mysql'
         uses: denoland/setup-deno@v2.0.4
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.0' }}

@@ -15,6 +15,9 @@
         "types": "./build/esm/index.d.ts",
         "default": "./build/esm/index.js"
       }
+    },
+    "./import": {
+      "import": "./build/import.mjs"
     }
   },
   "publishConfig": {
@@ -27,6 +30,9 @@
     "@opentelemetry/api": "^1.9.1",
     "@sentry/core": "10.58.0",
     "@sentry/server-utils": "10.58.0"
+  },
+  "devDependencies": {
+    "mysql": "^2.18.1"
   },
   "scripts": {
     "deno-types": "node ./scripts/download-deno-types.mjs",
@@ -51,7 +57,9 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false,
+  "sideEffects": [
+    "./build/import.mjs"
+  ],
   "nx": {
     "targets": {
       "build:transpile": {
