@@ -5,7 +5,9 @@ import {
   registerInpInteractionListener,
   startTrackingINP,
   startTrackingWebVitals,
+  trackClsAsSpan,
   trackInpAsSpan,
+  trackLcpAsSpan,
 } from '@sentry/browser-utils';
 
 export const WEB_VITALS_INTEGRATION_NAME = 'WebVitals' as const;
@@ -34,13 +36,15 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
     setup(client) {
       const spanStreamingEnabled = hasSpanStreamingEnabled(client);
 
-      const trackCls = !ignored.has('cls');
-      const trackLcp = !ignored.has('lcp');
+      // With span streaming enabled, CLS and LCP are tracked as standalone v2 spans (like INP).
+      // Otherwise, they're recorded as measurements on the pageload span.
+      const trackClsOnPageloadSpan = !spanStreamingEnabled && !ignored.has('cls');
+      const trackLcpOnPageloadSpan = !spanStreamingEnabled && !ignored.has('lcp');
 
       // eslint-disable-next-line typescript/no-deprecated
       const finalizeWebVitals = startTrackingWebVitals({
-        trackCls,
-        trackLcp,
+        trackCls: trackClsOnPageloadSpan,
+        trackLcp: trackLcpOnPageloadSpan,
         client,
       });
 
@@ -57,13 +61,19 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
 
         finalizeWebVitals();
         addWebVitalsToSpan(span, {
-          recordClsOnPageloadSpan: trackCls,
-          recordLcpOnPageloadSpan: trackLcp,
+          recordClsOnPageloadSpan: trackClsOnPageloadSpan,
+          recordLcpOnPageloadSpan: trackLcpOnPageloadSpan,
           spanStreamingEnabled,
         });
       });
 
       if (spanStreamingEnabled) {
+        if (!ignored.has('lcp')) {
+          trackLcpAsSpan(client);
+        }
+        if (!ignored.has('cls')) {
+          trackClsAsSpan(client);
+        }
         if (!ignored.has('inp')) {
           trackInpAsSpan();
         }
