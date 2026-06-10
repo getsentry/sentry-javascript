@@ -164,7 +164,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
             }
           }
           if (logMessage) {
-            pinoContext.message = logMessage;
+            pinoContext[messageKey] = logMessage;
           }
 
           const captureContext = {

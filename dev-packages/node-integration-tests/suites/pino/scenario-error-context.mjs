@@ -4,7 +4,10 @@ import pino from 'pino';
 const logger = pino({ name: 'myapp' });
 
 Sentry.withIsolationScope(() => {
-  logger.error({ err: new Error('failed to fetch user'), requestId: 'abc-123' }, 'Failed to do X');
+  logger.error(
+    { err: new Error('failed to fetch user'), requestId: 'abc-123', message: 'upstream said Not Found' },
+    'Failed to do X',
+  );
 });
 
 setTimeout(() => {

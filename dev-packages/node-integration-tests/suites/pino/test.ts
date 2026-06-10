@@ -57,7 +57,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
             pino: {
               name: 'myapp',
               module: 'authentication',
-              message: 'oh no',
+              msg: 'oh no',
             },
           },
         },
@@ -142,7 +142,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
           contexts: {
             pino: {
               name: 'myapp',
-              message: 'oh no',
+              msg: 'oh no',
             },
           },
         },
@@ -335,7 +335,8 @@ conditionalTest({ min: 20 })('Pino integration', () => {
             pino: {
               name: 'myapp',
               requestId: 'abc-123',
-              message: 'Failed to do X',
+              message: 'upstream said Not Found',
+              msg: 'Failed to do X',
             },
           },
         },
@@ -348,7 +349,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
             pino: {
               name: 'myapp',
               requestId: 'def-456',
-              message: 'Something went wrong',
+              msg: 'Something went wrong',
             },
           },
         },
