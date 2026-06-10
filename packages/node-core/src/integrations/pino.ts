@@ -152,8 +152,24 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
         }
 
         if (options.error.levels.includes(level)) {
+          const errorKey = getPinoKey(self, 'pino.errorKey', 'err');
+
+          // Attach the log message and remaining log fields (e.g. child logger
+          // bindings, merge object fields) to the event. The serialized error is
+          // excluded since it is captured as the event exception itself.
+          const pinoContext: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(resultObj)) {
+            if (key !== errorKey && key !== messageKey) {
+              pinoContext[key] = value;
+            }
+          }
+          if (logMessage) {
+            pinoContext.message = logMessage;
+          }
+
           const captureContext = {
             level: severityLevelFromString(level),
+            contexts: { pino: pinoContext },
           };
 
           withScope(scope => {
@@ -168,7 +184,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
               return event;
             });
 
-            const error = captureObj[getPinoKey(self, 'pino.errorKey', 'err')];
+            const error = captureObj[errorKey];
             if (error) {
               captureException(error, captureContext);
               return;

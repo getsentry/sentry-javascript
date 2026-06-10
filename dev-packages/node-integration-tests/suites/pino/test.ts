@@ -53,6 +53,13 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               },
             ],
           },
+          contexts: {
+            pino: {
+              name: 'myapp',
+              module: 'authentication',
+              message: 'oh no',
+            },
+          },
         },
       })
       .expect({
@@ -131,6 +138,12 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                 },
               },
             ],
+          },
+          contexts: {
+            pino: {
+              name: 'myapp',
+              message: 'oh no',
+            },
           },
         },
       })
@@ -296,6 +309,54 @@ conditionalTest({ min: 20 })('Pino integration', () => {
       .completed();
   });
 
+  test('attaches log message and fields to captured error events', async () => {
+    const instrumentPath = join(__dirname, 'instrument.mjs');
+
+    await createRunner(__dirname, 'scenario-error-context.mjs')
+      .withMockSentryServer()
+      .withInstrument(instrumentPath)
+      .ignore('transaction')
+      .ignore('log')
+      .expect({
+        event: {
+          exception: {
+            values: [
+              {
+                type: 'Error',
+                value: 'failed to fetch user',
+                mechanism: {
+                  type: 'auto.log.pino',
+                  handled: true,
+                },
+              },
+            ],
+          },
+          contexts: {
+            pino: {
+              name: 'myapp',
+              requestId: 'abc-123',
+              message: 'Failed to do X',
+            },
+          },
+        },
+      })
+      .expect({
+        event: {
+          message: 'Something went wrong',
+          level: 'error',
+          contexts: {
+            pino: {
+              name: 'myapp',
+              requestId: 'def-456',
+              message: 'Something went wrong',
+            },
+          },
+        },
+      })
+      .start()
+      .completed();
+  });
+
   test('captures logs with custom messageKey and errorKey', async () => {
     const instrumentPath = join(__dirname, 'instrument.mjs');
 
@@ -325,6 +386,12 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                 },
               },
             ],
+          },
+          contexts: {
+            pino: {
+              name: 'myapp',
+              message: 'Custom error key',
+            },
           },
         },
       })
