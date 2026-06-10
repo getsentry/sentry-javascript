@@ -22,6 +22,32 @@ describe('connect auto-instrumentation', () => {
         op: 'request_handler.connect',
         status: 'ok',
       }),
+
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'connect.name': 'middleware1',
+          'connect.type': 'middleware',
+          'sentry.origin': 'auto.http.otel.connect',
+          'sentry.op': 'middleware.connect',
+        }),
+        description: 'middleware1',
+        origin: 'auto.http.otel.connect',
+        op: 'middleware.connect',
+        status: 'ok',
+      }),
+
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'connect.name': 'anonymous',
+          'connect.type': 'middleware',
+          'sentry.origin': 'auto.http.otel.connect',
+          'sentry.op': 'middleware.connect',
+        }),
+        description: 'anonymous',
+        origin: 'auto.http.otel.connect',
+        op: 'middleware.connect',
+        status: 'ok',
+      }),
     ]),
   };
 
