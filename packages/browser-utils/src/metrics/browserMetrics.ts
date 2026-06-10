@@ -437,8 +437,8 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
         DEBUG_BUILD && debug.log('Setting web vital attribute', { [attrKey]: value }, 'on pageload span');
       };
       // for streamed pageload spans, we add the web vital measurements as attributes.
-      // INP is tracked separately as a span.
-      ['ttfb', 'fp', 'fcp', 'cls', 'lcp'].forEach(measurementName => {
+      // We omit LCP, CLS and INP because they're tracked separately as spans
+      ['ttfb', 'fp', 'fcp'].forEach(measurementName => {
         if (_measurements[measurementName]) {
           setAttr(measurementName, _measurements[measurementName].value);
         }
@@ -446,13 +446,13 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
       if (_measurements['ttfb.requestTime']) {
         setAttr('ttfb.requestTime', _measurements['ttfb.requestTime'].value, 'browser.web_vital.ttfb.request_time');
       }
-
-      _setStreamedWebVitalAttributes(span);
     } else {
+      // If CLS is tracked as a span (span streaming), don't record CLS as a measurement
       if (!recordClsOnPageloadSpan) {
         delete _measurements.cls;
       }
 
+      // If LCP is tracked as a span (span streaming), don't record LCP as a measurement
       if (!recordLcpOnPageloadSpan) {
         delete _measurements.lcp;
       }
@@ -863,23 +863,6 @@ function _setWebVitalAttributes(span: Span, options: AddWebVitalsToSpanOptions):
   if (_clsEntry?.sources && options.recordClsOnPageloadSpan) {
     _clsEntry.sources.forEach((source, index) =>
       span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
-    );
-  }
-}
-
-function _setStreamedWebVitalAttributes(span: Span): void {
-  if (_lcpEntry) {
-    _lcpEntry.element && span.setAttribute('browser.web_vital.lcp.element', htmlTreeAsString(_lcpEntry.element));
-    _lcpEntry.id && span.setAttribute('browser.web_vital.lcp.id', _lcpEntry.id);
-    _lcpEntry.url && span.setAttribute('browser.web_vital.lcp.url', _lcpEntry.url.trim().slice(0, 200));
-    _lcpEntry.loadTime != null && span.setAttribute('browser.web_vital.lcp.load_time', _lcpEntry.loadTime);
-    _lcpEntry.renderTime != null && span.setAttribute('browser.web_vital.lcp.render_time', _lcpEntry.renderTime);
-    _lcpEntry.size != null && span.setAttribute('browser.web_vital.lcp.size', _lcpEntry.size);
-  }
-
-  if (_clsEntry?.sources) {
-    _clsEntry.sources.forEach((source, index) =>
-      span.setAttribute(`browser.web_vital.cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
   }
 }

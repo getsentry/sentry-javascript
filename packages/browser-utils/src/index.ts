@@ -21,7 +21,7 @@ export { elementTimingIntegration, startTrackingElementTiming } from './metrics/
 
 export { extractNetworkProtocol } from './metrics/utils';
 
-export { trackInpAsSpan } from './metrics/webVitalSpans';
+export { trackClsAsSpan, trackInpAsSpan, trackLcpAsSpan } from './metrics/webVitalSpans';
 
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';
 

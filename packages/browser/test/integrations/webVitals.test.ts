@@ -5,14 +5,18 @@ const mockAddWebVitalsToSpan = vi.hoisted(() => vi.fn());
 const mockRegisterInpInteractionListener = vi.hoisted(() => vi.fn());
 const mockStartTrackingINP = vi.hoisted(() => vi.fn());
 const mockStartTrackingWebVitals = vi.hoisted(() => vi.fn());
+const mockTrackClsAsSpan = vi.hoisted(() => vi.fn());
 const mockTrackInpAsSpan = vi.hoisted(() => vi.fn());
+const mockTrackLcpAsSpan = vi.hoisted(() => vi.fn());
 
 vi.mock('@sentry/browser-utils', () => ({
   addWebVitalsToSpan: mockAddWebVitalsToSpan,
   registerInpInteractionListener: mockRegisterInpInteractionListener,
   startTrackingINP: mockStartTrackingINP,
   startTrackingWebVitals: mockStartTrackingWebVitals,
+  trackClsAsSpan: mockTrackClsAsSpan,
   trackInpAsSpan: mockTrackInpAsSpan,
+  trackLcpAsSpan: mockTrackLcpAsSpan,
 }));
 
 function getMockClient(options: Record<string, unknown> = {}) {
@@ -62,24 +66,41 @@ describe('webVitalsIntegration', () => {
     });
     expect(mockStartTrackingINP).toHaveBeenCalledTimes(1);
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
+    expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
+    expect(mockTrackClsAsSpan).not.toHaveBeenCalled();
     expect(mockTrackInpAsSpan).not.toHaveBeenCalled();
   });
 
-  it('tracks INP as a streamed span when span streaming is enabled', () => {
+  it('tracks LCP, CLS and INP as streamed spans when span streaming is enabled', () => {
     const client = getMockClient({ traceLifecycle: 'stream' });
     const integration = webVitalsIntegration();
 
     integration.setup?.(client as never);
     integration.afterAllSetup?.(client as never);
 
+    // CLS/LCP are tracked as standalone spans, not as measurements on the pageload span
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      trackCls: true,
-      trackLcp: true,
+      trackCls: false,
+      trackLcp: false,
       client,
     });
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
     expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
     expect(mockStartTrackingINP).not.toHaveBeenCalled();
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not track ignored web vitals as streamed spans when span streaming is enabled', () => {
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration({ ignore: ['lcp'] });
+
+    integration.setup?.(client as never);
+    integration.afterAllSetup?.(client as never);
+
+    expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
   });
 
   it('supports ignoring selected web vitals', () => {
@@ -129,7 +150,7 @@ describe('webVitalsIntegration', () => {
     expect(mockAddWebVitalsToSpan).not.toHaveBeenCalled();
   });
 
-  it('records CLS/LCP on the pageload span even when span streaming is enabled', () => {
+  it('does not record CLS/LCP on the pageload span when span streaming is enabled', () => {
     const client = getMockClient({ traceLifecycle: 'stream' });
     const span = {};
 
@@ -138,8 +159,8 @@ describe('webVitalsIntegration', () => {
     client.emit('spanEnd', span);
 
     expect(mockAddWebVitalsToSpan).toHaveBeenCalledWith(span, {
-      recordClsOnPageloadSpan: true,
-      recordLcpOnPageloadSpan: true,
+      recordClsOnPageloadSpan: false,
+      recordLcpOnPageloadSpan: false,
       spanStreamingEnabled: true,
     });
   });
