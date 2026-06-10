@@ -49,11 +49,11 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   private _patchApp(patchedApp: Server) {
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- only checking the wrapped flag, not calling it
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     if (!isWrapped(patchedApp.use)) {
       this._wrap(patchedApp, 'use', this._patchUse.bind(this));
     }
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- only checking the wrapped flag, not calling it
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     if (!isWrapped(patchedApp.handle)) {
       this._wrap(patchedApp, 'handle', this._patchHandle.bind(this));
     }
@@ -61,15 +61,15 @@ export class ConnectInstrumentation extends InstrumentationBase {
 
   private _patchConstructor(original: () => Server): () => Server {
     const patchApp = this._patchApp.bind(this);
-    return function (this: Server, ...args: any[]) {
-      const app = original.apply(this, args) as Server;
+    return function (this: Server, ...args: unknown[]) {
+      const app = Reflect.apply(original, this, args) as Server;
       patchApp(app);
       return app;
     };
   }
 
   public _patchNext(next: NextFunction, finishSpan: () => void): NextFunction {
-    return function nextFunction(this: NextFunction, err?: any): void {
+    return function nextFunction(this: NextFunction, err?: unknown): void {
       const result = next.apply(this, [err]);
       finishSpan();
       return result;
@@ -177,7 +177,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   public _patchOut(out: NextFunction, completeStack: () => void): NextFunction {
-    return function nextFunction(this: NextFunction, ...args: any[]): void {
+    return function nextFunction(this: NextFunction, ...args: unknown[]): void {
       completeStack();
       return Reflect.apply(out, this, args);
     };
