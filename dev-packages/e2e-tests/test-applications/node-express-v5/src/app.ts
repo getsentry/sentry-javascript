@@ -14,6 +14,13 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
   enableLogs: true,
+  ...(process.env.E2E_USE_SENTRY_TRACE_PROVIDER === '1'
+    ? {
+        _experiments: {
+          useSentryTraceProvider: true,
+        },
+      }
+    : {}),
   integrations: [Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 })],
 });
 

@@ -1,11 +1,15 @@
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
 import type { DynamicSamplingContext } from '../types/envelope';
 import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { debug } from '../utils/debug-logger';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { dropUndefinedKeys } from '../utils/object';
 import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
@@ -21,6 +25,7 @@ import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
 import { startInactiveSpan } from './trace';
+import { setCapturedScopesOnSpan } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1_000,
@@ -120,21 +125,44 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   } = options;
 
   const client = getClient();
+  const scope = getCurrentScope();
 
   if (!client || !hasSpansEnabled()) {
-    const span = new SentryNonRecordingSpan();
+    const propagationContext = {
+      ...getIsolationScope().getPropagationContext(),
+      ...scope.getPropagationContext(),
+    };
 
-    const dsc = {
-      sample_rate: '0',
-      sampled: 'false',
-      ...getDynamicSamplingContextFromSpan(span),
-    } satisfies Partial<DynamicSamplingContext>;
+    const span = new SentryNonRecordingSpan({
+      traceId: propagationContext.traceId,
+      parentSpanId: propagationContext.parentSpanId,
+    });
+
+    // In TwP mode, leave the sampling decision deferred (like `startSpan`) so baggage and the
+    // `sentry-trace` header agree. A continued trace's DSC is frozen and wins as-is, even when
+    // it's an empty `{}` (a `sentry-trace` header without baggage): we are not head of trace, so
+    // we neither fabricate client fields nor inject the local span name. Only a new trace derives
+    // the DSC from the client and attaches the local span name.
+    // As in `getDynamicSamplingContextFromSpan`, skip the span name when its source is
+    // "url" because URLs might contain PII.
+    // TODO(v11): Only read `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` again, once we renamed it to `sentry.span.source`
+    const source =
+      startSpanOptions.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] ??
+      startSpanOptions.attributes?.['sentry.span.source'];
+    const dsc = (propagationContext.dsc ??
+      dropUndefinedKeys({
+        ...getDynamicSamplingContextFromSpan(span),
+        transaction: source === 'url' ? undefined : startSpanOptions.name,
+      })) satisfies Partial<DynamicSamplingContext>;
     freezeDscOnSpan(span, dsc);
+
+    // Capture scopes even on this non-recording placeholder so consumers (e.g. SentryTraceProvider)
+    // can read them, mirroring the non-recording paths in `createChildOrRootSpan`.
+    setCapturedScopesOnSpan(span, scope, getIsolationScope());
 
     return span;
   }
 
-  const scope = getCurrentScope();
   const previousActiveSpan = getActiveSpan();
   const span = _startIdleSpan(startSpanOptions);
 

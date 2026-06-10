@@ -9,8 +9,8 @@ it('Tracing headers', async ({ signal }) => {
   const [SERVER_URL, closeTestServer] = await createTestServer()
     .get('/', headers => {
       expect(headers['baggage']).toEqual(expect.any(String));
-      expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})-0$/));
-      expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000-0');
+      expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})$/));
+      expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000');
       expect(headers['traceparent']).toEqual(expect.stringMatching(/^00-([a-f\d]{32})-([a-f\d]{16})-00$/));
     })
     .start();

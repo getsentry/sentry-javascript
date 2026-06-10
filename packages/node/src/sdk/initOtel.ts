@@ -9,11 +9,16 @@ import {
   setupOpenTelemetryLogger,
 } from '@sentry/node-core';
 import {
+  applyOtelSpanData,
   type AsyncLocalStorageLookup,
   getSentryResource,
+  type OpenTelemetryTraceProvider,
   SentryPropagator,
   SentrySampler,
   SentrySpanProcessor,
+  SentryTraceProvider,
+  setIsSetup,
+  setOpenTelemetryContextAsyncContextStrategy,
 } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
@@ -86,7 +91,12 @@ function getPreloadMethods(integrationNames?: string[]): ((() => void) & { id: s
 export function setupOtel(
   client: NodeClient,
   options: AdditionalOpenTelemetryOptions = {},
-): [BasicTracerProvider, AsyncLocalStorageLookup] {
+): [OpenTelemetryTraceProvider | undefined, AsyncLocalStorageLookup | undefined] {
+  if (client.getOptions()._experiments?.useSentryTraceProvider) {
+    setOpenTelemetryContextAsyncContextStrategy();
+    return setupSentryTraceProvider(client, options);
+  }
+
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
@@ -106,6 +116,66 @@ export function setupOtel(
 
   const ctxManager = new SentryContextManager();
   context.setGlobalContextManager(ctxManager);
+
+  return [provider, ctxManager.getAsyncLocalStorageLookup()];
+}
+
+function setupSentryTraceProvider(
+  client: NodeClient,
+  options: AdditionalOpenTelemetryOptions = {},
+): [SentryTraceProvider | undefined, AsyncLocalStorageLookup | undefined] {
+  if (options.spanProcessors?.length) {
+    DEBUG_BUILD &&
+      coreDebug.warn(
+        'Ignoring `openTelemetrySpanProcessors` because `_experiments.useSentryTraceProvider` is enabled.',
+      );
+  }
+
+  const provider = new SentryTraceProvider({ resource: getSentryResource('node') });
+
+  if (!trace.setGlobalTracerProvider(provider)) {
+    DEBUG_BUILD &&
+      coreDebug.warn(
+        'Could not register SentryTraceProvider because another OpenTelemetry tracer provider is already registered.',
+      );
+    return [undefined, undefined];
+  }
+
+  // Only mark the provider as set up once it is actually the registered global
+  // tracer provider, so setup validation doesn't skip required checks when
+  // registration failed.
+  setIsSetup('SentryTraceProvider');
+
+  propagation.setGlobalPropagator(new SentryPropagator());
+
+  const ctxManager = new SentryContextManager();
+  context.setGlobalContextManager(ctxManager);
+
+  client.on('spanEnd', span => {
+    applyOtelSpanData(span, { finalizeStatus: true });
+  });
+
+  client.on('preprocessEvent', event => {
+    if (event.type !== 'transaction' || client.getOptions().traceLifecycle === 'stream') {
+      return;
+    }
+
+    event.contexts = {
+      ...event.contexts,
+      ...(typeof event.contexts?.trace?.data?.['http.response.status_code'] === 'number'
+        ? {
+            response: {
+              ...event.contexts.response,
+              status_code: event.contexts.trace.data['http.response.status_code'],
+            },
+          }
+        : undefined),
+      otel: {
+        resource: provider.resource?.attributes,
+        ...event.contexts?.otel,
+      },
+    };
+  });
 
   return [provider, ctxManager.getAsyncLocalStorageLookup()];
 }

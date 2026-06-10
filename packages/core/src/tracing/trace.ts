@@ -25,6 +25,7 @@ import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
 import { safeMathRandom } from '../utils/randomSafeContext';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
+import { dropUndefinedKeys } from '../utils/object';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
@@ -190,6 +191,20 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
     return acs.startInactiveSpan(options);
   }
 
+  return _startInactiveSpanImpl(options);
+}
+
+/**
+ * Internal version of startInactiveSpan that bypasses the ACS check.
+ * Used by SentryTraceProvider to create spans without triggering recursion
+ * through ACS overrides.
+ * @hidden
+ */
+export function _INTERNAL_startInactiveSpan(options: StartSpanOptions): Span {
+  return _startInactiveSpanImpl(options);
+}
+
+function _startInactiveSpanImpl(options: StartSpanOptions): Span {
   const spanArguments = parseSentrySpanArguments(options);
   const { forceTransaction, parentSpan: customParentSpan } = options;
 
@@ -344,20 +359,50 @@ function createChildOrRootSpan({
   forceTransaction?: boolean;
   scope: Scope;
 }): Span {
-  if (!hasSpansEnabled()) {
-    const span = new SentryNonRecordingSpan();
+  const isolationScope = getIsolationScope();
 
-    // If this is a root span, we ensure to freeze a DSC
-    // So we can have at least partial data here
+  if (!hasSpansEnabled()) {
+    const propagationContext: {
+      traceId: string;
+      parentSpanId?: string;
+      dsc?: Partial<DynamicSamplingContext>;
+    } = parentSpan
+      ? {
+          traceId: parentSpan.spanContext().traceId,
+          parentSpanId: parentSpan.spanContext().spanId,
+        }
+      : {
+          ...isolationScope.getPropagationContext(),
+          ...scope.getPropagationContext(),
+        };
+
+    const span = new SentryNonRecordingSpan({
+      traceId: propagationContext.traceId,
+      parentSpanId: propagationContext.parentSpanId,
+    });
+
     if (forceTransaction || !parentSpan) {
-      const dsc = {
-        sampled: 'false',
-        sample_rate: '0',
-        transaction: spanArguments.name,
-        ...getDynamicSamplingContextFromSpan(span),
-      } satisfies Partial<DynamicSamplingContext>;
+      // A continued trace's DSC is frozen and must win as-is, even when it's an empty `{}`
+      // (a `sentry-trace` header without baggage): we are not head of trace, so we neither
+      // fabricate client fields nor inject the local span name. Only when starting a new
+      // trace do we derive the DSC from the client and attach the local span name.
+      // As in `getDynamicSamplingContextFromSpan`, skip the span name when its source is
+      // "url" because URLs might contain PII.
+      // TODO(v11): Only read `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` again, once we renamed it to `sentry.span.source`
+      const source =
+        spanArguments.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] ??
+        spanArguments.attributes?.['sentry.span.source'];
+      const dsc = (propagationContext.dsc ??
+        dropUndefinedKeys({
+          ...getDynamicSamplingContextFromSpan(span),
+          transaction: source === 'url' ? undefined : spanArguments.name,
+        })) satisfies Partial<DynamicSamplingContext>;
       freezeDscOnSpan(span, dsc);
     }
+
+    // Capture scopes even on non-recording spans so consumers (e.g. SentryTraceProvider)
+    // can read them to fork the isolation scope onto the active context.
+    setCapturedScopesOnSpan(span, scope, isolationScope);
 
     return span;
   }
@@ -370,17 +415,20 @@ function createChildOrRootSpan({
       client?.recordDroppedEvent('ignored', 'span');
     }
 
-    return new SentryNonRecordingSpan({
+    const ignoredSpan = new SentryNonRecordingSpan({
       dropReason: 'ignored',
+      sampled: false,
       traceId: parentSpan?.spanContext().traceId ?? scope.getPropagationContext().traceId,
+      parentSpanId: parentSpan?.spanContext().spanId ?? scope.getPropagationContext().parentSpanId,
     });
-  }
+    setCapturedScopesOnSpan(ignoredSpan, scope, isolationScope);
 
-  const isolationScope = getIsolationScope();
+    return ignoredSpan;
+  }
 
   let span: Span;
   if (parentSpan && !forceTransaction) {
-    span = _startChildSpan(parentSpan, scope, spanArguments);
+    span = _startChildSpan(parentSpan, scope, spanArguments, isolationScope);
     addChildSpanToSpan(parentSpan, span);
   } else if (parentSpan) {
     // If we forced a transaction but have a parent span, make sure to continue from the parent span, not the scope
@@ -396,6 +444,7 @@ function createChildOrRootSpan({
       },
       scope,
       parentSampled,
+      isolationScope,
     );
 
     freezeDscOnSpan(span, dsc);
@@ -418,6 +467,7 @@ function createChildOrRootSpan({
       },
       scope,
       parentSampled,
+      isolationScope,
     );
 
     if (dsc) {
@@ -426,8 +476,6 @@ function createChildOrRootSpan({
   }
 
   logSpanStart(span);
-
-  setCapturedScopesOnSpan(span, scope, isolationScope);
 
   return span;
 }
@@ -459,7 +507,12 @@ function getAcs(): AsyncContextStrategy {
   return getAsyncContextStrategy(carrier);
 }
 
-function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {
+function _startRootSpan(
+  spanArguments: SentrySpanArguments,
+  scope: Scope,
+  parentSampled?: boolean,
+  isolationScope?: Scope,
+): SentrySpan {
   const client = getClient();
   const options: Partial<ClientOptions> = client?.getOptions() || {};
 
@@ -506,6 +559,10 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
     client.recordDroppedEvent('sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
   }
 
+  if (isolationScope) {
+    setCapturedScopesOnSpan(rootSpan, scope, isolationScope);
+  }
+
   if (client) {
     client.emit('spanStart', rootSpan);
   }
@@ -517,7 +574,12 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
  * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
  * This inherits the sampling decision from the parent span.
  */
-function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySpanArguments): Span {
+function _startChildSpan(
+  parentSpan: Span,
+  scope: Scope,
+  spanArguments: SentrySpanArguments,
+  isolationScope?: Scope,
+): Span {
   const { spanId, traceId } = parentSpan.spanContext();
   const isTracingSuppressed = _isTracingSuppressed(scope);
   const sampled = isTracingSuppressed ? false : spanIsSampled(parentSpan);
@@ -529,9 +591,13 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
         traceId,
         sampled,
       })
-    : new SentryNonRecordingSpan({ traceId });
+    : new SentryNonRecordingSpan({ traceId, parentSpanId: spanId, sampled: false });
 
   addChildSpanToSpan(parentSpan, childSpan);
+
+  if (isolationScope) {
+    setCapturedScopesOnSpan(childSpan, scope, isolationScope);
+  }
 
   const client = getClient();
 

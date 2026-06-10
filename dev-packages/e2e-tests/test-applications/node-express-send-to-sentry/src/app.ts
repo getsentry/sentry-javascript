@@ -7,6 +7,13 @@ Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
   includeLocalVariables: true,
   tracesSampleRate: 1,
+  ...(process.env.E2E_USE_SENTRY_TRACE_PROVIDER === '1'
+    ? {
+        _experiments: {
+          useSentryTraceProvider: true,
+        },
+      }
+    : {}),
   beforeSendTransaction(event) {
     lastTransactionId = event.event_id;
     return event;
