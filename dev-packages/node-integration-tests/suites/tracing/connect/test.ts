@@ -82,7 +82,24 @@ describe('connect auto-instrumentation', () => {
       test('should report errored transactions.', async () => {
         const runner = createTestRunner()
           .ignore('event')
-          .expect({ transaction: { transaction: 'GET /error' } })
+          .expect({
+            transaction: {
+              transaction: 'GET /error',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'connect.name': 'connectErrorMiddleware',
+                    'connect.type': 'middleware',
+                    'sentry.origin': 'auto.http.otel.connect',
+                    'sentry.op': 'middleware.connect',
+                  }),
+                  description: 'connectErrorMiddleware',
+                  origin: 'auto.http.otel.connect',
+                  op: 'middleware.connect',
+                }),
+              ]),
+            },
+          })
           .start();
         runner.makeRequest('get', '/error');
         await runner.completed();
