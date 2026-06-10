@@ -21,12 +21,8 @@ const _genericPoolIntegration = (() => {
       instrumentationWrappedCallback?.(() =>
         client.on('spanStart', span => {
           const spanJSON = spanToJSON(span);
-
           const spanDescription = spanJSON.description;
-
-          // typo in emitted span for version <= 0.38.0 of @opentelemetry/instrumentation-generic-pool
-          const isGenericPoolSpan =
-            spanDescription === 'generic-pool.aquire' || spanDescription === 'generic-pool.acquire';
+          const isGenericPoolSpan = spanDescription === 'generic-pool.acquire';
 
           if (isGenericPoolSpan) {
             span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.generic_pool');

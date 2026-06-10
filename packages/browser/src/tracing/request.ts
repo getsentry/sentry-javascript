@@ -29,14 +29,14 @@ import {
   stripUrlQueryAndFragment,
   timestampInSeconds,
 } from '@sentry/core/browser';
-import type { XhrHint } from '@sentry-internal/browser-utils';
+import type { XhrHint } from '@sentry/browser-utils';
 import {
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
   parseXhrResponseHeaders,
   resourceTimingToSpanAttributes,
   SENTRY_XHR_DATA_KEY,
-} from '@sentry-internal/browser-utils';
+} from '@sentry/browser-utils';
 import type { BrowserClient } from '../client';
 import { baggageHeaderHasSentryValues, createHeadersSafely, getFullURL, isPerformanceResourceTiming } from './utils';
 

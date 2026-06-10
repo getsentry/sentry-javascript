@@ -29,14 +29,14 @@ import {
   safeJoin,
   severityLevelFromString,
 } from '@sentry/core/browser';
-import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
+import type { FetchHint, XhrHint } from '@sentry/browser-utils';
 import {
   addClickKeypressInstrumentationHandler,
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
   htmlTreeAsString,
   SENTRY_XHR_DATA_KEY,
-} from '@sentry-internal/browser-utils';
+} from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 

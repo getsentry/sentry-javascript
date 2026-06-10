@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { replayIntegration as actualReplayIntegration } from '@sentry-internal/replay';
+import type { replayIntegration as actualReplayIntegration } from '@sentry/replay';
 import { sentryTest } from '../../../utils/fixtures';
 import { getExpectedReplayEvent } from '../../../utils/replayEventTemplates';
 import {

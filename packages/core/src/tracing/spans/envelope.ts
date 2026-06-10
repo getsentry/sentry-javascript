@@ -4,6 +4,7 @@ import type { SerializedStreamedSpan } from '../../types/span';
 import { dsnToString } from '../../utils/dsn';
 import { createEnvelope, getSdkMetadataForEnvelopeHeader } from '../../utils/envelope';
 import { isBrowser } from '../../utils/isBrowser';
+import { safeDateNow } from '../../utils/randomSafeContext';
 
 /**
  * Creates a span v2 span streaming envelope
@@ -19,7 +20,7 @@ export function createStreamedSpanEnvelope(
   const sdk = getSdkMetadataForEnvelopeHeader(options._metadata);
 
   const headers: StreamedSpanEnvelope[0] = {
-    sent_at: new Date().toISOString(),
+    sent_at: new Date(safeDateNow()).toISOString(),
     ...(dscHasRequiredProps(dsc) && { trace: dsc }),
     ...(sdk && { sdk }),
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),

@@ -26,7 +26,7 @@ export {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
-export { elementTimingIntegration } from '@sentry-internal/browser-utils';
+export { elementTimingIntegration } from '@sentry/browser-utils';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
@@ -36,4 +36,4 @@ export { webVitalsIntegration } from './integrations/webVitals';
 
 export { feedbackIntegrationShim as feedbackAsyncIntegration, feedbackIntegrationShim as feedbackIntegration };
 
-export { replayIntegration, getReplay } from '@sentry-internal/replay';
+export { replayIntegration, getReplay } from '@sentry/replay';

@@ -2,43 +2,42 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
-// Known React Router limitation: HydratedRouter doesn't invoke instrumentation API
-// hooks on the client-side in Framework Mode. This includes the router.fetch hook.
+// As of React Router 7.15+, HydratedRouter invokes the client `fetch` hook in Framework Mode.
+// A fetcher submission produces a `function.react_router.fetcher` transaction
+// (origin `auto.function.react_router.instrumentation_api`) that nests the client action/loader
+// spans and the `http.client` spans for the underlying `.data` requests.
 // See: https://github.com/remix-run/react-router/discussions/13749
-// Using test.fixme to auto-detect when React Router fixes this upstream.
 
-test.describe('client - instrumentation API fetcher (upstream limitation)', () => {
-  test.fixme('should instrument fetcher with instrumentation API origin', async ({ page }) => {
-    const serverTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+test.describe('client - instrumentation API fetcher', () => {
+  test('should instrument fetcher with instrumentation API origin', async ({ page }) => {
+    // Wait for the client pageload to finish so HydratedRouter is hydrated and the fetcher
+    // submission goes through the instrumented client `fetch` path (not a full-document POST).
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return (
-        transactionEvent.transaction === 'GET /performance/fetcher-test' &&
-        transactionEvent.contexts?.trace?.op === 'http.server'
+        transactionEvent.transaction === '/performance/fetcher-test' &&
+        transactionEvent.contexts?.trace?.op === 'pageload'
       );
+    });
+
+    const fetcherTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.contexts?.trace?.op === 'function.react_router.fetcher';
     });
 
     await page.goto(`/performance/fetcher-test`);
-    await serverTxPromise;
-
-    // Wait for the fetcher action transaction
-    const fetcherTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return (
-        transactionEvent.contexts?.trace?.op === 'function.react_router.fetcher' &&
-        transactionEvent.contexts?.trace?.data?.['sentry.origin'] === 'auto.function.react_router.instrumentation_api'
-      );
-    });
+    await pageloadTxPromise;
 
     await page.locator('#fetcher-submit').click();
 
     const fetcherTx = await fetcherTxPromise;
 
-    expect(fetcherTx).toMatchObject({
-      contexts: {
-        trace: {
-          op: 'function.react_router.fetcher',
-          origin: 'auto.function.react_router.instrumentation_api',
-        },
-      },
-    });
+    expect(fetcherTx.contexts?.trace?.origin).toBe('auto.function.react_router.instrumentation_api');
+
+    // The fetcher transaction nests the client action span and the http.client span(s) for the
+    // underlying `.data` request(s) - i.e. the OTel/browser fetch span is parented by the fetcher
+    // span, not emitted standalone.
+    const spanOps = (fetcherTx.spans ?? []).map(span => span.op);
+    expect(spanOps).toContain('function.react_router.client_action');
+    expect(spanOps).toContain('http.client');
   });
 
   test('should still send server action transaction when fetcher submits', async ({ page }) => {
