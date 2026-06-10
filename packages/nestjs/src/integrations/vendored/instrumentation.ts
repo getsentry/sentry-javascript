@@ -28,7 +28,6 @@ import {
 } from '@opentelemetry/instrumentation';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION } from '@sentry/core';
-import { ATTR_HTTP_METHOD, ATTR_HTTP_URL } from './semconv';
 import { AttributeNames, NestType } from './enums';
 
 const PACKAGE_NAME = '@sentry/instrumentation-nestjs-core';
@@ -177,8 +176,8 @@ function createWrapCreateHandler(tracer: api.Tracer, moduleVersion: string | und
           [AttributeNames.CONTROLLER]: instanceName,
           [AttributeNames.CALLBACK]: callbackName,
         };
-        attributes[ATTR_HTTP_METHOD] = req.method;
-        attributes[ATTR_HTTP_URL] = req.originalUrl || req.url;
+        attributes['http.method'] = req.method;
+        attributes['http.url'] = req.originalUrl || req.url;
         const span = tracer.startSpan(spanName, { attributes });
         const spanContext = api.trace.setSpan(api.context.active(), span);
 
