@@ -69,7 +69,7 @@ function setConnInfoAttributes(context: Context, getConnInfo: GetConnInfo, isola
   });
 
   if (ipAddress) {
-    isolationScope.setUser({ ip_address: ipAddress });
+    isolationScope.setUser({ ...isolationScope.getUser(), ip_address: ipAddress });
   }
 }
 

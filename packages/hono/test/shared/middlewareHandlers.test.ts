@@ -13,6 +13,7 @@ vi.mock('../../src/utils/hono-context', () => ({
 const mockSetTransactionName = vi.fn();
 const mockSetSDKProcessingMetadata = vi.fn();
 const mockSetUser = vi.fn();
+const mockGetUser = vi.fn<() => Record<string, unknown>>(() => ({}));
 
 let rootSpanAttributes: Record<string, unknown> = {};
 const mockRootSpan = {
@@ -37,6 +38,7 @@ vi.mock('@sentry/core', async () => {
       setTransactionName: mockSetTransactionName,
       setSDKProcessingMetadata: mockSetSDKProcessingMetadata,
       setUser: mockSetUser,
+      getUser: mockGetUser,
     })),
     getClient: vi.fn(() => undefined),
   };
@@ -251,6 +253,7 @@ describe('requestHandler — connection info', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     rootSpanAttributes = {};
+    mockGetUser.mockReturnValue({});
     getActiveSpanMock.mockReturnValue(activeSpan);
   });
 
@@ -289,6 +292,21 @@ describe('requestHandler — connection info', () => {
     expect(rootSpanAttributes['network.peer.address']).toBe('203.0.113.5');
     expect(rootSpanAttributes['network.type']).toBe('ipv6');
     expect(mockSetUser).toHaveBeenCalledWith({ ip_address: '203.0.113.5' });
+  });
+
+  it('merges ip_address into the existing user without overwriting other fields', () => {
+    mockUserInfo(true);
+    mockGetUser.mockReturnValue({ id: 'user-123', email: 'jane@example.com' });
+    const getConnInfo = getConnInfoStub({ address: '203.0.113.5', port: 443 });
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    requestHandler(createMockContext(200) as any, getConnInfo as any);
+
+    expect(mockSetUser).toHaveBeenCalledWith({
+      id: 'user-123',
+      email: 'jane@example.com',
+      ip_address: '203.0.113.5',
+    });
   });
 
   it('omits IP-bearing attributes when userInfo is false', () => {
