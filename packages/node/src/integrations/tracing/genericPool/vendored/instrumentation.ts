@@ -102,11 +102,10 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
   }
 
   private _acquirePatcher(original: AcquireFn) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const instrumentation = this;
+    const tracer = this.tracer;
     return function wrapped_acquire(this: genericPool.Pool<unknown>, ...args: unknown[]) {
       const parent = api.context.active();
-      const span = instrumentation.tracer.startSpan('generic-pool.acquire', {}, parent);
+      const span = tracer.startSpan('generic-pool.acquire', {}, parent);
 
       return api.context.with(api.trace.setSpan(parent, span), () => {
         return (original.call(this, ...args) as PromiseLike<unknown>).then(
@@ -125,29 +124,29 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
   }
 
   private _poolWrapper(original: (this: unknown, ...args: unknown[]) => { acquire: AcquireFn }) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const instrumentation = this;
+    const wrap = this._wrap.bind(this);
+    const acquireWithCallbacksPatcher = this._acquireWithCallbacksPatcher.bind(this);
     return function wrapped_pool(this: unknown, ...args: unknown[]) {
       const pool = original.apply(this, args);
-      instrumentation._wrap(pool, 'acquire', instrumentation._acquireWithCallbacksPatcher.bind(instrumentation));
+      wrap(pool, 'acquire', acquireWithCallbacksPatcher);
       return pool;
     };
   }
 
   private _acquireWithCallbacksPatcher(original: AcquireFn) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const instrumentation = this;
+    const tracer = this.tracer;
+    const isDisabled = (): boolean => this._isDisabled;
     return function wrapped_acquire(
       this: genericPool.Pool<unknown>,
       cb: (err: unknown, client: unknown) => unknown,
       priority: number,
     ) {
       // only used for v2 - v2.3
-      if (instrumentation._isDisabled) {
+      if (isDisabled()) {
         return original.call(this, cb, priority);
       }
       const parent = api.context.active();
-      const span = instrumentation.tracer.startSpan('generic-pool.acquire', {}, parent);
+      const span = tracer.startSpan('generic-pool.acquire', {}, parent);
 
       return api.context.with(api.trace.setSpan(parent, span), () => {
         original.call(
