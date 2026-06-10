@@ -5,7 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "test": "playwright test",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules",
     "test:pull-sam-image": "./pull-sam-image.sh",
     "test:build": "pnpm test:pull-sam-image && pnpm install",
     "test:assert": "pnpm test"

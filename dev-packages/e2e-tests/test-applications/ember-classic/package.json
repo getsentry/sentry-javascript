@@ -18,7 +18,7 @@
     "test:build": "pnpm install && pnpm build",
     "test:build-latest": "pnpm install && pnpm add ember-source@latest && pnpm build",
     "test:assert": "playwright test",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml dist"
+    "clean": "npx rimraf node_modules dist"
   },
   "devDependencies": {
     "@ember/optional-features": "~2.0.0",

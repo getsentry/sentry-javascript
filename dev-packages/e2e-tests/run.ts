@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { spawn } from 'child_process';
 import * as dotenv from 'dotenv';
-import { mkdtemp, readFile, rm } from 'fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import { sync as globSync } from 'glob';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
@@ -209,6 +209,10 @@ async function run(): Promise<void> {
 
     await copyToTemp(originalPath, tmpDirPath);
     await addPnpmOverrides(tmpDirPath, packedDirPath);
+
+    // addPnpmOverrides changes the overrides config which won't match the lockfile.
+    // Write .npmrc to disable frozen-lockfile so pnpm accepts the config diff.
+    await writeFile(join(tmpDirPath, '.npmrc'), 'frozen-lockfile=false\n');
 
     const cwd = tmpDirPath;
     // Resolve variant if needed

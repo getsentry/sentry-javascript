@@ -11,7 +11,7 @@
     "start": "serve -s build",
     "build": "node build.mjs",
     "test": "playwright test",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
