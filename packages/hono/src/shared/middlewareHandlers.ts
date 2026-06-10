@@ -56,7 +56,7 @@ function setConnInfoAttributes(context: Context, getConnInfo: GetConnInfo, isola
 
   const { address, port, transport, addressType } = remote || {};
 
-  // Only collect client IP if `userInfo` is enabled (this primarily for setting data with `.setUser` but we in this case we cannot check for `dataCollection.headers` or similar)
+  // Only collect client IP if `userInfo` is enabled (this is primarily for setting data with `.setUser`, but in this case we cannot check for `dataCollection.headers` or similar)
   const ipAddress = address && getClient()?.getDataCollectionOptions().userInfo ? address : undefined;
 
   getRootSpan(activeSpan).setAttributes({

@@ -51,7 +51,7 @@ test('attaches HTTP connection info to the server transaction', async ({ baseURL
     expect(data['network.peer.port']).toBe(data['client.port']);
     expect(data['network.type']).toMatch(/^ipv[46]$/);
   } else {
-    // Cloudflare Workers only expose no port, address family, or transport.
+    // Cloudflare Workers expose no port, address family, or transport.
     // This could change in the future and checking for the absence of these fields allows us to notice if/when that happens.
     expect(data['client.port']).toBeUndefined();
     expect(data['network.peer.port']).toBeUndefined();
