@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **feat(hono): Add support for the Deno runtime**
+- **feat(hono): Add support for the Deno runtime ([#21450](https://github.com/getsentry/sentry-javascript/pull/21450))**
 
   `@sentry/hono` now supports the Deno runtime via a new `@sentry/hono/deno` entry point.
   Install `@sentry/deno` as a peer dependency and initialize Sentry through the `sentry()` middleware:
