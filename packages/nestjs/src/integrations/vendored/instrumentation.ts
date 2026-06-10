@@ -34,12 +34,14 @@ const PACKAGE_NAME = '@sentry/instrumentation-nestjs-core';
 
 type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
 
-// Minimal shapes of the patched `@nestjs/core` internals.
-interface NestFactoryModuleExports {
-  NestFactoryStatic: { prototype: { create: AnyFn } };
-}
-interface RouterExecutionContextModuleExports {
-  RouterExecutionContext: { prototype: { create: AnyFn } };
+type Controller = object;
+
+declare const NestFactory: {
+  create(...args: unknown[]): Promise<unknown>;
+};
+
+interface RouterExecutionContext {
+  create(instance: Controller, callback: (...args: unknown[]) => unknown, ...args: unknown[]): unknown;
 }
 
 interface NestRequest {
@@ -84,7 +86,7 @@ export class NestInstrumentation extends InstrumentationBase {
     return new InstrumentationNodeModuleFile(
       '@nestjs/core/nest-factory.js',
       versions,
-      (moduleExports: NestFactoryModuleExports, moduleVersion?: string) => {
+      (moduleExports: { NestFactoryStatic: { prototype: typeof NestFactory } }, moduleVersion?: string) => {
         this.ensureWrapped(
           moduleExports.NestFactoryStatic.prototype,
           'create',
@@ -92,7 +94,7 @@ export class NestInstrumentation extends InstrumentationBase {
         );
         return moduleExports;
       },
-      (moduleExports: NestFactoryModuleExports) => {
+      (moduleExports: { NestFactoryStatic: { prototype: typeof NestFactory } }) => {
         this._unwrap(moduleExports.NestFactoryStatic.prototype, 'create');
       },
     );
@@ -102,7 +104,7 @@ export class NestInstrumentation extends InstrumentationBase {
     return new InstrumentationNodeModuleFile(
       '@nestjs/core/router/router-execution-context.js',
       versions,
-      (moduleExports: RouterExecutionContextModuleExports, moduleVersion?: string) => {
+      (moduleExports: { RouterExecutionContext: { prototype: RouterExecutionContext } }, moduleVersion?: string) => {
         this.ensureWrapped(
           moduleExports.RouterExecutionContext.prototype,
           'create',
@@ -110,7 +112,7 @@ export class NestInstrumentation extends InstrumentationBase {
         );
         return moduleExports;
       },
-      (moduleExports: RouterExecutionContextModuleExports) => {
+      (moduleExports: { RouterExecutionContext: { prototype: RouterExecutionContext } }) => {
         this._unwrap(moduleExports.RouterExecutionContext.prototype, 'create');
       },
     );
@@ -129,8 +131,8 @@ export class NestInstrumentation extends InstrumentationBase {
 }
 
 function createWrapNestFactoryCreate(tracer: api.Tracer, moduleVersion?: string) {
-  return function wrapCreate(original: AnyFn): AnyFn {
-    return function createWithTrace(this: unknown, ...args: unknown[]) {
+  return function wrapCreate(original: typeof NestFactory.create): typeof NestFactory.create {
+    return function createWithTrace(this: typeof NestFactory, ...args: unknown[]) {
       const nestModule = args[0] as { name?: string };
       const span = tracer.startSpan('Create Nest App', {
         attributes: {
@@ -156,8 +158,8 @@ function createWrapNestFactoryCreate(tracer: api.Tracer, moduleVersion?: string)
 }
 
 function createWrapCreateHandler(tracer: api.Tracer, moduleVersion: string | undefined) {
-  return function wrapCreateHandler(original: AnyFn): AnyFn {
-    return function createHandlerWithTrace(this: unknown, ...args: unknown[]) {
+  return function wrapCreateHandler(original: RouterExecutionContext['create']): RouterExecutionContext['create'] {
+    return function createHandlerWithTrace(this: RouterExecutionContext, ...args: unknown[]) {
       const instance = args[0] as { constructor?: { name?: string } };
       const callback = args[1] as AnyFn;
       args[1] = createWrapHandler(tracer, moduleVersion, callback);
