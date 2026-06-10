@@ -4,6 +4,27 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(hono): Add support for the Deno runtime**
+
+  `@sentry/hono` now supports the Deno runtime via a new `@sentry/hono/deno` entry point.
+  Install `@sentry/deno` as a peer dependency and initialize Sentry through the `sentry()` middleware:
+
+  ```ts
+  import { Hono } from 'hono';
+  import { sentry } from '@sentry/hono/deno';
+
+  const app = new Hono();
+
+  app.use(
+    sentry(app, {
+      dsn: '__DSN__', // or Deno.env.get('SENTRY_DSN')
+      tracesSampleRate: 1.0,
+    }),
+  );
+
+  Deno.serve(app.fetch);
+  ```
+
 - **feat(core): Extract objects as structured logs in `consoleLoggingIntegration`**
 
   The `consoleLoggingIntegration` now extracts structured log attributes when the first argument is a plain object.
