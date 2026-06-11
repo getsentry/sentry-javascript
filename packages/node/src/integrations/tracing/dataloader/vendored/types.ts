@@ -20,11 +20,23 @@
 
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 
-export interface DataloaderInstrumentationConfig extends InstrumentationConfig {
-  /**
-   * Whether the instrumentation requires a parent span, if set to true
-   * and there is no parent span, no additional spans are created
-   * (default: true)
-   */
-  requireParentSpan?: boolean;
+export type DataloaderInstrumentationConfig = InstrumentationConfig;
+
+/* Simplified types inlined from dataloader. */
+// oxlint-disable-next-line typescript/no-explicit-any
+export declare class DataLoader<K, V, _C = K> {
+  public constructor(batchLoadFn: DataLoader.BatchLoadFn<K, V>, options?: any);
+  public load(key: K): Promise<V>;
+  public loadMany(keys: ArrayLike<K>): Promise<Array<V | Error>>;
+  public prime(key: K, value: V | Error): this;
+  public clear(key: K): this;
+  public clearAll(): this;
+  public name: string | undefined;
+  // oxlint-disable-next-line typescript/no-explicit-any
+  [key: string]: any;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export declare namespace DataLoader {
+  type BatchLoadFn<K, V> = (keys: ReadonlyArray<K>) => PromiseLike<ArrayLike<V | Error>>;
 }
