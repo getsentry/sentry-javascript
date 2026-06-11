@@ -1,16 +1,21 @@
 import { describe, expect, it } from "vitest";
 import * as ts from "typescript";
-import { isAbsolute, join, normalize, relative } from "node:path";
+import { dirname, isAbsolute, join, normalize, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
 const fixturesDir = fileURLToPath(new URL(".", import.meta.url));
-const pluginSourceFile = fileURLToPath(new URL("../../vite-plugin/src/index.ts", import.meta.url));
+// Use the built declaration (not the source): `skipLibCheck` skips deep-checking it and its
+// `../core`/`../rollup` `.d.ts` imports, so the test only checks that the plugin's *public*
+// type is assignable to vite's `defineConfig` plugins — which is what the test is about.
+const pluginTypesFile = fileURLToPath(
+  new URL("../../../packages/bundler-plugins/build/types/vite/index.d.ts", import.meta.url)
+);
 const pluginViteTypesFixtureDir = join(fixturesDir, "vite6");
 
 const configSource = `
 import { defineConfig } from "vite";
-import { sentryVitePlugin } from "@sentry/vite-plugin";
+import { sentryVitePlugin } from "@sentry/bundler-plugins/vite";
 
 export default defineConfig({
   plugins: [sentryVitePlugin()],
@@ -61,21 +66,32 @@ function getDiagnosticsForFixture(fixtureName: string, expectedMajor: string): s
       : getSourceFile(path, languageVersion, onError, shouldCreateNewSourceFile);
   host.resolveModuleNames = (moduleNames, containingFile) =>
     moduleNames.map((moduleName) => {
-      if (moduleName === "@sentry/vite-plugin") {
+      if (moduleName === "@sentry/bundler-plugins/vite") {
         return {
-          resolvedFileName: pluginSourceFile,
-          extension: ts.Extension.Ts,
+          resolvedFileName: pluginTypesFile,
+          extension: ts.Extension.Dts,
         };
       }
 
-      const resolutionContainingFile =
-        moduleName === "vite" && containingFile === pluginSourceFile
-          ? join(pluginViteTypesFixtureDir, "sentry-vite-plugin-type-compat.mts")
-          : containingFile;
+      // The built declarations import each other with extensionless relative paths
+      // (e.g. `../core`, `../rollup`), which the Node16 resolver below can't resolve.
+      // Resolve them to their sibling `.d.ts`; `skipLibCheck` then skips checking them.
+      const pluginTypesDir = dirname(dirname(pluginTypesFile));
+      if (
+        (moduleName.startsWith("./") || moduleName.startsWith("../")) &&
+        containingFile.startsWith(pluginTypesDir)
+      ) {
+        const base = join(dirname(containingFile), moduleName);
+        for (const candidate of [`${base}.d.ts`, join(base, "index.d.ts")]) {
+          if (ts.sys.fileExists(candidate)) {
+            return { resolvedFileName: candidate, extension: ts.Extension.Dts };
+          }
+        }
+      }
 
       return ts.resolveModuleName(
         moduleName,
-        resolutionContainingFile,
+        containingFile,
         compilerOptions,
         ts.sys,
         undefined,

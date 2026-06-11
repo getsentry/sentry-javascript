@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
 
+//@ts-expect-error - this file is only built in ESM mode, so this is fine
 const _req = createRequire(import.meta.url);
 
 // Resolve the loader path via the package's own exports.

@@ -1,4 +1,4 @@
-const { sentryRollupPlugin } = require("@sentry/rollup-plugin");
+const { sentryRollupPlugin } = require("@sentry/bundler-plugins/rollup");
 const { defineConfig } = require("rollup");
 const { sentryConfig } = require("../configs/basic.config.cjs");
 

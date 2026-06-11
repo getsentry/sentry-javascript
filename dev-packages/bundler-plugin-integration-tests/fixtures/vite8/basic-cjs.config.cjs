@@ -1,4 +1,4 @@
-const { sentryVitePlugin } = require("@sentry/vite-plugin");
+const { sentryVitePlugin } = require("@sentry/bundler-plugins/vite");
 const { defineConfig } = require("vite");
 const { sentryConfig } = require("../configs/basic.config.js");
 

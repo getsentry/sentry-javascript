@@ -1,5 +1,5 @@
 const esbuild = require("esbuild");
-const { sentryEsbuildPlugin } = require("@sentry/esbuild-plugin");
+const { sentryEsbuildPlugin } = require("@sentry/bundler-plugins/esbuild");
 const { sentryConfig } = require("../configs/basic.config.cjs");
 
 esbuild.build({
