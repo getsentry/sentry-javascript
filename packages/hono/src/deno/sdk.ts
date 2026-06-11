@@ -3,6 +3,7 @@ import { applySdkMetadata, consoleSandbox, getClient } from '@sentry/core';
 import { init as initDeno } from '@sentry/deno';
 import type { HonoDenoOptions } from './middleware';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
+import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../shared/lowQualityTransactionPatterns';
 
 /**
  * Initializes Sentry for Hono running in a Deno runtime environment.
@@ -23,9 +24,10 @@ export function init(options: HonoDenoOptions): Client | undefined {
 
   applySdkMetadata(options, 'hono', ['hono', 'deno']);
 
-  // Remove Hono from the SDK defaults to prevent double instrumentation: @sentry/deno
   const filteredOptions: HonoDenoOptions = {
     ...options,
+    ignoreSpans: [...(options.ignoreSpans || []), ...LOW_QUALITY_TRANSACTION_PATTERNS],
+    // Remove Hono from the SDK defaults to prevent double instrumentation: @sentry/deno
     integrations: buildFilteredIntegrations(options.integrations, false),
   };
 
