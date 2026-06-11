@@ -21,34 +21,31 @@
 
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import { SpanKind } from '@opentelemetry/api';
-import type { DataLoader as Dataloader, DataloaderInstrumentationConfig } from './types';
+import type { BatchLoadFn, DataLoader, DataLoaderConstructor } from './types';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
-import type { SpanLink } from '@sentry/core';
 
 const MODULE_NAME = 'dataloader';
 const PACKAGE_NAME = '@sentry/instrumentation-dataloader';
 const ORIGIN = 'auto.db.otel.dataloader';
 
-type DataloaderInternal = typeof Dataloader.prototype & {
-  _batchLoadFn: Dataloader.BatchLoadFn<unknown, unknown>;
-  _batch: { spanLinks?: SpanLink[] } | null;
-};
+type LoadFn = DataLoader['load'];
+type LoadManyFn = DataLoader['loadMany'];
+type PrimeFn = DataLoader['prime'];
+type ClearFn = DataLoader['clear'];
+type ClearAllFn = DataLoader['clearAll'];
 
-type LoadFn = (typeof Dataloader.prototype)['load'];
-type LoadManyFn = (typeof Dataloader.prototype)['loadMany'];
-type PrimeFn = (typeof Dataloader.prototype)['prime'];
-type ClearFn = (typeof Dataloader.prototype)['clear'];
-type ClearAllFn = (typeof Dataloader.prototype)['clearAll'];
+function isModule(module: unknown): module is { [Symbol.toStringTag]: 'Module'; default: DataLoaderConstructor } {
+  return (module as { [Symbol.toStringTag]: string })[Symbol.toStringTag] === 'Module';
+}
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractModuleExports(module: any) {
-  return module[Symbol.toStringTag] === 'Module'
+function extractModuleExports(module: any): DataLoaderConstructor {
+  return isModule(module)
     ? module.default // ESM
-    : module; // CommonJS
+    : (module as DataLoaderConstructor); // CommonJS
 }
 
 function getSpanName(
-  dataloader: DataloaderInternal,
+  dataloader: DataLoader,
   operation: 'load' | 'loadMany' | 'batch' | 'prime' | 'clear' | 'clearAll',
 ): string {
   const dataloaderName = dataloader.name;
@@ -68,8 +65,8 @@ function getSpanOp(operation: 'load' | 'loadMany' | 'batch' | 'prime' | 'clear' 
   return undefined;
 }
 
-export class DataloaderInstrumentation extends InstrumentationBase<DataloaderInstrumentationConfig> {
-  constructor(config: DataloaderInstrumentationConfig = {}) {
+export class DataloaderInstrumentation extends InstrumentationBase {
+  constructor(config = {}) {
     super(PACKAGE_NAME, SDK_VERSION, config);
   }
 
@@ -100,16 +97,11 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
     ];
   }
 
-  private _wrapBatchLoadFn(
-    batchLoadFn: Dataloader.BatchLoadFn<unknown, unknown>,
-  ): Dataloader.BatchLoadFn<unknown, unknown> {
+  private _wrapBatchLoadFn(batchLoadFn: BatchLoadFn<unknown, unknown>): BatchLoadFn<unknown, unknown> {
     // oxlint-disable-next-line typescript/no-this-alias
     const instrumentation = this;
 
-    return function patchedBatchLoadFn(
-      this: DataloaderInternal,
-      ...args: Parameters<Dataloader.BatchLoadFn<unknown, unknown>>
-    ) {
+    return function patchedBatchLoadFn(this: DataLoader, ...args: Parameters<BatchLoadFn<unknown, unknown>>) {
       if (!instrumentation.isEnabled()) {
         return batchLoadFn.call(this, ...args);
       }
@@ -129,7 +121,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
     };
   }
 
-  private _getPatchedConstructor(constructor: typeof Dataloader): typeof Dataloader {
+  private _getPatchedConstructor(constructor: DataLoaderConstructor): DataLoaderConstructor {
     // oxlint-disable-next-line typescript/no-this-alias
     const instrumentation = this;
     const prototype = constructor.prototype;
@@ -138,7 +130,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
       return constructor;
     }
 
-    function PatchedDataloader(this: DataloaderInternal, ...args: any[]) {
+    function PatchedDataloader(this: DataLoader, ...args: any[]) {
       // BatchLoadFn is the first constructor argument
       // https://github.com/graphql/dataloader/blob/77c2cd7ca97e8795242018ebc212ce2487e729d2/src/index.js#L47
       if (typeof args[0] === 'function') {
@@ -149,14 +141,15 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
         args[0] = instrumentation._wrapBatchLoadFn(args[0]);
       }
 
-      return (constructor as any).apply(this, args);
+      return constructor.apply(this, args);
     }
 
     PatchedDataloader.prototype = prototype;
-    return PatchedDataloader as unknown as typeof Dataloader;
+    return PatchedDataloader as unknown as DataLoaderConstructor;
   }
 
-  private _patchLoad(proto: typeof Dataloader.prototype) {
+  private _patchLoad(proto: DataLoader) {
+    // oxlint-disable-next-line typescript/unbound-method
     if (isWrapped(proto.load)) {
       this._unwrap(proto, 'load');
     }
@@ -165,7 +158,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   }
 
   private _getPatchedLoad(original: LoadFn): LoadFn {
-    return function patchedLoad(this: DataloaderInternal, ...args: Parameters<typeof original>) {
+    return function patchedLoad(this: DataLoader, ...args: Parameters<typeof original>) {
       return startSpan(
         {
           name: getSpanName(this, 'load'),
@@ -193,7 +186,8 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
     };
   }
 
-  private _patchLoadMany(proto: typeof Dataloader.prototype) {
+  private _patchLoadMany(proto: DataLoader) {
+    // oxlint-disable-next-line typescript/unbound-method
     if (isWrapped(proto.loadMany)) {
       this._unwrap(proto, 'loadMany');
     }
@@ -202,7 +196,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   }
 
   private _getPatchedLoadMany(original: LoadManyFn): LoadManyFn {
-    return function patchedLoadMany(this: DataloaderInternal, ...args: Parameters<typeof original>) {
+    return function patchedLoadMany(this: DataLoader, ...args: Parameters<typeof original>) {
       return startSpan(
         {
           name: getSpanName(this, 'loadMany'),
@@ -218,7 +212,8 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
     };
   }
 
-  private _patchPrime(proto: typeof Dataloader.prototype) {
+  private _patchPrime(proto: DataLoader) {
+    // oxlint-disable-next-line typescript/unbound-method
     if (isWrapped(proto.prime)) {
       this._unwrap(proto, 'prime');
     }
@@ -227,7 +222,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   }
 
   private _getPatchedPrime(original: PrimeFn): PrimeFn {
-    return function patchedPrime(this: DataloaderInternal, ...args: Parameters<typeof original>) {
+    return function patchedPrime(this: DataLoader, ...args: Parameters<typeof original>) {
       return startSpan(
         {
           name: getSpanName(this, 'prime'),
@@ -243,7 +238,8 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
     };
   }
 
-  private _patchClear(proto: typeof Dataloader.prototype) {
+  private _patchClear(proto: DataLoader) {
+    // oxlint-disable-next-line typescript/unbound-method
     if (isWrapped(proto.clear)) {
       this._unwrap(proto, 'clear');
     }
@@ -252,7 +248,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   }
 
   private _getPatchedClear(original: ClearFn): ClearFn {
-    return function patchedClear(this: DataloaderInternal, ...args: Parameters<typeof original>) {
+    return function patchedClear(this: DataLoader, ...args: Parameters<typeof original>) {
       return startSpan(
         {
           name: getSpanName(this, 'clear'),
@@ -268,7 +264,8 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
     };
   }
 
-  private _patchClearAll(proto: typeof Dataloader.prototype) {
+  private _patchClearAll(proto: DataLoader) {
+    // oxlint-disable-next-line typescript/unbound-method
     if (isWrapped(proto.clearAll)) {
       this._unwrap(proto, 'clearAll');
     }
@@ -277,7 +274,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   }
 
   private _getPatchedClearAll(original: ClearAllFn): ClearAllFn {
-    return function patchedClearAll(this: DataloaderInternal, ...args: Parameters<typeof original>) {
+    return function patchedClearAll(this: DataLoader, ...args: Parameters<typeof original>) {
       return startSpan(
         {
           name: getSpanName(this, 'clearAll'),
