@@ -11,3 +11,11 @@ allow-ghsas:
   - GHSA-gp8f-8m3g-qvj9
   # devalue vulnerability - this is just used by nuxt & astro as transitive dependency
   - GHSA-vj54-72f3-p5jv
+  # vite 4, used in browser bundler plugin E2E tests
+  - GHSA-c27g-q93r-2cwf
+  # vite 6 7 and 8, used in browser bundler plugin E2E tests
+  - GHSA-p9ff-h696-f583
+  # vite 7 and 8, used in browser bundler plugin E2E tests
+  - GHSA-v2wj-q39q-566r
+  # esbuil, used in browser bundler plugin E2E tests
+  - GHSA-gv7w-rqvm-qjhr
