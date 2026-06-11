@@ -403,6 +403,7 @@ function createChildOrRootSpan({
 
     return new SentryNonRecordingSpan({
       dropReason: 'ignored',
+      // An ignored span is a definite negative decision, not a deferral
       sampled: false,
       traceId: parentSpan?.spanContext().traceId ?? scope.getPropagationContext().traceId,
       parentSpanId: parentSpan?.spanContext().spanId ?? scope.getPropagationContext().parentSpanId,
@@ -560,7 +561,8 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
         traceId,
         sampled,
       })
-    : new SentryNonRecordingSpan({ traceId, parentSpanId: spanId, sampled: false });
+    : // An unsampled child is a definite negative decision, not a deferral
+      new SentryNonRecordingSpan({ traceId, parentSpanId: spanId, sampled: false });
 
   addChildSpanToSpan(parentSpan, childSpan);
 
