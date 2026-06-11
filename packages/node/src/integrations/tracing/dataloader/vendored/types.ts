@@ -18,25 +18,29 @@
  * - Upstream version: @opentelemetry/instrumentation-dataloader@0.35.0
  */
 
-import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
-
-export type DataloaderInstrumentationConfig = InstrumentationConfig;
+import type { SpanLink } from '@sentry/core';
 
 /* Simplified types inlined from dataloader. */
-// oxlint-disable-next-line typescript/no-explicit-any
-export declare class DataLoader<K, V, _C = K> {
-  public constructor(batchLoadFn: DataLoader.BatchLoadFn<K, V>, options?: any);
-  public load(key: K): Promise<V>;
-  public loadMany(keys: ArrayLike<K>): Promise<Array<V | Error>>;
-  public prime(key: K, value: V | Error): this;
-  public clear(key: K): this;
-  public clearAll(): this;
-  public name: string | undefined;
+
+export type BatchLoadFn<K, V> = (keys: ReadonlyArray<K>) => PromiseLike<ArrayLike<V | Error>>;
+
+/** A `DataLoader` instance. */
+export interface DataLoader<K = unknown, V = unknown> {
+  _batchLoadFn: BatchLoadFn<K, V>;
+  _batch: { spanLinks?: SpanLink[] } | null;
+  load(key: K): Promise<V>;
+  loadMany(keys: ArrayLike<K>): Promise<Array<V | Error>>;
+  prime(key: K, value: V | Error): this;
+  clear(key: K): this;
+  clearAll(): this;
+  name: string | undefined;
   // oxlint-disable-next-line typescript/no-explicit-any
   [key: string]: any;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
-export declare namespace DataLoader {
-  type BatchLoadFn<K, V> = (keys: ReadonlyArray<K>) => PromiseLike<ArrayLike<V | Error>>;
+/** The `DataLoader` class/constructor. */
+export interface DataLoaderConstructor {
+  // oxlint-disable-next-line typescript/no-explicit-any
+  new <K, V>(batchLoadFn: BatchLoadFn<K, V>, options?: any): DataLoader<K, V>;
+  prototype: DataLoader<unknown, unknown>;
 }
