@@ -11,7 +11,7 @@ export default [
         'src/module.ts',
       ],
       packageSpecificConfig: {
-        external: ['nuxt/app'],
+        external: ['nuxt/app', '@sentry/opentelemetry/tracing-channel'],
       },
     }),
   ),
