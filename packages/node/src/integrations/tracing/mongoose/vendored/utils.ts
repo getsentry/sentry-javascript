@@ -19,11 +19,10 @@
  * - Types vendored from mongoose as simplified interfaces
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
-/* eslint-disable */
 
 import type { Span, SpanAttributes } from '@sentry/core';
 import { SPAN_STATUS_ERROR } from '@sentry/core';
-import type { Collection } from './mongoose-types';
+import type { Collection, MongooseError } from './mongoose-types';
 import {
   ATTR_DB_MONGODB_COLLECTION,
   ATTR_DB_NAME,
@@ -42,7 +41,7 @@ export function getAttributesFromCollection(collection: Collection): SpanAttribu
   };
 }
 
-function setErrorStatus(span: Span, error: any = {}): void {
+function setErrorStatus(span: Span, error: MongooseError): void {
   span.setStatus({
     code: SPAN_STATUS_ERROR,
     message: `${error.message} ${error.code ? `\nMongoose Error Code: ${error.code}` : ''}`,
@@ -83,7 +82,7 @@ export function handleCallbackResponse(
     }
 
     span.end();
-    return callback!(err, response);
+    return callback(err, response);
   };
 
   return exec.apply(originalThis, args);
