@@ -10,6 +10,12 @@ vi.mock('@sentry/bun', () => ({
   init: vi.fn(),
 }));
 
+// `hono/bun` eagerly imports Bun-only modules (e.g. SSG) that reference the `Bun` global,
+// which is not available under Vitest/Node. We only use its `getConnInfo` helper.
+vi.mock('hono/bun', () => ({
+  getConnInfo: vi.fn(() => ({ remote: {} })),
+}));
+
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 const { init: initBunMock } = await vi.importMock<typeof import('@sentry/bun')>('@sentry/bun');
 
