@@ -18,20 +18,20 @@
  * - Upstream version: @opentelemetry/instrumentation-dataloader@0.35.0
  * - Minor TypeScript strictness adjustments for this repository's compiler settings
  */
-/* eslint-disable */
 
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
-import { trace, context, Link, SpanStatusCode, SpanKind } from '@opentelemetry/api';
-import { DataloaderInstrumentationConfig } from './types';
-import { SDK_VERSION } from '@sentry/core';
-import type * as Dataloader from './dataloader-types';
+import { SpanKind } from '@opentelemetry/api';
+import type { DataLoader as Dataloader, DataloaderInstrumentationConfig } from './types';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import type { SpanLink } from '@sentry/core';
 
 const MODULE_NAME = 'dataloader';
 const PACKAGE_NAME = '@sentry/instrumentation-dataloader';
+const ORIGIN = 'auto.db.otel.dataloader';
 
 type DataloaderInternal = typeof Dataloader.prototype & {
   _batchLoadFn: Dataloader.BatchLoadFn<unknown, unknown>;
-  _batch: { spanLinks?: Link[] } | null;
+  _batch: { spanLinks?: SpanLink[] } | null;
 };
 
 type LoadFn = (typeof Dataloader.prototype)['load'];
@@ -45,6 +45,27 @@ function extractModuleExports(module: any) {
   return module[Symbol.toStringTag] === 'Module'
     ? module.default // ESM
     : module; // CommonJS
+}
+
+function getSpanName(
+  dataloader: DataloaderInternal,
+  operation: 'load' | 'loadMany' | 'batch' | 'prime' | 'clear' | 'clearAll',
+): string {
+  const dataloaderName = dataloader.name;
+  if (dataloaderName) {
+    return `${MODULE_NAME}.${operation} ${dataloaderName}`;
+  }
+
+  return `${MODULE_NAME}.${operation}`;
+}
+
+// `load`, `loadMany` and `batch` are all cache reads
+function getSpanOp(operation: 'load' | 'loadMany' | 'batch' | 'prime' | 'clear' | 'clearAll'): string | undefined {
+  if (operation === 'load' || operation === 'loadMany' || operation === 'batch') {
+    return 'cache.get';
+  }
+
+  return undefined;
 }
 
 export class DataloaderInstrumentation extends InstrumentationBase<DataloaderInstrumentationConfig> {
@@ -79,64 +100,37 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
     ];
   }
 
-  private shouldCreateSpans(): boolean {
-    const config = this.getConfig();
-    const hasParentSpan = trace.getSpan(context.active()) !== undefined;
-    return hasParentSpan || !config.requireParentSpan;
-  }
-
-  private getSpanName(
-    dataloader: DataloaderInternal,
-    operation: 'load' | 'loadMany' | 'batch' | 'prime' | 'clear' | 'clearAll',
-  ): string {
-    const dataloaderName = dataloader.name;
-    if (dataloaderName === undefined || dataloaderName === null) {
-      return `${MODULE_NAME}.${operation}`;
-    }
-
-    return `${MODULE_NAME}.${operation} ${dataloaderName}`;
-  }
-
   private _wrapBatchLoadFn(
     batchLoadFn: Dataloader.BatchLoadFn<unknown, unknown>,
   ): Dataloader.BatchLoadFn<unknown, unknown> {
+    // oxlint-disable-next-line typescript/no-this-alias
     const instrumentation = this;
 
     return function patchedBatchLoadFn(
       this: DataloaderInternal,
       ...args: Parameters<Dataloader.BatchLoadFn<unknown, unknown>>
     ) {
-      if (!instrumentation.isEnabled() || !instrumentation.shouldCreateSpans()) {
+      if (!instrumentation.isEnabled()) {
         return batchLoadFn.call(this, ...args);
       }
 
-      const parent = context.active();
-      const span = instrumentation.tracer.startSpan(
-        instrumentation.getSpanName(this, 'batch'),
-        { links: this._batch?.spanLinks as Link[] | undefined },
-        parent,
+      return startSpan(
+        {
+          name: getSpanName(this, 'batch'),
+          links: this._batch?.spanLinks,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('batch'),
+          },
+          onlyIfParent: true,
+        },
+        () => batchLoadFn.apply(this, args),
       );
-
-      return context.with(trace.setSpan(parent, span), () => {
-        return (batchLoadFn.apply(this, args) as Promise<unknown[]>)
-          .then(value => {
-            span.end();
-            return value;
-          })
-          .catch((err: Error) => {
-            span.recordException(err);
-            span.setStatus({
-              code: SpanStatusCode.ERROR,
-              message: err.message,
-            });
-            span.end();
-            throw err;
-          });
-      });
     };
   }
 
   private _getPatchedConstructor(constructor: typeof Dataloader): typeof Dataloader {
+    // oxlint-disable-next-line typescript/no-this-alias
     const instrumentation = this;
     const prototype = constructor.prototype;
 
@@ -152,7 +146,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
           instrumentation._unwrap(args, 0);
         }
 
-        args[0] = instrumentation._wrapBatchLoadFn(args[0]) as Dataloader.BatchLoadFn<unknown, unknown>;
+        args[0] = instrumentation._wrapBatchLoadFn(args[0]);
       }
 
       return (constructor as any).apply(this, args);
@@ -171,49 +165,31 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   }
 
   private _getPatchedLoad(original: LoadFn): LoadFn {
-    const instrumentation = this;
-
     return function patchedLoad(this: DataloaderInternal, ...args: Parameters<typeof original>) {
-      if (!instrumentation.shouldCreateSpans()) {
-        return original.call(this, ...args);
-      }
+      return startSpan(
+        {
+          name: getSpanName(this, 'load'),
+          kind: SpanKind.CLIENT,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('load'),
+          },
+          onlyIfParent: true,
+        },
+        span => {
+          const result = original.call(this, ...args);
 
-      const parent = context.active();
-      const span = instrumentation.tracer.startSpan(
-        instrumentation.getSpanName(this, 'load'),
-        { kind: SpanKind.CLIENT },
-        parent,
-      );
+          if (this._batch) {
+            if (!this._batch.spanLinks) {
+              this._batch.spanLinks = [];
+            }
 
-      return context.with(trace.setSpan(parent, span), () => {
-        const result = original
-          .call(this, ...args)
-          .then((value: unknown) => {
-            span.end();
-            return value;
-          })
-          .catch((err: Error) => {
-            span.recordException(err);
-            span.setStatus({
-              code: SpanStatusCode.ERROR,
-              message: err.message,
-            });
-            span.end();
-            throw err;
-          });
-
-        const loader = this as DataloaderInternal;
-
-        if (loader._batch) {
-          if (!loader._batch.spanLinks) {
-            loader._batch.spanLinks = [];
+            this._batch.spanLinks.push({ context: span.spanContext() });
           }
 
-          loader._batch.spanLinks.push({ context: span.spanContext() } as Link);
-        }
-
-        return result;
-      });
+          return result;
+        },
+      );
     };
   }
 
@@ -226,28 +202,19 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   }
 
   private _getPatchedLoadMany(original: LoadManyFn): LoadManyFn {
-    const instrumentation = this;
-
     return function patchedLoadMany(this: DataloaderInternal, ...args: Parameters<typeof original>) {
-      if (!instrumentation.shouldCreateSpans()) {
-        return original.call(this, ...args);
-      }
-
-      const parent = context.active();
-      const span = instrumentation.tracer.startSpan(
-        instrumentation.getSpanName(this, 'loadMany'),
-        { kind: SpanKind.CLIENT },
-        parent,
+      return startSpan(
+        {
+          name: getSpanName(this, 'loadMany'),
+          kind: SpanKind.CLIENT,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('loadMany'),
+          },
+          onlyIfParent: true,
+        },
+        () => original.call(this, ...args),
       );
-
-      return context.with(trace.setSpan(parent, span), () => {
-        // .loadMany never rejects, as errors from internal .load
-        // calls are caught by dataloader lib
-        return original.call(this, ...args).then((value: unknown) => {
-          span.end();
-          return value;
-        });
-      });
     };
   }
 
@@ -260,27 +227,19 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   }
 
   private _getPatchedPrime(original: PrimeFn): PrimeFn {
-    const instrumentation = this;
-
     return function patchedPrime(this: DataloaderInternal, ...args: Parameters<typeof original>) {
-      if (!instrumentation.shouldCreateSpans()) {
-        return original.call(this, ...args);
-      }
-
-      const parent = context.active();
-      const span = instrumentation.tracer.startSpan(
-        instrumentation.getSpanName(this, 'prime'),
-        { kind: SpanKind.CLIENT },
-        parent,
+      return startSpan(
+        {
+          name: getSpanName(this, 'prime'),
+          kind: SpanKind.CLIENT,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('prime'),
+          },
+          onlyIfParent: true,
+        },
+        () => original.call(this, ...args),
       );
-
-      const ret = context.with(trace.setSpan(parent, span), () => {
-        return original.call(this, ...args);
-      });
-
-      span.end();
-
-      return ret;
     };
   }
 
@@ -293,27 +252,19 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   }
 
   private _getPatchedClear(original: ClearFn): ClearFn {
-    const instrumentation = this;
-
     return function patchedClear(this: DataloaderInternal, ...args: Parameters<typeof original>) {
-      if (!instrumentation.shouldCreateSpans()) {
-        return original.call(this, ...args);
-      }
-
-      const parent = context.active();
-      const span = instrumentation.tracer.startSpan(
-        instrumentation.getSpanName(this, 'clear'),
-        { kind: SpanKind.CLIENT },
-        parent,
+      return startSpan(
+        {
+          name: getSpanName(this, 'clear'),
+          kind: SpanKind.CLIENT,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('clear'),
+          },
+          onlyIfParent: true,
+        },
+        () => original.call(this, ...args),
       );
-
-      const ret = context.with(trace.setSpan(parent, span), () => {
-        return original.call(this, ...args);
-      });
-
-      span.end();
-
-      return ret;
     };
   }
 
@@ -326,27 +277,19 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   }
 
   private _getPatchedClearAll(original: ClearAllFn): ClearAllFn {
-    const instrumentation = this;
-
     return function patchedClearAll(this: DataloaderInternal, ...args: Parameters<typeof original>) {
-      if (!instrumentation.shouldCreateSpans()) {
-        return original.call(this, ...args);
-      }
-
-      const parent = context.active();
-      const span = instrumentation.tracer.startSpan(
-        instrumentation.getSpanName(this, 'clearAll'),
-        { kind: SpanKind.CLIENT },
-        parent,
+      return startSpan(
+        {
+          name: getSpanName(this, 'clearAll'),
+          kind: SpanKind.CLIENT,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('clearAll'),
+          },
+          onlyIfParent: true,
+        },
+        () => original.call(this, ...args),
       );
-
-      const ret = context.with(trace.setSpan(parent, span), () => {
-        return original.call(this, ...args);
-      });
-
-      span.end();
-
-      return ret;
     };
   }
 }
