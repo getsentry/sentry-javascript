@@ -47,15 +47,6 @@ export const ATTR_DB_NAME = 'db.name' as const;
 export const ATTR_DB_OPERATION = 'db.operation' as const;
 
 /**
- * The database statement being executed.
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
- * @deprecated Replaced by `db.query.text`.
- */
-export const ATTR_DB_STATEMENT = 'db.statement' as const;
-
-/**
  * Deprecated, use `db.system.name` instead.
  *
  * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
@@ -90,10 +81,3 @@ export const ATTR_NET_PEER_NAME = 'net.peer.name' as const;
  * @deprecated Replaced by `server.port` on client spans and `client.port` on server spans.
  */
 export const ATTR_NET_PEER_PORT = 'net.peer.port' as const;
-
-/**
- * Enum value "mongodb" for attribute {@link ATTR_DB_SYSTEM_NAME}.
- *
- * @experimental This enum value is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const DB_SYSTEM_NAME_VALUE_MONGODB = 'mongodb' as const;
