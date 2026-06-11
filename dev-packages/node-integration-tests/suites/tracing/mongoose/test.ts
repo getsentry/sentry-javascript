@@ -42,6 +42,39 @@ describe('Mongoose experimental Test', () => {
         op: 'db',
         origin: 'auto.db.otel.mongoose',
       }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'db.mongodb.collection': 'blogposts',
+          'db.name': 'test',
+          'db.operation': 'aggregate',
+          'db.system': 'mongoose',
+        }),
+        description: 'mongoose.BlogPost.aggregate',
+        op: 'db',
+        origin: 'auto.db.otel.mongoose',
+      }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'db.mongodb.collection': 'blogposts',
+          'db.name': 'test',
+          'db.operation': 'insertMany',
+          'db.system': 'mongoose',
+        }),
+        description: 'mongoose.BlogPost.insertMany',
+        op: 'db',
+        origin: 'auto.db.otel.mongoose',
+      }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'db.mongodb.collection': 'blogposts',
+          'db.name': 'test',
+          'db.operation': 'bulkWrite',
+          'db.system': 'mongoose',
+        }),
+        description: 'mongoose.BlogPost.bulkWrite',
+        op: 'db',
+        origin: 'auto.db.otel.mongoose',
+      }),
     ]),
   };
 

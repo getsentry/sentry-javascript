@@ -28,6 +28,12 @@ async function run() {
       await post.save();
 
       await BlogPost.findOne({});
+
+      await BlogPost.aggregate([{ $match: {} }]);
+
+      await BlogPost.insertMany([{ title: 'Insert', body: 'Insert body', date: new Date() }]);
+
+      await BlogPost.bulkWrite([{ insertOne: { document: { title: 'Bulk', body: 'Bulk body', date: new Date() } } }]);
     },
   );
 }
