@@ -10,6 +10,12 @@ vi.mock('@sentry/deno', () => ({
   init: vi.fn(),
 }));
 
+// `hono/deno` references the `Deno` global at module-eval time, which is not defined in the
+// vitest (Node) environment.
+vi.mock('hono/deno', () => ({
+  getConnInfo: vi.fn(),
+}));
+
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 const { init: initDenoMock } = await vi.importMock<typeof import('@sentry/deno')>('@sentry/deno');
 
