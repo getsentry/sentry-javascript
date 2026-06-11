@@ -20,23 +20,31 @@
  * - Minor TypeScript strictness adjustments for this repository's compiler settings
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
-/* eslint-disable */
 
 import { SpanKind } from '@opentelemetry/api';
 import {
   InstrumentationBase,
-  InstrumentationModuleDefinition,
+  type InstrumentationModuleDefinition,
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { getActiveSpan, SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import type * as mongoose from './mongoose-types';
 import { ATTR_DB_OPERATION, ATTR_DB_SYSTEM } from './semconv';
-import { MongooseInstrumentationConfig } from './types';
+import type { MongooseInstrumentationConfig } from './types';
 import { getAttributesFromCollection, handleCallbackResponse, handlePromiseResponse } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-mongoose';
 const ORIGIN = 'auto.db.otel.mongoose';
+
+type MongooseModuleExports = typeof mongoose;
+
+// The raw imported `mongoose` module: either the CJS object itself, or an ESM
+// namespace wrapper exposing the same shape under `.default`.
+type MongooseModule = MongooseModuleExports & {
+  default?: MongooseModuleExports;
+  [Symbol.toStringTag]?: string;
+};
 
 const contextCaptureFunctionsCommon = [
   'deleteOne',
@@ -111,8 +119,9 @@ export class MongooseInstrumentation extends InstrumentationBase<MongooseInstrum
     return module;
   }
 
-  private patch(module: any, moduleVersion: string | undefined) {
-    const moduleExports: typeof mongoose = module[Symbol.toStringTag] === 'Module' ? module.default : module;
+  private patch(module: MongooseModule, moduleVersion: string | undefined) {
+    const moduleExports: MongooseModuleExports =
+      module[Symbol.toStringTag] === 'Module' && module.default ? module.default : module;
 
     this._wrap(moduleExports.Model.prototype, 'save', this.patchOnModelMethods('save'));
     // mongoose applies this code on module require:
@@ -147,8 +156,9 @@ export class MongooseInstrumentation extends InstrumentationBase<MongooseInstrum
     return moduleExports;
   }
 
-  private unpatch(module: any, moduleVersion: string | undefined): void {
-    const moduleExports: typeof mongoose = module[Symbol.toStringTag] === 'Module' ? module.default : module;
+  private unpatch(module: MongooseModule, moduleVersion: string | undefined): void {
+    const moduleExports: MongooseModuleExports =
+      module[Symbol.toStringTag] === 'Module' && module.default ? module.default : module;
 
     const contextCaptureFunctions = getContextCaptureFunctions(moduleVersion);
 
@@ -213,6 +223,7 @@ export class MongooseInstrumentation extends InstrumentationBase<MongooseInstrum
         const span = self._startSpan(this.constructor.collection, this.constructor.modelName, op);
 
         if (options instanceof Function) {
+          // oxlint-disable-next-line no-param-reassign
           callback = options;
         }
 
@@ -253,6 +264,7 @@ export class MongooseInstrumentation extends InstrumentationBase<MongooseInstrum
     return (original: Function) => {
       return function patchedStatic(this: any, docsOrOps: any, options?: any, callback?: Function) {
         if (typeof options === 'function') {
+          // oxlint-disable-next-line no-param-reassign
           callback = options;
         }
 
@@ -278,7 +290,7 @@ export class MongooseInstrumentation extends InstrumentationBase<MongooseInstrum
     };
   }
 
-  private patchAndCaptureSpanContext(funcName: string) {
+  private patchAndCaptureSpanContext(_funcName: string) {
     return (original: Function) => {
       return function captureSpanContext(this: any) {
         this[_STORED_PARENT_SPAN] = getActiveSpan();
