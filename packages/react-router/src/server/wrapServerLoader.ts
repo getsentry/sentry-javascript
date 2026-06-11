@@ -24,6 +24,7 @@ type SpanOptions = {
 // Track if we've already warned about duplicate instrumentation
 let hasWarnedAboutDuplicateLoaderInstrumentation = false;
 
+// todo(v11): Remove this deprecated wrapper in favor of the instrumentation API (`createSentryServerInstrumentation`).
 /**
  * Wraps a React Router server loader function with Sentry performance monitoring.
  *
