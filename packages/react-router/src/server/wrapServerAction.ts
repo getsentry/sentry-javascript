@@ -26,6 +26,11 @@ let hasWarnedAboutDuplicateActionInstrumentation = false;
 
 /**
  * Wraps a React Router server action function with Sentry performance monitoring.
+ *
+ * @deprecated Use React Router's instrumentation API instead: export
+ * `instrumentations = [createSentryServerInstrumentation()]` from your `entry.server.tsx` to instrument all server
+ * actions without wrapping them individually. This manual wrapper will be removed in a future major.
+ *
  * @param options - Optional span configuration options including name, operation, description and attributes
  * @param actionFn - The server action function to wrap
  *

@@ -18,7 +18,6 @@ export function markInstrumentationApiUsed(): void {
 
 /**
  * Check if React Router's instrumentation API is being used on the server.
- * @experimental
  */
 export function isInstrumentationApiUsed(): boolean {
   return !!(GLOBAL_OBJ as GlobalObjWithFlag)[SENTRY_SERVER_INSTRUMENTATION_FLAG];

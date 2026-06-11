@@ -26,6 +26,11 @@ let hasWarnedAboutDuplicateLoaderInstrumentation = false;
 
 /**
  * Wraps a React Router server loader function with Sentry performance monitoring.
+ *
+ * @deprecated Use React Router's instrumentation API instead: export
+ * `instrumentations = [createSentryServerInstrumentation()]` from your `entry.server.tsx` to instrument all server
+ * loaders without wrapping them individually. This manual wrapper will be removed in a future major.
+ *
  * @param options - Optional span configuration options including name, operation, description and attributes
  * @param loaderFn - The server loader function to wrap
  *
