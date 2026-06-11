@@ -31,6 +31,10 @@
       "node": {
         "import": "./build/esm/index.server.js",
         "require": "./build/cjs/index.server.js"
+      },
+      "default": {
+        "import": "./build/esm/index.server.js",
+        "require": "./build/cjs/index.server.js"
       }
     }
   },
