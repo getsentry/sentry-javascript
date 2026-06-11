@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import { sentryVitePlugin } from "@sentry/vite-plugin";
+import { sentryVitePlugin } from "@sentry/bundler-plugins/vite";
 import { sentryConfig } from "../configs/vite-mpa-extra-modules.config.js";
 import { resolve } from "node:path";
 

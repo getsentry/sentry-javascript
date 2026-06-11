@@ -1,4 +1,4 @@
-const { sentryWebpackPlugin } = require("@sentry/webpack-plugin");
+const { sentryWebpackPlugin } = require("@sentry/bundler-plugins/webpack");
 const { sentryConfig } = require("../configs/basic.config.cjs");
 const { resolve } = require("node:path");
 

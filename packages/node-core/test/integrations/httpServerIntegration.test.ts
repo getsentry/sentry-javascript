@@ -1,12 +1,18 @@
 import type { Client } from '@sentry/core';
 import { createTransport, Scope, ServerRuntimeClient, withScope } from '@sentry/core';
 import { EventEmitter } from 'stream';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { recordRequestSession } from '../../src/integrations/http/httpServerIntegration';
 
-vi.useFakeTimers();
-
 describe('recordRequestSession()', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should send an "exited" session for an ok ended request', () => {
     const client = createTestClient();
     const sendSessionSpy = vi.spyOn(client, 'sendSession');
