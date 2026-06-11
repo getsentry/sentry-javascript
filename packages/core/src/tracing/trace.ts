@@ -19,7 +19,6 @@ import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
-import { dropUndefinedKeys } from '../utils/object';
 import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
@@ -28,7 +27,7 @@ import { safeMathRandom } from '../utils/randomSafeContext';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
-import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { freezeDscOnSpan, freezeDscOnTwpRootSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
@@ -374,22 +373,11 @@ function createChildOrRootSpan({
     });
 
     if (forceTransaction || !parentSpan) {
-      // A continued trace's DSC is frozen and must win as-is, even when it's an empty `{}`
-      // (a `sentry-trace` header without baggage): we are not head of trace, so we neither
-      // fabricate client fields nor inject the local span name. Only when starting a new
-      // trace do we derive the DSC from the client and attach the local span name.
-      // As in `getDynamicSamplingContextFromSpan`, skip the span name when its source is
-      // "url" because URLs might contain PII.
-      // TODO(v11): Only read `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` again, once we renamed it to `sentry.span.source`
-      const source =
-        spanArguments.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] ??
-        spanArguments.attributes?.['sentry.span.source'];
-      const dsc = (propagationContext.dsc ??
-        dropUndefinedKeys({
-          ...getDynamicSamplingContextFromSpan(span),
-          transaction: source === 'url' ? undefined : spanArguments.name,
-        })) satisfies Partial<DynamicSamplingContext>;
-      freezeDscOnSpan(span, dsc);
+      freezeDscOnTwpRootSpan(span, {
+        name: spanArguments.name,
+        attributes: spanArguments.attributes,
+        incomingDsc: propagationContext.dsc,
+      });
     } else {
       // Link nested placeholders to their parent (like the unsampled path below) so
       // `getRootSpan` resolves to the root placeholder and its frozen DSC. Otherwise,

@@ -1,15 +1,10 @@
 import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../semanticAttributes';
-import type { DynamicSamplingContext } from '../types/envelope';
+import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
 import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { debug } from '../utils/debug-logger';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
-import { dropUndefinedKeys } from '../utils/object';
 import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
@@ -20,7 +15,7 @@ import {
   spanToJSON,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
-import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { freezeDscOnTwpRootSpan } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
@@ -141,22 +136,12 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
     // In TwP mode, a new trace's sampling decision stays deferred (like `startSpan`) while a
     // continued trace carries the upstream decision, so baggage and the `sentry-trace` header
-    // agree. A continued trace's DSC is frozen and wins as-is, even when
-    // it's an empty `{}` (a `sentry-trace` header without baggage): we are not head of trace, so
-    // we neither fabricate client fields nor inject the local span name. Only a new trace derives
-    // the DSC from the client and attaches the local span name.
-    // As in `getDynamicSamplingContextFromSpan`, skip the span name when its source is
-    // "url" because URLs might contain PII.
-    // TODO(v11): Only read `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` again, once we renamed it to `sentry.span.source`
-    const source =
-      startSpanOptions.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] ??
-      startSpanOptions.attributes?.['sentry.span.source'];
-    const dsc = (propagationContext.dsc ??
-      dropUndefinedKeys({
-        ...getDynamicSamplingContextFromSpan(span),
-        transaction: source === 'url' ? undefined : startSpanOptions.name,
-      })) satisfies Partial<DynamicSamplingContext>;
-    freezeDscOnSpan(span, dsc);
+    // agree. Idle spans are always trace roots, so we freeze the DSC here.
+    freezeDscOnTwpRootSpan(span, {
+      name: startSpanOptions.name,
+      attributes: startSpanOptions.attributes,
+      incomingDsc: propagationContext.dsc,
+    });
 
     // Capture scopes even on this non-recording placeholder so consumers (e.g. SentryTraceProvider)
     // can read them, mirroring the non-recording paths in `createChildOrRootSpan`.

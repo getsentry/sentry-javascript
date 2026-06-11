@@ -8,11 +8,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
 import type { DynamicSamplingContext } from '../types/envelope';
-import type { Span } from '../types/span';
+import type { Span, SpanAttributes } from '../types/span';
 import { baggageHeaderToDynamicSamplingContext, dynamicSamplingContextToSentryBaggageHeader } from '../utils/baggage';
 import { extractOrgIdFromClient } from '../utils/dsn';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
-import { addNonEnumerableProperty } from '../utils/object';
+import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils/object';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 import { getCapturedScopesOnSpan } from './utils';
 
@@ -32,6 +32,36 @@ type SpanWithMaybeDsc = Span & {
 export function freezeDscOnSpan(span: Span, dsc: Partial<DynamicSamplingContext>): void {
   const spanWithMaybeDsc = span as SpanWithMaybeDsc;
   addNonEnumerableProperty(spanWithMaybeDsc, FROZEN_DSC_FIELD, dsc);
+}
+
+/**
+ * Freeze the DSC on a Tracing-without-Performance root placeholder span.
+ *
+ * A continued trace's DSC (`incomingDsc`) is frozen and must win as-is, even when it's an
+ * empty `{}` (a `sentry-trace` header without baggage): we are not head of trace, so we
+ * neither fabricate client fields nor inject the local span name. Only when starting a new
+ * trace do we derive the DSC from the client and attach the local span name.
+ *
+ * As in `getDynamicSamplingContextFromSpan`, the span name is skipped when its source is
+ * "url" because URLs might contain PII.
+ */
+export function freezeDscOnTwpRootSpan(
+  span: Span,
+  {
+    name,
+    attributes,
+    incomingDsc,
+  }: { name?: string; attributes?: SpanAttributes; incomingDsc?: Partial<DynamicSamplingContext> },
+): void {
+  // TODO(v11): Only read `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` again, once we renamed it to `sentry.span.source`
+  const source = attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] ?? attributes?.['sentry.span.source'];
+  const dsc =
+    incomingDsc ??
+    dropUndefinedKeys({
+      ...getDynamicSamplingContextFromSpan(span),
+      transaction: source === 'url' ? undefined : name,
+    });
+  freezeDscOnSpan(span, dsc);
 }
 
 /**
