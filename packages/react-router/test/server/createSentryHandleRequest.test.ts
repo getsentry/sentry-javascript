@@ -51,7 +51,7 @@ describe('createSentryHandleRequest', () => {
     future: {
       v8_middleware: false,
       v8_passThroughRequests: false,
-      unstable_trailingSlashAwareDataRequests: false,
+      v8_trailingSlashAwareDataRequests: false,
     },
     isSpaMode: false,
     branches: [],
