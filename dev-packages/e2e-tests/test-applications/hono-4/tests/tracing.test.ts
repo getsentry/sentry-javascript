@@ -50,12 +50,14 @@ test('attaches HTTP connection info to the server transaction', async ({ baseURL
     expect(data['client.port']).toEqual(expect.any(Number));
     expect(data['network.peer.port']).toBe(data['client.port']);
     expect(data['network.type']).toMatch(/^ipv[46]$/);
-  } else {
+  } else if (RUNTIME === 'cloudflare') {
     // Cloudflare Workers expose no port, address family, or transport.
     // This could change in the future and checking for the absence of these fields allows us to notice if/when that happens.
     expect(data['client.port']).toBeUndefined();
     expect(data['network.peer.port']).toBeUndefined();
     expect(data['network.type']).toBeUndefined();
+  } else {
+    throw new Error(`No tests for runtime: ${RUNTIME}`);
   }
 
   // Only available in `hono/deno`
@@ -88,6 +90,8 @@ test("preserves the baseline network.* server span attributes that the SDK sends
     // Doesn't set net.*, network.*, or client.* attributes
   } else if (RUNTIME === 'cloudflare') {
     expect(data['network.protocol.name']).toBe('HTTP/1.1');
+  } else {
+    throw new Error(`No tests for runtime: ${RUNTIME}`);
   }
 });
 
