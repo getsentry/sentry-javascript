@@ -237,6 +237,61 @@ describe('getTraceData', () => {
     });
   });
 
+  it('keeps a continued trace frozen DSC on nested TwP placeholder spans', () => {
+    setupClient({ tracesSampleRate: undefined });
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      parentSpanId: '1234567890123456',
+      sampleRand: 0.42,
+      sampled: true,
+      dsc: {
+        environment: 'staging',
+        public_key: 'key',
+        trace_id: '12345678901234567890123456789012',
+        transaction: 'upstream-root',
+        sampled: 'true',
+      },
+    });
+
+    startSpan({ name: 'twp-root' }, () => {
+      startSpan({ name: 'twp-child' }, () => {
+        startSpan({ name: 'twp-grandchild' }, () => {
+          const data = getTraceData();
+
+          // Header and baggage must agree at any depth: both reflect the continued trace.
+          expect(data['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-1$/);
+          expect(data.baggage).toContain('sentry-transaction=upstream-root');
+          expect(data.baggage).toContain('sentry-sampled=true');
+          expect(data.baggage).toContain('sentry-environment=staging');
+        });
+      });
+    });
+  });
+
+  it('does not fabricate baggage for a continued empty frozen DSC on nested TwP placeholder spans', () => {
+    setupClient({ tracesSampleRate: undefined });
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      parentSpanId: '1234567890123456',
+      sampleRand: 0.42,
+      sampled: true,
+      dsc: {},
+    });
+
+    startSpan({ name: 'twp-root' }, () => {
+      startSpan({ name: 'twp-child' }, () => {
+        const data = getTraceData();
+
+        // We are not head of trace: a continued `sentry-trace`-only trace must not
+        // gain locally fabricated client fields at depth either.
+        expect(data.baggage ?? '').not.toContain('sentry-environment');
+        expect(data.baggage ?? '').not.toContain('sentry-public_key');
+      });
+    });
+  });
+
   it('preserves a continued trace DSC transaction when starting a TwP span', () => {
     setupClient({ tracesSampleRate: undefined });
 

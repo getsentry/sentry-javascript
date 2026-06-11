@@ -390,6 +390,12 @@ function createChildOrRootSpan({
           transaction: source === 'url' ? undefined : spanArguments.name,
         })) satisfies Partial<DynamicSamplingContext>;
       freezeDscOnSpan(span, dsc);
+    } else {
+      // Link nested placeholders to their parent (like the unsampled path below) so
+      // `getRootSpan` resolves to the root placeholder and its frozen DSC. Otherwise,
+      // `getTraceData` on a nested active span would fabricate a fresh DSC for baggage
+      // while `sentry-trace` reflects the continued trace.
+      addChildSpanToSpan(parentSpan, span);
     }
 
     // Capture scopes even on this non-recording placeholder so consumers (e.g. SentryTraceProvider)
