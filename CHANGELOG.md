@@ -4,6 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(browser): Add `bfcacheMetricsIntegration` to track back/forward cache health**
+
+  The new opt-in `bfcacheMetricsIntegration` emits metrics about browser back/forward cache (bfcache) navigations, so you can
+  measure how often back-button navigation is instant and what's blocking it.
+
+  ```js
+  Sentry.init({
+    integrations: [Sentry.bfcacheMetricsIntegration()],
+  });
+  ```
+
+  It emits:
+
+  - `browser.bfcache.navigation` — a counter split by outcome (`hit`/`miss`) and navigation type.
+  - `browser.bfcache.not_restored` — a counter of the (Chromium-only) `notRestoredReasons` for a miss.
+  - `browser.bfcache.reload.duration` — a distribution of how expensive the fallback reload was on a miss.
+
 ## 10.67.0
 
 ### Important Changes
