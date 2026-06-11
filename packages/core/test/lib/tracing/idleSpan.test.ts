@@ -125,6 +125,27 @@ describe('startIdleSpan', () => {
     });
   });
 
+  it('keeps a continued trace sampling decision when tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({ dsn });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      parentSpanId: '1234567890123456',
+      sampleRand: 0.42,
+      sampled: true,
+      dsc: { sampled: 'true' },
+    });
+
+    const idleSpan = startIdleSpan({ name: 'foo' });
+
+    // The upstream decision survives in the `sentry-trace` header, agreeing with the frozen baggage.
+    expect(idleSpan.spanContext().sampled).toBe(true);
+    expect(spanToTraceHeader(idleSpan)).toBe(`12345678901234567890123456789012-${idleSpan.spanContext().spanId}-1`);
+  });
+
   it('freezes a continued trace empty DSC as-is when tracing is disabled', () => {
     const options = getDefaultTestClientOptions({ dsn });
     const client = new TestClient(options);

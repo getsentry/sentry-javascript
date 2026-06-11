@@ -136,10 +136,12 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     const span = new SentryNonRecordingSpan({
       traceId: propagationContext.traceId,
       parentSpanId: propagationContext.parentSpanId,
+      sampled: propagationContext.sampled,
     });
 
-    // In TwP mode, leave the sampling decision deferred (like `startSpan`) so baggage and the
-    // `sentry-trace` header agree. A continued trace's DSC is frozen and wins as-is, even when
+    // In TwP mode, a new trace's sampling decision stays deferred (like `startSpan`) while a
+    // continued trace carries the upstream decision, so baggage and the `sentry-trace` header
+    // agree. A continued trace's DSC is frozen and wins as-is, even when
     // it's an empty `{}` (a `sentry-trace` header without baggage): we are not head of trace, so
     // we neither fabricate client fields nor inject the local span name. Only a new trace derives
     // the DSC from the client and attaches the local span name.

@@ -174,6 +174,69 @@ describe('getTraceData', () => {
     });
   });
 
+  it('keeps a continued positive sampling decision for an active TwP placeholder span', () => {
+    setupClient({ tracesSampleRate: undefined });
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      parentSpanId: '1234567890123456',
+      sampleRand: 0.42,
+      sampled: true,
+      dsc: {
+        environment: 'production',
+        public_key: '123',
+        trace_id: '12345678901234567890123456789012',
+        sampled: 'true',
+      },
+    });
+
+    startSpan({ name: 'twp-root' }, () => {
+      const data = getTraceData();
+
+      // The upstream decision must survive in the sentry-trace header so it agrees with the frozen baggage.
+      expect(data['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-1$/);
+      expect(data.baggage).toContain('sentry-sampled=true');
+    });
+  });
+
+  it('keeps a continued negative sampling decision for an active TwP placeholder span', () => {
+    setupClient({ tracesSampleRate: undefined });
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      parentSpanId: '1234567890123456',
+      sampleRand: 0.42,
+      sampled: false,
+      dsc: {},
+    });
+
+    startSpan({ name: 'twp-root' }, () => {
+      const data = getTraceData();
+
+      expect(data['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-0$/);
+    });
+  });
+
+  it('keeps a continued sampling decision on nested TwP placeholder spans', () => {
+    setupClient({ tracesSampleRate: undefined });
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      parentSpanId: '1234567890123456',
+      sampleRand: 0.42,
+      sampled: true,
+      dsc: {},
+    });
+
+    startSpan({ name: 'twp-root' }, () => {
+      startSpan({ name: 'twp-child' }, () => {
+        const data = getTraceData();
+
+        expect(data['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-1$/);
+      });
+    });
+  });
+
   it('preserves a continued trace DSC transaction when starting a TwP span', () => {
     setupClient({ tracesSampleRate: undefined });
 

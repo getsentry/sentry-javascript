@@ -351,20 +351,26 @@ function createChildOrRootSpan({
     const propagationContext: {
       traceId: string;
       parentSpanId?: string;
+      sampled?: boolean;
       dsc?: Partial<DynamicSamplingContext>;
     } = parentSpan
       ? {
           traceId: parentSpan.spanContext().traceId,
           parentSpanId: parentSpan.spanContext().spanId,
+          sampled: parentSpan.spanContext().sampled,
         }
       : {
           ...isolationScope.getPropagationContext(),
           ...scope.getPropagationContext(),
         };
 
+    // A continued trace's sampling decision must be carried along so outgoing `sentry-trace`
+    // headers keep the upstream flag. For a new trace `sampled` is undefined and the decision
+    // stays deferred.
     const span = new SentryNonRecordingSpan({
       traceId: propagationContext.traceId,
       parentSpanId: propagationContext.parentSpanId,
+      sampled: propagationContext.sampled,
     });
 
     if (forceTransaction || !parentSpan) {
