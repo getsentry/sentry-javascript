@@ -8,6 +8,10 @@ vi.mock('@sentry/node', () => ({
   init: vi.fn(),
 }));
 
+vi.mock('@hono/node-server/conninfo', () => ({
+  getConnInfo: vi.fn(() => ({ remote: {} })),
+}));
+
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 const { init: initNodeMock } = await vi.importMock<typeof import('@sentry/node')>('@sentry/node');
 
