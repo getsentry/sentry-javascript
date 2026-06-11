@@ -62,6 +62,35 @@ test('attaches HTTP connection info to the server transaction', async ({ baseURL
   expect(data['network.transport']).toBeUndefined();
 });
 
+// Regression guard against connection info attributes.
+// The conninfo middleware must only *add* attributes, never replace or clear existing ones.
+// These are the baseline attributes the server transaction carries *without* the conninfo feature
+test("preserves the baseline network.* server span attributes that the SDK sends without Hono's conninfo", async ({
+  baseURL,
+}) => {
+  const transactionPromise = waitForTransaction(APP_NAME, event => {
+    return event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /';
+  });
+
+  const response = await fetch(`${baseURL}/`);
+  expect(response.status).toBe(200);
+
+  const transaction = await transactionPromise;
+  const data = transaction.contexts?.trace?.data ?? {};
+
+  if (RUNTIME === 'node') {
+    expect(data['net.host.name']).toBe('localhost');
+    expect(data['net.transport']).toBe('ip_tcp');
+    expect(data['net.host.ip']).toEqual(expect.any(String));
+    expect(data['net.peer.ip']).toEqual(expect.any(String));
+    expect(data['net.peer.port']).toEqual(expect.any(Number));
+  } else if (RUNTIME === 'bun') {
+    // Doesn't set net.*, network.*, or client.* attributes
+  } else if (RUNTIME === 'cloudflare') {
+    expect(data['network.protocol.name']).toBe('HTTP/1.1');
+  }
+});
+
 test('sends a transaction for a route that throws', async ({ baseURL }) => {
   const transactionPromise = waitForTransaction(APP_NAME, event => {
     return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/error/');
