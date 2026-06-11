@@ -2,13 +2,17 @@ import { startBrowserTracingNavigationSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
   debug,
+  getActiveSpan,
   getClient,
+  getRootSpan,
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanToJSON,
   SPAN_STATUS_ERROR,
   startSpan,
+  updateSpanName,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { ClientInstrumentation, InstrumentableRoute, InstrumentableRouter } from '../common/types';
@@ -223,7 +227,11 @@ export function createSentryClientInstrumentation(
       route.instrument({
         async loader(callLoader, info) {
           const urlPath = getPathFromRequest(info.request);
-          const routePattern = normalizeRoutePath(getPattern(info)) || urlPath;
+          const pattern = normalizeRoutePath(getPattern(info));
+          const routePattern = pattern || urlPath;
+          // Parameterize the active navigation root span. (Route hooks don't fire on initial
+          // pageload, so this only affects navigations.)
+          updateRootSpanRoute(routePattern, !!pattern);
 
           await startSpan(
             {
@@ -247,7 +255,9 @@ export function createSentryClientInstrumentation(
 
         async action(callAction, info) {
           const urlPath = getPathFromRequest(info.request);
-          const routePattern = normalizeRoutePath(getPattern(info)) || urlPath;
+          const pattern = normalizeRoutePath(getPattern(info));
+          const routePattern = pattern || urlPath;
+          updateRootSpanRoute(routePattern, !!pattern);
 
           await startSpan(
             {
@@ -326,6 +336,30 @@ export function createSentryClientInstrumentation(
       });
     },
   };
+}
+
+/**
+ * Updates the active navigation/pageload root span name with the parameterized route, so the
+ * transaction reflects the parameterized route pattern (e.g. `/users/:id`).
+ */
+function updateRootSpanRoute(routeName: string, hasPattern: boolean): void {
+  if (!hasPattern) {
+    return;
+  }
+
+  const activeSpan = getActiveSpan();
+  const rootSpan = activeSpan && getRootSpan(activeSpan);
+  if (!rootSpan) {
+    return;
+  }
+
+  const { op } = spanToJSON(rootSpan);
+  if (op !== 'navigation' && op !== 'pageload') {
+    return;
+  }
+
+  updateSpanName(rootSpan, routeName);
+  rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
 }
 
 /**
