@@ -1,10 +1,11 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
-import { afterAll, beforeAll, describe, expect } from 'vitest';
+import { afterAll, beforeAll, expect } from 'vitest';
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongoose 9 (top of our supported `>=5.9.7 <10` range) so the latest major is exercised
-// against a real mongoose.
-describe('Mongoose v9 Test', () => {
+// against a real mongoose. mongoose 9 requires Node >=20.19, so this suite is skipped on older Node.
+conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
