@@ -621,6 +621,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /* eslint-disable @typescript-eslint/unified-signatures */
   /**
+   * Register a callback for whenever a segment span is created, regardless of sampling decision.
+   * This fires for every segment span before `spanStart` and is useful for tracking trace lifecycle
+   * independent of whether the trace is sampled.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'segmentSpanCreated', callback: (span: Span) => void): () => void;
+
+  /**
    * Register a callback for whenever a span is started.
    * Receives the span as argument.
    * @returns {() => void} A function that, when executed, removes the registered callback.
@@ -941,6 +949,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       hookCallbacks.delete(uniqueCallback);
     };
   }
+
+  /** Fire a hook whenever a segment span is created, regardless of sampling decision. */
+  public emit(hook: 'segmentSpanCreated', span: Span): void;
 
   /** Fire a hook whenever a span starts. */
   public emit(hook: 'spanStart', span: Span): void;

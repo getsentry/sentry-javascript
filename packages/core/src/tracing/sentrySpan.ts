@@ -314,7 +314,7 @@ export class SentrySpan implements Span {
   /** Emit `spanEnd` when the span is ended. */
   private _onSpanEnded(): void {
     const client = getClient();
-    if (client) {
+    if (client && this._sampled) {
       client.emit('spanEnd', this);
       // Guarding sending standalone v1 spans as v2 streamed spans for now.
       // Otherwise they'd be sent once as v1 spans and again as streamed spans.

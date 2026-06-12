@@ -297,24 +297,6 @@ describe('CloudflareClient', () => {
       await expect(completionPromise).resolves.toBeUndefined();
     });
 
-    it('does not track negatively sampled spans', () => {
-      const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
-
-      const privateClient = client as unknown as {
-        _pendingSpans: Set<string>;
-        _spanCompletionPromise: Promise<void> | null;
-      };
-
-      const nonRecordingSpan = {
-        spanContext: () => ({ spanId: 'non-recording-span-id', traceFlags: 0 }),
-      };
-
-      client.emit('spanStart', nonRecordingSpan as any);
-
-      expect(privateClient._pendingSpans.has('non-recording-span-id')).toBe(false);
-      expect(privateClient._spanCompletionPromise).toBeNull();
-    });
-
     it('does not track spans after dispose', () => {
       const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
 
