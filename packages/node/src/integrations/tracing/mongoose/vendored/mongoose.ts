@@ -28,7 +28,13 @@ import {
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { getActiveSpan, SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import {
+  getActiveSpan,
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startInactiveSpan,
+  withActiveSpan,
+} from '@sentry/core';
 import type * as mongoose from './mongoose-types';
 import { ATTR_DB_OPERATION, ATTR_DB_SYSTEM } from './semconv';
 import type { MongooseInstrumentationConfig } from './types';
@@ -316,11 +322,16 @@ export class MongooseInstrumentation extends InstrumentationBase<MongooseInstrum
   }
 
   private _handleResponse(span: Span, exec: Function, originalThis: any, args: IArguments, callback?: Function) {
-    if (callback instanceof Function) {
-      return handleCallbackResponse(callback, exec, originalThis, span, args);
-    } else {
-      const response = exec.apply(originalThis, args);
-      return handlePromiseResponse(response, span);
-    }
+    // Activate the span while the underlying operation runs so that nested instrumentation
+    // (e.g. the mongodb driver spans) is parented to this span. `withActiveSpan` returns the
+    // callback's result untouched, so lazy mongoose Query thenables are handed back unexecuted.
+    return withActiveSpan(span, () => {
+      if (callback instanceof Function) {
+        return handleCallbackResponse(callback, exec, originalThis, span, args);
+      } else {
+        const response = exec.apply(originalThis, args);
+        return handlePromiseResponse(response, span);
+      }
+    });
   }
 }

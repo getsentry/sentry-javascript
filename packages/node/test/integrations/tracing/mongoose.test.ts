@@ -208,6 +208,23 @@ describe('mongoose instrumentation', () => {
     });
   });
 
+  describe('active span', () => {
+    it('runs the underlying operation with the mongoose span active so nested work nests under it', async () => {
+      const fake = createFakeMongoose();
+      let activeDescription: string | undefined;
+      // emulate the underlying driver reading the active span while the operation runs
+      (fake.Model.prototype as any).save = function () {
+        activeDescription = spanToJSON(Sentry.getActiveSpan()!).description;
+        return Promise.resolve('ok');
+      };
+      patch(fake);
+
+      await Sentry.startSpan({ name: 'root' }, () => new fake.Model().save());
+
+      expect(activeDescription).toBe('mongoose.User.save');
+    });
+  });
+
   describe('Model statics', () => {
     it.each([
       ['insertMany', () => undefined],
