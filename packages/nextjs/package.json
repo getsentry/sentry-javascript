@@ -77,7 +77,6 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@opentelemetry/semantic-conventions": "^1.40.0",
     "@rollup/plugin-commonjs": "28.0.1",
     "@sentry/browser-utils": "10.57.0",
     "@sentry/bundler-plugin-core": "^5.3.0",
@@ -91,6 +90,7 @@
     "stacktrace-parser": "^0.1.11"
   },
   "devDependencies": {
+    "@sentry/conventions": "^0.11.0",
     "eslint-plugin-react": "^7.31.11",
     "next": "14.2.35",
     "react": "^18.3.1",

@@ -19,6 +19,12 @@ export default [
       packageSpecificConfig: {
         external: ['next/router', 'next/constants', 'next/headers', 'stacktrace-parser'],
 
+        output: {
+          // keep emitted module paths relative to `src` so the bundled `@sentry/conventions`
+          // (a devDependency, vendored into the build) doesn't shift the output layout
+          preserveModulesRoot: 'src',
+        },
+
         // Next.js and our users are more happy when our client code has the "use client" directive
         plugins: [
           {
