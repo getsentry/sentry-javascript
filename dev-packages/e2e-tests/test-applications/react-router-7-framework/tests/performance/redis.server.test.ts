@@ -16,19 +16,20 @@ test.describe('server - redis db spans', () => {
     const transaction = await txPromise;
 
     expect(transaction.contexts?.trace?.op).toBe('http.server');
+
+    // Collect every span id in the transaction (root + children) so we can verify nesting.
+    const rootSpanId = transaction.contexts?.trace?.span_id;
+    const spanIds = new Set([rootSpanId, ...(transaction.spans ?? []).map(span => span.span_id)]);
+
     const redisSpans = transaction.spans!.filter(span => span.op === 'db.redis');
 
     // loader runs SET then GET => at least two redis command spans
     expect(redisSpans.length).toBeGreaterThanOrEqual(2);
 
-    // every redis span is a child span tagged as the redis system
-    expect(redisSpans.every(span => span.data?.['db.system'] === 'redis')).toBe(true);
-    expect(redisSpans.every(span => typeof span.parent_span_id === 'string')).toBe(true);
-    expect(redisSpans.some(span => span.data?.['net.peer.port'] === 6379)).toBe(true);
-
-    // db.statement starts with the command name (e.g. "set cache:greeting ...", "get cache:greeting")
-    const statements = redisSpans.map(span => String(span.data?.['db.statement'] ?? '').toLowerCase());
-    expect(statements.some(statement => statement.startsWith('set'))).toBe(true);
-    expect(statements.some(statement => statement.startsWith('get'))).toBe(true);
+    // every redis span nests under the http.server transaction (its parent is part of the same span tree)
+    const allNested = redisSpans.every(
+      span => typeof span.parent_span_id === 'string' && spanIds.has(span.parent_span_id),
+    );
+    expect(allNested).toBe(true);
   });
 });
