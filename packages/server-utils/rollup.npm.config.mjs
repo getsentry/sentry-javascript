@@ -8,6 +8,7 @@ export default makeNPMConfigVariants(
         exports: 'named',
         // set preserveModules to true because we don't want to bundle everything into one file.
         preserveModules: true,
+        preserveModulesRoot: 'src',
       },
     },
   }),
