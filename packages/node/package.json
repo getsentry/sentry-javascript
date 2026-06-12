@@ -52,6 +52,17 @@
       "require": {
         "default": "./build/cjs/preload.js"
       }
+    },
+    "./orchestrion": {
+      "import": {
+        "default": "./build/orchestrion/import-hook.mjs"
+      }
+    },
+    "./orchestrion/vite": {
+      "import": {
+        "types": "./build/types/orchestrion/bundler/vite.d.ts",
+        "default": "./build/esm/orchestrion/bundler/vite.js"
+      }
     }
   },
   "typesVersions": {
@@ -103,5 +114,18 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "outputs": [
+          "{projectRoot}/build/esm",
+          "{projectRoot}/build/cjs",
+          "{projectRoot}/build/npm/esm",
+          "{projectRoot}/build/npm/cjs",
+          "{projectRoot}/build/orchestrion"
+        ]
+      }
+    }
+  }
 }
