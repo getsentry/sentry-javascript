@@ -16,5 +16,6 @@ export default [
     route('error-middleware', 'routes/performance/error-middleware.tsx'),
     route('lazy-route', 'routes/performance/lazy-route.tsx'),
     route('fetcher-test', 'routes/performance/fetcher-test.tsx'),
+    route('redis', 'routes/performance/redis.tsx'),
   ]),
 ] satisfies RouteConfig;

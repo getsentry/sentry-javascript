@@ -151,4 +151,20 @@ test.describe('server - instrumentation API performance', () => {
       origin: 'auto.function.react_router.instrumentation_api',
     });
   });
+
+  test('sends exactly one http.server transaction per request (no double-instrumentation)', async ({ page }) => {
+    const httpServerTransactions: Array<string | undefined> = [];
+    void waitForTransaction(APP_NAME, async transactionEvent => {
+      if (transactionEvent.contexts?.trace?.op === 'http.server') {
+        httpServerTransactions.push(transactionEvent.transaction);
+      }
+      return false;
+    });
+
+    await page.goto(`/performance`);
+    // Give any (erroneous) duplicate transaction time to arrive before asserting.
+    await page.waitForTimeout(3000);
+
+    expect(httpServerTransactions).toEqual(['GET /performance']);
+  });
 });
