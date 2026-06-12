@@ -19,14 +19,18 @@
  */
 /* eslint-disable */
 
+import {
+  DB_NAME,
+  DB_NAMESPACE,
+  DB_OPERATION,
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
 import { Attributes, DiagLogger, Span, SpanKind, Tracer } from '@opentelemetry/api';
 import { SemconvStability } from '@opentelemetry/instrumentation';
-import {
-  ATTR_DB_NAMESPACE,
-  ATTR_DB_OPERATION_NAME,
-  ATTR_DB_QUERY_TEXT,
-  ATTR_DB_SYSTEM_NAME,
-} from '@opentelemetry/semantic-conventions';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import {
   ATTR_AWS_DYNAMODB_ATTRIBUTE_DEFINITIONS,
@@ -50,10 +54,6 @@ import {
   ATTR_AWS_DYNAMODB_TABLE_COUNT,
   ATTR_AWS_DYNAMODB_TABLE_NAMES,
   ATTR_AWS_DYNAMODB_TOTAL_SEGMENTS,
-  ATTR_DB_NAME,
-  ATTR_DB_OPERATION,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
   DB_SYSTEM_NAME_VALUE_DYNAMODB,
   DB_SYSTEM_VALUE_DYNAMODB,
 } from '../semconv';
@@ -79,14 +79,14 @@ export class DynamodbServiceExtension implements ServiceExtension {
     const spanAttributes: Attributes = {};
 
     if (dbSemconvStability === undefined || dbSemconvStability & SemconvStability.OLD) {
-      spanAttributes[ATTR_DB_SYSTEM] = DB_SYSTEM_VALUE_DYNAMODB;
-      spanAttributes[ATTR_DB_NAME] = tableName;
-      spanAttributes[ATTR_DB_OPERATION] = operation;
+      spanAttributes[DB_SYSTEM] = DB_SYSTEM_VALUE_DYNAMODB;
+      spanAttributes[DB_NAME] = tableName;
+      spanAttributes[DB_OPERATION] = operation;
     }
     if (dbSemconvStability !== undefined && dbSemconvStability & SemconvStability.STABLE) {
-      spanAttributes[ATTR_DB_SYSTEM_NAME] = DB_SYSTEM_NAME_VALUE_DYNAMODB;
-      spanAttributes[ATTR_DB_NAMESPACE] = tableName;
-      spanAttributes[ATTR_DB_OPERATION_NAME] = operation;
+      spanAttributes[DB_SYSTEM_NAME] = DB_SYSTEM_NAME_VALUE_DYNAMODB;
+      spanAttributes[DB_NAMESPACE] = tableName;
+      spanAttributes[DB_OPERATION_NAME] = operation;
     }
 
     if (config.dynamoDBStatementSerializer) {
@@ -95,10 +95,10 @@ export class DynamodbServiceExtension implements ServiceExtension {
 
         if (typeof sanitizedStatement === 'string') {
           if (dbSemconvStability === undefined || dbSemconvStability & SemconvStability.OLD) {
-            spanAttributes[ATTR_DB_STATEMENT] = sanitizedStatement;
+            spanAttributes[DB_STATEMENT] = sanitizedStatement;
           }
           if (dbSemconvStability !== undefined && dbSemconvStability & SemconvStability.STABLE) {
-            spanAttributes[ATTR_DB_QUERY_TEXT] = sanitizedStatement;
+            spanAttributes[DB_QUERY_TEXT] = sanitizedStatement;
           }
         }
       } catch (err) {

@@ -253,52 +253,6 @@ export const ATTR_AWS_STEP_FUNCTIONS_ACTIVITY_ARN = 'aws.step_functions.activity
 export const ATTR_AWS_STEP_FUNCTIONS_STATE_MACHINE_ARN = 'aws.step_functions.state_machine.arn' as const;
 
 /**
- * Deprecated, use `db.namespace` instead.
- *
- * @example customers
- * @example main
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
- * @deprecated Replaced by `db.namespace`.
- */
-export const ATTR_DB_NAME = 'db.name' as const;
-
-/**
- * Deprecated, use `db.operation.name` instead.
- *
- * @example findAndModify
- * @example HMSET
- * @example SELECT
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
- * @deprecated Replaced by `db.operation.name`.
- */
-export const ATTR_DB_OPERATION = 'db.operation' as const;
-
-/**
- * The database statement being executed.
- *
- * @example SELECT * FROM wuser_table
- * @example SET mykey "WuValue"
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
- * @deprecated Replaced by `db.query.text`.
- */
-export const ATTR_DB_STATEMENT = 'db.statement' as const;
-
-/**
- * Deprecated, use `db.system.name` instead.
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
- * @deprecated Replaced by `db.system.name`.
- */
-export const ATTR_DB_SYSTEM = 'db.system' as const;
-
-/**
  * The name of the invoked function.
  *
  * @example "my-function"
@@ -330,33 +284,6 @@ export const ATTR_FAAS_INVOKED_PROVIDER = 'faas.invoked_provider' as const;
 export const ATTR_FAAS_INVOKED_REGION = 'faas.invoked_region' as const;
 
 /**
- * The name of the operation being performed.
- *
- * @note If one of the predefined values applies, but specific system uses a different name it's **RECOMMENDED** to document it in the semantic conventions for specific GenAI system and use system-specific name in the instrumentation. If a different name is not documented, instrumentation libraries **SHOULD** use applicable predefined value.
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_GEN_AI_OPERATION_NAME = 'gen_ai.operation.name' as const;
-
-/**
- * The maximum number of tokens the model generates for a request.
- *
- * @example 100
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_GEN_AI_REQUEST_MAX_TOKENS = 'gen_ai.request.max_tokens' as const;
-
-/**
- * The name of the GenAI model a request is being made to.
- *
- * @example "gpt-4"
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_GEN_AI_REQUEST_MODEL = 'gen_ai.request.model' as const;
-
-/**
  * List of sequences that the model will use to stop generating further tokens.
  *
  * @example ["forest", "lived"]
@@ -364,43 +291,6 @@ export const ATTR_GEN_AI_REQUEST_MODEL = 'gen_ai.request.model' as const;
  * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
  */
 export const ATTR_GEN_AI_REQUEST_STOP_SEQUENCES = 'gen_ai.request.stop_sequences' as const;
-
-/**
- * The temperature setting for the GenAI request.
- *
- * @example 0.0
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_GEN_AI_REQUEST_TEMPERATURE = 'gen_ai.request.temperature' as const;
-
-/**
- * The top_p sampling setting for the GenAI request.
- *
- * @example 1.0
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_GEN_AI_REQUEST_TOP_P = 'gen_ai.request.top_p' as const;
-
-/**
- * Array of reasons the model stopped generating tokens, corresponding to each generation received.
- *
- * @example ["stop"]
- * @example ["stop", "length"]
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_GEN_AI_RESPONSE_FINISH_REASONS = 'gen_ai.response.finish_reasons' as const;
-
-/**
- * Deprecated, use `gen_ai.provider.name` instead.
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
- * @deprecated Replaced by `gen_ai.provider.name`.
- */
-export const ATTR_GEN_AI_SYSTEM = 'gen_ai.system' as const;
 
 /**
  * The type of token being counted.
@@ -411,70 +301,6 @@ export const ATTR_GEN_AI_SYSTEM = 'gen_ai.system' as const;
  * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
  */
 export const ATTR_GEN_AI_TOKEN_TYPE = 'gen_ai.token.type' as const;
-
-/**
- * The number of tokens used in the GenAI input (prompt).
- *
- * @example 100
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_GEN_AI_USAGE_INPUT_TOKENS = 'gen_ai.usage.input_tokens' as const;
-
-/**
- * The number of tokens used in the GenAI response (completion).
- *
- * @example 180
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_GEN_AI_USAGE_OUTPUT_TOKENS = 'gen_ai.usage.output_tokens' as const;
-
-/**
- * Deprecated, use `http.response.status_code` instead.
- *
- * @example 200
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
- * @deprecated Replaced by `http.response.status_code`.
- */
-export const ATTR_HTTP_STATUS_CODE = 'http.status_code' as const;
-
-/**
- * The number of messages sent, received, or processed in the scope of the batching operation.
- *
- * @example 0
- * @example 1
- * @example 2
- *
- * @note Instrumentations **SHOULD NOT** set `messaging.batch.message_count` on spans that operate with a single message. When a messaging client library supports both batch and single-message API for the same operation, instrumentations **SHOULD** use `messaging.batch.message_count` for batching APIs and **SHOULD NOT** use it for single-message APIs.
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_MESSAGING_BATCH_MESSAGE_COUNT = 'messaging.batch.message_count' as const;
-
-/**
- * The message destination name
- *
- * @example MyQueue
- * @example MyTopic
- *
- * @note Destination name **SHOULD** uniquely identify a specific queue, topic or other entity within the broker. If
- * the broker doesn't have such notion, the destination name **SHOULD** uniquely identify the broker.
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_MESSAGING_DESTINATION_NAME = 'messaging.destination.name' as const;
-
-/**
- * A value used by the messaging system as an identifier for the message, represented as a string.
- *
- * @example "452a7c7c7c7048c2f887f61572b18fc2"
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_MESSAGING_MESSAGE_ID = 'messaging.message.id' as const;
 
 /**
  * Deprecated, use `messaging.operation.type` instead.
@@ -488,45 +314,6 @@ export const ATTR_MESSAGING_MESSAGE_ID = 'messaging.message.id' as const;
  * @deprecated Replaced by `messaging.operation.type`.
  */
 export const ATTR_MESSAGING_OPERATION = 'messaging.operation' as const;
-
-/**
- * A string identifying the type of the messaging operation.
- *
- * @note If a custom value is used, it **MUST** be of low cardinality.
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_MESSAGING_OPERATION_TYPE = 'messaging.operation.type' as const;
-
-/**
- * The messaging system as identified by the client instrumentation.
- *
- * @note The actual messaging system may differ from the one known by the client. For example, when using Kafka client libraries to communicate with Azure Event Hubs, the `messaging.system` is set to `kafka` based on the instrumentation's best knowledge.
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_MESSAGING_SYSTEM = 'messaging.system' as const;
-
-/**
- * The name of the (logical) method being called, must be equal to the $method part in the span name.
- *
- * @example "exampleMethod"
- *
- * @note This is the logical name of the method from the RPC interface perspective, which can be different from the name of any implementing method/function. The `code.function.name` attribute may be used to store the latter (e.g., method actually executing the call on the server side, RPC client stub method on the client side).
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_RPC_METHOD = 'rpc.method' as const;
-
-/**
- * The full (logical) name of the service being called, including its package name, if applicable.
- *
- * @example "myservice.EchoService"
- *
- * @note This is the logical name of the service from the RPC interface perspective, which can be different from the name of any implementing class. The `code.namespace` attribute may be used to store the latter (despite the attribute name, it may include a class name; e.g., class with method actually executing the call on the server side, RPC client stub class on the client side).
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- */
-export const ATTR_RPC_SERVICE = 'rpc.service' as const;
 
 /**
  * A string identifying the remoting system. See below for a list of well-known identifiers.

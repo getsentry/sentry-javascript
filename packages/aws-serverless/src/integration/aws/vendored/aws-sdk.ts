@@ -19,6 +19,7 @@
  */
 /* eslint-disable */
 
+import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
 import { Span, SpanKind, context, trace, diag, SpanStatusCode } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import { AttributeNames } from './enums';
@@ -55,8 +56,6 @@ import {
 } from './utils';
 import { propwrap } from './propwrap';
 import { RequestMetadata } from './services/ServiceExtension';
-import { ATTR_HTTP_STATUS_CODE } from './semconv';
-import { ATTR_HTTP_RESPONSE_STATUS_CODE } from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION, timestampInSeconds } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-aws-sdk';
@@ -332,10 +331,10 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                   const httpStatusCode = response.output?.$metadata?.httpStatusCode;
                   if (httpStatusCode) {
                     if (self._httpSemconvStability & SemconvStability.OLD) {
-                      span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
+                      span.setAttribute(HTTP_STATUS_CODE, httpStatusCode);
                     }
                     if (self._httpSemconvStability & SemconvStability.STABLE) {
-                      span.setAttribute(ATTR_HTTP_RESPONSE_STATUS_CODE, httpStatusCode);
+                      span.setAttribute(HTTP_RESPONSE_STATUS_CODE, httpStatusCode);
                     }
                   }
 
@@ -372,10 +371,10 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                   const httpStatusCode = err?.$metadata?.httpStatusCode;
                   if (httpStatusCode) {
                     if (self._httpSemconvStability & SemconvStability.OLD) {
-                      span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
+                      span.setAttribute(HTTP_STATUS_CODE, httpStatusCode);
                     }
                     if (self._httpSemconvStability & SemconvStability.STABLE) {
-                      span.setAttribute(ATTR_HTTP_RESPONSE_STATUS_CODE, httpStatusCode);
+                      span.setAttribute(HTTP_RESPONSE_STATUS_CODE, httpStatusCode);
                     }
                   }
 
