@@ -25,6 +25,9 @@ export default [
           // set exports to 'named' or 'auto' so that rollup doesn't warn
           exports: 'named',
           preserveModules: true,
+          // keep emitted module paths relative to `src` so the bundled `@sentry/conventions`
+          // (a devDependency, vendored into the build) doesn't shift the output layout
+          preserveModulesRoot: 'src',
         },
         plugins: [
           replace({
