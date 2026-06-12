@@ -48,6 +48,12 @@ async function run() {
       await BlogPost.insertMany([{ title: 'Insert', body: 'Insert body', date: new Date() }]);
 
       await BlogPost.bulkWrite([{ insertOne: { document: { title: 'Bulk', body: 'Bulk body', date: new Date() } } }]);
+
+      // Failing operation: a save that violates required-field validation should still produce a
+      // span, marked with an error status.
+      const RequiredSchema = new Schema({ requiredField: { type: String, required: true } });
+      const RequiredDoc = mongoose.model('RequiredDoc', RequiredSchema);
+      await new RequiredDoc({}).save().catch(() => undefined);
     },
   );
 }

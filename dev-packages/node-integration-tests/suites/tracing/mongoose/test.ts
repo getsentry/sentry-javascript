@@ -75,6 +75,17 @@ describe('Mongoose experimental Test', () => {
         op: 'db',
         origin: 'auto.db.otel.mongoose',
       }),
+      // A failing operation still produces a span, marked with an error status.
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'db.operation': 'save',
+          'db.system': 'mongoose',
+        }),
+        description: 'mongoose.RequiredDoc.save',
+        op: 'db',
+        origin: 'auto.db.otel.mongoose',
+        status: 'internal_error',
+      }),
     ]),
   };
 
