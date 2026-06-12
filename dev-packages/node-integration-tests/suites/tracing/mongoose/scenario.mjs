@@ -29,6 +29,20 @@ async function run() {
 
       await BlogPost.findOne({});
 
+      // Callback form (mongoose 5/6 only): the callback is passed as the sole argument, so it must
+      // be forwarded in the correct position. Reject if the callback doesn't receive the saved doc.
+      await new Promise((resolve, reject) => {
+        new BlogPost({ title: 'Callback', body: 'cb', date: new Date() }).save((err, doc) => {
+          if (err) {
+            reject(err);
+          } else if (!doc || doc.title !== 'Callback') {
+            reject(new Error('save(callback) did not receive the saved document'));
+          } else {
+            resolve();
+          }
+        });
+      });
+
       await BlogPost.aggregate([{ $match: {} }]);
 
       await BlogPost.insertMany([{ title: 'Insert', body: 'Insert body', date: new Date() }]);
