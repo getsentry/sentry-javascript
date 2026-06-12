@@ -38,6 +38,7 @@ function isModule(module: unknown): module is { [Symbol.toStringTag]: 'Module'; 
   return (module as { [Symbol.toStringTag]: string })[Symbol.toStringTag] === 'Module';
 }
 
+// oxlint-disable-next-line typescript/no-explicit-any
 function extractModuleExports(module: any): DataLoaderConstructor {
   return isModule(module)
     ? module.default // ESM
@@ -130,6 +131,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
       return constructor;
     }
 
+    // oxlint-disable-next-line typescript/no-explicit-any
     function PatchedDataloader(this: DataLoader, ...args: any[]) {
       // BatchLoadFn is the first constructor argument
       // https://github.com/graphql/dataloader/blob/77c2cd7ca97e8795242018ebc212ce2487e729d2/src/index.js#L47
