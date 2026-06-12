@@ -1,19 +1,19 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_HTTP_REQUEST_METHOD,
-  ATTR_HTTP_ROUTE,
-  ATTR_URL_FULL,
-  SEMATTRS_DB_STATEMENT,
-  SEMATTRS_DB_SYSTEM,
-  SEMATTRS_FAAS_TRIGGER,
-  SEMATTRS_HTTP_METHOD,
-  SEMATTRS_HTTP_TARGET,
-  SEMATTRS_HTTP_URL,
-  SEMATTRS_MESSAGING_SYSTEM,
-  SEMATTRS_RPC_SERVICE,
-} from '@opentelemetry/semantic-conventions';
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_SYSTEM_NAME,
+  FAAS_TRIGGER,
+  HTTP_METHOD,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  HTTP_TARGET,
+  HTTP_URL,
+  MESSAGING_SYSTEM,
+  RPC_SERVICE,
+  URL_FULL,
+} from '@sentry/conventions/attributes';
 import type { SpanAttributes, TransactionSource } from '@sentry/core';
 import {
   getSanitizedUrlString,
@@ -41,14 +41,12 @@ interface SpanDescription {
  */
 export function inferSpanData(spanName: string, attributes: SpanAttributes, kind: SpanKind): SpanDescription {
   // if http.method exists, this is an http request span
-  // eslint-disable-next-line deprecation/deprecation
-  const httpMethod = attributes[ATTR_HTTP_REQUEST_METHOD] || attributes[SEMATTRS_HTTP_METHOD];
+  const httpMethod = attributes[HTTP_REQUEST_METHOD] || attributes[HTTP_METHOD];
   if (httpMethod) {
     return descriptionForHttpMethod({ attributes, name: spanName, kind }, httpMethod);
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  const dbSystem = attributes[ATTR_DB_SYSTEM_NAME] || attributes[SEMATTRS_DB_SYSTEM];
+  const dbSystem = attributes[DB_SYSTEM_NAME] || attributes[DB_SYSTEM];
   const opIsCache =
     typeof attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'string' &&
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP].startsWith('cache.');
@@ -62,8 +60,7 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
   const customSourceOrRoute = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom' ? 'custom' : 'route';
 
   // If rpc.service exists then this is a rpc call span.
-  // eslint-disable-next-line deprecation/deprecation
-  const rpcService = attributes[SEMATTRS_RPC_SERVICE];
+  const rpcService = attributes[RPC_SERVICE];
   if (rpcService) {
     return {
       ...getUserUpdatedNameAndSource(spanName, attributes, 'route'),
@@ -72,8 +69,7 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
   }
 
   // If messaging.system exists then this is a messaging system span.
-  // eslint-disable-next-line deprecation/deprecation
-  const messagingSystem = attributes[SEMATTRS_MESSAGING_SYSTEM];
+  const messagingSystem = attributes[MESSAGING_SYSTEM];
   if (messagingSystem) {
     return {
       ...getUserUpdatedNameAndSource(spanName, attributes, customSourceOrRoute),
@@ -82,8 +78,7 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
   }
 
   // If faas.trigger exists then this is a function as a service span.
-  // eslint-disable-next-line deprecation/deprecation
-  const faasTrigger = attributes[SEMATTRS_FAAS_TRIGGER];
+  const faasTrigger = attributes[FAAS_TRIGGER];
   if (faasTrigger) {
     return {
       ...getUserUpdatedNameAndSource(spanName, attributes, customSourceOrRoute),
@@ -128,8 +123,7 @@ function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; 
   }
 
   // Use DB statement (Ex "SELECT * FROM table") if possible as description.
-  // eslint-disable-next-line deprecation/deprecation
-  const statement = attributes[SEMATTRS_DB_STATEMENT];
+  const statement = attributes[DB_STATEMENT];
 
   const description = statement ? statement.toString() : name;
 
@@ -247,13 +241,11 @@ export function getSanitizedUrl(
   hasRoute: boolean;
 } {
   // This is the relative path of the URL, e.g. /sub
-  // eslint-disable-next-line deprecation/deprecation
-  const httpTarget = attributes[SEMATTRS_HTTP_TARGET];
+  const httpTarget = attributes[HTTP_TARGET];
   // This is the full URL, including host & query params etc., e.g. https://example.com/sub?foo=bar
-  // eslint-disable-next-line deprecation/deprecation
-  const httpUrl = attributes[SEMATTRS_HTTP_URL] || attributes[ATTR_URL_FULL];
+  const httpUrl = attributes[HTTP_URL] || attributes[URL_FULL];
   // This is the normalized route name - may not always be available!
-  const httpRoute = attributes[ATTR_HTTP_ROUTE];
+  const httpRoute = attributes[HTTP_ROUTE];
 
   const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
   const url = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;
