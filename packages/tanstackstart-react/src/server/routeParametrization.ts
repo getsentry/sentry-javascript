@@ -1,4 +1,4 @@
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import {
   escapeStringForRegex,
   getActiveSpan,
@@ -54,13 +54,13 @@ export function updateSpanWithRouteParametrization(method: string, pathname: str
 
   const rootSpan = getRootSpan(activeSpan);
   const rootSpanData = spanToJSON(rootSpan).data;
-  if (rootSpanData?.[ATTR_HTTP_ROUTE]) {
+  if (rootSpanData?.[HTTP_ROUTE]) {
     return;
   }
 
   const transactionName = `${method} ${matchedPattern}`;
   updateSpanName(rootSpan, transactionName);
-  rootSpan.setAttribute(ATTR_HTTP_ROUTE, matchedPattern);
+  rootSpan.setAttribute(HTTP_ROUTE, matchedPattern);
   rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   getCurrentScope().setTransactionName(transactionName);
 }

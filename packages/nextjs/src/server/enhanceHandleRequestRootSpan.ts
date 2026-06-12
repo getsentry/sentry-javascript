@@ -1,9 +1,4 @@
-import {
-  ATTR_HTTP_REQUEST_METHOD,
-  ATTR_HTTP_ROUTE,
-  SEMATTRS_HTTP_METHOD,
-  SEMATTRS_HTTP_TARGET,
-} from '@opentelemetry/semantic-conventions';
+import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_ROUTE, HTTP_TARGET } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, stripUrlQueryAndFragment } from '@sentry/core';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../common/span-attributes-with-logic-attached';
@@ -41,11 +36,9 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
     span.setName(stripUrlQueryAndFragment(currentName));
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  const method = attributes[SEMATTRS_HTTP_METHOD] ?? attributes[ATTR_HTTP_REQUEST_METHOD];
-  // eslint-disable-next-line deprecation/deprecation
-  const target = attributes[SEMATTRS_HTTP_TARGET];
-  const route = attributes[ATTR_HTTP_ROUTE] || attributes[ATTR_NEXT_ROUTE];
+  const method = attributes[HTTP_METHOD] ?? attributes[HTTP_REQUEST_METHOD];
+  const target = attributes[HTTP_TARGET];
+  const route = attributes[HTTP_ROUTE] || attributes[ATTR_NEXT_ROUTE];
   const spanName = attributes[ATTR_NEXT_SPAN_NAME];
 
   if (typeof method === 'string' && typeof route === 'string' && !route.startsWith('middleware')) {

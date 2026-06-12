@@ -1,4 +1,4 @@
-import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
+import { HTTP_TARGET } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
 import {
   debug,
@@ -67,8 +67,7 @@ export function wrapServerLoader<T>(
       const root = getRootSpan(active);
       const spanData = spanToJSON(root);
       if (spanData.origin === 'auto.http.otel.http') {
-        // eslint-disable-next-line deprecation/deprecation
-        const target = spanData.data[SEMATTRS_HTTP_TARGET];
+        const target = spanData.data[HTTP_TARGET];
 
         if (target) {
           // We cannot rely on the regular span name inferral here, as the express instrumentation sets `*` as the route

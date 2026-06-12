@@ -1,3 +1,10 @@
+import {
+  DB_OPERATION_BATCH_SIZE,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
   debug,
@@ -19,16 +26,6 @@ export const IOREDIS_DC_CHANNEL_COMMAND = 'ioredis:command';
 export const IOREDIS_DC_CHANNEL_CONNECT = 'ioredis:connect';
 
 const ORIGIN = 'auto.db.redis.diagnostic_channel';
-
-// Inlined stable semconv attribute keys — these are plain strings, no need to
-// depend on @opentelemetry/semantic-conventions for them. We use the stable
-// OTel names (matching `@sentry/core`'s postgresjs integration) rather than the
-// deprecated `db.statement`/`db.system`/`net.peer.*` forms.
-const ATTR_DB_QUERY_TEXT = 'db.query.text';
-const ATTR_DB_SYSTEM_NAME = 'db.system.name';
-const ATTR_DB_OPERATION_BATCH_SIZE = 'db.operation.batch.size';
-const ATTR_SERVER_ADDRESS = 'server.address';
-const ATTR_SERVER_PORT = 'server.port';
 const DB_SYSTEM_NAME_VALUE_REDIS = 'redis';
 
 const NOOP = (): void => {};
@@ -206,10 +203,10 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
-          [ATTR_DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
-          [ATTR_DB_QUERY_TEXT]: statement,
-          ...(data.serverAddress != null ? { [ATTR_SERVER_ADDRESS]: data.serverAddress } : {}),
-          ...(data.serverPort != null ? { [ATTR_SERVER_PORT]: data.serverPort } : {}),
+          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
+          [DB_QUERY_TEXT]: statement,
+          ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
+          ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
         },
       },
       span => span,
@@ -250,12 +247,12 @@ function setupBatchChannel(
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
-          [ATTR_DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
+          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
           // should only include batch size greater than 1,
           // or else it isn't properly considered a "batch"
-          ...(Number(data.batchSize) > 1 ? { [ATTR_DB_OPERATION_BATCH_SIZE]: data.batchSize } : {}),
-          ...(data.serverAddress != null ? { [ATTR_SERVER_ADDRESS]: data.serverAddress } : {}),
-          ...(data.serverPort != null ? { [ATTR_SERVER_PORT]: data.serverPort } : {}),
+          ...(Number(data.batchSize) > 1 ? { [DB_OPERATION_BATCH_SIZE]: data.batchSize } : {}),
+          ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
+          ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
         },
       },
       span => span,
@@ -288,9 +285,9 @@ function setupConnectChannel(tracingChannel: RedisTracingChannelFactory, channel
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis.connect',
-          [ATTR_DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
-          ...(data.serverAddress != null ? { [ATTR_SERVER_ADDRESS]: data.serverAddress } : {}),
-          ...(data.serverPort != null ? { [ATTR_SERVER_PORT]: data.serverPort } : {}),
+          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
+          ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
+          ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
         },
       },
       span => span,

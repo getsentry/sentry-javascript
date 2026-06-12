@@ -1,4 +1,4 @@
-import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
+import { HTTP_TARGET } from '@sentry/conventions/attributes';
 import { getClient, GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, type Span, type SpanAttributes } from '@sentry/core';
 import { isSentryRequestSpan } from '@sentry/opentelemetry';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
@@ -53,8 +53,7 @@ function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
     return false;
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  const httpTarget = spanAttributes[SEMATTRS_HTTP_TARGET];
+  const httpTarget = spanAttributes[HTTP_TARGET];
 
   if (typeof httpTarget === 'string') {
     // Extract pathname from the target (e.g., "/tunnel?o=123&p=456" -> "/tunnel")

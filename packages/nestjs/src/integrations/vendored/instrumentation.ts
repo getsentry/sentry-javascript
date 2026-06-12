@@ -26,7 +26,7 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
 } from '@opentelemetry/instrumentation';
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { SDK_VERSION } from '@sentry/core';
 import { AttributeNames, NestType } from './enums';
 
@@ -174,7 +174,7 @@ function createWrapCreateHandler(tracer: api.Tracer, moduleVersion: string | und
           ...NestInstrumentation.COMMON_ATTRIBUTES,
           [AttributeNames.VERSION]: moduleVersion,
           [AttributeNames.TYPE]: NestType.REQUEST_CONTEXT,
-          [ATTR_HTTP_ROUTE]: req.route?.path || req.routeOptions?.url || req.routerPath,
+          [HTTP_ROUTE]: req.route?.path || req.routeOptions?.url || req.routerPath,
           [AttributeNames.CONTROLLER]: instanceName,
           [AttributeNames.CALLBACK]: callbackName,
         };

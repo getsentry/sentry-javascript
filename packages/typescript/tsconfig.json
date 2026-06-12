@@ -18,6 +18,13 @@
     "strict": true,
     "strictBindCallApply": false,
     "target": "es2020",
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    // `@sentry/conventions` exposes its attribute keys only via the `./attributes` subpath
+    // export (no node10-compatible types fallback), so map it explicitly for the repo's
+    // `moduleResolution: "node"` type builds. Build-time only — the keys are vendored into
+    // the output bundles, so this never reaches published artifacts.
+    "paths": {
+      "@sentry/conventions/attributes": ["../../node_modules/@sentry/conventions/dist/attributes"]
+    }
   }
 }
