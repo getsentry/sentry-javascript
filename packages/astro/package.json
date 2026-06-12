@@ -53,7 +53,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "astro": ">=3.x || >=4.0.0-beta"
+    "astro": ">=3.x || >=4.0.0-beta || >=7.0.0-beta"
   },
   "dependencies": {
     "@sentry/browser": "10.57.0",
