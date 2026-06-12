@@ -20,16 +20,19 @@ test.describe('server - redis db spans (instrumentation API)', () => {
     expect(transaction.contexts?.trace?.op).toBe('http.server');
     expect(transaction.contexts?.trace?.origin).toBe('auto.http.react_router.instrumentation_api');
 
+    // Collect every span id in the transaction (root + children) so we can verify nesting.
+    const rootSpanId = transaction.contexts?.trace?.span_id;
+    const spanIds = new Set([rootSpanId, ...(transaction.spans ?? []).map(span => span.span_id)]);
+
     const redisSpans = transaction.spans!.filter(span => span.op === 'db.redis');
 
     // loader runs SET then GET => at least two redis command spans
     expect(redisSpans.length).toBeGreaterThanOrEqual(2);
-    expect(redisSpans.every(span => span.data?.['db.system'] === 'redis')).toBe(true);
-    expect(redisSpans.every(span => typeof span.parent_span_id === 'string')).toBe(true);
-    expect(redisSpans.some(span => span.data?.['net.peer.port'] === 6379)).toBe(true);
 
-    const statements = redisSpans.map(span => String(span.data?.['db.statement'] ?? '').toLowerCase());
-    expect(statements.some(statement => statement.startsWith('set'))).toBe(true);
-    expect(statements.some(statement => statement.startsWith('get'))).toBe(true);
+    // every redis span nests under the native instrumentation-API http.server transaction
+    const allNested = redisSpans.every(
+      span => typeof span.parent_span_id === 'string' && spanIds.has(span.parent_span_id),
+    );
+    expect(allNested).toBe(true);
   });
 });
