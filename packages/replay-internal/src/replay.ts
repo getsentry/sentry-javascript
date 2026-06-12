@@ -64,6 +64,12 @@ import { throttle, THROTTLED } from './util/throttle';
 /**
  * The main replay container class, which holds all the state and methods for recording and sending replays.
  */
+/**
+ * Max number of times the flush-time watchdog will try to restart a recorder
+ * that silently died (e.g. a failed restart). Bounds recovery so we never hot-loop.
+ */
+const MAX_RECORDING_RESTART_ATTEMPTS = 3;
+
 export class ReplayContainer implements ReplayContainerInterface {
   public eventBuffer: EventBuffer | null;
 
@@ -143,6 +149,12 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Function to stop recording
    */
   private _stopRecording: ReturnType<typeof record> | undefined;
+
+  /**
+   * Number of consecutive failed attempts to (re)start recording. Bounds the
+   * recovery retries in `_ensureRecordingIsRunning` so we never hot-loop.
+   */
+  private _recordingFailureCount: number = 0;
 
   private _context: InternalEventContext;
 
@@ -470,6 +482,18 @@ export class ReplayContainer implements ReplayContainerInterface {
       });
     } catch (err) {
       this.handleException(err);
+    }
+
+    // `record()` can throw, or swallow an internal error and return `undefined`
+    // (rrweb's own `record()` catches internal errors and returns nothing). Either
+    // way we have no recorder. Track the failure and surface it instead of
+    // silently never recording again — the flush-time watchdog
+    // (`_ensureRecordingIsRunning`) will retry on subsequent flushes.
+    if (this._stopRecording) {
+      this._recordingFailureCount = 0;
+    } else {
+      this._recordingFailureCount += 1;
+      this.handleException(new Error('Replay recording failed to start'));
     }
   }
 
@@ -1283,6 +1307,10 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
+    // If recording silently died (e.g. a failed restart left us without a recorder)
+    // while we're still enabled and unpaused, bring it back before flushing.
+    this._ensureRecordingIsRunning();
+
     const start = this.session.started;
     const now = Date.now();
     const duration = now - start;
@@ -1344,6 +1372,28 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _maybeSaveSession(): void {
     if (this.session && this._options.stickySession) {
       saveSession(this.session);
+    }
+  }
+
+  /**
+   * Recover from a recorder that silently died.
+   *
+   * rrweb recording can stop without `stop()`/`pause()` being called — e.g. when a
+   * buffer→session restart fails, or `record()` swallows an internal error and
+   * returns `undefined`. In that case `_stopRecording` is unset while the
+   * integration is still enabled, so breadcrumbs/network keep flowing but no rrweb
+   * events are captured. If we detect that state, restart recording. Bounded by
+   * `MAX_RECORDING_RESTART_ATTEMPTS` so a persistently-failing recorder can't hot-loop.
+   */
+  private _ensureRecordingIsRunning(): void {
+    if (
+      this._isEnabled &&
+      !this._isPaused &&
+      !this._stopRecording &&
+      this._recordingFailureCount < MAX_RECORDING_RESTART_ATTEMPTS
+    ) {
+      DEBUG_BUILD && debug.warn('Recording is not running while enabled; attempting to restart it.');
+      this.startRecording();
     }
   }
 
