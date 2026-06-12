@@ -13,7 +13,6 @@ import { instrumentHydratedRouter } from './hydratedRouter';
 export interface ReactRouterTracingIntegrationOptions {
   /**
    * Options for React Router's instrumentation API.
-   * @experimental
    */
   instrumentationOptions?: CreateSentryClientInstrumentationOptions;
 
@@ -27,7 +26,6 @@ export interface ReactRouterTracingIntegrationOptions {
 export interface ReactRouterTracingIntegration extends Integration {
   /**
    * Client instrumentation to pass to `HydratedRouter`'s `instrumentations` prop.
-   * @experimental
    */
   readonly clientInstrumentation: ClientInstrumentation;
 }

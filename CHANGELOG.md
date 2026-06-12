@@ -39,6 +39,11 @@
   // → sentry.message.template: "Hello {} {}"
   ```
 
+- **feat(react-router): Stabilize the instrumentation API**
+
+  React Router's instrumentation API is now stable — the `@experimental` markers have been removed from `createSentryServerInstrumentation`, `createSentryClientInstrumentation`, and the related helpers and types.
+  The manual server wrappers `wrapServerLoader` and `wrapServerAction` are now deprecated in favor of it. Export `instrumentations = [Sentry.createSentryServerInstrumentation()]` from your `entry.server.tsx` to instrument all loaders and actions without wrapping them individually.
+
 Work in this release was contributed by @archievi, @AyaanFaisal21, and @itosa-kazu. Thank you for your contributions!
 
 ## 10.57.0
