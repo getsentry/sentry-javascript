@@ -80,3 +80,33 @@ test('Should generate metadata async', async ({ page }) => {
   await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
   await expect(page).toHaveTitle('Product: 1');
 });
+
+test('Metatag injection produces exactly one pageload trace with cache components', async ({ page }) => {
+  const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
+    return (
+      transactionEvent.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.transaction === 'GET /pageload-tracing'
+    );
+  });
+
+  const pageloadTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/pageload-tracing';
+  });
+
+  await page.goto('/pageload-tracing');
+
+  await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
+
+  const [serverTx, pageloadTx] = await Promise.all([serverTxPromise, pageloadTxPromise]);
+
+  const serverTraceId = serverTx.contexts?.trace?.trace_id;
+  const pageloadTraceId = pageloadTx.contexts?.trace?.trace_id;
+
+  // Server and client pageload must share the same trace via metatag injection
+  expect(pageloadTraceId).toBeTruthy();
+  expect(serverTraceId).toBe(pageloadTraceId);
+
+  // Exactly one set of trace meta tags — no duplicates that would cause multiple pageloads
+  expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(1);
+  expect(await page.locator('meta[name="baggage"]').count()).toBe(1);
+});
