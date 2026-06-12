@@ -18,6 +18,9 @@
     "strict": true,
     "strictBindCallApply": false,
     "target": "es2020",
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "@sentry/conventions/attributes": ["../../node_modules/@sentry/conventions/dist/attributes"]
+    }
   }
 }

@@ -6,6 +6,7 @@
  * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
  */
 
+import fs from 'node:fs';
 import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
 import esbuild from 'rollup-plugin-esbuild';
@@ -50,6 +51,63 @@ export function makeEsbuildPlugin(esbuildOptions = {}) {
 
 export function makeJsonPlugin() {
   return json();
+}
+
+/**
+ * With `preserveModules: true`, Rollup emits bundled dependencies that resolve from `node_modules`
+ * (e.g. a vendored devDependency like `@sentry/conventions`) into an output directory literally
+ * named `node_modules`. That breaks at runtime: Node treats `node_modules` as a package-scope
+ * boundary, so the `{"type":"module"}` marker we emit at the ESM build root does NOT apply inside it.
+ * Node then loads our ESM `.js` files there as CommonJS — named imports fail with
+ * "is a CommonJS module" — and Vitest externalizes any `/node_modules/` path and `require()`s it,
+ * which additionally fails on Node 18 (no `require(esm)` support).
+ *
+ * This plugin relocates those modules to a plain `_external/` directory (still inside `src` so
+ * `preserveModules` roots them under the build root). Rollup rewrites every import specifier to the
+ * new location automatically, so the scope marker applies and the heuristics no longer fire.
+ */
+export function makeRelocateVendoredModulesPlugin() {
+  // Rollup module ids and `@rollup/plugin-node-resolve` results use OS-native separators, i.e.
+  // backslashes on Windows. Normalize every path we inspect to forward slashes before matching,
+  // otherwise `/node_modules/` never matches on Windows and the relocation silently no-ops.
+  const toPosix = p => p.split('\\').join('/');
+  const cwd = toPosix(process.cwd());
+  const NODE_MODULES = '/node_modules/';
+  const VENDOR_DIR = `${cwd}/src/_external/`;
+
+  return {
+    name: 'relocate-vendored-modules',
+    async resolveId(source, importer, options) {
+      // Ids we've already relocated resolve to themselves.
+      if (toPosix(source).startsWith(VENDOR_DIR)) return source;
+
+      // When the importer is itself a relocated module, resolve its imports (which are often
+      // relative, e.g. `./chunk.js`) against the REAL on-disk location so sibling files inside the
+      // vendored package are found — then relocate those too, preserving the package's structure.
+      const realImporter =
+        importer && toPosix(importer).startsWith(VENDOR_DIR)
+          ? this.getModuleInfo(importer)?.meta?.vendoredFrom
+          : importer;
+
+      const resolved = await this.resolve(source, realImporter, { ...options, skipSelf: true });
+      // Leave external deps and unresolved ids untouched.
+      if (!resolved || resolved.external) return resolved;
+
+      const resolvedId = toPosix(resolved.id);
+      const idx = resolvedId.lastIndexOf(NODE_MODULES);
+      if (idx === -1) return resolved;
+
+      // Map `<anywhere>/node_modules/<pkg>/<...>` -> `<cwd>/src/_external/<pkg>/<...>` and remember
+      // the real on-disk path so `load()` can read the original source.
+      const rest = resolvedId.slice(idx + NODE_MODULES.length);
+      return { id: `${VENDOR_DIR}${rest}`, meta: { vendoredFrom: resolved.id } };
+    },
+    load(id) {
+      if (!toPosix(id).startsWith(VENDOR_DIR)) return null;
+      const vendoredFrom = this.getModuleInfo(id)?.meta?.vendoredFrom;
+      return vendoredFrom ? fs.readFileSync(vendoredFrom, 'utf-8') : null;
+    },
+  };
 }
 
 /**
