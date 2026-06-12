@@ -29,6 +29,12 @@ async function run() {
       await BlogPost.insertMany([{ title: 'Insert', body: 'Insert body', date: new Date() }]);
 
       await BlogPost.bulkWrite([{ insertOne: { document: { title: 'Bulk', body: 'Bulk body', date: new Date() } } }]);
+
+      // Document instance methods. On v9 these are not doc-method-patched (needsDocumentMethodPatch
+      // only matches 8.x) but are still instrumented via the patched Query.exec path.
+      const doc = await BlogPost.create({ title: 'DocMethod', body: 'b', date: new Date() });
+      await doc.updateOne({ title: 'DocMethodUpdated' });
+      await doc.deleteOne();
     },
   );
 }
