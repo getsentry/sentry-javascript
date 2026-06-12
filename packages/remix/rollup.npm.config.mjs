@@ -19,6 +19,9 @@ export default [
         output: {
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
+          // keep emitted module paths relative to `src` so the bundled `@sentry/conventions`
+          // (a devDependency, vendored into the build) doesn't shift the output layout
+          preserveModulesRoot: 'src',
         },
       },
     }),
