@@ -75,6 +75,18 @@ describe('Mongoose experimental Test', () => {
         op: 'db',
         origin: 'auto.db.otel.mongoose',
       }),
+      // `remove` is patched only on mongoose 5/6.
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'db.mongodb.collection': 'blogposts',
+          'db.name': 'test',
+          'db.operation': 'remove',
+          'db.system': 'mongoose',
+        }),
+        description: 'mongoose.BlogPost.remove',
+        op: 'db',
+        origin: 'auto.db.otel.mongoose',
+      }),
       // A failing operation still produces a span, marked with an error status.
       expect.objectContaining({
         data: expect.objectContaining({
@@ -106,6 +118,25 @@ describe('Mongoose experimental Test', () => {
               span => span.parent_span_id === mongooseSave?.span_id && span.origin === 'auto.db.otel.mongo',
             );
             expect(driverChild).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
+
+    test('parents a query to the span it was built in, not where it executes', async () => {
+      await createTestRunner()
+        .expect({
+          transaction: event => {
+            const spans = event.spans || [];
+            const builder = spans.find(span => span.description === 'query-builder');
+            expect(builder).toBeDefined();
+            // the query was built inside `query-builder` but awaited after it ended, so its exec
+            // span must parent to `query-builder` rather than the active span at exec time
+            const findExec = spans.find(
+              span => span.description === 'mongoose.BlogPost.findOne' && span.parent_span_id === builder?.span_id,
+            );
+            expect(findExec).toBeDefined();
           },
         })
         .start()
