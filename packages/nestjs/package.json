@@ -46,13 +46,13 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/instrumentation": "^0.214.0",
-    "@opentelemetry/semantic-conventions": "^1.40.0",
     "@sentry/core": "10.57.0",
     "@sentry/node": "10.57.0"
   },
   "devDependencies": {
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
+    "@sentry/conventions": "^0.11.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
