@@ -172,7 +172,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
         span => {
           const result = original.call(this, ...args);
 
-          if (this._batch) {
+          if (this._batch && span.isRecording()) {
             if (!this._batch.spanLinks) {
               this._batch.spanLinks = [];
             }
