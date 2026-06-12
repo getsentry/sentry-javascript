@@ -1,16 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getActiveSpan,
+  getCapturedScopesOnSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   getGlobalScope,
   getIsolationScope,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentryNonRecordingSpan,
   SentrySpan,
   setCurrentClient,
+  spanToBaggageHeader,
   spanToJSON,
+  spanToTraceHeader,
   startInactiveSpan,
   startSpan,
   startSpanManual,
@@ -59,20 +63,128 @@ describe('startIdleSpan', () => {
     setCurrentClient(client);
     client.init();
 
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+    });
+
     const idleSpan = startIdleSpan({ name: 'foo' });
     expect(idleSpan).toBeDefined();
     expect(idleSpan).toBeInstanceOf(SentryNonRecordingSpan);
-    // DSC is still correctly set on the span
+
+    // Continues the trace from the scope, with the sampling decision deferred (no `sampled`/`sample_rate`).
+    expect(idleSpan.spanContext().traceId).toBe('12345678901234567890123456789012');
     expect(getDynamicSamplingContextFromSpan(idleSpan)).toEqual({
       environment: 'production',
       public_key: '123',
-      sample_rate: '0',
-      sampled: 'false',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: '12345678901234567890123456789012',
+      transaction: 'foo',
     });
 
-    // not set as active span, though
+    // baggage and the `sentry-trace` header agree: neither asserts a sampling decision.
+    expect(spanToTraceHeader(idleSpan)).toBe(`12345678901234567890123456789012-${idleSpan.spanContext().spanId}`);
+    expect(spanToBaggageHeader(idleSpan)).not.toContain('sentry-sampled');
+    expect(spanToBaggageHeader(idleSpan)).not.toContain('sentry-sample_rate');
+
+    // Scopes are captured on the placeholder so consumers (e.g. SentryTraceProvider) can read them.
+    expect(getCapturedScopesOnSpan(idleSpan).scope).toBe(getCurrentScope());
+    expect(getCapturedScopesOnSpan(idleSpan).isolationScope).toBe(getIsolationScope());
+
     expect(getActiveSpan()).toBe(undefined);
+  });
+
+  it('preserves a continued trace DSC transaction when tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({ dsn });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+      dsc: {
+        environment: 'production',
+        public_key: '123',
+        trace_id: '12345678901234567890123456789012',
+        transaction: 'upstream-root',
+        sampled: 'true',
+        sample_rate: '0.5',
+      },
+    });
+
+    const idleSpan = startIdleSpan({ name: 'foo' });
+
+    // The continued trace's frozen DSC wins over the local idle span name.
+    expect(getDynamicSamplingContextFromSpan(idleSpan)).toEqual({
+      environment: 'production',
+      public_key: '123',
+      trace_id: '12345678901234567890123456789012',
+      transaction: 'upstream-root',
+      sampled: 'true',
+      sample_rate: '0.5',
+    });
+  });
+
+  it('keeps a continued trace sampling decision when tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({ dsn });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      parentSpanId: '1234567890123456',
+      sampleRand: 0.42,
+      sampled: true,
+      dsc: { sampled: 'true' },
+    });
+
+    const idleSpan = startIdleSpan({ name: 'foo' });
+
+    // The upstream decision survives in the `sentry-trace` header, agreeing with the frozen baggage.
+    expect(idleSpan.spanContext().sampled).toBe(true);
+    expect(spanToTraceHeader(idleSpan)).toBe(`12345678901234567890123456789012-${idleSpan.spanContext().spanId}-1`);
+  });
+
+  it('freezes a continued trace empty DSC as-is when tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({ dsn });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    // A continued `sentry-trace` without baggage yields an empty frozen DSC marker.
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+      dsc: {},
+    });
+
+    const idleSpan = startIdleSpan({ name: 'foo' });
+
+    // We are not head of trace: don't fabricate client fields or inject the local transaction.
+    expect(getDynamicSamplingContextFromSpan(idleSpan)).toEqual({});
+  });
+
+  it('does not add a url-source span name to the DSC when tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({ dsn });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    // Mirrors a browser pageload/navigation span, whose name is the URL path.
+    const idleSpan = startIdleSpan({
+      name: '/users/123e4567-e89b-12d3-a456-426614174000',
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+    });
+
+    expect(idleSpan).toBeInstanceOf(SentryNonRecordingSpan);
+    // URLs might contain PII, so the span name must not end up in the DSC.
+    expect(getDynamicSamplingContextFromSpan(idleSpan)).toEqual({
+      environment: 'production',
+      public_key: '123',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    });
+    expect(spanToBaggageHeader(idleSpan)).not.toContain('sentry-transaction');
   });
 
   it('does not finish idle span if there are still active activities', () => {

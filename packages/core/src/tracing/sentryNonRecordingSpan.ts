@@ -9,7 +9,7 @@ import type {
 } from '../types/span';
 import type { SpanStatus } from '../types/spanStatus';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
-import { TRACE_FLAG_NONE } from '../utils/spanUtils';
+import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../utils/spanUtils';
 
 interface SentryNonRecordingSpanArguments extends SentrySpanArguments {
   dropReason?: EventDropReason;
@@ -21,6 +21,8 @@ interface SentryNonRecordingSpanArguments extends SentrySpanArguments {
 export class SentryNonRecordingSpan implements Span {
   private _traceId: string;
   private _spanId: string;
+  private _parentSpanId: string | undefined;
+  private _sampled: boolean | undefined;
 
   /**
    * Reason why this span was dropped, if applicable ('ignored' or 'sample_rate').
@@ -32,6 +34,8 @@ export class SentryNonRecordingSpan implements Span {
   public constructor(spanContext: SentryNonRecordingSpanArguments = {}) {
     this._traceId = spanContext.traceId || generateTraceId();
     this._spanId = spanContext.spanId || generateSpanId();
+    this._parentSpanId = spanContext.parentSpanId;
+    this._sampled = spanContext.sampled;
     this.dropReason = spanContext.dropReason;
   }
 
@@ -40,7 +44,8 @@ export class SentryNonRecordingSpan implements Span {
     return {
       spanId: this._spanId,
       traceId: this._traceId,
-      traceFlags: TRACE_FLAG_NONE,
+      traceFlags: this._sampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
+      sampled: this._sampled,
     };
   }
 
@@ -92,13 +97,25 @@ export class SentryNonRecordingSpan implements Span {
   }
 
   /**
+   * Exposes the parent span id so the generic `spanToJSON` fallback (which reads
+   * `.parentSpanId` off the instance) can surface `parent_span_id` for non-recording spans.
+   * Unlike `SentrySpan`, these have no serialization of their own.
+   *
+   * @hidden
+   * @internal
+   */
+  public get parentSpanId(): string | undefined {
+    return this._parentSpanId;
+  }
+
+  /**
    * This should generally not be used,
    * but we need it for being compliant with the OTEL Span interface.
    *
    * @hidden
    * @internal
    */
-  public recordException(_exception: unknown, _time?: number | undefined): void {
+  public recordException(_exception: unknown, _time?: SpanTimeInput | undefined): void {
     // noop
   }
 }

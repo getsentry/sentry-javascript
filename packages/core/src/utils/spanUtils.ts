@@ -82,18 +82,18 @@ export function spanToTraceContext(span: Span): TraceContext {
  * Convert a Span to a Sentry trace header.
  */
 export function spanToTraceHeader(span: Span): string {
-  const { traceId, spanId } = span.spanContext();
-  const sampled = spanIsSampled(span);
-  return generateSentryTraceHeader(traceId, spanId, sampled);
+  const spanContext = span.spanContext();
+  const sampled = 'sampled' in spanContext ? spanContext.sampled : spanIsSampled(span);
+  return generateSentryTraceHeader(spanContext.traceId, spanContext.spanId, sampled);
 }
 
 /**
  * Convert a Span to a W3C traceparent header.
  */
 export function spanToTraceparentHeader(span: Span): string {
-  const { traceId, spanId } = span.spanContext();
-  const sampled = spanIsSampled(span);
-  return generateTraceparentHeader(traceId, spanId, sampled);
+  const spanContext = span.spanContext();
+  const sampled = 'sampled' in spanContext ? spanContext.sampled : spanIsSampled(span);
+  return generateTraceparentHeader(spanContext.traceId, spanContext.spanId, sampled);
 }
 
 /**
@@ -197,10 +197,11 @@ export function spanToJSON(span: Span): SpanJSON {
   }
 
   // Finally, at least we have `spanContext()`....
-  // This should not actually happen in reality, but we need to handle it for type safety.
+  // This covers SentryNonRecordingSpan and any other non-SDK span types.
   return {
     span_id,
     trace_id,
+    parent_span_id: (span as { parentSpanId?: string }).parentSpanId,
     start_timestamp: 0,
     data: {},
   };

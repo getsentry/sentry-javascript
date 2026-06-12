@@ -27,7 +27,7 @@ import { safeMathRandom } from '../utils/randomSafeContext';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
-import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { freezeDscOnSpan, freezeDscOnTwpRootSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
@@ -344,20 +344,51 @@ function createChildOrRootSpan({
   forceTransaction?: boolean;
   scope: Scope;
 }): Span {
-  if (!hasSpansEnabled()) {
-    const span = new SentryNonRecordingSpan();
+  const isolationScope = getIsolationScope();
 
-    // If this is a root span, we ensure to freeze a DSC
-    // So we can have at least partial data here
+  if (!hasSpansEnabled()) {
+    const propagationContext: {
+      traceId: string;
+      parentSpanId?: string;
+      sampled?: boolean;
+      dsc?: Partial<DynamicSamplingContext>;
+    } = parentSpan
+      ? {
+          traceId: parentSpan.spanContext().traceId,
+          parentSpanId: parentSpan.spanContext().spanId,
+          sampled: parentSpan.spanContext().sampled,
+        }
+      : {
+          ...isolationScope.getPropagationContext(),
+          ...scope.getPropagationContext(),
+        };
+
+    // A continued trace's sampling decision must be carried along so outgoing `sentry-trace`
+    // headers keep the upstream flag. For a new trace `sampled` is undefined and the decision
+    // stays deferred.
+    const span = new SentryNonRecordingSpan({
+      traceId: propagationContext.traceId,
+      parentSpanId: propagationContext.parentSpanId,
+      sampled: propagationContext.sampled,
+    });
+
     if (forceTransaction || !parentSpan) {
-      const dsc = {
-        sampled: 'false',
-        sample_rate: '0',
-        transaction: spanArguments.name,
-        ...getDynamicSamplingContextFromSpan(span),
-      } satisfies Partial<DynamicSamplingContext>;
-      freezeDscOnSpan(span, dsc);
+      freezeDscOnTwpRootSpan(span, {
+        name: spanArguments.name,
+        attributes: spanArguments.attributes,
+        incomingDsc: propagationContext.dsc,
+      });
+    } else {
+      // Link nested placeholders to their parent (like the unsampled path below) so
+      // `getRootSpan` resolves to the root placeholder and its frozen DSC. Otherwise,
+      // `getTraceData` on a nested active span would fabricate a fresh DSC for baggage
+      // while `sentry-trace` reflects the continued trace.
+      addChildSpanToSpan(parentSpan, span);
     }
+
+    // Capture scopes even on this non-recording placeholder so consumers (e.g. SentryTraceProvider)
+    // can read them, consistent with the recording path below and `startIdleSpan`.
+    setCapturedScopesOnSpan(span, scope, isolationScope);
 
     return span;
   }
@@ -372,11 +403,12 @@ function createChildOrRootSpan({
 
     return new SentryNonRecordingSpan({
       dropReason: 'ignored',
+      // An ignored span is a definite negative decision, not a deferral
+      sampled: false,
       traceId: parentSpan?.spanContext().traceId ?? scope.getPropagationContext().traceId,
+      parentSpanId: parentSpan?.spanContext().spanId ?? scope.getPropagationContext().parentSpanId,
     });
   }
-
-  const isolationScope = getIsolationScope();
 
   let span: Span;
   if (parentSpan && !forceTransaction) {
@@ -529,7 +561,8 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
         traceId,
         sampled,
       })
-    : new SentryNonRecordingSpan({ traceId });
+    : // An unsampled child is a definite negative decision, not a deferral
+      new SentryNonRecordingSpan({ traceId, parentSpanId: spanId, sampled: false });
 
   addChildSpanToSpan(parentSpan, childSpan);
 

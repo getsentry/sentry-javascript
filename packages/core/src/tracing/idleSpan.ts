@@ -1,7 +1,6 @@
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
-import type { DynamicSamplingContext } from '../types/envelope';
 import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { debug } from '../utils/debug-logger';
@@ -16,11 +15,12 @@ import {
   spanToJSON,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
-import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { freezeDscOnTwpRootSpan } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
 import { startInactiveSpan } from './trace';
+import { setCapturedScopesOnSpan } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1_000,
@@ -120,21 +120,36 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   } = options;
 
   const client = getClient();
+  const scope = getCurrentScope();
 
   if (!client || !hasSpansEnabled()) {
-    const span = new SentryNonRecordingSpan();
+    const propagationContext = {
+      ...getIsolationScope().getPropagationContext(),
+      ...scope.getPropagationContext(),
+    };
 
-    const dsc = {
-      sample_rate: '0',
-      sampled: 'false',
-      ...getDynamicSamplingContextFromSpan(span),
-    } satisfies Partial<DynamicSamplingContext>;
-    freezeDscOnSpan(span, dsc);
+    const span = new SentryNonRecordingSpan({
+      traceId: propagationContext.traceId,
+      parentSpanId: propagationContext.parentSpanId,
+      sampled: propagationContext.sampled,
+    });
+
+    // In TwP mode, a new trace's sampling decision stays deferred (like `startSpan`) while a
+    // continued trace carries the upstream decision, so baggage and the `sentry-trace` header
+    // agree. Idle spans are always trace roots, so we freeze the DSC here.
+    freezeDscOnTwpRootSpan(span, {
+      name: startSpanOptions.name,
+      attributes: startSpanOptions.attributes,
+      incomingDsc: propagationContext.dsc,
+    });
+
+    // Capture scopes even on this non-recording placeholder so consumers (e.g. SentryTraceProvider)
+    // can read them, mirroring the non-recording paths in `createChildOrRootSpan`.
+    setCapturedScopesOnSpan(span, scope, getIsolationScope());
 
     return span;
   }
 
-  const scope = getCurrentScope();
   const previousActiveSpan = getActiveSpan();
   const span = _startIdleSpan(startSpanOptions);
 
