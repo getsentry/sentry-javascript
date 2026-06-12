@@ -93,5 +93,23 @@ describe('Mongoose experimental Test', () => {
     test('should auto-instrument `mongoose` package.', async () => {
       await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
     });
+
+    test('nests the mongodb driver span under the mongoose span', async () => {
+      await createTestRunner()
+        .expect({
+          transaction: event => {
+            const spans = event.spans || [];
+            const mongooseSave = spans.find(span => span.description === 'mongoose.BlogPost.save');
+            expect(mongooseSave).toBeDefined();
+            // the underlying mongodb driver span must be parented to the mongoose span
+            const driverChild = spans.find(
+              span => span.parent_span_id === mongooseSave?.span_id && span.origin === 'auto.db.otel.mongo',
+            );
+            expect(driverChild).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
   });
 });

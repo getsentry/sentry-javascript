@@ -40,6 +40,9 @@ conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
       expectedSpan('aggregate'),
       expectedSpan('insertMany'),
       expectedSpan('bulkWrite'),
+      // Document instance methods are instrumented via Query.exec on v9 (no doc-method patch).
+      expectedSpan('updateOne'),
+      expectedSpan('deleteOne'),
     ]),
   };
 
