@@ -26,6 +26,16 @@
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
+    },
+    "./plugin": {
+      "import": {
+        "types": "./build/types/plugin.d.ts",
+        "default": "./build/esm/plugin.js"
+      },
+      "require": {
+        "types": "./build/types/plugin.d.ts",
+        "default": "./build/cjs/plugin.js"
+      }
     }
   },
   "typesVersions": {
@@ -39,6 +49,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry-internal/server-utils": "10.57.0",
     "@sentry/core": "10.57.0",
     "@sentry/node": "10.57.0"
   },

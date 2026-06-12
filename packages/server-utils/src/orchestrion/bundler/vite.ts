@@ -2,12 +2,12 @@
 // time, injecting `diagnostics_channel.tracingChannel` calls into the libraries
 // listed in `SENTRY_INSTRUMENTATIONS`.
 //
-// This file is published ESM-only via the `@sentry/node/orchestrion/vite`
+// This file is published ESM-only via the `@sentry-internal/server-utils/orchestrion/vite`
 // subpath export. `@apm-js-collab/code-transformer-bundler-plugins` is
 // `"type": "module"`, so consuming it from a CJS build is intentionally
 // unsupported — vite.config.ts is almost always ESM in practice. The CJS
 // rollup variant still emits this file, but `package.json` only exposes the
-// ESM entry, so attempts to `require('@sentry/node/orchestrion/vite')` will
+// ESM entry, so attempts to `require('@sentry-internal/server-utils/orchestrion/vite')` will
 // fail at resolution time rather than producing a half-broken plugin.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,7 +18,7 @@ import MagicString from 'magic-string';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 
 // `vite` types live in the package's ESM-only subpath; under Node16 module
-// resolution with TS treating @sentry/node as CJS, importing them produces a
+// resolution with TS treating @sentry-internal/server-utils as CJS, importing them produces a
 // false positive. We don't need the runtime value for typing — `UnknownPlugin`
 // is sufficient — so we omit the import entirely.
 

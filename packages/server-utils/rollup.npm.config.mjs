@@ -30,6 +30,7 @@ export default [
         'src/orchestrion/index.ts',
         'src/orchestrion/config.ts',
         'src/orchestrion/bundler/vite.ts',
+        'src/orchestrion/bundler/bun.ts',
       ],
       packageSpecificConfig: {
         output: {
