@@ -4757,9 +4757,9 @@
     "@hapi/validate" "^2.0.1"
 
 "@hapi/content@^6.0.0":
-  version "6.0.1"
-  resolved "https://registry.yarnpkg.com/@hapi/content/-/content-6.0.1.tgz#b0afe7523c9f754726852204dd2d32ec1578cb64"
-  integrity sha512-lQ2vOoFMNYxwKVnKf+3Pi3PfoviM4EJYlT9JbrBPfEc0xKMiVDqqXF8UTE1S1oKhHQliWSP5t6zTKNlmaXBGcQ==
+  version "6.0.2"
+  resolved "https://registry.yarnpkg.com/@hapi/content/-/content-6.0.2.tgz#de71e00e555d9a36b950f645626aa0ab4cd1adec"
+  integrity sha512-OKyCOTjNR1hftwSjk9ueyAQTw8AwapvzBrPIWMGn39vhR5PmqLdYFmLc35bsSBye7gSMnlkXfc679bUdMIcRyQ==
   dependencies:
     "@hapi/boom" "^10.0.0"
 
