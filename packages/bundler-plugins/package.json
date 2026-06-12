@@ -1,0 +1,127 @@
+{
+  "name": "@sentry/bundler-plugins",
+  "version": "5.3.0",
+  "description": "Sentry Bundler Plugins",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/main/packages/bundler-plugins",
+  "author": "Sentry",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "sentry-release-injection-file.js",
+    "sentry-esbuild-debugid-injection-file.js"
+  ],
+  "exports": {
+    "./webpack": {
+      "types": "./dist/types/webpack/index.d.ts",
+      "import": "./dist/esm/webpack/index.mjs",
+      "require": "./dist/cjs/webpack/index.js"
+    },
+    "./webpack5": {
+      "types": "./dist/types/webpack/webpack5.d.ts",
+      "import": "./dist/esm/webpack/webpack5.mjs",
+      "require": "./dist/cjs/webpack/webpack5.js"
+    },
+    "./rollup": {
+      "types": "./dist/types/rollup/index.d.ts",
+      "import": "./dist/esm/rollup/index.mjs",
+      "require": "./dist/cjs/rollup/index.js"
+    },
+    "./vite": {
+      "types": "./dist/types/vite/index.d.ts",
+      "import": "./dist/esm/vite/index.mjs",
+      "require": "./dist/cjs/vite/index.js"
+    },
+    "./esbuild": {
+      "types": "./dist/types/esbuild/index.d.ts",
+      "import": "./dist/esm/esbuild/index.mjs",
+      "require": "./dist/cjs/esbuild/index.js"
+    },
+    "./core": {
+      "types": "./dist/types/core/index.d.ts",
+      "import": "./dist/esm/core/index.mjs",
+      "require": "./dist/cjs/core/index.js"
+    },
+    "./babel-plugin": {
+      "types": "./dist/types/babel-plugin/index.d.ts",
+      "import": "./dist/esm/babel-plugin/index.mjs",
+      "require": "./dist/cjs/babel-plugin/index.js"
+    },
+    "./sentry-release-injection-file": {
+      "import": "./sentry-release-injection-file.js",
+      "require": "./sentry-release-injection-file.js"
+    },
+    "./sentry-esbuild-debugid-injection-file": {
+      "import": "./sentry-esbuild-debugid-injection-file.js",
+      "require": "./sentry-esbuild-debugid-injection-file.js"
+    },
+    "./webpack-loader": {
+      "require": "./dist/cjs/webpack/component-annotation-transform.js"
+    }
+  },
+  "scripts": {
+    "prebuild": "node -p \"'export const LIB_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/core/version.ts",
+    "build": "premove ./dist && run-p build:rollup build:types && run-s build:npm",
+    "build:watch": "run-p build:rollup:watch build:types:watch",
+    "build:rollup": "rolldown --config rollup.config.mjs",
+    "build:rollup:watch": "rolldown --config rollup.config.mjs --watch --no-watch.clearScreen",
+    "build:types": "tsc --project types.tsconfig.json",
+    "build:types:watch": "tsc --project types.tsconfig.json --watch --preserveWatchOutput",
+    "build:npm": "npm pack",
+    "check:types": "run-p check:types:src check:types:test",
+    "check:types:src": "tsc --project ./tsconfig.json --noEmit",
+    "check:types:test": "tsc --project ./test/tsconfig.json --noEmit",
+    "clean": "run-s clean:build",
+    "clean:all": "run-p clean clean:deps",
+    "clean:build": "premove ./dist *.tgz",
+    "clean:deps": "premove node_modules",
+    "pretest": "yarn prebuild",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@babel/core": "^7.18.5",
+    "@sentry/cli": "^2.58.6",
+    "dotenv": "^16.3.1",
+    "find-up": "^5.0.0",
+    "glob": "^13.0.6",
+    "magic-string": "~0.30.8"
+  },
+  "peerDependencies": {
+    "rollup": ">=3.2.0",
+    "webpack": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "rollup": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@babel/preset-react": "^7.23.3",
+    "@sentry/core": "10.56.0",
+    "@sentry/types": "10.56.0",
+    "@sentry-internal/dev-utils": "5.3.0",
+    "@types/babel__core": "^7.20.5",
+    "@types/node": "^18.6.3",
+    "@types/webpack": "npm:@types/webpack@^4",
+    "premove": "^4.0.0",
+    "rolldown": "^1.0.0",
+    "vitest": "^4.0.0",
+    "webpack": "5.76.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "engines": {
+    "node": ">= 18"
+  },
+  "sideEffects": [
+    "./sentry-release-injection-file.js",
+    "./sentry-esbuild-debugid-injection-file.js"
+  ]
+}
