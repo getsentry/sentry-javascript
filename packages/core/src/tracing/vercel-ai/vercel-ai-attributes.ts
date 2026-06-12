@@ -145,6 +145,14 @@ export const AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE = 'ai.response.providerMeta
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
  */
 export const AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE = 'ai.usage.cachedInputTokens';
+
+/**
+ * Prefix for the per-category breakdown of input tokens (AI SDK v6+), e.g.
+ * `noCacheTokens`, `cacheReadTokens`, `cacheWriteTokens`. Only emitted by v6, where
+ * `ai.usage.inputTokens` is already cache-inclusive.
+ */
+export const AI_USAGE_INPUT_TOKEN_DETAILS_ATTRIBUTE_PREFIX = 'ai.usage.inputTokenDetails.';
+
 /**
  * Basic LLM span information
  * Multiple spans
