@@ -17,6 +17,7 @@ import {
   makeEsbuildPlugin,
   makeNodeResolvePlugin,
   makeProductionReplacePlugin,
+  makeRelocateVendoredModulesPlugin,
   makeRrwebBuildPlugin,
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
@@ -38,6 +39,7 @@ export function makeBaseNPMConfig(options = {}) {
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
+  const relocateVendoredModulesPlugin = makeRelocateVendoredModulesPlugin();
   const transpilePlugin = makeEsbuildPlugin(esbuild);
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
@@ -102,7 +104,13 @@ export function makeBaseNPMConfig(options = {}) {
       },
     },
 
-    plugins: [nodeResolvePlugin, transpilePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin],
+    plugins: [
+      relocateVendoredModulesPlugin,
+      nodeResolvePlugin,
+      transpilePlugin,
+      debugBuildStatementReplacePlugin,
+      rrwebBuildPlugin,
+    ],
 
     // don't include imported modules from outside the package in the final output
     // also treat subpath exports (e.g. `@sentry/core/browser`) as external
