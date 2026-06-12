@@ -19,8 +19,9 @@
  */
 /* eslint-disable */
 
+import { MESSAGING_SYSTEM } from '@sentry/conventions/attributes';
 import { Span, Tracer, SpanKind, Attributes } from '@opentelemetry/api';
-import { ATTR_AWS_SNS_TOPIC_ARN, ATTR_MESSAGING_SYSTEM } from '../semconv';
+import { ATTR_AWS_SNS_TOPIC_ARN } from '../semconv';
 import {
   ATTR_MESSAGING_DESTINATION,
   ATTR_MESSAGING_DESTINATION_KIND,
@@ -35,7 +36,7 @@ export class SnsServiceExtension implements ServiceExtension {
     let spanKind: SpanKind = SpanKind.CLIENT;
     let spanName = `SNS ${request.commandName}`;
     const spanAttributes: Attributes = {
-      [ATTR_MESSAGING_SYSTEM]: 'aws.sns',
+      [MESSAGING_SYSTEM]: 'aws.sns',
     };
 
     if (request.commandName === 'Publish') {
