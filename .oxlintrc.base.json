@@ -161,7 +161,9 @@
         "**/integrations/tracing/fastify/vendored/**/*.ts"
       ],
       "rules": {
-        "typescript/no-explicit-any": "off"
+        "typescript/no-explicit-any": "off",
+        "no-unsafe-member-access": "off",
+        "no-this-alias": "off"
       }
     },
     {

@@ -12,8 +12,10 @@ describe('mysql2 auto instrumentation', () => {
       expect.objectContaining({
         description: 'SELECT 1 + 1 AS solution',
         op: 'db',
+        origin: 'auto.db.otel.mysql2',
         data: expect.objectContaining({
           'db.system': 'mysql',
+          'db.statement': 'SELECT 1 + 1 AS solution',
           'net.peer.name': 'localhost',
           'net.peer.port': 3306,
           'db.user': 'root',
@@ -22,8 +24,10 @@ describe('mysql2 auto instrumentation', () => {
       expect.objectContaining({
         description: 'SELECT NOW()',
         op: 'db',
+        origin: 'auto.db.otel.mysql2',
         data: expect.objectContaining({
           'db.system': 'mysql',
+          'db.statement': 'SELECT NOW()',
           'net.peer.name': 'localhost',
           'net.peer.port': 3306,
           'db.user': 'root',
