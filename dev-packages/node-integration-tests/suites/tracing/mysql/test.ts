@@ -32,45 +32,66 @@ describe('mysql auto instrumentation', () => {
     ]),
   };
 
-  describe('with connection.connect()', () => {
+  describe.each([
+    ['opentelemetry-based', 'instrument.mjs'],
+    ['orchestrion-based', 'instrument-orchestrion.mjs'],
+  ])('%s', (instrumentation, instrumentFile) => {
+    // esm is not supported for the otel instrumentation
+    const failsOnEsm = instrumentation === 'opentelemetry-based';
+
+    // The orchestrion path is activated via the `--import @sentry/node/orchestrion`
+    // CLI flag. That single ESM hook instruments both ESM and CJS user code (via
+    // `Module.registerHooks` where available, otherwise `Module.register` + the
+    // CJS `Module._compile` patch), so the same flag covers the esm and cjs
+    // scenarios. The OTel path needs no extra flag.
+    const orchestrionFlags = instrumentation === 'orchestrion-based' ? ['--import', '@sentry/node/orchestrion'] : [];
+
     createEsmAndCjsTests(
       __dirname,
       'scenario-withConnect.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
+      instrumentFile,
+      (createRunner, test) => {
         test('should auto-instrument `mysql` package when using connection.connect()', async () => {
-          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+          await createRunner()
+            .withFlags(...orchestrionFlags)
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
         });
       },
-      { failsOnEsm: true },
+      { failsOnEsm },
     );
-  });
 
-  describe('query without callback', () => {
     createEsmAndCjsTests(
       __dirname,
       'scenario-withoutCallback.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
+      instrumentFile,
+      (createRunner, test) => {
         test('should auto-instrument `mysql` package when using query without callback', async () => {
-          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+          await createRunner()
+            .withFlags(...orchestrionFlags)
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
         });
       },
-      { failsOnEsm: true },
+      { failsOnEsm },
     );
-  });
 
-  describe('without connection.connect()', () => {
     createEsmAndCjsTests(
       __dirname,
       'scenario-withoutConnect.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
+      instrumentFile,
+      (createRunner, test) => {
         test('should auto-instrument `mysql` package without connection.connect()', async () => {
-          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+          await createRunner()
+            .withFlags(...orchestrionFlags)
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
         });
       },
-      { failsOnEsm: true },
+      { failsOnEsm },
     );
   });
 });
