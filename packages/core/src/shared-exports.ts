@@ -92,6 +92,7 @@ export {
   spanToStreamedSpanJSON,
   spanIsSampled,
   spanToTraceContext,
+  getSamplingDecision,
   getSpanDescendants,
   getStatusMessage,
   getRootSpan,
@@ -101,6 +102,7 @@ export {
   spanTimeInputToSeconds,
   updateSpanName,
 } from './utils/spanUtils';
+export { TraceState, SENTRY_TRACE_STATE_DSC, SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from './utils/traceState';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';

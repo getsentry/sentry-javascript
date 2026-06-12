@@ -1,7 +1,6 @@
 /* eslint-disable complexity */
 import type { Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
 import { isSpanContextValid, SpanKind, trace } from '@opentelemetry/api';
-import { TraceState } from './utils/TraceState';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import {
@@ -15,6 +14,7 @@ import {
   _INTERNAL_safeMathRandom,
   baggageHeaderToDynamicSamplingContext,
   debug,
+  getSamplingDecision,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
   parseSampleRate,
@@ -22,6 +22,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   shouldIgnoreSpan,
+  TraceState,
 } from '@sentry/core';
 import {
   SENTRY_TRACE_STATE_DSC,
@@ -34,7 +35,6 @@ import {
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext } from './utils/contextData';
-import { getSamplingDecision } from './utils/getSamplingDecision';
 import { inferSpanData } from './utils/parseSpanDescription';
 import { setIsSetup } from './utils/setupCheck';
 

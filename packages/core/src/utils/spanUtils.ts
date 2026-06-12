@@ -30,10 +30,9 @@ import { timestampInSeconds } from '../utils/time';
 import { generateSentryTraceHeader, generateTraceparentHeader } from '../utils/tracing';
 import { consoleSandbox } from './debug-logger';
 import { _getSpanForScope } from './spanOnScope';
+import { getSamplingDecision, TRACE_FLAG_SAMPLED } from './traceState';
 
-// These are aligned with OpenTelemetry trace flags
-export const TRACE_FLAG_NONE = 0x0;
-export const TRACE_FLAG_SAMPLED = 0x1;
+export { buildSpanContext, getSamplingDecision, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from './traceState';
 
 let hasShownSpanDropWarning = false;
 
@@ -83,8 +82,7 @@ export function spanToTraceContext(span: Span): TraceContext {
  */
 export function spanToTraceHeader(span: Span): string {
   const spanContext = span.spanContext();
-  const sampled = 'sampled' in spanContext ? spanContext.sampled : spanIsSampled(span);
-  return generateSentryTraceHeader(spanContext.traceId, spanContext.spanId, sampled);
+  return generateSentryTraceHeader(spanContext.traceId, spanContext.spanId, getSamplingDecision(spanContext));
 }
 
 /**
@@ -92,8 +90,7 @@ export function spanToTraceHeader(span: Span): string {
  */
 export function spanToTraceparentHeader(span: Span): string {
   const spanContext = span.spanContext();
-  const sampled = 'sampled' in spanContext ? spanContext.sampled : spanIsSampled(span);
-  return generateTraceparentHeader(spanContext.traceId, spanContext.spanId, sampled);
+  return generateTraceparentHeader(spanContext.traceId, spanContext.spanId, getSamplingDecision(spanContext));
 }
 
 /**
@@ -103,13 +100,15 @@ export function spanToTraceparentHeader(span: Span): string {
  */
 export function convertSpanLinksForEnvelope(links?: SpanLink[]): SpanLinkJSON[] | undefined {
   if (links && links.length > 0) {
-    return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
-      span_id: spanId,
-      trace_id: traceId,
-      sampled: traceFlags === TRACE_FLAG_SAMPLED,
-      attributes,
-      ...restContext,
-    }));
+    return links.map(
+      ({ context: { spanId, traceId, traceFlags, traceState: _traceState, ...restContext }, attributes }) => ({
+        span_id: spanId,
+        trace_id: traceId,
+        sampled: traceFlags === TRACE_FLAG_SAMPLED,
+        attributes,
+        ...restContext,
+      }),
+    );
   } else {
     return undefined;
   }

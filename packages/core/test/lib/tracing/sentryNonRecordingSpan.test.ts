@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import type { Span } from '../../../src/types/span';
-import { spanIsSampled, spanToJSON, spanToTraceHeader, TRACE_FLAG_NONE } from '../../../src/utils/spanUtils';
+import {
+  getSamplingDecision,
+  spanIsSampled,
+  spanToJSON,
+  spanToTraceHeader,
+  TRACE_FLAG_NONE,
+} from '../../../src/utils/spanUtils';
+import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, TraceState } from '../../../src/utils/traceState';
 
 describe('SentryNonRecordingSpan', () => {
   it('satisfies the Span interface', () => {
@@ -12,8 +19,8 @@ describe('SentryNonRecordingSpan', () => {
       spanId: expect.any(String),
       traceId: expect.any(String),
       traceFlags: TRACE_FLAG_NONE,
-      sampled: undefined,
     });
+    expect(getSamplingDecision(span.spanContext())).toBeUndefined();
 
     expect(spanIsSampled(span)).toBe(false);
     expect(span.isRecording()).toBe(false);
@@ -44,12 +51,17 @@ describe('SentryNonRecordingSpan', () => {
   it('can carry an explicit negative sampling decision', () => {
     const span: Span = new SentryNonRecordingSpan({ sampled: false });
 
-    expect(span.spanContext()).toEqual({
+    const spanContext = span.spanContext();
+    expect(spanContext).toEqual({
       spanId: expect.any(String),
       traceId: expect.any(String),
       traceFlags: TRACE_FLAG_NONE,
-      sampled: false,
+      // A definite negative decision is marked on the trace state,
+      // to distinguish it from a deferred decision
+      traceState: expect.any(TraceState),
     });
+    expect(spanContext.traceState?.get(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING)).toBe('1');
+    expect(getSamplingDecision(spanContext)).toBe(false);
   });
 
   it('propagates no sampling decision in trace header when sampled is undefined', () => {

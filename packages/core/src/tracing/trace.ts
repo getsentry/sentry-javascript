@@ -25,9 +25,20 @@ import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
 import { safeMathRandom } from '../utils/randomSafeContext';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
-import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import {
+  addChildSpanToSpan,
+  getRootSpan,
+  getSamplingDecision,
+  spanIsSampled,
+  spanTimeInputToSeconds,
+  spanToJSON,
+} from '../utils/spanUtils';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
-import { freezeDscOnSpan, freezeDscOnTwpRootSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import {
+  freezeDscOnRootSpanWithoutSampling,
+  freezeDscOnSpan,
+  getDynamicSamplingContextFromSpan,
+} from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
@@ -356,7 +367,7 @@ function createChildOrRootSpan({
       ? {
           traceId: parentSpan.spanContext().traceId,
           parentSpanId: parentSpan.spanContext().spanId,
-          sampled: parentSpan.spanContext().sampled,
+          sampled: getSamplingDecision(parentSpan.spanContext()),
         }
       : {
           ...isolationScope.getPropagationContext(),
@@ -373,10 +384,13 @@ function createChildOrRootSpan({
     });
 
     if (forceTransaction || !parentSpan) {
-      freezeDscOnTwpRootSpan(span, {
+      // For a forced transaction below an existing span, continue from the parent's DSC
+      // (usually the one frozen on its root), mirroring the forced-transaction handling
+      // in the sampled path below.
+      freezeDscOnRootSpanWithoutSampling(span, {
         name: spanArguments.name,
         attributes: spanArguments.attributes,
-        incomingDsc: propagationContext.dsc,
+        incomingDsc: parentSpan ? getDynamicSamplingContextFromSpan(parentSpan) : propagationContext.dsc,
       });
     } else {
       // Link nested placeholders to their parent (like the unsampled path below) so

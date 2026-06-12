@@ -1,5 +1,5 @@
 import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
-import { TraceState } from '../src/utils/TraceState';
+import { TraceState } from '@sentry/core';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import { ATTR_HTTP_REQUEST_METHOD } from '@opentelemetry/semantic-conventions';
 import { generateSpanId, generateTraceId } from '@sentry/core';

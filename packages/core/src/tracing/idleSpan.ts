@@ -15,7 +15,7 @@ import {
   spanToJSON,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
-import { freezeDscOnTwpRootSpan } from './dynamicSamplingContext';
+import { freezeDscOnRootSpanWithoutSampling } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
@@ -137,7 +137,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     // In TwP mode, a new trace's sampling decision stays deferred (like `startSpan`) while a
     // continued trace carries the upstream decision, so baggage and the `sentry-trace` header
     // agree. Idle spans are always trace roots, so we freeze the DSC here.
-    freezeDscOnTwpRootSpan(span, {
+    freezeDscOnRootSpanWithoutSampling(span, {
       name: startSpanOptions.name,
       attributes: startSpanOptions.attributes,
       incomingDsc: propagationContext.dsc,

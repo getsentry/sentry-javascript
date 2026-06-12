@@ -24,7 +24,7 @@ import { getParentSpanId } from '../../../packages/opentelemetry/src/utils/getPa
 import { continueTrace, startInactiveSpan, startNewTrace, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
-import { getSamplingDecision } from '../src/utils/getSamplingDecision';
+import { getSamplingDecision } from '@sentry/core';
 import { getSpanKind } from '../src/utils/getSpanKind';
 import { makeTraceState } from '../src/utils/makeTraceState';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';

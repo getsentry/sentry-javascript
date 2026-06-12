@@ -18,6 +18,7 @@ import {
   getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
   getRootSpan,
+  getSamplingDecision,
   getTraceContextFromScope,
   handleCallbackErrors,
   hasSpansEnabled,
@@ -29,7 +30,6 @@ import {
 import { continueTraceAsRemoteSpan } from './propagator';
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { getContextFromScope } from './utils/contextData';
-import { getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
 
 /**

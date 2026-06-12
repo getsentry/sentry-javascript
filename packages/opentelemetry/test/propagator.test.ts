@@ -12,7 +12,7 @@ import { getCurrentScope, withScope } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SENTRY_BAGGAGE_HEADER, SENTRY_SCOPES_CONTEXT_KEY, SENTRY_TRACE_HEADER } from '../src/constants';
 import { SentryPropagator } from '../src/propagator';
-import { getSamplingDecision } from '../src/utils/getSamplingDecision';
+import { getSamplingDecision } from '@sentry/core';
 import { makeTraceState } from '../src/utils/makeTraceState';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 

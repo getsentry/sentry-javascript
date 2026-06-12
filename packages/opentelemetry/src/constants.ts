@@ -3,8 +3,7 @@ import { createContextKey } from '@opentelemetry/api';
 export const SENTRY_TRACE_HEADER = 'sentry-trace';
 export const SENTRY_BAGGAGE_HEADER = 'baggage';
 
-export const SENTRY_TRACE_STATE_DSC = 'sentry.dsc';
-export const SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING = 'sentry.sampled_not_recording';
+export { SENTRY_TRACE_STATE_DSC, SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from '@sentry/core';
 export const SENTRY_TRACE_STATE_URL = 'sentry.url';
 export const SENTRY_TRACE_STATE_SAMPLE_RAND = 'sentry.sample_rand';
 export const SENTRY_TRACE_STATE_SAMPLE_RATE = 'sentry.sample_rate';

@@ -1,6 +1,5 @@
 import type { Client } from '@sentry/core';
-import { hasSpansEnabled, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import { getSamplingDecision } from './getSamplingDecision';
+import { getSamplingDecision, hasSpansEnabled, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import { parseSpanDescription } from './parseSpanDescription';
 import { spanHasName } from './spanTypes';
 

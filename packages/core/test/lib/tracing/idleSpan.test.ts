@@ -7,6 +7,7 @@ import {
   getDynamicSamplingContextFromSpan,
   getGlobalScope,
   getIsolationScope,
+  getSamplingDecision,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentryNonRecordingSpan,
@@ -142,7 +143,7 @@ describe('startIdleSpan', () => {
     const idleSpan = startIdleSpan({ name: 'foo' });
 
     // The upstream decision survives in the `sentry-trace` header, agreeing with the frozen baggage.
-    expect(idleSpan.spanContext().sampled).toBe(true);
+    expect(getSamplingDecision(idleSpan.spanContext())).toBe(true);
     expect(spanToTraceHeader(idleSpan)).toBe(`12345678901234567890123456789012-${idleSpan.spanContext().spanId}-1`);
   });
 

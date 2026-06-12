@@ -5,7 +5,8 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../../../src/semanticAttribute
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import type { SpanJSON } from '../../../src/types/span';
-import { spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
+import { getSamplingDecision, spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
+import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, TraceState } from '../../../src/utils/traceState';
 import { timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
@@ -457,11 +458,22 @@ describe('SentrySpan', () => {
 
     it('works unsampled span', () => {
       const span = new SentrySpan({ sampled: false });
-      expect(span.spanContext()).toEqual({
+      const spanContext = span.spanContext();
+      expect(spanContext).toEqual({
         spanId: span['_spanId'],
         traceId: span['_traceId'],
         traceFlags: TRACE_FLAG_NONE,
+        // A definite negative decision is marked on the trace state,
+        // to distinguish it from a deferred decision
+        traceState: expect.any(TraceState),
       });
+      expect(spanContext.traceState?.get(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING)).toBe('1');
+      expect(getSamplingDecision(spanContext)).toBe(false);
+    });
+
+    it('keeps the sampling decision deferred when none was made', () => {
+      const span = new SentrySpan();
+      expect(getSamplingDecision(span.spanContext())).toBeUndefined();
     });
   });
 });

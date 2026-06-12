@@ -9,7 +9,7 @@ import type {
 } from '../types/span';
 import type { SpanStatus } from '../types/spanStatus';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
-import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../utils/spanUtils';
+import { buildSpanContext } from '../utils/spanUtils';
 
 interface SentryNonRecordingSpanArguments extends SentrySpanArguments {
   dropReason?: EventDropReason;
@@ -22,6 +22,10 @@ export class SentryNonRecordingSpan implements Span {
   private _traceId: string;
   private _spanId: string;
   private _parentSpanId: string | undefined;
+  // The trace's sampling decision this span carries, NOT whether this span records
+  // (it never does). A non-recording span with `sampled: true` is how a continued
+  // sampled trace is represented in Tracing-without-Performance mode, mirroring how
+  // OpenTelemetry wraps remote sampled span contexts in non-recording spans.
   private _sampled: boolean | undefined;
 
   /**
@@ -41,12 +45,7 @@ export class SentryNonRecordingSpan implements Span {
 
   /** @inheritdoc */
   public spanContext(): SpanContextData {
-    return {
-      spanId: this._spanId,
-      traceId: this._traceId,
-      traceFlags: this._sampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
-      sampled: this._sampled,
-    };
+    return buildSpanContext(this._traceId, this._spanId, this._sampled);
   }
 
   /** @inheritdoc */

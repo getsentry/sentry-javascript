@@ -171,12 +171,6 @@ export interface SpanContextData {
    */
   traceFlags: TraceFlag | number;
 
-  /**
-   * Sentry-specific sampling decision for this span context.
-   * `undefined` means no local sampling decision was made yet.
-   */
-  sampled?: boolean | undefined;
-
   /** In OpenTelemetry, this can be used to store trace state, which are basically key-value pairs. */
   traceState?: TraceState | undefined;
 }

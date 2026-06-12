@@ -29,6 +29,7 @@ import type { TimedEvent } from '../types/timedEvent';
 import { debug } from '../utils/debug-logger';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
+  buildSpanContext,
   convertSpanLinksForEnvelope,
   getRootSpan,
   getSimpleStatusMessage,
@@ -38,8 +39,6 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTransactionTraceContext,
-  TRACE_FLAG_NONE,
-  TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
@@ -149,12 +148,7 @@ export class SentrySpan implements Span {
 
   /** @inheritdoc */
   public spanContext(): SpanContextData {
-    const { _spanId: spanId, _traceId: traceId, _sampled: sampled } = this;
-    return {
-      spanId,
-      traceId,
-      traceFlags: sampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
-    };
+    return buildSpanContext(this._traceId, this._spanId, this._sampled);
   }
 
   /** @inheritdoc */

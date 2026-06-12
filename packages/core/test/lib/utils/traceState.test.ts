@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TraceState } from '../../src/utils/TraceState';
+import { TraceState } from '../../../src/utils/traceState';
 
 describe('TraceState', () => {
   it('returns undefined for unknown keys', () => {

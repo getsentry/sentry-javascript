@@ -14,6 +14,7 @@ import { extractOrgIdFromClient } from '../utils/dsn';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils/object';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
+import { SENTRY_TRACE_STATE_DSC } from '../utils/traceState';
 import { getCapturedScopesOnSpan } from './utils';
 
 /**
@@ -35,7 +36,8 @@ export function freezeDscOnSpan(span: Span, dsc: Partial<DynamicSamplingContext>
 }
 
 /**
- * Freeze the DSC on a Tracing-without-Performance root placeholder span.
+ * Freeze the DSC on a root placeholder span for which no local sampling decision is made
+ * (Tracing without Performance, i.e. spans are disabled).
  *
  * A continued trace's DSC (`incomingDsc`) is frozen and must win as-is, even when it's an
  * empty `{}` (a `sentry-trace` header without baggage): we are not head of trace, so we
@@ -45,7 +47,7 @@ export function freezeDscOnSpan(span: Span, dsc: Partial<DynamicSamplingContext>
  * As in `getDynamicSamplingContextFromSpan`, the span name is skipped when its source is
  * "url" because URLs might contain PII.
  */
-export function freezeDscOnTwpRootSpan(
+export function freezeDscOnRootSpanWithoutSampling(
   span: Span,
   {
     name,
@@ -136,7 +138,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   // For OpenTelemetry, we freeze the DSC on the trace state
-  const traceStateDsc = traceState?.get('sentry.dsc');
+  const traceStateDsc = traceState?.get(SENTRY_TRACE_STATE_DSC);
 
   // If the span has a DSC, we want it to take precedence
   const dscOnTraceState = traceStateDsc && baggageHeaderToDynamicSamplingContext(traceStateDsc);
