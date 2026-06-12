@@ -56,3 +56,46 @@ Sentry.captureEvent({
   ],
 });
 ```
+
+## Auto-instrumentation (experimental)
+
+Some libraries (e.g. `mysql`) don't emit tracing signals on their
+own. To instrument them, Sentry uses
+[orchestrion](https://github.com/getsentry/sentry-javascript) to
+transform them at load time so they publish to
+`node:diagnostics_channel`.
+
+In Deno versions prior to 2.8.0, this is not available, as it
+relies on `Module.registerHooks`, which was added in that
+version.
+
+As of Deno 2.8.3, you can use the `--import` or `--preload`
+argument to `deno run` in order to enable these instrumentations.
+
+```bash
+$ deno run --import=@sentry/deno/import app.ts
+```
+
+> [!NOTE]
+> In Deno versions **2.8.0** through **2.8.2**, a bug causes Deno
+> to deadlock when a module hook is added in this way. As a
+> workaround, you can import the loader explicitly, and then
+> dynamically import your app to take advantage of the added
+> module loading hooks.
+>
+> ```ts
+> import 'npm:@sentry/deno/import';
+> await import('./app.ts');
+> ```
+
+In both cases, your `app.ts` should simply load Sentry as usual:
+
+```ts
+// app.ts
+
+// initialize Sentry as early as possible
+import * as Sentry from 'npm:@sentry/deno';
+Sentry.init({ dsn: '__DSN__' });
+
+// ... the rest of the app...
+```
