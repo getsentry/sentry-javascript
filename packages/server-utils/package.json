@@ -41,6 +41,9 @@
   "dependencies": {
     "@sentry/core": "10.57.0"
   },
+  "devDependencies": {
+    "@sentry/conventions": "^0.11.0"
+  },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
