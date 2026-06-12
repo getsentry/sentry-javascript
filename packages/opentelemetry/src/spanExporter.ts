@@ -2,7 +2,7 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { ATTR_HTTP_RESPONSE_STATUS_CODE, SEMATTRS_HTTP_STATUS_CODE } from '@opentelemetry/semantic-conventions';
+import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
 import type {
   SpanAttributes,
   SpanJSON,
@@ -295,7 +295,7 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
     links: convertSpanLinksForEnvelope(links),
   };
 
-  const statusCode = attributes[ATTR_HTTP_RESPONSE_STATUS_CODE];
+  const statusCode = attributes[HTTP_RESPONSE_STATUS_CODE];
   const responseContext = typeof statusCode === 'number' ? { response: { status_code: statusCode } } : undefined;
 
   const transactionEvent: TransactionEvent = {
@@ -441,10 +441,9 @@ function getData(span: ReadableSpan): Record<string, unknown> {
     data['otel.kind'] = SpanKind[span.kind];
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  const maybeHttpStatusCodeAttribute = attributes[SEMATTRS_HTTP_STATUS_CODE];
+  const maybeHttpStatusCodeAttribute = attributes[HTTP_STATUS_CODE];
   if (maybeHttpStatusCodeAttribute) {
-    data[ATTR_HTTP_RESPONSE_STATUS_CODE] = maybeHttpStatusCodeAttribute as string;
+    data[HTTP_RESPONSE_STATUS_CODE] = maybeHttpStatusCodeAttribute as string;
   }
 
   const requestData = getRequestSpanData(span);
