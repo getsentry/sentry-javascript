@@ -1,0 +1,12 @@
+{
+  "name": "worker-name",
+  "compatibility_date": "2025-06-17",
+  "main": "index.ts",
+  "compatibility_flags": ["nodejs_compat"],
+  "r2_buckets": [
+    {
+      "binding": "MY_BUCKET",
+      "bucket_name": "test-bucket",
+    },
+  ],
+}
