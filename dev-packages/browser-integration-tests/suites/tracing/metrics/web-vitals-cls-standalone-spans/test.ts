@@ -36,7 +36,8 @@ function triggerAndWaitForLayoutShift(page: Page): Promise<void> {
 
 function hidePage(page: Page): Promise<void> {
   return page.evaluate(() => {
-    window.dispatchEvent(new Event('pagehide'));
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
   });
 }
 
@@ -122,7 +123,8 @@ sentryTest('captures a "MEH" CLS vital with its source as a standalone span', as
 
   // Page hide to trigger CLS emission
   await page.evaluate(() => {
-    window.dispatchEvent(new Event('pagehide'));
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
   });
 
   const spanEnvelope = (await spanEnvelopePromise)[0];

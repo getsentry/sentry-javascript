@@ -116,18 +116,8 @@ sentryTest(
       envelopeType: 'span',
     });
 
-    // Page hide to trigger INP
-
-    // Important: Purposefully not using hidePage() here to test the hidden state
-    // via the `pagehide` event. This is necessary because iOS Safari 14.4
-    // still doesn't fully emit the `visibilitychange` events but it's the lower
-    // bound for Safari on iOS that we support.
-    // If this test times out or fails, it's likely because we tried updating
-    // the web-vitals library which officially already dropped support for
-    // this iOS version
-    await page.evaluate(() => {
-      window.dispatchEvent(new Event('pagehide'));
-    });
+    // Page hide to trigger INP reporting
+    await hidePage(page);
 
     // Get the INP span envelope
     const span = (await spanPromise)[0];
