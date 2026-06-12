@@ -219,9 +219,13 @@ function _wrapEventTarget(target: string, integrationOptions: BrowserApiErrorsOp
        * to get rid of the initial handler and it'd stick there forever.
        */
       try {
-        const originalEventHandler = (fn as WrappedFunction).__sentry_wrapped__;
-        if (originalEventHandler) {
-          originalRemoveEventListener.call(this, eventName, originalEventHandler, options);
+        // Check via hasOwnProperty so a `__sentry_wrapped__` inherited from a wrapped
+        // `Function.prototype` doesn't cause removal of the wrong handler.
+        if (Object.prototype.hasOwnProperty.call(fn, '__sentry_wrapped__')) {
+          const originalEventHandler = (fn as WrappedFunction).__sentry_wrapped__;
+          if (originalEventHandler) {
+            originalRemoveEventListener.call(this, eventName, originalEventHandler, options);
+          }
         }
       } catch {
         // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments

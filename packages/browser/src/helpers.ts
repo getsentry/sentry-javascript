@@ -79,10 +79,12 @@ export function wrap<T extends WrappableFunction, NonFunction>(
   }
 
   try {
-    // if we're dealing with a function that was previously wrapped, return
-    // the original wrapper.
-    const wrapper = (fn as WrappedFunction<T>).__sentry_wrapped__;
-    if (wrapper) {
+    // If we're dealing with a function that was previously wrapped, return the original wrapper.
+    // Check via hasOwnProperty so a `__sentry_wrapped__` inherited from a wrapped `Function.prototype`
+    // is not mistaken for a real wrapper.
+    const hasOwnWrapper = Object.prototype.hasOwnProperty.call(fn, '__sentry_wrapped__');
+    if (hasOwnWrapper) {
+      const wrapper = (fn as WrappedFunction<T>).__sentry_wrapped__;
       if (typeof wrapper === 'function') {
         return wrapper;
       } else {
