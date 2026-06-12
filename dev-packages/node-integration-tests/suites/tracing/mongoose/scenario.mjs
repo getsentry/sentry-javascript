@@ -49,6 +49,18 @@ async function run() {
 
       await BlogPost.bulkWrite([{ insertOne: { document: { title: 'Bulk', body: 'Bulk body', date: new Date() } } }]);
 
+      // `remove` is a real document method (deprecated in 6, removed in 7), only patched for v5/6.
+      const toRemove = await BlogPost.create({ title: 'Remove', body: 'r', date: new Date() });
+      await toRemove.remove();
+
+      // Cross-context parent: a query built inside one span but executed after it ends should still
+      // be parented to the span it was built in (via _STORED_PARENT_SPAN), not the active span at exec.
+      let pendingQuery;
+      Sentry.startSpan({ name: 'query-builder' }, () => {
+        pendingQuery = BlogPost.findOne({ title: 'Test' });
+      });
+      await pendingQuery;
+
       // Failing operation: a save that violates required-field validation should still produce a
       // span, marked with an error status.
       const RequiredSchema = new Schema({ requiredField: { type: String, required: true } });
