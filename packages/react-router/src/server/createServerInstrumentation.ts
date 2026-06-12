@@ -1,5 +1,5 @@
 import { context, createContextKey } from '@opentelemetry/api';
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import {
   debug,
   flushIfServerless,
@@ -200,7 +200,7 @@ export function createSentryServerInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
-                [ATTR_HTTP_ROUTE]: routePattern,
+                [HTTP_ROUTE]: routePattern,
                 ...(middlewareName && { 'react_router.middleware.name': middlewareName }),
                 'react_router.middleware.index': middlewareIndex,
               },
@@ -259,7 +259,7 @@ function updateRootSpanWithRoute(method: string, pattern: string | undefined, ur
   const transactionName = `${method} ${routeName}`;
   updateSpanName(rootSpan, transactionName);
   rootSpan.setAttributes({
-    [ATTR_HTTP_ROUTE]: routeName,
+    [HTTP_ROUTE]: routeName,
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: hasPattern ? 'route' : 'url',
   });
 
