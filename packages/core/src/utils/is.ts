@@ -184,11 +184,13 @@ export function isSyntheticEvent(wat: unknown): boolean {
  * @param base A constructor to be used in a check.
  * @returns A boolean representing the result.
  */
-// TODO: fix in v11, convert any to unknown
-// export function isInstanceOf<T>(wat: unknown, base: { new (...args: any[]): T }): wat is T {
-export function isInstanceOf<T>(wat: any, base: any): wat is T {
+type Constructor<T> = { new (...args: never[]): T };
+
+export function isInstanceOf<T>(wat: unknown, base: Constructor<T>): wat is T;
+export function isInstanceOf(wat: unknown, base: unknown): boolean;
+export function isInstanceOf<T>(wat: unknown, base: unknown): wat is T {
   try {
-    return wat instanceof base;
+    return wat instanceof (base as Constructor<T>);
   } catch {
     return false;
   }
