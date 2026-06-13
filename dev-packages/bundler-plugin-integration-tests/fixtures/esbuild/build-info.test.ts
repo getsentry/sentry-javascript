@@ -11,7 +11,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, runFileInNode }) => {
         try {
           var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
           e.SENTRY_RELEASE = { id: "build-information-injection-test" };
-          e.SENTRY_BUILD_INFO = { "deps": ["@sentry/esbuild-plugin", "esbuild"], "depsVersions": {}, "nodeVersion":"NODE_VERSION" };
+          e.SENTRY_BUILD_INFO = { "deps": ["@sentry/bundler-plugins", "esbuild"], "depsVersions": {}, "nodeVersion":"NODE_VERSION" };
         } catch (e2) {
         }
       })();

@@ -1,4 +1,4 @@
-import { sentryVitePlugin } from "@sentry/vite-plugin";
+import { sentryVitePlugin } from "@sentry/bundler-plugins/vite";
 import { defineConfig } from "vite";
 import { sentryConfig } from "../configs/application-key.config.js";
 

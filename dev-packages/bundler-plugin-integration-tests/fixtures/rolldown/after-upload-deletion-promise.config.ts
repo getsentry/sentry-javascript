@@ -1,4 +1,4 @@
-import { sentryRollupPlugin } from "@sentry/rollup-plugin";
+import { sentryRollupPlugin } from "@sentry/bundler-plugins/rollup";
 import { defineConfig } from "rolldown";
 import { getSentryConfig } from "../configs/after-upload-deletion-promise.config.js";
 

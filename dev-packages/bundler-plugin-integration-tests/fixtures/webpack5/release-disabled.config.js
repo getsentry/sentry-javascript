@@ -1,4 +1,4 @@
-import { sentryWebpackPlugin } from "@sentry/webpack-plugin";
+import { sentryWebpackPlugin } from "@sentry/bundler-plugins/webpack";
 import { sentryConfig } from "../configs/release-disabled.config.js";
 import { resolve } from "node:path";
 

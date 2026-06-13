@@ -1,1 +1,3 @@
-dist
+build
+*.tgz
+src/core/version.ts
