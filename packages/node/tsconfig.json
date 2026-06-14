@@ -4,9 +4,4 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {}
-  // The orchestrion runtime hooks are hand-written `.mjs` / `.cjs` files that
-  // rollup copies through to `build/orchestrion/` unchanged. We exclude them so
-  // tsc doesn't try to type-check or emit declarations for them and stays
-  // focused on the `.ts` sources.
-  "exclude": ["src/orchestrion/runtime/**/*.mjs", "src/orchestrion/runtime/**/*.cjs"]
 }
