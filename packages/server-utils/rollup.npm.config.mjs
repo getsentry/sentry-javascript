@@ -29,6 +29,10 @@ export default [
         'src/index.ts',
         'src/orchestrion/index.ts',
         'src/orchestrion/config.ts',
+        // `src/orchestrion/runtime/register.ts` backs the `./orchestrion/register`
+        // subpath export; the Node SDK `require`s it synchronously from
+        // `Sentry.init()` to install the channel-injection hooks.
+        'src/orchestrion/runtime/register.ts',
         'src/orchestrion/bundler/vite.ts',
       ],
       packageSpecificConfig: {

@@ -6,92 +6,92 @@ describe('mysql auto instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  const EXPECTED_TRANSACTION = {
-    transaction: 'Test Transaction',
-    spans: expect.arrayContaining([
+  // Builds the expected transaction. When `origin` is given, the spans must also
+  // carry that `sentry.origin`, which is how we assert that the
+  // diagnostics-channel instrumentation (not the OTel one) produced them.
+  function expectedTransaction(origin?: string): Record<string, unknown> {
+    const span = (description: string): ReturnType<typeof expect.objectContaining> =>
       expect.objectContaining({
-        description: 'SELECT 1 + 1 AS solution',
+        description,
         op: 'db',
+        ...(origin ? { origin } : {}),
         data: expect.objectContaining({
           'db.system': 'mysql',
           'net.peer.name': 'localhost',
           'net.peer.port': 3306,
           'db.user': 'root',
         }),
-      }),
-      expect.objectContaining({
-        description: 'SELECT NOW()',
-        op: 'db',
-        data: expect.objectContaining({
-          'db.system': 'mysql',
-          'net.peer.name': 'localhost',
-          'net.peer.port': 3306,
-          'db.user': 'root',
-        }),
-      }),
-    ]),
-  };
+      });
 
-  describe.each([
-    ['opentelemetry-based', 'instrument.mjs'],
-    ['orchestrion-based', 'instrument-orchestrion.mjs'],
-  ])('%s', (instrumentation, instrumentFile) => {
-    // esm is not supported for the otel instrumentation
-    const failsOnEsm = instrumentation === 'opentelemetry-based';
+    return {
+      transaction: 'Test Transaction',
+      spans: expect.arrayContaining([span('SELECT 1 + 1 AS solution'), span('SELECT NOW()')]),
+    };
+  }
 
-    // The orchestrion path is activated via the `--import @sentry/node/orchestrion`
-    // CLI flag. That single ESM hook instruments both ESM and CJS user code (via
-    // `Module.registerHooks` where available, otherwise `Module.register` + the
-    // CJS `Module._compile` patch), so the same flag covers the esm and cjs
-    // scenarios. The OTel path needs no extra flag.
-    const orchestrionFlags = instrumentation === 'orchestrion-based' ? ['--import', '@sentry/node/orchestrion'] : [];
+  const CHANNEL_ORIGIN = 'auto.db.orchestrion.mysql';
 
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-withConnect.mjs',
-      instrumentFile,
-      (createRunner, test) => {
-        test('should auto-instrument `mysql` package when using connection.connect()', async () => {
-          await createRunner()
-            .withFlags(...orchestrionFlags)
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .start()
-            .completed();
-        });
-      },
-      { failsOnEsm },
-    );
+  // Each case maps to one of the two documented use cases, in opt-in and
+  // non-opt-in form. `flags` are extra Node CLI flags; the instrument file is
+  // always loaded via `--import` (esm) / `--require` (cjs) by the runner.
+  const CASES = [
+    // OpenTelemetry default — no opt-in, no injection. (OTel does not support ESM.)
+    { label: 'opentelemetry (default)', instrument: 'instrument.mjs', flags: [], origin: undefined, failsOnEsm: true },
+    // Opt-in via init only. `Sentry.init()` injects the channels synchronously.
+    {
+      label: 'diagnostics-channel (init opt-in)',
+      instrument: 'instrument-orchestrion.mjs',
+      flags: [],
+      origin: CHANNEL_ORIGIN,
+      failsOnEsm: false,
+    },
+    // Opt-in and rely on `node --import @sentry/node/import`.
+    {
+      label: 'diagnostics-channel (--import @sentry/node/import opt-in)',
+      instrument: 'instrument-orchestrion.mjs',
+      flags: ['--import', '@sentry/node/import'],
+      origin: CHANNEL_ORIGIN,
+      failsOnEsm: false,
+    },
+    // Without opt-in: channels are injected unconditionally but not subscribed
+    // to, so the OTel instrumentation records the spans — proves injecting the
+    // channels has no downside. (OTel does not support ESM.)
+    {
+      label: 'opentelemetry (channels injected, no opt-in)',
+      instrument: 'instrument.mjs',
+      flags: ['--import', '@sentry/node/import'],
+      origin: undefined,
+      failsOnEsm: true,
+    },
+  ] as const;
 
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-withoutCallback.mjs',
-      instrumentFile,
-      (createRunner, test) => {
-        test('should auto-instrument `mysql` package when using query without callback', async () => {
-          await createRunner()
-            .withFlags(...orchestrionFlags)
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .start()
-            .completed();
-        });
-      },
-      { failsOnEsm },
-    );
+  const SCENARIOS = [
+    ['scenario-withConnect.mjs', 'using connection.connect()'],
+    ['scenario-withoutCallback.mjs', 'using query without callback'],
+    ['scenario-withoutConnect.mjs', 'without connection.connect()'],
+  ] as const;
 
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-withoutConnect.mjs',
-      instrumentFile,
-      (createRunner, test) => {
-        test('should auto-instrument `mysql` package without connection.connect()', async () => {
-          await createRunner()
-            .withFlags(...orchestrionFlags)
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .start()
-            .completed();
-        });
-      },
-      { failsOnEsm },
-    );
-  });
+  for (const { label, instrument, flags, origin, failsOnEsm } of CASES) {
+    describe(label, () => {
+      const expected = expectedTransaction(origin);
+
+      for (const [scenario, description] of SCENARIOS) {
+        createEsmAndCjsTests(
+          __dirname,
+          scenario,
+          instrument,
+          (createRunner, test) => {
+            test(`should auto-instrument \`mysql\` package when ${description}`, async () => {
+              await createRunner()
+                .withFlags(...flags)
+                .expect({ transaction: expected })
+                .start()
+                .completed();
+            });
+          },
+          { failsOnEsm },
+        );
+      }
+    });
+  }
 });

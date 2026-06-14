@@ -10,6 +10,10 @@ import { httpIntegration } from '../integrations/http';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import type { NodeOptions } from '../types';
+import {
+  isDiagnosticsChannelInjectionEnabled,
+  resolveDiagnosticsChannelInjection,
+} from './diagnosticsChannelInjection';
 import { initOpenTelemetry } from './initOtel';
 
 /**
@@ -24,19 +28,6 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     .concat(httpIntegration(), nativeNodeFetchIntegration());
 }
 
-/**
- * Names of OTel-based default integrations that the orchestrion experiment
- * replaces with channel-based equivalents. When
- * `_experimentalUseOrchestrion: true` is set on `Sentry.init()`, these are
- * filtered out of the default integration list so the two systems don't both
- * instrument the same library and produce duplicate spans.
- *
- * Kept as a plain string set (instead of importing the orchestrion integrations
- * themselves) so the orchestrion code path stays tree-shakable: `init()` never
- * pulls in anything from `server-utils/orchestrion/*`.
- */
-const ORCHESTRION_REPLACED_INTEGRATIONS = new Set<string>(['Mysql']);
-
 /** Get the default integrations for the Node SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
   const integrations: Integration[] = [
@@ -48,8 +39,21 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
 
-  if ((options as NodeOptions)._experimentalUseOrchestrion) {
-    return integrations.filter(i => !ORCHESTRION_REPLACED_INTEGRATIONS.has(i.name));
+  // When the app opted into diagnostics-channel injection (via
+  // `experimentalUseDiagnosticsChannelInjection()`) AND span recording is
+  // enabled, swap the channel-based integrations in place of OTel equivalents
+  // so the two don't both instrument the same library.
+  //
+  // Every channel-based integration we ship today is a 1:1 replacement for an
+  // OTel performance/tracing integration and produces nothing but spans (those
+  // only come from `getAutoPerformanceIntegrations()` above), so it's gated on
+  // span recording.
+  if (isDiagnosticsChannelInjectionEnabled() && hasSpansEnabled(options)) {
+    const diagnosticsChannelInjection = resolveDiagnosticsChannelInjection();
+    if (diagnosticsChannelInjection) {
+      const replaced = new Set(diagnosticsChannelInjection.replacedOtelIntegrationNames);
+      return [...integrations.filter(i => !replaced.has(i.name)), ...diagnosticsChannelInjection.integrations];
+    }
   }
   return integrations;
 }
@@ -70,6 +74,22 @@ function _init(
 ): NodeClient | undefined {
   applySdkMetadata(options, 'node');
 
+  // EXPERIMENTAL: diagnostics-channel injection, opted into via
+  // `experimentalUseDiagnosticsChannelInjection()`. Gated on span recording to
+  // match the OTel integrations it replaces. With tracing off there are no
+  // channel subscribers, so injecting is pointless work. `resolve...()` is
+  // memoized, so `getDefaultIntegrations()` (below) sees the same instance.
+  const diagnosticsChannelInjection =
+    isDiagnosticsChannelInjectionEnabled() && hasSpansEnabled(options)
+      ? resolveDiagnosticsChannelInjection()
+      : undefined;
+
+  // Install the channel-injection hooks as early as possible, before the app
+  // imports its instrumented modules.
+  if (diagnosticsChannelInjection) {
+    diagnosticsChannelInjection.register();
+  }
+
   const client = initNodeCore({
     ...options,
     // Only use Node SDK defaults if none provided
@@ -82,6 +102,12 @@ function _init(
       spanProcessors: options.openTelemetrySpanProcessors,
     });
     validateOpenTelemetrySetup();
+  }
+
+  // Warn about missing or doubled channel injection. Runs after the client
+  // is created so the debug logger is enabled and the warning is emitted.
+  if (diagnosticsChannelInjection) {
+    diagnosticsChannelInjection.detect();
   }
 
   return client;

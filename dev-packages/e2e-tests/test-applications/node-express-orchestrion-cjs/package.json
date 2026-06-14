@@ -4,7 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "start": "node --import @sentry/node/orchestrion ./src/app.js",
+    "start": "node --import @sentry/node/import ./src/app.js",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
     "test:build": "pnpm install",

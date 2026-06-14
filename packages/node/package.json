@@ -52,17 +52,6 @@
       "require": {
         "default": "./build/cjs/preload.js"
       }
-    },
-    "./orchestrion": {
-      "import": {
-        "default": "./build/orchestrion/import-hook.mjs"
-      }
-    },
-    "./orchestrion/vite": {
-      "import": {
-        "types": "./build/types/orchestrion/bundler/vite.d.ts",
-        "default": "./build/esm/orchestrion/bundler/vite.js"
-      }
     }
   },
   "typesVersions": {
@@ -123,7 +112,8 @@
           "{projectRoot}/build/cjs",
           "{projectRoot}/build/npm/esm",
           "{projectRoot}/build/npm/cjs",
-          "{projectRoot}/build/orchestrion"
+          "{projectRoot}/build/import-hook.mjs",
+          "{projectRoot}/build/loader-hook.mjs"
         ]
       }
     }
