@@ -13,6 +13,7 @@ import {
   setAsyncContextStrategy,
   setCurrentClient,
   spanToJSON,
+  spanToStreamedSpanJSON,
   withScope,
 } from '../../../src';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
@@ -2648,8 +2649,10 @@ describe('ignoreSpans (core path, streaming)', () => {
     startSpan({ name: 'root' }, rootSpan => {
       startSpan({ name: 'ignored-child' }, span => {
         expect(span).toBeInstanceOf(SentryNonRecordingSpan);
-        // The ignored span still links to its parent so `spanToJSON` can surface it.
-        expect(spanToJSON(span).parent_span_id).toBe(rootSpan.spanContext().spanId);
+        // In streaming mode the streamed serializer is what's emitted, so assert against it
+        // (`spanToJSON` output doesn't vary with `traceLifecycle`). The ignored span still links
+        // to its parent so `spanToStreamedSpanJSON` can surface it.
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(rootSpan.spanContext().spanId);
       });
     });
   });
