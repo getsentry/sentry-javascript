@@ -12,8 +12,10 @@ describe('mysql2 auto instrumentation', () => {
       expect.objectContaining({
         description: 'SELECT 1 + 1 AS solution',
         op: 'db',
+        origin: 'auto.db.otel.mysql2',
         data: expect.objectContaining({
           'db.system': 'mysql',
+          'db.statement': 'SELECT 1 + 1 AS solution',
           'net.peer.name': 'localhost',
           'net.peer.port': 3306,
           'db.user': 'root',
@@ -22,11 +24,34 @@ describe('mysql2 auto instrumentation', () => {
       expect.objectContaining({
         description: 'SELECT NOW()',
         op: 'db',
+        origin: 'auto.db.otel.mysql2',
         data: expect.objectContaining({
           'db.system': 'mysql',
+          'db.statement': 'SELECT NOW()',
           'net.peer.name': 'localhost',
           'net.peer.port': 3306,
           'db.user': 'root',
+        }),
+      }),
+      // `execute` is instrumented the same way as `query`
+      expect.objectContaining({
+        description: 'SELECT 42 AS answer',
+        op: 'db',
+        origin: 'auto.db.otel.mysql2',
+        data: expect.objectContaining({
+          'db.system': 'mysql',
+          'db.statement': 'SELECT 42 AS answer',
+        }),
+      }),
+      // a failing query produces a span with an error status
+      expect.objectContaining({
+        description: 'SELECT * FROM does_not_exist',
+        op: 'db',
+        status: 'internal_error',
+        origin: 'auto.db.otel.mysql2',
+        data: expect.objectContaining({
+          'db.system': 'mysql',
+          'db.statement': 'SELECT * FROM does_not_exist',
         }),
       }),
     ]),
