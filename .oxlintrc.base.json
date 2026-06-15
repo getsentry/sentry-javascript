@@ -146,7 +146,6 @@
         "**/integrations/tracing/knex/vendored/**/*.ts",
         "**/integrations/tracing/mongo/vendored/**/*.ts",
         "**/integrations/tracing/graphql/vendored/**/*.ts",
-        "**/integrations/tracing/koa/vendored/**/*.ts",
         "**/integrations/tracing/mysql2/vendored/**/*.ts",
         "**/integration/aws/vendored/**/*.ts",
         "**/integrations/tracing/kafka/vendored/**/*.ts",

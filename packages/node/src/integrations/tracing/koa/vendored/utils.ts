@@ -17,12 +17,11 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-koa
  * - Upstream version: @opentelemetry/instrumentation-koa@0.66.0
  */
-/* eslint-disable */
 
-import { KoaLayerType, KoaInstrumentationConfig } from './types';
-import { KoaContext, KoaMiddleware } from './internal-types';
+import { KoaLayerType, type KoaInstrumentationConfig } from './types';
+import type { KoaContext, KoaMiddleware } from './internal-types';
 import { AttributeNames } from './enums/AttributeNames';
-import { Attributes } from '@opentelemetry/api';
+import type { Attributes } from '@opentelemetry/api';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 
 export const getMiddlewareMetadata = (

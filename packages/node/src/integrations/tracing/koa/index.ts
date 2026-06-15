@@ -1,18 +1,8 @@
 import type { KoaInstrumentationConfig, KoaLayerType } from './vendored/types';
 import { KoaInstrumentation } from './vendored/instrumentation';
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import type { IntegrationFn } from '@sentry/core';
-import {
-  captureException,
-  debug,
-  defineIntegration,
-  getDefaultIsolationScope,
-  getIsolationScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  spanToJSON,
-} from '@sentry/core';
-import { addOriginToSpan, ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
-import { DEBUG_BUILD } from '../../../debug-build';
+import { captureException, defineIntegration } from '@sentry/core';
+import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 
 interface KoaOptions {
   /**
@@ -29,36 +19,6 @@ export const instrumentKoa = generateInstrumentOnce(
   (options: KoaOptions = {}) => {
     return {
       ignoreLayersType: options.ignoreLayersType as KoaLayerType[],
-      requestHook(span, info) {
-        addOriginToSpan(span, 'auto.http.otel.koa');
-
-        const attributes = spanToJSON(span).data;
-
-        // this is one of: middleware, router
-        const type = attributes['koa.type'];
-        if (type) {
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.koa`);
-        }
-
-        // Also update the name
-        const name = attributes['koa.name'];
-        if (typeof name === 'string') {
-          // Somehow, name is sometimes `''` for middleware spans
-          // See: https://github.com/open-telemetry/opentelemetry-js-contrib/issues/2220
-          span.updateName(name || '< unknown >');
-        }
-
-        if (getIsolationScope() === getDefaultIsolationScope()) {
-          DEBUG_BUILD && debug.warn('Isolation scope is default isolation scope - skipping setting transactionName');
-          return;
-        }
-        const route = attributes[ATTR_HTTP_ROUTE];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const method = info.context?.request?.method?.toUpperCase() || 'GET';
-        if (route) {
-          getIsolationScope().setTransactionName(`${method} ${route}`);
-        }
-      },
     } satisfies KoaInstrumentationConfig;
   },
 );
