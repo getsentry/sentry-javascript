@@ -22,7 +22,7 @@
     "@cloudflare/workers-types": "^4.20260426.0",
     "@sentry-internal/test-utils": "10.57.0",
     "eslint-plugin-regexp": "^3.1.0",
-    "vitest": "^3.2.4",
+    "vitest": "^3.2.6",
     "wrangler": "4.86.0"
   },
   "volta": {

@@ -17,12 +17,15 @@
     "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
-    "@sentry-internal/replay": "file:../../packed/sentry-internal-replay-packed.tgz",
+    "@sentry/replay": "file:../../packed/sentry-replay-packed.tgz",
     "@sentry/wasm": "file:../../packed/sentry-wasm-packed.tgz"
   },
   "pnpm": {
     "overrides": {
-      "@opentelemetry/api": "1.9.0"
+      "@opentelemetry/api": "1.9.0",
+      "@opentelemetry/core": "<2.8.0",
+      "@opentelemetry/resources": "<2.8.0",
+      "@opentelemetry/sdk-trace-base": "<2.8.0"
     }
   },
   "volta": {

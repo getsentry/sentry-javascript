@@ -7,11 +7,11 @@ import type {
   ReplayContainer,
   ReplayPluginOptions,
   Session,
-} from '@sentry-internal/replay/build/npm/types/types';
+} from '@sentry/replay/build/npm/types/types';
 /* eslint-disable max-lines */
-import type { ReplayCanvasIntegrationOptions } from '@sentry-internal/replay-canvas';
-import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
-import { EventType } from '@sentry-internal/rrweb';
+import type { ReplayCanvasIntegrationOptions } from '@sentry/replay-canvas';
+import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry/rrweb';
+import { EventType } from '@sentry/rrweb';
 import { decompressSync, strFromU8 } from 'fflate';
 import { envelopeRequestParser } from './helpers';
 

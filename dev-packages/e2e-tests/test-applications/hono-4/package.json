@@ -7,6 +7,7 @@
     "dev:cf": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
     "dev:node": "node --import tsx/esm --import ./src/instrument.node.ts src/entry.node.ts",
     "dev:bun": "bun src/entry.bun.ts",
+    "dev:deno": "deno run --allow-net --allow-env --allow-read src/entry.deno.ts",
     "build": "wrangler deploy --dry-run",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "TEST_ENV=production playwright test"
@@ -14,6 +15,7 @@
   "dependencies": {
     "@sentry/bun": "latest || *",
     "@sentry/cloudflare": "latest || *",
+    "@sentry/deno": "latest || *",
     "@sentry/hono": "latest || *",
     "@sentry/node": "latest || *",
     "@hono/node-server": "^1.19.10",
@@ -40,6 +42,10 @@
       {
         "assert-command": "RUNTIME=bun pnpm test:assert",
         "label": "hono-4 (bun)"
+      },
+      {
+        "assert-command": "RUNTIME=deno pnpm test:assert",
+        "label": "hono-4 (deno)"
       }
     ]
   }

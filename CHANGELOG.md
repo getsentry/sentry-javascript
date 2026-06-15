@@ -4,6 +4,108 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.58.0
+
+### Important Changes
+
+- **feat(hono): Add support for the Deno runtime ([#21450](https://github.com/getsentry/sentry-javascript/pull/21450))**
+
+  `@sentry/hono` now supports the Deno runtime via a new `@sentry/hono/deno` entry point.
+  Install `@sentry/deno` as a peer dependency and initialize Sentry through the `sentry()` middleware:
+
+  ```ts
+  import { Hono } from 'hono';
+  import { sentry } from '@sentry/hono/deno';
+
+  const app = new Hono();
+
+  app.use(
+    sentry(app, {
+      dsn: '__DSN__', // or Deno.env.get('SENTRY_DSN')
+      tracesSampleRate: 1.0,
+    }),
+  );
+
+  Deno.serve(app.fetch);
+  ```
+
+- **feat(core): Extract objects as structured logs in `consoleLoggingIntegration` ([#21385](https://github.com/getsentry/sentry-javascript/pull/21385))**
+
+  The `consoleLoggingIntegration` now extracts structured log attributes when the first argument is a plain object.
+
+  ```js
+  // Object keys become log attributes
+  console.log({ userId: 123, action: 'login' }, 'User logged in');
+  // → attributes: { userId: 123, action: "login" }
+
+  // Non-object first args use template + parameters (unchanged)
+  console.log('Hello', 'world', 123);
+  // → sentry.message.template: "Hello {} {}"
+  ```
+
+- **feat(react-router): Stabilize the instrumentation API ([#21470](https://github.com/getsentry/sentry-javascript/pull/21470))**
+
+  React Router's instrumentation API is now stable — the `@experimental` markers have been removed from `createSentryServerInstrumentation`, `createSentryClientInstrumentation`, and the related helpers and types.
+  The manual server wrappers `wrapServerLoader` and `wrapServerAction` are now deprecated in favor of it. Export `instrumentations = [Sentry.createSentryServerInstrumentation()]` from your `entry.server.tsx` to instrument all loaders and actions without wrapping them individually.
+
+### Other Changes
+
+- feat(hono): Add HTTP connection info to server spans ([#21408](https://github.com/getsentry/sentry-javascript/pull/21408))
+- feat(node-core): Attach log message and fields to pino error events ([#21422](https://github.com/getsentry/sentry-javascript/pull/21422))
+- feat(react-router): Always build client instrumentation and deprecate `useInstrumentationAPI` ([#21432](https://github.com/getsentry/sentry-javascript/pull/21432))
+- feat(react-router): Rename client navigation roots from the route pattern ([#21463](https://github.com/getsentry/sentry-javascript/pull/21463))
+- fix(astro): Resolve middleware export types ([#21414](https://github.com/getsentry/sentry-javascript/pull/21414))
+- fix(browser): Ignore `__sentry_wrapped__` inherited from `Function.prototype` ([#21506](https://github.com/getsentry/sentry-javascript/pull/21506))
+- fix(core): Avoid double counting cached input tokens for Vercel AI SDK v6 ([#21488](https://github.com/getsentry/sentry-javascript/pull/21488))
+- fix(core): Keep `safeJoin` side-effect-free for DOM elements ([#21356](https://github.com/getsentry/sentry-javascript/pull/21356))
+- fix(deno): Use correct paths for `module` and `types` fields in `package.json` ([#21449](https://github.com/getsentry/sentry-javascript/pull/21449))
+- fix(nextjs): Mark redirect server actions as `ok` instead of `internal_error` ([#21521](https://github.com/getsentry/sentry-javascript/pull/21521))
+- fix(react-router): Mark instrumentation API active on invocation ([#21420](https://github.com/getsentry/sentry-javascript/pull/21420))
+- fix(redis): Bring span attributes into alignment with conventions
+- fix(sveltekit): Add `default` exports condition ([#21472](https://github.com/getsentry/sentry-javascript/pull/21472))
+- fix(tanstackstart-react): Preserve middleware context types ([#21441](https://github.com/getsentry/sentry-javascript/pull/21441))
+- perf(core): Reuse unchanged Vercel AI messages JSON
+
+Work in this release was contributed by @archievi, @AyaanFaisal21, @itosa-kazu, and @bkchr. Thank you for your contributions!
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Pin OTel to <2.8.0 in ts 3.8 test app ([#21474](https://github.com/getsentry/sentry-javascript/pull/21474))
+- chore(ci): Add dependabot auto-triage pipeline ([#21318](https://github.com/getsentry/sentry-javascript/pull/21318))
+- chore(dependabot): Group react-router packages to bump in unison ([#21442](https://github.com/getsentry/sentry-javascript/pull/21442))
+- chore(deps-dev): Bump the react-router group across 1 directory with 3 updates ([#21448](https://github.com/getsentry/sentry-javascript/pull/21448))
+- chore(deps): Bump @hapi/content from 6.0.1 to 6.0.2 ([#21180](https://github.com/getsentry/sentry-javascript/pull/21180))
+- chore(deps): Bump getsentry/craft from 2.26.2 to 2.26.9 ([#21444](https://github.com/getsentry/sentry-javascript/pull/21444))
+- chore(deps): Bump hono from 4.12.18 to 4.12.21 in /dev-packages/e2e-tests/test-applications/cloudflare-hono ([#21340](https://github.com/getsentry/sentry-javascript/pull/21340))
+- chore(deps): Bump nx to `22.7.5` ([#21527](https://github.com/getsentry/sentry-javascript/pull/21527))
+- chore(deps): Bump peter-evans/create-pull-request from 8.1.0 to 8.1.1 ([#21302](https://github.com/getsentry/sentry-javascript/pull/21302))
+- chore(size-limit): weekly auto-bump ([#21501](https://github.com/getsentry/sentry-javascript/pull/21501))
+- ci(dependabot-triage): Add outcome step ([#21507](https://github.com/getsentry/sentry-javascript/pull/21507))
+- ci(deps): Bump actions/github-script from 7 to 9 ([#21300](https://github.com/getsentry/sentry-javascript/pull/21300))
+- ci(deps): Bump anthropics/claude-code-action from 1.0.124 to 1.0.142 ([#21445](https://github.com/getsentry/sentry-javascript/pull/21445))
+- feat(deps): Bump shell-quote from 1.8.3 to 1.8.4 ([#21412](https://github.com/getsentry/sentry-javascript/pull/21412))
+- feat(deps): Bump the remix group with 4 updates ([#21447](https://github.com/getsentry/sentry-javascript/pull/21447))
+- feat(nestjs): Migrate vendored nest instrumentation to Sentry APIs ([#21516](https://github.com/getsentry/sentry-javascript/pull/21516))
+- ref: Remove unused `SENTRY_BUILD_PRESERVE_MODULES` env check from rollup configs ([#21487](https://github.com/getsentry/sentry-javascript/pull/21487))
+- ref: Rename published internal packages ([#21371](https://github.com/getsentry/sentry-javascript/pull/21371))
+- ref(nestjs): Streamline nestjs-core ([#21434](https://github.com/getsentry/sentry-javascript/pull/21434))
+- ref(node): Drop eslint-ignores and oxlint exemption in generic-pool instrumentation ([#21435](https://github.com/getsentry/sentry-javascript/pull/21435))
+- ref(node): Migrate vendored generic-pool instrumentation to Sentry APIs ([#21523](https://github.com/getsentry/sentry-javascript/pull/21523))
+- ref(node): Streamline dataloader instrumentation ([#21475](https://github.com/getsentry/sentry-javascript/pull/21475))
+- ref(node): Streamline generic-pool ([#21363](https://github.com/getsentry/sentry-javascript/pull/21363))
+- test: Skip nuxt-5 E2E test ([#21524](https://github.com/getsentry/sentry-javascript/pull/21524))
+- test(astro): Add Astro 7 e2e app ([#21471](https://github.com/getsentry/sentry-javascript/pull/21471))
+- test(node): Remove generic-pool fake unit test ([#21439](https://github.com/getsentry/sentry-javascript/pull/21439))
+- test(node): Replace lru-memoizer fake unit test with integration coverage ([#21437](https://github.com/getsentry/sentry-javascript/pull/21437))
+- test(react-router): Add Redis-backed DB-span coverage to rr7 ([#21398](https://github.com/getsentry/sentry-javascript/pull/21398))
+- test(react-router): Finalize instrumentation api e2e coverage ([#21468](https://github.com/getsentry/sentry-javascript/pull/21468))
+- test(react-router): Fix e2e tests ([#21485](https://github.com/getsentry/sentry-javascript/pull/21485))
+- test(react-router): Verify client fetch instrumentation hook fires ([#21402](https://github.com/getsentry/sentry-javascript/pull/21402))
+- test(tanstackstart-react): Initialize Sentry from a dedicated client init file ([#21397](https://github.com/getsentry/sentry-javascript/pull/21397))
+
+</details>
+
 ## 10.57.0
 
 ### Important Changes

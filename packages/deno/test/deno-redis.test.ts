@@ -93,10 +93,10 @@ Deno.test('denoRedisIntegration: node-redis:command channel produces a db.redis 
   const redisSpan = parent.spans?.find(s => s.op === 'db.redis');
   assertExists(redisSpan, `expected a db.redis child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(redisSpan!.description, 'redis-GET');
-  assertEquals(redisSpan!.data?.['db.system'], 'redis');
-  assertEquals(redisSpan!.data?.['db.statement'], 'GET cache:key');
-  assertEquals(redisSpan!.data?.['net.peer.name'], '127.0.0.1');
-  assertEquals(redisSpan!.data?.['net.peer.port'], 6379);
+  assertEquals(redisSpan!.data?.['db.system.name'], 'redis');
+  assertEquals(redisSpan!.data?.['db.query.text'], 'GET cache:key');
+  assertEquals(redisSpan!.data?.['server.address'], '127.0.0.1');
+  assertEquals(redisSpan!.data?.['server.port'], 6379);
 });
 
 Deno.test('denoRedisIntegration: errors on the command channel set span status', async () => {
@@ -165,8 +165,8 @@ Deno.test('denoRedisIntegration: ioredis:command channel produces a db.redis chi
   const redisSpan = parent.spans?.find(s => s.op === 'db.redis');
   assertExists(redisSpan, `expected a db.redis child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(redisSpan!.description, 'redis-get');
-  assertEquals(redisSpan!.data?.['db.system'], 'redis');
-  assertEquals(redisSpan!.data?.['db.statement'], 'get cache:key');
-  assertEquals(redisSpan!.data?.['net.peer.name'], '127.0.0.1');
-  assertEquals(redisSpan!.data?.['net.peer.port'], 6379);
+  assertEquals(redisSpan!.data?.['db.system.name'], 'redis');
+  assertEquals(redisSpan!.data?.['db.query.text'], 'get cache:key');
+  assertEquals(redisSpan!.data?.['server.address'], '127.0.0.1');
+  assertEquals(redisSpan!.data?.['server.port'], 6379);
 });

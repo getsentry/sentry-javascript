@@ -22,6 +22,10 @@
   "exports": {
     "./package.json": "./package.json",
     "./server": {
+      "react-native": {
+        "types": "./build/types/server.d.ts",
+        "default": "./build/esm/server.js"
+      },
       "import": {
         "types": "./build/types/server.d.ts",
         "default": "./build/esm/server.js"
@@ -32,6 +36,10 @@
       }
     },
     "./browser": {
+      "react-native": {
+        "types": "./build/types/browser.d.ts",
+        "default": "./build/esm/browser.js"
+      },
       "import": {
         "types": "./build/types/browser.d.ts",
         "default": "./build/esm/browser.js"
@@ -42,6 +50,10 @@
       }
     },
     ".": {
+      "react-native": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/esm/index.js"
+      },
       "import": {
         "types": "./build/types/index.d.ts",
         "default": "./build/esm/index.js"

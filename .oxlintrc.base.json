@@ -142,8 +142,6 @@
     },
     {
       "files": [
-        "**/integrations/tracing/dataloader/vendored/**/*.ts",
-        "**/integrations/tracing/genericPool/vendored/**/*.ts",
         "**/integrations/fs/vendored/**/*.ts",
         "**/integrations/tracing/knex/vendored/**/*.ts",
         "**/integrations/tracing/mongo/vendored/**/*.ts",
@@ -151,7 +149,6 @@
         "**/integrations/tracing/connect/vendored/**/*.ts",
         "**/integrations/tracing/mysql2/vendored/**/*.ts",
         "**/integration/aws/vendored/**/*.ts",
-        "**/nestjs/src/integrations/vendored/**/*.ts",
         "**/integrations/tracing/kafka/vendored/**/*.ts",
         "**/integrations/tracing/tedious/vendored/**/*.ts",
         "**/integrations/tracing/hapi/vendored/**/*.ts",

@@ -7,6 +7,7 @@
     "@react-router/node": "latest",
     "@react-router/serve": "latest",
     "@sentry/react-router": "file:../../packed/sentry-react-router-packed.tgz",
+    "ioredis": "^5.4.1",
     "isbot": "^5.1.17",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

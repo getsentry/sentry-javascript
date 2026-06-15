@@ -19,6 +19,7 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/npm/types/index.d.ts",
+      "react-native": "./build/npm/esm/prod/index.js",
       "development": {
         "import": "./build/npm/esm/dev/index.js",
         "require": "./build/npm/cjs/dev/index.js"
@@ -44,10 +45,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/browser-utils": "10.57.0",
-    "@sentry-internal/feedback": "10.57.0",
-    "@sentry-internal/replay": "10.57.0",
-    "@sentry-internal/replay-canvas": "10.57.0",
+    "@sentry/browser-utils": "10.57.0",
+    "@sentry/feedback": "10.57.0",
+    "@sentry/replay": "10.57.0",
+    "@sentry/replay-canvas": "10.57.0",
     "@sentry/core": "10.57.0"
   },
   "devDependencies": {
