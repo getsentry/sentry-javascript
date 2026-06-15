@@ -36,9 +36,11 @@ const tsConfig = require(baseTscConfigPath);
 // TS 3.8 fails build when it encounters a config option it does not understand, so we remove it :(
 delete tsConfig.compilerOptions.noUncheckedIndexedAccess;
 
-// TS 3.8 predates `node16` module/moduleResolution (added in TS 4.7), so downgrade them to values
-// TS 3.8 understands. This matches the resolution behavior these tests relied on before `node16`.
-tsConfig.compilerOptions.module = 'esnext';
+// TS 3.8 predates `node16` module/moduleResolution (added in TS 4.7). Restore the pre-`node16`
+// base shape: drop `module` (so ts-node, which runs the scenarios, keeps emitting CommonJS) and
+// use plain `node` resolution. Setting `module` to an ESM value here breaks the `ts-node/register`
+// scenarios, which are loaded as CommonJS.
+delete tsConfig.compilerOptions.module;
 tsConfig.compilerOptions.moduleResolution = 'node';
 
 writeFileSync(baseTscConfigPath, JSON.stringify(tsConfig, null, 2));
