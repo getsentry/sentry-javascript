@@ -1,6 +1,7 @@
-import type { DurableObjectStorage } from '@cloudflare/workers-types';
+import type { DurableObjectStorage, SyncKvStorage } from '@cloudflare/workers-types';
 import { isThenable, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import { storeSpanContext } from '../utils/traceLinks';
+import { instrumentDurableObjectSyncKvStorage } from './instrumentDurableObjectSyncKvStorage';
 
 const STORAGE_METHODS_TO_INSTRUMENT = ['get', 'put', 'delete', 'list', 'setAlarm', 'getAlarm', 'deleteAlarm'] as const;
 
@@ -34,6 +35,10 @@ export function instrumentDurableObjectStorage(
       // causing "Illegal invocation: function called with incorrect `this`
       // reference" errors.
       const original = Reflect.get(target, prop, target);
+
+      if (prop === 'kv' && original != null && 'get' in original && 'put' in original) {
+        return instrumentDurableObjectSyncKvStorage(original as SyncKvStorage);
+      }
 
       if (typeof original !== 'function') {
         return original;
