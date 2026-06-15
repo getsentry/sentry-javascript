@@ -21,7 +21,13 @@
 
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
-import { SDK_VERSION, SPAN_STATUS_ERROR, startSpan, startSpanManual } from '@sentry/core';
+import {
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startSpan,
+  startSpanManual,
+} from '@sentry/core';
 import type * as genericPool from './generic-pool-types';
 
 const MODULE_NAME = 'generic-pool';
@@ -102,9 +108,15 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
 
   private _acquirePatcher(original: AcquireFn) {
     return function wrapped_acquire(this: genericPool.Pool<unknown>, ...args: unknown[]) {
-      return startSpan({ name: 'generic-pool.acquire' }, () => {
-        return original.call(this, ...args) as PromiseLike<unknown>;
-      });
+      return startSpan(
+        {
+          name: 'generic-pool.acquire',
+          attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.otel.generic_pool' },
+        },
+        () => {
+          return original.call(this, ...args) as PromiseLike<unknown>;
+        },
+      );
     };
   }
 
@@ -130,24 +142,30 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
         return original.call(this, cb, priority);
       }
 
-      return startSpanManual({ name: 'generic-pool.acquire' }, span => {
-        original.call(
-          this,
-          (err: unknown, client: unknown) => {
-            if (err) {
-              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            }
-            span.end();
-            // Not checking whether cb is a function because
-            // the original code doesn't do that either.
-            // The callback's return value is unused by generic-pool, so we don't return it.
-            if (cb) {
-              cb(err, client);
-            }
-          },
-          priority,
-        );
-      });
+      return startSpanManual(
+        {
+          name: 'generic-pool.acquire',
+          attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.otel.generic_pool' },
+        },
+        span => {
+          original.call(
+            this,
+            (err: unknown, client: unknown) => {
+              if (err) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              }
+              span.end();
+              // Not checking whether cb is a function because
+              // the original code doesn't do that either.
+              // The callback's return value is unused by generic-pool, so we don't return it.
+              if (cb) {
+                cb(err, client);
+              }
+            },
+            priority,
+          );
+        },
+      );
     };
   }
 }
