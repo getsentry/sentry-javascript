@@ -20,6 +20,8 @@
  * - Minor TypeScript strictness adjustments
  * - Span lifecycle migrated from the OpenTelemetry tracer to the @sentry/core span API
  * - `auto.graphql.otel.graphql` origin baked into the execute span (previously set via a Sentry responseHook)
+ * - The generic `responseHook` config was removed; its Sentry-specific logic (error status + root span renaming
+ *   via `useOperationNameForRootSpan`) is now applied directly when the execution result is handled
  */
 
 /* oxlint-disable max-lines */
@@ -64,8 +66,17 @@ import {
 } from './internal-types';
 import { addSpanSource, endSpan, getOperation, isPromise, wrapFieldResolver, wrapFields } from './utils';
 
-import type { Span } from '@sentry/core';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import type { Span, SpanAttributeValue } from '@sentry/core';
+import {
+  getRootSpan,
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  spanToJSON,
+  startInactiveSpan,
+  withActiveSpan,
+} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '@sentry/opentelemetry';
 import type { GraphQLInstrumentationConfig, GraphQLInstrumentationParsedConfig } from './types';
 
 const PACKAGE_NAME = '@sentry/instrumentation-graphql';
@@ -217,7 +228,6 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
   }
 
   private _handleExecutionResult(span: Span, err?: Error, result?: PromiseOrValue<ExecutionResult>) {
-    const config = this.getConfig();
     if (result === undefined || err) {
       endSpan(span, err);
       return;
@@ -226,43 +236,71 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     if (isPromise(result)) {
       result.then(
         resultData => {
-          if (typeof config.responseHook !== 'function') {
-            endSpan(span);
-            return;
-          }
-          this._executeResponseHook(span, resultData);
+          this._updateSpanFromResult(span, resultData);
+          endSpan(span);
         },
         error => {
           endSpan(span, error);
         },
       );
     } else {
-      if (typeof config.responseHook !== 'function') {
-        endSpan(span);
-        return;
-      }
-      this._executeResponseHook(span, result);
+      this._updateSpanFromResult(span, result);
+      endSpan(span);
     }
   }
 
-  private _executeResponseHook(span: Span, result: ExecutionResult) {
-    const { responseHook } = this.getConfig();
-    if (!responseHook) {
+  /**
+   * Applies Sentry-specific span mutations based on the GraphQL execution result:
+   * - Marks the execute span as errored if the result contains errors (and no status was set yet)
+   * - Optionally renames the containing root span to include the GraphQL operation name(s)
+   */
+  private _updateSpanFromResult(span: Span, result: ExecutionResult): void {
+    // We want to ensure spans are marked as errored if there are errors in the result
+    // We only do that if the span is not already marked with a status
+    if (result.errors?.length && !spanToJSON(span).status) {
+      span.setStatus({ code: SPAN_STATUS_ERROR });
+    }
+
+    if (!this.getConfig().useOperationNameForRootSpan) {
       return;
     }
 
-    safeExecuteInTheMiddle(
-      () => {
-        responseHook(span, result);
-      },
-      err => {
-        if (err) {
-          this._diag.error('Error running response hook', err);
-        }
+    const attributes = spanToJSON(span).data;
 
-        endSpan(span, undefined);
-      },
-      true,
+    // If operation.name is not set, we fall back to use operation.type only
+    const operationType = attributes[AttributeNames.OPERATION_TYPE];
+    const operationName = attributes[AttributeNames.OPERATION_NAME];
+
+    if (!operationType) {
+      return;
+    }
+
+    const rootSpan = getRootSpan(span);
+    const rootSpanAttributes = spanToJSON(rootSpan).data;
+
+    const existingOperations = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION] || [];
+
+    const newOperation = operationName ? `${operationType} ${operationName}` : `${operationType}`;
+
+    // We keep track of each operation on the root span
+    // This can either be a string, or an array of strings (if there are multiple operations)
+    if (Array.isArray(existingOperations)) {
+      (existingOperations as string[]).push(newOperation);
+      rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, existingOperations);
+    } else if (typeof existingOperations === 'string') {
+      rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, [existingOperations, newOperation]);
+    } else {
+      rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, newOperation);
+    }
+
+    if (!spanToJSON(rootSpan).data['original-description']) {
+      rootSpan.setAttribute('original-description', spanToJSON(rootSpan).description);
+    }
+    // Important for e.g. @sentry/aws-serverless because this would otherwise overwrite the name again
+    rootSpan.updateName(
+      `${spanToJSON(rootSpan).data['original-description']} (${getGraphqlOperationNamesFromAttribute(
+        existingOperations,
+      )})`,
     );
   }
 
@@ -429,4 +467,22 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
       typeResolver,
     };
   }
+}
+
+// copy from packages/opentelemetry/utils
+function getGraphqlOperationNamesFromAttribute(attr: SpanAttributeValue): string {
+  if (Array.isArray(attr)) {
+    // oxlint-disable-next-line typescript/require-array-sort-compare
+    const sorted = attr.slice().sort();
+
+    // Up to 5 items, we just add all of them
+    if (sorted.length <= 5) {
+      return sorted.join(', ');
+    } else {
+      // Else, we add the first 5 and the diff of other operations
+      return `${sorted.slice(0, 5).join(', ')}, +${sorted.length - 5}`;
+    }
+  }
+
+  return `${attr}`;
 }

@@ -19,11 +19,6 @@
  */
 
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
-import type { Span } from '@sentry/core';
-
-export interface GraphQLInstrumentationExecutionResponseHook {
-  (span: Span, data: any): void;
-}
 
 export interface GraphQLInstrumentationConfig extends InstrumentationConfig {
   /**
@@ -46,17 +41,12 @@ export interface GraphQLInstrumentationConfig extends InstrumentationConfig {
   ignoreTrivialResolveSpans?: boolean;
 
   /**
-   * Hook that allows adding custom span attributes based on the data
-   * returned from "execute" GraphQL action.
+   * If this is enabled, a `http.server` root span containing the execute span will automatically be renamed
+   * to include the operation name.
    *
-   * @param data - A GraphQL `ExecutionResult` object. For the exact type definitions, see the following:
-   *  - {@linkcode https://github.com/graphql/graphql-js/blob/v14.7.0/src/execution/execute.js#L115 graphql@14}
-   *  - {@linkcode https://github.com/graphql/graphql-js/blob/15.x.x/src/execution/execute.d.ts#L31 graphql@15}
-   *  - {@linkcode https://github.com/graphql/graphql-js/blob/16.x.x/src/execution/execute.ts#L127 graphql@16}
-   *
-   * @default undefined
+   * @default false
    */
-  responseHook?: GraphQLInstrumentationExecutionResponseHook;
+  useOperationNameForRootSpan?: boolean;
 }
 
 // Utility type to make specific properties required
