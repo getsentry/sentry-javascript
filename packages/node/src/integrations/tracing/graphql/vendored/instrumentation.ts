@@ -18,10 +18,10 @@
  * - Upstream version: @opentelemetry/instrumentation-graphql@0.66.0
  * - Types from `graphql` package inlined as simplified interfaces
  * - Minor TypeScript strictness adjustments
+ * - Span lifecycle migrated from the OpenTelemetry tracer to the @sentry/core span API
+ * - `auto.graphql.otel.graphql` origin baked into the execute span (previously set via a Sentry responseHook)
  */
-/* eslint-disable */
 
-import { context, trace } from '@opentelemetry/api';
 import {
   isWrapped,
   InstrumentationBase,
@@ -60,26 +60,17 @@ import {
   ObjectWithGraphQLData,
   OPERATION_NOT_SUPPORTED,
 } from './internal-types';
-import {
-  addInputVariableAttributes,
-  addSpanSource,
-  endSpan,
-  getOperation,
-  isPromise,
-  wrapFieldResolver,
-  wrapFields,
-} from './utils';
+import { addSpanSource, endSpan, getOperation, isPromise, wrapFieldResolver, wrapFields } from './utils';
 
-import { SDK_VERSION } from '@sentry/core';
-import * as api from '@opentelemetry/api';
+import type { Span } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { GraphQLInstrumentationConfig, GraphQLInstrumentationParsedConfig } from './types';
 
 const PACKAGE_NAME = '@sentry/instrumentation-graphql';
 
+const ORIGIN = 'auto.graphql.otel.graphql';
+
 const DEFAULT_CONFIG: GraphQLInstrumentationParsedConfig = {
-  mergeItems: false,
-  depth: -1,
-  allowValues: false,
   ignoreResolveSpans: false,
 };
 
@@ -209,7 +200,7 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
           fields: {},
         };
 
-        return context.with(trace.setSpan(context.active(), span), () => {
+        return withActiveSpan(span, () => {
           return safeExecuteInTheMiddle<PromiseOrValue<ExecutionResult>>(
             () => {
               return (original as executeFunctionWithObj).apply(this, [processedArgs]);
@@ -223,7 +214,7 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     };
   }
 
-  private _handleExecutionResult(span: api.Span, err?: Error, result?: PromiseOrValue<ExecutionResult>) {
+  private _handleExecutionResult(span: Span, err?: Error, result?: PromiseOrValue<ExecutionResult>) {
     const config = this.getConfig();
     if (result === undefined || err) {
       endSpan(span, err);
@@ -252,7 +243,7 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     }
   }
 
-  private _executeResponseHook(span: api.Span, result: ExecutionResult) {
+  private _executeResponseHook(span: Span, result: ExecutionResult) {
     const { responseHook } = this.getConfig();
     if (!responseHook) {
       return;
@@ -299,10 +290,9 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
   }
 
   private _parse(obj: parseType, original: parseType, source: string | Source, options?: ParseOptions): DocumentNode {
-    const config = this.getConfig();
-    const span = this.tracer.startSpan(SpanNames.PARSE);
+    const span = startInactiveSpan({ name: SpanNames.PARSE });
 
-    return context.with(trace.setSpan(context.active(), span), () => {
+    return withActiveSpan(span, () => {
       return safeExecuteInTheMiddle<DocumentNode & ObjectWithGraphQLData>(
         () => {
           return original.call(obj, source, options);
@@ -313,7 +303,7 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
             if (!operation) {
               span.updateName(SpanNames.SCHEMA_PARSE);
             } else if (result.loc) {
-              addSpanSource(span, result.loc, config.allowValues);
+              addSpanSource(span, result.loc);
             }
           }
           endSpan(span, err);
@@ -331,22 +321,16 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     typeInfo?: TypeInfo,
     options?: { maxErrors?: number },
   ): ReadonlyArray<GraphQLError> {
-    const span = this.tracer.startSpan(SpanNames.VALIDATE, {});
+    const span = startInactiveSpan({ name: SpanNames.VALIDATE });
 
-    return context.with(trace.setSpan(context.active(), span), () => {
+    return withActiveSpan(span, () => {
       return safeExecuteInTheMiddle<ReadonlyArray<GraphQLError>>(
         () => {
           return original.call(obj, schema, documentAST, rules, options, typeInfo);
         },
-        (err, errors) => {
+        (err, _errors) => {
           if (!documentAST.loc) {
             span.updateName(SpanNames.SCHEMA_VALIDATE);
-          }
-          if (errors && errors.length) {
-            span.recordException({
-              name: AttributeNames.ERROR_VALIDATION_NAME,
-              message: JSON.stringify(errors),
-            });
           }
           endSpan(span, err);
         },
@@ -354,10 +338,11 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     });
   }
 
-  private _createExecuteSpan(operation: DefinitionNode | undefined, processedArgs: ExecutionArgs): api.Span {
-    const config = this.getConfig();
-
-    const span = this.tracer.startSpan(SpanNames.EXECUTE, {});
+  private _createExecuteSpan(operation: DefinitionNode | undefined, processedArgs: ExecutionArgs): Span {
+    const span = startInactiveSpan({
+      name: SpanNames.EXECUTE,
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN },
+    });
     if (operation) {
       const { operation: operationType, name: nameNode } = operation as OperationDefinitionNode;
 
@@ -384,11 +369,7 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     }
 
     if (processedArgs.document?.loc) {
-      addSpanSource(span, processedArgs.document.loc, config.allowValues);
-    }
-
-    if (processedArgs.variableValues && config.allowValues) {
-      addInputVariableAttributes(span, processedArgs.variableValues);
+      addSpanSource(span, processedArgs.document.loc);
     }
 
     return span;
@@ -426,16 +407,11 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     // follows graphql implementation here:
     // https://github.com/graphql/graphql-js/blob/0b7daed9811731362c71900e12e5ea0d1ecc7f1f/src/execution/execute.ts#L494
     const fieldResolverForExecute = fieldResolver ?? defaultFieldResolved;
-    fieldResolver = wrapFieldResolver(
-      this.tracer,
-      () => this.getConfig(),
-      fieldResolverForExecute,
-      isUsingDefaultResolver,
-    );
+    fieldResolver = wrapFieldResolver(() => this.getConfig(), fieldResolverForExecute, isUsingDefaultResolver);
 
     if (schema) {
-      wrapFields(schema.getQueryType() as any, this.tracer, () => this.getConfig());
-      wrapFields(schema.getMutationType() as any, this.tracer, () => this.getConfig());
+      wrapFields(schema.getQueryType() as any, () => this.getConfig());
+      wrapFields(schema.getMutationType() as any, () => this.getConfig());
     }
 
     return {

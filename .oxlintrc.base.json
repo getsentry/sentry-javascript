@@ -131,6 +131,20 @@
       }
     },
     {
+      "files": ["**/integrations/tracing/graphql/vendored/**/*.ts"],
+      "rules": {
+        "typescript/consistent-type-imports": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-explicit-any": "off",
+        "typescript/no-this-alias": "off",
+        "typescript/prefer-for-of": "off",
+        "max-lines": "off",
+        "complexity": "off",
+        "no-param-reassign": "off"
+      }
+    },
+    {
       "files": ["**/integrations/tracing/redis/vendored/**/*.ts"],
       "rules": {
         "typescript/no-explicit-any": "off",
@@ -154,7 +168,6 @@
         "**/integrations/tracing/mongoose/vendored/**/*.ts",
         "**/integrations/tracing/amqplib/vendored/**/*.ts",
         "**/integrations/tracing/prisma/vendored/**/*.ts",
-        "**/integrations/tracing/graphql/vendored/**/*.ts",
         "**/integrations/tracing/postgres/vendored/**/*.ts",
         "**/integrations/tracing/fastify/vendored/**/*.ts"
       ],

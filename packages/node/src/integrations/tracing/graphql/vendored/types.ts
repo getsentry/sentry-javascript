@@ -17,33 +17,15 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-graphql
  * - Upstream version: @opentelemetry/instrumentation-graphql@0.66.0
  */
-/* eslint-disable */
 
-import { InstrumentationConfig } from '@opentelemetry/instrumentation';
-import type * as api from '@opentelemetry/api';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import type { Span } from '@sentry/core';
 
 export interface GraphQLInstrumentationExecutionResponseHook {
-  (span: api.Span, data: any): void;
+  (span: Span, data: any): void;
 }
 
 export interface GraphQLInstrumentationConfig extends InstrumentationConfig {
-  /**
-   * When set to true it will not remove attributes values from schema source.
-   * By default all values that can be sensitive are removed and replaced
-   * with "*"
-   *
-   * @default false
-   */
-  allowValues?: boolean;
-
-  /**
-   * The maximum depth of fields/resolvers to instrument.
-   * When set to 0 it will not instrument fields and resolvers
-   *
-   * @default undefined
-   */
-  depth?: number;
-
   /**
    * Do not create spans for resolvers.
    *
@@ -62,22 +44,6 @@ export interface GraphQLInstrumentationConfig extends InstrumentationConfig {
    * @default false
    */
   ignoreTrivialResolveSpans?: boolean;
-
-  /**
-   * Place all resolve spans under the same parent instead of producing a nested tree structure.
-   *
-   * @default false
-   */
-  flatResolveSpans?: boolean;
-
-  /**
-   * Whether to merge list items into a single element.
-   *
-   * @example `users.*.name` instead of `users.0.name`, `users.1.name`
-   *
-   * @default false
-   */
-  mergeItems?: boolean;
 
   /**
    * Hook that allows adding custom span attributes based on the data
@@ -99,5 +65,5 @@ type RequireSpecificKeys<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 // Merged and parsed config of default instrumentation config and GraphQL
 export type GraphQLInstrumentationParsedConfig = RequireSpecificKeys<
   GraphQLInstrumentationConfig,
-  'mergeItems' | 'depth' | 'allowValues' | 'ignoreResolveSpans'
+  'ignoreResolveSpans'
 >;
