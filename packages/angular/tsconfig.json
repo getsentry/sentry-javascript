@@ -6,7 +6,11 @@
   "exclude": ["patch-vitest.ts", "setup-test.ts"],
 
   "compilerOptions": {
-    // package-specific options
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    // `@sentry/angular` is `"type": "module"`, so under `node16` resolution its relative imports would
+    // require explicit `.js` extensions. Like our other framework packages it's compiled via a bundler
+    // (ng-packagr), so use `esnext`/`bundler` here instead of the `node16` default.
+    "module": "esnext",
+    "moduleResolution": "bundler"
   }
 }
