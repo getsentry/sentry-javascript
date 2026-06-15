@@ -1,16 +1,35 @@
 {
-  "extends": "../../tsconfig.json",
-
+  // NOTE: Unlike every other package, this config does NOT extend the shared base config
+  // (`../../tsconfig.json`). `@sentry/angular` is built with `ng-packagr`, which pins an older
+  // TypeScript (4.6) that doesn't understand the `node16` module/moduleResolution our base config
+  // defaults to (and rejects the literal even when overridden). We therefore inline the relevant
+  // base compiler options here and use `esnext`/`node` instead.
   "include": ["**/*.ts", "src/**/*"],
 
   "exclude": ["patch-vitest.ts", "setup-test.ts"],
 
   "compilerOptions": {
-    "experimentalDecorators": true,
-    // `@sentry/angular` is `"type": "module"`, so under `node16` resolution its relative imports would
-    // require explicit `.js` extensions. Like our other framework packages it's compiled via a bundler
-    // (ng-packagr), so use `esnext`/`bundler` here instead of the `node16` default.
+    "declaration": false,
+    "declarationMap": false,
+    "downlevelIteration": true,
+    "importHelpers": true,
+    "inlineSources": true,
+    "isolatedModules": true,
+    "lib": ["es2020"],
     "module": "esnext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "node",
+    "noErrorTruncation": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "preserveWatchOutput": true,
+    "sourceMap": true,
+    "strict": true,
+    "strictBindCallApply": false,
+    "target": "es2020",
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "experimentalDecorators": true
   }
 }
