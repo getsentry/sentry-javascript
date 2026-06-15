@@ -3,7 +3,7 @@
  */
 
 import '../utils/mock-internal-setTimeout';
-import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
+import * as SentryBrowserUtils from '@sentry/browser-utils';
 import type { MockedFunction, MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WINDOW } from '../../src/constants';

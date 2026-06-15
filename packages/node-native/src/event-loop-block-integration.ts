@@ -21,7 +21,7 @@ import {
   mergeScopeData,
 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import { registerThread, threadPoll } from '@sentry-internal/node-native-stacktrace';
+import { registerThread, threadPoll } from '@sentry/node-native-stacktrace';
 import type { ThreadBlockedIntegrationOptions, WorkerStartData } from './common';
 import { POLL_RATIO } from './common';
 

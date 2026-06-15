@@ -783,3 +783,20 @@ test('Calling @All method on service with Injectable decorator returns 200', asy
   const response = await fetch(`${baseURL}/test-all`);
   expect(response.status).toBe(200);
 });
+
+test('Sets error status on nest spans when a handler throws', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('nestjs-fastify', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-exception/:id';
+  });
+
+  await fetch(`${baseURL}/test-exception/123`);
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent.spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ op: 'request_context.nestjs', status: 'internal_error' }),
+      expect.objectContaining({ op: 'handler.nestjs', status: 'internal_error' }),
+    ]),
+  );
+});

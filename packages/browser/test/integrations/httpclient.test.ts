@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import * as BrowserUtils from '@sentry-internal/browser-utils';
-import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
+import * as BrowserUtils from '@sentry/browser-utils';
+import { SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
 import type { Event } from '@sentry/core/browser';
 import * as SentryCore from '@sentry/core/browser';
 import type { MockInstance } from 'vitest';

@@ -3,8 +3,8 @@
  */
 
 import '../../utils/mock-internal-setTimeout';
-import { EventType, IncrementalSource, record } from '@sentry-internal/rrweb';
-import { NodeType, type serializedElementNodeWithId } from '@sentry-internal/rrweb-snapshot';
+import { EventType, IncrementalSource, record } from '@sentry/rrweb';
+import { NodeType, type serializedElementNodeWithId } from '@sentry/rrweb-snapshot';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleDom } from '../../../src/coreHandlers/handleDom';

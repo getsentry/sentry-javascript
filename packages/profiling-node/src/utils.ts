@@ -22,7 +22,7 @@ import {
   getDebugImagesForResources,
   uuid4,
 } from '@sentry/core';
-import type { RawChunkCpuProfile, RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
+import type { RawChunkCpuProfile, RawThreadCpuProfile } from '@sentry/node-cpu-profiler';
 import * as os from 'os';
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';

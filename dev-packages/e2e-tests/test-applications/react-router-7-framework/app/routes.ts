@@ -19,5 +19,6 @@ export default [
     route('server-loader', 'routes/performance/server-loader.tsx'),
     route('server-action', 'routes/performance/server-action.tsx'),
     route('with-middleware', 'routes/performance/with-middleware.tsx'),
+    route('redis', 'routes/performance/redis.tsx'),
   ]),
 ] satisfies RouteConfig;

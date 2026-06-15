@@ -14,6 +14,10 @@ vi.mock('@sentry/core', async () => {
     startSpan: vi.fn(),
     captureException: vi.fn(),
     getClient: vi.fn(),
+    getActiveSpan: vi.fn(),
+    getRootSpan: vi.fn(),
+    spanToJSON: vi.fn(),
+    updateSpanName: vi.fn(),
     GLOBAL_OBJ: globalThis,
     SEMANTIC_ATTRIBUTE_SENTRY_OP: 'sentry.op',
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
@@ -748,5 +752,74 @@ describe('isNavigateHookInvoked', () => {
 
     expect(isNavigateHookInvoked()).toBe(true);
     expect(browser.startBrowserTracingNavigationSpan).not.toHaveBeenCalled();
+  });
+});
+
+describe('navigation root parameterization', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn({ setStatus: vi.fn() }));
+  });
+
+  it('renames the active navigation/pageload root span with the route pattern from the loader hook', async () => {
+    const mockRootSpan = { setAttribute: vi.fn() };
+    (core.getActiveSpan as any).mockReturnValue({});
+    (core.getRootSpan as any).mockReturnValue(mockRootSpan);
+    (core.spanToJSON as any).mockReturnValue({ op: 'navigation' });
+
+    const mockInstrument = vi.fn();
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.route?.({ id: 'r', index: false, path: '/users/:id', instrument: mockInstrument });
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.loader(vi.fn().mockResolvedValue({ status: 'success', error: undefined }), {
+      request: { method: 'GET', url: 'http://localhost/users/123', headers: { get: () => null } },
+      params: { id: '123' },
+      unstable_pattern: '/users/:id',
+      context: undefined,
+    });
+
+    expect(core.updateSpanName).toHaveBeenCalledWith(mockRootSpan, '/users/:id');
+    expect(mockRootSpan.setAttribute).toHaveBeenCalledWith('sentry.source', 'route');
+  });
+
+  it('does not rename the root span when the route has no pattern', async () => {
+    const mockRootSpan = { setAttribute: vi.fn() };
+    (core.getActiveSpan as any).mockReturnValue({});
+    (core.getRootSpan as any).mockReturnValue(mockRootSpan);
+    (core.spanToJSON as any).mockReturnValue({ op: 'navigation' });
+
+    const mockInstrument = vi.fn();
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.route?.({ id: 'r', index: false, path: undefined, instrument: mockInstrument });
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.loader(vi.fn().mockResolvedValue({ status: 'success', error: undefined }), {
+      request: { method: 'GET', url: 'http://localhost/unknown', headers: { get: () => null } },
+      params: {},
+      context: undefined,
+    });
+
+    expect(core.updateSpanName).not.toHaveBeenCalled();
+  });
+
+  it('does not rename root spans that are not pageload/navigation', async () => {
+    (core.getActiveSpan as any).mockReturnValue({});
+    (core.getRootSpan as any).mockReturnValue({ setAttribute: vi.fn() });
+    (core.spanToJSON as any).mockReturnValue({ op: 'http.server' });
+
+    const mockInstrument = vi.fn();
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.route?.({ id: 'r', index: false, path: '/users/:id', instrument: mockInstrument });
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.loader(vi.fn().mockResolvedValue({ status: 'success', error: undefined }), {
+      request: { method: 'GET', url: 'http://localhost/users/123', headers: { get: () => null } },
+      params: { id: '123' },
+      unstable_pattern: '/users/:id',
+      context: undefined,
+    });
+
+    expect(core.updateSpanName).not.toHaveBeenCalled();
   });
 });

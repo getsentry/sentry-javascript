@@ -38,8 +38,9 @@ export interface DataCollection {
   };
 
   /**
-   * Which HTTP body types to collect. An empty array disables body collection.
-   * @default []
+   * Which HTTP body types to collect. An omitted value collects all body types valid for the
+   * platform; an empty array (`[]`) disables body collection.
+   * @default ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']
    */
   httpBodies?: HttpBodyCollectionTarget[];
 

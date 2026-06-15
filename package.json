@@ -48,7 +48,7 @@
     "yalc:publish": "nx run-many -t yalc:publish"
   },
   "volta": {
-    "node": "20.19.2",
+    "node": "20.19.5",
     "yarn": "1.22.22",
     "pnpm": "9.15.9"
   },
@@ -132,7 +132,7 @@
     "madge": "8.0.0",
     "nodemon": "^3.1.10",
     "npm-run-all2": "^6.2.0",
-    "nx": "22.6.5",
+    "nx": "22.7.5",
     "oxfmt": "^0.38.0",
     "oxlint": "^1.53.0",
     "oxlint-tsgolint": "^0.16.0",
@@ -143,7 +143,7 @@
     "size-limit": "~12.1.0",
     "ts-node": "10.9.2",
     "typescript": "~5.8.0",
-    "vitest": "^3.2.4",
+    "vitest": "^3.2.6",
     "yalc": "^1.0.0-pre.53",
     "yarn-deduplicate": "6.0.2"
   },
