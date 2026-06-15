@@ -23,7 +23,13 @@ import type { ServerResponse } from 'http';
 import { AttributeNames, ConnectTypes } from './enums/AttributeNames';
 import type { HandleFunction, NextFunction, PatchedRequest, Server, Use, UseArgs, UseArgs2 } from './internal-types';
 import type { Span } from '@sentry/core';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
+import {
+  isError,
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+} from '@sentry/core';
 import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
@@ -70,7 +76,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
 
   public _patchNext(next: NextFunction, span: Span, finishSpan: () => void): NextFunction {
     return function nextFunction(this: NextFunction, err?: unknown): void {
-      if (err) {
+      if (isError(err)) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       }
       const result = next.apply(this, [err]);
