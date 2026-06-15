@@ -49,8 +49,7 @@ export function getTraceData(
   const span = options.span || getActiveSpan();
 
   // A non-recording span is a Tracing-without-Performance placeholder that carries no sampling
-  // decision of its own — the scope is the source of truth. We keep the placeholder's (stable)
-  // span id but read the sampling decision from the scope.
+  // decision of its own. The scope is the source of truth, so we read the headers from the scope.
   const isNonRecordingSpan = span instanceof SentryNonRecordingSpan;
 
   // When there's no recording span and an external propagation context is registered (e.g. OTLP
@@ -59,8 +58,7 @@ export function getTraceData(
     return {};
   }
 
-  const sentryTrace =
-    span && !isNonRecordingSpan ? spanToTraceHeader(span) : scopeToTraceHeader(scope, span?.spanContext().spanId);
+  const sentryTrace = span && !isNonRecordingSpan ? spanToTraceHeader(span) : scopeToTraceHeader(scope);
   const dsc = span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromScope(client, scope);
   const baggage = dynamicSamplingContextToSentryBaggageHeader(dsc);
 
@@ -77,9 +75,7 @@ export function getTraceData(
 
   if (options.propagateTraceparent) {
     traceData.traceparent =
-      span && !isNonRecordingSpan
-        ? spanToTraceparentHeader(span)
-        : scopeToTraceparentHeader(scope, span?.spanContext().spanId);
+      span && !isNonRecordingSpan ? spanToTraceparentHeader(span) : scopeToTraceparentHeader(scope);
   }
 
   return traceData;
@@ -87,16 +83,13 @@ export function getTraceData(
 
 /**
  * Get a sentry-trace header value for the given scope.
- *
- * `spanId` overrides the scope's propagation span id — used to keep a non-recording placeholder's
- * (stable) span id while still taking the sampling decision from the scope.
  */
-function scopeToTraceHeader(scope: Scope, spanId?: string): string {
+function scopeToTraceHeader(scope: Scope): string {
   const { traceId, sampled, propagationSpanId } = scope.getPropagationContext();
-  return generateSentryTraceHeader(traceId, spanId ?? propagationSpanId, sampled);
+  return generateSentryTraceHeader(traceId, propagationSpanId, sampled);
 }
 
-function scopeToTraceparentHeader(scope: Scope, spanId?: string): string {
+function scopeToTraceparentHeader(scope: Scope): string {
   const { traceId, sampled, propagationSpanId } = scope.getPropagationContext();
-  return generateTraceparentHeader(traceId, spanId ?? propagationSpanId, sampled);
+  return generateTraceparentHeader(traceId, propagationSpanId, sampled);
 }

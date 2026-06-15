@@ -65,6 +65,7 @@ describe('startIdleSpan', () => {
 
     getCurrentScope().setPropagationContext({
       traceId: '12345678901234567890123456789012',
+      propagationSpanId: '1234567890abcdef',
       sampleRand: 0.42,
     });
 
@@ -81,9 +82,9 @@ describe('startIdleSpan', () => {
     });
 
     // The deferred decision surfaces via `getTraceData` (read from the scope): the `sentry-trace`
-    // header omits the flag and the baggage asserts no sampling decision.
+    // header uses the scope's propagation span id, omits the flag, and the baggage asserts no decision.
     const data = getTraceData({ span: idleSpan });
-    expect(data['sentry-trace']).toBe(`12345678901234567890123456789012-${idleSpan.spanContext().spanId}`);
+    expect(data['sentry-trace']).toBe('12345678901234567890123456789012-1234567890abcdef');
     expect(data.baggage).not.toContain('sentry-sampled');
     expect(data.baggage).not.toContain('sentry-sample_rate');
 
@@ -135,6 +136,7 @@ describe('startIdleSpan', () => {
     getCurrentScope().setPropagationContext({
       traceId: '12345678901234567890123456789012',
       parentSpanId: '1234567890123456',
+      propagationSpanId: '1234567890abcdef',
       sampleRand: 0.42,
       sampled: true,
       dsc: { sampled: 'true' },
@@ -146,7 +148,7 @@ describe('startIdleSpan', () => {
     // read from the scope. `getTraceData` reflects the positive decision in both headers.
     expect(getDynamicSamplingContextFromSpan(idleSpan).sampled).toBe('true');
     const data = getTraceData({ span: idleSpan });
-    expect(data['sentry-trace']).toBe(`12345678901234567890123456789012-${idleSpan.spanContext().spanId}-1`);
+    expect(data['sentry-trace']).toBe('12345678901234567890123456789012-1234567890abcdef-1');
     expect(data.baggage).toContain('sentry-sampled=true');
   });
 
