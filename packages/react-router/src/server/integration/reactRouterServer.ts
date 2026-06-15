@@ -1,4 +1,4 @@
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { generateInstrumentOnce, NODE_VERSION } from '@sentry/node';
 import { ReactRouterInstrumentation } from '../instrumentation/reactRouter';
@@ -45,7 +45,7 @@ export const reactRouterServerIntegration = defineIntegration(() => {
       if (
         event.type === 'transaction' &&
         event.contexts?.trace?.data &&
-        event.contexts.trace.data[ATTR_HTTP_ROUTE] === '*'
+        event.contexts.trace.data[HTTP_ROUTE] === '*'
       ) {
         const origin = event.contexts.trace.origin;
         const isInstrumentationApiOrigin = origin?.includes('instrumentation_api');
@@ -54,7 +54,7 @@ export const reactRouterServerIntegration = defineIntegration(() => {
         // For legacy, only clean up if the name has been adjusted (not METHOD *)
         if (isInstrumentationApiOrigin || !event.transaction?.endsWith(' *')) {
           // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          delete event.contexts.trace.data[ATTR_HTTP_ROUTE];
+          delete event.contexts.trace.data[HTTP_ROUTE];
         }
       }
 
@@ -64,7 +64,7 @@ export const reactRouterServerIntegration = defineIntegration(() => {
       // Express generates bogus `*` routes for data loaders, which we want to remove here
       // we cannot do this earlier because some OTEL instrumentation adds this at some unexpected point
       const attributes = span.attributes;
-      if (attributes?.[ATTR_HTTP_ROUTE] !== '*') {
+      if (attributes?.[HTTP_ROUTE] !== '*') {
         return;
       }
 
@@ -75,7 +75,7 @@ export const reactRouterServerIntegration = defineIntegration(() => {
       // For legacy, only clean up if the name has been adjusted (not METHOD *)
       if (isInstrumentationApiOrigin || !span.name?.endsWith(' *')) {
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete attributes[ATTR_HTTP_ROUTE];
+        delete attributes[HTTP_ROUTE];
       }
     },
   };
