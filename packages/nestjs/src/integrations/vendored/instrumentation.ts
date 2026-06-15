@@ -18,7 +18,6 @@
  * - Upstream version: @opentelemetry/instrumentation-nestjs-core@0.64.0
  * - Some types vendored from @nestjs/core and @nestjs/common with simplifications
  */
-import * as api from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
   InstrumentationBase,
@@ -27,7 +26,8 @@ import {
   isWrapped,
 } from '@opentelemetry/instrumentation';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
-import { SDK_VERSION } from '@sentry/core';
+import type { SpanAttributes } from '@sentry/core';
+import { SDK_VERSION, startSpan } from '@sentry/core';
 import { AttributeNames, NestType } from './enums';
 
 const PACKAGE_NAME = '@sentry/instrumentation-nestjs-core';
@@ -90,7 +90,7 @@ export class NestInstrumentation extends InstrumentationBase {
         this.ensureWrapped(
           moduleExports.NestFactoryStatic.prototype,
           'create',
-          createWrapNestFactoryCreate(this.tracer, moduleVersion),
+          createWrapNestFactoryCreate(moduleVersion),
         );
         return moduleExports;
       },
@@ -108,7 +108,7 @@ export class NestInstrumentation extends InstrumentationBase {
         this.ensureWrapped(
           moduleExports.RouterExecutionContext.prototype,
           'create',
-          createWrapCreateHandler(this.tracer, moduleVersion),
+          createWrapCreateHandler(moduleVersion),
         );
         return moduleExports;
       },
@@ -130,39 +130,32 @@ export class NestInstrumentation extends InstrumentationBase {
   }
 }
 
-function createWrapNestFactoryCreate(tracer: api.Tracer, moduleVersion?: string) {
+function createWrapNestFactoryCreate(moduleVersion?: string) {
   return function wrapCreate(original: typeof NestFactory.create): typeof NestFactory.create {
     return function createWithTrace(this: typeof NestFactory, ...args: unknown[]) {
       const nestModule = args[0] as { name?: string };
-      const span = tracer.startSpan('Create Nest App', {
-        attributes: {
-          ...NestInstrumentation.COMMON_ATTRIBUTES,
-          [AttributeNames.TYPE]: NestType.APP_CREATION,
-          [AttributeNames.VERSION]: moduleVersion,
-          [AttributeNames.MODULE]: nestModule.name,
+      return startSpan(
+        {
+          name: 'Create Nest App',
+          attributes: {
+            ...NestInstrumentation.COMMON_ATTRIBUTES,
+            [AttributeNames.TYPE]: NestType.APP_CREATION,
+            [AttributeNames.VERSION]: moduleVersion,
+            [AttributeNames.MODULE]: nestModule.name,
+          },
         },
-      });
-      const spanContext = api.trace.setSpan(api.context.active(), span);
-
-      return api.context.with(spanContext, async () => {
-        try {
-          return await original.apply(this, args);
-        } catch (e) {
-          throw addError(span, e as Error);
-        } finally {
-          span.end();
-        }
-      });
+        () => original.apply(this, args),
+      );
     };
   };
 }
 
-function createWrapCreateHandler(tracer: api.Tracer, moduleVersion: string | undefined) {
+function createWrapCreateHandler(moduleVersion: string | undefined) {
   return function wrapCreateHandler(original: RouterExecutionContext['create']): RouterExecutionContext['create'] {
     return function createHandlerWithTrace(this: RouterExecutionContext, ...args: unknown[]) {
       const instance = args[0] as { constructor?: { name?: string } };
       const callback = args[1] as AnyFn;
-      args[1] = createWrapHandler(tracer, moduleVersion, callback);
+      args[1] = createWrapHandler(moduleVersion, callback);
       const handler = original.apply(this, args) as AnyFn;
       const callbackName = callback.name;
       const instanceName = instance.constructor?.name || 'UnnamedInstance';
@@ -170,7 +163,7 @@ function createWrapCreateHandler(tracer: api.Tracer, moduleVersion: string | und
 
       return function (this: unknown, ...handlerArgs: unknown[]) {
         const req = handlerArgs[0] as NestRequest;
-        const attributes: api.Attributes = {
+        const attributes: SpanAttributes = {
           ...NestInstrumentation.COMMON_ATTRIBUTES,
           [AttributeNames.VERSION]: moduleVersion,
           [AttributeNames.TYPE]: NestType.REQUEST_CONTEXT,
@@ -180,46 +173,22 @@ function createWrapCreateHandler(tracer: api.Tracer, moduleVersion: string | und
         };
         attributes['http.method'] = req.method;
         attributes['http.url'] = req.originalUrl || req.url;
-        const span = tracer.startSpan(spanName, { attributes });
-        const spanContext = api.trace.setSpan(api.context.active(), span);
-
-        return api.context.with(spanContext, async () => {
-          try {
-            return await handler.apply(this, handlerArgs);
-          } catch (e) {
-            throw addError(span, e as Error);
-          } finally {
-            span.end();
-          }
-        });
+        return startSpan({ name: spanName, attributes }, () => handler.apply(this, handlerArgs));
       };
     };
   };
 }
 
-function createWrapHandler(tracer: api.Tracer, moduleVersion: string | undefined, handler: AnyFn): AnyFn {
+function createWrapHandler(moduleVersion: string | undefined, handler: AnyFn): AnyFn {
   const spanName = handler.name || 'anonymous nest handler';
-  const options = {
-    attributes: {
-      ...NestInstrumentation.COMMON_ATTRIBUTES,
-      [AttributeNames.VERSION]: moduleVersion,
-      [AttributeNames.TYPE]: NestType.REQUEST_HANDLER,
-      [AttributeNames.CALLBACK]: handler.name,
-    },
+  const attributes: SpanAttributes = {
+    ...NestInstrumentation.COMMON_ATTRIBUTES,
+    [AttributeNames.VERSION]: moduleVersion,
+    [AttributeNames.TYPE]: NestType.REQUEST_HANDLER,
+    [AttributeNames.CALLBACK]: handler.name,
   };
   const wrappedHandler = function (this: unknown, ...args: unknown[]) {
-    const span = tracer.startSpan(spanName, options);
-    const spanContext = api.trace.setSpan(api.context.active(), span);
-
-    return api.context.with(spanContext, async () => {
-      try {
-        return await handler.apply(this, args);
-      } catch (e) {
-        throw addError(span, e as Error);
-      } finally {
-        span.end();
-      }
-    });
+    return startSpan({ name: spanName, attributes }, () => handler.apply(this, args));
   };
 
   if (handler.name) {
@@ -233,9 +202,3 @@ function createWrapHandler(tracer: api.Tracer, moduleVersion: string | undefined
   });
   return wrappedHandler;
 }
-
-const addError = (span: api.Span, error: Error): Error => {
-  span.recordException(error);
-  span.setStatus({ code: api.SpanStatusCode.ERROR, message: error.message });
-  return error;
-};
