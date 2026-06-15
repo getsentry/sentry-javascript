@@ -173,6 +173,22 @@ describe('getTraceData', () => {
     });
   });
 
+  it('keeps the negative sampling decision for a non-recording child of an unsampled tracing-mode span', () => {
+    // With tracing enabled but sampled out, the child of an unsampled span is a non-recording span.
+    // Unlike a TwP placeholder, it carries an explicit negative decision that must propagate as `-0`,
+    // not be deferred by reading the (undecided) scope.
+    setupClient({ tracesSampleRate: 0 });
+
+    startSpan({ name: 'unsampled-root' }, () => {
+      startSpan({ name: 'unsampled-child' }, () => {
+        const data = getTraceData();
+
+        expect(data['sentry-trace']).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}-0$/);
+        expect(data.baggage).toContain('sentry-sampled=false');
+      });
+    });
+  });
+
   it('keeps a continued positive sampling decision for an active TwP placeholder span', () => {
     setupClient({ tracesSampleRate: undefined });
 

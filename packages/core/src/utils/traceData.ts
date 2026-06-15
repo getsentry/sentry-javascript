@@ -10,6 +10,7 @@ import type { Span } from '../types/span';
 import type { SerializedTraceData } from '../types/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from './baggage';
 import { debug } from './debug-logger';
+import { hasSpansEnabled } from './hasSpansEnabled';
 import { getActiveSpan, spanToTraceHeader, spanToTraceparentHeader } from './spanUtils';
 import { generateSentryTraceHeader, generateTraceparentHeader, TRACEPARENT_REGEXP } from './tracing';
 
@@ -48,9 +49,12 @@ export function getTraceData(
   const scope = options.scope || getCurrentScope();
   const span = options.span || getActiveSpan();
 
-  // A non-recording span is a Tracing-without-Performance placeholder that carries no sampling
-  // decision of its own. The scope is the source of truth, so we read the headers from the scope.
-  const isNonRecordingSpan = spanIsNonRecordingSpan(span);
+  // In Tracing-without-Performance (TwP) mode, spans are non-recording placeholders that carry no
+  // sampling decision of their own (it's deferred). The scope is the source of truth, so we read
+  // the trace headers from the scope. A non-recording span in *tracing* mode (e.g. an unsampled
+  // child or an ignored span) is different: it represents an explicit negative decision, which
+  // `spanToTraceHeader` correctly encodes as `-0`, so we keep reading those from the span.
+  const isTwpPlaceholder = spanIsNonRecordingSpan(span) && !hasSpansEnabled(client.getOptions());
 
   // When there's no recording span and an external propagation context is registered (e.g. OTLP
   // integration), return empty to let the external propagator handle outgoing request propagation.
@@ -58,7 +62,7 @@ export function getTraceData(
     return {};
   }
 
-  const sentryTrace = span && !isNonRecordingSpan ? spanToTraceHeader(span) : scopeToTraceHeader(scope);
+  const sentryTrace = span && !isTwpPlaceholder ? spanToTraceHeader(span) : scopeToTraceHeader(scope);
   const dsc = span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromScope(client, scope);
   const baggage = dynamicSamplingContextToSentryBaggageHeader(dsc);
 
@@ -74,8 +78,7 @@ export function getTraceData(
   };
 
   if (options.propagateTraceparent) {
-    traceData.traceparent =
-      span && !isNonRecordingSpan ? spanToTraceparentHeader(span) : scopeToTraceparentHeader(scope);
+    traceData.traceparent = span && !isTwpPlaceholder ? spanToTraceparentHeader(span) : scopeToTraceparentHeader(scope);
   }
 
   return traceData;
