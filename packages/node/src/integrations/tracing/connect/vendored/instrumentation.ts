@@ -18,26 +18,27 @@
  * - Upstream version: @opentelemetry/instrumentation-connect@0.61.0
  * - Minor TypeScript strictness adjustments for this repository's compiler settings
  */
-/* eslint-disable */
 
-import { context, Span, SpanOptions } from '@opentelemetry/api';
 import type { ServerResponse } from 'http';
-import { AttributeNames, ConnectNames, ConnectTypes } from './enums/AttributeNames';
-import { HandleFunction, NextFunction, Server, PatchedRequest, Use, UseArgs, UseArgs2 } from './internal-types';
-import { SDK_VERSION } from '@sentry/core';
-import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
+import { AttributeNames, ConnectTypes } from './enums/AttributeNames';
+import type { HandleFunction, NextFunction, PatchedRequest, Server, Use, UseArgs, UseArgs2 } from './internal-types';
+import type { Span } from '@sentry/core';
 import {
-  InstrumentationBase,
-  InstrumentationConfig,
-  InstrumentationNodeModuleDefinition,
-  isWrapped,
-} from '@opentelemetry/instrumentation';
+  isError,
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+} from '@sentry/core';
+import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import { replaceCurrentStackRoute, addNewStackLayer, generateRoute } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-connect';
 
-export const ANONYMOUS_NAME = 'anonymous';
+const ANONYMOUS_NAME = 'anonymous';
 
 /** Connect instrumentation for OpenTelemetry */
 export class ConnectInstrumentation extends InstrumentationBase {
@@ -54,25 +55,30 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   private _patchApp(patchedApp: Server) {
+    // oxlint-disable-next-line typescript/unbound-method
     if (!isWrapped(patchedApp.use)) {
       this._wrap(patchedApp, 'use', this._patchUse.bind(this));
     }
+    // oxlint-disable-next-line typescript/unbound-method
     if (!isWrapped(patchedApp.handle)) {
       this._wrap(patchedApp, 'handle', this._patchHandle.bind(this));
     }
   }
 
   private _patchConstructor(original: () => Server): () => Server {
-    const instrumentation = this;
-    return function (this: Server, ...args: any[]) {
-      const app = original.apply(this, args) as Server;
-      instrumentation._patchApp(app);
+    const patchApp = this._patchApp.bind(this);
+    return function (this: Server, ...args: unknown[]) {
+      const app = Reflect.apply(original, this, args) as Server;
+      patchApp(app);
       return app;
     };
   }
 
-  public _patchNext(next: NextFunction, finishSpan: () => void): NextFunction {
-    return function nextFunction(this: NextFunction, err?: any): void {
+  public _patchNext(next: NextFunction, span: Span, finishSpan: () => void): NextFunction {
+    return function nextFunction(this: NextFunction, err?: unknown): void {
+      if (isError(err)) {
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+      }
       const result = next.apply(this, [err]);
       finishSpan();
       return result;
@@ -80,37 +86,29 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   public _startSpan(routeName: string, middleWare: HandleFunction): Span {
-    let connectType: ConnectTypes;
-    let connectName: string;
-    let connectTypeName: string;
-    if (routeName) {
-      connectType = ConnectTypes.REQUEST_HANDLER;
-      connectTypeName = ConnectNames.REQUEST_HANDLER;
-      connectName = routeName;
-    } else {
-      connectType = ConnectTypes.MIDDLEWARE;
-      connectTypeName = ConnectNames.MIDDLEWARE;
-      connectName = middleWare.name || ANONYMOUS_NAME;
-    }
-    const spanName = `${connectTypeName} - ${connectName}`;
-    const options: SpanOptions = {
+    const connectType = routeName ? ConnectTypes.REQUEST_HANDLER : ConnectTypes.MIDDLEWARE;
+    const connectName = routeName || middleWare.name || ANONYMOUS_NAME;
+    return startInactiveSpan({
+      name: connectName,
+      op: `${connectType}.connect`,
       attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.connect',
         [ATTR_HTTP_ROUTE]: routeName.length > 0 ? routeName : '/',
         [AttributeNames.CONNECT_TYPE]: connectType,
         [AttributeNames.CONNECT_NAME]: connectName,
       },
-    };
-
-    return this.tracer.startSpan(spanName, options);
+    });
   }
 
   public _patchMiddleware(routeName: string, middleWare: HandleFunction): HandleFunction {
-    const instrumentation = this;
+    const isEnabled = this.isEnabled.bind(this);
+    const startSpan: (routeName: string, middleWare: HandleFunction) => Span = this._startSpan.bind(this);
+    const patchNext = this._patchNext.bind(this);
     const isErrorMiddleware = middleWare.length === 4;
 
     function patchedMiddleware(this: Use): void {
-      if (!instrumentation.isEnabled()) {
-        return (middleWare as any).apply(this, arguments);
+      if (!isEnabled()) {
+        return Reflect.apply(middleWare, this, arguments);
       }
       const [reqArgIdx, resArgIdx, nextArgIdx] = isErrorMiddleware ? [1, 2, 3] : [0, 1, 2];
       const req = arguments[reqArgIdx] as PatchedRequest;
@@ -123,31 +121,27 @@ export class ConnectInstrumentation extends InstrumentationBase {
         setHttpServerSpanRouteAttribute(generateRoute(req));
       }
 
-      let spanName = '';
-      if (routeName) {
-        spanName = `request handler - ${routeName}`;
-      } else {
-        spanName = `middleware - ${middleWare.name || ANONYMOUS_NAME}`;
-      }
-      const span = instrumentation._startSpan(routeName, middleWare);
-      instrumentation._diag.debug('start span', spanName);
+      const span = startSpan(routeName, middleWare);
       let spanFinished = false;
 
       function finishSpan() {
         if (!spanFinished) {
           spanFinished = true;
-          instrumentation._diag.debug(`finishing span ${(span as any).name}`);
           span.end();
-        } else {
-          instrumentation._diag.debug(`span ${(span as any).name} - already finished`);
         }
         res.removeListener('close', finishSpan);
       }
 
       res.addListener('close', finishSpan);
-      arguments[nextArgIdx] = instrumentation._patchNext(next, finishSpan);
+      arguments[nextArgIdx] = patchNext(next, span, finishSpan);
 
-      return (middleWare as any).apply(this, arguments);
+      try {
+        return Reflect.apply(middleWare, this, arguments);
+      } catch (e) {
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+        finishSpan();
+        throw e;
+      }
     }
 
     Object.defineProperty(patchedMiddleware, 'length', {
@@ -160,19 +154,19 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   public _patchUse(original: Server['use']): Use {
-    const instrumentation = this;
+    const patchMiddleware = this._patchMiddleware.bind(this);
     return function (this: Server, ...args: UseArgs): Server {
       const middleWare = args[args.length - 1] as HandleFunction;
       const routeName = (args[args.length - 2] || '') as string;
 
-      args[args.length - 1] = instrumentation._patchMiddleware(routeName, middleWare);
+      args[args.length - 1] = patchMiddleware(routeName, middleWare);
 
       return original.apply(this, args as UseArgs2);
     };
   }
 
   public _patchHandle(original: Server['handle']): Server['handle'] {
-    const instrumentation = this;
+    const patchOut = this._patchOut.bind(this);
     return function (this: Server): ReturnType<Server['handle']> {
       const [reqIdx, outIdx] = [0, 2];
       const req = arguments[reqIdx] as PatchedRequest;
@@ -180,15 +174,15 @@ export class ConnectInstrumentation extends InstrumentationBase {
       const completeStack = addNewStackLayer(req);
 
       if (typeof out === 'function') {
-        arguments[outIdx] = instrumentation._patchOut(out as NextFunction, completeStack);
+        arguments[outIdx] = patchOut(out as NextFunction, completeStack);
       }
 
-      return (original as any).apply(this, arguments);
+      return Reflect.apply(original, this, arguments);
     };
   }
 
   public _patchOut(out: NextFunction, completeStack: () => void): NextFunction {
-    return function nextFunction(this: NextFunction, ...args: any[]): void {
+    return function nextFunction(this: NextFunction, ...args: unknown[]): void {
       completeStack();
       return Reflect.apply(out, this, args);
     };
