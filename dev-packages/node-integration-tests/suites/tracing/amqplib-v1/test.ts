@@ -31,21 +31,33 @@ describe('amqplib v1 auto-instrumentation', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('should be able to send and receive messages with amqplib v1', { timeout: 60_000 }, async () => {
+      // The producer ('root span') and consumer ('queue1 process') transactions can
+      // arrive in any order, so we collect them and assert after both are received.
+      const receivedTransactions: TransactionEvent[] = [];
+
       await createTestRunner()
         .withDockerCompose({
           workingDirectory: [__dirname],
         })
         .expect({
           transaction: (transaction: TransactionEvent) => {
-            expect(transaction.transaction).toEqual('root span');
-            expect(transaction.spans?.length).toEqual(1);
-            expect(transaction.spans![0]).toMatchObject(EXPECTED_MESSAGE_SPAN_PRODUCER);
+            receivedTransactions.push(transaction);
           },
         })
         .expect({
           transaction: (transaction: TransactionEvent) => {
-            expect(transaction.transaction).toEqual('queue1 process');
-            expect(transaction.contexts?.trace).toMatchObject(EXPECTED_MESSAGE_SPAN_CONSUMER);
+            receivedTransactions.push(transaction);
+
+            const producer = receivedTransactions.find(t => t.transaction === 'root span');
+            const consumer = receivedTransactions.find(t => t.transaction === 'queue1 process');
+
+            expect(producer).toBeDefined();
+            expect(consumer).toBeDefined();
+
+            expect(producer!.spans?.length).toEqual(1);
+            expect(producer!.spans![0]).toMatchObject(EXPECTED_MESSAGE_SPAN_PRODUCER);
+
+            expect(consumer!.contexts?.trace).toMatchObject(EXPECTED_MESSAGE_SPAN_CONSUMER);
           },
         })
         .start()
