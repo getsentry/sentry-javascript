@@ -19,9 +19,8 @@
  * - Types from `graphql` package inlined as simplified interfaces
  * - Minor TypeScript strictness adjustments
  */
-/* eslint-disable */
 
-import type * as api from '@opentelemetry/api';
+import type { Span } from '@sentry/core';
 import type {
   DocumentNode,
   ExecutionArgs,
@@ -37,7 +36,7 @@ import type {
   TypeInfo,
   ValidationRule,
 } from './graphql-types';
-import { OTEL_GRAPHQL_DATA_SYMBOL, OTEL_PATCHED_SYMBOL } from './symbols';
+import type { OTEL_GRAPHQL_DATA_SYMBOL, OTEL_PATCHED_SYMBOL } from './symbols';
 
 export type { Maybe } from './graphql-types';
 
@@ -91,12 +90,12 @@ export type validateType = (
 ) => ReadonlyArray<GraphQLError>;
 
 export interface GraphQLField {
-  span: api.Span;
+  span: Span;
 }
 
 interface OtelGraphQLData {
   source?: any;
-  span: api.Span;
+  span: Span;
   fields: { [key: string]: GraphQLField };
 }
 
