@@ -142,7 +142,6 @@
     },
     {
       "files": [
-        "**/integrations/fs/vendored/**/*.ts",
         "**/integrations/tracing/knex/vendored/**/*.ts",
         "**/integrations/tracing/mongo/vendored/**/*.ts",
         "**/integrations/tracing/graphql/vendored/**/*.ts",

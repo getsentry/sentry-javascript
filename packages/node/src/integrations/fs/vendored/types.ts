@@ -16,27 +16,29 @@
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-fs
  * - Upstream version: @opentelemetry/instrumentation-fs@0.37.0
+ * - The `createHook`/`endHook`/`requireParentSpan` config options were removed in favor of Sentry-specific options.
  */
-/* eslint-disable */
 
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type * as fs from 'fs';
 
-import type * as api from '@opentelemetry/api';
-import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+// oxlint-disable-next-line typescript/no-explicit-any
+export type GenericFunction = (...args: any[]) => unknown;
 
 export type FunctionPropertyNames<T> = Exclude<
   {
+    // oxlint-disable-next-line typescript/no-unsafe-function-type
     [K in keyof T]: T[K] extends Function ? K : never;
   }[keyof T],
   undefined
 >;
-export type FunctionProperties<T> = Pick<T, FunctionPropertyNames<T>>;
 
 export type FunctionPropertyNamesTwoLevels<T> = Exclude<
   {
     [K in keyof T]: {
       [L in keyof T[K]]: L extends string
-        ? T[K][L] extends Function
+        ? // oxlint-disable-next-line typescript/no-unsafe-function-type
+          T[K][L] extends Function
           ? K extends string
             ? L extends string
               ? `${K}.${L}`
@@ -49,20 +51,19 @@ export type FunctionPropertyNamesTwoLevels<T> = Exclude<
   undefined
 >;
 
-export type Member<F> = FunctionPropertyNames<F> | FunctionPropertyNamesTwoLevels<F>;
 export type FMember = FunctionPropertyNames<typeof fs> | FunctionPropertyNamesTwoLevels<typeof fs>;
 export type FPMember =
   | FunctionPropertyNames<(typeof fs)['promises']>
   | FunctionPropertyNamesTwoLevels<(typeof fs)['promises']>;
 
-export type CreateHook = (functionName: FMember | FPMember, info: { args: ArrayLike<unknown> }) => boolean;
-export type EndHook = (
-  functionName: FMember | FPMember,
-  info: { args: ArrayLike<unknown>; span: api.Span; error?: Error },
-) => void;
-
 export interface FsInstrumentationConfig extends InstrumentationConfig {
-  createHook?: CreateHook;
-  endHook?: EndHook;
-  requireParentSpan?: boolean;
+  /**
+   * Setting this option to `true` will include any filepath arguments from your `fs` API calls as span attributes.
+   */
+  recordFilePaths?: boolean;
+
+  /**
+   * Setting this option to `true` will include the error messages of failed `fs` API calls as a span attribute.
+   */
+  recordErrorMessagesAsSpanAttributes?: boolean;
 }
