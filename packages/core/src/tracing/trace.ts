@@ -11,7 +11,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
-import type { DynamicSamplingContext } from '../types/envelope';
 import type { ClientOptions } from '../types/options';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
@@ -344,20 +343,25 @@ function createChildOrRootSpan({
   forceTransaction?: boolean;
   scope: Scope;
 }): Span {
-  if (!hasSpansEnabled()) {
-    const span = new SentryNonRecordingSpan();
+  const isolationScope = getIsolationScope();
 
-    // If this is a root span, we ensure to freeze a DSC
-    // So we can have at least partial data here
-    if (forceTransaction || !parentSpan) {
-      const dsc = {
-        sampled: 'false',
-        sample_rate: '0',
-        transaction: spanArguments.name,
-        ...getDynamicSamplingContextFromSpan(span),
-      } satisfies Partial<DynamicSamplingContext>;
-      freezeDscOnSpan(span, dsc);
+  if (!hasSpansEnabled()) {
+    const scopePropagationContext = { ...isolationScope.getPropagationContext(), ...scope.getPropagationContext() };
+    const traceId = parentSpan ? parentSpan.spanContext().traceId : scopePropagationContext.traceId;
+
+    // The placeholder is a thin marker; it carries no sampling decision or DSC. Both are read from
+    // the scope: the sampling decision in `getTraceData`, the DSC in `getDynamicSamplingContextFromSpan`.
+    const span = new SentryNonRecordingSpan({ traceId });
+
+    // Nested placeholders link to their parent so `getRootSpan` resolves to the root placeholder,
+    // whose captured scope is the source of truth. Root/forced placeholders are their own root.
+    if (parentSpan && !forceTransaction) {
+      addChildSpanToSpan(parentSpan, span);
     }
+
+    // Capture scopes so consumers (e.g. SentryTraceProvider) can read them and so the DSC can be
+    // resolved from the scope by `getDynamicSamplingContextFromSpan`. Consistent with `startIdleSpan`.
+    setCapturedScopesOnSpan(span, scope, isolationScope);
 
     return span;
   }
@@ -375,8 +379,6 @@ function createChildOrRootSpan({
       traceId: parentSpan?.spanContext().traceId ?? scope.getPropagationContext().traceId,
     });
   }
-
-  const isolationScope = getIsolationScope();
 
   let span: Span;
   if (parentSpan && !forceTransaction) {

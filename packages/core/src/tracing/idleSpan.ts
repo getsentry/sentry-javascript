@@ -1,7 +1,6 @@
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
-import type { DynamicSamplingContext } from '../types/envelope';
 import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { debug } from '../utils/debug-logger';
@@ -16,11 +15,11 @@ import {
   spanToJSON,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
-import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
 import { startInactiveSpan } from './trace';
+import { setCapturedScopesOnSpan } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1_000,
@@ -120,21 +119,25 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   } = options;
 
   const client = getClient();
+  const scope = getCurrentScope();
 
   if (!client || !hasSpansEnabled()) {
-    const span = new SentryNonRecordingSpan();
+    const propagationContext = {
+      ...getIsolationScope().getPropagationContext(),
+      ...scope.getPropagationContext(),
+    };
 
-    const dsc = {
-      sample_rate: '0',
-      sampled: 'false',
-      ...getDynamicSamplingContextFromSpan(span),
-    } satisfies Partial<DynamicSamplingContext>;
-    freezeDscOnSpan(span, dsc);
+    // The placeholder is a thin marker; it carries no sampling decision or DSC. Both are read from
+    // the scope: the sampling decision in `getTraceData`, the DSC in `getDynamicSamplingContextFromSpan`.
+    const span = new SentryNonRecordingSpan({ traceId: propagationContext.traceId });
+
+    // Capture scopes so consumers (e.g. SentryTraceProvider) can read them and so the DSC can be
+    // resolved from the scope by `getDynamicSamplingContextFromSpan`.
+    setCapturedScopesOnSpan(span, scope, getIsolationScope());
 
     return span;
   }
 
-  const scope = getCurrentScope();
   const previousActiveSpan = getActiveSpan();
   const span = _startIdleSpan(startSpanOptions);
 
