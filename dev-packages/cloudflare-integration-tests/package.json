@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/cloudflare-integration-tests",
-  "version": "10.57.0",
+  "version": "10.58.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -14,13 +14,13 @@
   },
   "dependencies": {
     "@langchain/langgraph": "^1.0.1",
-    "@sentry/cloudflare": "10.57.0",
-    "@sentry/hono": "10.57.0",
+    "@sentry/cloudflare": "10.58.0",
+    "@sentry/hono": "10.58.0",
     "hono": "^4.12.21"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260426.0",
-    "@sentry-internal/test-utils": "10.57.0",
+    "@sentry-internal/test-utils": "10.58.0",
     "eslint-plugin-regexp": "^3.1.0",
     "vitest": "^3.2.6",
     "wrangler": "4.86.0"
