@@ -19,11 +19,11 @@
  * - Minor TypeScript strictness adjustments for this repository's compiler settings
  */
 
-import type { Span, SpanOptions } from '@opentelemetry/api';
 import type { ServerResponse } from 'http';
 import { AttributeNames, ConnectNames, ConnectTypes } from './enums/AttributeNames';
 import type { HandleFunction, NextFunction, PatchedRequest, Server, Use, UseArgs, UseArgs2 } from './internal-types';
-import { SDK_VERSION } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { SDK_VERSION, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
 import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
@@ -68,8 +68,11 @@ export class ConnectInstrumentation extends InstrumentationBase {
     };
   }
 
-  public _patchNext(next: NextFunction, finishSpan: () => void): NextFunction {
+  public _patchNext(next: NextFunction, span: Span, finishSpan: () => void): NextFunction {
     return function nextFunction(this: NextFunction, err?: unknown): void {
+      if (err) {
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+      }
       const result = next.apply(this, [err]);
       finishSpan();
       return result;
@@ -90,15 +93,14 @@ export class ConnectInstrumentation extends InstrumentationBase {
       connectName = middleWare.name || ANONYMOUS_NAME;
     }
     const spanName = `${connectTypeName} - ${connectName}`;
-    const options: SpanOptions = {
+    return startInactiveSpan({
+      name: spanName,
       attributes: {
         [ATTR_HTTP_ROUTE]: routeName.length > 0 ? routeName : '/',
         [AttributeNames.CONNECT_TYPE]: connectType,
         [AttributeNames.CONNECT_NAME]: connectName,
       },
-    };
-
-    return this.tracer.startSpan(spanName, options);
+    });
   }
 
   public _patchMiddleware(routeName: string, middleWare: HandleFunction): HandleFunction {
@@ -134,9 +136,15 @@ export class ConnectInstrumentation extends InstrumentationBase {
       }
 
       res.addListener('close', finishSpan);
-      arguments[nextArgIdx] = patchNext(next, finishSpan);
+      arguments[nextArgIdx] = patchNext(next, span, finishSpan);
 
-      return Reflect.apply(middleWare, this, arguments);
+      try {
+        return Reflect.apply(middleWare, this, arguments);
+      } catch (e) {
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+        finishSpan();
+        throw e;
+      }
     }
 
     Object.defineProperty(patchedMiddleware, 'length', {

@@ -97,6 +97,12 @@ describe('connect auto-instrumentation', () => {
                   origin: 'auto.http.otel.connect',
                   op: 'middleware.connect',
                 }),
+
+                expect.objectContaining({
+                  description: '/error',
+                  op: 'request_handler.connect',
+                  status: 'internal_error',
+                }),
               ]),
             },
           })
