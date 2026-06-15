@@ -36,4 +36,9 @@ const tsConfig = require(baseTscConfigPath);
 // TS 3.8 fails build when it encounters a config option it does not understand, so we remove it :(
 delete tsConfig.compilerOptions.noUncheckedIndexedAccess;
 
+// TS 3.8 predates `node16` module/moduleResolution (added in TS 4.7), so downgrade them to values
+// TS 3.8 understands. This matches the resolution behavior these tests relied on before `node16`.
+tsConfig.compilerOptions.module = 'esnext';
+tsConfig.compilerOptions.moduleResolution = 'node';
+
 writeFileSync(baseTscConfigPath, JSON.stringify(tsConfig, null, 2));
