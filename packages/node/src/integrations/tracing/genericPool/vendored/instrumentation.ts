@@ -19,10 +19,9 @@
  * - Minor TypeScript strictness adjustments for this repository's compiler settings
  */
 
-import * as api from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
-import { SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, SPAN_STATUS_ERROR, startSpan, startSpanManual } from '@sentry/core';
 import type * as genericPool from './generic-pool-types';
 
 const MODULE_NAME = 'generic-pool';
@@ -102,23 +101,9 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
   }
 
   private _acquirePatcher(original: AcquireFn) {
-    const tracer = this.tracer;
     return function wrapped_acquire(this: genericPool.Pool<unknown>, ...args: unknown[]) {
-      const parent = api.context.active();
-      const span = tracer.startSpan('generic-pool.acquire', {}, parent);
-
-      return api.context.with(api.trace.setSpan(parent, span), () => {
-        return (original.call(this, ...args) as PromiseLike<unknown>).then(
-          (value: unknown) => {
-            span.end();
-            return value;
-          },
-          (err: unknown) => {
-            span.recordException(err as Error);
-            span.end();
-            throw err;
-          },
-        );
+      return startSpan({ name: 'generic-pool.acquire' }, () => {
+        return original.call(this, ...args) as PromiseLike<unknown>;
       });
     };
   }
@@ -134,7 +119,6 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
   }
 
   private _acquireWithCallbacksPatcher(original: AcquireFn) {
-    const tracer = this.tracer;
     const isDisabled = (): boolean => this._isDisabled;
     return function wrapped_acquire(
       this: genericPool.Pool<unknown>,
@@ -145,13 +129,14 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
       if (isDisabled()) {
         return original.call(this, cb, priority);
       }
-      const parent = api.context.active();
-      const span = tracer.startSpan('generic-pool.acquire', {}, parent);
 
-      return api.context.with(api.trace.setSpan(parent, span), () => {
+      return startSpanManual({ name: 'generic-pool.acquire' }, span => {
         original.call(
           this,
           (err: unknown, client: unknown) => {
+            if (err) {
+              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            }
             span.end();
             // Not checking whether cb is a function because
             // the original code doesn't do that either.
