@@ -55,11 +55,11 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   private _patchApp(patchedApp: Server) {
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // oxlint-disable-next-line typescript/unbound-method
     if (!isWrapped(patchedApp.use)) {
       this._wrap(patchedApp, 'use', this._patchUse.bind(this));
     }
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // oxlint-disable-next-line typescript/unbound-method
     if (!isWrapped(patchedApp.handle)) {
       this._wrap(patchedApp, 'handle', this._patchHandle.bind(this));
     }
