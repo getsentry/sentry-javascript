@@ -1,29 +1,22 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectSyncKvStorage } from '../src/instrumentations/instrumentDurableObjectSyncKvStorage';
 
-vi.mock('@sentry/core', async importOriginal => {
-  const actual = await importOriginal<typeof sentryCore>();
-  return {
-    ...actual,
-    startSpan: vi.fn((opts, callback) => callback()),
-  };
-});
-
 describe('instrumentDurableObjectSyncKvStorage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('get', () => {
     it('instruments get with single key', () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockKv = createMockSyncKv();
       const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
 
       instrumented.get('myKey');
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_get',
           op: 'db',
@@ -60,12 +53,13 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
   describe('put', () => {
     it('instruments put', () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockKv = createMockSyncKv();
       const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
 
       instrumented.put('myKey', 'myValue');
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_put',
           op: 'db',
@@ -91,12 +85,13 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
   describe('delete', () => {
     it('instruments delete', () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockKv = createMockSyncKv();
       const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
 
       instrumented.delete('myKey');
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_delete',
           op: 'db',
@@ -123,12 +118,13 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
   describe('list', () => {
     it('instruments list', () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockKv = createMockSyncKv();
       const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
 
       instrumented.list();
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_list',
           op: 'db',
@@ -168,12 +164,13 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
   describe('non-instrumented properties', () => {
     it('passes through unknown properties without instrumentation', () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockKv = createMockSyncKv();
       (mockKv as any).customProp = 'custom-value';
       const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
 
       expect((instrumented as any).customProp).toBe('custom-value');
-      expect(sentryCore.startSpan).not.toHaveBeenCalled();
+      expect(startSpanSpy).not.toHaveBeenCalled();
     });
   });
 

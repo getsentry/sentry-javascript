@@ -36,7 +36,7 @@ export function instrumentDurableObjectStorage(
       // reference" errors.
       const original = Reflect.get(target, prop, target);
 
-      if (prop === 'kv' && original != null && typeof original === 'object') {
+      if (prop === 'kv' && original != null && 'get' in original && 'put' in original) {
         return instrumentDurableObjectSyncKvStorage(original as SyncKvStorage);
       }
 
