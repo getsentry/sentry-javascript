@@ -96,7 +96,7 @@
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x",
-    "@hono/node-server": "^1.x",
+    "@hono/node-server": "^1.x || ^2.x",
     "@sentry/bun": "10.58.0",
     "@sentry/cloudflare": "10.58.0",
     "@sentry/deno": "10.58.0",
