@@ -4,7 +4,6 @@
     "target": "es2022",
     "lib": ["DOM", "ES2022"],
     "allowJs": true,
-    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "alwaysStrict": true,
     "strictNullChecks": true,
@@ -12,7 +11,6 @@
     "noEmitOnError": false,
     "noEmit": true,
     "baseUrl": ".",
-    "module": "esnext",
     "experimentalDecorators": true,
     "paths": {
       "dummy/tests/*": ["tests/*"],

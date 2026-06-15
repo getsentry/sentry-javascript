@@ -1,9 +1,6 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "module": "esnext",
-    "moduleResolution": "bundler",
-
     /* Preact Config */
     "jsx": "react-jsx",
     "jsxImportSource": "preact",

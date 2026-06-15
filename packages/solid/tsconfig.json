@@ -4,11 +4,9 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    "lib": ["DOM", "es2020"],
+    "lib": ["DOM", "es2020"]
     // This package imports ESM-only deps (`solid-js`); under `node16` resolution a CommonJS file
     // can't `require` those (TS1479/TS1541). Like our other framework packages it's compiled via a
     // bundler, so use `esnext`/`bundler` here instead of the `node16` default.
-    "module": "esnext",
-    "moduleResolution": "bundler"
   }
 }

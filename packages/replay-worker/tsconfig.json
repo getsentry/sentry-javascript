@@ -1,8 +1,6 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "module": "esnext",
-    "moduleResolution": "bundler",
     "lib": ["webworker", "scripthost"],
     "esModuleInterop": true,
     "target": "es2020",

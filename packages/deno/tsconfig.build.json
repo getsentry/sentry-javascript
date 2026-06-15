@@ -4,7 +4,6 @@
   "compilerOptions": {
     "outDir": "build",
     "lib": ["esnext"],
-    "module": "esnext",
     "target": "esnext",
     "declaration": true,
     "declarationMap": false
