@@ -14,6 +14,9 @@ async function run() {
         await redis.set('test-key', 'test-value');
 
         await redis.get('test-key');
+
+        // a failing command should produce a span with an error status
+        await redis.incr('test-key').catch(() => {});
       } finally {
         await redis.disconnect();
       }
