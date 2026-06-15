@@ -1,9 +1,5 @@
 {
   "extends": "../../tsconfig.json",
 
-  "include": ["src/**/*"],
-
-  "compilerOptions": {
-    "lib": ["es2020"]
-  }
+  "include": ["src/**/*"]
 }

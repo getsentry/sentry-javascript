@@ -5,6 +5,7 @@
 
   "compilerOptions": {
     "module": "esnext",
+    "moduleResolution": "bundler",
     "types": ["node", "@cloudflare/workers-types"]
   }
 }

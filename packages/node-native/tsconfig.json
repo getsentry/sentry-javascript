@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "module": "esnext",
-    "lib": ["es2020"],
+    "moduleResolution": "bundler",
     "outDir": "build",
     "types": ["node"]
   },
