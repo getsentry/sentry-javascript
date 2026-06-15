@@ -59,21 +59,6 @@ export interface RedisInstrumentationConfig extends InstrumentationConfig {
 export type CommandArgs = Array<string | Buffer | number | any[]>;
 
 /**
- * Function that can be used to serialize db.statement tag for ioredis
- */
-export type IORedisDbStatementSerializer = (cmdName: string, cmdArgs: CommandArgs) => string;
-
-export interface IORedisRequestHookInformation {
-  moduleVersion?: string;
-  cmdName: string;
-  cmdArgs: CommandArgs;
-}
-
-export interface RedisRequestCustomAttributeFunction {
-  (span: Span, requestInfo: IORedisRequestHookInformation): void;
-}
-
-/**
  * Function that can be used to add custom attributes to span on response from redis server (ioredis)
  */
 export interface IORedisResponseCustomAttributeFunction {
@@ -81,12 +66,6 @@ export interface IORedisResponseCustomAttributeFunction {
 }
 
 export interface IORedisInstrumentationConfig extends InstrumentationConfig {
-  /** Custom serializer function for the db.statement tag */
-  dbStatementSerializer?: IORedisDbStatementSerializer;
-  /** Function for adding custom attributes on db request */
-  requestHook?: RedisRequestCustomAttributeFunction;
   /** Function for adding custom attributes on db response */
   responseHook?: IORedisResponseCustomAttributeFunction;
-  /** Require parent to create ioredis span, default when unset is true */
-  requireParentSpan?: boolean;
 }
