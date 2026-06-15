@@ -22,13 +22,13 @@
  */
 
 import { SpanKind } from '@opentelemetry/api';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { SpanAttributes } from '@sentry/core';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import type { Connection, FormatFunction, Query, QueryError, QueryOptions } from './mysql2-types';
 import { ATTR_DB_STATEMENT, ATTR_DB_SYSTEM, DB_SYSTEM_VALUE_MYSQL } from './semconv';
-import type { MySQL2InstrumentationConfig } from './types';
 import { getConnectionAttributes, getConnectionPrototypeToInstrument, getQueryText, getSpanName, once } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-mysql2';
@@ -40,8 +40,8 @@ const supportedVersions = ['>=1.4.2 <4'];
 // parameterized queries. Typed shallowly since it is only read internally.
 type MySQL2Module = { format?: FormatFunction; [key: string]: unknown };
 
-export class MySQL2Instrumentation extends InstrumentationBase<MySQL2InstrumentationConfig> {
-  public constructor(config: MySQL2InstrumentationConfig = {}) {
+export class MySQL2Instrumentation extends InstrumentationBase<InstrumentationConfig> {
+  public constructor(config: InstrumentationConfig = {}) {
     super(PACKAGE_NAME, SDK_VERSION, config);
   }
 
