@@ -38,8 +38,7 @@ function isModule(module: unknown): module is { [Symbol.toStringTag]: 'Module'; 
   return (module as { [Symbol.toStringTag]: string })[Symbol.toStringTag] === 'Module';
 }
 
-// oxlint-disable-next-line typescript/no-explicit-any
-function extractModuleExports(module: any): DataLoaderConstructor {
+function extractModuleExports(module: unknown): DataLoaderConstructor {
   return isModule(module)
     ? module.default // ESM
     : (module as DataLoaderConstructor); // CommonJS
