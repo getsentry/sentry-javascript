@@ -122,14 +122,9 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   const scope = getCurrentScope();
 
   if (!client || !hasSpansEnabled()) {
-    const propagationContext = {
-      ...getIsolationScope().getPropagationContext(),
-      ...scope.getPropagationContext(),
-    };
-
     // The placeholder is a thin marker; it carries no sampling decision or DSC. Both are read from
     // the scope: the sampling decision in `getTraceData`, the DSC in `getDynamicSamplingContextFromSpan`.
-    const span = new SentryNonRecordingSpan({ traceId: propagationContext.traceId });
+    const span = new SentryNonRecordingSpan({ traceId: scope.getPropagationContext().traceId });
 
     // Capture scopes so consumers (e.g. SentryTraceProvider) can read them and so the DSC can be
     // resolved from the scope by `getDynamicSamplingContextFromSpan`.
