@@ -171,7 +171,7 @@ jobs:
           git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
 
       - name: Open batched runtime fix PR via skill
-        uses: anthropics/claude-code-action@24492741e0ccfdef4c1d19da8e11e0f373d07494 # v1
+        uses: anthropics/claude-code-action@11ba60486e4aec9ddfeafcf4bb3f00b028ac2c16 # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ steps.app-token.outputs.token }}
@@ -194,6 +194,21 @@ jobs:
             Do NOT use Bash redirection (> file).
           claude_args: |
             --max-turns 80 --allowedTools "Write,Bash(gh pr list *),Bash(gh pr create *),Bash(git checkout *),Bash(git pull *),Bash(git add *),Bash(git commit *),Bash(git push --force -u origin bot/dependabot-fixes-*),Bash(npx yarn-update-dependency@0.7.1 *),Bash(yarn dedupe-deps:check),Bash(yarn dedupe-deps:fix),Bash(yarn why *),Bash(npm view *)"
+
+      # Surface the skill's outcome so a no-PR run is never ambiguous. A missing file means the skill
+      # didn't report (errored / ran out of turns) — distinct from a reported "NOTHING TO FIX".
+      - name: Post runtime fix result to job summary
+        if: always()
+        run: |
+          if [ -f fix-result-runtime.md ]; then
+            cat fix-result-runtime.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## runtime fix run"
+              echo ""
+              echo "⚠️ No \`fix-result-runtime.md\` was produced — the skill did not report an outcome (likely an error or turn-limit). Check this job's log."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   fix-dev:
     name: Open dev fix PR
@@ -231,7 +246,7 @@ jobs:
           git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
 
       - name: Open batched dev fix PR via skill
-        uses: anthropics/claude-code-action@24492741e0ccfdef4c1d19da8e11e0f373d07494 # v1
+        uses: anthropics/claude-code-action@11ba60486e4aec9ddfeafcf4bb3f00b028ac2c16 # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ steps.app-token.outputs.token }}
@@ -254,3 +269,16 @@ jobs:
             Do NOT use Bash redirection (> file).
           claude_args: |
             --max-turns 80 --allowedTools "Write,Bash(gh pr list *),Bash(gh pr create *),Bash(git checkout *),Bash(git pull *),Bash(git add *),Bash(git commit *),Bash(git push --force -u origin bot/dependabot-fixes-*),Bash(npx yarn-update-dependency@0.7.1 *),Bash(yarn dedupe-deps:check),Bash(yarn dedupe-deps:fix),Bash(yarn why *),Bash(npm view *)"
+
+      - name: Post dev fix result to job summary
+        if: always()
+        run: |
+          if [ -f fix-result-dev.md ]; then
+            cat fix-result-dev.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## dev fix run"
+              echo ""
+              echo "⚠️ No \`fix-result-dev.md\` was produced — the skill did not report an outcome (likely an error or turn-limit). Check this job's log."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

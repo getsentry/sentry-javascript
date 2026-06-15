@@ -119,6 +119,57 @@ describe('instrumentHydratedRouter', () => {
     expect(mockPageloadSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   });
 
+  it('skips the subscribe heuristic when the API is active and a route hook already set source:route', () => {
+    // When a native route hook has parameterized the navigation root (source:route), the legacy
+    // heuristic must not re-rename it.
+    (globalThis as any).__sentryReactRouterClientInstrumentationUsed = true;
+    (core.spanToJSON as any).mockImplementation((span: any) => ({
+      description: '/foo/bar',
+      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
+      data: { source: 'route' },
+    }));
+
+    instrumentHydratedRouter();
+    const callback = mockRouter.subscribe.mock.calls[0][0];
+    const newState = {
+      location: { pathname: '/foo/bar' },
+      matches: [{ route: { path: '/foo/:id' } }],
+      navigation: { state: 'idle' },
+    };
+    (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
+    callback(newState);
+
+    expect(mockNavigationSpan.updateName).not.toHaveBeenCalled();
+
+    delete (globalThis as any).__sentryReactRouterClientInstrumentationUsed;
+  });
+
+  it('still parameterizes a navigation root via subscribe (backstop) when the API is active but the route had no hook (source:url)', () => {
+    // Routes without a loader/action never trigger a route hook, so the navigation root is still
+    // source:url. The heuristic must still parameterize it instead of leaving the raw URL.
+    (globalThis as any).__sentryReactRouterClientInstrumentationUsed = true;
+    (core.spanToJSON as any).mockImplementation((span: any) => ({
+      description: '/foo/bar',
+      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
+      data: { source: 'url' },
+    }));
+
+    instrumentHydratedRouter();
+    const callback = mockRouter.subscribe.mock.calls[0][0];
+    const newState = {
+      location: { pathname: '/foo/bar' },
+      matches: [{ route: { path: '/foo/:id' } }],
+      navigation: { state: 'idle' },
+    };
+    (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
+    callback(newState);
+
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/:id');
+    expect(mockNavigationSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+
+    delete (globalThis as any).__sentryReactRouterClientInstrumentationUsed;
+  });
+
   it('does not update navigation transaction on state change to loading', () => {
     instrumentHydratedRouter();
     // Simulate a state change to loading (non-idle)

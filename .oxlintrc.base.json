@@ -150,7 +150,6 @@
         "**/integrations/tracing/connect/vendored/**/*.ts",
         "**/integrations/tracing/mysql2/vendored/**/*.ts",
         "**/integration/aws/vendored/**/*.ts",
-        "**/nestjs/src/integrations/vendored/**/*.ts",
         "**/integrations/tracing/kafka/vendored/**/*.ts",
         "**/integrations/tracing/tedious/vendored/**/*.ts",
         "**/integrations/tracing/hapi/vendored/**/*.ts",

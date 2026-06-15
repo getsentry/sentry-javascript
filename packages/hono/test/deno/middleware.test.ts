@@ -2,22 +2,22 @@ import * as SentryCore from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
-import { sentry } from '../../src/bun/middleware';
-import { init } from '../../src/bun/sdk';
+import { sentry } from '../../src/deno/middleware';
+import { init } from '../../src/deno/sdk';
 import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../../src/shared/lowQualityTransactionPatterns';
 
-vi.mock('@sentry/bun', () => ({
+vi.mock('@sentry/deno', () => ({
   init: vi.fn(),
 }));
 
-// `hono/bun` eagerly imports Bun-only modules (e.g. SSG) that reference the `Bun` global,
-// which is not available under Vitest/Node. We only use its `getConnInfo` helper.
-vi.mock('hono/bun', () => ({
-  getConnInfo: vi.fn(() => ({ remote: {} })),
+// `hono/deno` references the `Deno` global at module-eval time, which is not defined in the
+// vitest (Node) environment.
+vi.mock('hono/deno', () => ({
+  getConnInfo: vi.fn(),
 }));
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-const { init: initBunMock } = await vi.importMock<typeof import('@sentry/bun')>('@sentry/bun');
+const { init: initDenoMock } = await vi.importMock<typeof import('@sentry/deno')>('@sentry/deno');
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -35,7 +35,7 @@ vi.mock('@sentry/core', async () => {
 const applySdkMetadataMock = SentryCore.applySdkMetadata as Mock;
 const getClientMock = SentryCore.getClient as Mock;
 
-describe('Hono Bun Middleware', () => {
+describe('Hono Deno Middleware', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -51,7 +51,7 @@ describe('Hono Bun Middleware', () => {
       expect(middleware).toHaveLength(2);
     });
 
-    it('calls applySdkMetadata with "hono" and "bun"', () => {
+    it('calls applySdkMetadata with "hono" and "deno"', () => {
       const app = new Hono();
       const options = {
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -60,10 +60,10 @@ describe('Hono Bun Middleware', () => {
       sentry(app, options);
 
       expect(applySdkMetadataMock).toHaveBeenCalledTimes(1);
-      expect(applySdkMetadataMock).toHaveBeenCalledWith(options, 'hono', ['hono', 'bun']);
+      expect(applySdkMetadataMock).toHaveBeenCalledWith(options, 'hono', ['hono', 'deno']);
     });
 
-    it('calls init from @sentry/bun when no client exists yet', () => {
+    it('calls init from @sentry/deno when no client exists yet', () => {
       getClientMock.mockReturnValue(undefined);
       const app = new Hono();
       const options = {
@@ -72,15 +72,15 @@ describe('Hono Bun Middleware', () => {
 
       sentry(app, options);
 
-      expect(initBunMock).toHaveBeenCalledTimes(1);
-      expect(initBunMock).toHaveBeenCalledWith(
+      expect(initDenoMock).toHaveBeenCalledTimes(1);
+      expect(initDenoMock).toHaveBeenCalledWith(
         expect.objectContaining({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
         }),
       );
     });
 
-    it('sets SDK metadata before calling Bun init', () => {
+    it('sets SDK metadata before calling Deno init', () => {
       const app = new Hono();
       const options = {
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -89,9 +89,9 @@ describe('Hono Bun Middleware', () => {
       sentry(app, options);
 
       const applySdkMetadataCallOrder = applySdkMetadataMock.mock.invocationCallOrder[0];
-      const initBunCallOrder = (initBunMock as Mock).mock.invocationCallOrder[0];
+      const initDenoCallOrder = (initDenoMock as Mock).mock.invocationCallOrder[0];
 
-      expect(applySdkMetadataCallOrder).toBeLessThan(initBunCallOrder as number);
+      expect(applySdkMetadataCallOrder).toBeLessThan(initDenoCallOrder as number);
     });
 
     it('preserves all user options', () => {
@@ -106,7 +106,7 @@ describe('Hono Bun Middleware', () => {
 
       sentry(app, options);
 
-      expect(initBunMock).toHaveBeenCalledWith(
+      expect(initDenoMock).toHaveBeenCalledWith(
         expect.objectContaining({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           environment: 'production',
@@ -137,11 +137,11 @@ describe('Hono Bun Middleware', () => {
       expect(middleware.constructor.name).toBe('AsyncFunction');
     });
 
-    it('passes an integrations function to initBun (never a raw array)', () => {
+    it('passes an integrations function to initDeno (never a raw array)', () => {
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      const callArgs = (initBunMock as Mock).mock.calls[0]?.[0];
+      const callArgs = (initDenoMock as Mock).mock.calls[0]?.[0];
       expect(typeof callArgs.integrations).toBe('function');
     });
 
@@ -153,7 +153,7 @@ describe('Hono Bun Middleware', () => {
 
       sentry(app, options);
 
-      expect(initBunMock).toHaveBeenCalledWith(
+      expect(initDenoMock).toHaveBeenCalledWith(
         expect.objectContaining({
           _metadata: expect.objectContaining({
             sdk: expect.objectContaining({
@@ -161,7 +161,7 @@ describe('Hono Bun Middleware', () => {
               version: SDK_VERSION,
               packages: [
                 { name: 'npm:@sentry/hono', version: SDK_VERSION },
-                { name: 'npm:@sentry/bun', version: SDK_VERSION },
+                { name: 'npm:@sentry/deno', version: SDK_VERSION },
               ],
             }),
           }),
@@ -178,7 +178,7 @@ describe('Hono Bun Middleware', () => {
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      expect(initBunMock).toHaveBeenCalledTimes(1);
+      expect(initDenoMock).toHaveBeenCalledTimes(1);
     });
 
     it('emits a console.warn directing to remove the duplicate init call when Sentry is already initialized', () => {
@@ -209,7 +209,7 @@ describe('Hono Bun Middleware', () => {
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      expect(initBunMock).toHaveBeenCalledTimes(1);
+      expect(initDenoMock).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -218,7 +218,7 @@ describe('Hono Bun Middleware', () => {
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      const callArgs = (initBunMock as Mock).mock.calls[0]?.[0];
+      const callArgs = (initDenoMock as Mock).mock.calls[0]?.[0];
       expect(callArgs.ignoreSpans).toEqual(expect.arrayContaining(LOW_QUALITY_TRANSACTION_PATTERNS));
     });
 
@@ -230,7 +230,7 @@ describe('Hono Bun Middleware', () => {
         ignoreSpans: [userPattern],
       });
 
-      const callArgs = (initBunMock as Mock).mock.calls[0]?.[0];
+      const callArgs = (initDenoMock as Mock).mock.calls[0]?.[0];
       expect(callArgs.ignoreSpans[0]).toBe(userPattern);
       expect(callArgs.ignoreSpans).toEqual(expect.arrayContaining(LOW_QUALITY_TRANSACTION_PATTERNS));
     });
@@ -239,7 +239,7 @@ describe('Hono Bun Middleware', () => {
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      const callArgs = (initBunMock as Mock).mock.calls[0]?.[0];
+      const callArgs = (initDenoMock as Mock).mock.calls[0]?.[0];
       expect(callArgs.ignoreSpans).toHaveLength(LOW_QUALITY_TRANSACTION_PATTERNS.length);
     });
   });

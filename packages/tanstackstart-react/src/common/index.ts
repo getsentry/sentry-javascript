@@ -1,1 +1,6 @@
-export type { TanStackMiddlewareBase, MiddlewareWrapperOptions } from './types';
+export type {
+  TanStackMiddlewareBase,
+  MiddlewareWrapperOptions,
+  SentryGlobalFunctionMiddleware,
+  SentryGlobalRequestMiddleware,
+} from './types';
