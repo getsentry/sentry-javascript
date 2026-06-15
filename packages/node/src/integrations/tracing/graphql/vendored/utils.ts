@@ -38,8 +38,8 @@ import { SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/co
 import { AllowedOperationTypes, SpanNames, TokenKind } from './enum';
 import { AttributeNames } from './enums/AttributeNames';
 import { OTEL_GRAPHQL_DATA_SYMBOL, OTEL_PATCHED_SYMBOL } from './symbols';
-import { GraphQLField, GraphQLPath, ObjectWithGraphQLData, OtelPatched } from './internal-types';
-import { GraphQLInstrumentationParsedConfig } from './types';
+import type { GraphQLField, GraphQLPath, ObjectWithGraphQLData, OtelPatched } from './internal-types';
+import type { GraphQLInstrumentationParsedConfig } from './types';
 
 const OPERATION_VALUES = Object.values(AllowedOperationTypes);
 
@@ -120,10 +120,10 @@ export function getOperation(document: DocumentNode, operationName?: Maybe<strin
 
   if (operationName) {
     return document.definitions
-      .filter(definition => OPERATION_VALUES.indexOf((definition as any)?.operation) !== -1)
-      .find(definition => operationName === (definition as any)?.name?.value);
+      .filter(definition => OPERATION_VALUES.indexOf(definition?.operation) !== -1)
+      .find(definition => operationName === definition?.name?.value);
   } else {
-    return document.definitions.find(definition => OPERATION_VALUES.indexOf((definition as any)?.operation) !== -1);
+    return document.definitions.find(definition => OPERATION_VALUES.indexOf(definition?.operation) !== -1);
   }
 }
 

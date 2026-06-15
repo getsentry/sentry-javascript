@@ -22,6 +22,8 @@
  * - `auto.graphql.otel.graphql` origin baked into the execute span (previously set via a Sentry responseHook)
  */
 
+/* oxlint-disable max-lines */
+
 import {
   isWrapped,
   InstrumentationBase,
@@ -51,20 +53,20 @@ import { AttributeNames } from './enums/AttributeNames';
 import { OTEL_GRAPHQL_DATA_SYMBOL } from './symbols';
 
 import {
-  executeFunctionWithObj,
-  executeArgumentsArray,
-  executeType,
-  parseType,
-  validateType,
-  OtelExecutionArgs,
-  ObjectWithGraphQLData,
+  type executeFunctionWithObj,
+  type executeArgumentsArray,
+  type executeType,
+  type parseType,
+  type validateType,
+  type OtelExecutionArgs,
+  type ObjectWithGraphQLData,
   OPERATION_NOT_SUPPORTED,
 } from './internal-types';
 import { addSpanSource, endSpan, getOperation, isPromise, wrapFieldResolver, wrapFields } from './utils';
 
 import type { Span } from '@sentry/core';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, withActiveSpan } from '@sentry/core';
-import { GraphQLInstrumentationConfig, GraphQLInstrumentationParsedConfig } from './types';
+import type { GraphQLInstrumentationConfig, GraphQLInstrumentationParsedConfig } from './types';
 
 const PACKAGE_NAME = '@sentry/instrumentation-graphql';
 
@@ -222,7 +224,7 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     }
 
     if (isPromise(result)) {
-      (result as Promise<ExecutionResult>).then(
+      result.then(
         resultData => {
           if (typeof config.responseHook !== 'function') {
             endSpan(span);
@@ -239,7 +241,7 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
         endSpan(span);
         return;
       }
-      this._executeResponseHook(span, result as ExecutionResult);
+      this._executeResponseHook(span, result);
     }
   }
 
@@ -387,6 +389,7 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     defaultFieldResolved: GraphQLFieldResolver<any, any>,
   ): OtelExecutionArgs {
     if (!contextValue) {
+      // oxlint-disable-next-line no-param-reassign
       contextValue = {};
     }
 
@@ -407,6 +410,7 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     // follows graphql implementation here:
     // https://github.com/graphql/graphql-js/blob/0b7daed9811731362c71900e12e5ea0d1ecc7f1f/src/execution/execute.ts#L494
     const fieldResolverForExecute = fieldResolver ?? defaultFieldResolved;
+    // oxlint-disable-next-line no-param-reassign
     fieldResolver = wrapFieldResolver(() => this.getConfig(), fieldResolverForExecute, isUsingDefaultResolver);
 
     if (schema) {

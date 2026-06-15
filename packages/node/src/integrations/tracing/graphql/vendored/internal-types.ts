@@ -36,7 +36,7 @@ import type {
   TypeInfo,
   ValidationRule,
 } from './graphql-types';
-import { OTEL_GRAPHQL_DATA_SYMBOL, OTEL_PATCHED_SYMBOL } from './symbols';
+import type { OTEL_GRAPHQL_DATA_SYMBOL, OTEL_PATCHED_SYMBOL } from './symbols';
 
 export type { Maybe } from './graphql-types';
 
