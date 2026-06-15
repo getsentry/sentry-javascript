@@ -80,13 +80,13 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          op: 'cloud.r2',
+          op: 'object.get',
           name: 'r2_get',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'GetObject',
             'cloudflare.r2.bucket': 'MY_BUCKET',
             'cloudflare.r2.request.key': 'my-file.txt',
-            'sentry.op': 'cloud.r2',
+            'sentry.op': 'object.get',
             'sentry.origin': 'auto.faas.cloudflare.r2',
           }),
         }),
@@ -112,7 +112,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          op: 'cloud.r2',
+          op: 'object.head',
           name: 'r2_head',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'HeadObject',
@@ -142,7 +142,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          op: 'cloud.r2',
+          op: 'object.put',
           name: 'r2_put',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'PutObject',
@@ -170,7 +170,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          op: 'cloud.r2',
+          op: 'object.delete',
           name: 'r2_delete',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'DeleteObject',
@@ -206,7 +206,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          op: 'cloud.r2',
+          op: 'object.list',
           name: 'r2_list',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'ListObjects',
@@ -236,7 +236,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          op: 'cloud.r2',
+          op: 'object.multipart_upload.create',
           name: 'r2_createMultipartUpload',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'CreateMultipartUpload',

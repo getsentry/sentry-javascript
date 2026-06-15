@@ -35,7 +35,7 @@ it('emits r2_put and r2_get spans with correct attributes', async ({ signal }) =
         'cloudflare.r2.request.key': putData['cloudflare.r2.request.key'],
         'sentry.origin': putData['sentry.origin'],
       }).toEqual({
-        op: 'cloud.r2',
+        op: 'object.put',
         description: 'r2_put',
         'cloudflare.r2.operation': 'PutObject',
         'cloudflare.r2.bucket': 'MY_BUCKET',
@@ -54,7 +54,7 @@ it('emits r2_put and r2_get spans with correct attributes', async ({ signal }) =
         'cloudflare.r2.request.key': getData['cloudflare.r2.request.key'],
         'sentry.origin': getData['sentry.origin'],
       }).toEqual({
-        op: 'cloud.r2',
+        op: 'object.get',
         description: 'r2_get',
         'cloudflare.r2.operation': 'GetObject',
         'cloudflare.r2.bucket': 'MY_BUCKET',
@@ -82,7 +82,7 @@ it('emits an r2_head span', async ({ signal }) => {
         'cloudflare.r2.request.key': data['cloudflare.r2.request.key'],
         'sentry.origin': data['sentry.origin'],
       }).toEqual({
-        op: 'cloud.r2',
+        op: 'object.head',
         description: 'r2_head',
         'cloudflare.r2.operation': 'HeadObject',
         'cloudflare.r2.bucket': 'MY_BUCKET',
@@ -110,7 +110,7 @@ it('emits an r2_list span without a key attribute', async ({ signal }) => {
         'cloudflare.r2.request.key': data['cloudflare.r2.request.key'],
         'sentry.origin': data['sentry.origin'],
       }).toEqual({
-        op: 'cloud.r2',
+        op: 'object.list',
         description: 'r2_list',
         'cloudflare.r2.operation': 'ListObjects',
         'cloudflare.r2.bucket': 'MY_BUCKET',
@@ -138,7 +138,7 @@ it('emits an r2_delete span', async ({ signal }) => {
         'cloudflare.r2.request.key': data['cloudflare.r2.request.key'],
         'sentry.origin': data['sentry.origin'],
       }).toEqual({
-        op: 'cloud.r2',
+        op: 'object.delete',
         description: 'r2_delete',
         'cloudflare.r2.operation': 'DeleteObject',
         'cloudflare.r2.bucket': 'MY_BUCKET',
@@ -166,7 +166,7 @@ it('emits spans for each multipart upload operation', async ({ signal }) => {
         'cloudflare.r2.request.key': createData['cloudflare.r2.request.key'],
         'sentry.origin': createData['sentry.origin'],
       }).toEqual({
-        op: 'cloud.r2',
+        op: 'object.multipart_upload.create',
         description: 'r2_createMultipartUpload',
         'cloudflare.r2.operation': 'CreateMultipartUpload',
         'cloudflare.r2.bucket': 'MY_BUCKET',
@@ -186,7 +186,7 @@ it('emits spans for each multipart upload operation', async ({ signal }) => {
         'cloudflare.r2.request.part_number': part0Data['cloudflare.r2.request.part_number'],
         'sentry.origin': part0Data['sentry.origin'],
       }).toEqual({
-        op: 'cloud.r2',
+        op: 'object.upload_part',
         description: 'r2_uploadPart',
         'cloudflare.r2.operation': 'UploadPart',
         'cloudflare.r2.bucket': 'MY_BUCKET',
@@ -207,7 +207,7 @@ it('emits spans for each multipart upload operation', async ({ signal }) => {
         'cloudflare.r2.request.key': completeData['cloudflare.r2.request.key'],
         'sentry.origin': completeData['sentry.origin'],
       }).toEqual({
-        op: 'cloud.r2',
+        op: 'object.multipart_upload.complete',
         description: 'r2_completeMultipartUpload',
         'cloudflare.r2.operation': 'CompleteMultipartUpload',
         'cloudflare.r2.bucket': 'MY_BUCKET',

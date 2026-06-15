@@ -4,15 +4,27 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSp
 const ORIGIN = 'auto.faas.cloudflare.r2';
 
 const R2_OPERATIONS = {
-  get: { spanName: 'r2_get', operation: 'GetObject' },
-  head: { spanName: 'r2_head', operation: 'HeadObject' },
-  put: { spanName: 'r2_put', operation: 'PutObject' },
-  delete: { spanName: 'r2_delete', operation: 'DeleteObject' },
-  list: { spanName: 'r2_list', operation: 'ListObjects' },
-  createMultipartUpload: { spanName: 'r2_createMultipartUpload', operation: 'CreateMultipartUpload' },
-  uploadPart: { spanName: 'r2_uploadPart', operation: 'UploadPart' },
-  abortMultipartUpload: { spanName: 'r2_abortMultipartUpload', operation: 'AbortMultipartUpload' },
-  completeMultipartUpload: { spanName: 'r2_completeMultipartUpload', operation: 'CompleteMultipartUpload' },
+  get: { spanName: 'r2_get', op: 'object.get', operation: 'GetObject' },
+  head: { spanName: 'r2_head', op: 'object.head', operation: 'HeadObject' },
+  put: { spanName: 'r2_put', op: 'object.put', operation: 'PutObject' },
+  delete: { spanName: 'r2_delete', op: 'object.delete', operation: 'DeleteObject' },
+  list: { spanName: 'r2_list', op: 'object.list', operation: 'ListObjects' },
+  uploadPart: { spanName: 'r2_uploadPart', op: 'object.upload_part', operation: 'UploadPart' },
+  abortMultipartUpload: {
+    spanName: 'r2_abortMultipartUpload',
+    op: 'object.multipart_upload.abort',
+    operation: 'AbortMultipartUpload',
+  },
+  createMultipartUpload: {
+    spanName: 'r2_createMultipartUpload',
+    op: 'object.multipart_upload.create',
+    operation: 'CreateMultipartUpload',
+  },
+  completeMultipartUpload: {
+    spanName: 'r2_completeMultipartUpload',
+    op: 'object.multipart_upload.complete',
+    operation: 'CompleteMultipartUpload',
+  },
 } as const;
 
 type R2OperationKey = keyof typeof R2_OPERATIONS;
@@ -21,12 +33,12 @@ function isR2ListOptions(key: unknown): key is R2ListOptions {
   return typeof key === 'object' && key !== null && !Array.isArray(key);
 }
 
-function createSpanOptions(bindingName: string, op: R2OperationKey, key?: string | string[] | R2ListOptions) {
-  const { spanName, operation } = R2_OPERATIONS[op];
+function createSpanOptions(bindingName: string, r2Op: R2OperationKey, key?: string | string[] | R2ListOptions) {
+  const { spanName, op, operation } = R2_OPERATIONS[r2Op];
   const requestKey = Array.isArray(key) ? key.join(', ') : typeof key === 'string' ? key : undefined;
 
   return {
-    op: 'cloud.r2',
+    op,
     name: spanName,
     attributes: {
       'cloudflare.r2.operation': operation,
@@ -34,7 +46,7 @@ function createSpanOptions(bindingName: string, op: R2OperationKey, key?: string
       ...(requestKey !== undefined && { 'cloudflare.r2.request.key': requestKey }),
       ...(isR2ListOptions(key) && key.prefix !== undefined && { 'cloudflare.r2.request.prefix': key.prefix }),
       ...(isR2ListOptions(key) && key.delimiter !== undefined && { 'cloudflare.r2.request.delimiter': key.delimiter }),
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cloud.r2',
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     },
   };
