@@ -33,6 +33,27 @@ describe('mysql2 auto instrumentation', () => {
           'db.user': 'root',
         }),
       }),
+      // `execute` is instrumented the same way as `query`
+      expect.objectContaining({
+        description: 'SELECT',
+        op: 'db',
+        origin: 'auto.db.otel.mysql2',
+        data: expect.objectContaining({
+          'db.system': 'mysql',
+          'db.statement': 'SELECT 42 AS answer',
+        }),
+      }),
+      // a failing query produces a span with an error status
+      expect.objectContaining({
+        description: 'SELECT',
+        op: 'db',
+        status: 'internal_error',
+        origin: 'auto.db.otel.mysql2',
+        data: expect.objectContaining({
+          'db.system': 'mysql',
+          'db.statement': 'SELECT * FROM does_not_exist',
+        }),
+      }),
     ]),
   };
 
