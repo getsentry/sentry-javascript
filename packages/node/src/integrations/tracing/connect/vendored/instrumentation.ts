@@ -20,10 +20,10 @@
  */
 
 import type { ServerResponse } from 'http';
-import { AttributeNames, ConnectNames, ConnectTypes } from './enums/AttributeNames';
+import { AttributeNames, ConnectTypes } from './enums/AttributeNames';
 import type { HandleFunction, NextFunction, PatchedRequest, Server, Use, UseArgs, UseArgs2 } from './internal-types';
 import type { Span } from '@sentry/core';
-import { SDK_VERSION, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
 import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
@@ -80,22 +80,13 @@ export class ConnectInstrumentation extends InstrumentationBase {
   }
 
   public _startSpan(routeName: string, middleWare: HandleFunction): Span {
-    let connectType: ConnectTypes;
-    let connectName: string;
-    let connectTypeName: string;
-    if (routeName) {
-      connectType = ConnectTypes.REQUEST_HANDLER;
-      connectTypeName = ConnectNames.REQUEST_HANDLER;
-      connectName = routeName;
-    } else {
-      connectType = ConnectTypes.MIDDLEWARE;
-      connectTypeName = ConnectNames.MIDDLEWARE;
-      connectName = middleWare.name || ANONYMOUS_NAME;
-    }
-    const spanName = `${connectTypeName} - ${connectName}`;
+    const connectType = routeName ? ConnectTypes.REQUEST_HANDLER : ConnectTypes.MIDDLEWARE;
+    const connectName = routeName || middleWare.name || ANONYMOUS_NAME;
     return startInactiveSpan({
-      name: spanName,
+      name: connectName,
+      op: `${connectType}.connect`,
       attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.connect',
         [ATTR_HTTP_ROUTE]: routeName.length > 0 ? routeName : '/',
         [AttributeNames.CONNECT_TYPE]: connectType,
         [AttributeNames.CONNECT_NAME]: connectName,

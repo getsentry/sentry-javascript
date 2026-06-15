@@ -27,8 +27,3 @@ export enum ConnectTypes {
   MIDDLEWARE = 'middleware',
   REQUEST_HANDLER = 'request_handler',
 }
-
-export enum ConnectNames {
-  MIDDLEWARE = 'middleware',
-  REQUEST_HANDLER = 'request handler',
-}
