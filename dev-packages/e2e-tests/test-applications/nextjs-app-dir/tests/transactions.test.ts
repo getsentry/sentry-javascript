@@ -149,6 +149,9 @@ test('Should not capture "NEXT_REDIRECT" control-flow errors for server actions 
   const serverActionTransactionEvent = await serverActionTransactionPromise;
   expect(serverActionTransactionEvent).toBeDefined();
 
+  // Redirects are normal control flow, so the transaction must not be flagged as errored
+  expect(serverActionTransactionEvent.contexts?.trace?.status).toBe('ok');
+
   // By the time the server action span finishes the error should already have been sent
   expect(controlFlowErrorCaptured).toBe(false);
 });
