@@ -29,7 +29,7 @@ import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tra
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
-import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
+import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { setCapturedScopesOnSpan } from './utils';
@@ -541,8 +541,8 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
     return childSpan;
   }
 
-  if (hasSpanStreamingEnabled(client) && childSpan instanceof SentryNonRecordingSpan) {
-    if (parentSpan instanceof SentryNonRecordingSpan && parentSpan.dropReason) {
+  if (hasSpanStreamingEnabled(client) && spanIsNonRecordingSpan(childSpan)) {
+    if (spanIsNonRecordingSpan(parentSpan) && parentSpan.dropReason) {
       // We land here if the parent span was a segment span that was ignored (`ignoreSpans`).
       // In this case, the child was also ignored (see `sampled` above) but we need to
       // record a client outcome for the child.
@@ -619,7 +619,7 @@ function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: Se
 }
 
 function _isIgnoredSpan(span: Span): span is SentryNonRecordingSpan {
-  return span instanceof SentryNonRecordingSpan && span.dropReason === 'ignored';
+  return spanIsNonRecordingSpan(span) && span.dropReason === 'ignored';
 }
 
 function _isTracingSuppressed(scope: Scope): boolean {

@@ -15,7 +15,7 @@ import {
   spanToJSON,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
-import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
+import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
 import { startInactiveSpan } from './trace';
@@ -146,7 +146,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
       // If the span is non-recording, nothing more to do here...
       // This is the case if tracing is enabled but this specific span was not sampled
-      if (thisArg instanceof SentryNonRecordingSpan) {
+      if (spanIsNonRecordingSpan(thisArg)) {
         return;
       }
 

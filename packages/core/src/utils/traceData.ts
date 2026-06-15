@@ -5,7 +5,7 @@ import { getClient, getCurrentScope, hasExternalPropagationContext } from '../cu
 import { isEnabled } from '../exports';
 import type { Scope } from '../scope';
 import { getDynamicSamplingContextFromScope, getDynamicSamplingContextFromSpan } from '../tracing';
-import { SentryNonRecordingSpan } from '../tracing/sentryNonRecordingSpan';
+import { spanIsNonRecordingSpan } from '../tracing/sentryNonRecordingSpan';
 import type { Span } from '../types/span';
 import type { SerializedTraceData } from '../types/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from './baggage';
@@ -50,7 +50,7 @@ export function getTraceData(
 
   // A non-recording span is a Tracing-without-Performance placeholder that carries no sampling
   // decision of its own. The scope is the source of truth, so we read the headers from the scope.
-  const isNonRecordingSpan = span instanceof SentryNonRecordingSpan;
+  const isNonRecordingSpan = spanIsNonRecordingSpan(span);
 
   // When there's no recording span and an external propagation context is registered (e.g. OTLP
   // integration), return empty to let the external propagator handle outgoing request propagation.

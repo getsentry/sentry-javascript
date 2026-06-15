@@ -14,7 +14,7 @@ import { extractOrgIdFromClient } from '../utils/dsn';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { addNonEnumerableProperty } from '../utils/object';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
-import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
+import { spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { getCapturedScopesOnSpan } from './utils';
 
 /**
@@ -109,7 +109,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // For a non-recording placeholder (Tracing without Performance), the DSC is not carried on the
   // span — the scope is the source of truth. Resolve it from the span's captured scope: continued
   // traces keep the incoming DSC, new traces derive it from the client (without a local transaction).
-  if (rootSpan instanceof SentryNonRecordingSpan) {
+  if (spanIsNonRecordingSpan(rootSpan)) {
     const capturedScope = getCapturedScopesOnSpan(rootSpan).scope;
     if (capturedScope) {
       return applyLocalSampleRateToDsc(getDynamicSamplingContextFromScope(client, capturedScope));
