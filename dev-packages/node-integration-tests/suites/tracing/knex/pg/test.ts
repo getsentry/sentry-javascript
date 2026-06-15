@@ -57,6 +57,22 @@ describe('knex auto instrumentation', () => {
               description: 'select * from "User"',
               origin: 'auto.db.otel.knex',
             }),
+
+            expect.objectContaining({
+              data: expect.objectContaining({
+                'knex.version': KNEX_VERSION,
+                'db.operation': 'select',
+                'db.sql.table': 'DoesNotExist',
+                'db.system': 'postgresql',
+                'db.name': 'tests',
+                'db.statement': 'select * from "DoesNotExist"',
+                'sentry.origin': 'auto.db.otel.knex',
+                'sentry.op': 'db',
+              }),
+              status: 'internal_error',
+              description: 'select * from "DoesNotExist"',
+              origin: 'auto.db.otel.knex',
+            }),
           ]),
         };
 

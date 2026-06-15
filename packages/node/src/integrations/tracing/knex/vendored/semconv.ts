@@ -6,7 +6,6 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-knex
  * - Upstream version: @opentelemetry/instrumentation-knex@0.62.0
  */
-/* eslint-disable */
 
 /**
  * @deprecated Replaced by `db.namespace`.
