@@ -7,25 +7,12 @@ name: 'Dependabot auto-triage'
 #      individual fixes, one commit per vuln), via the /fix-security-vulnerability skill --ci mode.
 #      Two PRs total keeps CI cheap and keeps runtime fixes isolated from dev bumps.
 #
-# NOTE: the GitHub App used here (GITFLOW_APP_*) must be granted the "Dependabot alerts: read AND
-# write" repository permission — read to list alerts, write to dismiss the noise.
-#
-# SECURITY BACKSTOP: `develop` must have branch protection that blocks force-pushes (and direct
-# pushes) by this App. The fix jobs run an LLM with a write token; the tool allowlist scopes pushes
-# to `bot/dependabot-fixes-*`, but branch protection is the authoritative guard against a pushed
-# change to `develop`.
-#
 # Manual runs default to a safe dry-run (classify + preview what would be dismissed and which PRs
-# would open, all to the job summary — no writes). The (currently disabled) scheduled run is full.
-#
-# TEST PHASE: the daily `schedule` trigger is commented out below — only manual `workflow_dispatch`
-# runs are active for now. Re-enable the cron once the manual dry-run + full runs look good.
+# would open, all to the job summary — no writes). The scheduled run is always full.
 
 on:
-  # Disabled for the initial test phase — manual runs only (dry-run / dismiss-only / full).
-  # Re-enable once validated to get the daily automated run:
-  # schedule:
-  #   - cron: '0 0 * * *' # daily, midnight UTC (matches canary/clear-cache)
+  schedule:
+    - cron: '0 0 * * *' # daily, midnight UTC
   workflow_dispatch:
     inputs:
       mode:
