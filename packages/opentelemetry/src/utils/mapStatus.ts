@@ -1,9 +1,5 @@
 import { SpanStatusCode } from '@opentelemetry/api';
-import {
-  ATTR_HTTP_RESPONSE_STATUS_CODE,
-  SEMATTRS_HTTP_STATUS_CODE,
-  SEMATTRS_RPC_GRPC_STATUS_CODE,
-} from '@opentelemetry/semantic-conventions';
+import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE, RPC_GRPC_STATUS_CODE } from '@sentry/conventions/attributes';
 import type { SpanAttributes, SpanStatus } from '@sentry/core';
 import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '@sentry/core';
 import type { AbstractSpan } from '../types';
@@ -80,9 +76,9 @@ function inferStatusFromAttributes(attributes: SpanAttributes): SpanStatus | und
   // If the span status is UNSET, we try to infer it from HTTP or GRPC status codes.
 
   // eslint-disable-next-line typescript/no-deprecated
-  const httpCodeAttribute = attributes[ATTR_HTTP_RESPONSE_STATUS_CODE] || attributes[SEMATTRS_HTTP_STATUS_CODE];
+  const httpCodeAttribute = attributes[HTTP_RESPONSE_STATUS_CODE] || attributes[HTTP_STATUS_CODE];
   // eslint-disable-next-line typescript/no-deprecated
-  const grpcCodeAttribute = attributes[SEMATTRS_RPC_GRPC_STATUS_CODE];
+  const grpcCodeAttribute = attributes[RPC_GRPC_STATUS_CODE];
 
   const numberHttpCode =
     typeof httpCodeAttribute === 'number'

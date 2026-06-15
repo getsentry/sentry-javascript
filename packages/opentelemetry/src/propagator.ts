@@ -1,7 +1,7 @@
 import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
 import { context, INVALID_TRACEID, propagation, trace, TraceFlags } from '@opentelemetry/api';
 import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
-import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
+import { HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
 import type { Client, continueTrace, DynamicSamplingContext, Scope } from '@sentry/core';
 import {
   baggageHeaderToDynamicSamplingContext,
@@ -275,9 +275,9 @@ function getExistingSentryTrace(carrier: unknown): string | string[] | undefined
  */
 function getCurrentURL(span: Span): string | undefined {
   const spanData = spanToJSON(span).data;
-  // `ATTR_URL_FULL` is the new attribute, but we still support the old one, `SEMATTRS_HTTP_URL`, for now.
+  // `URL_FULL` is the new attribute, but we still support the old one, `HTTP_URL`, for now.
   // eslint-disable-next-line typescript/no-deprecated
-  const urlAttribute = spanData[SEMATTRS_HTTP_URL] || spanData[ATTR_URL_FULL];
+  const urlAttribute = spanData[HTTP_URL] || spanData[URL_FULL];
   if (typeof urlAttribute === 'string') {
     return urlAttribute;
   }

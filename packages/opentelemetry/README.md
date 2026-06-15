@@ -28,7 +28,6 @@ Note that `@sentry/opentelemetry` depends on the following peer dependencies:
 
 - `@opentelemetry/api` version `1.0.0` or greater
 - `@opentelemetry/core` version `1.0.0` or greater
-- `@opentelemetry/semantic-conventions` version `1.0.0` or greater
 - `@opentelemetry/sdk-trace-base` version `1.0.0` or greater, or a package that implements that, like
   `@opentelemetry/sdk-node`.
 
