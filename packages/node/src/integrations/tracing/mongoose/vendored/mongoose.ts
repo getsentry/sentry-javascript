@@ -23,6 +23,7 @@
 
 import { SpanKind } from '@opentelemetry/api';
 import {
+  type InstrumentationConfig,
   InstrumentationBase,
   type InstrumentationModuleDefinition,
   InstrumentationNodeModuleDefinition,
@@ -37,7 +38,6 @@ import {
 } from '@sentry/core';
 import type * as mongoose from './mongoose-types';
 import { ATTR_DB_OPERATION, ATTR_DB_SYSTEM } from './semconv';
-import type { MongooseInstrumentationConfig } from './types';
 import { getAttributesFromCollection, handleCallbackResponse, handlePromiseResponse } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-mongoose';
@@ -110,8 +110,8 @@ export const _STORED_PARENT_SPAN: unique symbol = Symbol('stored-parent-span');
 // creates a span and returns a Query that also calls exec()
 export const _ALREADY_INSTRUMENTED: unique symbol = Symbol('already-instrumented');
 
-export class MongooseInstrumentation extends InstrumentationBase<MongooseInstrumentationConfig> {
-  constructor(config: MongooseInstrumentationConfig = {}) {
+export class MongooseInstrumentation extends InstrumentationBase<InstrumentationConfig> {
+  constructor(config: InstrumentationConfig = {}) {
     super(PACKAGE_NAME, SDK_VERSION, config);
   }
 
