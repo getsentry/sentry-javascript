@@ -24,6 +24,19 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
   status: 'ok',
 });
 
+// The producer ("root span") and consumer ("queue1 process") transactions finish within a few
+// milliseconds of each other, so they can be flushed in either order. Dispatch on the transaction
+// name instead of relying on a fixed envelope order to avoid flakiness.
+function expectAmqpTransaction(transaction: TransactionEvent): void {
+  if (transaction.transaction === 'root span') {
+    expect(transaction.spans?.length).toEqual(1);
+    expect(transaction.spans![0]).toMatchObject(EXPECTED_MESSAGE_SPAN_PRODUCER);
+  } else {
+    expect(transaction.transaction).toEqual('queue1 process');
+    expect(transaction.contexts?.trace).toMatchObject(EXPECTED_MESSAGE_SPAN_CONSUMER);
+  }
+}
+
 describe('amqplib v1 auto-instrumentation', () => {
   afterAll(async () => {
     cleanupChildProcesses();
@@ -36,17 +49,10 @@ describe('amqplib v1 auto-instrumentation', () => {
           workingDirectory: [__dirname],
         })
         .expect({
-          transaction: (transaction: TransactionEvent) => {
-            expect(transaction.transaction).toEqual('root span');
-            expect(transaction.spans?.length).toEqual(1);
-            expect(transaction.spans![0]).toMatchObject(EXPECTED_MESSAGE_SPAN_PRODUCER);
-          },
+          transaction: expectAmqpTransaction,
         })
         .expect({
-          transaction: (transaction: TransactionEvent) => {
-            expect(transaction.transaction).toEqual('queue1 process');
-            expect(transaction.contexts?.trace).toMatchObject(EXPECTED_MESSAGE_SPAN_CONSUMER);
-          },
+          transaction: expectAmqpTransaction,
         })
         .start()
         .completed();
