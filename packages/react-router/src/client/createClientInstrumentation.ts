@@ -54,7 +54,6 @@ export interface CreateSentryClientInstrumentationOptions {
 
 /**
  * Creates a Sentry client instrumentation for React Router's instrumentation API.
- * @experimental
  */
 export function createSentryClientInstrumentation(
   options: CreateSentryClientInstrumentationOptions = {},
@@ -364,7 +363,6 @@ function updateRootSpanRoute(routeName: string, hasPattern: boolean): void {
 
 /**
  * Check if React Router's instrumentation API is being used on the client.
- * @experimental
  */
 export function isClientInstrumentationApiUsed(): boolean {
   return !!GLOBAL_WITH_FLAGS[SENTRY_CLIENT_INSTRUMENTATION_FLAG];
@@ -372,7 +370,6 @@ export function isClientInstrumentationApiUsed(): boolean {
 
 /**
  * Check if React Router's instrumentation API's navigate hook was invoked.
- * @experimental
  */
 export function isNavigateHookInvoked(): boolean {
   return !!GLOBAL_WITH_FLAGS[SENTRY_NAVIGATE_HOOK_INVOKED_FLAG];

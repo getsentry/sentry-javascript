@@ -37,7 +37,6 @@ export interface CreateSentryServerInstrumentationOptions {
 
 /**
  * Creates a Sentry server instrumentation for React Router's instrumentation API.
- * @experimental
  */
 export function createSentryServerInstrumentation(
   options: CreateSentryServerInstrumentationOptions = {},
