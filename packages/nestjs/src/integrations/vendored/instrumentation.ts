@@ -27,7 +27,7 @@ import {
 } from '@opentelemetry/instrumentation';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes } from '@sentry/core';
-import { SDK_VERSION, startSpan } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import { AttributeNames, NestType } from './enums';
 
 const PACKAGE_NAME = '@sentry/instrumentation-nestjs-core';
@@ -137,8 +137,10 @@ function createWrapNestFactoryCreate(moduleVersion?: string) {
       return startSpan(
         {
           name: 'Create Nest App',
+          op: `${NestType.APP_CREATION}.nestjs`,
           attributes: {
             ...NestInstrumentation.COMMON_ATTRIBUTES,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
             [AttributeNames.TYPE]: NestType.APP_CREATION,
             [AttributeNames.VERSION]: moduleVersion,
             [AttributeNames.MODULE]: nestModule.name,
@@ -165,6 +167,7 @@ function createWrapCreateHandler(moduleVersion: string | undefined) {
         const req = handlerArgs[0] as NestRequest;
         const attributes: SpanAttributes = {
           ...NestInstrumentation.COMMON_ATTRIBUTES,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
           [AttributeNames.VERSION]: moduleVersion,
           [AttributeNames.TYPE]: NestType.REQUEST_CONTEXT,
           [ATTR_HTTP_ROUTE]: req.route?.path || req.routeOptions?.url || req.routerPath,
@@ -173,7 +176,9 @@ function createWrapCreateHandler(moduleVersion: string | undefined) {
         };
         attributes['http.method'] = req.method;
         attributes['http.url'] = req.originalUrl || req.url;
-        return startSpan({ name: spanName, attributes }, () => handler.apply(this, handlerArgs));
+        return startSpan({ name: spanName, op: `${NestType.REQUEST_CONTEXT}.nestjs`, attributes }, () =>
+          handler.apply(this, handlerArgs),
+        );
       };
     };
   };
@@ -183,12 +188,15 @@ function createWrapHandler(moduleVersion: string | undefined, handler: AnyFn): A
   const spanName = handler.name || 'anonymous nest handler';
   const attributes: SpanAttributes = {
     ...NestInstrumentation.COMMON_ATTRIBUTES,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
     [AttributeNames.VERSION]: moduleVersion,
     [AttributeNames.TYPE]: NestType.REQUEST_HANDLER,
     [AttributeNames.CALLBACK]: handler.name,
   };
   const wrappedHandler = function (this: unknown, ...args: unknown[]) {
-    return startSpan({ name: spanName, attributes }, () => handler.apply(this, args));
+    return startSpan({ name: spanName, op: `${NestType.REQUEST_HANDLER}.nestjs`, attributes }, () =>
+      handler.apply(this, args),
+    );
   };
 
   if (handler.name) {
