@@ -78,6 +78,7 @@ noise.json
 fix-candidates-runtime.json
 fix-candidates-dev.json
 pr-body-*.md
+fix-result-*.md
 
 # Environment variables
 .env
