@@ -4,6 +4,11 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    "lib": ["DOM", "es2020"]
+    "lib": ["DOM", "es2020"],
+    // We still support Svelte 3, which imports types from deep paths (e.g. `svelte/types/compiler/preprocess`)
+    // that aren't declared in Svelte's `exports` map. `node16` resolution honors that map and rejects them,
+    // so we keep the legacy `node` resolver here, which resolves them via filesystem lookup.
+    "module": "esnext",
+    "moduleResolution": "node"
   }
 }
