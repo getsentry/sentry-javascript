@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
+import type { BackwardsForwardsCompatibleSvelteConfig } from './svelteConfig';
 
 const AcornParser = acorn.Parser.extend(tsPlugin());
 
@@ -45,6 +46,11 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
 
   let isServerBuild: boolean | undefined = undefined;
 
+  // Whether we should skip server-side load instrumentation because SvelteKit's native server
+  // tracing is enabled. Initialized from the option (derived from `svelte.config.js`), but may be
+  // flipped to `true` in `configResolved` once we can read SvelteKit's resolved config (see below).
+  let onlyInstrumentClient = options.onlyInstrumentClient;
+
   return {
     name: 'sentry-auto-instrumentation',
     // This plugin needs to run as early as possible, before the SvelteKit plugin virtualizes all paths and ids
@@ -56,10 +62,20 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
       // `config.build.ssr` is `true` for that first build and `false` in the other ones.
       // Hence we can use it as a switch to upload source maps only once in main build.
       isServerBuild = !!config.build.ssr;
+
+      // As of SvelteKit 3, the native server-tracing config is no longer read from
+      // `svelte.config.js` (so the `onlyInstrumentClient` option, derived from it, is `false`).
+      // It's passed to the `sveltekit()` Vite plugin instead, which exposes the resolved config
+      // via its plugin `api.options`. Reading it here lets us reliably detect native tracing
+      // regardless of SvelteKit version. When it's enabled, we must not add our own server-side
+      // load instrumentation, otherwise we'd emit duplicate spans on top of SvelteKit's.
+      if (!onlyInstrumentClient && isNativeServerTracingEnabled(config.plugins)) {
+        onlyInstrumentClient = true;
+      }
     },
 
     async load(id) {
-      if (options.onlyInstrumentClient && isServerBuild) {
+      if (onlyInstrumentClient && isServerBuild) {
         return null;
       }
 
@@ -74,7 +90,7 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
         return getWrapperCode('wrapLoadWithSentry', `${id}${WRAPPED_MODULE_SUFFIX}`);
       }
 
-      if (options.onlyInstrumentClient) {
+      if (onlyInstrumentClient) {
         // Now that we've checked universal files, we can early return and avoid further
         // regexp checks below for server-only files, in case `onlyInstrumentClient` is `true`.
         return null;
@@ -94,6 +110,29 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
       return null;
     },
   };
+}
+
+/**
+ * Detects whether SvelteKit's native server-side tracing is enabled by reading the resolved
+ * SvelteKit config that the `sveltekit()` Vite plugin exposes via its plugin `api.options`.
+ *
+ * This is the source of truth as of SvelteKit 3, where the config moved out of `svelte.config.js`
+ * and into the `sveltekit()` plugin. On older SvelteKit versions that don't expose the config this
+ * way, it simply returns `false` and we fall back to the `svelte.config.js`-derived value.
+ */
+function isNativeServerTracingEnabled(plugins: readonly Plugin[] | undefined): boolean {
+  if (!plugins) {
+    return false;
+  }
+
+  for (const plugin of plugins) {
+    const options = (plugin?.api as { options?: BackwardsForwardsCompatibleSvelteConfig } | undefined)?.options;
+    if (options?.kit?.experimental?.tracing?.server) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
