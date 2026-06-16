@@ -166,12 +166,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
   private _startAwsV3Span(normalizedRequest: NormalizedRequest, metadata: RequestMetadata): Span {
     const name = metadata.spanName ?? `${normalizedRequest.serviceName}.${normalizedRequest.commandName}`;
-    // Use Sentry's `startInactiveSpan` instead of the OTel tracer so the span goes through Sentry's
-    // sampling/scope/processing pipeline. The span is activated manually further down via the OTel
-    // context (`trace.setSpan` + `context.with`), so we create it inactive here.
-    // In the Node SDK this returns the underlying OTel span, which is why it can still be used with
-    // the OTel context APIs below.
-    const newSpan = startInactiveSpan({
+    return startInactiveSpan({
       name,
       kind: metadata.spanKind ?? SpanKind.CLIENT,
       attributes: {
@@ -179,8 +174,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
         ...metadata.spanAttributes,
       },
     });
-
-    return newSpan as unknown as Span;
   }
 
   private _callUserPreRequestHook(span: Span, request: NormalizedRequest, moduleVersion: string | undefined) {
