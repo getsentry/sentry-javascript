@@ -12,11 +12,11 @@
  */
 
 import type { Context, Span } from '@opentelemetry/api';
-import { context, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
+import { context, SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { SpanAttributes } from '@sentry/core';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import type * as mysqlTypes from './mysql-types';
 import {
   ATTR_DB_CONNECTION_STRING,
@@ -206,23 +206,21 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
           attributes[ATTR_NET_PEER_PORT] = portNumber;
         }
 
-        // Use Sentry's `startInactiveSpan` instead of the OTel tracer so the span goes through Sentry's
-        // sampling/scope/processing pipeline. In the Node SDK this returns the underlying OTel span, so it
-        // can still be used with the OTel context APIs below.
         const span = startInactiveSpan({
           name: getSpanName(query),
           kind: SpanKind.CLIENT,
           attributes,
-        }) as unknown as Span;
+        });
 
         const cbIndex = Array.from(arguments).findIndex(arg => typeof arg === 'function');
 
         const parentContext = context.active();
 
         if (cbIndex === -1) {
-          const streamableQuery: mysqlTypes.Query = context.with(trace.setSpan(context.active(), span), () => {
+          const streamableQuery: mysqlTypes.Query = withActiveSpan(span, () => {
             return originalQuery.apply(connection, arguments);
           });
+          // Ensure events etc. triggered by the query have the correct context
           context.bind(parentContext, streamableQuery);
 
           return streamableQuery
@@ -238,7 +236,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
         } else {
           thisPlugin._wrap(arguments, cbIndex, thisPlugin._patchCallbackQuery(span, parentContext));
 
-          return context.with(trace.setSpan(context.active(), span), () => {
+          return withActiveSpan(span, () => {
             return originalQuery.apply(connection, arguments);
           });
         }
