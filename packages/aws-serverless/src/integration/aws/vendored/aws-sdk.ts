@@ -23,19 +23,13 @@
 import { Span, SpanKind, context, trace, diag, SpanStatusCode } from '@opentelemetry/api';
 import { AttributeNames } from './enums';
 import { ServicesExtensions } from './services';
-import {
-  AwsSdkInstrumentationConfig,
-  AwsSdkRequestHookInformation,
-  NormalizedRequest,
-  NormalizedResponse,
-} from './types';
+import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from './types';
 import {
   InstrumentationBase,
   InstrumentationModuleDefinition,
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
   isWrapped,
-  safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 import type {
   MiddlewareStack,
@@ -53,7 +47,7 @@ import {
 import { propwrap } from './propwrap';
 import { RequestMetadata } from './services/ServiceExtension';
 import { ATTR_HTTP_STATUS_CODE } from './semconv';
-import { SDK_VERSION, startInactiveSpan } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-aws-sdk';
 
@@ -170,27 +164,11 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
       name,
       kind: metadata.spanKind ?? SpanKind.CLIENT,
       attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws',
         ...extractAttributesFromNormalizedRequest(normalizedRequest),
         ...metadata.spanAttributes,
       },
     });
-  }
-
-  private _callUserPreRequestHook(span: Span, request: NormalizedRequest, moduleVersion: string | undefined) {
-    const { preRequestHook } = this.getConfig();
-    if (preRequestHook) {
-      const requestInfo: AwsSdkRequestHookInformation = {
-        moduleVersion,
-        request,
-      };
-      safeExecuteInTheMiddle(
-        () => preRequestHook(span, requestInfo),
-        (e: Error | undefined) => {
-          if (e) diag.error(`${AwsInstrumentation.component} instrumentation: preRequestHook error`, e);
-        },
-        true,
-      );
-    }
   }
 
   private _getV3ConstructStackPatch(
@@ -222,7 +200,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
   private patchV3MiddlewareStack(moduleVersion: string | undefined, middlewareStackToPatch: MiddlewareStack<any, any>) {
     if (!isWrapped(middlewareStackToPatch.resolve)) {
-      this._wrap(middlewareStackToPatch, 'resolve', this._getV3MiddlewareStackResolvePatch.bind(this, moduleVersion));
+      this._wrap(middlewareStackToPatch, 'resolve', this._getV3MiddlewareStackResolvePatch.bind(this));
     }
 
     // 'clone' and 'concat' functions are internally calling 'constructStack' which is in same
@@ -248,7 +226,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
   }
 
   private _getV3MiddlewareStackResolvePatch(
-    moduleVersion: string | undefined,
     original: (_handler: any, context: HandlerExecutionContext) => AwsV3MiddlewareHandler<any, any>,
   ) {
     const self = this;
@@ -299,7 +276,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
               );
             })
             .finally(() => {
-              self._callUserPreRequestHook(span, normalizedRequest, moduleVersion);
               const resultPromise = context.with(activeContextWithSpan, () => {
                 self.servicesExtensions.requestPostSpanHook(normalizedRequest);
                 return origHandler.call(this, command);
