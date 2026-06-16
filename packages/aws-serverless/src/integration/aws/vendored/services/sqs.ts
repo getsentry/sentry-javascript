@@ -125,7 +125,7 @@ export class SqsServiceExtension implements ServiceExtension {
         for (const message of messages) {
           const propagatedContext = propagation.extract(
             ROOT_CONTEXT,
-            extractPropagationContext(message, false),
+            extractPropagationContext(message),
             contextGetter,
           );
 

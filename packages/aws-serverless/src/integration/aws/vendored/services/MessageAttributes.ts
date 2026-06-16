@@ -69,23 +69,13 @@ export const injectPropagationContext = (
   return attributes;
 };
 
-export const extractPropagationContext = (
-  message: SQS.Message,
-  sqsExtractContextPropagationFromPayload: boolean | undefined,
-): AwsSdkContextObject | undefined => {
+export const extractPropagationContext = (message: SQS.Message): AwsSdkContextObject | undefined => {
   const propagationFields = propagation.fields();
   const hasPropagationFields = Object.keys(message.MessageAttributes || []).some(attr =>
     propagationFields.includes(attr),
   );
   if (hasPropagationFields) {
     return message.MessageAttributes;
-  } else if (sqsExtractContextPropagationFromPayload && message.Body) {
-    try {
-      const payload = JSON.parse(message.Body);
-      return payload.MessageAttributes;
-    } catch {
-      diag.debug('failed to parse SQS payload to extract context propagation, trace might be incomplete.');
-    }
   }
   return undefined;
 };
