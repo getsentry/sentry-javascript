@@ -22,13 +22,11 @@
 /* eslint-disable */
 
 import { Span, SpanKind, context, trace, diag, SpanStatusCode } from '@opentelemetry/api';
-import { suppressTracing } from '@opentelemetry/core';
 import { AttributeNames } from './enums';
 import { ServicesExtensions } from './services';
 import {
   AwsSdkInstrumentationConfig,
   AwsSdkRequestHookInformation,
-  AwsSdkResponseHookInformation,
   NormalizedRequest,
   NormalizedResponse,
 } from './types';
@@ -39,8 +37,6 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
   safeExecuteInTheMiddle,
-  SemconvStability,
-  semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
 import type {
   MiddlewareStack,
@@ -58,7 +54,6 @@ import {
 import { propwrap } from './propwrap';
 import { RequestMetadata } from './services/ServiceExtension';
 import { ATTR_HTTP_STATUS_CODE } from './semconv';
-import { ATTR_HTTP_RESPONSE_STATUS_CODE } from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION, timestampInSeconds } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-aws-sdk';
@@ -70,16 +65,11 @@ type V3PluginCommand = AwsV3Command<any, any, any, any, any> & {
 
 export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentationConfig> {
   static readonly component = 'aws-sdk';
-  // need declare since initialized in callbacks from super constructor
-  declare private servicesExtensions: ServicesExtensions;
-
-  private _httpSemconvStability: SemconvStability;
-  private _dbSemconvStability: SemconvStability;
+  private servicesExtensions: ServicesExtensions;
 
   constructor(config: AwsSdkInstrumentationConfig = {}) {
     super(PACKAGE_NAME, SDK_VERSION, config);
-    this._httpSemconvStability = semconvStabilityFromStr('http', process.env.OTEL_SEMCONV_STABILITY_OPT_IN);
-    this._dbSemconvStability = semconvStabilityFromStr('database', process.env.OTEL_SEMCONV_STABILITY_OPT_IN);
+    this.servicesExtensions = new ServicesExtensions();
   }
 
   protected init(): InstrumentationModuleDefinition[] {
@@ -205,38 +195,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
     }
   }
 
-  private _callUserResponseHook(span: Span, response: NormalizedResponse) {
-    const { responseHook } = this.getConfig();
-    if (!responseHook) return;
-
-    const responseInfo: AwsSdkResponseHookInformation = {
-      response,
-    };
-    safeExecuteInTheMiddle(
-      () => responseHook(span, responseInfo),
-      (e: Error | undefined) => {
-        if (e) diag.error(`${AwsInstrumentation.component} instrumentation: responseHook error`, e);
-      },
-      true,
-    );
-  }
-
-  private _callUserExceptionResponseHook(span: Span, request: NormalizedRequest, err: any) {
-    const { exceptionHook } = this.getConfig();
-    if (!exceptionHook) return;
-    const requestInfo: AwsSdkRequestHookInformation = {
-      request,
-    };
-
-    safeExecuteInTheMiddle(
-      () => exceptionHook(span, requestInfo, err),
-      (e: Error | undefined) => {
-        if (e) diag.error(`${AwsInstrumentation.component} instrumentation: exceptionHook error`, e);
-      },
-      true,
-    );
-  }
-
   private _getV3ConstructStackPatch(
     moduleVersion: string | undefined,
     original: (...args: unknown[]) => MiddlewareStack<any, any>,
@@ -324,7 +282,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
           normalizedRequest,
           self.getConfig(),
           self._diag,
-          self._dbSemconvStability,
         );
         const startTime = timestampInSeconds();
         const span = self._startAwsV3Span(normalizedRequest, requestMetadata);
@@ -348,7 +305,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
               self._callUserPreRequestHook(span, normalizedRequest, moduleVersion);
               const resultPromise = context.with(activeContextWithSpan, () => {
                 self.servicesExtensions.requestPostSpanHook(normalizedRequest);
-                return self._callOriginalFunction(() => origHandler.call(this, command));
+                return origHandler.call(this, command);
               });
               const promiseWithResponseLogic = resultPromise
                 .then((response: any) => {
@@ -359,12 +316,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
                   const httpStatusCode = response.output?.$metadata?.httpStatusCode;
                   if (httpStatusCode) {
-                    if (self._httpSemconvStability & SemconvStability.OLD) {
-                      span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
-                    }
-                    if (self._httpSemconvStability & SemconvStability.STABLE) {
-                      span.setAttribute(ATTR_HTTP_RESPONSE_STATUS_CODE, httpStatusCode);
-                    }
+                    span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
                   }
 
                   const extendedRequestId = response.output?.$metadata?.extendedRequestId;
@@ -388,7 +340,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                     response.output = override;
                     normalizedResponse.data = override;
                   }
-                  self._callUserResponseHook(span, normalizedResponse);
                   return response;
                 })
                 .catch((err: any) => {
@@ -399,12 +350,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
                   const httpStatusCode = err?.$metadata?.httpStatusCode;
                   if (httpStatusCode) {
-                    if (self._httpSemconvStability & SemconvStability.OLD) {
-                      span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
-                    }
-                    if (self._httpSemconvStability & SemconvStability.STABLE) {
-                      span.setAttribute(ATTR_HTTP_RESPONSE_STATUS_CODE, httpStatusCode);
-                    }
+                    span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
                   }
 
                   const extendedRequestId = err?.extendedRequestId;
@@ -417,7 +363,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                     message: err.message,
                   });
                   span.recordException(err);
-                  self._callUserExceptionResponseHook(span, normalizedRequest, err);
                   throw err;
                 })
                 .finally(() => {
@@ -437,20 +382,5 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
       };
       return patchedHandler;
     };
-  }
-
-  private _callOriginalFunction<T>(originalFunction: (...args: any[]) => T): T {
-    if (this.getConfig().suppressInternalInstrumentation) {
-      return context.with(suppressTracing(context.active()), originalFunction);
-    } else {
-      return originalFunction();
-    }
-  }
-
-  override _updateMetricInstruments() {
-    if (!this.servicesExtensions) {
-      this.servicesExtensions = new ServicesExtensions();
-    }
-    this.servicesExtensions.updateMetricInstruments(this.meter);
   }
 }
