@@ -40,6 +40,7 @@ describe('mysql auto instrumentation', () => {
         op: 'db',
         ...(origin ? { origin } : {}),
         data: expect.objectContaining({
+          'sentry.origin': 'auto.db.otel.mysql',
           'db.system': 'mysql',
           'net.peer.name': 'localhost',
           'net.peer.port': port,
@@ -175,4 +176,63 @@ describe('mysql auto instrumentation', () => {
       );
     });
   }
+  describe('without connection.connect()', () => {
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-withoutConnect.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('should auto-instrument `mysql` package without connection.connect()', async () => {
+          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        });
+      },
+      { failsOnEsm: true },
+    );
+  });
+
+  describe('with createPool()', () => {
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-withPool.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('should auto-instrument `mysql` package when querying through a pool', async () => {
+          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        });
+      },
+      { failsOnEsm: true },
+    );
+  });
+
+  describe('streamed query error', () => {
+    const EXPECTED_ERROR_TRANSACTION = {
+      transaction: 'Test Transaction',
+      spans: expect.arrayContaining([
+        expect.objectContaining({
+          description: 'SELECT * FROM does_not_exist',
+          op: 'db',
+          origin: 'auto.db.otel.mysql',
+          // A failing streamed query emits `error`, which marks the span as errored
+          status: 'internal_error',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.mysql',
+            'db.system': 'mysql',
+            'db.user': 'root',
+          }),
+        }),
+      ]),
+    };
+
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-streamError.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('should mark the span as errored when a streamed query fails', async () => {
+          await createTestRunner().expect({ transaction: EXPECTED_ERROR_TRANSACTION }).start().completed();
+        });
+      },
+      { failsOnEsm: true },
+    );
+  });
 });
