@@ -19,7 +19,6 @@
  * - Backported the `@smithy/core` >= 3.24.0 support from upstream 0.74.0
  *   (https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3530)
  */
-/* eslint-disable */
 
 import { Span, SpanKind, context, trace, diag, SpanStatusCode } from '@opentelemetry/api';
 import { AttributeNames } from './enums';

@@ -17,7 +17,6 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-aws-sdk
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
-/* eslint-disable */
 
 import { Attributes, Span, SpanKind } from '@opentelemetry/api';
 import { ATTR_AWS_SECRETSMANAGER_SECRET_ARN } from '../semconv';
@@ -28,7 +27,6 @@ export class SecretsManagerServiceExtension implements ServiceExtension {
   requestPreSpanHook(request: NormalizedRequest, _config: AwsSdkInstrumentationConfig): RequestMetadata {
     const secretId = request.commandInput?.SecretId;
     const spanKind: SpanKind = SpanKind.CLIENT;
-    let spanName: string | undefined;
     const spanAttributes: Attributes = {};
     if (typeof secretId === 'string' && secretId.startsWith('arn:aws:secretsmanager:')) {
       spanAttributes[ATTR_AWS_SECRETSMANAGER_SECRET_ARN] = secretId;
@@ -38,7 +36,6 @@ export class SecretsManagerServiceExtension implements ServiceExtension {
       isIncoming: false,
       spanAttributes,
       spanKind,
-      spanName,
     };
   }
 
