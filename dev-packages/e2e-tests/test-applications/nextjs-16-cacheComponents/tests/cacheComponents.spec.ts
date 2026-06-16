@@ -80,3 +80,10 @@ test('Should generate metadata async', async ({ page }) => {
   await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
   await expect(page).toHaveTitle('Product: 1');
 });
+
+test('Should prerender a page that captures an exception in generateMetadata', async ({ page }) => {
+  await page.goto('/capture-metadata');
+
+  await expect(page).toHaveTitle('capture-metadata');
+  await expect(page.locator('h1')).toHaveText('capture-metadata');
+});
