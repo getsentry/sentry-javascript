@@ -163,6 +163,12 @@ export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { addVercelAiProcessors } from './tracing/vercel-ai';
+export {
+  failVercelAiTracingChannelSpan as _INTERNAL_failVercelAiTracingChannelSpan,
+  finishVercelAiTracingChannelSpan as _INTERNAL_finishVercelAiTracingChannelSpan,
+  startVercelAiTracingChannelSpan as _INTERNAL_startVercelAiTracingChannelSpan,
+} from './tracing/vercel-ai/tracing-channel';
+export type { VercelAiTracingChannelMessage as _INTERNAL_VercelAiTracingChannelMessage } from './tracing/vercel-ai/tracing-channel';
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
 export { instrumentOpenAiClient } from './tracing/openai';

@@ -8,6 +8,7 @@ import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJS
 import { spanToJSON } from '../../utils/spanUtils';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
+  GEN_AI_FUNCTION_ID_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
@@ -434,7 +435,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
 
   const functionId = attributes[AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE];
   if (functionId && typeof functionId === 'string') {
-    span.setAttribute('gen_ai.function_id', functionId);
+    span.setAttribute(GEN_AI_FUNCTION_ID_ATTRIBUTE, functionId);
   }
 
   requestMessagesFromPrompt(span, attributes, enableTruncation);

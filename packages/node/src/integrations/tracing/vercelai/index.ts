@@ -3,6 +3,7 @@ import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce, type modulesIntegration } from '@sentry/node-core';
 import { INTEGRATION_NAME } from './constants';
 import { SentryVercelAiInstrumentation } from './instrumentation';
+import { subscribeVercelAiTracingChannel } from './tracing-channel-subscriber';
 import type { VercelAiOptions } from './types';
 
 export const instrumentVercelAi = generateInstrumentOnce(INTEGRATION_NAME, () => new SentryVercelAiInstrumentation({}));
@@ -35,6 +36,10 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
       } else {
         instrumentation?.callWhenPatched(() => addVercelAiProcessors(client));
       }
+
+      // AI SDK v7 publishes spans via node:diagnostics_channel.tracingChannel.
+      // Defer until after the Node SDK initializes the OpenTelemetry context manager.
+      void Promise.resolve().then(subscribeVercelAiTracingChannel);
     },
   };
 }) satisfies IntegrationFn;

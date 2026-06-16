@@ -170,6 +170,11 @@ export const GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE = 'gen_ai.response.tool_calls'
 export const GEN_AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name';
 
 /**
+ * The Vercel AI function ID
+ */
+export const GEN_AI_FUNCTION_ID_ATTRIBUTE = 'gen_ai.function_id';
+
+/**
  * The pipeline name
  */
 export const GEN_AI_PIPELINE_NAME_ATTRIBUTE = 'gen_ai.pipeline.name';
