@@ -71,17 +71,13 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
       const activeSpan = missingRequiredParent
-        ? new SentryNonRecordingSpan({ traceId: scope.getPropagationContext().traceId })
+        ? startMissingRequiredParentSpan(scope, client)
         : createChildOrRootSpan({
             parentSpan,
             spanArguments,
             forceTransaction,
             scope,
           });
-
-      if (missingRequiredParent) {
-        client?.recordDroppedEvent('no_parent_span', 'span');
-      }
 
       // Ignored root spans still need to be set on scope so that `getActiveSpan()` returns them
       // and descendants are also non-recording. Ignored child spans don't need this because
@@ -138,17 +134,13 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
       const activeSpan = missingRequiredParent
-        ? new SentryNonRecordingSpan({ traceId: scope.getPropagationContext().traceId })
+        ? startMissingRequiredParentSpan(scope, getClient())
         : createChildOrRootSpan({
             parentSpan,
             spanArguments,
             forceTransaction,
             scope,
           });
-
-      if (missingRequiredParent) {
-        getClient()?.recordDroppedEvent('no_parent_span', 'span');
-      }
 
       // We don't set ignored child spans onto the scope because there likely is an active,
       // unignored span on the scope already.
@@ -208,8 +200,7 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
     const missingRequiredParent = options.onlyIfParent && !parentSpan;
 
     if (missingRequiredParent) {
-      client?.recordDroppedEvent('no_parent_span', 'span');
-      return new SentryNonRecordingSpan({ traceId: scope.getPropagationContext().traceId });
+      return startMissingRequiredParentSpan(scope, client);
     }
 
     return createChildOrRootSpan({
@@ -330,6 +321,19 @@ export function startNewTrace<T>(callback: () => T): T {
     DEBUG_BUILD && debug.log(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
     return withActiveSpan(null, callback);
   });
+}
+
+/**
+ * The placeholder returned from `startSpan*` when `onlyIfParent` is set but there is no parent span.
+ * It carries the current trace id and captured scopes so the trace data it propagates (and any nested
+ * span that resolves it as its root via `getRootSpan`) reads its DSC from the scope, preserving a
+ * continued trace's DSC instead of fabricating a fresh client one. Also records the dropped-span outcome.
+ */
+function startMissingRequiredParentSpan(scope: Scope, client: Client | undefined): SentryNonRecordingSpan {
+  client?.recordDroppedEvent('no_parent_span', 'span');
+  const span = new SentryNonRecordingSpan({ traceId: scope.getPropagationContext().traceId });
+  setCapturedScopesOnSpan(span, scope, getIsolationScope());
+  return span;
 }
 
 function createChildOrRootSpan({

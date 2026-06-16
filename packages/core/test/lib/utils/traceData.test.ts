@@ -181,6 +181,38 @@ describe('getTraceData', () => {
     });
   });
 
+  it('preserves the continued-trace DSC under (and nested within) an onlyIfParent placeholder', () => {
+    // The placeholder captures the scope, so it (and any nested span that resolves it as its root
+    // via `getRootSpan`) reads the continued trace's DSC from the scope instead of fabricating a
+    // fresh client one.
+    setupClient({ tracesSampleRate: undefined });
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+      sampled: true,
+      dsc: {
+        environment: 'production',
+        public_key: '123',
+        trace_id: '12345678901234567890123456789012',
+        sampled: 'true',
+        sample_rate: '0.5',
+        transaction: 'continued-root-txn',
+      },
+    });
+
+    startSpan({ name: 'parent', onlyIfParent: true }, () => {
+      expect(getTraceData().baggage).toContain('sentry-transaction=continued-root-txn');
+
+      startSpan({ name: 'nested' }, () => {
+        const baggage = getTraceData().baggage;
+        expect(baggage).toContain('sentry-transaction=continued-root-txn');
+        expect(baggage).toContain('sentry-sample_rate=0.5');
+        expect(baggage).toContain('sentry-sampled=true');
+      });
+    });
+  });
+
   it('keeps an explicit negative sampling decision for an active unsampled span', () => {
     setupClient({ tracesSampleRate: 0 });
 
