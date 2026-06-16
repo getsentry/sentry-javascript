@@ -70,7 +70,7 @@
     "@nuxt/nitro-server": "^3.21.6",
     "nitro": "^3.0.260311-beta",
     "nuxi": "^3.25.1",
-    "nuxt": "3.17.7",
+    "nuxt": "3.21.6",
     "vite": "^5.4.11"
   },
   "scripts": {
