@@ -3,7 +3,5 @@
 
   "include": ["src/**/*"],
 
-  "compilerOptions": {
-    "module": "esnext"
-  }
+  "compilerOptions": {}
 }

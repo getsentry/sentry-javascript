@@ -4,7 +4,6 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    "lib": ["ES2020", "ES2021.WeakRef"],
-    "module": "esnext"
+    "lib": ["ES2020", "ES2021.WeakRef"]
   }
 }

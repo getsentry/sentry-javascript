@@ -5,7 +5,6 @@
 
   "compilerOptions": {
     "lib": ["DOM", "es2020"],
-    "module": "esnext",
     // package-specific options
     "esModuleInterop": true,
     "jsx": "react"
