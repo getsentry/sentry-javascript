@@ -5,7 +5,6 @@
 
   "compilerOptions": {
     "jsx": "react",
-    "module": "esnext",
-    "moduleResolution": "bundler"
+    "module": "esnext"
   }
 }

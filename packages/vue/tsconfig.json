@@ -5,7 +5,6 @@
 
   "compilerOptions": {
     "module": "esnext",
-    "moduleResolution": "bundler",
     "lib": ["DOM", "es2020"]
   }
 }

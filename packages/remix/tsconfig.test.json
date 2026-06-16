@@ -7,8 +7,7 @@
     "lib": ["DOM", "es2020"],
     "types": ["node"],
     // Required for top-level await in tests
-    "module": "Node16",
-    "moduleResolution": "Node16",
+    "module": "esnext",
     "target": "es2020",
 
     "esModuleInterop": true

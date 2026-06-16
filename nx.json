@@ -5,7 +5,8 @@
       "{workspaceRoot}/*.js",
       "{workspaceRoot}/*.json",
       "{workspaceRoot}/yarn.lock",
-      "{workspaceRoot}/dev-packages/rollup-utils/**"
+      "{workspaceRoot}/dev-packages/rollup-utils/**",
+      "{workspaceRoot}/packages/typescript/**"
     ],
     "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md", "!{projectRoot}/*.tgz"]
   },
