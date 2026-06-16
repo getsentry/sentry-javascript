@@ -140,8 +140,6 @@ export function makeTerserPlugin() {
           '_sentryId',
           // Keeps the frozen DSC on a Sentry Span
           '_frozenDsc',
-          // Brand used by `spanIsNonRecordingSpan` to detect non-recording spans across bundles
-          '_sentryNonRecordingSpan',
           // These are used to keep span & scope relationships
           '_sentryRootSpan',
           '_sentryChildSpans',
