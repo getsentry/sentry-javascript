@@ -19,7 +19,7 @@
  */
 /* eslint-disable */
 
-import { Span, Tracer, SpanKind, Attributes } from '@opentelemetry/api';
+import { Span, SpanKind, Attributes } from '@opentelemetry/api';
 import { ATTR_AWS_SNS_TOPIC_ARN, ATTR_MESSAGING_SYSTEM } from '../semconv';
 import {
   ATTR_MESSAGING_DESTINATION,
@@ -72,7 +72,7 @@ export class SnsServiceExtension implements ServiceExtension {
     }
   }
 
-  responseHook(response: NormalizedResponse, span: Span, tracer: Tracer, config: AwsSdkInstrumentationConfig): void {
+  responseHook(response: NormalizedResponse, span: Span): void {
     const topicArn = response.data?.TopicArn;
     if (topicArn) {
       span.setAttribute(ATTR_AWS_SNS_TOPIC_ARN, topicArn);

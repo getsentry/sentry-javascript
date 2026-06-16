@@ -19,7 +19,7 @@
  */
 /* eslint-disable */
 
-import { Attributes, Span, SpanKind, Tracer } from '@opentelemetry/api';
+import { Attributes, Span, SpanKind } from '@opentelemetry/api';
 import { ATTR_AWS_SECRETSMANAGER_SECRET_ARN } from '../semconv';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import { NormalizedRequest, NormalizedResponse, AwsSdkInstrumentationConfig } from '../types';
@@ -42,7 +42,7 @@ export class SecretsManagerServiceExtension implements ServiceExtension {
     };
   }
 
-  responseHook(response: NormalizedResponse, span: Span, tracer: Tracer, config: AwsSdkInstrumentationConfig): void {
+  responseHook(response: NormalizedResponse, span: Span): void {
     const secretArn = response.data?.ARN;
     if (secretArn) {
       span.setAttribute(ATTR_AWS_SECRETSMANAGER_SECRET_ARN, secretArn);

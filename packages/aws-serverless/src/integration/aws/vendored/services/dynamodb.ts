@@ -19,7 +19,7 @@
  */
 /* eslint-disable */
 
-import { Attributes, DiagLogger, Span, SpanKind, Tracer } from '@opentelemetry/api';
+import { Attributes, DiagLogger, Span, SpanKind } from '@opentelemetry/api';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import {
   ATTR_AWS_DYNAMODB_ATTRIBUTE_DEFINITIONS,
@@ -185,7 +185,7 @@ export class DynamodbServiceExtension implements ServiceExtension {
     };
   }
 
-  responseHook(response: NormalizedResponse, span: Span, _tracer: Tracer, _config: AwsSdkInstrumentationConfig) {
+  responseHook(response: NormalizedResponse, span: Span) {
     if (response.data?.ConsumedCapacity) {
       span.setAttribute(
         ATTR_AWS_DYNAMODB_CONSUMED_CAPACITY,

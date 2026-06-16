@@ -54,7 +54,7 @@ import {
 import { propwrap } from './propwrap';
 import { RequestMetadata } from './services/ServiceExtension';
 import { ATTR_HTTP_STATUS_CODE } from './semconv';
-import { SDK_VERSION, timestampInSeconds } from '@sentry/core';
+import { SDK_VERSION, startInactiveSpan } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-aws-sdk';
 
@@ -167,7 +167,13 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
   private _startAwsV3Span(normalizedRequest: NormalizedRequest, metadata: RequestMetadata): Span {
     const name = metadata.spanName ?? `${normalizedRequest.serviceName}.${normalizedRequest.commandName}`;
-    const newSpan = this.tracer.startSpan(name, {
+    // Use Sentry's `startInactiveSpan` instead of the OTel tracer so the span goes through Sentry's
+    // sampling/scope/processing pipeline. The span is activated manually further down via the OTel
+    // context (`trace.setSpan` + `context.with`), so we create it inactive here.
+    // In the Node SDK this returns the underlying OTel span, which is why it can still be used with
+    // the OTel context APIs below.
+    const newSpan = startInactiveSpan({
+      name,
       kind: metadata.spanKind ?? SpanKind.CLIENT,
       attributes: {
         ...extractAttributesFromNormalizedRequest(normalizedRequest),
@@ -175,7 +181,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
       },
     });
 
-    return newSpan;
+    return newSpan as unknown as Span;
   }
 
   private _callUserPreRequestHook(span: Span, request: NormalizedRequest, moduleVersion: string | undefined) {
@@ -283,7 +289,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
           self.getConfig(),
           self._diag,
         );
-        const startTime = timestampInSeconds();
         const span = self._startAwsV3Span(normalizedRequest, requestMetadata);
         const activeContextWithSpan = trace.setSpan(context.active(), span);
 
@@ -329,13 +334,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                     request: normalizedRequest,
                     requestId: requestId,
                   };
-                  const override = self.servicesExtensions.responseHook(
-                    normalizedResponse,
-                    span,
-                    self.tracer,
-                    self.getConfig(),
-                    startTime,
-                  );
+                  const override = self.servicesExtensions.responseHook(normalizedResponse, span);
                   if (override) {
                     response.output = override;
                     normalizedResponse.data = override;
@@ -362,7 +361,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                     code: SpanStatusCode.ERROR,
                     message: err.message,
                   });
-                  span.recordException(err);
                   throw err;
                 })
                 .finally(() => {
