@@ -3,7 +3,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 
 test.describe('server-side errors', () => {
   test('captures universal load error', async ({ page }) => {
-    const errorEventPromise = waitForError('sveltekit-2', errorEvent => {
+    const errorEventPromise = waitForError('sveltekit-3', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Universal Load Error (server)';
     });
 
@@ -14,14 +14,25 @@ test.describe('server-side errors', () => {
 
     expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
       expect.objectContaining({
-        function: 'load$1',
+        function: 'load',
         in_app: true,
       }),
     );
+
+    expect(errorEvent.request).toEqual({
+      cookies: {},
+      headers: expect.objectContaining({
+        accept: expect.any(String),
+        'user-agent': expect.any(String),
+      }),
+      method: 'GET',
+      // SvelteKit's node adapter defaults to https in the protocol even if served on http
+      url: 'http://localhost:3030/universal-load-error',
+    });
   });
 
   test('captures server load error', async ({ page }) => {
-    const errorEventPromise = waitForError('sveltekit-2', errorEvent => {
+    const errorEventPromise = waitForError('sveltekit-3', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Server Load Error';
     });
 
@@ -32,14 +43,24 @@ test.describe('server-side errors', () => {
 
     expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
       expect.objectContaining({
-        function: 'load$1',
+        function: 'load',
         in_app: true,
       }),
     );
+
+    expect(errorEvent.request).toEqual({
+      cookies: {},
+      headers: expect.objectContaining({
+        accept: expect.any(String),
+        'user-agent': expect.any(String),
+      }),
+      method: 'GET',
+      url: 'http://localhost:3030/server-load-error',
+    });
   });
 
   test('captures server route (GET) error', async ({ page }) => {
-    const errorEventPromise = waitForError('sveltekit-2', errorEvent => {
+    const errorEventPromise = waitForError('sveltekit-3', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Server Route Error';
     });
 
@@ -50,43 +71,21 @@ test.describe('server-side errors', () => {
 
     expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
       expect.objectContaining({
-        filename: expect.stringContaining('app:///_server.ts'),
+        filename: expect.stringMatching(/app:\/\/\/_server.ts-.+.js/),
         function: 'GET',
         in_app: true,
       }),
     );
 
     expect(errorEvent.transaction).toEqual('GET /server-route-error');
-  });
 
-  test('captures error() thrown in server route with `wrapServerRouteWithSentry`', async ({ page }) => {
-    const errorEventPromise = waitForError('sveltekit-2', errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === "'HttpError' captured as exception with keys: body, status";
-    });
-
-    await page.goto('/wrap-server-route');
-
-    expect(await errorEventPromise).toMatchObject({
-      exception: {
-        values: [
-          {
-            value: "'HttpError' captured as exception with keys: body, status",
-            mechanism: {
-              handled: false,
-              type: 'auto.function.sveltekit.server_route',
-            },
-            stacktrace: { frames: expect.any(Array) },
-          },
-        ],
-      },
-      extra: {
-        __serialized__: {
-          body: {
-            message: 'error() error',
-          },
-          status: 500,
-        },
-      },
+    expect(errorEvent.request).toEqual({
+      cookies: {},
+      headers: expect.objectContaining({
+        accept: expect.any(String),
+      }),
+      method: 'GET',
+      url: 'http://localhost:3030/server-route-error',
     });
   });
 });

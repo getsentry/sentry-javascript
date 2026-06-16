@@ -14,6 +14,17 @@ export default defineConfig({
     sveltekit({
       preprocess: vitePreprocess(),
       adapter: adapter(),
+      // Enable SvelteKit's native server-side OpenTelemetry tracing so the Sentry
+      // SDK picks up Kit's spans instead of starting its own `http.server` span.
+      // `Sentry.init` consequently lives in `src/instrumentation.server.ts`.
+      experimental: {
+        instrumentation: {
+          server: true,
+        },
+        tracing: {
+          server: true,
+        },
+      },
     }),
   ],
 });

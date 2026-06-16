@@ -5,6 +5,12 @@ float the `next` dist-tag: `@sveltejs/kit@next`, `@sveltejs/adapter-node@next`,
 `@sveltejs/adapter-auto@next`). Built on Svelte 5, Vite 8, vite-plugin-svelte 7, TypeScript 6,
 Node 22 — the minimums SvelteKit 3 requires.
 
+This app enables SvelteKit's **native server-side OpenTelemetry tracing**
+(`experimental.tracing.server` + `experimental.instrumentation.server`), so the Sentry SDK
+picks up Kit's spans instead of starting its own `http.server` span. `Sentry.init` therefore
+lives in `src/instrumentation.server.ts`, and the `tests/tracing.*` suites assert the native span
+tree (`sveltekit.handle.root`, `function.sveltekit.resolve`, form-action spans, etc.).
+
 ## Status: `sentryTest.skip = true` (draft)
 
 This app is **skipped in CI** because it cannot build on the current SvelteKit 3 prerelease yet.
@@ -13,7 +19,7 @@ The build fails in SvelteKit's own pipeline (reproduced with the Sentry plugin r
 **not** a Sentry issue):
 
 ```
-[vite]: Rolldown failed to resolve import "$env/static/private" from "src/hooks.server.ts"
+[vite]: Rolldown failed to resolve import "$env/static/private" from "src/instrumentation.server.ts"
 ```
 
 SvelteKit 3 ships on Vite 8 / Rolldown, and `$env/*` virtual-module resolution is broken in the

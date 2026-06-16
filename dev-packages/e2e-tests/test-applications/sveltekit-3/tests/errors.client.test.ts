@@ -6,7 +6,7 @@ test.describe('client-side errors', () => {
   test('captures error thrown on click', async ({ page }) => {
     await waitForInitialPageload(page, { route: '/client-error' });
 
-    const errorEventPromise = waitForError('sveltekit-2', errorEvent => {
+    const errorEventPromise = waitForError('sveltekit-3', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Click Error';
     });
 
@@ -33,7 +33,7 @@ test.describe('client-side errors', () => {
     await waitForInitialPageload(page);
     await page.reload();
 
-    const errorEventPromise = waitForError('sveltekit-2', errorEvent => {
+    const errorEventPromise = waitForError('sveltekit-3', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Universal Load Error (browser)';
     });
 
