@@ -17,7 +17,7 @@ export {
   createConsolaReporter,
 } from '@sentry/core/browser';
 
-export { replayIntegration, getReplay } from '@sentry-internal/replay';
+export { replayIntegration, getReplay } from '@sentry/replay';
 export type {
   ReplayEventType,
   ReplayEventWithTime,
@@ -28,11 +28,11 @@ export type {
   ReplayFrameEvent,
   ReplaySpanFrame,
   ReplaySpanFrameEvent,
-} from '@sentry-internal/replay';
+} from '@sentry/replay';
 
-export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
+export { replayCanvasIntegration } from '@sentry/replay-canvas';
 export { feedbackAsyncIntegration, feedbackSyncIntegration, feedbackSyncIntegration as feedbackIntegration };
-export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
+export { getFeedback, sendFeedback } from '@sentry/feedback';
 
 export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';
 export {
@@ -41,11 +41,13 @@ export {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
-export { elementTimingIntegration } from '@sentry-internal/browser-utils';
+export { elementTimingIntegration } from '@sentry/browser-utils';
+export { normalizeStringifyValue } from './normalizeStringifyValue';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 export { spanStreamingIntegration } from './integrations/spanstreaming';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
+export { webVitalsIntegration } from './integrations/webVitals';
 
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {

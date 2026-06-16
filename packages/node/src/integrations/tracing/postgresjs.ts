@@ -5,9 +5,9 @@ import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from './InstrumentationNodeModuleFile';
 import {
   ATTR_DB_OPERATION_NAME,
   ATTR_DB_QUERY_TEXT,
@@ -281,11 +281,14 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
         resolve: unknown;
         reject: unknown;
         strings?: string[];
+        executed?: boolean;
       },
       ...args: unknown[]
     ): Promise<unknown> {
-      // Skip if this query came from an instrumented sql instance (already handled by wrapper)
-      if ((this as Record<symbol, unknown>)[QUERY_FROM_INSTRUMENTED_SQL]) {
+      // Skip if this query came from an instrumented sql instance (already handled by wrapper),
+      // or if handle() was already called (postgres.js calls handle() from then/catch/finally —
+      // only the first call executes SQL, subsequent calls are no-ops).
+      if (this.executed || (this as Record<symbol, unknown>)[QUERY_FROM_INSTRUMENTED_SQL]) {
         return originalHandle.apply(this, args);
       }
 

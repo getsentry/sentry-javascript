@@ -47,13 +47,15 @@ export declare type AttributeValue =
 
 export interface VercelAiOptions {
   /**
-   * Enable or disable input recording. Enabled if `sendDefaultPii` is `true`
-   * or if you set `isEnabled` to `true` in your ai SDK method telemetry settings
+   * Enable or disable input recording. Enabled if `dataCollection.genAI.inputs` (or the deprecated `sendDefaultPii` option) is `true`
+   * or if you set `isEnabled` to `true` in your ai SDK method telemetry settings.
+   * Integration-level options take precedence over global `dataCollection` config.
    */
   recordInputs?: boolean;
   /**
-   * Enable or disable output recording. Enabled if `sendDefaultPii` is `true`
-   * or if you set `isEnabled` to `true` in your ai SDK method telemetry settings
+   * Enable or disable output recording. Enabled if `dataCollection.genAI.outputs` (or the deprecated `sendDefaultPii` option) is `true`
+   * or if you set `isEnabled` to `true` in your ai SDK method telemetry settings.
+   * Integration-level options take precedence over global `dataCollection` config.
    */
   recordOutputs?: boolean;
 

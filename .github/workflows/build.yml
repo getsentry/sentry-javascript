@@ -353,8 +353,14 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
+      - name: Install dependencies
+        run: yarn install --ignore-engines
       - name: Check that yarn.lock is stable
-        run: yarn install --frozen-lockfile --ignore-engines
+        run: |
+          if ! git diff --exit-code yarn.lock; then
+            echo "::error::yarn.lock has uncommitted changes after running 'yarn install'. Please run 'yarn install' locally and commit the updated yarn.lock."
+            exit 1
+          fi
       - name: Check for duplicate dependencies in lockfile
         run: yarn dedupe-deps:check
 
@@ -531,7 +537,7 @@ jobs:
       - name: Set up Deno
         uses: denoland/setup-deno@v2.0.4
         with:
-          deno-version: v2.1.5
+          deno-version: ${{ matrix.deno-version || 'v2.8.0' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -978,7 +984,7 @@ jobs:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
         if:
-          contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun", "hono-4"]'),
+          contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun", "hono-4", "bun-bytecode"]'),
           matrix.test-application)
         uses: oven-sh/setup-bun@v2
         with:
@@ -990,10 +996,12 @@ jobs:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Deno
-        if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
+        if:
+          matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed' || matrix.test-application ==
+          'deno-redis' || matrix.test-application == 'hono-4'
         uses: denoland/setup-deno@v2.0.4
         with:
-          deno-version: v2.1.5
+          deno-version: ${{ matrix.deno-version || 'v2.8.0' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1112,6 +1120,11 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
+      - name: Set up Deno
+        if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
+        uses: denoland/setup-deno@v2.0.4
+        with:
+          deno-version: ${{ matrix.deno-version || 'v2.8.0' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1215,7 +1228,7 @@ jobs:
 
       - name: Create issues for failed jobs
         if: github.ref == 'refs/heads/develop' && contains(needs.*.result, 'failure')
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { default: run } = await import(

@@ -61,10 +61,16 @@ function createMockSpan() {
 }
 
 function createMockContext(options: { hasStorage?: boolean; hasWaitUntil?: boolean } = {}) {
+  const mockKv = {
+    get: vi.fn().mockReturnValue(undefined),
+    put: vi.fn(),
+    delete: vi.fn().mockReturnValue(false),
+  };
   const mockStorage = {
     get: vi.fn().mockResolvedValue(undefined),
     put: vi.fn().mockResolvedValue(undefined),
     delete: vi.fn().mockResolvedValue(false),
+    kv: mockKv,
   };
 
   return {
@@ -115,11 +121,11 @@ describe('wrapMethodWithSentry', () => {
       expect(result).toBe('sync-result');
     });
 
-    it('wraps a sync method with startNewTrace and preserves sync behavior', () => {
+    it('wraps a sync method with startNewTrace and preserves sync behavior (no storage)', () => {
       const handler = vi.fn().mockReturnValue('sync-result');
       const options = {
         options: {},
-        context: createMockContext(),
+        context: createMockContext({ hasStorage: false }),
         spanName: 'test-span',
         startNewTrace: true,
       };
@@ -128,6 +134,7 @@ describe('wrapMethodWithSentry', () => {
       const result = wrapped();
 
       expect(handler).toHaveBeenCalled();
+      // Without storage, there's no linkPromise, so sync behavior is preserved
       expect(result).not.toBeInstanceOf(Promise);
       expect(result).toBe('sync-result');
     });
@@ -147,16 +154,34 @@ describe('wrapMethodWithSentry', () => {
       expect(handler).toHaveBeenCalled();
     });
 
-    it('does not change sync/async behavior when startNewTrace is true (links are set via waitUntil)', () => {
+    it('preserves sync behavior when startNewTrace is true with storage (sync KV API)', () => {
       const handler = vi.fn().mockReturnValue('sync-result');
-      const mockStorage = {
-        get: vi.fn().mockResolvedValue(undefined),
-        put: vi.fn().mockResolvedValue(undefined),
+      const context = createMockContext({ hasStorage: true, hasWaitUntil: true });
+
+      const options = {
+        options: {},
+        context,
+        spanName: 'alarm',
+        startNewTrace: true,
       };
+
+      const wrapped = wrapMethodWithSentry(options, handler);
+      const result = wrapped();
+
+      // With sync KV API, the trace link is read synchronously, so sync behavior is preserved
+      expect(result).not.toBeInstanceOf(Promise);
+      expect(result).toBe('sync-result');
+      expect(handler).toHaveBeenCalled();
+      // waitUntil is called for teardown
+      expect(context.waitUntil).toHaveBeenCalled();
+    });
+
+    it('preserves sync behavior when startNewTrace is true but no storage', () => {
+      const handler = vi.fn().mockReturnValue('sync-result');
       const waitUntilPromises: Promise<void>[] = [];
       const context = {
         waitUntil: vi.fn((p: Promise<void>) => waitUntilPromises.push(p)),
-        originalStorage: mockStorage,
+        // No originalStorage - linkPromise will be undefined
       } as any;
 
       const options = {
@@ -169,12 +194,9 @@ describe('wrapMethodWithSentry', () => {
       const wrapped = wrapMethodWithSentry(options, handler);
       const result = wrapped();
 
-      // startNewTrace does not make the result async - links are set via waitUntil
+      // Without storage, there's no linkPromise, so sync behavior is preserved
       expect(result).not.toBeInstanceOf(Promise);
       expect(result).toBe('sync-result');
-
-      // The link fetching happens via waitUntil, not blocking the response
-      expect(context.waitUntil).toHaveBeenCalled();
     });
 
     it('marks handler as instrumented', () => {
@@ -350,10 +372,11 @@ describe('wrapMethodWithSentry', () => {
         traceId: 'previous-trace-id-1234567890123456',
         spanId: 'previous-span-id',
       };
-      const mockStorage = {
-        get: vi.fn().mockResolvedValue(storedContext),
-        put: vi.fn().mockResolvedValue(undefined),
+      const mockKv = {
+        get: vi.fn().mockReturnValue(storedContext),
+        put: vi.fn(),
       };
+      const mockStorage = { kv: mockKv };
       const context = {
         waitUntil: vi.fn(),
         originalStorage: mockStorage,
@@ -370,25 +393,26 @@ describe('wrapMethodWithSentry', () => {
       const wrapped = wrapMethodWithSentry(options, handler);
       await wrapped();
 
-      expect(mockStorage.get).toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm');
+      expect(mockKv.get).toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm');
     });
 
     it('builds span links from stored context', async () => {
       const storedContext = {
         traceId: 'previous-trace-id-1234567890123456',
         spanId: 'previous-span-id',
+        sampled: true,
       };
-      const mockStorage = {
-        get: vi.fn().mockResolvedValue(storedContext),
-        put: vi.fn().mockResolvedValue(undefined),
+      const mockKv = {
+        get: vi.fn().mockReturnValue(storedContext),
+        put: vi.fn(),
       };
+      const mockStorage = { kv: mockKv };
 
       const mockSpan = createMockSpan();
       vi.mocked(sentryCore.startSpan).mockImplementation((opts, callback) => callback(mockSpan as any));
 
-      const waitUntilPromises: Promise<void>[] = [];
       const context = {
-        waitUntil: vi.fn((p: Promise<void>) => waitUntilPromises.push(p)),
+        waitUntil: vi.fn(),
         originalStorage: mockStorage,
       } as any;
 
@@ -403,10 +427,7 @@ describe('wrapMethodWithSentry', () => {
       const wrapped = wrapMethodWithSentry(options, handler);
       await wrapped();
 
-      // Wait for waitUntil promises to resolve (setSpanLinks is called via waitUntil)
-      await Promise.all(waitUntilPromises);
-
-      // addLinks should be called on the span with the stored context
+      // addLinks is called synchronously on the span with the stored context
       expect(mockSpan.addLinks).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
@@ -428,10 +449,11 @@ describe('wrapMethodWithSentry', () => {
         }),
       } as any);
 
-      const mockStorage = {
-        get: vi.fn().mockResolvedValue(undefined),
-        put: vi.fn().mockResolvedValue(undefined),
+      const mockKv = {
+        get: vi.fn().mockReturnValue(undefined),
+        put: vi.fn(),
       };
+      const mockStorage = { kv: mockKv };
       const context = {
         waitUntil: vi.fn(),
         originalStorage: mockStorage,
@@ -448,8 +470,8 @@ describe('wrapMethodWithSentry', () => {
       const wrapped = wrapMethodWithSentry(options, handler);
       await wrapped();
 
-      // Should store span context for future linking
-      expect(mockStorage.put).toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm', expect.any(Object));
+      // Should store span context for future linking via sync KV API
+      expect(mockKv.put).toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm', expect.any(Object));
     });
 
     it('does not store span context when startNewTrace is false', async () => {
@@ -460,10 +482,11 @@ describe('wrapMethodWithSentry', () => {
         }),
       } as any);
 
-      const mockStorage = {
-        get: vi.fn().mockResolvedValue(undefined),
-        put: vi.fn().mockResolvedValue(undefined),
+      const mockKv = {
+        get: vi.fn().mockReturnValue(undefined),
+        put: vi.fn(),
       };
+      const mockStorage = { kv: mockKv };
 
       const waitUntilPromises: Promise<void>[] = [];
       const context = {
@@ -486,7 +509,7 @@ describe('wrapMethodWithSentry', () => {
       await Promise.all(waitUntilPromises);
 
       // Should NOT store span context when startNewTrace is false
-      expect(mockStorage.put).not.toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm', expect.any(Object));
+      expect(mockKv.put).not.toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm', expect.any(Object));
     });
   });
 

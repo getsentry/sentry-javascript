@@ -1,4 +1,4 @@
-import { buildFeedbackIntegration } from '@sentry-internal/feedback';
+import { buildFeedbackIntegration } from '@sentry/feedback';
 import { lazyLoadIntegration } from './utils/lazyLoadIntegration';
 
 /**

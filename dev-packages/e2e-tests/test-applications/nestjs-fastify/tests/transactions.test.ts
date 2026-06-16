@@ -62,7 +62,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           data: {
             'sentry.origin': 'auto.http.otel.fastify',
             'sentry.op': 'hook.fastify',
-            'hook.name': 'fastify -> @fastify/otel -> @fastify/middie - onRequest',
+            'hook.name': 'fastify -> @sentry/instrumentation-fastify -> @fastify/middie - onRequest',
             'fastify.type': 'hook',
             'hook.callback.name': 'runMiddie',
           },
@@ -80,7 +80,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           data: {
             'sentry.origin': 'auto.http.otel.fastify',
             'sentry.op': 'request_handler.fastify',
-            'hook.name': 'fastify -> @fastify/otel -> @fastify/middie - route-handler',
+            'hook.name': 'fastify -> @sentry/instrumentation-fastify -> @fastify/middie - route-handler',
             'fastify.type': 'request-handler',
             'http.route': '/test-transaction',
             'hook.callback.name': 'anonymous',
@@ -782,4 +782,21 @@ test('Calling canActivate method on service with Injectable decorator returns 20
 test('Calling @All method on service with Injectable decorator returns 200', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/test-all`);
   expect(response.status).toBe(200);
+});
+
+test('Sets error status on nest spans when a handler throws', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('nestjs-fastify', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-exception/:id';
+  });
+
+  await fetch(`${baseURL}/test-exception/123`);
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent.spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ op: 'request_context.nestjs', status: 'internal_error' }),
+      expect.objectContaining({ op: 'handler.nestjs', status: 'internal_error' }),
+    ]),
+  );
 });

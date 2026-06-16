@@ -37,7 +37,8 @@ export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
 export { spanStreamingIntegration } from './integrations/spanstreaming';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
+export { webVitalsIntegration } from './integrations/webVitals';
 
 export { feedbackIntegrationShim as feedbackAsyncIntegration, feedbackIntegrationShim as feedbackIntegration };
 
-export { replayIntegration, getReplay } from '@sentry-internal/replay';
+export { replayIntegration, getReplay } from '@sentry/replay';

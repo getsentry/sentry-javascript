@@ -19,8 +19,7 @@
  */
 /* eslint-disable */
 
-import { DiagLogger, HrTime, Meter, Span, SpanAttributes, SpanKind, Tracer } from '@opentelemetry/api';
-import { SemconvStability } from '@opentelemetry/instrumentation';
+import { DiagLogger, Span, SpanAttributes, SpanKind, Tracer } from '@opentelemetry/api';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
 
 export interface RequestMetadata {
@@ -41,7 +40,6 @@ export interface ServiceExtension {
     request: NormalizedRequest,
     config: AwsSdkInstrumentationConfig,
     diag: DiagLogger,
-    dbSemconvStability?: SemconvStability,
   ) => RequestMetadata;
 
   // called before request is sent, and after span is started
@@ -53,8 +51,6 @@ export interface ServiceExtension {
     span: Span,
     tracer: Tracer,
     config: AwsSdkInstrumentationConfig,
-    startTime: HrTime,
+    startTime: number,
   ) => any | undefined;
-
-  updateMetricInstruments?: (meter: Meter) => void;
 }

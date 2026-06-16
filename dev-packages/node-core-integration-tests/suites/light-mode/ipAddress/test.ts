@@ -7,8 +7,8 @@ afterAll(() => {
 });
 
 conditionalTest({ min: 22 })('light mode ipAddress handling', () => {
-  test('does not include ip_address on events when sendDefaultPii is not set', async () => {
-    const runner = createRunner(__dirname, 'without-sendDefaultPii/server.js')
+  test('does not include ip_address on events when userInfo is not set', async () => {
+    const runner = createRunner(__dirname, 'without-userInfo/server.js')
       .expect({
         event: event => {
           expect(event.exception?.values?.[0]?.value).toBe('test error');
@@ -21,8 +21,8 @@ conditionalTest({ min: 22 })('light mode ipAddress handling', () => {
     await runner.completed();
   });
 
-  test('includes ip_address on events when sendDefaultPii is true', async () => {
-    const runner = createRunner(__dirname, 'with-sendDefaultPii/server.js')
+  test('includes ip_address on events when userInfo is true', async () => {
+    const runner = createRunner(__dirname, 'with-userInfo/server.js')
       .expect({
         event: event => {
           expect(event.exception?.values?.[0]?.value).toBe('test error');
@@ -35,7 +35,7 @@ conditionalTest({ min: 22 })('light mode ipAddress handling', () => {
     await runner.completed();
   });
 
-  // Even with sendDefaultPii: true, if requestDataIntegration is removed, ipAddress should not
+  // Even with userInfo: true, if requestDataIntegration is removed, ipAddress should not
   // leak onto the event. The ipAddress is stored in sdkProcessingMetadata on the isolation scope,
   // and only requestDataIntegration promotes it to event.user.ip_address. Without it,
   // sdkProcessingMetadata is stripped before envelope serialization (in envelope.ts).

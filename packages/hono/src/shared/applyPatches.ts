@@ -2,7 +2,7 @@ import { debug } from '@sentry/core';
 import type { Env, Hono } from 'hono';
 import { DEBUG_BUILD } from '../debug-build';
 import { patchAppRequest } from './patchAppRequest';
-import { patchAppUse } from './patchAppUse';
+import { patchAppUse, patchHttpMethodHandlers } from './patchAppUse';
 import { type HonoRoute, type RouteHookHandle, installRouteHookOnPrototype, wrapSubAppMiddleware } from './patchRoute';
 
 // Lazily set by the first call to earlyPatchHono or applyPatches.
@@ -30,6 +30,9 @@ export function applyPatches<E extends Env>(app: Hono<E>): void {
 
   // `app.use` (instance own property) — wraps middleware at registration time on this instance.
   patchAppUse(app);
+
+  // `app.get`, `app.post`, … (instance own properties) — wraps inline middleware (all-but-last handler).
+  patchHttpMethodHandlers(app);
 
   patchAppRequest(app);
 

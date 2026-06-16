@@ -19,7 +19,7 @@
  */
 /* eslint-disable */
 
-import { Attributes, DiagLogger, diag, Histogram, HrTime, Meter, Span, Tracer, ValueType } from '@opentelemetry/api';
+import { Attributes, DiagLogger, diag, Span, Tracer } from '@opentelemetry/api';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import {
   ATTR_GEN_AI_SYSTEM,
@@ -29,19 +29,13 @@ import {
   ATTR_GEN_AI_REQUEST_TEMPERATURE,
   ATTR_GEN_AI_REQUEST_TOP_P,
   ATTR_GEN_AI_REQUEST_STOP_SEQUENCES,
-  ATTR_GEN_AI_TOKEN_TYPE,
   ATTR_GEN_AI_USAGE_INPUT_TOKENS,
   ATTR_GEN_AI_USAGE_OUTPUT_TOKENS,
   ATTR_GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_OPERATION_NAME_VALUE_CHAT,
   GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
-  GEN_AI_TOKEN_TYPE_VALUE_INPUT,
-  GEN_AI_TOKEN_TYPE_VALUE_OUTPUT,
-  METRIC_GEN_AI_CLIENT_OPERATION_DURATION,
-  METRIC_GEN_AI_CLIENT_TOKEN_USAGE,
 } from '../semconv';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
-import { hrTime, hrTimeDuration, hrTimeToMilliseconds } from '@opentelemetry/core';
 
 // Simplified types inlined from @aws-sdk/client-bedrock-runtime
 // Only the fields accessed by this instrumentation are included
@@ -58,34 +52,7 @@ interface ConverseStreamOutput {
 }
 
 export class BedrockRuntimeServiceExtension implements ServiceExtension {
-  private tokenUsage!: Histogram;
-  private operationDuration!: Histogram;
   private _diag: DiagLogger = diag;
-
-  updateMetricInstruments(meter: Meter) {
-    // https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-metrics/#metric-gen_aiclienttokenusage
-    this.tokenUsage = meter.createHistogram(METRIC_GEN_AI_CLIENT_TOKEN_USAGE, {
-      unit: '{token}',
-      description: 'Measures number of input and output tokens used',
-      valueType: ValueType.INT,
-      advice: {
-        explicitBucketBoundaries: [
-          1, 4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304, 16777216, 67108864,
-        ],
-      },
-    });
-
-    // https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-metrics/#metric-gen_aiclientoperationduration
-    this.operationDuration = meter.createHistogram(METRIC_GEN_AI_CLIENT_OPERATION_DURATION, {
-      unit: 's',
-      description: 'GenAI operation duration',
-      advice: {
-        explicitBucketBoundaries: [
-          0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92,
-        ],
-      },
-    });
-  }
 
   requestPreSpanHook(
     request: NormalizedRequest,
@@ -295,7 +262,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     span: Span,
     tracer: Tracer,
     config: AwsSdkInstrumentationConfig,
-    startTime: HrTime,
+    startTime: number,
   ) {
     if (!span.isRecording()) {
       return;
@@ -318,7 +285,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     span: Span,
     tracer: Tracer,
     config: AwsSdkInstrumentationConfig,
-    startTime: HrTime,
+    startTime: number,
   ) {
     const { stopReason, usage } = response.data;
 
@@ -331,7 +298,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     span: Span,
     tracer: Tracer,
     config: AwsSdkInstrumentationConfig,
-    startTime: HrTime,
+    startTime: number,
   ) {
     return {
       ...response.data,
@@ -345,7 +312,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     response: NormalizedResponse,
     stream: AsyncIterable<ConverseStreamOutput>,
     span: Span,
-    startTime: HrTime,
+    startTime: number,
   ) {
     try {
       let usage: TokenUsage | undefined;
@@ -366,33 +333,14 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     }
   }
 
-  private setUsage(response: NormalizedResponse, span: Span, usage: TokenUsage | undefined, startTime: HrTime) {
-    const sharedMetricAttrs: Attributes = {
-      [ATTR_GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
-      [ATTR_GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_CHAT,
-      [ATTR_GEN_AI_REQUEST_MODEL]: response.request.commandInput.modelId,
-    };
-
-    const durationSecs = hrTimeToMilliseconds(hrTimeDuration(startTime, hrTime())) / 1000;
-    this.operationDuration.record(durationSecs, sharedMetricAttrs);
-
+  private setUsage(response: NormalizedResponse, span: Span, usage: TokenUsage | undefined, startTime: number) {
     if (usage) {
       const { inputTokens, outputTokens } = usage;
       if (inputTokens !== undefined) {
         span.setAttribute(ATTR_GEN_AI_USAGE_INPUT_TOKENS, inputTokens);
-
-        this.tokenUsage.record(inputTokens, {
-          ...sharedMetricAttrs,
-          [ATTR_GEN_AI_TOKEN_TYPE]: GEN_AI_TOKEN_TYPE_VALUE_INPUT,
-        });
       }
       if (outputTokens !== undefined) {
         span.setAttribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, outputTokens);
-
-        this.tokenUsage.record(outputTokens, {
-          ...sharedMetricAttrs,
-          [ATTR_GEN_AI_TOKEN_TYPE]: GEN_AI_TOKEN_TYPE_VALUE_OUTPUT,
-        });
       }
     }
   }

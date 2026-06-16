@@ -3,14 +3,13 @@
 You are reviewing a pull request for the Sentry JavaScript SDK.
 Flag any of the following indicators or missing requirements.
 If you find anything to flag, mention that you flagged this in the review because it was mentioned in this rules file.
-These issues are only relevant for production code.
-Do not flag the issues below if they appear in tests.
+Unless explicitly noted (e.g. in the `Testing Conventions` section), only flag the issues below in production code — ignore them in test files.
 
 ## Critical Issues to Flag
 
 ### Security Vulnerabilities
 
-- Exposed secrets, API keys, tokens or creentials in code or comments
+- Exposed secrets, API keys, tokens or credentials in code or comments
 - Unsafe use of `eval()`, `Function()`, or `innerHTML`
 - Unsafe regular expressions that could cause ReDoS attacks
 
@@ -24,9 +23,10 @@ Do not flag the issues below if they appear in tests.
 
 ### Performance Issues
 
-- Multiple loops over the same array (for example, using `.filter`, .`foreach`, chained). Suggest a classic `for` loop as a replacement.
-- Memory leaks from event listeners, timers, or closures not being cleaned up or unsubscribing
+- Multiple loops over the same array (for example, chaining `.filter`, `.map`, `.forEach`). Suggest a classic `for` loop as a replacement.
+- Memory leaks from event listeners, timers, or closures not being cleaned up / unsubscribed from
 - Large bundle size increases in browser packages. Sometimes they're unavoidable but flag them anyway.
+- Flag top-level side effects (function calls, mutations of module-level state, IIFEs) in modules that are reachable from a package's public entry points. Side effects defeat tree-shaking and inflate bundles for users who don't import the affected code. Pure exports (constants, classes, factory functions, side-effect-free declarations) are fine.
 
 ### Auto instrumentation, SDK integrations, Sentry-specific conventions
 
@@ -36,23 +36,28 @@ Do not flag the issues below if they appear in tests.
     - flag any non-conforming origin values as invalid and link to the trace origin specification (https://develop.sentry.dev/sdk/telemetry/traces/trace-origin/)
   - `SEMANTIC_ATTRIBUTE_SENTRY_OP` (`'sentry.op'`) with a proper span op
     - Span ops should be lower case only, and use snake_case. The `.` character is used to delimit op parts.
-    - flag any non-conforming origin values as invalid and link to the span op specification (https://develop.sentry.dev/sdk/telemetry/traces/span-operations/)
+    - flag any non-conforming op values as invalid and link to the span op specification (https://develop.sentry.dev/sdk/telemetry/traces/span-operations/)
 - When calling `captureException`, always make sure that the `mechanism` is set:
   - `handled`: must be set to `true` or `false`
-  - `type`: must be set to a proper origin (i.e. identify the integration and part in the integration that caught the exception).
-    - The type should align with the `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN` if a span wraps the `captureException` call.
-    - If there's no direct span that's wrapping the captured exception, apply a proper `type` value, following the same naming
-      convention as the `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN` value.
-- When calling `startSpan`, check if error cases are handled. If flag that it might make sense to try/catch and call `captureException`.
-- When calling `generateInstrumentationOnce`, the passed in name MUST match the name of the integration that uses it. If there are more than one instrumentations, they need to follow the pattern `${INSTRUMENTATION_NAME}.some-suffix`.
+  - `type`: must be a proper identifier (i.e. identify the integration and part in the integration that caught the exception). The value should follow the same naming convention as `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN`, and align with the surrounding span's origin when one exists.
+- When calling any `startSpan` API, check how errors in the instrumented code are handled:
+  - Generally, errors in instrumented code should be allowed to bubble up so the end user can handle them. If they remain unhandled, they will eventually be captured by Sentry through the SDK's global error handlers — so instrumentation code should typically **not** call `captureException` itself.
+  - Only consider calling `captureException` if the instrumentation prevents errors from bubbling up (e.g. by swallowing them in a `try/catch` or an error event listener). Doing so is generally discouraged — prefer to let the error propagate instead.
+  - Flag any instrumentation that swallows errors without calling `captureException`, and any instrumentation that calls `captureException` even though the error would still bubble up to the user (which causes double-reporting).
+- When calling `generateInstrumentationOnce`, the passed in name MUST match the name of the integration that uses it. If there are multiple instrumentations, they need to follow the pattern `${INSTRUMENTATION_NAME}.some-suffix`.
+- Flag any unguarded `debug.log` / `debug.warn` / `debug.error` call in SDK source. The convention is the short-circuit form `DEBUG_BUILD && debug.log(...)` (not `if (DEBUG_BUILD) { ... }` wrapping). Without the `DEBUG_BUILD` gate the message text ships in production bundles and bloats bundle size.
+- Flag direct `console.log` / `console.warn` / `console.error` / `console.info` / `console.debug` calls in SDK source. The accepted patterns are:
+  - The SDK's `debug` logger (gated with `DEBUG_BUILD && debug.*`) for SDK-internal diagnostics.
+  - `consoleSandbox(() => { console.warn(...) })` for intentional user-facing warnings (e.g. init-time misconfiguration messages). The `consoleSandbox` wrapper prevents the SDK's own console instrumentation from intercepting the call. Bare `console.*` calls outside very early init paths (e.g. before the logger is available) should be flagged.
+
+### Code quality
+
+- Flag new uses of `any`, `as any`, `as unknown as ...` double-casts, or non-null assertions (`!`) in SDK source. Each occurrence should have a comment explaining why a safer typing isn't possible; flag any that don't.
 
 ## Testing Conventions
 
-- When reviewing a `feat` PR, check if the PR includes at least one integration or E2E test.
-  If neither of the two are present, add a comment, recommending to add one.
-- When reviewing a `fix` PR, check if the PR includes at least one unit, integration or e2e test that tests the regression this PR fixes.
-  Usually this means the test failed prior to the fix and passes with the fix.
-  If no tests are present, add a comment recommending to add one.
+- When reviewing a `feat` PR, check if the PR includes at least one integration or E2E test. If neither is present, flag it and recommend adding one.
+- When reviewing a `fix` PR, check if the PR includes at least one unit, integration or E2E test that covers the regression this PR fixes. The test should fail without the fix and pass with it. If you cannot tell from the diff whether this is the case, ask the author to confirm. If no tests are present, flag it and recommend adding one.
 - Check that tests actually test the newly added behaviour.
   For instance, when checking on sent payloads by the SDK, ensure that the newly added data is asserted thoroughly.
 - Flag usage of `expect.objectContaining` and other relaxed assertions, when a test expects something NOT to be included in a payload but there's no respective assertion.
@@ -62,10 +67,11 @@ Do not flag the issues below if they appear in tests.
   - Only waiting for a request, after an action is performed. Instead, start waiting, perform action, await request promise.
   - Race conditions when waiting on multiple requests. Ensure that waiting checks are unique enough and don't depend on a hard order when there's a chance that telemetry can be sent in arbitrary order.
   - Timeouts or sleeps in tests. Instead suggest concrete events or other signals to wait on.
-- Flag usage of `getFirstEnvelope*`, `getMultipleEnvelope*` or related test helpers. These are NOT reliable anymore. Instead suggest helpers like `waitForTransaction`, `waitForError`, `waitForSpans`, etc.
+- Flag usage of `getFirstEnvelope*`, `getMultipleEnvelope*` or related test helpers in E2E tests. These are NOT reliable anymore. Instead suggest helpers like `waitForTransaction`, `waitForError`, `waitForSpans`, etc.
 - Flag any new or modified `docker-compose.yml` under `dev-packages/node-integration-tests/suites/` or `dev-packages/node-core-integration-tests/suites/` where a service does not define a `healthcheck:`. The runner uses `docker compose up --wait` and relies on healthchecks to know when services are actually ready; without one the test will race the service's startup.
 
 ## Platform-safe code
 
 - When any `setTimeout` or `setInterval` timers are started in a code path that can end up in server runtime packages (e.g. `@sentry/core` or `@sentry/node`), flag if neither `timeout.unref()` nor `safeUnref()` are called.
   Not unref'ing a timer can keep CLI-like applications or node scripts from exiting immediately, due to the process waiting on timers started by the SDK.
+- Flag Node-only imports (`fs`, `path`, `child_process`, `os`, `net`, `http`, `https`, `node:*`, etc.) in code paths that ship to non-Node runtimes (`@sentry/browser`, `@sentry/cloudflare`, `@sentry/deno`, `@sentry/bun`, or shared code in `@sentry/core` / `@sentry/browser-utils` reachable from those entry points). When the dependency is unavoidable, isolate it behind a runtime check, dynamic `import()`, or a Node-only entry point — never at the top level of a cross-runtime module.

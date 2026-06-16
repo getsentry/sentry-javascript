@@ -24,11 +24,13 @@ import {
 } from '../../../../src/integrations/mcp-server/transport';
 import * as tracingModule from '../../../../src/tracing';
 import {
+  createMockClient,
   createMockMcpServer,
   createMockSseTransport,
   createMockStdioTransport,
   createMockTransport,
   createMockWrapperTransport,
+  createTestClientWithSendDefaultPii,
 } from './testUtils';
 
 describe('MCP Server Transport Instrumentation', () => {
@@ -38,12 +40,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock client to return sendDefaultPii: true for instrumentation tests
-    getClientSpy.mockReturnValue({
-      getOptions: () => ({ sendDefaultPii: true }),
-      getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
-      emit: vi.fn(),
-    } as any);
+    getClientSpy.mockReturnValue(createMockClient(true));
   });
 
   describe('Transport-level instrumentation', () => {
@@ -727,12 +724,8 @@ describe('MCP Server Transport Instrumentation', () => {
   });
 
   describe('Wrapper Options', () => {
-    it('should NOT capture inputs/outputs when sendDefaultPii is false', async () => {
-      getClientSpy.mockReturnValue({
-        getOptions: () => ({ sendDefaultPii: false }),
-        getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
-        emit: vi.fn(),
-      } as any);
+    it('should NOT capture inputs/outputs when dataCollection.genAI.inputs/outputs are false', async () => {
+      getClientSpy.mockReturnValue(createMockClient(false));
 
       const mockMcpServer = createMockMcpServer();
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
@@ -759,12 +752,8 @@ describe('MCP Server Transport Instrumentation', () => {
       );
     });
 
-    it('should capture inputs/outputs when sendDefaultPii is true', async () => {
-      getClientSpy.mockReturnValue({
-        getOptions: () => ({ sendDefaultPii: true }),
-        getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
-        emit: vi.fn(),
-      } as any);
+    it('should capture inputs/outputs when dataCollection.genAI.inputs/outputs are true', async () => {
+      getClientSpy.mockReturnValue(createMockClient(true));
 
       const mockMcpServer = createMockMcpServer();
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
@@ -792,11 +781,7 @@ describe('MCP Server Transport Instrumentation', () => {
     });
 
     it('should allow explicit override of defaults', async () => {
-      getClientSpy.mockReturnValue({
-        getOptions: () => ({ sendDefaultPii: true }),
-        getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
-        emit: vi.fn(),
-      } as any);
+      getClientSpy.mockReturnValue(createMockClient(true));
 
       const mockMcpServer = createMockMcpServer();
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer, { recordInputs: false });
@@ -818,6 +803,62 @@ describe('MCP Server Transport Instrumentation', () => {
         expect.objectContaining({
           attributes: expect.not.objectContaining({
             'mcp.request.argument.location': expect.anything(),
+          }),
+        }),
+      );
+    });
+
+    it('should NOT capture inputs/outputs when sendDefaultPii is false (legacy bridge)', async () => {
+      getClientSpy.mockReturnValue(createTestClientWithSendDefaultPii(false));
+
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+
+      await wrappedMcpServer.connect(transport);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'tool-1',
+          params: { name: 'weather', arguments: { location: 'London' } },
+        },
+        {},
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({
+            'mcp.request.argument.location': expect.anything(),
+          }),
+        }),
+      );
+    });
+
+    it('should capture inputs/outputs when sendDefaultPii is true (legacy bridge)', async () => {
+      getClientSpy.mockReturnValue(createTestClientWithSendDefaultPii(true));
+
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+
+      await wrappedMcpServer.connect(transport);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'tool-1',
+          params: { name: 'weather', arguments: { location: 'London' } },
+        },
+        {},
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'mcp.request.argument.location': '"London"',
           }),
         }),
       );

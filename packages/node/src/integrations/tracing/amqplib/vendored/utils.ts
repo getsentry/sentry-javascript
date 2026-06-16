@@ -20,7 +20,7 @@
  */
 /* eslint-disable */
 
-import { Context, createContextKey, diag, HrTime, Span, Attributes, AttributeValue } from '@opentelemetry/api';
+import { Context, createContextKey, diag, Span, Attributes, AttributeValue } from '@opentelemetry/api';
 import { SemconvStability } from '@opentelemetry/instrumentation';
 import { ATTR_SERVER_ADDRESS, ATTR_SERVER_PORT } from '@opentelemetry/semantic-conventions';
 import { ATTR_MESSAGING_SYSTEM, ATTR_NET_PEER_NAME, ATTR_NET_PEER_PORT } from './semconv';
@@ -45,7 +45,7 @@ export type InstrumentationConsumeChannel = Channel & {
   connection: InstrumentationConnection;
   [CHANNEL_SPANS_NOT_ENDED]?: {
     msg: ConsumeMessage;
-    timeOfConsume: HrTime;
+    timeOfConsume: number;
   }[];
   [CHANNEL_CONSUME_TIMEOUT_TIMER]?: NodeJS.Timeout;
 };

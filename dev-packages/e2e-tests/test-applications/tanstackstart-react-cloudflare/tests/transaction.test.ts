@@ -25,14 +25,16 @@ test('Sends a server function transaction with span from wrapFetchWithSentry', a
   expect(transactionEvent?.spans).toHaveLength(1);
   expect(transactionEvent?.spans).toEqual([
     expect.objectContaining({
-      description: expect.stringContaining('GET /_serverFn/'),
+      description: 'GET /_serverFn/testLog',
       op: 'function.tanstackstart',
       origin: 'auto.function.tanstackstart.server',
-      data: expect.objectContaining({
+      data: {
         'sentry.op': 'function.tanstackstart',
         'sentry.origin': 'auto.function.tanstackstart.server',
-        'tanstackstart.function.hash.sha256': expect.any(String),
-      }),
+        'sentry.source': 'route',
+        'tanstackstart.function.id': expect.any(String),
+        'tanstackstart.function.filename': 'src/routes/test-serverFn.tsx',
+      },
     }),
   ]);
 });
@@ -62,14 +64,16 @@ test('Sends a server function transaction for a nested server function with manu
   expect(transactionEvent?.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        description: expect.stringContaining('GET /_serverFn/'),
+        description: 'GET /_serverFn/testNestedLog',
         op: 'function.tanstackstart',
         origin: 'auto.function.tanstackstart.server',
-        data: expect.objectContaining({
+        data: {
           'sentry.op': 'function.tanstackstart',
           'sentry.origin': 'auto.function.tanstackstart.server',
-          'tanstackstart.function.hash.sha256': expect.any(String),
-        }),
+          'sentry.source': 'route',
+          'tanstackstart.function.id': expect.any(String),
+          'tanstackstart.function.filename': 'src/routes/test-serverFn.tsx',
+        },
       }),
       expect.objectContaining({
         description: 'testNestedLog',
@@ -94,26 +98,4 @@ test('Sends server-side transaction for page request', async ({ baseURL }) => {
     origin: 'auto.http.cloudflare',
     status: 'ok',
   });
-});
-
-test('Propagates trace from server to client', async ({ page }) => {
-  const serverTransactionPromise = waitForTransaction('tanstackstart-react-cloudflare', transactionEvent => {
-    return transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /';
-  });
-
-  const clientTransactionPromise = waitForTransaction('tanstackstart-react-cloudflare', transactionEvent => {
-    return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
-  });
-
-  await page.goto('/');
-
-  const serverTransaction = await serverTransactionPromise;
-  const clientTransaction = await clientTransactionPromise;
-
-  const serverTraceId = serverTransaction.contexts?.trace?.trace_id;
-  const clientTraceId = clientTransaction.contexts?.trace?.trace_id;
-
-  expect(serverTraceId).toMatch(/[a-f0-9]{32}/);
-  expect(clientTraceId).toMatch(/[a-f0-9]{32}/);
-  expect(clientTraceId).toBe(serverTraceId);
 });

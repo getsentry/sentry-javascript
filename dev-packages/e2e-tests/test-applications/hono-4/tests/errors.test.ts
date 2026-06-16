@@ -32,6 +32,7 @@ test.describe('route handler errors', () => {
     expect(errorEvent.transaction).toBe('GET /error/:cause');
     expect(errorEvent.request?.method).toBe('GET');
     expect(errorEvent.request?.url).toContain('/error/test-cause');
+    expect(errorEvent.request?.headers).toBeDefined();
 
     expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
   });
@@ -145,7 +146,7 @@ test.describe('middleware errors', () => {
 
     const errorEvent = await errorPromise;
     expect(errorEvent.exception?.values?.[0]?.value).toBe('Service Unavailable from middleware');
-    expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe('auto.middleware.hono');
+    expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe('auto.http.hono.context_error');
     expect(errorEvent.exception?.values?.[0]?.mechanism?.handled).toBe(false);
     expect(errorEvent.transaction).toBe('GET /test-errors/middleware-http-exception');
 
@@ -217,7 +218,9 @@ test.describe('nested sub-app errors', () => {
       handled: false,
       type: 'auto.http.hono.context_error',
     });
+    expect(errorEvent.request?.method).toBe('GET');
     expect(errorEvent.request?.url).toContain('/test-errors/nested/child/error');
+    expect(errorEvent.request?.headers).toBeDefined();
   });
 });
 

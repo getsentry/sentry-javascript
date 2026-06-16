@@ -113,7 +113,7 @@ describe('Vercel AI integration (streaming)', () => {
         }),
       }),
       // Sixth span - execute_tool
-      // Note: gen_ai.tool.description is NOT present when sendDefaultPii: false because ai.prompt.tools is not recorded
+      // Note: gen_ai.tool.description is NOT present when genAI recording disabled because ai.prompt.tools is not recorded
       expect.objectContaining({
         name: 'execute_tool getWeather',
         status: 'ok',
@@ -286,13 +286,13 @@ describe('Vercel AI integration (streaming)', () => {
   };
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates ai related spans in streaming mode with sendDefaultPii: false', async () => {
+    test('creates ai related spans in streaming mode with genAI recording disabled', async () => {
       await createRunner().expect({ span: EXPECTED_SPANS_DEFAULT_PII_FALSE }).start().completed();
     });
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates ai related spans in streaming mode with sendDefaultPii: true', async () => {
+    test('creates ai related spans in streaming mode with genAI recording enabled', async () => {
       await createRunner().expect({ span: EXPECTED_SPANS_DEFAULT_PII_TRUE }).start().completed();
     });
   });

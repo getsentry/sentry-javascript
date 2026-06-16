@@ -1,5 +1,4 @@
 import { context, createContextKey } from '@opentelemetry/api';
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
   debug,
@@ -38,18 +37,18 @@ export interface CreateSentryServerInstrumentationOptions {
 
 /**
  * Creates a Sentry server instrumentation for React Router's instrumentation API.
- * @experimental
  */
 export function createSentryServerInstrumentation(
   options: CreateSentryServerInstrumentationOptions = {},
 ): ServerInstrumentation {
   const { captureErrors = true } = options;
 
-  markInstrumentationApiUsed();
-  DEBUG_BUILD && debug.log('React Router server instrumentation API enabled.');
+  DEBUG_BUILD && debug.log('React Router server instrumentation created.');
 
   return {
     handler(handler: InstrumentableRequestHandler) {
+      // Mark the instrumentation API active only when React Router actually invokes this
+      markInstrumentationApiUsed();
       handler.instrument({
         async request(handleRequest, info) {
           const pathname = getPathFromRequest(info.request);
@@ -116,6 +115,8 @@ export function createSentryServerInstrumentation(
     },
 
     route(route: InstrumentableRoute) {
+      // Also mark active here, in case route registration runs (mirrors the handler callback above).
+      markInstrumentationApiUsed();
       const routeId = route.id;
 
       route.instrument({
@@ -253,11 +254,6 @@ function updateRootSpanWithRoute(method: string, pattern: string | undefined, ur
 
   const hasPattern = !!pattern;
   const routeName = hasPattern ? normalizeRoutePath(pattern) || urlPath : urlPath;
-
-  const rpcMetadata = getRPCMetadata(context.active());
-  if (rpcMetadata?.type === RPCType.HTTP) {
-    rpcMetadata.route = routeName;
-  }
 
   const transactionName = `${method} ${routeName}`;
   updateSpanName(rootSpan, transactionName);

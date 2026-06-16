@@ -16,7 +16,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import type { Elysia, ErrorContext, TraceHandler, TraceListener } from 'elysia';
+import type { AnyElysia, Elysia, ErrorContext, TraceHandler, TraceListener } from 'elysia';
 
 interface ElysiaHandlerOptions {
   shouldHandleError?: (context: ErrorContext) => boolean;
@@ -161,7 +161,12 @@ function instrumentLifecyclePhase(phaseName: string, listener: TraceListener, ro
  *   .listen(3000);
  * ```
  */
-export function withElysia<T extends Elysia>(app: T, options: ElysiaHandlerOptions = {}): T {
+// Using the AnyElysia type here to allow users to pass in the full set of Elysia
+// options without type errors. The `T extends Elysia` type is too narrow to allow
+// users to pass in dynamic options like `prefix` without breaking the type system.
+// See Elysia type definition and its usage of `const in out` which forces the string
+// template literals to be fully consistent for e.g. `prefix`.
+export function withElysia<T extends AnyElysia>(app: T, options: ElysiaHandlerOptions = {}): T {
   if (instrumentedApps.has(app)) {
     return app;
   }
@@ -275,7 +280,14 @@ export function withElysia<T extends Elysia>(app: T, options: ElysiaHandlerOptio
     });
   });
 
-  app.onAfterHandle({ as: 'global' }, function sentryOnAfterHandle(context) {
+  // Cast from AnyElysia to Elysia so that onAfterHandle/onError callback
+  // parameters resolve to typed contexts (e.g. ErrorContext for shouldHandleError).
+  // `AnyElysia` is needed on the user-facing `app` type to accept user instances with
+  // arbitrary generic args.
+  // The cast is safe because AnyElysia IS Elysia<any, any, ...>.
+  const elysiaApp = app as unknown as Elysia;
+
+  elysiaApp.onAfterHandle({ as: 'global' }, function sentryOnAfterHandle(context) {
     if (context.route) {
       updateRouteTransactionName(context.request, context.request.method, context.route);
     }
@@ -289,7 +301,7 @@ export function withElysia<T extends Elysia>(app: T, options: ElysiaHandlerOptio
     }
   });
 
-  app.onError({ as: 'global' }, function sentryOnError(context) {
+  elysiaApp.onError({ as: 'global' }, function sentryOnError(context) {
     if (context.route) {
       updateRouteTransactionName(context.request, context.request.method, context.route);
     }

@@ -76,7 +76,19 @@ export function instrumentHydratedRouter(): void {
           return;
         }
 
-        const rootSpanName = spanToJSON(rootSpan).description;
+        const rootSpanJson = spanToJSON(rootSpan);
+
+        // When the instrumentation API is active, navigation roots are parameterized
+        // by the native route hooks
+        if (
+          rootSpanJson.op === 'navigation' &&
+          isClientInstrumentationApiUsed() &&
+          rootSpanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'route'
+        ) {
+          return;
+        }
+
+        const rootSpanName = rootSpanJson.description;
         const parameterizedRoute = getParameterizedRoute(newState);
 
         if (

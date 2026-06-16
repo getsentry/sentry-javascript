@@ -54,7 +54,22 @@ describe('sentryMiddleware', () => {
       } as any;
     });
     vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(getSpanMock);
-    vi.spyOn(SentryNode, 'getClient').mockImplementation(() => ({ getOptions: () => ({}) }) as Client);
+    vi.spyOn(SentryNode, 'getClient').mockImplementation(
+      () =>
+        ({
+          getOptions: () => ({}),
+          getDataCollectionOptions: () => ({
+            userInfo: false,
+            cookies: true,
+            httpHeaders: { request: true, response: true },
+            httpBodies: [],
+            queryParams: true,
+            genAI: { inputs: false, outputs: false },
+            stackFrameVariables: true,
+            frameContextLines: 5,
+          }),
+        }) as unknown as Client,
+    );
     vi.spyOn(SentryNode, 'getTraceMetaTags').mockImplementation(
       () => `
     <meta name="sentry-trace" content="123">

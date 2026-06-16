@@ -136,6 +136,8 @@ export function isEvent(wat: unknown): wat is PolymorphicEvent {
  *
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
+ * @deprecated This is browser-specific and will be removed from `@sentry/core` in a future major version.
+ * Import `isElement` from `@sentry/browser-utils` instead.
  */
 export function isElement(wat: unknown): boolean {
   return typeof Element !== 'undefined' && isInstanceOf(wat, Element);
@@ -162,11 +164,13 @@ export function isThenable(wat: any): wat is PromiseLike<any> {
 }
 
 /**
- * Checks whether given value's type is a SyntheticEvent
+ * Checks whether given value's type is a React SyntheticEvent
  * {@link isSyntheticEvent}.
  *
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
+ * @deprecated This is React-specific and will be removed from `@sentry/core` in a future major version.
+ * Use the equivalent helper that ships with `@sentry/react` instead.
  */
 export function isSyntheticEvent(wat: unknown): boolean {
   return isPlainObject(wat) && 'nativeEvent' in wat && 'preventDefault' in wat && 'stopPropagation' in wat;
@@ -195,6 +199,8 @@ export function isInstanceOf<T>(wat: any, base: any): wat is T {
  *
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
+ * @deprecated This is Vue-specific and will be removed from `@sentry/core` in a future major version.
+ * Use the equivalent helper that ships with `@sentry/vue` instead.
  */
 export function isVueViewModel(wat: unknown): wat is VueViewModel | VNode {
   // Not using Object.prototype.toString because in Vue 3 it would read the instance's Symbol(Symbol.toStringTag) property.

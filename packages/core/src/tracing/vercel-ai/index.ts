@@ -54,6 +54,7 @@ import {
   AI_TOOL_CALL_RESULT_ATTRIBUTE,
   AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE,
   AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
+  AI_USAGE_INPUT_TOKEN_DETAILS_ATTRIBUTE_PREFIX,
   AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
   AI_USAGE_TOKENS_ATTRIBUTE,
   AI_VALUES_ATTRIBUTE,
@@ -255,8 +256,13 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
   // AI SDK uses avgOutputTokensPerSecond, map to our expected attribute name
   renameAttributeKey(attributes, 'ai.response.avgOutputTokensPerSecond', 'ai.response.avgCompletionTokensPerSecond');
 
-  // Input tokens is the sum of prompt tokens and cached input tokens
+  // v6 input tokens are cache-inclusive (marked by the presence of `inputTokenDetails.*`); only
+  // older SDKs need the cached tokens added back.
+  const inputTokensAreCacheInclusive = Object.keys(attributes).some(key =>
+    key.startsWith(AI_USAGE_INPUT_TOKEN_DETAILS_ATTRIBUTE_PREFIX),
+  );
   if (
+    !inputTokensAreCacheInclusive &&
     typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number' &&
     typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE] === 'number'
   ) {

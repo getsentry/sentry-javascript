@@ -1,5 +1,5 @@
 import { context, trace, TraceFlags } from '@opentelemetry/api';
-import { TraceState } from '@opentelemetry/core';
+import { TraceState } from '../src/utils/TraceState';
 import { afterEach, describe, expect, it } from 'vitest';
 import { SENTRY_TRACE_STATE_CHILD_IGNORED } from '../src/constants';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';

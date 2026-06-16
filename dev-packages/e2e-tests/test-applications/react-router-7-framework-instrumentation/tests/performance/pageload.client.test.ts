@@ -25,6 +25,31 @@ test.describe('client - instrumentation API pageload', () => {
     });
   });
 
+  test('parameterizes the pageload transaction for dynamic routes', async ({ page }) => {
+    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return (
+        transactionEvent.transaction === '/performance/with/:param' &&
+        transactionEvent.contexts?.trace?.op === 'pageload'
+      );
+    });
+
+    await page.goto(`/performance/with/some-param`);
+
+    const transaction = await txPromise;
+
+    expect(transaction).toMatchObject({
+      contexts: {
+        trace: {
+          op: 'pageload',
+          data: { 'sentry.source': 'route' },
+        },
+      },
+      transaction: '/performance/with/:param',
+      type: 'transaction',
+      transaction_info: { source: 'route' },
+    });
+  });
+
   test('should link server and client transactions with same trace_id', async ({ page }) => {
     const serverTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return (

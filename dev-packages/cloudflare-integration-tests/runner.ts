@@ -142,6 +142,18 @@ export function createRunner(...paths: string[]) {
     },
     start: function (signal?: AbortSignal): StartResult {
       const { resolve, reject, promise: isComplete } = deferredPromise(cleanupChildProcesses);
+
+      // `reject` is called from background event handlers (child process `error`/`exit`, mock server
+      // callbacks) that fire at arbitrary times relative to the test's `await` points. If `reject` runs
+      // while nothing is awaiting `isComplete` yet (e.g. a child transiently exits while the test is
+      // parked in `makeRequest`), the rejection has no handler attached and surfaces as an unhandled
+      // promise rejection — which Vitest reports as a spurious "Unhandled error" that fails the whole
+      // suite. Attaching a no-op catch keeps the promise "handled"; the real rejection is still delivered
+      // to callers via `completed()`, so genuine failures still fail the test.
+      isComplete.catch(() => {
+        // handled in `completed()`
+      });
+
       const expectedEnvelopeCount = expectedEnvelopes.length;
 
       let envelopeCount = 0;

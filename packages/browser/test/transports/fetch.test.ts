@@ -118,7 +118,7 @@ describe('fetchTransport', () => {
   });
 
   it('handles when native fetch implementation is undefined', async () => {
-    vi.mock('@sentry-internal/browser-utils', async importOriginal => ({
+    vi.mock('@sentry/browser-utils', async importOriginal => ({
       ...(await importOriginal()),
       getNativeImplementation: () => undefined,
     }));

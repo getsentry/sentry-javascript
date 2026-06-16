@@ -181,6 +181,19 @@ describe('browserTracingIntegration', () => {
     });
   });
 
+  it('auto-registers webVitalsIntegration', () => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration()],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(client.getIntegrationByName('WebVitals')).toBeDefined();
+  });
+
   it('works with tracing disabled', () => {
     const client = new BrowserClient(
       getDefaultBrowserClientOptions({

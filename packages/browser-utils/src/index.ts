@@ -8,6 +8,7 @@ export {
 
 export {
   addPerformanceEntries,
+  addWebVitalsToSpan,
   startTrackingInteractions,
   startTrackingLongTasks,
   startTrackingLongAnimationFrames,
@@ -33,5 +34,9 @@ export { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from './instrument/
 export { getBodyString, getFetchRequestArgBody, serializeFormData, parseXhrResponseHeaders } from './networkUtils';
 
 export { resourceTimingToSpanAttributes } from './metrics/resourceTiming';
+
+export { htmlTreeAsString } from './htmlTreeAsString';
+
+export { isElement } from './is';
 
 export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';

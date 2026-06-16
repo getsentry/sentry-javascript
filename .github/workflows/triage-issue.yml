@@ -54,7 +54,7 @@ jobs:
 
       - name: Run Claude triage
         id: triage
-        uses: anthropics/claude-code-action@24492741e0ccfdef4c1d19da8e11e0f373d07494 # v1
+        uses: anthropics/claude-code-action@11ba60486e4aec9ddfeafcf4bb3f00b028ac2c16 # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -74,6 +74,7 @@ jobs:
             Do NOT use `python3 -c` or other inline Python in Bash, only the provided scripts are allowed.
             Do NOT attempt to delete (`rm`) temporary files you create.
           claude_args: |
+            --model claude-opus-4-8
             --max-turns 50 --allowedTools "Write,Bash(gh api *),Bash(gh pr list *),Bash(npm info *),Bash(npm ls *),Bash(python3 .claude/skills/triage-issue/scripts/post_linear_comment.py *),Bash(python3 .claude/skills/triage-issue/scripts/parse_gh_issues.py *),Bash(python3 .claude/skills/triage-issue/scripts/detect_prompt_injection.py *),Bash(python3 .claude/skills/triage-issue/scripts/write_job_summary.py *)"
 
       - name: Post triage job summary

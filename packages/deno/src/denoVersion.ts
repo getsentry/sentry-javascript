@@ -20,3 +20,6 @@ export const HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED = gte(2, 7, 13);
 
 /** Whether `http.server.request.start` fires (Deno 2.8.0+). */
 export const HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED = gte(2, 8, 0);
+
+/** Whether `node:diagnostics_channel.tracingChannel` exists (Deno 1.44.3+). */
+export const TRACING_CHANNEL_SUPPORTED = gte(1, 44, 3);

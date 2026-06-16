@@ -3,7 +3,7 @@
   "plugins": ["typescript", "import", "jsdoc", "vitest"],
   "rules": {
     "no-unused-vars": [
-      "warn",
+      "error",
       { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }
     ],
 
@@ -55,7 +55,7 @@
         "typescript/prefer-optional-chain": ["error"],
         "typescript/no-redundant-type-constituents": "off",
         "typescript/restrict-template-expressions": "off",
-        "typescript/await-thenable": "warn",
+        "typescript/await-thenable": "error",
         "typescript/no-base-to-string": "off"
       }
     },
@@ -142,26 +142,27 @@
     },
     {
       "files": [
-        "**/integrations/tracing/dataloader/vendored/**/*.ts",
-        "**/integrations/tracing/genericPool/vendored/**/*.ts",
         "**/integrations/fs/vendored/**/*.ts",
         "**/integrations/tracing/knex/vendored/**/*.ts",
         "**/integrations/tracing/mongo/vendored/**/*.ts",
+        "**/integrations/tracing/graphql/vendored/**/*.ts",
         "**/integrations/tracing/koa/vendored/**/*.ts",
-        "**/integrations/tracing/connect/vendored/**/*.ts",
         "**/integrations/tracing/mysql2/vendored/**/*.ts",
         "**/integration/aws/vendored/**/*.ts",
-        "**/nestjs/src/integrations/vendored/**/*.ts",
         "**/integrations/tracing/kafka/vendored/**/*.ts",
         "**/integrations/tracing/tedious/vendored/**/*.ts",
         "**/integrations/tracing/hapi/vendored/**/*.ts",
         "**/integrations/tracing/mongoose/vendored/**/*.ts",
         "**/integrations/tracing/amqplib/vendored/**/*.ts",
         "**/integrations/tracing/prisma/vendored/**/*.ts",
-        "**/integrations/tracing/graphql/vendored/**/*.ts"
+        "**/integrations/tracing/postgres/vendored/**/*.ts",
+        "**/integrations/tracing/fastify/vendored/**/*.ts",
+        "**/integrations/tracing/redis/vendored/**/*.ts"
       ],
       "rules": {
-        "typescript/no-explicit-any": "off"
+        "typescript/no-explicit-any": "off",
+        "no-unsafe-member-access": "off",
+        "no-this-alias": "off"
       }
     },
     {

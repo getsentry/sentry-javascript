@@ -17,10 +17,11 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-connect
  * - Upstream version: @opentelemetry/instrumentation-connect@0.61.0
  */
-/* eslint-disable */
 
-import { diag } from '@opentelemetry/api';
-import { _LAYERS_STORE_PROPERTY, PatchedRequest } from './internal-types';
+import { debug } from '@sentry/core';
+import type { PatchedRequest } from './internal-types';
+import { _LAYERS_STORE_PROPERTY } from './internal-types';
+import { DEBUG_BUILD } from '../../../../debug-build';
 
 export const addNewStackLayer = (request: PatchedRequest) => {
   if (Array.isArray(request[_LAYERS_STORE_PROPERTY]) === false) {
@@ -37,7 +38,7 @@ export const addNewStackLayer = (request: PatchedRequest) => {
     if (stackLength === request[_LAYERS_STORE_PROPERTY].length) {
       request[_LAYERS_STORE_PROPERTY].pop();
     } else {
-      diag.warn('Connect: Trying to pop the stack multiple time');
+      DEBUG_BUILD && debug.warn('Connect: Trying to pop the stack multiple time');
     }
   };
 };

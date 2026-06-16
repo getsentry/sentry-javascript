@@ -18,7 +18,6 @@
  * - Upstream version: @opentelemetry/instrumentation-connect@0.61.0
  * - Some types vendored from @types/connect
  */
-/* eslint-disable */
 
 import type * as http from 'http';
 
@@ -26,12 +25,12 @@ export type IncomingMessage = http.IncomingMessage & {
   originalUrl?: http.IncomingMessage['url'] | undefined;
 };
 
-export type NextFunction = (err?: any) => void;
+export type NextFunction = (err?: unknown) => void;
 
 export type SimpleHandleFunction = (req: IncomingMessage, res: http.ServerResponse) => void;
 export type NextHandleFunction = (req: IncomingMessage, res: http.ServerResponse, next: NextFunction) => void;
 export type ErrorHandleFunction = (
-  err: any,
+  err: unknown,
   req: IncomingMessage,
   res: http.ServerResponse,
   next: NextFunction,

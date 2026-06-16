@@ -18,13 +18,29 @@
  * - Upstream version: @opentelemetry/instrumentation-dataloader@0.35.0
  */
 
-import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import type { SpanLink } from '@sentry/core';
 
-export interface DataloaderInstrumentationConfig extends InstrumentationConfig {
-  /**
-   * Whether the instrumentation requires a parent span, if set to true
-   * and there is no parent span, no additional spans are created
-   * (default: true)
-   */
-  requireParentSpan?: boolean;
+/* Simplified types inlined from dataloader. */
+
+export type BatchLoadFn<K, V> = (keys: ReadonlyArray<K>) => PromiseLike<ArrayLike<V | Error>>;
+
+/** A `DataLoader` instance. */
+export interface DataLoader<K = unknown, V = unknown> {
+  _batchLoadFn: BatchLoadFn<K, V>;
+  _batch: { spanLinks?: SpanLink[] } | null;
+  load(key: K): Promise<V>;
+  loadMany(keys: ArrayLike<K>): Promise<Array<V | Error>>;
+  prime(key: K, value: V | Error): this;
+  clear(key: K): this;
+  clearAll(): this;
+  name: string | undefined;
+  // oxlint-disable-next-line typescript/no-explicit-any
+  [key: string]: any;
+}
+
+/** The `DataLoader` class/constructor. */
+export interface DataLoaderConstructor {
+  // oxlint-disable-next-line typescript/no-explicit-any
+  new <K, V>(batchLoadFn: BatchLoadFn<K, V>, options?: any): DataLoader<K, V>;
+  prototype: DataLoader<unknown, unknown>;
 }

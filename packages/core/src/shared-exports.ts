@@ -173,6 +173,7 @@ export { instrumentGoogleGenAIClient } from './tracing/google-genai';
 export { GOOGLE_GENAI_INTEGRATION_NAME } from './tracing/google-genai/constants';
 export type { GoogleGenAIResponse } from './tracing/google-genai/types';
 export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './tracing/langchain';
+export { _INTERNAL_mergeLangChainCallbackHandler } from './tracing/langchain/utils';
 export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
 export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
 export { instrumentStateGraphCompile, instrumentCreateReactAgent, instrumentLangGraph } from './tracing/langgraph';
@@ -219,6 +220,7 @@ export { addHandler, maybeInstrument, resetInstrumentationHandlers, triggerHandl
 export {
   isDOMError,
   isDOMException,
+  // eslint-disable-next-line deprecation/deprecation
   isElement,
   isError,
   isErrorEvent,
@@ -229,8 +231,10 @@ export {
   isPrimitive,
   isRegExp,
   isString,
+  // eslint-disable-next-line deprecation/deprecation
   isSyntheticEvent,
   isThenable,
+  // eslint-disable-next-line deprecation/deprecation
   isVueViewModel,
 } from './utils/is';
 export { isBrowser } from './utils/isBrowser';
@@ -246,7 +250,7 @@ export {
   parseSemver,
   uuid4,
 } from './utils/misc';
-export { normalize, normalizeToSize, normalizeUrlToBase } from './utils/normalize';
+export { normalize, normalizeToSize, normalizeUrlToBase, setNormalizeStringifier } from './utils/normalize';
 export { setNormalizationDepthOverrideHint, setSkipNormalizationHint } from './utils/normalizationHints';
 export {
   addNonEnumerableProperty,

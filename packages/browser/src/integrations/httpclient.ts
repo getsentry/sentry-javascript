@@ -1,5 +1,7 @@
 import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/core/browser';
 import {
+  _INTERNAL_filterCookies,
+  _INTERNAL_filterKeyValueData,
   addExceptionMechanism,
   addFetchInstrumentationHandler,
   captureEvent,
@@ -10,7 +12,7 @@ import {
   isSentryRequestUrl,
   supportsNativeFetch,
 } from '@sentry/core/browser';
-import { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
+import { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 
 export type HttpStatusCodeRange = [number, number] | number;
@@ -79,9 +81,29 @@ function _fetchResponseHandler(
 
     let requestHeaders, responseHeaders, requestCookies, responseCookies;
 
-    if (_shouldSendDefaultPii()) {
-      [requestHeaders, requestCookies] = _parseCookieHeaders('Cookie', request);
-      [responseHeaders, responseCookies] = _parseCookieHeaders('Set-Cookie', response);
+    const dc = _getDataCollectionSettings();
+
+    if (dc.requestHeaders !== false) {
+      requestHeaders = _INTERNAL_filterKeyValueData(_extractFetchHeaders(request.headers), dc.requestHeaders);
+    }
+    if (dc.responseHeaders !== false) {
+      responseHeaders = _INTERNAL_filterKeyValueData(_extractFetchHeaders(response.headers), dc.responseHeaders);
+    }
+    if (dc.cookies !== false) {
+      const reqCookieStr = request.headers.get('Cookie') || undefined;
+      if (reqCookieStr) {
+        const filtered = _INTERNAL_filterCookies(reqCookieStr, dc.cookies);
+        if (typeof filtered === 'object') {
+          requestCookies = filtered;
+        }
+      }
+      const resCookieStr = response.headers.get('Set-Cookie') || undefined;
+      if (resCookieStr) {
+        const filtered = _INTERNAL_filterCookies(resCookieStr, dc.cookies);
+        if (typeof filtered === 'object') {
+          responseCookies = filtered;
+        }
+      }
     }
 
     const event = _createEvent({
@@ -98,26 +120,6 @@ function _fetchResponseHandler(
 
     captureEvent(event);
   }
-}
-
-function _parseCookieHeaders(
-  cookieHeader: string,
-  obj: Request | Response,
-): [Record<string, string>, Record<string, string> | undefined] {
-  const headers = _extractFetchHeaders(obj.headers);
-  let cookies;
-
-  try {
-    const cookieString = headers[cookieHeader] || headers[cookieHeader.toLowerCase()] || undefined;
-
-    if (cookieString) {
-      cookies = _parseCookieString(cookieString);
-    }
-  } catch {
-    // ignore it if parsing fails
-  }
-
-  return [headers, cookies];
 }
 
 /**
@@ -137,24 +139,32 @@ function _xhrResponseHandler(
   if (_shouldCaptureResponse(options, xhr.status, xhr.responseURL)) {
     let requestHeaders, responseCookies, responseHeaders;
 
-    if (_shouldSendDefaultPii()) {
+    const dc = _getDataCollectionSettings();
+
+    if (dc.cookies !== false) {
       try {
         const cookieString = xhr.getResponseHeader('Set-Cookie') || xhr.getResponseHeader('set-cookie') || undefined;
-
         if (cookieString) {
-          responseCookies = _parseCookieString(cookieString);
+          const filtered = _INTERNAL_filterCookies(cookieString, dc.cookies);
+          if (typeof filtered === 'object') {
+            responseCookies = filtered;
+          }
         }
       } catch {
         // ignore it if parsing fails
       }
+    }
 
+    if (dc.responseHeaders !== false) {
       try {
-        responseHeaders = _getXHRResponseHeaders(xhr);
+        responseHeaders = _INTERNAL_filterKeyValueData(_getXHRResponseHeaders(xhr), dc.responseHeaders);
       } catch {
         // ignore it if parsing fails
       }
+    }
 
-      requestHeaders = headers;
+    if (dc.requestHeaders !== false) {
+      requestHeaders = _INTERNAL_filterKeyValueData(headers, dc.requestHeaders);
     }
 
     const event = _createEvent({
@@ -189,22 +199,6 @@ function _getResponseSizeFromHeaders(headers?: Record<string, string>): number |
   }
 
   return undefined;
-}
-
-/**
- * Creates an object containing cookies from the given cookie string
- *
- * @param cookieString The cookie string to parse
- * @returns The parsed cookies
- */
-function _parseCookieString(cookieString: string): Record<string, string> {
-  return cookieString.split('; ').reduce((acc: Record<string, string>, cookie: string) => {
-    const [key, value] = cookie.split('=');
-    if (key && value) {
-      acc[key] = value;
-    }
-    return acc;
-  }, {});
 }
 
 /**
@@ -427,7 +421,23 @@ function _getRequest(requestInfo: RequestInfo, requestInit?: RequestInit): Reque
   return new Request(requestInfo, requestInit);
 }
 
-function _shouldSendDefaultPii(): boolean {
+function _getDataCollectionSettings() {
   const client = getClient();
-  return client ? Boolean(client.getOptions().sendDefaultPii) : false;
+  if (!client) {
+    return { cookies: false, requestHeaders: false, responseHeaders: false };
+  }
+
+  // todo(v11): Always use granular dataCollection settings and remove this legacy guard.
+  // Currently, when dataCollection is not explicitly set, we gate all collection on
+  // sendDefaultPii to avoid sending more data than before (the spec defaults would
+  // collect headers/cookies with deny-list filtering even without sendDefaultPii).
+  const options = client.getOptions();
+  if (options.dataCollection == null) {
+    // eslint-disable-next-line deprecation/deprecation
+    const enabled = Boolean(options.sendDefaultPii);
+    return { cookies: enabled, requestHeaders: enabled, responseHeaders: enabled };
+  }
+
+  const { cookies, httpHeaders } = client.getDataCollectionOptions();
+  return { cookies, requestHeaders: httpHeaders.request, responseHeaders: httpHeaders.response };
 }

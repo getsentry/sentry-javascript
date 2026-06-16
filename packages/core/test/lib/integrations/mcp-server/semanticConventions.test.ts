@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as currentScopes from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import * as tracingModule from '../../../../src/tracing';
-import { createMockMcpServer, createMockTransport } from './testUtils';
+import { createMockClient, createMockMcpServer, createMockTransport } from './testUtils';
 
 describe('MCP Server Semantic Conventions', () => {
   const startSpanSpy = vi.spyOn(tracingModule, 'startSpan');
@@ -11,12 +11,7 @@ describe('MCP Server Semantic Conventions', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock client to return sendDefaultPii: true for instrumentation tests
-    getClientSpy.mockReturnValue({
-      getOptions: () => ({ sendDefaultPii: true }),
-      getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
-      emit: vi.fn(),
-    } as unknown as ReturnType<typeof currentScopes.getClient>);
+    getClientSpy.mockReturnValue(createMockClient(true));
   });
 
   describe('Span Creation & Semantic Conventions', () => {

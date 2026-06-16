@@ -5,6 +5,10 @@
  * responded within 2 business days. Re-nags every 2 business days thereafter
  * until the review is submitted (or the request is removed).
  *
+ * PRs are skipped (no reminder) when they are drafts, opened by a bot, already
+ * approved, or have an outstanding "changes requested" review (the PR is then
+ * waiting on the author, not the reviewers).
+ *
  * @mentions are narrowed as follows:
  * - Individual users: not [outside collaborators](https://docs.github.com/en/organizations/managing-outside-collaborators)
  *   on this repo (via `repos.listCollaborators` with `affiliation: outside` — repo-scoped, no extra token).
@@ -179,15 +183,31 @@ export default async function run({ github, context, core }) {
     const pendingTeams = requested.teams; // team reviewers
     if (pendingReviewers.length === 0 && pendingTeams.length === 0) continue;
 
-    // Skip if the PR already has at least one approval — no need to nudge remaining reviewers
     const reviews = await github.paginate(github.rest.pulls.listReviews, {
       owner,
       repo,
       pull_number: pr.number,
       per_page: 100,
     });
+
+    // Skip if the PR already has at least one approval — no need to nudge remaining reviewers.
     const hasApproval = reviews.some(r => r.state === 'APPROVED');
     if (hasApproval) continue;
+
+    // Skip if any reviewer has an *outstanding* "changes requested" review — the ball is then in
+    // the author's court, not the reviewers', so nagging the reviewers is noise.
+    //
+    // A reviewer who is re-requested after requesting changes reappears in listRequestedReviewers
+    // (i.e. is back in `pendingReviewers`). Their earlier change-request is superseded by that new
+    // pending request, so it must NOT suppress reminders — otherwise we'd never nudge a reviewer
+    // the author has explicitly asked to take another look. We therefore ignore change-requests
+    // from currently-pending reviewers. (Dismissed reviews report state `DISMISSED`, so they no
+    // longer count either.)
+    const pendingReviewerLogins = new Set(pendingReviewers.map(u => u.login));
+    const hasOutstandingChangesRequested = reviews.some(
+      r => r.state === 'CHANGES_REQUESTED' && !pendingReviewerLogins.has(r.user?.login),
+    );
+    if (hasOutstandingChangesRequested) continue;
 
     // Fetch the PR timeline to determine when each review was (last) requested
     const timeline = await github.paginate(github.rest.issues.listEventsForTimeline, {
