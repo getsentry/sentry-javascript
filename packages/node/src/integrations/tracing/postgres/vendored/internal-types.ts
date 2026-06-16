@@ -7,7 +7,6 @@
  * - Upstream version: @opentelemetry/instrumentation-pg@0.70.0
  * - Types from `pg` and `pg-pool` packages inlined as simplified interfaces
  */
-/* eslint-disable */
 
 import type { PgClient } from './pg-types';
 import type { PgPool } from './pg-pool-types';
@@ -53,11 +52,8 @@ export interface PgPoolOptionsParams {
   user: string;
 }
 
-export const EVENT_LISTENERS_SET = Symbol('opentelemetry.instrumentation.pg.eventListenersSet');
-
 export interface PgPoolExtended extends PgPool {
   options: PgPoolOptionsParams;
-  [EVENT_LISTENERS_SET]?: boolean; // flag to identify if the event listeners for instrumentation have been set
 }
 
 export type PgClientConnect = (callback?: Function) => Promise<void> | void;

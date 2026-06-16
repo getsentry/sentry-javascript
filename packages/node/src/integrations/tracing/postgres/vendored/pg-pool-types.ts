@@ -2,7 +2,6 @@
  * Simplified type definitions inlined from the `pg-pool` package.
  * PoolClient and PoolConfig are replaced with structural equivalents.
  */
-/* eslint-disable */
 
 import type { PgPoolClient } from './pg-types';
 

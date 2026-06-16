@@ -48,6 +48,33 @@ describe('postgres auto instrumentation', () => {
           status: 'ok',
           origin: 'auto.db.otel.postgres',
         }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.system': 'postgresql',
+            'db.name': 'tests',
+            'db.statement': 'SELECT * FROM "User" WHERE "email" = $1',
+            'db.postgresql.plan': 'select-user-by-email',
+            'sentry.origin': 'auto.db.otel.postgres',
+            'sentry.op': 'db',
+          }),
+          description: 'SELECT * FROM "User" WHERE "email" = $1',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.otel.postgres',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.system': 'postgresql',
+            'db.name': 'tests',
+            'db.statement': 'SELECT * FROM "does_not_exist_table"',
+            'sentry.origin': 'auto.db.otel.postgres',
+            'sentry.op': 'db',
+          }),
+          description: 'SELECT * FROM "does_not_exist_table"',
+          op: 'db',
+          status: 'internal_error',
+          origin: 'auto.db.otel.postgres',
+        }),
       ]),
     };
 
@@ -100,6 +127,124 @@ describe('postgres auto instrumentation', () => {
                       'sentry.op': 'db',
                     }),
                     description: 'SELECT * FROM "User"',
+                    op: 'db',
+                    status: 'ok',
+                    origin: 'auto.db.otel.postgres',
+                  }),
+                ]),
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    });
+  });
+
+  describe('pool', () => {
+    const EXPECTED_TRANSACTION = {
+      transaction: 'Test Transaction',
+      spans: expect.arrayContaining([
+        // Pool connect span: no origin is set on connect spans, so it defaults
+        // to 'manual', and the connection-string credentials are masked out.
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.system': 'postgresql',
+            'db.name': 'tests',
+            'db.connection_string': 'postgresql://localhost:5494/tests',
+            'sentry.op': 'db',
+          }),
+          description: 'pg-pool.connect',
+          op: 'db',
+          status: 'ok',
+          origin: 'manual',
+        }),
+        // Callback-style query (no awaited promise returned to the caller).
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.system': 'postgresql',
+            'db.name': 'tests',
+            'db.statement': 'SELECT 1 AS foo',
+            'sentry.origin': 'auto.db.otel.postgres',
+            'sentry.op': 'db',
+          }),
+          description: 'SELECT 1 AS foo',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.otel.postgres',
+        }),
+      ]),
+    };
+
+    createEsmAndCjsTests(__dirname, 'scenario-pool.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test(
+        'auto-instruments `pg.Pool`, masks connection-string credentials, and handles callback-style queries',
+        { timeout: 90_000 },
+        async () => {
+          await createTestRunner()
+            .withDockerCompose({
+              workingDirectory: [__dirname],
+            })
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
+        },
+      );
+    });
+  });
+
+  describe('connect error', () => {
+    const EXPECTED_TRANSACTION = {
+      transaction: 'Test Transaction',
+      spans: expect.arrayContaining([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.system': 'postgresql',
+            'db.name': 'tests',
+            'sentry.op': 'db',
+          }),
+          description: 'pg.connect',
+          op: 'db',
+          status: 'internal_error',
+          origin: 'manual',
+        }),
+      ]),
+    };
+
+    // No DB needed: the scenario connects to a port where nothing is listening.
+    createEsmAndCjsTests(__dirname, 'scenario-connect-error.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('records an errored connect span when the connection fails', { timeout: 90_000 }, async () => {
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+      });
+    });
+  });
+
+  describe('requireParentSpan', () => {
+    createEsmAndCjsTests(__dirname, 'scenario-no-parent.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('does not instrument queries or connects without an active parent span', { timeout: 90_000 }, async () => {
+        await createTestRunner()
+          .withDockerCompose({
+            workingDirectory: [__dirname],
+          })
+          .expect({
+            transaction: txn => {
+              const descriptions = txn.spans?.map(span => span.description) ?? [];
+              // The unparented connect + query must not have produced spans
+              expect(descriptions).not.toContain('SELECT 1 AS unparented');
+              expect(descriptions.find(name => name?.includes('connect'))).toBeUndefined();
+              // Only the parented query is instrumented
+              expect(txn).toMatchObject({
+                transaction: 'Test Transaction',
+                spans: expect.arrayContaining([
+                  expect.objectContaining({
+                    data: expect.objectContaining({
+                      'db.system': 'postgresql',
+                      'db.name': 'tests',
+                      'db.statement': 'SELECT 2 AS parented',
+                      'sentry.origin': 'auto.db.otel.postgres',
+                      'sentry.op': 'db',
+                    }),
+                    description: 'SELECT 2 AS parented',
                     op: 'db',
                     status: 'ok',
                     origin: 'auto.db.otel.postgres',

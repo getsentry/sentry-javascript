@@ -1,7 +1,7 @@
 import { PgInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '@sentry/node-core';
 
 interface PostgresIntegrationOptions {
   ignoreConnectSpans?: boolean;
@@ -13,10 +13,6 @@ export const instrumentPostgres = generateInstrumentOnce(
   INTEGRATION_NAME,
   PgInstrumentation,
   (options?: PostgresIntegrationOptions) => ({
-    requireParentSpan: true,
-    requestHook(span) {
-      addOriginToSpan(span, 'auto.db.otel.postgres');
-    },
     ignoreConnectSpans: options?.ignoreConnectSpans ?? false,
   }),
 );
