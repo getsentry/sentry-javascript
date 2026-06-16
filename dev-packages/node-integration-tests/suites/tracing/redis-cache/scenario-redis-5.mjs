@@ -23,6 +23,9 @@ async function run() {
 
         await redisClient.mGet(['redis-5-test-key', 'redis-5-cache:test-key', 'redis-5-cache:unavailable-data']);
 
+        // MULTI/EXEC produces one span per queued command, all ended together on exec
+        await redisClient.multi().set('redis-5-multi-key', 'multi-value').get('redis-5-multi-key').exec();
+
         // a failing command should produce a span with an error status
         // (INCR on a non-integer string value rejects)
         await redisClient.incr('redis-5-test-key').catch(() => {});

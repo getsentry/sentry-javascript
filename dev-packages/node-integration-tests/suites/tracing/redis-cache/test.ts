@@ -232,6 +232,27 @@ describe('redis cache auto instrumentation', () => {
             'cache.key': ['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data'],
           }),
         }),
+        // MULTI/EXEC: one span per queued command
+        expect.objectContaining({
+          description: 'SET redis-multi-key [1 other arguments]',
+          op: 'db',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.system': 'redis',
+            'db.statement': 'SET redis-multi-key [1 other arguments]',
+          }),
+        }),
+        expect.objectContaining({
+          description: 'GET redis-multi-key',
+          op: 'db',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.system': 'redis',
+            'db.statement': 'GET redis-multi-key',
+          }),
+        }),
         // a failing command produces a span with an error status
         expect.objectContaining({
           description: 'INCR redis-test-key',
@@ -341,6 +362,27 @@ describe('redis cache auto instrumentation', () => {
             'db.statement': 'MGET [3 other arguments]',
             'cache.hit': true,
             'cache.key': ['redis-5-test-key', 'redis-5-cache:test-key', 'redis-5-cache:unavailable-data'],
+          }),
+        }),
+        // MULTI/EXEC: one span per queued command
+        expect.objectContaining({
+          description: 'SET redis-5-multi-key [1 other arguments]',
+          op: 'db',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.system': 'redis',
+            'db.statement': 'SET redis-5-multi-key [1 other arguments]',
+          }),
+        }),
+        expect.objectContaining({
+          description: 'GET redis-5-multi-key',
+          op: 'db',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.system': 'redis',
+            'db.statement': 'GET redis-5-multi-key',
           }),
         }),
         // a failing command produces a span with an error status
