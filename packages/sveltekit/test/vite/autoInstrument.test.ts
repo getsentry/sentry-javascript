@@ -219,6 +219,67 @@ describe('makeAutoInstrumentationPlugin()', () => {
       },
     );
   });
+
+  describe('when SvelteKit native server tracing is detected via the Vite plugin `api`', () => {
+    // SvelteKit 3 no longer reads native-tracing config from `svelte.config.js` (so the
+    // `onlyInstrumentClient` option computed from it is `false`); the config is exposed on the
+    // SvelteKit Vite plugin's `api.options` instead.
+    function configWithKitTracing(ssr: boolean, serverTracing: boolean): unknown {
+      return {
+        build: { ssr },
+        plugins: [
+          { name: 'some-other-plugin' },
+          {
+            name: 'vite-plugin-sveltekit-setup',
+            api: { options: { kit: { experimental: { tracing: { server: serverTracing } } } } },
+          },
+        ],
+      };
+    }
+
+    it.each(['path/to/+page.server.ts', 'path/to/+layout.server.js', 'path/to/+page.ts', 'path/to/+layout.mjs'])(
+      "doesn't wrap %s in the SSR build when native tracing is enabled, even if `onlyInstrumentClient` is `false`",
+      async (path: string) => {
+        const plugin = makeAutoInstrumentationPlugin({
+          debug: false,
+          load: true,
+          serverLoad: true,
+          onlyInstrumentClient: false,
+        });
+
+        // @ts-expect-error this exists and is callable
+        plugin.configResolved(configWithKitTracing(true, true));
+
+        // @ts-expect-error this exists and is callable
+        const loadResult = await plugin.load(path);
+
+        expect(loadResult).toEqual(null);
+      },
+    );
+
+    it('still wraps server load in the SSR build when native tracing is not enabled', async () => {
+      const plugin = makeAutoInstrumentationPlugin({
+        debug: false,
+        load: true,
+        serverLoad: true,
+        onlyInstrumentClient: false,
+      });
+
+      // @ts-expect-error this exists and is callable
+      plugin.configResolved(configWithKitTracing(true, false));
+
+      const path = 'path/to/+page.server.ts';
+      // @ts-expect-error this exists and is callable
+      const loadResult = await plugin.load(path);
+
+      expect(loadResult).toBe(
+        'import { wrapServerLoadWithSentry } from "@sentry/sveltekit";' +
+          `import * as userModule from "${path}?sentry-auto-wrap";` +
+          'export const load = userModule.load ? wrapServerLoadWithSentry(userModule.load) : undefined;' +
+          `export * from "${path}?sentry-auto-wrap";`,
+      );
+    });
+  });
 });
 
 describe('canWrapLoad', () => {

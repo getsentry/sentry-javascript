@@ -2,11 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/sveltekit';
 
-// FIXME(sveltekit-3): a duplicate server-load span appears (the SDK's `function.sveltekit.server.load`
-// on top of Kit 3's native `sveltekit.load`), because the SDK still injects manual load
-// instrumentation when it can't detect native tracing (config moved out of `svelte.config.js` in
-// Kit 3). Unskip once the SDK suppresses its manual load span under native tracing.
-test.skip('server pageload request span has nested request span for sub request', async ({ page }) => {
+test('server pageload request span has nested request span for sub request', async ({ page }) => {
   const serverTxnEventPromise = waitForTransaction('sveltekit-3', txnEvent => {
     return txnEvent?.transaction === 'GET /server-load-fetch';
   });
@@ -85,14 +81,14 @@ test.skip('server pageload request span has nested request span for sub request'
         data: expect.objectContaining({
           'http.method': 'GET',
           'http.route': '/api/users',
-          'http.url': 'http://localhost:3030/api/users',
+          'http.url': 'https://localhost:3030/api/users',
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.sveltekit',
           'sentry.source': 'route',
           'sveltekit.is_data_request': false,
           'sveltekit.is_sub_request': true,
           'sveltekit.tracing.original_name': 'sveltekit.handle.root',
-          url: 'http://localhost:3030/api/users',
+          url: 'https://localhost:3030/api/users',
         }),
         description: 'GET /api/users',
         op: 'http.server',
