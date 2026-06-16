@@ -166,6 +166,7 @@ it('instruments D1 withSession().batch() identically to db.batch()', async ({ si
 
       sessionBatchSpan = findD1Spans(envelope).find(s => s.description === 'D1 batch');
     })
+    .unordered()
     .start(signal);
 
   await runner.makeRequest('get', '/batch');
