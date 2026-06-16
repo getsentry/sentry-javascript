@@ -11,12 +11,19 @@
  *   metrics / `enhancedDatabaseReporting` option were removed (unused by the Sentry SDK)
  */
 
-import type { Context, Span } from '@opentelemetry/api';
-import { context, SpanKind, SpanStatusCode } from '@opentelemetry/api';
+import type { Span } from '@opentelemetry/api';
+import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
-import type { SpanAttributes } from '@sentry/core';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import type { Scope, SpanAttributes } from '@sentry/core';
+import {
+  getCurrentScope,
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startInactiveSpan,
+  withActiveSpan,
+  withScope,
+} from '@sentry/core';
 import type * as mysqlTypes from './mysql-types';
 import {
   ATTR_DB_CONNECTION_STRING,
@@ -160,7 +167,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
   private _getConnectionCallbackPatchFn(cb: getConnectionCallbackType) {
     // oxlint-disable-next-line typescript/no-this-alias
     const thisPlugin = this;
-    const activeContext = context.active();
+    const scope = getCurrentScope();
     return function (this: unknown, err: mysqlTypes.MysqlError, connection: mysqlTypes.PoolConnection) {
       if (connection) {
         // this is the callback passed into a query
@@ -171,7 +178,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
         }
       }
       if (typeof cb === 'function') {
-        context.with(activeContext, cb, this, err, connection);
+        withScope(scope, () => cb.call(this, err, connection));
       }
     };
   }
@@ -214,14 +221,11 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
 
         const cbIndex = Array.from(arguments).findIndex(arg => typeof arg === 'function');
 
-        const parentContext = context.active();
-
+        const scope = getCurrentScope();
         if (cbIndex === -1) {
           const streamableQuery: mysqlTypes.Query = withActiveSpan(span, () => {
             return originalQuery.apply(connection, arguments);
           });
-          // Ensure events etc. triggered by the query have the correct context
-          context.bind(parentContext, streamableQuery);
 
           return streamableQuery
             .on('error', (err: unknown) => {
@@ -234,7 +238,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
               span.end();
             });
         } else {
-          thisPlugin._wrap(arguments, cbIndex, thisPlugin._patchCallbackQuery(span, parentContext));
+          thisPlugin._wrap(arguments, cbIndex, thisPlugin._patchCallbackQuery(span, scope));
 
           return withActiveSpan(span, () => {
             return originalQuery.apply(connection, arguments);
@@ -244,7 +248,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
     };
   }
 
-  private _patchCallbackQuery(span: Span, parentContext: Context) {
+  private _patchCallbackQuery(span: Span, scope: Scope) {
     return (originalCallback: Function) => {
       return function (err: mysqlTypes.MysqlError | null, _results?: unknown, _fields?: mysqlTypes.FieldInfo[]) {
         if (err) {
@@ -254,7 +258,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
           });
         }
         span.end();
-        return context.with(parentContext, () => originalCallback(...arguments));
+        return withScope(scope, () => originalCallback(...arguments));
       };
     };
   }
