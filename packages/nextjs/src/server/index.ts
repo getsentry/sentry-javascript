@@ -42,6 +42,9 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRelease?: string;
 };
 
+// Call at module level so `next build` prerender workers still register the runner without `init`
+prepareSafeIdGeneratorContext();
+
 /**
  * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
  * so they should simply be a passthrough.
