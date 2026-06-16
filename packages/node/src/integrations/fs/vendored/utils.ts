@@ -17,10 +17,10 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-fs
  * - Upstream version: @opentelemetry/instrumentation-fs@0.37.0
  */
-/* eslint-disable */
 
-import type { FunctionPropertyNames, FMember } from './types';
 import type * as fs from 'fs';
+import type { FMember, FunctionPropertyNames, GenericFunction } from './types';
+
 type FS = typeof fs;
 
 export function splitTwoLevels<FSObject>(
@@ -38,18 +38,18 @@ export function splitTwoLevels<FSObject>(
 export function indexFs<FSObject extends FS | FS['promises']>(
   fs: FSObject,
   member: FMember,
-): { objectToPatch: any; functionNameToPatch: string } {
+): { objectToPatch: Record<string, GenericFunction>; functionNameToPatch: string } {
   if (!member) throw new Error(JSON.stringify({ member }));
   const splitResult = splitTwoLevels<FSObject>(member);
   const [functionName1, functionName2] = splitResult;
   if (functionName2) {
     return {
-      objectToPatch: fs[functionName1],
+      objectToPatch: fs[functionName1] as Record<string, GenericFunction>,
       functionNameToPatch: functionName2,
     };
   } else {
     return {
-      objectToPatch: fs,
+      objectToPatch: fs as unknown as Record<string, GenericFunction>,
       functionNameToPatch: functionName1,
     };
   }

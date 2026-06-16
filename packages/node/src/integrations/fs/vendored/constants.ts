@@ -17,7 +17,6 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-fs
  * - Upstream version: @opentelemetry/instrumentation-fs@0.37.0
  */
-/* eslint-disable */
 
 import type { FMember, FPMember } from './types';
 
