@@ -6963,6 +6963,11 @@
   resolved "https://registry.yarnpkg.com/@redis/bloom/-/bloom-1.2.0.tgz#d3fd6d3c0af3ef92f26767b56414a370c7b63b71"
   integrity sha512-HG2DFjYKbpNmVXsa0keLHp/3leGJz1mjh09f2RLGGLQZzSHpkmZWuwJbAvo3QcRY8p80m5+ZdXZdYOSBLlp7Cg==
 
+"@redis/bloom@5.11.0":
+  version "5.11.0"
+  resolved "https://registry.yarnpkg.com/@redis/bloom/-/bloom-5.11.0.tgz#9254095dbbfe4084ed9e3c4f90dbf8501db91ab1"
+  integrity sha512-KYiVilAhAFN3057afUb/tfYJpsEyTkQB+tQcn5gVVA7DgcNOAj8lLxe4j8ov8BF6I9C1Fe/kwlbuAICcTMX8Lw==
+
 "@redis/bloom@5.12.1":
   version "5.12.1"
   resolved "https://registry.yarnpkg.com/@redis/bloom/-/bloom-5.12.1.tgz#047dbfce93cfa7e5879fb58ad1b2afe87ebb2dc4"
@@ -6976,6 +6981,13 @@
     cluster-key-slot "1.1.2"
     generic-pool "3.9.0"
     yallist "4.0.0"
+
+"@redis/client@5.11.0":
+  version "5.11.0"
+  resolved "https://registry.yarnpkg.com/@redis/client/-/client-5.11.0.tgz#f8f04dff68fdab0c4fae0b2bb0cfe70aa761442e"
+  integrity sha512-GHoprlNQD51Xq2Ztd94HHV94MdFZQ3CVrpA04Fz8MVoHM0B7SlbmPEVIjwTbcv58z8QyjnrOuikS0rWF03k5dQ==
+  dependencies:
+    cluster-key-slot "1.1.2"
 
 "@redis/client@5.12.1":
   version "5.12.1"
@@ -6994,6 +7006,11 @@
   resolved "https://registry.yarnpkg.com/@redis/json/-/json-1.0.6.tgz#b7a7725bbb907765d84c99d55eac3fcf772e180e"
   integrity sha512-rcZO3bfQbm2zPRpqo82XbW8zg4G/w4W3tI7X8Mqleq9goQjAGLL7q/1n1ZX4dXEAmORVZ4s1+uKLaUOg7LrUhw==
 
+"@redis/json@5.11.0":
+  version "5.11.0"
+  resolved "https://registry.yarnpkg.com/@redis/json/-/json-5.11.0.tgz#d324cb8eaa32e2e4400c010792d677dcb0a354a1"
+  integrity sha512-1iAy9kAtcD0quB21RbPTbUqqy+T2Uu2JxucwE+B4A+VaDbIRvpZR6DMqV8Iqaws2YxJYB3GC5JVNzPYio2ErUg==
+
 "@redis/json@5.12.1":
   version "5.12.1"
   resolved "https://registry.yarnpkg.com/@redis/json/-/json-5.12.1.tgz#52aff987abe4d41ec9644857fb00f16c7a97fdb7"
@@ -7004,6 +7021,11 @@
   resolved "https://registry.yarnpkg.com/@redis/search/-/search-1.1.6.tgz#33bcdd791d9ed88ab6910243a355d85a7fedf756"
   integrity sha512-mZXCxbTYKBQ3M2lZnEddwEAks0Kc7nauire8q20oA0oA/LoA+E/b5Y5KZn232ztPb1FkIGqo12vh3Lf+Vw5iTw==
 
+"@redis/search@5.11.0":
+  version "5.11.0"
+  resolved "https://registry.yarnpkg.com/@redis/search/-/search-5.11.0.tgz#24b5385d963f8a5de3821c7b9837f2c60cf0ce11"
+  integrity sha512-g1l7f3Rnyk/xI99oGHIgWHSKFl45Re5YTIcO8j/JE8olz389yUFyz2+A6nqVy/Zi031VgPDWscbbgOk8hlhZ3g==
+
 "@redis/search@5.12.1":
   version "5.12.1"
   resolved "https://registry.yarnpkg.com/@redis/search/-/search-5.12.1.tgz#b7a738be918c8a7af91e39c5bd2023f30f392981"
@@ -7013,6 +7035,11 @@
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/@redis/time-series/-/time-series-1.0.5.tgz#a6d70ef7a0e71e083ea09b967df0a0ed742bc6ad"
   integrity sha512-IFjIgTusQym2B5IZJG3XKr5llka7ey84fw/NOYqESP5WUfQs9zz1ww/9+qoz4ka/S6KcGBodzlCeZ5UImKbscg==
+
+"@redis/time-series@5.11.0":
+  version "5.11.0"
+  resolved "https://registry.yarnpkg.com/@redis/time-series/-/time-series-5.11.0.tgz#eafb8cf7f67d7077ea3ed2cc27ee7ca3fc4a0369"
+  integrity sha512-TWFeOcU4xkj0DkndnOyhtxvX1KWD+78UHT3XX3x3XRBUGWeQrKo3jqzDsZwxbggUgf9yLJr/akFHXru66X5UQA==
 
 "@redis/time-series@5.12.1":
   version "5.12.1"
@@ -25752,7 +25779,7 @@ redeyed@~1.0.0:
     "@redis/search" "1.1.6"
     "@redis/time-series" "1.0.5"
 
-"redis-5@npm:redis@^5.12.0":
+"redis-5-tracing@npm:redis@^5.12.0":
   version "5.12.1"
   resolved "https://registry.yarnpkg.com/redis/-/redis-5.12.1.tgz#f95297e01eca8b87a109601a2418647e05f16bee"
   integrity sha512-LDsoVvb/CpoV9EN3FXvgvSHNJWuCIzl9MiO3ppOevuGLpSGJhwfQjpEwfFJcQvNSddHADDdZaWx0HnmMxRXG7g==
@@ -25762,6 +25789,17 @@ redeyed@~1.0.0:
     "@redis/json" "5.12.1"
     "@redis/search" "5.12.1"
     "@redis/time-series" "5.12.1"
+
+"redis-5@npm:redis@~5.11.0":
+  version "5.11.0"
+  resolved "https://registry.yarnpkg.com/redis/-/redis-5.11.0.tgz#dccf8ff578118cdfe4f2b1e0b1d744024920ddf9"
+  integrity sha512-YwXjATVDT+AuxcyfOwZn046aml9jMlQPvU1VXIlLDVAExe0u93aTfPYSeRgG4p9Q/Jlkj+LXJ1XEoFV+j2JKcQ==
+  dependencies:
+    "@redis/bloom" "5.11.0"
+    "@redis/client" "5.11.0"
+    "@redis/json" "5.11.0"
+    "@redis/search" "5.11.0"
+    "@redis/time-series" "5.11.0"
 
 redis-errors@1.2.0, redis-errors@^1.0.0, redis-errors@^1.2.0:
   version "1.2.0"

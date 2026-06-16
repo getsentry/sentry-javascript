@@ -99,7 +99,7 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
     transaction: 'redis-connect',
   };
 
-  createEsmAndCjsTests(__dirname, 'scenario-redis-5.mjs', 'instrument.mjs', (createTestRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-redis-5-tracing.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('should create spans for redis v5 commands via diagnostics_channel', { timeout: 60_000 }, async () => {
       await createTestRunner()
         .withDockerCompose({ workingDirectory: [__dirname] })

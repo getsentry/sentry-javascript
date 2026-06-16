@@ -22,6 +22,10 @@ async function run() {
         await redisClient.get('redis-cache:unavailable-data');
 
         await redisClient.mGet(['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data']);
+
+        // a failing command should produce a span with an error status
+        // (INCR on a non-integer string value rejects)
+        await redisClient.incr('redis-test-key').catch(() => {});
       } finally {
         await redisClient.disconnect();
       }
