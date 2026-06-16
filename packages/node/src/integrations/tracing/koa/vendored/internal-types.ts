@@ -18,20 +18,19 @@
  * - Upstream version: @opentelemetry/instrumentation-koa@0.66.0
  * - Some types vendored from @types/koa, @types/koa-compose, and @types/koa__router with simplifications
  */
-/* eslint-disable */
 
 interface DefaultState {}
 
-export type Next = () => Promise<any>;
+export type Next = () => Promise<unknown>;
 
 type ParameterizedContext<_StateT = DefaultState, ContextT = {}, _ResponseBodyT = unknown> = {
-  [key: string]: any;
+  [key: string]: unknown;
 } & ContextT;
 
-type Middleware<StateT = DefaultState, ContextT = {}, ResponseBodyT = any> = (
+type Middleware<StateT = DefaultState, ContextT = {}, ResponseBodyT = unknown> = (
   context: ParameterizedContext<StateT, ContextT, ResponseBodyT>,
   next: Next,
-) => any;
+) => unknown;
 
 interface RouterParamContext<StateT = DefaultState, ContextT = {}> {
   params: Record<string, string>;
@@ -42,7 +41,7 @@ interface RouterParamContext<StateT = DefaultState, ContextT = {}> {
 
 interface Layer {
   path: string | RegExp;
-  stack: any[];
+  stack: KoaMiddleware[];
 }
 
 export interface Router<_StateT = DefaultState, _ContextT = {}> {
