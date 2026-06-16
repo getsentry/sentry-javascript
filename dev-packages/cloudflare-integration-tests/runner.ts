@@ -158,7 +158,14 @@ export function createRunner(...paths: string[]) {
 
       let envelopeCount = 0;
       const envelopeWaiters: { expected: Expected; resolve: () => void; reject: (e: unknown) => void }[] = [];
-      const { resolve: setWorkerPort, promise: workerPortPromise } = deferredPromise<number>();
+      const {
+        resolve: setWorkerPort,
+        reject: rejectWorkerPort,
+        promise: workerPortPromise,
+      } = deferredPromise<number>();
+      workerPortPromise.catch(() => {
+        // handled in `makeRequest`
+      });
       let child: ReturnType<typeof spawn> | undefined;
       let childSubWorker: ReturnType<typeof spawn> | undefined;
 
@@ -277,6 +284,10 @@ export function createRunner(...paths: string[]) {
                   resolve(parseInt(new URL(match[1]).port, 10));
                 }
               });
+
+              childProcess.on('close', (code, sig) => {
+                reject(new Error(`wrangler exited with code ${code} (signal ${sig}) before becoming ready`));
+              });
             });
           }
 
@@ -340,7 +351,10 @@ export function createRunner(...paths: string[]) {
 
           setWorkerPort(workerPort);
         })
-        .catch(e => reject(e));
+        .catch(e => {
+          rejectWorkerPort(e);
+          reject(e);
+        });
 
       return {
         completed: async function (): Promise<void> {

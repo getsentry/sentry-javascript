@@ -69,8 +69,7 @@ it('handles consecutive RPC calls without throwing "RPC receiver does not implem
 // the Proxy must ensure `this` refers to the original object (not the Proxy),
 // otherwise private field access throws: "Cannot read private member from an object
 // whose class did not declare it"
-// TODO: unskip - this test is flaky, timing out in CI (#21201)
-it.skip('allows RPC methods to access private class fields', async ({ signal }) => {
+it('allows RPC methods to access private class fields', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as Event;
