@@ -49,16 +49,19 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
           if (isWrapped(moduleExports.createConnection)) {
             this._unwrap(moduleExports, 'createConnection');
           }
+          // oxlint-disable-next-line typescript/no-explicit-any
           this._wrap(moduleExports, 'createConnection', this._patchCreateConnection() as any);
 
           if (isWrapped(moduleExports.createPool)) {
             this._unwrap(moduleExports, 'createPool');
           }
+          // oxlint-disable-next-line typescript/no-explicit-any
           this._wrap(moduleExports, 'createPool', this._patchCreatePool() as any);
 
           if (isWrapped(moduleExports.createPoolCluster)) {
             this._unwrap(moduleExports, 'createPoolCluster');
           }
+          // oxlint-disable-next-line typescript/no-explicit-any
           this._wrap(moduleExports, 'createPoolCluster', this._patchCreatePoolCluster() as any);
 
           return moduleExports;
@@ -76,12 +79,14 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
   // global export function
   private _patchCreateConnection() {
     return (originalCreateConnection: Function) => {
+      // oxlint-disable-next-line typescript/no-this-alias
       const thisPlugin = this;
 
       return function createConnection(_connectionUri: string | mysqlTypes.ConnectionConfig) {
         const originalResult = originalCreateConnection(...arguments);
 
         // This is unwrapped on next call after unpatch
+        // oxlint-disable-next-line typescript/no-explicit-any
         thisPlugin._wrap(originalResult, 'query', thisPlugin._patchQuery(originalResult) as any);
 
         return originalResult;
@@ -92,6 +97,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
   // global export function
   private _patchCreatePool() {
     return (originalCreatePool: Function) => {
+      // oxlint-disable-next-line typescript/no-this-alias
       const thisPlugin = this;
       return function createPool(_config: string | mysqlTypes.PoolConfig) {
         const pool = originalCreatePool(...arguments);
@@ -107,6 +113,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
   // global export function
   private _patchCreatePoolCluster() {
     return (originalCreatePoolCluster: Function) => {
+      // oxlint-disable-next-line typescript/no-this-alias
       const thisPlugin = this;
       return function createPool(_config: string | mysqlTypes.PoolConfig) {
         const cluster = originalCreatePoolCluster(...arguments);
@@ -122,6 +129,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
   // method on cluster or pool
   private _patchGetConnection(pool: mysqlTypes.Pool | mysqlTypes.PoolCluster) {
     return (originalGetConnection: Function) => {
+      // oxlint-disable-next-line typescript/no-this-alias
       const thisPlugin = this;
 
       return function getConnection(arg1?: unknown, arg2?: unknown, arg3?: unknown) {
@@ -150,14 +158,16 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
   }
 
   private _getConnectionCallbackPatchFn(cb: getConnectionCallbackType) {
+    // oxlint-disable-next-line typescript/no-this-alias
     const thisPlugin = this;
     const activeContext = context.active();
-    return function (this: any, err: mysqlTypes.MysqlError, connection: mysqlTypes.PoolConnection) {
+    return function (this: unknown, err: mysqlTypes.MysqlError, connection: mysqlTypes.PoolConnection) {
       if (connection) {
         // this is the callback passed into a query
         // no need to unwrap
         if (!isWrapped(connection.query)) {
-          thisPlugin._wrap(connection, 'query', thisPlugin._patchQuery(connection));
+          // oxlint-disable-next-line typescript/no-explicit-any
+          thisPlugin._wrap(connection, 'query', thisPlugin._patchQuery(connection) as any);
         }
       }
       if (typeof cb === 'function') {
@@ -167,7 +177,8 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
   }
 
   private _patchQuery(connection: mysqlTypes.Connection | mysqlTypes.Pool) {
-    return (originalQuery: Function): mysqlTypes.QueryFunction => {
+    return (originalQuery: Function) => {
+      // oxlint-disable-next-line typescript/no-this-alias
       const thisPlugin = this;
 
       return function query(
@@ -181,7 +192,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
         }
 
         const { host, port, database, user } = getConfig(connection.config);
-        const portNumber = parseInt(port, 10);
+        const portNumber = parseInt(String(port), 10);
         const attributes: SpanAttributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
@@ -215,12 +226,12 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
           context.bind(parentContext, streamableQuery);
 
           return streamableQuery
-            .on('error', err =>
+            .on('error', (err: unknown) => {
               span.setStatus({
                 code: SpanStatusCode.ERROR,
-                message: err.message,
-              }),
-            )
+                message: (err as mysqlTypes.MysqlError).message,
+              });
+            })
             .on('end', () => {
               span.end();
             });
@@ -237,7 +248,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
 
   private _patchCallbackQuery(span: Span, parentContext: Context) {
     return (originalCallback: Function) => {
-      return function (err: mysqlTypes.MysqlError | null, _results?: any, _fields?: mysqlTypes.FieldInfo[]) {
+      return function (err: mysqlTypes.MysqlError | null, _results?: unknown, _fields?: mysqlTypes.FieldInfo[]) {
         if (err) {
           span.setStatus({
             code: SpanStatusCode.ERROR,

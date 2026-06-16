@@ -15,7 +15,7 @@ export interface MysqlError extends Error {
   sql?: string;
   sqlState?: string;
   sqlMessage?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ConnectionConfig {
@@ -24,18 +24,18 @@ export interface ConnectionConfig {
   database?: string;
   user?: string;
   password?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface PoolConfig extends ConnectionConfig {
   connectionConfig?: ConnectionConfig;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface QueryOptions {
   sql: string;
-  values?: any;
-  [key: string]: any;
+  values?: unknown;
+  [key: string]: unknown;
 }
 
 export interface FieldInfo {
@@ -48,32 +48,32 @@ export interface FieldInfo {
   charsetNr: number;
   length: number;
   type: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-export type queryCallback = (err: MysqlError | null, results?: any, fields?: FieldInfo[]) => void;
+export type queryCallback = (err: MysqlError | null, results?: unknown, fields?: FieldInfo[]) => void;
 
 export interface Query {
   sql: string;
-  values?: any;
-  on(event: string, listener: (...args: any[]) => void): this;
-  [key: string]: any;
+  values?: unknown;
+  on(event: string, listener: (...args: unknown[]) => void): this;
+  [key: string]: unknown;
 }
 
 export type QueryFunction = {
   (query: string | QueryOptions, callback?: queryCallback): Query;
-  (query: string | QueryOptions, values?: any, callback?: queryCallback): Query;
+  (query: string | QueryOptions, values?: unknown, callback?: queryCallback): Query;
 };
 
 export interface Connection {
   config: ConnectionConfig;
   query: QueryFunction;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface PoolConnection extends Connection {
   release(): void;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Pool {
@@ -81,8 +81,8 @@ export interface Pool {
   query: QueryFunction;
   getConnection(callback: (err: MysqlError, connection: PoolConnection) => void): void;
   end(callback?: (err?: MysqlError) => void): void;
-  on(event: string, listener: (...args: any[]) => void): this;
-  [key: string]: any;
+  on(event: string, listener: (...args: unknown[]) => void): this;
+  [key: string]: unknown;
 }
 
 export interface PoolCluster {
@@ -95,7 +95,7 @@ export interface PoolCluster {
   ): void;
   add(config: PoolConfig): void;
   add(id: string, config: PoolConfig): void;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export declare function createConnection(connectionUri: string | ConnectionConfig): Connection;

@@ -8,10 +8,11 @@
  * - Types from the `mysql` package inlined as simplified interfaces
  */
 
-import type { Query, QueryOptions } from './mysql-types';
+import type { ConnectionConfig, PoolConfig, Query, QueryOptions } from './mysql-types';
 
-export function getConfig(config: any) {
-  const { host, port, database, user } = config?.connectionConfig || config || {};
+export function getConfig(config: ConnectionConfig | PoolConfig | undefined) {
+  const resolved = (config as PoolConfig | undefined)?.connectionConfig || config || {};
+  const { host, port, database, user } = resolved;
   return { host, port, database, user };
 }
 
