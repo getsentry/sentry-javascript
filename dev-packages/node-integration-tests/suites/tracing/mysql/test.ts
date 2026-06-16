@@ -235,4 +235,37 @@ describe('mysql auto instrumentation', () => {
       { failsOnEsm: true },
     );
   });
+
+  describe('streamed query listener context', () => {
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-streamContext.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('should run streamed query listeners with the parent context active', async () => {
+          await createTestRunner()
+            .expect({
+              transaction: (transaction): void => {
+                const transactionSpanId = transaction.contexts?.trace?.span_id;
+                const spans = transaction.spans ?? [];
+                const mysqlSpan = spans.find(span => span.description === 'SELECT 1 + 1 AS solution');
+                const listenerSpan = spans.find(span => span.description === 'listener-child');
+
+                expect(transactionSpanId).toBeDefined();
+                expect(mysqlSpan).toBeDefined();
+                expect(listenerSpan).toBeDefined();
+
+                // The span created inside the stream `end` listener is parented to the transaction
+                // (the context active when the query was issued), not to the query span.
+                expect(listenerSpan?.parent_span_id).toBe(transactionSpanId);
+                expect(listenerSpan?.parent_span_id).not.toBe(mysqlSpan?.span_id);
+              },
+            })
+            .start()
+            .completed();
+        });
+      },
+      { failsOnEsm: true },
+    );
+  });
 });
