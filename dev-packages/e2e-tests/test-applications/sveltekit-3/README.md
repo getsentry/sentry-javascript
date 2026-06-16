@@ -11,27 +11,39 @@ picks up Kit's spans instead of starting its own `http.server` span. `Sentry.ini
 lives in `src/instrumentation.server.ts`, and the `tests/tracing.*` suites assert the native span
 tree (`sveltekit.handle.root`, `function.sveltekit.resolve`, form-action spans, etc.).
 
-## Status: `sentryTest.skip = true` (draft)
+## Status: `sentryTest.optional = true` (prerelease)
 
-This app is **skipped in CI** because it cannot build on the current SvelteKit 3 prerelease yet.
-
-The build fails in SvelteKit's own pipeline (reproduced with the Sentry plugin removed, so it is
-**not** a Sentry issue):
-
-```
-[vite]: Rolldown failed to resolve import "$env/static/private" from "src/instrumentation.server.ts"
-```
-
-SvelteKit 3 ships on Vite 8 / Rolldown, and `$env/*` virtual-module resolution is broken in the
-prerelease (both `$env/static/*` and `$env/dynamic/*`). Until that is fixed upstream, no SvelteKit
-3 app whose hooks read `$env/*` can build.
-
-**When upstream ships a buildable prerelease:** remove `sentryTest.skip` (use `optional` while it
-remains a prerelease, then promote to a full matrix entry at GA) and confirm the suites pass.
+Runs in CI but failures don't block merges, since it tracks a moving `next` prerelease.
 
 ## SvelteKit 3 differences captured here vs `sveltekit-2`
 
-- **No `svelte.config.js`** — SvelteKit 3 removed it. Configuration (adapter, preprocess) is passed
-  directly to the `sveltekit({ ... })` Vite plugin in `vite.config.js`. This is the main thing the
-  Sentry SDK still needs to adapt to: the Vite-plugin glue currently reads `svelte.config.js`.
+- **Explicit environment variables.** SvelteKit 3 makes explicit env the default and removes the
+  legacy `$env/*` virtual modules. This app declares its vars in `src/env.ts` (`defineEnvVars`) and
+  imports them from `$app/env/private` / `$app/env/public`. This is also required in practice: the
+  legacy `$env/*` modules currently **fail to build** under Kit 3's Vite 8 / Rolldown pipeline
+  (`Rolldown failed to resolve import "$env/static/private"`) — an upstream bug scoped to the
+  deprecated API. A standalone repro lives at `repros/sveltekit-3-env-rolldown`.
+- **No `svelte.config.js`** — SvelteKit 3 removed it. Configuration (adapter, preprocess, the
+  experimental tracing flags) is passed directly to the `sveltekit({ ... })` Vite plugin in
+  `vite.config.js`. The Sentry SDK's Vite-plugin glue still reads `svelte.config.js` and will be
+  adapted separately.
 - Uses `@sveltejs/adapter-node` (exercises the SDK's Node-adapter output-dir detection).
+- The DSN is declared `{ static: true }` in `src/env.ts` (inlined at build). A dynamic private var
+  currently resolves to `undefined` at runtime under Kit 3's adapter-node even when set in
+  `process.env`, so the server SDK would never receive it.
+
+## Known-failing tests (skipped, pending SDK fix)
+
+The native-tracing happy path works (init, span pickup, distributed traces all pass). The following
+server-side tests are `test.skip`/`describe.skip` with inline `FIXME(sveltekit-3)` notes:
+
+- `errors.server.test.ts` — error capture works, but stack-frame function names are `load$1` (not
+  `load`) and the request URL scheme is `https`. Caused by the SDK still injecting manual load
+  instrumentation because it detects native tracing via the now-removed `svelte.config.js`.
+- `tracing.server.test.ts` › nested sub-request span — a duplicate server-load span
+  (`function.sveltekit.server.load` on top of Kit's native `sveltekit.load`), same root cause.
+- `tracing.server.test.ts` › form action span — `POST /form-action` server transaction never
+  arrives under Kit 3 (no POST root span created server-side); needs further isolation.
+
+Unskip these as the SDK is adapted for Kit 3 (detect native tracing from the Vite plugin options
+instead of `svelte.config.js`, and guard the load wrappers on `event.tracing?.enabled`).

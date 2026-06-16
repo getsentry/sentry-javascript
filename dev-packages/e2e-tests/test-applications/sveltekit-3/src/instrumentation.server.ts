@@ -1,4 +1,4 @@
-import { E2E_TEST_DSN } from '$env/static/private';
+import { E2E_TEST_DSN } from '$app/env/private';
 import * as Sentry from '@sentry/sveltekit';
 
 // With SvelteKit 3 native instrumentation enabled (`experimental.instrumentation.server`),
