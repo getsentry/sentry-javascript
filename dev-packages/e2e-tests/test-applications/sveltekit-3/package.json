@@ -34,7 +34,7 @@
     "extends": "../../package.json"
   },
   "sentryTest": {
-    "skip": true
+    "optional": true
   },
   "type": "module"
 }
