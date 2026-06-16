@@ -19,8 +19,7 @@
  */
 /* eslint-disable */
 
-import { Tracer, Span, DiagLogger, Meter } from '@opentelemetry/api';
-import { SemconvStability } from '@opentelemetry/instrumentation';
+import { Tracer, Span, DiagLogger } from '@opentelemetry/api';
 import { ServiceExtension, RequestMetadata } from './ServiceExtension';
 import { SqsServiceExtension } from './sqs';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
@@ -56,14 +55,13 @@ export class ServicesExtensions implements ServiceExtension {
     request: NormalizedRequest,
     config: AwsSdkInstrumentationConfig,
     diag: DiagLogger,
-    dbSemconvStability?: SemconvStability,
   ): RequestMetadata {
     const serviceExtension = this.services.get(request.serviceName);
     if (!serviceExtension)
       return {
         isIncoming: false,
       };
-    return serviceExtension.requestPreSpanHook(request, config, diag, dbSemconvStability);
+    return serviceExtension.requestPreSpanHook(request, config, diag);
   }
 
   requestPostSpanHook(request: NormalizedRequest) {
@@ -82,11 +80,5 @@ export class ServicesExtensions implements ServiceExtension {
     const serviceExtension = this.services.get(response.request.serviceName);
 
     return serviceExtension?.responseHook?.(response, span, tracer, config, startTime);
-  }
-
-  updateMetricInstruments(meter: Meter) {
-    for (const serviceExtension of this.services.values()) {
-      serviceExtension.updateMetricInstruments?.(meter);
-    }
   }
 }

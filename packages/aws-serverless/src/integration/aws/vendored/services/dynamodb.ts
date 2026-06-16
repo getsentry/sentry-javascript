@@ -20,13 +20,6 @@
 /* eslint-disable */
 
 import { Attributes, DiagLogger, Span, SpanKind, Tracer } from '@opentelemetry/api';
-import { SemconvStability } from '@opentelemetry/instrumentation';
-import {
-  ATTR_DB_NAMESPACE,
-  ATTR_DB_OPERATION_NAME,
-  ATTR_DB_QUERY_TEXT,
-  ATTR_DB_SYSTEM_NAME,
-} from '@opentelemetry/semantic-conventions';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import {
   ATTR_AWS_DYNAMODB_ATTRIBUTE_DEFINITIONS,
@@ -52,9 +45,7 @@ import {
   ATTR_AWS_DYNAMODB_TOTAL_SEGMENTS,
   ATTR_DB_NAME,
   ATTR_DB_OPERATION,
-  ATTR_DB_STATEMENT,
   ATTR_DB_SYSTEM,
-  DB_SYSTEM_NAME_VALUE_DYNAMODB,
   DB_SYSTEM_VALUE_DYNAMODB,
 } from '../semconv';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
@@ -68,7 +59,6 @@ export class DynamodbServiceExtension implements ServiceExtension {
     normalizedRequest: NormalizedRequest,
     config: AwsSdkInstrumentationConfig,
     diag: DiagLogger,
-    dbSemconvStability?: SemconvStability,
   ): RequestMetadata {
     const spanKind: SpanKind = SpanKind.CLIENT;
     let spanName: string | undefined;
@@ -78,33 +68,9 @@ export class DynamodbServiceExtension implements ServiceExtension {
 
     const spanAttributes: Attributes = {};
 
-    if (dbSemconvStability === undefined || dbSemconvStability & SemconvStability.OLD) {
-      spanAttributes[ATTR_DB_SYSTEM] = DB_SYSTEM_VALUE_DYNAMODB;
-      spanAttributes[ATTR_DB_NAME] = tableName;
-      spanAttributes[ATTR_DB_OPERATION] = operation;
-    }
-    if (dbSemconvStability !== undefined && dbSemconvStability & SemconvStability.STABLE) {
-      spanAttributes[ATTR_DB_SYSTEM_NAME] = DB_SYSTEM_NAME_VALUE_DYNAMODB;
-      spanAttributes[ATTR_DB_NAMESPACE] = tableName;
-      spanAttributes[ATTR_DB_OPERATION_NAME] = operation;
-    }
-
-    if (config.dynamoDBStatementSerializer) {
-      try {
-        const sanitizedStatement = config.dynamoDBStatementSerializer(operation, normalizedRequest.commandInput);
-
-        if (typeof sanitizedStatement === 'string') {
-          if (dbSemconvStability === undefined || dbSemconvStability & SemconvStability.OLD) {
-            spanAttributes[ATTR_DB_STATEMENT] = sanitizedStatement;
-          }
-          if (dbSemconvStability !== undefined && dbSemconvStability & SemconvStability.STABLE) {
-            spanAttributes[ATTR_DB_QUERY_TEXT] = sanitizedStatement;
-          }
-        }
-      } catch (err) {
-        diag.error('failed to sanitize DynamoDB statement', err);
-      }
-    }
+    spanAttributes[ATTR_DB_SYSTEM] = DB_SYSTEM_VALUE_DYNAMODB;
+    spanAttributes[ATTR_DB_NAME] = tableName;
+    spanAttributes[ATTR_DB_OPERATION] = operation;
 
     // normalizedRequest.commandInput.RequestItems) is undefined when no table names are returned
     // keys in this object are the table names
