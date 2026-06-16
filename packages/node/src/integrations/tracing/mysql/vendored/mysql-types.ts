@@ -7,7 +7,6 @@
  * - Upstream version: @opentelemetry/instrumentation-mysql@0.64.0
  * - Simplified type definitions inlined from the `mysql` package to avoid requiring it as a dependency
  */
-/* eslint-disable */
 
 export interface MysqlError extends Error {
   code: string;

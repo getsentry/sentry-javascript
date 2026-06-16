@@ -7,25 +7,17 @@
  * - Upstream version: @opentelemetry/instrumentation-mysql@0.64.0
  * - Types from the `mysql` package inlined as simplified interfaces
  * - Minor TypeScript strictness adjustments for this repository's compiler settings
+ * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs, and the connection-pool
+ *   metrics / `enhancedDatabaseReporting` option were removed (unused by the Sentry SDK)
  */
-/* eslint-disable */
 
-import { context, Context, trace, Span, SpanKind, SpanStatusCode, type Attributes } from '@opentelemetry/api';
-import {
-  InstrumentationBase,
-  InstrumentationNodeModuleDefinition,
-  isWrapped,
-  SemconvStability,
-  semconvStabilityFromStr,
-} from '@opentelemetry/instrumentation';
-import {
-  ATTR_DB_NAMESPACE,
-  ATTR_DB_QUERY_TEXT,
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_SERVER_ADDRESS,
-  ATTR_SERVER_PORT,
-  DB_SYSTEM_NAME_VALUE_MYSQL,
-} from '@opentelemetry/semantic-conventions';
+import type { Context, Span } from '@opentelemetry/api';
+import { context, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
+import type { SpanAttributes } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import type * as mysqlTypes from './mysql-types';
 import {
   ATTR_DB_CONNECTION_STRING,
   ATTR_DB_NAME,
@@ -35,49 +27,17 @@ import {
   ATTR_NET_PEER_NAME,
   ATTR_NET_PEER_PORT,
   DB_SYSTEM_VALUE_MYSQL,
-  METRIC_DB_CLIENT_CONNECTIONS_USAGE,
 } from './semconv';
-import type * as mysqlTypes from './mysql-types';
-import { AttributeNames } from './AttributeNames';
-import { MySQLInstrumentationConfig } from './types';
-import { getConfig, getDbQueryText, getDbValues, getJDBCString, getSpanName, getPoolNameOld } from './utils';
-import { SDK_VERSION } from '@sentry/core';
-import { UpDownCounter } from '@opentelemetry/api';
+import { getConfig, getDbQueryText, getJDBCString, getSpanName } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-mysql';
+const ORIGIN = 'auto.db.otel.mysql';
 
 type getConnectionCallbackType = (err: mysqlTypes.MysqlError, connection: mysqlTypes.PoolConnection) => void;
 
-export class MySQLInstrumentation extends InstrumentationBase<MySQLInstrumentationConfig> {
-  private _netSemconvStability!: SemconvStability;
-  private _dbSemconvStability!: SemconvStability;
-  declare private _connectionsUsageOld: UpDownCounter;
-
-  constructor(config: MySQLInstrumentationConfig = {}) {
+export class MySQLInstrumentation extends InstrumentationBase<InstrumentationConfig> {
+  public constructor(config: InstrumentationConfig = {}) {
     super(PACKAGE_NAME, SDK_VERSION, config);
-    this._setSemconvStabilityFromEnv();
-  }
-
-  // Used for testing.
-  private _setSemconvStabilityFromEnv() {
-    this._netSemconvStability = semconvStabilityFromStr('http', process.env.OTEL_SEMCONV_STABILITY_OPT_IN);
-    this._dbSemconvStability = semconvStabilityFromStr('database', process.env.OTEL_SEMCONV_STABILITY_OPT_IN);
-  }
-
-  protected override _updateMetricInstruments() {
-    this._connectionsUsageOld = this.meter.createUpDownCounter(METRIC_DB_CLIENT_CONNECTIONS_USAGE, {
-      description: 'The number of connections that are currently in state described by the state attribute.',
-      unit: '{connection}',
-    });
-  }
-
-  /**
-   * Convenience function for updating the `db.client.connections.usage` metric.
-   * The name "count" comes from the eventually replacement for this metric per
-   * https://opentelemetry.io/docs/specs/semconv/non-normative/db-migration/#database-client-connection-count
-   */
-  private _connCountAdd(n: number, poolNameOld: string, state: string) {
-    this._connectionsUsageOld?.add(n, { state, name: poolNameOld });
   }
 
   protected init() {
@@ -138,25 +98,8 @@ export class MySQLInstrumentation extends InstrumentationBase<MySQLInstrumentati
 
         thisPlugin._wrap(pool, 'query', thisPlugin._patchQuery(pool));
         thisPlugin._wrap(pool, 'getConnection', thisPlugin._patchGetConnection(pool));
-        thisPlugin._wrap(pool, 'end', thisPlugin._patchPoolEnd(pool));
-        thisPlugin._setPoolCallbacks(pool, '');
 
         return pool;
-      };
-    };
-  }
-
-  private _patchPoolEnd(pool: any) {
-    return (originalPoolEnd: Function) => {
-      const thisPlugin = this;
-      return function end(callback?: unknown) {
-        const nAll = (pool as any)._allConnections.length;
-        const nFree = (pool as any)._freeConnections.length;
-        const nUsed = nAll - nFree;
-        const poolNameOld = getPoolNameOld(pool);
-        thisPlugin._connCountAdd(-nUsed, poolNameOld, 'used');
-        thisPlugin._connCountAdd(-nFree, poolNameOld, 'idle');
-        originalPoolEnd.apply(pool, arguments);
       };
     };
   }
@@ -170,29 +113,8 @@ export class MySQLInstrumentation extends InstrumentationBase<MySQLInstrumentati
 
         // This is unwrapped on next call after unpatch
         thisPlugin._wrap(cluster, 'getConnection', thisPlugin._patchGetConnection(cluster));
-        thisPlugin._wrap(cluster, 'add', thisPlugin._patchAdd(cluster));
 
         return cluster;
-      };
-    };
-  }
-  private _patchAdd(cluster: mysqlTypes.PoolCluster) {
-    return (originalAdd: Function) => {
-      const thisPlugin = this;
-      return function add(id: string, config: unknown) {
-        // Unwrap if unpatch has been called
-        if (!thisPlugin['_enabled']) {
-          thisPlugin._unwrap(cluster, 'add');
-          return originalAdd.apply(cluster, arguments);
-        }
-        originalAdd.apply(cluster, arguments);
-        const nodes = cluster['_nodes' as keyof mysqlTypes.PoolCluster] as any;
-        if (nodes) {
-          const nodeId = typeof id === 'object' ? 'CLUSTER::' + (cluster as any)._lastId : String(id);
-
-          const pool = nodes[nodeId].pool;
-          thisPlugin._setPoolCallbacks(pool, id);
-        }
       };
     };
   }
@@ -258,50 +180,29 @@ export class MySQLInstrumentation extends InstrumentationBase<MySQLInstrumentati
           return originalQuery.apply(connection, arguments);
         }
 
-        const attributes: Attributes = {};
         const { host, port, database, user } = getConfig(connection.config);
         const portNumber = parseInt(port, 10);
-        const dbQueryText = getDbQueryText(query);
-        if (thisPlugin._dbSemconvStability & SemconvStability.OLD) {
-          attributes[ATTR_DB_SYSTEM] = DB_SYSTEM_VALUE_MYSQL;
-          attributes[ATTR_DB_CONNECTION_STRING] = getJDBCString(host, port, database);
-          attributes[ATTR_DB_NAME] = database;
-          attributes[ATTR_DB_USER] = user;
-          attributes[ATTR_DB_STATEMENT] = dbQueryText;
+        const attributes: SpanAttributes = {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
+          [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, port, database),
+          [ATTR_DB_NAME]: database,
+          [ATTR_DB_USER]: user,
+          [ATTR_DB_STATEMENT]: getDbQueryText(query),
+          [ATTR_NET_PEER_NAME]: host,
+        };
+        if (!isNaN(portNumber)) {
+          attributes[ATTR_NET_PEER_PORT] = portNumber;
         }
-        if (thisPlugin._dbSemconvStability & SemconvStability.STABLE) {
-          attributes[ATTR_DB_SYSTEM_NAME] = DB_SYSTEM_NAME_VALUE_MYSQL;
-          attributes[ATTR_DB_NAMESPACE] = database;
-          attributes[ATTR_DB_QUERY_TEXT] = dbQueryText;
-        }
-        if (thisPlugin._netSemconvStability & SemconvStability.OLD) {
-          attributes[ATTR_NET_PEER_NAME] = host;
-          if (!isNaN(portNumber)) {
-            attributes[ATTR_NET_PEER_PORT] = portNumber;
-          }
-        }
-        if (thisPlugin._netSemconvStability & SemconvStability.STABLE) {
-          attributes[ATTR_SERVER_ADDRESS] = host;
-          if (!isNaN(portNumber)) {
-            attributes[ATTR_SERVER_PORT] = portNumber;
-          }
-        }
-        const span = thisPlugin.tracer.startSpan(getSpanName(query), {
+
+        // Use Sentry's `startInactiveSpan` instead of the OTel tracer so the span goes through Sentry's
+        // sampling/scope/processing pipeline. In the Node SDK this returns the underlying OTel span, so it
+        // can still be used with the OTel context APIs below.
+        const span = startInactiveSpan({
+          name: getSpanName(query),
           kind: SpanKind.CLIENT,
           attributes,
-        });
-
-        if (thisPlugin.getConfig().enhancedDatabaseReporting) {
-          let values;
-
-          if (Array.isArray(_valuesOrCallback)) {
-            values = _valuesOrCallback;
-          } else if (arguments[2]) {
-            values = [_valuesOrCallback];
-          }
-
-          span.setAttribute(AttributeNames.MYSQL_VALUES, getDbValues(query, values));
-        }
+        }) as unknown as Span;
 
         const cbIndex = Array.from(arguments).findIndex(arg => typeof arg === 'function');
 
@@ -336,7 +237,7 @@ export class MySQLInstrumentation extends InstrumentationBase<MySQLInstrumentati
 
   private _patchCallbackQuery(span: Span, parentContext: Context) {
     return (originalCallback: Function) => {
-      return function (err: mysqlTypes.MysqlError | null, results?: any, fields?: mysqlTypes.FieldInfo[]) {
+      return function (err: mysqlTypes.MysqlError | null, _results?: any, _fields?: mysqlTypes.FieldInfo[]) {
         if (err) {
           span.setStatus({
             code: SpanStatusCode.ERROR,
@@ -347,23 +248,5 @@ export class MySQLInstrumentation extends InstrumentationBase<MySQLInstrumentati
         return context.with(parentContext, () => originalCallback(...arguments));
       };
     };
-  }
-
-  private _setPoolCallbacks(pool: mysqlTypes.Pool, id: string) {
-    const poolNameOld = id || getPoolNameOld(pool);
-
-    pool.on('connection', _connection => {
-      this._connCountAdd(1, poolNameOld, 'idle');
-    });
-
-    pool.on('acquire', _connection => {
-      this._connCountAdd(-1, poolNameOld, 'idle');
-      this._connCountAdd(1, poolNameOld, 'used');
-    });
-
-    pool.on('release', _connection => {
-      this._connCountAdd(1, poolNameOld, 'idle');
-      this._connCountAdd(-1, poolNameOld, 'used');
-    });
   }
 }
