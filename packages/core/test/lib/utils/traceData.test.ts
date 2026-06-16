@@ -162,6 +162,25 @@ describe('getTraceData', () => {
     });
   });
 
+  it('keeps the scope trace id consistent for an onlyIfParent placeholder without a parent', () => {
+    // `onlyIfParent` without a parent yields a non-recording placeholder. It must continue the
+    // scope's trace, so `sentry-trace` and `baggage` agree on the trace id instead of the
+    // placeholder inventing a random one (which would break distributed tracing).
+    setupClient({ tracesSampleRate: undefined });
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+    });
+
+    startSpan({ name: 'child', onlyIfParent: true }, () => {
+      const data = getTraceData();
+
+      expect(data['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}$/);
+      expect(data.baggage).toContain('sentry-trace_id=12345678901234567890123456789012');
+    });
+  });
+
   it('keeps an explicit negative sampling decision for an active unsampled span', () => {
     setupClient({ tracesSampleRate: 0 });
 

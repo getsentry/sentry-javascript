@@ -71,7 +71,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
       const activeSpan = missingRequiredParent
-        ? new SentryNonRecordingSpan()
+        ? new SentryNonRecordingSpan({ traceId: scope.getPropagationContext().traceId })
         : createChildOrRootSpan({
             parentSpan,
             spanArguments,
@@ -138,7 +138,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
       const activeSpan = missingRequiredParent
-        ? new SentryNonRecordingSpan()
+        ? new SentryNonRecordingSpan({ traceId: scope.getPropagationContext().traceId })
         : createChildOrRootSpan({
             parentSpan,
             spanArguments,
@@ -209,7 +209,7 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
 
     if (missingRequiredParent) {
       client?.recordDroppedEvent('no_parent_span', 'span');
-      return new SentryNonRecordingSpan();
+      return new SentryNonRecordingSpan({ traceId: scope.getPropagationContext().traceId });
     }
 
     return createChildOrRootSpan({
