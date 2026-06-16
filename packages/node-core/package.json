@@ -111,7 +111,7 @@
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@opentelemetry/core": "^2.6.1",
+    "@opentelemetry/core": "^2.8.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
     "@opentelemetry/instrumentation": "^0.214.0",
     "@opentelemetry/sdk-trace-base": "^2.6.1",
