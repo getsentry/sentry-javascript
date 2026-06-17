@@ -401,7 +401,15 @@ function getSpanData(span: ReadableSpan): {
   origin?: SpanOrigin;
 } {
   const { op: definedOp, source: definedSource, origin } = parseSpan(span);
-  const { op: inferredOp, description, source: inferredSource, data: inferredData } = parseSpanDescription(span);
+  const {
+    op: inferredOp,
+    description,
+    source: inferredSource,
+    data: inferredData,
+  } = parseSpanDescription(
+    span,
+    false, // the SpanExporter only exports in transaction mode, so we don't need to prefer low cardinality span names
+  );
 
   const op = definedOp || inferredOp;
   const source = definedSource || inferredSource;
