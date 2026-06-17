@@ -1,9 +1,15 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../utils/helpers';
+import {
+  envelopeRequestParser,
+  shouldSkipCdnBundleTest,
+  shouldSkipTracingTest,
+  waitForTransactionRequest,
+} from '../../../utils/helpers';
 
 sentryTest('bindScopeToEmitter runs listeners with the bound scope active', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
+  // `bindScopeToEmitter` is not exported from the CDN bundles, only from npm.
+  if (shouldSkipTracingTest() || shouldSkipCdnBundleTest()) {
     sentryTest.skip();
   }
 
