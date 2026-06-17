@@ -1,7 +1,12 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {
+  ATTR_DB_COLLECTION_NAME,
+  ATTR_DB_NAMESPACE,
+  ATTR_DB_OPERATION_NAME,
+  ATTR_DB_QUERY_SUMMARY,
   ATTR_DB_QUERY_TEXT,
+  ATTR_DB_STORED_PROCEDURE_NAME,
   ATTR_DB_SYSTEM_NAME,
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_ROUTE,
@@ -152,15 +157,16 @@ export function _descriptionForDbSystem({
   if (lowCardinalityName) {
     const lowCardSpanName = buildSpanName(
       [
-        '{db.query.summary}',
-        '{db.operation.name} {db.collection.name}',
-        '{db.operation.name} {db.collection.name}',
-        '{db.operation.name} {db.stored_procedure.name}',
-        '{db.operation.name} {db.namespace}',
-        '{db.collection.name}',
-        '{db.stored_procedure.name}',
-        '{db.namespace}',
-        '{db.system.name}',
+        `{${ATTR_DB_QUERY_SUMMARY}}`,
+        `{${ATTR_DB_OPERATION_NAME}} {${ATTR_DB_COLLECTION_NAME}}`,
+        `{${ATTR_DB_OPERATION_NAME}} {${ATTR_DB_STORED_PROCEDURE_NAME}}`,
+        `{${ATTR_DB_OPERATION_NAME}} {${ATTR_DB_NAMESPACE}}`,
+        `{${ATTR_DB_COLLECTION_NAME}}`,
+        `{${ATTR_DB_STORED_PROCEDURE_NAME}}`,
+        `{${ATTR_DB_NAMESPACE}}`,
+        `{${ATTR_DB_SYSTEM_NAME}}`,
+        // eslint-disable-next-line deprecation/deprecation deprecated alias for ATTR_DB_SYSTEM_NAME
+        `{${SEMATTRS_DB_SYSTEM}}`,
         'Database operation',
       ],
       attributes,

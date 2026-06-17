@@ -11,26 +11,24 @@
  * @returns The populated span name, or an empty string if no matching template is found
  */
 export function buildSpanName(templates: string[], data: Record<string, unknown>) {
-  const sanitizedDataKeys: string[] = [];
   const sanitizedData: Record<string, string> = Object.keys(data).reduce((acc: Record<string, string>, key) => {
     if (typeof data[key] === 'string') {
       acc[key] = data[key];
-      sanitizedDataKeys.push(key);
     }
     return acc;
   }, {});
 
   for (const template of templates) {
-    const keysInTemplate = template.match(/{([^}]+)}/g)?.map(k => k.slice(1, -1)) || [];
+    const keysInTemplate = template.match(/{([^{}]+)}/g)?.map(k => k.slice(1, -1)) || [];
 
-    if (!keysInTemplate.every(k => sanitizedDataKeys.includes(k) && sanitizedData[k]?.trim().length)) {
+    if (!keysInTemplate.every(k => sanitizedData[k]?.trim().length)) {
       continue;
     }
 
     let spanName = template;
     keysInTemplate.forEach(k => {
       const value = sanitizedData[k];
-      // replace all matching keys (could use replaceAll once we bump language level support)
+      // replace all matching keys (could use `.replaceAll` once we bump language level support)
       spanName = spanName.split(`{${k}}`).join(value);
     });
     return spanName;

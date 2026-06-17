@@ -92,4 +92,16 @@ describe('buildSpanName', () => {
       ),
     ).toBe('fallback');
   });
+
+  it('handles keys containing other keys', () => {
+    expect(
+      buildSpanName(['{url} {url.full} {url}'], { url: 'example.com', 'url.full': 'https://example.com/api/users' }),
+    ).toBe('example.com https://example.com/api/users example.com');
+    expect(
+      buildSpanName(['{url.full} {url} {url.full}'], {
+        url: 'example.com',
+        'url.full': 'https://example.com/api/users',
+      }),
+    ).toBe('https://example.com/api/users example.com https://example.com/api/users');
+  });
 });

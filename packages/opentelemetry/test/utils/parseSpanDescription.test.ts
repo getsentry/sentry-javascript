@@ -2,6 +2,7 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {
+  ATTR_DB_QUERY_TEXT,
   ATTR_DB_SYSTEM_NAME,
   ATTR_HTTP_ROUTE,
   SEMATTRS_DB_STATEMENT,
@@ -550,12 +551,27 @@ describe('descriptionForHttpMethod', () => {
   });
 });
 
-describe('descriptionForDbSystem', () => {
+describe('_descriptionForDbSystem', () => {
   it('returns parameterized query by default', () => {
     const actual = _descriptionForDbSystem({
       attributes: {
         [SEMATTRS_DB_SYSTEM]: 'mysql',
         [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+      },
+      name: 'test name',
+      lowCardinalityName: false,
+    });
+    expect(actual).toEqual({
+      description: 'SELECT * from users',
+      op: 'db',
+      source: 'task',
+    });
+  });
+
+  it('falls back to db.query.text if no attributes are present to match low cardinality name', () => {
+    const actual = _descriptionForDbSystem({
+      attributes: {
+        [ATTR_DB_QUERY_TEXT]: 'SELECT * from users',
       },
       name: 'test name',
       lowCardinalityName: false,
@@ -584,6 +600,19 @@ describe('descriptionForDbSystem', () => {
     });
     expect(actual).toEqual({
       description: expectedName,
+      op: 'db',
+      source: 'task',
+    });
+  });
+
+  it('falls back to static string if no attributes are present to match low cardinality name', () => {
+    const actual = _descriptionForDbSystem({
+      attributes: {},
+      name: 'test name',
+      lowCardinalityName: true,
+    });
+    expect(actual).toEqual({
+      description: 'Database operation',
       op: 'db',
       source: 'task',
     });
