@@ -60,11 +60,22 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
 /**
  * Resolves whether truncation should be enabled.
  * If the user explicitly set `enableTruncation`, that value is used.
- * Otherwise, truncation is disabled when span streaming is active.
+ * Otherwise, truncation is disabled when gen_ai spans are streamed — either via full span
+ * streaming (`traceLifecycle: 'stream'`) or by extracting them as v2 envelope items
+ * (`streamGenAiSpans`). Both bypass the transaction payload-size limits that truncation exists
+ * to work around, so the full message data can be retained.
  */
 export function shouldEnableTruncation(enableTruncation: boolean | undefined): boolean {
+  if (enableTruncation !== undefined) {
+    return enableTruncation;
+  }
+
   const client = getClient();
-  return enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
+  if (!client) {
+    return true;
+  }
+
+  return !(hasSpanStreamingEnabled(client) || !!client.getOptions().streamGenAiSpans);
 }
 
 /**
