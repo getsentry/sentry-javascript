@@ -250,15 +250,18 @@ describe('mysql auto instrumentation', () => {
                 const spans = transaction.spans ?? [];
                 const mysqlSpan = spans.find(span => span.description === 'SELECT 1 + 1 AS solution');
                 const listenerSpan = spans.find(span => span.description === 'listener-child');
+                const innerSpan = spans.find(span => span.description === 'inner-span');
 
                 expect(transactionSpanId).toBeDefined();
                 expect(mysqlSpan).toBeDefined();
                 expect(listenerSpan).toBeDefined();
+                expect(innerSpan).toBeDefined();
 
                 // The span created inside the stream `end` listener is parented to the transaction
                 // (the context active when the query was issued), not to the query span.
                 expect(listenerSpan?.parent_span_id).toBe(transactionSpanId);
                 expect(listenerSpan?.parent_span_id).not.toBe(mysqlSpan?.span_id);
+                expect(innerSpan?.parent_span_id).toBe(transactionSpanId);
               },
             })
             .start()
