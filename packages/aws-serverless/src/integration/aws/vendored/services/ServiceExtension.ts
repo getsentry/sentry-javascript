@@ -28,6 +28,7 @@ export interface RequestMetadata {
   // the ServiceExtension must end the span itself, generally by wrapping the stream and ending after it is
   // consumed.
   isStream?: boolean;
+  // eslint-disable-next-line typescript/no-deprecated
   spanAttributes?: SpanAttributes;
   spanKind?: SpanKind;
   spanName?: string;

@@ -1,4 +1,4 @@
-/* eslint-disable deprecation/deprecation */
+/* eslint-disable typescript/no-deprecated */
 /* eslint-disable jsdoc/require-jsdoc */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable import/no-named-as-default-member */
@@ -32,7 +32,7 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
 } from '@opentelemetry/instrumentation';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { CODE_FUNCTION, HTTP_METHOD, HTTP_ROUTE, HTTP_STATUS_CODE, HTTP_URL } from '@sentry/conventions/attributes';
 import type { Params } from '@remix-run/router';
 import type * as remixRunServerRuntime from '@remix-run/server-runtime';
 import type * as remixRunServerRuntimeData from '@remix-run/server-runtime/dist/data';
@@ -192,7 +192,7 @@ export class RemixInstrumentation extends InstrumentationBase {
 
         const routePath = route?.path;
         if (span && routePath) {
-          span.setAttribute(SemanticAttributes.HTTP_ROUTE, routePath);
+          span.setAttribute(HTTP_ROUTE, routePath);
           span.updateName(`remix.request ${routePath}`);
         }
 
@@ -220,7 +220,7 @@ export class RemixInstrumentation extends InstrumentationBase {
           const span = plugin.tracer.startSpan(
             'remix.request',
             {
-              attributes: { [SemanticAttributes.CODE_FUNCTION]: 'requestHandler' },
+              attributes: { [CODE_FUNCTION]: 'requestHandler' },
             },
             opentelemetry.context.active(),
           );
@@ -256,7 +256,7 @@ export class RemixInstrumentation extends InstrumentationBase {
 
         const span = plugin.tracer.startSpan(
           `LOADER ${params.routeId}`,
-          { attributes: { [SemanticAttributes.CODE_FUNCTION]: 'loader' } },
+          { attributes: { [CODE_FUNCTION]: 'loader' } },
           opentelemetry.context.active(),
         );
 
@@ -291,7 +291,7 @@ export class RemixInstrumentation extends InstrumentationBase {
         const clonedRequest = params.request.clone();
         const span = plugin.tracer.startSpan(
           `ACTION ${params.routeId}`,
-          { attributes: { [SemanticAttributes.CODE_FUNCTION]: 'action' } },
+          { attributes: { [CODE_FUNCTION]: 'action' } },
           opentelemetry.context.active(),
         );
 
@@ -344,8 +344,8 @@ export class RemixInstrumentation extends InstrumentationBase {
 
 const addRequestAttributesToSpan = (span: Span, request: Request): void => {
   span.setAttributes({
-    [SemanticAttributes.HTTP_METHOD]: request.method,
-    [SemanticAttributes.HTTP_URL]: request.url,
+    [HTTP_METHOD]: request.method,
+    [HTTP_URL]: request.url,
   });
 };
 
@@ -362,7 +362,7 @@ const addMatchAttributesToSpan = (span: Span, match: { routeId: string; params: 
 const addResponseAttributesToSpan = (span: Span, response: Response | null): void => {
   if (response) {
     span.setAttributes({
-      [SemanticAttributes.HTTP_STATUS_CODE]: response.status,
+      [HTTP_STATUS_CODE]: response.status,
     });
   }
 };

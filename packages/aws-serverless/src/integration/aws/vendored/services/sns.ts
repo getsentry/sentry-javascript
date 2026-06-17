@@ -40,12 +40,15 @@ export class SnsServiceExtension implements ServiceExtension {
     if (request.commandName === 'Publish') {
       spanKind = SpanKind.PRODUCER;
 
+      // eslint-disable-next-line typescript/no-deprecated
       spanAttributes[ATTR_MESSAGING_DESTINATION_KIND] = MESSAGING_DESTINATION_KIND_VALUE_TOPIC;
       const { TopicArn, TargetArn, PhoneNumber } = request.commandInput;
+      // eslint-disable-next-line typescript/no-deprecated
       spanAttributes[ATTR_MESSAGING_DESTINATION] = this.extractDestinationName(TopicArn, TargetArn, PhoneNumber);
       // ToDO: Use ATTR_MESSAGING_DESTINATION_NAME when implemented
       spanAttributes['messaging.destination.name'] = TopicArn || TargetArn || PhoneNumber || 'unknown';
 
+      // eslint-disable-next-line typescript/no-deprecated
       spanName = `${PhoneNumber ? 'phone_number' : spanAttributes[ATTR_MESSAGING_DESTINATION]} send`;
     }
 

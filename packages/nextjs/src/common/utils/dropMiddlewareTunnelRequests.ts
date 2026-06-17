@@ -53,7 +53,7 @@ function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
     return false;
   }
 
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const httpTarget = spanAttributes[SEMATTRS_HTTP_TARGET];
 
   if (typeof httpTarget === 'string') {

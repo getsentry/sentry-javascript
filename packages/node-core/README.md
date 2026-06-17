@@ -15,17 +15,15 @@ Unlike the `@sentry/node` SDK, this SDK comes with no OpenTelemetry auto-instrum
 - `@opentelemetry/api`
 - `@opentelemetry/core`
 - `@opentelemetry/instrumentation`
-- `@opentelemetry/resources`
 - `@opentelemetry/sdk-trace-base`
-- `@opentelemetry/semantic-conventions`.
 
 ## Installation
 
 ```bash
-npm install @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/instrumentation @opentelemetry/resources @opentelemetry/sdk-trace-base @opentelemetry/semantic-conventions
+npm install @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/instrumentation @opentelemetry/sdk-trace-base
 
 # Or yarn
-yarn add @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/instrumentation @opentelemetry/resources @opentelemetry/sdk-trace-base @opentelemetry/semantic-conventions
+yarn add @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/instrumentation @opentelemetry/sdk-trace-base
 ```
 
 ## Usage

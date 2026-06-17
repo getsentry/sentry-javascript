@@ -441,7 +441,7 @@ function getData(span: ReadableSpan): Record<string, unknown> {
     data['otel.kind'] = SpanKind[span.kind];
   }
 
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const maybeHttpStatusCodeAttribute = attributes[SEMATTRS_HTTP_STATUS_CODE];
   if (maybeHttpStatusCodeAttribute) {
     data[ATTR_HTTP_RESPONSE_STATUS_CODE] = maybeHttpStatusCodeAttribute as string;

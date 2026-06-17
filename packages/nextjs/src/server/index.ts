@@ -188,11 +188,11 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
     // We need to drop these spans.
     if (
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
       (typeof spanAttributes[SEMATTRS_HTTP_TARGET] === 'string' &&
-        // eslint-disable-next-line deprecation/deprecation
+        // eslint-disable-next-line typescript/no-deprecated
         spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_key') &&
-        // eslint-disable-next-line deprecation/deprecation
+        // eslint-disable-next-line typescript/no-deprecated
         spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_client')) ||
       (typeof spanAttributes[ATTR_URL_QUERY] === 'string' &&
         spanAttributes[ATTR_URL_QUERY].includes('sentry_key') &&

@@ -71,7 +71,7 @@ export interface AnrIntegrationOptions {
   appRootPath: string | undefined;
 }
 
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line typescript/no-deprecated
 export interface WorkerStartData extends AnrIntegrationOptions {
   debug: boolean;
   sdkMetadata: SdkMetadata;
