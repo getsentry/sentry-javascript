@@ -606,7 +606,7 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario-message-truncation.mjs',
-    'instrument-with-pii.mjs',
+    'instrument-with-truncation.mjs',
     (createRunner, test) => {
       test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
         await createRunner()
@@ -659,51 +659,56 @@ describe('Anthropic integration', () => {
     },
   );
 
-  createEsmAndCjsTests(__dirname, 'scenario-media-truncation.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('truncates media attachment, keeping all other details', async () => {
-      const expectedMediaMessages = JSON.stringify([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'image/png',
-                data: '[Blob substitute]',
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-media-truncation.mjs',
+    'instrument-with-truncation.mjs',
+    (createRunner, test) => {
+      test('truncates media attachment, keeping all other details', async () => {
+        const expectedMediaMessages = JSON.stringify([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: 'image/png',
+                  data: '[Blob substitute]',
+                },
               },
+            ],
+          },
+        ]);
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
             },
-          ],
-        },
-      ]);
-      await createRunner()
-        .ignore('event')
-        .expect({
-          transaction: {
-            transaction: 'main',
-          },
-        })
-        .expect({
-          span: container => {
-            expect(container.items).toHaveLength(1);
-            const [firstSpan] = container.items;
+          })
+          .expect({
+            span: container => {
+              expect(container.items).toHaveLength(1);
+              const [firstSpan] = container.items;
 
-            // [0] messages.create with media attachment — image data replaced, other fields preserved
-            expect(firstSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(expectedMediaMessages);
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
-            expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-            expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('claude-3-haiku-20240307');
-            expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(2);
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
+              // [0] messages.create with media attachment — image data replaced, other fields preserved
+              expect(firstSpan!.name).toBe('chat claude-3-haiku-20240307');
+              expect(firstSpan!.status).toBe('ok');
+              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(expectedMediaMessages);
+              expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
+              expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
+              expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
+              expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('claude-3-haiku-20240307');
+              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(2);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 
   createEsmAndCjsTests(
     __dirname,
