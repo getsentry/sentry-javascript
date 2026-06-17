@@ -321,6 +321,31 @@ describe('instrumentD1', () => {
         },
       });
     });
+
+    test('omits db.query.text when statements lack the .statement property', async () => {
+      const db = createMockD1Database();
+      const instrumentedDb = instrumentD1(db);
+
+      const statementsWithoutQuery = [createMockD1Statement(), createMockD1Statement()];
+
+      await instrumentedDb.batch(statementsWithoutQuery);
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startSpanSpy).toHaveBeenLastCalledWith(
+        {
+          attributes: {
+            'db.system.name': 'cloudflare-d1',
+            'db.operation.name': 'batch',
+            'db.query.text': undefined,
+            'db.operation.batch.size': 2,
+            'sentry.origin': 'auto.db.cloudflare.d1',
+          },
+          name: 'D1 batch',
+          op: 'db.query',
+        },
+        expect.any(Function),
+      );
+    });
   });
 
   describe('db.exec()', () => {

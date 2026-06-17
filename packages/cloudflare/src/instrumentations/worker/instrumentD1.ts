@@ -154,6 +154,7 @@ function instrumentBatch(
       // https://github.com/cloudflare/workerd/blob/dc12d7650b4f5d4f9ba6a47aa45fad769cdf8db4/src/cloudflare/internal/d1-api.ts#L210
       const queryText = statements
         .map(statement => (statement as unknown as { statement?: string }).statement ?? '')
+        .filter(Boolean)
         .join('\n');
 
       return startSpan(
