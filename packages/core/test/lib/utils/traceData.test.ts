@@ -213,6 +213,37 @@ describe('getTraceData', () => {
     });
   });
 
+  it('does not defer DSC to the scope for an onlyIfParent placeholder in tracing mode', () => {
+    // With tracing enabled, an `onlyIfParent` placeholder without a parent is a non-recording span.
+    // Its `sentry-trace` is read from the span (`-0`), so unlike a TwP placeholder its DSC must not
+    // defer to the scope's continued decision (`sampled=true`) — otherwise the two headers disagree.
+    setupClient({ tracesSampleRate: 1 });
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+      sampled: true,
+      dsc: {
+        environment: 'production',
+        public_key: '123',
+        trace_id: '12345678901234567890123456789012',
+        sampled: 'true',
+        transaction: 'continued-root-txn',
+      },
+    });
+
+    startSpan({ name: 'child', onlyIfParent: true }, () => {
+      const data = getTraceData();
+
+      expect(data['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-0$/);
+      // The baggage agrees with the `-0` decision instead of carrying the upstream `sampled=true`.
+      expect(data.baggage).toContain('sentry-sampled=false');
+      expect(data.baggage).not.toContain('sentry-sampled=true');
+      expect(data.baggage).not.toContain('sentry-transaction=continued-root-txn');
+      expect(data.baggage).toContain('sentry-trace_id=12345678901234567890123456789012');
+    });
+  });
+
   it('keeps an explicit negative sampling decision for an active unsampled span', () => {
     setupClient({ tracesSampleRate: 0 });
 

@@ -106,13 +106,20 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     return applyLocalSampleRateToDsc(frozenDsc);
   }
 
-  // For a non-recording placeholder (Tracing without Performance), the DSC is not carried on the
-  // span; the scope is the source of truth. Resolve it from the span's captured scope: continued
-  // traces keep the incoming DSC, new traces derive it from the client (without a local transaction).
-  if (spanIsNonRecordingSpan(rootSpan)) {
+  // For a non-recording placeholder in Tracing without Performance (TwP) mode, the DSC is not
+  // carried on the span; the scope is the source of truth. Resolve it from the span's captured
+  // scope: continued traces keep the incoming DSC, new traces derive it from the client.
+  //
+  // We gate this on `!hasSpansEnabled()` so it mirrors the `sentry-trace` source in `getTraceData`:
+  // with tracing enabled, a non-recording span (e.g. an `onlyIfParent` placeholder) keeps deriving
+  // its DSC from the span/client so the baggage agrees with the `-0` decision that `spanToTraceHeader`
+  // encodes for `sentry-trace`. Without this guard the two headers can disagree.
+  //
+  // We spread into a new object so applying the local sample rate can't mutate the scope's DSC.
+  if (spanIsNonRecordingSpan(rootSpan) && !hasSpansEnabled(client.getOptions())) {
     const capturedScope = getCapturedScopesOnSpan(rootSpan).scope;
     if (capturedScope) {
-      return applyLocalSampleRateToDsc(getDynamicSamplingContextFromScope(client, capturedScope));
+      return applyLocalSampleRateToDsc({ ...getDynamicSamplingContextFromScope(client, capturedScope) });
     }
   }
 
