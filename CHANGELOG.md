@@ -4,14 +4,6 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-### Important Changes
-
-- **feat(core): Disable gen_ai message truncation by default when `streamGenAiSpans` is enabled ([#21603](https://github.com/getsentry/sentry-javascript/pull/21603))**
-
-  Setting `streamGenAiSpans: true` now disables gen_ai input truncation by default. Because gen_ai spans are sent as v2 span envelope items, they are not subject to the transaction payload-size limits that truncation works around.
-
-  Set `enableTruncation: true` on the respective AI integration to opt back into truncation.
-
 ## 10.58.0
 
 ### Important Changes
