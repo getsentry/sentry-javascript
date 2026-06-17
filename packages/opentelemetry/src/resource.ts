@@ -83,7 +83,7 @@ export function getSentryResource(serviceNameFallback: string): SentryResource {
 
   return new SentryResource({
     // Lowest priority: Sentry defaults
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
     [ATTR_SERVICE_NAME]: serviceNameFallback,
     // OTEL_RESOURCE_ATTRIBUTES overrides defaults (including service.name and service.namespace)

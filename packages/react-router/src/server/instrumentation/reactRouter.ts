@@ -112,7 +112,7 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
               // So we force this to be a more sensible name here
               // TODO: try to set derived parameterized route from build here (args[0])
               const spanData = spanToJSON(rootSpan);
-              // eslint-disable-next-line deprecation/deprecation
+              // eslint-disable-next-line typescript/no-deprecated
               const target = spanData.data[SEMATTRS_HTTP_TARGET] || url.pathname;
               updateSpanName(rootSpan, `${request.method} ${target}`);
               rootSpan.setAttributes({

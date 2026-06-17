@@ -41,9 +41,9 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
     span.setName(stripUrlQueryAndFragment(currentName));
   }
 
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const method = attributes[SEMATTRS_HTTP_METHOD] ?? attributes[ATTR_HTTP_REQUEST_METHOD];
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const target = attributes[SEMATTRS_HTTP_TARGET];
   const route = attributes[ATTR_HTTP_ROUTE] || attributes[ATTR_NEXT_ROUTE];
   const spanName = attributes[ATTR_NEXT_SPAN_NAME];

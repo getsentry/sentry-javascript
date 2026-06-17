@@ -103,7 +103,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   ];
 
   const { onSpanCreated } = options;
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const { requestHook, responseHook, applyCustomAttributesOnSpan } = options.instrumentation ?? {};
 
   return {
@@ -376,6 +376,7 @@ function getIncomingRequestAttributesOnResponse(
 
   const newAttributes: SpanAttributes = {
     [HTTP_RESPONSE_STATUS_CODE]: statusCode,
+    // eslint-disable-next-line typescript/no-deprecated
     [HTTP_STATUS_CODE]: statusCode,
     'http.status_text': statusMessage?.toUpperCase(),
   };
@@ -383,11 +384,15 @@ function getIncomingRequestAttributesOnResponse(
   const rpcMetadata = getRPCMetadata(context.active());
   if (socket) {
     const { localAddress, localPort, remoteAddress, remotePort } = socket;
+    // eslint-disable-next-line typescript/no-deprecated
     newAttributes[NET_HOST_IP] = localAddress;
+    // eslint-disable-next-line typescript/no-deprecated
     newAttributes[NET_HOST_PORT] = localPort;
+    // eslint-disable-next-line typescript/no-deprecated
     newAttributes[NET_PEER_IP] = remoteAddress;
     newAttributes['net.peer.port'] = remotePort;
   }
+  // eslint-disable-next-line typescript/no-deprecated
   newAttributes[HTTP_STATUS_CODE] = statusCode;
   newAttributes['http.status_text'] = (statusMessage || '').toUpperCase();
 

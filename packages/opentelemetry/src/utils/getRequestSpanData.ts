@@ -19,14 +19,14 @@ export function getRequestSpanData(span: Span | ReadableSpan): Partial<Sanitized
     return {};
   }
 
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const maybeUrlAttribute = (span.attributes[ATTR_URL_FULL] || span.attributes[SEMATTRS_HTTP_URL]) as
     | string
     | undefined;
 
   const data: Partial<SanitizedRequestData> = {
     url: maybeUrlAttribute,
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     'http.method': (span.attributes[ATTR_HTTP_REQUEST_METHOD] || span.attributes[SEMATTRS_HTTP_METHOD]) as
       | string
       | undefined,

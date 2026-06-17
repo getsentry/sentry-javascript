@@ -1,4 +1,4 @@
-/* eslint-disable deprecation/deprecation */
+/* eslint-disable typescript/no-deprecated */
 /* eslint-disable jsdoc/require-jsdoc */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable import/no-named-as-default-member */

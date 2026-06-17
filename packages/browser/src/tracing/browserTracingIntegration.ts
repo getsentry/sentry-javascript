@@ -390,6 +390,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     markBackgroundSpan,
     traceFetch,
     traceXHR,
+    // eslint-disable-next-line typescript/no-deprecated
     trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,

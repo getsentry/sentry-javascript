@@ -82,6 +82,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   ): RequestMetadata {
     let spanName = GEN_AI_OPERATION_NAME_VALUE_CHAT;
     const spanAttributes: Attributes = {
+      // eslint-disable-next-line typescript/no-deprecated
       [ATTR_GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
       [ATTR_GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_CHAT,
     };
@@ -126,6 +127,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     isStream: boolean,
   ): RequestMetadata {
     const spanAttributes: Attributes = {
+      // eslint-disable-next-line typescript/no-deprecated
       [ATTR_GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
       // add operation name for InvokeModel API
     };

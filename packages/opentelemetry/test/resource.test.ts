@@ -66,7 +66,7 @@ describe('getSentryResource', () => {
   it('OTEL_RESOURCE_ATTRIBUTES can override service.namespace', () => {
     process.env['OTEL_RESOURCE_ATTRIBUTES'] = 'service.namespace=my-namespace';
     const resource = getSentryResource('node');
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     expect(resource.attributes[SEMRESATTRS_SERVICE_NAMESPACE]).toBe('my-namespace');
   });
 
@@ -96,7 +96,7 @@ describe('getSentryResource', () => {
 
   it('always sets service.namespace to sentry by default', () => {
     const resource = getSentryResource('node');
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     expect(resource.attributes[SEMRESATTRS_SERVICE_NAMESPACE]).toBe('sentry');
   });
 
