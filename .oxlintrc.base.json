@@ -153,8 +153,7 @@
         "typescript/no-explicit-any": "off",
         "typescript/no-unsafe-member-access": "off",
         "typescript/no-this-alias": "off",
-        "max-lines": "off",
-        "no-bitwise": "off"
+        "max-lines": "off"
       }
     },
     {
