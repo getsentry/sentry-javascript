@@ -23,6 +23,12 @@ export type {
   ExpressErrorMiddleware,
 } from './integrations/express/types';
 export { instrumentPostgresJsSql } from './integrations/postgresjs';
+export {
+  failVercelAiTracingChannelSpan as _INTERNAL_failVercelAiTracingChannelSpan,
+  finishVercelAiTracingChannelSpan as _INTERNAL_finishVercelAiTracingChannelSpan,
+  startVercelAiTracingChannelSpan as _INTERNAL_startVercelAiTracingChannelSpan,
+} from './tracing/vercel-ai/tracing-channel';
+export type { VercelAiTracingChannelMessage as _INTERNAL_VercelAiTracingChannelMessage } from './tracing/vercel-ai/tracing-channel';
 
 export { patchHttpModuleClient } from './integrations/http/client-patch';
 export { getHttpClientSubscriptions } from './integrations/http/client-subscriptions';

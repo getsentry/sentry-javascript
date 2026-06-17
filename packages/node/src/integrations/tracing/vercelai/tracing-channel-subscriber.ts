@@ -1,12 +1,13 @@
 import type { Span as OtelSpan } from '@opentelemetry/api';
 import { tracingChannel as otelTracingChannel } from '@sentry/opentelemetry/tracing-channel';
-import type { _INTERNAL_VercelAiTracingChannelMessage, Span } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { debug } from '@sentry/core';
+import type { _INTERNAL_VercelAiTracingChannelMessage } from '@sentry/core/server';
 import {
   _INTERNAL_failVercelAiTracingChannelSpan,
   _INTERNAL_finishVercelAiTracingChannelSpan,
   _INTERNAL_startVercelAiTracingChannelSpan,
-  debug,
-} from '@sentry/core';
+} from '@sentry/core/server';
 import { DEBUG_BUILD } from '../../../debug-build';
 
 const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';

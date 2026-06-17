@@ -829,4 +829,8 @@ export function finishVercelAiTracingChannelSpan(span: Span, message: VercelAiTr
 export function failVercelAiTracingChannelSpan(span: Span, message: VercelAiTracingChannelMessage): void {
   const errorMessage = getErrorMessage(message.error) ?? 'AI SDK telemetry span failed';
   span.setStatus({ code: SPAN_STATUS_ERROR, message: errorMessage });
+
+  if (message.type === 'step') {
+    toolDescriptionMap.delete(spanToJSON(span).span_id);
+  }
 }
