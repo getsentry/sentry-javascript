@@ -46,7 +46,7 @@ import {
 } from './utils';
 import { propwrap } from './propwrap';
 import { RequestMetadata } from './services/ServiceExtension';
-import { ATTR_HTTP_STATUS_CODE } from './semconv';
+import { HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-aws-sdk';
@@ -289,8 +289,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
                   const httpStatusCode = response.output?.$metadata?.httpStatusCode;
                   if (httpStatusCode) {
-                    // eslint-disable-next-line typescript/no-deprecated
-                    span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
+                    span.setAttribute(HTTP_STATUS_CODE, httpStatusCode);
                   }
 
                   const extendedRequestId = response.output?.$metadata?.extendedRequestId;
@@ -318,8 +317,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
                   const httpStatusCode = err?.$metadata?.httpStatusCode;
                   if (httpStatusCode) {
-                    // eslint-disable-next-line typescript/no-deprecated
-                    span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
+                    span.setAttribute(HTTP_STATUS_CODE, httpStatusCode);
                   }
 
                   const extendedRequestId = err?.extendedRequestId;

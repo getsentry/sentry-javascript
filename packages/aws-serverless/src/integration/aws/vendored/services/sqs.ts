@@ -22,14 +22,14 @@ import { SpanKind, Span, propagation, trace, ROOT_CONTEXT, Attributes } from '@o
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import type { SQS } from '../aws-sdk.types';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
-import { ATTR_URL_FULL } from '@opentelemetry/semantic-conventions';
 import {
-  ATTR_MESSAGING_BATCH_MESSAGE_COUNT,
-  ATTR_MESSAGING_DESTINATION_NAME,
-  ATTR_MESSAGING_MESSAGE_ID,
-  ATTR_MESSAGING_OPERATION_TYPE,
-  ATTR_MESSAGING_SYSTEM,
-} from '../semconv';
+  MESSAGING_BATCH_MESSAGE_COUNT,
+  MESSAGING_DESTINATION_NAME,
+  MESSAGING_MESSAGE_ID,
+  MESSAGING_OPERATION_TYPE,
+  MESSAGING_SYSTEM,
+  URL_FULL,
+} from '@sentry/conventions/attributes';
 import {
   contextGetter,
   extractPropagationContext,
@@ -45,9 +45,9 @@ export class SqsServiceExtension implements ServiceExtension {
     let spanName: string | undefined;
 
     const spanAttributes: Attributes = {
-      [ATTR_MESSAGING_SYSTEM]: 'aws_sqs',
-      [ATTR_MESSAGING_DESTINATION_NAME]: queueName,
-      [ATTR_URL_FULL]: queueUrl,
+      [MESSAGING_SYSTEM]: 'aws_sqs',
+      [MESSAGING_DESTINATION_NAME]: queueName,
+      [URL_FULL]: queueUrl,
     };
 
     let isIncoming = false;
@@ -58,7 +58,7 @@ export class SqsServiceExtension implements ServiceExtension {
           isIncoming = true;
           spanKind = SpanKind.CONSUMER;
           spanName = `${queueName} receive`;
-          spanAttributes[ATTR_MESSAGING_OPERATION_TYPE] = 'receive';
+          spanAttributes[MESSAGING_OPERATION_TYPE] = 'receive';
 
           request.commandInput.MessageAttributeNames = addPropagationFieldsToAttributeNames(
             request.commandInput.MessageAttributeNames,
@@ -109,7 +109,7 @@ export class SqsServiceExtension implements ServiceExtension {
   responseHook = (response: NormalizedResponse, span: Span) => {
     switch (response.request.commandName) {
       case 'SendMessage':
-        span.setAttribute(ATTR_MESSAGING_MESSAGE_ID, response?.data?.MessageId);
+        span.setAttribute(MESSAGING_MESSAGE_ID, response?.data?.MessageId);
         break;
 
       case 'SendMessageBatch':
@@ -119,7 +119,7 @@ export class SqsServiceExtension implements ServiceExtension {
       case 'ReceiveMessage': {
         const messages: SQS.Message[] = response?.data?.Messages || [];
 
-        span.setAttribute(ATTR_MESSAGING_BATCH_MESSAGE_COUNT, messages.length);
+        span.setAttribute(MESSAGING_BATCH_MESSAGE_COUNT, messages.length);
 
         for (const message of messages) {
           const propagatedContext = propagation.extract(
@@ -134,7 +134,7 @@ export class SqsServiceExtension implements ServiceExtension {
             span.addLink({
               context: spanContext,
               attributes: {
-                [ATTR_MESSAGING_MESSAGE_ID]: message.MessageId,
+                [MESSAGING_MESSAGE_ID]: message.MessageId,
               },
             });
           }

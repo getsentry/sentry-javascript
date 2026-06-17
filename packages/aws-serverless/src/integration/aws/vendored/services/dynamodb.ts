@@ -42,11 +42,9 @@ import {
   ATTR_AWS_DYNAMODB_TABLE_COUNT,
   ATTR_AWS_DYNAMODB_TABLE_NAMES,
   ATTR_AWS_DYNAMODB_TOTAL_SEGMENTS,
-  ATTR_DB_NAME,
-  ATTR_DB_OPERATION,
-  ATTR_DB_SYSTEM,
   DB_SYSTEM_VALUE_DYNAMODB,
 } from '../semconv';
+import { DB_NAME, DB_OPERATION, DB_SYSTEM } from '@sentry/conventions/attributes';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
 
 export class DynamodbServiceExtension implements ServiceExtension {
@@ -66,12 +64,9 @@ export class DynamodbServiceExtension implements ServiceExtension {
 
     const spanAttributes: Attributes = {};
 
-    // eslint-disable-next-line typescript/no-deprecated
-    spanAttributes[ATTR_DB_SYSTEM] = DB_SYSTEM_VALUE_DYNAMODB;
-    // eslint-disable-next-line typescript/no-deprecated
-    spanAttributes[ATTR_DB_NAME] = tableName;
-    // eslint-disable-next-line typescript/no-deprecated
-    spanAttributes[ATTR_DB_OPERATION] = operation;
+    spanAttributes[DB_SYSTEM] = DB_SYSTEM_VALUE_DYNAMODB;
+    spanAttributes[DB_NAME] = tableName;
+    spanAttributes[DB_OPERATION] = operation;
 
     // normalizedRequest.commandInput.RequestItems) is undefined when no table names are returned
     // keys in this object are the table names
