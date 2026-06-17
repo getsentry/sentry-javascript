@@ -313,6 +313,37 @@ describe('bindScopeToEmitter', () => {
       expect(listener).toHaveBeenCalledTimes(1);
     });
 
+    it('preserves addEventListener idempotency for identical (type, listener) registrations', () => {
+      const target = new EventTarget();
+      bindScopeToEmitter(target);
+
+      const listener = vi.fn();
+      // The DOM dedupes identical registrations -> the listener must only fire once.
+      target.addEventListener('data', listener);
+      target.addEventListener('data', listener);
+
+      target.dispatchEvent(new Event('data'));
+
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+
+    it('removes the correct registration when only the capture phase differs', () => {
+      const target = new EventTarget();
+      bindScopeToEmitter(target);
+
+      const listener = vi.fn();
+      // Capture is part of a registration's identity, so these are two distinct registrations.
+      target.addEventListener('data', listener, { capture: true });
+      target.addEventListener('data', listener, { capture: false });
+
+      // Remove only the capture-phase one; the bubble-phase registration must survive.
+      target.removeEventListener('data', listener, { capture: true });
+
+      target.dispatchEvent(new Event('data'));
+
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+
     it('passes through non-function (EventListener object) listeners without throwing', () => {
       const target = new EventTarget();
       bindScopeToEmitter(target);
