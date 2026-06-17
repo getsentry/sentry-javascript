@@ -39,6 +39,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry/conventions": "^0.11.0",
     "@sentry/core": "10.58.0"
   },
   "scripts": {
