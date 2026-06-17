@@ -9,9 +9,9 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { context, SpanKind, trace } from '@opentelemetry/api';
+import { SpanKind } from '@opentelemetry/api';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
+import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
 import { AttributeNames } from './enums/AttributeNames';
 import { SpanNames } from './enums/SpanNames';
 import type {
@@ -155,7 +155,7 @@ export function getSemanticAttributesFromPoolConnection(params: PgPoolOptionsPar
  * we only instrument when there is an active span to parent the new span under.
  */
 export function shouldSkipInstrumentation(): boolean {
-  return trace.getSpan(context.active()) === undefined;
+  return getActiveSpan() === undefined;
 }
 
 // Create an (inactive) span from our normalized queryConfig object,

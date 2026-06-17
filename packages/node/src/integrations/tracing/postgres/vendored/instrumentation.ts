@@ -12,10 +12,10 @@
  *   enhancedDatabaseReporting, addSqlCommenterCommentToQueries)
  */
 
-import { context, SpanKind, trace } from '@opentelemetry/api';
+import { SpanKind } from '@opentelemetry/api';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Span } from '@sentry/core';
-import { SDK_VERSION, SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import { getActiveSpan, SDK_VERSION, SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import { SpanNames } from './enums/SpanNames';
 import type {
@@ -34,6 +34,18 @@ function extractModuleExports(module: any): any {
   return module[Symbol.toStringTag] === 'Module'
     ? module.default // ESM
     : module; // CommonJS
+}
+
+/**
+ * Binds `callback` to `parentSpan`, so that the span is active again whenever the
+ * (deferred) callback runs. This mirrors the upstream `context.bind(context.active(), callback)`:
+ * `pg` invokes callbacks outside of the original async scope (e.g. for pooled connections), so we
+ * re-establish the trace context to keep spans created inside the callback correctly parented.
+ */
+function bindCallbackToSpan<T extends (...args: any[]) => any>(parentSpan: Span, callback: T): T {
+  return function (this: unknown, ...args: any[]): unknown {
+    return withActiveSpan(parentSpan, () => callback.apply(this, args));
+  } as T;
 }
 
 export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConfig> {
@@ -151,10 +163,10 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
 
         let cb = callback;
         if (cb) {
-          const parentSpan = trace.getSpan(context.active());
+          const parentSpan = getActiveSpan();
           cb = utils.patchClientConnectCallback(span, cb);
           if (parentSpan) {
-            cb = context.bind(context.active(), cb);
+            cb = bindCallbackToSpan(parentSpan, cb);
           }
         }
 
@@ -204,14 +216,14 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
 
         // Bind callback (if any) to parent span (if any)
         if (args.length > 0) {
-          const parentSpan = trace.getSpan(context.active());
+          const parentSpan = getActiveSpan();
           if (typeof args[args.length - 1] === 'function') {
             // Patch ParameterQuery callback
             args[args.length - 1] = utils.patchCallback(span, args[args.length - 1] as PostgresCallback);
 
             // If a parent span exists, bind the callback
             if (parentSpan) {
-              args[args.length - 1] = context.bind(context.active(), args[args.length - 1]);
+              args[args.length - 1] = bindCallbackToSpan(parentSpan, args[args.length - 1] as PostgresCallback);
             }
           } else if (typeof queryConfig?.callback === 'function') {
             // Patch ConfigQuery callback
@@ -219,7 +231,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
 
             // If a parent span existed, bind the callback
             if (parentSpan) {
-              callback = context.bind(context.active(), callback);
+              callback = bindCallbackToSpan(parentSpan, callback);
             }
 
             (args[0] as { callback?: PostgresCallback }).callback = callback;
@@ -271,11 +283,11 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
 
         let cb = callback;
         if (cb) {
-          const parentSpan = trace.getSpan(context.active());
+          const parentSpan = getActiveSpan();
           cb = utils.patchCallbackPGPool(span, cb);
           // If a parent span exists, bind the callback
           if (parentSpan) {
-            cb = context.bind(context.active(), cb);
+            cb = bindCallbackToSpan(parentSpan, cb);
           }
         }
 
@@ -295,17 +307,16 @@ function handleConnectResult(span: Span, connectResult: unknown): unknown {
   }
 
   const connectResultPromise = connectResult as Promise<unknown>;
-  return context.bind(
-    context.active(),
-    connectResultPromise
-      .then(result => {
-        span.end();
-        return result;
-      })
-      .catch((error: unknown) => {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: utils.getErrorMessage(error) });
-        span.end();
-        return Promise.reject(error);
-      }),
-  );
+  // The caller's continuation after `await client.connect()` keeps its trace context via the
+  // SDK's async context propagation, so we don't need to re-bind the returned promise.
+  return connectResultPromise
+    .then(result => {
+      span.end();
+      return result;
+    })
+    .catch((error: unknown) => {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: utils.getErrorMessage(error) });
+      span.end();
+      return Promise.reject(error);
+    });
 }
