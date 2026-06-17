@@ -34,6 +34,20 @@ function normalizeJobName(name) {
     .trim();
 }
 
+/**
+ * Collapse esm/cjs variants of a test name so the same test failing in both module formats dedupes
+ * to a single issue instead of one per variant:
+ *
+ *   "... > esm/cjs > esm > should send messages" -> "... > esm/cjs > should send messages"
+ *   "... > esm/cjs > cjs > should send messages" -> "... > esm/cjs > should send messages"
+ */
+function normalizeTestName(name) {
+  return name
+    .replace(/esm\/cjs\s*>\s*(?:esm|cjs)\b/gi, 'esm/cjs')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function applyVars(text, vars) {
   let result = text;
   for (const [key, value] of Object.entries(vars)) {
@@ -108,9 +122,12 @@ export default async function run({ github, context, core }) {
 
     // Create one issue per failing test for proper deduplication
     for (const testName of testNames) {
-      // The title is keyed on the *normalized* job name so the same test failing across matrix
-      // variants (different node / TS versions) dedupes to a single issue.
-      const title = applyVars(titleTemplate, { JOB_NAME: normalizedJobName, TEST_NAME: testName });
+      const normalizedTestName = normalizeTestName(testName);
+
+      // The title is keyed on the *normalized* job name + test name so the same test failing across
+      // matrix variants (different node / TS versions) or module formats (esm / cjs) dedupes to a
+      // single issue.
+      const title = applyVars(titleTemplate, { JOB_NAME: normalizedJobName, TEST_NAME: normalizedTestName });
       // The body keeps the concrete job name + run link of the variant that actually failed.
       const issueBody = applyVars(bodyTemplate, { JOB_NAME: jobName, RUN_LINK: jobUrl, TEST_NAME: testName });
 
@@ -121,7 +138,7 @@ export default async function run({ github, context, core }) {
 
       const existingIssue = existing.find(i => i.title === title);
       if (existingIssue) {
-        core.info(`Issue already exists for "${testName}" in ${normalizedJobName}: #${existingIssue.number}`);
+        core.info(`Issue already exists for "${normalizedTestName}" in ${normalizedJobName}: #${existingIssue.number}`);
         continue;
       }
 
@@ -132,7 +149,7 @@ export default async function run({ github, context, core }) {
         body: issueBody.trim(),
         labels: ['Tests', 'Flaky Test'],
       });
-      core.info(`Created issue #${newIssue.data.number} for "${testName}" in ${normalizedJobName}`);
+      core.info(`Created issue #${newIssue.data.number} for "${normalizedTestName}" in ${normalizedJobName}`);
     }
   }
 }
