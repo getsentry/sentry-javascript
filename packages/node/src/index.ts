@@ -121,6 +121,7 @@ export {
   startSpanManual,
   startInactiveSpan,
   startNewTrace,
+  bindScopeToEmitter,
   suppressTracing,
   getActiveSpan,
   withActiveSpan,

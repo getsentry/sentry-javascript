@@ -138,6 +138,7 @@ export {
   spotlightIntegration,
   startInactiveSpan,
   startNewTrace,
+  bindScopeToEmitter,
   suppressTracing,
   startSession,
   startSpan,

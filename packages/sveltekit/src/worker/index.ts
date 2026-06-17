@@ -72,6 +72,7 @@ export {
   spanToTraceHeader,
   startInactiveSpan,
   startNewTrace,
+  bindScopeToEmitter,
   suppressTracing,
   startSpan,
   startSpanManual,

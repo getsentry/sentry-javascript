@@ -21,6 +21,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   startNewTrace,
+  bindScopeToEmitter,
   withActiveSpan,
   getSpanDescendants,
   setMeasurement,
