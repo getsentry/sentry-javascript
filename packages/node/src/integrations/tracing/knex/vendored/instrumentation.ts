@@ -9,11 +9,17 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import * as api from '@opentelemetry/api';
+import { SpanKind } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
-import type { SpanAttributes } from '@sentry/core';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
+import {
+  getActiveSpan,
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startSpan,
+} from '@sentry/core';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import {
   ATTR_DB_NAME,
@@ -45,7 +51,7 @@ const SUPPORTED_VERSIONS = [
 // Max length of the query text captured in the `db.statement` attribute; ".." is appended when truncated.
 const MAX_QUERY_LENGTH = 1022;
 
-const contextSymbol = Symbol('opentelemetry.instrumentation-knex.context');
+const parentSpanSymbol = Symbol('sentry.instrumentation-knex.parent-span');
 
 export class KnexInstrumentation extends InstrumentationBase<InstrumentationConfig> {
   public constructor(config: InstrumentationConfig = {}) {
@@ -127,34 +133,29 @@ export class KnexInstrumentation extends InstrumentationBase<InstrumentationConf
           [ATTR_DB_STATEMENT]: utils.limitLength(query?.sql, MAX_QUERY_LENGTH),
         };
 
-        // The query builder captures the context active when it was created (see `_storeContext`).
-        // We only instrument queries that run as part of an existing trace.
-        const parentContext = this.builder[contextSymbol] || api.context.active();
-        const parentSpan = api.trace.getSpan(parentContext);
-        const hasActiveParent = parentSpan && api.trace.isSpanContextValid(parentSpan.spanContext());
-        if (!hasActiveParent) {
-          return original.bind(this)(...arguments);
-        }
+        // The query builder captures the span active when it was created (see `_storeContext`).
+        // `onlyIfParent` ensures we only instrument queries that run as part of an existing trace.
+        const parentSpan: Span | undefined = this.builder[parentSpanSymbol] || getActiveSpan();
 
         const args = arguments;
-        return api.context.with(parentContext, () =>
-          startSpan(
-            {
-              name: utils.getName(name, operation, table),
-              kind: api.SpanKind.CLIENT,
-              attributes,
-            },
-            span =>
-              // `Runner.query` returns a real, already-executing Promise, so it is safe to let
-              // `startSpan` await it and auto-end the span.
-              original.apply(this, args).catch((err: any) => {
-                const formatter = utils.getFormatter(this);
-                const fullQuery = formatter(query.sql, query.bindings || []);
-                const message = err.message.replace(`${fullQuery} - `, '');
-                span.setStatus({ code: SPAN_STATUS_ERROR, message });
-                throw err;
-              }),
-          ),
+        return startSpan(
+          {
+            name: utils.getName(name, operation, table),
+            kind: SpanKind.CLIENT,
+            attributes,
+            parentSpan,
+            onlyIfParent: true,
+          },
+          span =>
+            // `Runner.query` returns a real, already-executing Promise, so it is safe to let
+            // `startSpan` await it and auto-end the span.
+            original.apply(this, args).catch((err: any) => {
+              const formatter = utils.getFormatter(this);
+              const fullQuery = formatter(query.sql, query.bindings || []);
+              const message = err.message.replace(`${fullQuery} - `, '');
+              span.setStatus({ code: SPAN_STATUS_ERROR, message });
+              throw err;
+            }),
         );
       };
     };
@@ -163,8 +164,10 @@ export class KnexInstrumentation extends InstrumentationBase<InstrumentationConf
   private _storeContext(original: (...args: any[]) => any) {
     return function wrapped_logging_method(this: any) {
       const builder = original.apply(this, arguments);
-      Object.defineProperty(builder, contextSymbol, {
-        value: api.context.active(),
+      // Capture the span that is active when the query builder is created. The query often executes
+      // in a different async context, so we reuse this span as the parent when the query runs.
+      Object.defineProperty(builder, parentSpanSymbol, {
+        value: getActiveSpan(),
       });
       return builder;
     };

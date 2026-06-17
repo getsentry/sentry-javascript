@@ -8,8 +8,7 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { DB_SYSTEM_NAME_VALUE_POSTGRESQL } from '@opentelemetry/semantic-conventions';
-import { DB_SYSTEM_NAME_VALUE_SQLITE } from './semconv';
+import { DB_SYSTEM_NAME_VALUE_POSTGRESQL, DB_SYSTEM_NAME_VALUE_SQLITE } from './semconv';
 
 export const getFormatter = (runner: any) => {
   if (runner) {
