@@ -34,6 +34,22 @@ function normalizeJobName(name) {
     .trim();
 }
 
+/**
+ * Collapse esm/cjs variants of a test name so the same test failing in both module formats dedupes
+ * to a single issue instead of one per format. Suites that run under both formats nest the variant
+ * as a `esm/cjs > esm` / `esm/cjs > cjs` describe pair — we drop the format leaf, keeping the
+ * `esm/cjs` parent so the test path stays readable:
+ *
+ *   "... > esm/cjs > esm > should send messages" -> "... > esm/cjs > should send messages"
+ *   "... > esm/cjs > cjs > should send messages" -> "... > esm/cjs > should send messages"
+ */
+function normalizeTestName(name) {
+  return name
+    .replace(/esm\/cjs\s*>\s*(?:esm|cjs)\b/gi, 'esm/cjs')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function applyVars(text, vars) {
   let result = text;
   for (const [key, value] of Object.entries(vars)) {
@@ -108,9 +124,10 @@ export default async function run({ github, context, core }) {
 
     // Create one issue per failing test for proper deduplication
     for (const testName of testNames) {
-      // The title is keyed on the *normalized* job name so the same test failing across matrix
-      // variants (different node / TS versions) dedupes to a single issue.
-      const title = applyVars(titleTemplate, { JOB_NAME: normalizedJobName, TEST_NAME: testName });
+      // The title is keyed on the *normalized* job name + test name so the same test failing across
+      // matrix variants (different node / TS versions) or module formats (esm / cjs) dedupes to a
+      // single issue.
+      const title = applyVars(titleTemplate, { JOB_NAME: normalizedJobName, TEST_NAME: normalizeTestName(testName) });
       // The body keeps the concrete job name + run link of the variant that actually failed.
       const issueBody = applyVars(bodyTemplate, { JOB_NAME: jobName, RUN_LINK: jobUrl, TEST_NAME: testName });
 
