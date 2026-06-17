@@ -3,8 +3,13 @@ import type { Scope } from '../scope';
 
 type BoundListener = (...args: unknown[]) => unknown;
 
-/** Per-event map from user-provided listeners to their scope-bound wrappers. */
-type ListenerPatchMap = Record<string, WeakMap<BoundListener, BoundListener> | undefined>;
+/**
+ * Per-event map from a user-provided listener to its scope-bound wrappers. A listener may be
+ * registered for the same event more than once (each registration is independent in Node's
+ * `EventEmitter`), so we keep a stack of wrappers rather than a single one — otherwise only the
+ * most recent registration would be removable via the original listener reference.
+ */
+type ListenerPatchMap = Record<string, WeakMap<BoundListener, BoundListener[]> | undefined>;
 
 // We patch both Node.js `EventEmitter` registration methods (`on`, `addListener`, ...) and the DOM
 // `EventTarget.addEventListener`, so this works for Node emitters and browser-native event targets.
@@ -111,7 +116,12 @@ function patchAddListener(ee: EventEmitterLike, original: BoundListener, scope: 
     }
 
     const boundListener = bindListenerToScope(listener as BoundListener, scope);
-    listeners.set(listener as BoundListener, boundListener);
+    const wrappers = listeners.get(listener as BoundListener);
+    if (wrappers) {
+      wrappers.push(boundListener);
+    } else {
+      listeners.set(listener as BoundListener, [boundListener]);
+    }
 
     isAddingBoundListener = true;
     try {
@@ -128,12 +138,16 @@ function patchRemoveListener(ee: EventEmitterLike, original: BoundListener): Bou
     const listener = args[1];
     const rest = args.slice(2);
 
-    const listeners = getPatchMap(ee)?.[event];
-    if (!listeners || typeof listener !== 'function') {
+    const wrappers =
+      typeof listener === 'function' ? getPatchMap(ee)?.[event]?.get(listener as BoundListener) : undefined;
+    if (!wrappers?.length) {
       return original.apply(this, args);
     }
-    const boundListener = listeners.get(listener as BoundListener);
-    return original.call(this, event, boundListener || (listener as BoundListener), ...rest);
+    // Remove the most recently registered wrapper, mirroring Node's `removeListener` (which removes
+    // the last-added matching instance). All wrappers for a given listener+scope are equivalent, so
+    // which one we drop is immaterial — what matters is that each call removes a distinct wrapper.
+    const boundListener = wrappers.pop() as BoundListener;
+    return original.call(this, event, boundListener, ...rest);
   };
 }
 

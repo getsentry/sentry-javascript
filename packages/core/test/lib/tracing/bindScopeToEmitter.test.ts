@@ -151,6 +151,48 @@ describe('bindScopeToEmitter', () => {
     expect(emitter.listenerCount('data')).toBe(0);
   });
 
+  it('handles the same listener registered multiple times for one event', () => {
+    const emitter = new EventEmitter();
+    bindScopeToEmitter(emitter);
+
+    const listener = vi.fn();
+    emitter.on('data', listener);
+    emitter.on('data', listener);
+    expect(emitter.listenerCount('data')).toBe(2);
+
+    emitter.emit('data');
+    expect(listener).toHaveBeenCalledTimes(2);
+
+    // Each `removeListener` must remove a distinct registration — neither wrapper may be orphaned.
+    emitter.removeListener('data', listener);
+    expect(emitter.listenerCount('data')).toBe(1);
+    emitter.removeListener('data', listener);
+    expect(emitter.listenerCount('data')).toBe(0);
+
+    listener.mockClear();
+    emitter.emit('data');
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('handles a mix of `once` and `on` registrations of the same listener', () => {
+    const emitter = new EventEmitter();
+    bindScopeToEmitter(emitter);
+
+    const listener = vi.fn();
+    emitter.once('data', listener);
+    emitter.on('data', listener);
+    expect(emitter.listenerCount('data')).toBe(2);
+
+    // First emit fires both; the `once` registration removes itself.
+    emitter.emit('data');
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(emitter.listenerCount('data')).toBe(1);
+
+    // The remaining `on` registration is still removable via the original reference.
+    emitter.removeListener('data', listener);
+    expect(emitter.listenerCount('data')).toBe(0);
+  });
+
   it('removes the wrapped listener via `off`', () => {
     const emitter = new EventEmitter();
     bindScopeToEmitter(emitter);
