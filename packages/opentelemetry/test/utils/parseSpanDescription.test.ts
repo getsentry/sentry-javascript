@@ -18,6 +18,7 @@ import {
 import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import {
+  _descriptionForDbSystem,
   descriptionForHttpMethod,
   getSanitizedUrl,
   getUserUpdatedNameAndSource,
@@ -546,6 +547,46 @@ describe('descriptionForHttpMethod', () => {
   ])('%s', (_, httpMethod, attributes, name, kind, expected) => {
     const actual = descriptionForHttpMethod({ attributes, kind, name }, httpMethod);
     expect(actual).toEqual(expected);
+  });
+});
+
+describe('descriptionForDbSystem', () => {
+  it('returns parameterized query by default', () => {
+    const actual = _descriptionForDbSystem({
+      attributes: {
+        [SEMATTRS_DB_SYSTEM]: 'mysql',
+        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+      },
+      name: 'test name',
+      lowCardinalityName: false,
+    });
+    expect(actual).toEqual({
+      description: 'SELECT * from users',
+      op: 'db',
+      source: 'task',
+    });
+  });
+
+  it.each([
+    [{ 'db.query.summary': 'SELECT users' }, 'SELECT users'],
+    [{ 'db.operation.name': 'SELECT', 'db.collection.name': 'users' }, 'SELECT users'],
+    [{ 'db.operation.name': 'EXEC', 'db.stored_procedure.name': 'delete_alerts' }, 'EXEC delete_alerts'],
+    [{ 'db.operation.name': 'SELECT', 'db.namespace': 'sentry' }, 'SELECT sentry'],
+    [{ 'db.collection.name': 'users' }, 'users'],
+    [{ 'db.stored_procedure.name': 'delete_alerts' }, 'delete_alerts'],
+    [{ 'db.namespace': 'sentry' }, 'sentry'],
+    [{ 'db.system.name': 'postgres' }, 'postgres'],
+  ])('returns low cardinality name if lowCardinalityName is true based on attributes', (attributes, expectedName) => {
+    const actual = _descriptionForDbSystem({
+      attributes,
+      name: 'test name',
+      lowCardinalityName: true,
+    });
+    expect(actual).toEqual({
+      description: expectedName,
+      op: 'db',
+      source: 'task',
+    });
   });
 });
 

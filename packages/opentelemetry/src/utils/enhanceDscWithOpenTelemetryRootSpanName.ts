@@ -1,5 +1,5 @@
 import type { Client } from '@sentry/core';
-import { hasSpansEnabled, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
+import { hasSpansEnabled, hasSpanStreamingEnabled, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import { getSamplingDecision } from './getSamplingDecision';
 import { parseSpanDescription } from './parseSpanDescription';
 import { spanHasName } from './spanTypes';
@@ -24,7 +24,9 @@ export function enhanceDscWithOpenTelemetryRootSpanName(client: Client): void {
     const attributes = jsonSpan.data;
     const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
-    const { description } = spanHasName(rootSpan) ? parseSpanDescription(rootSpan) : { description: undefined };
+    const { description } = spanHasName(rootSpan)
+      ? parseSpanDescription(rootSpan, hasSpanStreamingEnabled(client))
+      : { description: undefined };
     if (source !== 'url' && description) {
       dsc.transaction = description;
     }

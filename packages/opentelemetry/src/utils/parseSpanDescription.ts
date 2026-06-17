@@ -1,6 +1,7 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {
+  ATTR_DB_QUERY_TEXT,
   ATTR_DB_SYSTEM_NAME,
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_ROUTE,
@@ -16,6 +17,7 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes, TransactionSource } from '@sentry/core';
 import {
+  buildSpanName,
   getSanitizedUrlString,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
@@ -39,7 +41,12 @@ interface SpanDescription {
 /**
  * Infer the op & description for a set of name, attributes and kind of a span.
  */
-export function inferSpanData(spanName: string, attributes: SpanAttributes, kind: SpanKind): SpanDescription {
+export function inferSpanData(
+  spanName: string,
+  attributes: SpanAttributes,
+  kind: SpanKind,
+  preferLowCardinalityName?: boolean,
+): SpanDescription {
   // if http.method exists, this is an http request span
   // eslint-disable-next-line deprecation/deprecation
   const httpMethod = attributes[ATTR_HTTP_REQUEST_METHOD] || attributes[SEMATTRS_HTTP_METHOD];
@@ -56,7 +63,11 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
   // If db.type exists then this is a database call span
   // If the Redis DB is used as a cache, the span description should not be changed
   if (dbSystem && !opIsCache) {
-    return descriptionForDbSystem({ attributes, name: spanName });
+    return _descriptionForDbSystem({
+      attributes,
+      name: spanName,
+      lowCardinalityName: preferLowCardinalityName ?? false,
+    });
   }
 
   const customSourceOrRoute = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom' ? 'custom' : 'route';
@@ -103,15 +114,26 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
  *
  * Based on https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/7422ce2a06337f68a59b552b8c5a2ac125d6bae5/exporter/sentryexporter/sentry_exporter.go#L306
  */
-export function parseSpanDescription(span: AbstractSpan): SpanDescription {
+export function parseSpanDescription(span: AbstractSpan, preferLowCardinalitySpanName?: boolean): SpanDescription {
   const attributes = spanHasAttributes(span) ? span.attributes : {};
   const name = spanHasName(span) ? span.name : '<unknown>';
   const kind = getSpanKind(span);
 
-  return inferSpanData(name, attributes, kind);
+  return inferSpanData(name, attributes, kind, preferLowCardinalitySpanName);
 }
 
-function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; name: string }): SpanDescription {
+/**
+ * Only exported for tests.
+ */
+export function _descriptionForDbSystem({
+  attributes,
+  name,
+  lowCardinalityName,
+}: {
+  attributes: Attributes;
+  name: string;
+  lowCardinalityName: boolean;
+}): SpanDescription {
   // if we already have a custom name, we don't overwrite it but only set the op
   const userDefinedName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
   if (typeof userDefinedName === 'string') {
@@ -127,9 +149,28 @@ function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; 
     return { op: 'db', description: name, source: 'custom' };
   }
 
-  // Use DB statement (Ex "SELECT * FROM table") if possible as description.
+  if (lowCardinalityName) {
+    const lowCardSpanName = buildSpanName(
+      [
+        '{db.query.summary}',
+        '{db.operation.name} {db.collection.name}',
+        '{db.operation.name} {db.collection.name}',
+        '{db.operation.name} {db.stored_procedure.name}',
+        '{db.operation.name} {db.namespace}',
+        '{db.collection.name}',
+        '{db.stored_procedure.name}',
+        '{db.namespace}',
+        '{db.system.name}',
+        'Database operation',
+      ],
+      attributes,
+    );
+
+    return { op: 'db', description: lowCardSpanName, source: 'task' };
+  }
+  // Use DB statement (Ex "SELECT * FROM table WHERE id = ?") if possible as description.
   // eslint-disable-next-line deprecation/deprecation
-  const statement = attributes[SEMATTRS_DB_STATEMENT];
+  const statement = attributes[SEMATTRS_DB_STATEMENT] ?? attributes[ATTR_DB_QUERY_TEXT];
 
   const description = statement ? statement.toString() : name;
 
