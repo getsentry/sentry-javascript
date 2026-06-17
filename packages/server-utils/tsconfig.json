@@ -3,7 +3,5 @@
 
   "include": ["src/**/*"],
 
-  "compilerOptions": {
-    "lib": ["ES2020"]
-  }
+  "compilerOptions": {}
 }
