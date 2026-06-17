@@ -219,6 +219,43 @@ describe('postgres auto instrumentation', () => {
     });
   });
 
+  // A query chained off `connect()` with `.then()` (rather than awaited) must still
+  // be parented to the active transaction. Since the instrumentation requires a
+  // parent span, the query only produces a span if the trace context survives the
+  // connect promise's continuation.
+  describe('connect promise continuation', () => {
+    const EXPECTED_TRANSACTION = {
+      transaction: 'Test Transaction',
+      spans: expect.arrayContaining([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.system': 'postgresql',
+            'db.name': 'tests',
+            'db.statement': 'SELECT 1 AS connect_then',
+            'sentry.origin': 'auto.db.otel.postgres',
+            'sentry.op': 'db',
+          }),
+          description: 'SELECT 1 AS connect_then',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.otel.postgres',
+        }),
+      ]),
+    };
+
+    createEsmAndCjsTests(__dirname, 'scenario-connect-then.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('parents a query chained off connect() to the active transaction', { timeout: 90_000 }, async () => {
+        await createTestRunner()
+          .withDockerCompose({
+            workingDirectory: [__dirname],
+          })
+          .expect({ transaction: EXPECTED_TRANSACTION })
+          .start()
+          .completed();
+      });
+    });
+  });
+
   describe('requireParentSpan', () => {
     createEsmAndCjsTests(__dirname, 'scenario-no-parent.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('does not instrument queries or connects without an active parent span', { timeout: 90_000 }, async () => {
