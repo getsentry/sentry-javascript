@@ -43,6 +43,43 @@ describe('hapi auto-instrumentation', () => {
       await runner.completed();
     });
 
+    test('should instrument plugin routes and server extensions.', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            transaction: 'GET /plugin-route',
+            spans: expect.arrayContaining([
+              expect.objectContaining({
+                description: 'GET /plugin-route',
+                op: 'plugin.hapi',
+                origin: 'auto.http.otel.hapi',
+                data: expect.objectContaining({
+                  'http.route': '/plugin-route',
+                  'hapi.type': 'plugin',
+                  'hapi.plugin.name': 'testPlugin',
+                  'sentry.op': 'plugin.hapi',
+                  'sentry.origin': 'auto.http.otel.hapi',
+                }),
+              }),
+              expect.objectContaining({
+                description: 'ext - onPreResponse',
+                op: 'server.ext.hapi',
+                origin: 'auto.http.otel.hapi',
+                data: expect.objectContaining({
+                  'hapi.type': 'server.ext',
+                  'server.ext.type': 'onPreResponse',
+                  'sentry.op': 'server.ext.hapi',
+                  'sentry.origin': 'auto.http.otel.hapi',
+                }),
+              }),
+            ]),
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/plugin-route');
+      await runner.completed();
+    });
+
     test('should handle returned plain errors in routes.', async () => {
       const runner = createRunner()
         .expect({
