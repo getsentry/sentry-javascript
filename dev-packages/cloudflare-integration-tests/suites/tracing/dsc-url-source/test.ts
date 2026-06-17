@@ -1,24 +1,24 @@
 import { expect, it } from 'vitest';
-import { eventEnvelope } from '../../expect';
-import { createRunner } from '../../runner';
+import { eventEnvelope } from '../../../expect';
+import { createRunner } from '../../../runner';
 
-it('Hono app captures errors', async ({ signal }) => {
+it('omits the span name from the DSC for url-source spans when tracing is enabled', async ({ signal }) => {
   const runner = createRunner(__dirname)
-    // First envelope: error event from Hono error handler
+    // Error event: because tracing is enabled, the DSC carries the sampling fields. But the span
+    // source is `url`, so the span name is omitted from the DSC (raw URLs may contain PII).
     .expect(
       eventEnvelope(
         {
           level: 'error',
-          transaction: 'GET /error',
           exception: {
             values: [
               {
                 type: 'Error',
-                value: 'Test error from Hono app (Sentry Cloudflare SDK)',
+                value: 'Test error from URL-source worker',
                 stacktrace: {
                   frames: expect.any(Array),
                 },
-                mechanism: { type: 'auto.faas.hono.error_handler', handled: false },
+                mechanism: { type: 'auto.http.cloudflare', handled: false },
               },
             ],
           },
@@ -28,10 +28,11 @@ it('Hono app captures errors', async ({ signal }) => {
             url: expect.any(String),
           },
         },
-        { includeSamplingFields: true, includeSampleRand: true },
+        { includeSamplingFields: true, includeSampleRand: true, includeTransaction: false },
       ),
     )
-    // Second envelope: transaction event
+    // Transaction event: proves we are NOT in TwP — the span is recorded with a `url` source and
+    // carries the name on the event itself, even though it is intentionally absent from the DSC.
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1];
       expect(transactionEvent).toEqual(
@@ -41,7 +42,7 @@ it('Hono app captures errors', async ({ signal }) => {
           contexts: expect.objectContaining({
             trace: expect.objectContaining({
               op: 'http.server',
-              status: 'internal_error',
+              data: expect.objectContaining({ 'sentry.source': 'url' }),
             }),
           }),
         }),
