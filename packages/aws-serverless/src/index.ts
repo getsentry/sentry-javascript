@@ -47,9 +47,9 @@ export {
   instrumentLangChainEmbeddings,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   anrIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
@@ -69,7 +69,7 @@ export {
   localVariablesIntegration,
   requestDataIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
@@ -175,6 +175,6 @@ export { awsIntegration } from './integration/aws';
 export { awsLambdaIntegration } from './integration/awslambda';
 
 export { getDefaultIntegrations, init } from './init';
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line typescript/no-deprecated
 export { tryPatchHandler, wrapHandler } from './sdk';
 export type { WrapperOptions } from './sdk';

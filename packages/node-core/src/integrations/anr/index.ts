@@ -63,7 +63,7 @@ const INTEGRATION_NAME = 'Anr';
 
 type AnrInternal = { startWorker: () => void; stopWorker: () => void };
 
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line typescript/no-deprecated
 const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
   if (NODE_VERSION.major < 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor < 17)) {
     throw new Error('ANR detection requires Node 16.17.0 or later');
@@ -112,7 +112,7 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
   } as Integration & AnrInternal;
 }) satisfies IntegrationFn;
 
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line typescript/no-deprecated
 type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & AnrInternal;
 
 /**
@@ -160,7 +160,7 @@ export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
  */
 async function _startWorker(
   client: NodeClient,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   integrationOptions: Partial<AnrIntegrationOptions>,
 ): Promise<() => void> {
   const dsn = client.getDsn();

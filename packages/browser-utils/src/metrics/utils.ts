@@ -220,7 +220,7 @@ export function listenForWebVitalReportEvents(
     collected = true;
   }
 
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   onHidden(() => {
     _runCollectorCallbackOnce('pagehide');
   });

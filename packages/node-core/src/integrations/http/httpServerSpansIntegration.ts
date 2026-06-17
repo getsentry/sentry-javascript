@@ -103,7 +103,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   ];
 
   const { onSpanCreated } = options;
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const { requestHook, responseHook, applyCustomAttributesOnSpan } = options.instrumentation ?? {};
 
   return {

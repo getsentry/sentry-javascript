@@ -27,14 +27,14 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
   // TODO(v11): Drop this transitional gating and let `requestDataIntegration` rely on the resolved
   // `dataCollection` defaults directly. Until then, preserve the historical Cloudflare behavior of not
   // attaching cookies unless the user explicitly opts in via `sendDefaultPii` or `dataCollection.cookies`.
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const cookiesEnabled = options.sendDefaultPii || options.dataCollection?.cookies != null;
   return [
     // The Dedupe integration should not be used in workflows because we want to
     // capture all step failures, even if they are the same error.
     ...(options.enableDedupe === false ? [] : [dedupeIntegration()]),
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
