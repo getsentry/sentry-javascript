@@ -128,8 +128,8 @@ export function instrumentDurableObjectWithSentry<
       // only the listed method names should be instrumented.
       // eslint-disable-next-line typescript/no-deprecated
       const instrumentPrototypeMethods = Array.isArray(options.instrumentPrototypeMethods)
-        // eslint-disable-next-line typescript/no-deprecated
-        ? options.instrumentPrototypeMethods
+        ? // eslint-disable-next-line typescript/no-deprecated
+          options.instrumentPrototypeMethods
         : undefined;
       const allowSet = instrumentPrototypeMethods ? new Set(instrumentPrototypeMethods) : null;
 
