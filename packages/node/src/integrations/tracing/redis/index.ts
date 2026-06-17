@@ -1,5 +1,4 @@
-import type { Span } from '@opentelemetry/api';
-import type { IntegrationFn } from '@sentry/core';
+import type { IntegrationFn, Span } from '@sentry/core';
 import {
   defineIntegration,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,

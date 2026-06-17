@@ -20,7 +20,7 @@
  */
 /* eslint-disable -- vendored @opentelemetry/instrumentation-redis */
 
-import type { Span } from '@opentelemetry/api';
+import type { Span } from '@sentry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 
 // ---- redis types ----

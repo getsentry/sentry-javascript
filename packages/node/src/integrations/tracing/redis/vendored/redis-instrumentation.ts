@@ -20,17 +20,20 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { context, SpanKind } from '@opentelemetry/api';
-import type { DiagLogger, TracerProvider } from '@opentelemetry/api';
+import { SpanKind } from '@opentelemetry/api';
+import type { TracerProvider } from '@opentelemetry/api';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
+  debug,
+  getActiveSpan,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
 } from '@sentry/core';
+import { DEBUG_BUILD } from '../../../../debug-build';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import { defaultDbStatementSerializer } from './redis-common';
 import {
@@ -111,10 +114,7 @@ function runResponseHook(
 
 // ---- v4-v5 utils ----
 
-function removeCredentialsFromDBConnectionStringAttribute(
-  diagLogger: DiagLogger,
-  url: string | undefined,
-): string | undefined {
+function removeCredentialsFromDBConnectionStringAttribute(url: string | undefined): string | undefined {
   if (typeof url !== 'string' || !url) {
     return undefined;
   }
@@ -125,44 +125,18 @@ function removeCredentialsFromDBConnectionStringAttribute(
     u.password = '';
     return u.href;
   } catch (err) {
-    diagLogger.error('failed to sanitize redis connection url', err);
+    DEBUG_BUILD && debug.error('failed to sanitize redis connection url', err);
   }
   return undefined;
 }
 
-function getClientAttributes(diagLogger: DiagLogger, options: any): SpanAttributes {
+function getClientAttributes(options: any): SpanAttributes {
   return {
     [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
     [ATTR_NET_PEER_NAME]: options?.socket?.host,
     [ATTR_NET_PEER_PORT]: options?.socket?.port,
-    [ATTR_DB_CONNECTION_STRING]: removeCredentialsFromDBConnectionStringAttribute(diagLogger, options?.url),
+    [ATTR_DB_CONNECTION_STRING]: removeCredentialsFromDBConnectionStringAttribute(options?.url),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-  };
-}
-
-// ---- v2-v3 utils ----
-
-function getTracedCreateClient(original: Function): Function {
-  return function createClientTrace(this: any) {
-    const client = original.apply(this, arguments);
-    return context.bind(context.active(), client);
-  };
-}
-
-function getTracedCreateStreamTrace(original: Function): Function {
-  return function create_stream_trace(this: any) {
-    if (!Object.prototype.hasOwnProperty.call(this, 'stream')) {
-      Object.defineProperty(this, 'stream', {
-        get() {
-          return this._patched_redis_stream;
-        },
-        set(val: any) {
-          context.bind(context.active(), val);
-          this._patched_redis_stream = val;
-        },
-      });
-    }
-    return original.apply(this, arguments);
   };
 }
 
@@ -185,21 +159,11 @@ class RedisInstrumentationV2_V3 extends InstrumentationBase<RedisInstrumentation
             this._unwrap(moduleExports.RedisClient.prototype, 'internal_send_command');
           }
           this._wrap(moduleExports.RedisClient.prototype, 'internal_send_command', this._getPatchInternalSendCommand());
-          if (isWrapped(moduleExports.RedisClient.prototype['create_stream'])) {
-            this._unwrap(moduleExports.RedisClient.prototype, 'create_stream');
-          }
-          this._wrap(moduleExports.RedisClient.prototype, 'create_stream', this._getPatchCreateStream());
-          if (isWrapped(moduleExports.createClient)) {
-            this._unwrap(moduleExports, 'createClient');
-          }
-          this._wrap(moduleExports, 'createClient', this._getPatchCreateClient());
           return moduleExports;
         },
         (moduleExports: any) => {
           if (moduleExports === undefined) return;
           this._unwrap(moduleExports.RedisClient.prototype, 'internal_send_command');
-          this._unwrap(moduleExports.RedisClient.prototype, 'create_stream');
-          this._unwrap(moduleExports, 'createClient');
         },
       ),
     ];
@@ -231,11 +195,11 @@ class RedisInstrumentationV2_V3 extends InstrumentationBase<RedisInstrumentation
         });
         const originalCallback = arguments[0].callback;
         if (originalCallback) {
-          const originalContext = context.active();
+          const parentSpan = getActiveSpan();
           arguments[0].callback = function callback(this: any, err: Error | null, reply: unknown) {
             runResponseHook(instrumentation.getConfig().responseHook, span, cmd.command, cmd.args, reply);
             endSpan(span, err);
-            return context.with(originalContext, originalCallback, this, ...arguments);
+            return withActiveSpan(parentSpan ?? null, () => originalCallback.apply(this, arguments));
           };
         }
         try {
@@ -245,18 +209,6 @@ class RedisInstrumentationV2_V3 extends InstrumentationBase<RedisInstrumentation
           throw rethrow;
         }
       };
-    };
-  }
-
-  private _getPatchCreateClient() {
-    return function createClient(original: Function) {
-      return getTracedCreateClient(original);
-    };
-  }
-
-  private _getPatchCreateStream() {
-    return function createReadStream(original: Function) {
-      return getTracedCreateStreamTrace(original);
     };
   }
 }
@@ -284,7 +236,7 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
       (moduleExports: any, moduleVersion?: string) => {
         const transformCommandArguments = moduleExports.transformCommandArguments;
         if (!transformCommandArguments) {
-          this._diag.error('internal instrumentation error, missing transformCommandArguments function');
+          DEBUG_BUILD && debug.error('internal instrumentation error, missing transformCommandArguments function');
           return moduleExports;
         }
         const functionToPatch = moduleVersion?.startsWith('1.0.') ? 'extendWithCommands' : 'attachCommands';
@@ -413,7 +365,7 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
       return function execPatch(this: any) {
         const execRes = original.apply(this, arguments);
         if (typeof execRes?.then !== 'function') {
-          plugin._diag.error('non-promise result when patching exec/execAsPipeline');
+          DEBUG_BUILD && debug.error('non-promise result when patching exec/execAsPipeline');
           return execRes;
         }
         return execRes
@@ -425,7 +377,7 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
           .catch((err: any) => {
             const openSpans: OpenSpanInfo[] = this[OTEL_OPEN_SPANS];
             if (!openSpans) {
-              plugin._diag.error('cannot find open spans to end for multi/pipeline');
+              DEBUG_BUILD && debug.error('cannot find open spans to end for multi/pipeline');
             } else {
               const replies =
                 err.constructor.name === 'MultiErrorReply'
@@ -468,10 +420,9 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
   }
 
   private _getPatchedClientConnect() {
-    const plugin = this;
     return function connectWrapper(original: Function) {
       return function patchedConnect(this: any) {
-        const attributes = getClientAttributes(plugin._diag, this.options);
+        const attributes = getClientAttributes(this.options);
         const span = startInactiveSpan({
           name: `${RedisInstrumentationV4_V5.COMPONENT}-connect`,
           kind: SpanKind.CLIENT,
@@ -501,7 +452,7 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
     const clientOptions = origThis.options || origThis[MULTI_COMMAND_OPTIONS];
     const commandName = redisCommandArguments[0] as string;
     const commandArgs = redisCommandArguments.slice(1);
-    const attributes = getClientAttributes(this._diag, clientOptions);
+    const attributes = getClientAttributes(clientOptions);
     const dbStatement = defaultDbStatementSerializer(commandName, commandArgs);
     if (dbStatement != null) {
       attributes[ATTR_DB_STATEMENT] = dbStatement;
@@ -535,10 +486,12 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
 
   _endSpansWithRedisReplies(openSpans: OpenSpanInfo[] | undefined, replies: unknown[]): void {
     if (!openSpans) {
-      return this._diag.error('cannot find open spans to end for redis multi/pipeline');
+      DEBUG_BUILD && debug.error('cannot find open spans to end for redis multi/pipeline');
+      return;
     }
     if (replies.length !== openSpans.length) {
-      return this._diag.error('number of multi command spans does not match response from redis');
+      DEBUG_BUILD && debug.error('number of multi command spans does not match response from redis');
+      return;
     }
     for (let i = 0; i < openSpans.length; i++) {
       const { span, commandName, commandArgs } = openSpans[i]!;
