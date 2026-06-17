@@ -17,9 +17,8 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-aws-sdk
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
-/* eslint-disable */
 
-import { Span, Tracer, SpanKind, Attributes } from '@opentelemetry/api';
+import { Span, SpanKind, Attributes } from '@opentelemetry/api';
 import { ATTR_AWS_SNS_TOPIC_ARN, ATTR_MESSAGING_SYSTEM } from '../semconv';
 import {
   ATTR_MESSAGING_DESTINATION,
@@ -72,7 +71,7 @@ export class SnsServiceExtension implements ServiceExtension {
     }
   }
 
-  responseHook(response: NormalizedResponse, span: Span, tracer: Tracer, config: AwsSdkInstrumentationConfig): void {
+  responseHook(response: NormalizedResponse, span: Span): void {
     const topicArn = response.data?.TopicArn;
     if (topicArn) {
       span.setAttribute(ATTR_AWS_SNS_TOPIC_ARN, topicArn);
@@ -84,7 +83,7 @@ export class SnsServiceExtension implements ServiceExtension {
       const arn = topicArn ?? targetArn;
       try {
         return arn.substring(arn.lastIndexOf(':') + 1);
-      } catch (err) {
+      } catch {
         return arn;
       }
     } else if (phoneNumber) {

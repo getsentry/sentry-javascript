@@ -17,9 +17,8 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-aws-sdk
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
-/* eslint-disable */
 
-import { Tracer, Span, DiagLogger } from '@opentelemetry/api';
+import { Span, DiagLogger } from '@opentelemetry/api';
 import { ServiceExtension, RequestMetadata } from './ServiceExtension';
 import { SqsServiceExtension } from './sqs';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
@@ -70,15 +69,9 @@ export class ServicesExtensions implements ServiceExtension {
     return serviceExtension.requestPostSpanHook(request);
   }
 
-  responseHook(
-    response: NormalizedResponse,
-    span: Span,
-    tracer: Tracer,
-    config: AwsSdkInstrumentationConfig,
-    startTime: number,
-  ) {
+  responseHook(response: NormalizedResponse, span: Span) {
     const serviceExtension = this.services.get(response.request.serviceName);
 
-    return serviceExtension?.responseHook?.(response, span, tracer, config, startTime);
+    return serviceExtension?.responseHook?.(response, span);
   }
 }

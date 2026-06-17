@@ -17,9 +17,8 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-aws-sdk
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
-/* eslint-disable */
 
-import { Attributes, DiagLogger, diag, Span, Tracer } from '@opentelemetry/api';
+import { Attributes, DiagLogger, diag, Span } from '@opentelemetry/api';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import {
   ATTR_GEN_AI_SYSTEM,
@@ -126,7 +125,6 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     diag: DiagLogger,
     isStream: boolean,
   ): RequestMetadata {
-    let spanName: string | undefined;
     const spanAttributes: Attributes = {
       [ATTR_GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
       // add operation name for InvokeModel API
@@ -250,61 +248,42 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     }
 
     return {
-      spanName,
       isIncoming: false,
       isStream,
       spanAttributes,
     };
   }
 
-  responseHook(
-    response: NormalizedResponse,
-    span: Span,
-    tracer: Tracer,
-    config: AwsSdkInstrumentationConfig,
-    startTime: number,
-  ) {
+  responseHook(response: NormalizedResponse, span: Span) {
     if (!span.isRecording()) {
       return;
     }
 
     switch (response.request.commandName) {
       case 'Converse':
-        return this.responseHookConverse(response, span, tracer, config, startTime);
+        return this.responseHookConverse(response, span);
       case 'ConverseStream':
-        return this.responseHookConverseStream(response, span, tracer, config, startTime);
+        return this.responseHookConverseStream(response, span);
       case 'InvokeModel':
-        return this.responseHookInvokeModel(response, span, tracer, config);
+        return this.responseHookInvokeModel(response, span);
       case 'InvokeModelWithResponseStream':
-        return this.responseHookInvokeModelWithResponseStream(response, span, tracer, config);
+        return this.responseHookInvokeModelWithResponseStream(response, span);
     }
   }
 
-  private responseHookConverse(
-    response: NormalizedResponse,
-    span: Span,
-    tracer: Tracer,
-    config: AwsSdkInstrumentationConfig,
-    startTime: number,
-  ) {
+  private responseHookConverse(response: NormalizedResponse, span: Span) {
     const { stopReason, usage } = response.data;
 
     BedrockRuntimeServiceExtension.setStopReason(span, stopReason);
-    this.setUsage(response, span, usage, startTime);
+    this.setUsage(response, span, usage);
   }
 
-  private responseHookConverseStream(
-    response: NormalizedResponse,
-    span: Span,
-    tracer: Tracer,
-    config: AwsSdkInstrumentationConfig,
-    startTime: number,
-  ) {
+  private responseHookConverseStream(response: NormalizedResponse, span: Span) {
     return {
       ...response.data,
       // Wrap and replace the response stream to allow processing events to telemetry
       // before yielding to the user.
-      stream: this.wrapConverseStreamResponse(response, response.data.stream, span, startTime),
+      stream: this.wrapConverseStreamResponse(response, response.data.stream, span),
     };
   }
 
@@ -312,7 +291,6 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     response: NormalizedResponse,
     stream: AsyncIterable<ConverseStreamOutput>,
     span: Span,
-    startTime: number,
   ) {
     try {
       let usage: TokenUsage | undefined;
@@ -321,7 +299,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
         usage = item.metadata?.usage;
         yield item;
       }
-      this.setUsage(response, span, usage, startTime);
+      this.setUsage(response, span, usage);
     } finally {
       span.end();
     }
@@ -333,7 +311,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     }
   }
 
-  private setUsage(response: NormalizedResponse, span: Span, usage: TokenUsage | undefined, startTime: number) {
+  private setUsage(response: NormalizedResponse, span: Span, usage: TokenUsage | undefined) {
     if (usage) {
       const { inputTokens, outputTokens } = usage;
       if (inputTokens !== undefined) {
@@ -345,12 +323,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     }
   }
 
-  private responseHookInvokeModel(
-    response: NormalizedResponse,
-    span: Span,
-    tracer: Tracer,
-    config: AwsSdkInstrumentationConfig,
-  ) {
+  private responseHookInvokeModel(response: NormalizedResponse, span: Span) {
     const currentModelId = response.request.commandInput?.modelId;
     if (response.data?.body) {
       const decodedResponseBody = new TextDecoder().decode(response.data.body);
@@ -437,12 +410,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     }
   }
 
-  private async responseHookInvokeModelWithResponseStream(
-    response: NormalizedResponse,
-    span: Span,
-    tracer: Tracer,
-    config: AwsSdkInstrumentationConfig,
-  ): Promise<any> {
+  private async responseHookInvokeModelWithResponseStream(response: NormalizedResponse, span: Span): Promise<any> {
     const stream = response.data?.body;
     const modelId = response.request.commandInput?.modelId;
     if (!stream || !modelId) return;

@@ -17,9 +17,8 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-aws-sdk
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
-/* eslint-disable */
 
-import { DiagLogger, Span, SpanAttributes, SpanKind, Tracer } from '@opentelemetry/api';
+import { DiagLogger, Span, SpanAttributes, SpanKind } from '@opentelemetry/api';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
 
 export interface RequestMetadata {
@@ -46,11 +45,5 @@ export interface ServiceExtension {
   requestPostSpanHook?: (request: NormalizedRequest) => void;
 
   // called after response is received. If value is returned, it replaces the response output.
-  responseHook?: (
-    response: NormalizedResponse,
-    span: Span,
-    tracer: Tracer,
-    config: AwsSdkInstrumentationConfig,
-    startTime: number,
-  ) => any | undefined;
+  responseHook?: (response: NormalizedResponse, span: Span) => any | undefined;
 }

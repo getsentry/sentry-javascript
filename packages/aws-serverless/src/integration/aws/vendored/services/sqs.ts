@@ -17,9 +17,8 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-aws-sdk
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
-/* eslint-disable */
 
-import { Tracer, SpanKind, Span, propagation, trace, ROOT_CONTEXT, Attributes } from '@opentelemetry/api';
+import { SpanKind, Span, propagation, trace, ROOT_CONTEXT, Attributes } from '@opentelemetry/api';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import type { SQS } from '../aws-sdk.types';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
@@ -107,7 +106,7 @@ export class SqsServiceExtension implements ServiceExtension {
     }
   };
 
-  responseHook = (response: NormalizedResponse, span: Span, _tracer: Tracer, config: AwsSdkInstrumentationConfig) => {
+  responseHook = (response: NormalizedResponse, span: Span) => {
     switch (response.request.commandName) {
       case 'SendMessage':
         span.setAttribute(ATTR_MESSAGING_MESSAGE_ID, response?.data?.MessageId);

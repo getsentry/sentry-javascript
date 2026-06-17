@@ -19,24 +19,17 @@
  * - Backported the `@smithy/core` >= 3.24.0 support from upstream 0.74.0
  *   (https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3530)
  */
-/* eslint-disable */
 
 import { Span, SpanKind, context, trace, diag, SpanStatusCode } from '@opentelemetry/api';
 import { AttributeNames } from './enums';
 import { ServicesExtensions } from './services';
-import {
-  AwsSdkInstrumentationConfig,
-  AwsSdkRequestHookInformation,
-  NormalizedRequest,
-  NormalizedResponse,
-} from './types';
+import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from './types';
 import {
   InstrumentationBase,
   InstrumentationModuleDefinition,
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
   isWrapped,
-  safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 import type {
   MiddlewareStack,
@@ -54,7 +47,7 @@ import {
 import { propwrap } from './propwrap';
 import { RequestMetadata } from './services/ServiceExtension';
 import { ATTR_HTTP_STATUS_CODE } from './semconv';
-import { SDK_VERSION, timestampInSeconds } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-aws-sdk';
 
@@ -167,32 +160,15 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
   private _startAwsV3Span(normalizedRequest: NormalizedRequest, metadata: RequestMetadata): Span {
     const name = metadata.spanName ?? `${normalizedRequest.serviceName}.${normalizedRequest.commandName}`;
-    const newSpan = this.tracer.startSpan(name, {
+    return startInactiveSpan({
+      name,
       kind: metadata.spanKind ?? SpanKind.CLIENT,
       attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws',
         ...extractAttributesFromNormalizedRequest(normalizedRequest),
         ...metadata.spanAttributes,
       },
     });
-
-    return newSpan;
-  }
-
-  private _callUserPreRequestHook(span: Span, request: NormalizedRequest, moduleVersion: string | undefined) {
-    const { preRequestHook } = this.getConfig();
-    if (preRequestHook) {
-      const requestInfo: AwsSdkRequestHookInformation = {
-        moduleVersion,
-        request,
-      };
-      safeExecuteInTheMiddle(
-        () => preRequestHook(span, requestInfo),
-        (e: Error | undefined) => {
-          if (e) diag.error(`${AwsInstrumentation.component} instrumentation: preRequestHook error`, e);
-        },
-        true,
-      );
-    }
   }
 
   private _getV3ConstructStackPatch(
@@ -224,7 +200,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
   private patchV3MiddlewareStack(moduleVersion: string | undefined, middlewareStackToPatch: MiddlewareStack<any, any>) {
     if (!isWrapped(middlewareStackToPatch.resolve)) {
-      this._wrap(middlewareStackToPatch, 'resolve', this._getV3MiddlewareStackResolvePatch.bind(this, moduleVersion));
+      this._wrap(middlewareStackToPatch, 'resolve', this._getV3MiddlewareStackResolvePatch.bind(this));
     }
 
     // 'clone' and 'concat' functions are internally calling 'constructStack' which is in same
@@ -250,7 +226,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
   }
 
   private _getV3MiddlewareStackResolvePatch(
-    moduleVersion: string | undefined,
     original: (_handler: any, context: HandlerExecutionContext) => AwsV3MiddlewareHandler<any, any>,
   ) {
     const self = this;
@@ -283,7 +258,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
           self.getConfig(),
           self._diag,
         );
-        const startTime = timestampInSeconds();
         const span = self._startAwsV3Span(normalizedRequest, requestMetadata);
         const activeContextWithSpan = trace.setSpan(context.active(), span);
 
@@ -302,7 +276,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
               );
             })
             .finally(() => {
-              self._callUserPreRequestHook(span, normalizedRequest, moduleVersion);
               const resultPromise = context.with(activeContextWithSpan, () => {
                 self.servicesExtensions.requestPostSpanHook(normalizedRequest);
                 return origHandler.call(this, command);
@@ -329,13 +302,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                     request: normalizedRequest,
                     requestId: requestId,
                   };
-                  const override = self.servicesExtensions.responseHook(
-                    normalizedResponse,
-                    span,
-                    self.tracer,
-                    self.getConfig(),
-                    startTime,
-                  );
+                  const override = self.servicesExtensions.responseHook(normalizedResponse, span);
                   if (override) {
                     response.output = override;
                     normalizedResponse.data = override;
@@ -362,7 +329,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                     code: SpanStatusCode.ERROR,
                     message: err.message,
                   });
-                  span.recordException(err);
                   throw err;
                 })
                 .finally(() => {
