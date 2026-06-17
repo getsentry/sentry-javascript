@@ -169,6 +169,7 @@ export function setupOtel(client: VercelEdgeClient): void {
     ],
   });
 
+  // eslint-disable-next-line typescript/no-deprecated
   const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
 
   trace.setGlobalTracerProvider(provider);

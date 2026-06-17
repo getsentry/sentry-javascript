@@ -36,6 +36,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     expressIntegration(),
     fastifyIntegration(),
     graphqlIntegration(),
+    // eslint-disable-next-line typescript/no-deprecated
     honoIntegration(),
     mongoIntegration(),
     mongooseIntegration(),

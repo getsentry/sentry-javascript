@@ -40,6 +40,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     conversationIdIntegration(),
     linkedErrorsIntegration(),
     fetchIntegration(),
+    // eslint-disable-next-line typescript/no-deprecated
     honoIntegration(),
     httpServerIntegration(),
     requestDataIntegration(cookiesEnabled ? undefined : { include: { cookies: false } }),

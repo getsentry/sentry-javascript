@@ -308,7 +308,9 @@ export class MongooseInstrumentation extends InstrumentationBase<Instrumentation
   private _startSpan(collection: mongoose.Collection, modelName: string, operation: string, parentSpan?: Span): Span {
     const attributes: SpanAttributes = {
       ...getAttributesFromCollection(collection),
+      // eslint-disable-next-line typescript/no-deprecated
       [ATTR_DB_OPERATION]: operation,
+      // eslint-disable-next-line typescript/no-deprecated
       [ATTR_DB_SYSTEM]: 'mongoose', // keep for backwards compatibility
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     };

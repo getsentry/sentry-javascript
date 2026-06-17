@@ -33,10 +33,15 @@ import {
 
 export function getAttributesFromCollection(collection: Collection): SpanAttributes {
   return {
+    // eslint-disable-next-line typescript/no-deprecated
     [ATTR_DB_MONGODB_COLLECTION]: collection.name,
+    // eslint-disable-next-line typescript/no-deprecated
     [ATTR_DB_NAME]: collection.conn.name,
+    // eslint-disable-next-line typescript/no-deprecated
     [ATTR_DB_USER]: collection.conn.user,
+    // eslint-disable-next-line typescript/no-deprecated
     [ATTR_NET_PEER_NAME]: collection.conn.host,
+    // eslint-disable-next-line typescript/no-deprecated
     [ATTR_NET_PEER_PORT]: collection.conn.port,
   };
 }

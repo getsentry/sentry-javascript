@@ -50,6 +50,7 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
       const recordLcpStandaloneSpans =
         spanStreamingEnabled || ignored.has('lcp') ? undefined : enableStandaloneLcpSpans || false;
 
+      // eslint-disable-next-line typescript/no-deprecated
       const finalizeWebVitals = startTrackingWebVitals({
         recordClsStandaloneSpans,
         recordLcpStandaloneSpans,

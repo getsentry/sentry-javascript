@@ -122,7 +122,9 @@ export {
   createSentryWinstonTransport,
   hapiIntegration,
   setupHapiErrorHandler,
+  // eslint-disable-next-line typescript/no-deprecated
   honoIntegration,
+  // eslint-disable-next-line typescript/no-deprecated
   setupHonoErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,

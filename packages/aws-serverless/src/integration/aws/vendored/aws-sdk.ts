@@ -289,6 +289,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
                   const httpStatusCode = response.output?.$metadata?.httpStatusCode;
                   if (httpStatusCode) {
+                    // eslint-disable-next-line typescript/no-deprecated
                     span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
                   }
 
@@ -317,6 +318,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
                   const httpStatusCode = err?.$metadata?.httpStatusCode;
                   if (httpStatusCode) {
+                    // eslint-disable-next-line typescript/no-deprecated
                     span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
                   }
 
