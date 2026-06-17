@@ -17,27 +17,13 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-tedious
  * - Upstream version: @opentelemetry/instrumentation-tedious@0.37.0
  * - Minor TypeScript strictness adjustments
+ * - Span creation migrated to the @sentry/core API; origin folded into span creation
  */
-/* eslint-disable */
 
 import * as api from '@opentelemetry/api';
 import { EventEmitter } from 'events';
-import {
-  InstrumentationBase,
-  InstrumentationNodeModuleDefinition,
-  isWrapped,
-  SemconvStability,
-  semconvStabilityFromStr,
-} from '@opentelemetry/instrumentation';
-import {
-  ATTR_DB_COLLECTION_NAME,
-  ATTR_DB_NAMESPACE,
-  ATTR_DB_QUERY_TEXT,
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_SERVER_ADDRESS,
-  ATTR_SERVER_PORT,
-  DB_SYSTEM_NAME_VALUE_MICROSOFT_SQL_SERVER,
-} from '@opentelemetry/semantic-conventions';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import {
   DB_SYSTEM_VALUE_MSSQL,
   ATTR_DB_NAME,
@@ -49,15 +35,18 @@ import {
   ATTR_NET_PEER_PORT,
 } from './semconv';
 import type * as tedious from './tedious-types';
-import { TediousInstrumentationConfig } from './types';
 import { getSpanName, once } from './utils';
-import { SDK_VERSION } from '@sentry/core';
+import {
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  withActiveSpan,
+} from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-tedious';
 
 const CURRENT_DATABASE = Symbol('opentelemetry.instrumentation-tedious.current-database');
-
-export const INJECTED_CTX = Symbol('opentelemetry.instrumentation-tedious.context-info-injected');
 
 const PATCHED_METHODS = ['callProcedure', 'execSql', 'execSqlBatch', 'execBulkLoad', 'prepare', 'execute'];
 
@@ -80,20 +69,11 @@ function setDatabase(this: ApproxConnection, databaseName: string) {
   });
 }
 
-export class TediousInstrumentation extends InstrumentationBase<TediousInstrumentationConfig> {
+export class TediousInstrumentation extends InstrumentationBase<InstrumentationConfig> {
   static readonly COMPONENT = 'tedious';
-  private _netSemconvStability!: SemconvStability;
-  private _dbSemconvStability!: SemconvStability;
 
-  constructor(config: TediousInstrumentationConfig = {}) {
+  constructor(config: InstrumentationConfig = {}) {
     super(PACKAGE_NAME, SDK_VERSION, config);
-    this._setSemconvStabilityFromEnv();
-  }
-
-  // Used for testing.
-  private _setSemconvStabilityFromEnv() {
-    this._netSemconvStability = semconvStabilityFromStr('http', process.env.OTEL_SEMCONV_STABILITY_OPT_IN);
-    this._dbSemconvStability = semconvStabilityFromStr('database', process.env.OTEL_SEMCONV_STABILITY_OPT_IN);
   }
 
   protected init() {
@@ -107,12 +87,13 @@ export class TediousInstrumentation extends InstrumentationBase<TediousInstrumen
             if (isWrapped(ConnectionPrototype[method])) {
               this._unwrap(ConnectionPrototype, method);
             }
-            this._wrap(ConnectionPrototype, method, this._patchQuery(method, moduleExports) as any);
+            this._wrap(ConnectionPrototype, method, this._patchQuery(method) as any);
           }
 
           if (isWrapped(ConnectionPrototype.connect)) {
             this._unwrap(ConnectionPrototype, 'connect');
           }
+          // oxlint-disable-next-line typescript/unbound-method
           this._wrap(ConnectionPrototype, 'connect', this._patchConnect);
 
           return moduleExports;
@@ -144,54 +125,11 @@ export class TediousInstrumentation extends InstrumentationBase<TediousInstrumen
     };
   }
 
-  private _buildTraceparent(span: api.Span): string {
-    const sc = span.spanContext();
-    return `00-${sc.traceId}-${sc.spanId}-0${Number(sc.traceFlags || api.TraceFlags.NONE).toString(16)}`;
-  }
-
-  /**
-   * Fire a one-off `SET CONTEXT_INFO @opentelemetry_traceparent` on the same
-   * connection. Marks the request with INJECTED_CTX so our patch skips it.
-   */
-  private _injectContextInfo(connection: any, tediousModule: typeof tedious, traceparent: string): Promise<void> {
-    return new Promise(resolve => {
-      try {
-        const sql = 'set context_info @opentelemetry_traceparent';
-        const req = new tediousModule.Request(sql, (_err: any) => {
-          resolve();
-        });
-        Object.defineProperty(req, INJECTED_CTX, { value: true });
-        const buf = Buffer.from(traceparent, 'utf8');
-        req.addParameter('opentelemetry_traceparent', (tediousModule as any).TYPES.VarBinary, buf, {
-          length: buf.length,
-        });
-
-        connection.execSql(req);
-      } catch {
-        resolve();
-      }
-    });
-  }
-
-  private _shouldInjectFor(operation: string): boolean {
-    return (
-      operation === 'execSql' ||
-      operation === 'execSqlBatch' ||
-      operation === 'callProcedure' ||
-      operation === 'execute'
-    );
-  }
-
-  private _patchQuery(operation: string, tediousModule: typeof tedious) {
+  private _patchQuery(operation: string) {
     return (originalMethod: UnknownFunction): UnknownFunction => {
       const thisPlugin = this;
 
       function patchedMethod(this: ApproxConnection, request: ApproxRequest) {
-        // Skip our own injected request
-        if ((request as any)?.[INJECTED_CTX]) {
-          return originalMethod.apply(this, arguments as unknown as any[]);
-        }
-
         if (!(request instanceof EventEmitter)) {
           thisPlugin._diag.warn(`Unexpected invocation of patched ${operation} method. Span not recorded`);
           return originalMethod.apply(this, arguments as unknown as any[]);
@@ -209,38 +147,19 @@ export class TediousInstrumentation extends InstrumentationBase<TediousInstrumen
           return request.sqlTextOrProcedure;
         })(request);
 
-        const attributes: api.Attributes = {};
-        if (thisPlugin._dbSemconvStability & SemconvStability.OLD) {
-          attributes[ATTR_DB_SYSTEM] = DB_SYSTEM_VALUE_MSSQL;
-          attributes[ATTR_DB_NAME] = databaseName;
+        const attributes: api.Attributes = {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.otel.tedious',
+          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MSSQL,
+          [ATTR_DB_NAME]: databaseName,
           // >=4 uses `authentication` object; older versions just userName and password pair
-          attributes[ATTR_DB_USER] = this.config?.userName ?? this.config?.authentication?.options?.userName;
-          attributes[ATTR_DB_STATEMENT] = sql;
-          attributes[ATTR_DB_SQL_TABLE] = request.table;
-        }
-        if (thisPlugin._dbSemconvStability & SemconvStability.STABLE) {
-          // The OTel spec for "db.namespace" discusses handling for connection
-          // to MSSQL "named instances". This isn't currently supported.
-          //    https://opentelemetry.io/docs/specs/semconv/database/sql-server/#:~:text=%5B1%5D%20db%2Enamespace
-          attributes[ATTR_DB_NAMESPACE] = databaseName;
-          attributes[ATTR_DB_SYSTEM_NAME] = DB_SYSTEM_NAME_VALUE_MICROSOFT_SQL_SERVER;
-          attributes[ATTR_DB_QUERY_TEXT] = sql;
-          attributes[ATTR_DB_COLLECTION_NAME] = request.table;
-          // See https://opentelemetry.io/docs/specs/semconv/database/sql-server/#spans
-          // TODO(3290): can `db.response.status_code` be added?
-          // TODO(3290): is `operation` correct for `db.operation.name`
-          // TODO(3290): can `db.query.summary` reliably be calculated?
-          // TODO(3290): `db.stored_procedure.name`
-        }
-        if (thisPlugin._netSemconvStability & SemconvStability.OLD) {
-          attributes[ATTR_NET_PEER_NAME] = this.config?.server;
-          attributes[ATTR_NET_PEER_PORT] = this.config?.options?.port;
-        }
-        if (thisPlugin._netSemconvStability & SemconvStability.STABLE) {
-          attributes[ATTR_SERVER_ADDRESS] = this.config?.server;
-          attributes[ATTR_SERVER_PORT] = this.config?.options?.port;
-        }
-        const span = thisPlugin.tracer.startSpan(getSpanName(operation, databaseName, sql, request.table), {
+          [ATTR_DB_USER]: this.config?.userName ?? this.config?.authentication?.options?.userName,
+          [ATTR_DB_STATEMENT]: sql,
+          [ATTR_DB_SQL_TABLE]: request.table,
+          [ATTR_NET_PEER_NAME]: this.config?.server,
+          [ATTR_NET_PEER_PORT]: this.config?.options?.port,
+        };
+        const span = startInactiveSpan({
+          name: getSpanName(operation, databaseName, sql, request.table),
           kind: api.SpanKind.CLIENT,
           attributes,
         });
@@ -256,7 +175,7 @@ export class TediousInstrumentation extends InstrumentationBase<TediousInstrumen
           span.setAttribute('tedious.statement_count', statementCount);
           if (err) {
             span.setStatus({
-              code: api.SpanStatusCode.ERROR,
+              code: SPAN_STATUS_ERROR,
               message: err.message,
             });
             // TODO(3290): set `error.type` attribute?
@@ -276,18 +195,7 @@ export class TediousInstrumentation extends InstrumentationBase<TediousInstrumen
           thisPlugin._diag.error('Expected request.callback to be a function');
         }
 
-        const runUserRequest = () => {
-          return api.context.with(api.trace.setSpan(api.context.active(), span), originalMethod, this, ...arguments);
-        };
-
-        const cfg = thisPlugin.getConfig();
-        const shouldInject = cfg.enableTraceContextPropagation && thisPlugin._shouldInjectFor(operation);
-
-        if (!shouldInject) return runUserRequest();
-
-        const traceparent = thisPlugin._buildTraceparent(span);
-
-        void thisPlugin._injectContextInfo(this, tediousModule, traceparent).finally(runUserRequest);
+        return withActiveSpan(span, () => originalMethod.apply(this, arguments as unknown as any[]));
       }
 
       Object.defineProperty(patchedMethod, 'length', {
@@ -301,7 +209,7 @@ export class TediousInstrumentation extends InstrumentationBase<TediousInstrumen
 
   private _patchCallbackQuery(endSpan: Function) {
     return (originalCallback: Function) => {
-      return function (this: any, err: Error | undefined | null, rowCount?: number, rows?: any) {
+      return function (this: any, err: Error | undefined | null, _rowCount?: number, _rows?: any) {
         endSpan(err);
         return originalCallback.apply(this, arguments);
       };
