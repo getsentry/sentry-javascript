@@ -73,7 +73,8 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 ## Pull Requests
 
-- **Do NOT add a "Test plan" / "Testing" checklist to PR bodies.** CI runs the full test suite on every PR — a hand-rolled checklist duplicates that signal and rots fast. Use the PR body for _Summary_ and _Root cause_ (if relevant) only.
+- **Do NOT add a "Test plan" / "Testing" checklist to PR bodies.** CI runs the full test suite on every PR — a hand-rolled checklist duplicates that signal and rots fast. Write the summary content directly and add a _Root cause_ section only if relevant.
+- **Omit the "Summary" heading** in PR bodies — lead with the summary text itself, no `## Summary` header.
 - Include `Fixes #<issue-number>` somewhere in the PR body so the merge auto-closes the linked issue.
 
 ## Architecture
@@ -130,6 +131,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Only use libraries already in the codebase
 - Never expose secrets or keys
 - When modifying files, cover all occurrences (including `src/` and `test/`)
+- Comments explain **why**, never **what** — never add a comment that restates what the code does or describes the change being made; only comment when the reasoning isn't obvious from the code itself
 
 ## Reference Documentation
 
