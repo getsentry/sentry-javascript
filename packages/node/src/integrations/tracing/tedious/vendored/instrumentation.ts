@@ -19,6 +19,7 @@
  * - Minor TypeScript strictness adjustments
  * - Span creation migrated to the @sentry/core API; origin folded into span creation
  */
+/* eslint-disable */
 
 import * as api from '@opentelemetry/api';
 import { EventEmitter } from 'events';
