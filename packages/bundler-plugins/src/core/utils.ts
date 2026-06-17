@@ -192,7 +192,7 @@ function gitRevision(): string | undefined {
   let gitRevision: string | undefined;
   try {
     gitRevision = childProcess
-      .execSync("git rev-parse HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+      .execSync("git rev-parse HEAD", { stdio: ["ignore", "pipe", "ignore"], windowsHide: true })
       .toString()
       .trim();
   } catch {

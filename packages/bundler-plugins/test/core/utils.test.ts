@@ -1,4 +1,5 @@
 import {
+  determineReleaseName,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
   getDependencies,
@@ -9,6 +10,7 @@ import {
   stringToUUID,
 } from "../../src/core/utils";
 
+import childProcess from "child_process";
 import fs from "fs";
 import { describe, it, expect, test, vi } from "vitest";
 import path from "node:path";
@@ -291,5 +293,28 @@ describe("serializeIgnoreOptions", () => {
   it("handles empty array", () => {
     const result = serializeIgnoreOptions([]);
     expect(result).toEqual([]);
+  });
+});
+
+describe("determineReleaseName", () => {
+  it("runs `git rev-parse HEAD` with windowsHide so no console window flashes on Windows", () => {
+    // Clear env so the function falls through the CI/git-provider checks to the
+    // git fallback (CI runs with GITHUB_SHA set, which would otherwise short-circuit).
+    const originalEnv = process.env;
+    process.env = {};
+    const execSyncSpy = vi
+      .spyOn(childProcess, "execSync")
+      .mockReturnValue(Buffer.from("0".repeat(40)));
+
+    try {
+      determineReleaseName();
+      expect(execSyncSpy).toHaveBeenCalledWith(
+        "git rev-parse HEAD",
+        expect.objectContaining({ windowsHide: true })
+      );
+    } finally {
+      process.env = originalEnv;
+      execSyncSpy.mockRestore();
+    }
   });
 });
