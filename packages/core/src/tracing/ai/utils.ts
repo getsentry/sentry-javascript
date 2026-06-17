@@ -75,7 +75,7 @@ export function shouldEnableTruncation(enableTruncation: boolean | undefined): b
     return true;
   }
 
-  return !(hasSpanStreamingEnabled(client) || !!client.getOptions().streamGenAiSpans);
+  return !hasSpanStreamingEnabled(client) && !client.getOptions().streamGenAiSpans;
 }
 
 /**
