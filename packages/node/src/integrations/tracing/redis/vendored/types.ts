@@ -9,18 +9,10 @@
  */
 /* eslint-disable -- vendored @opentelemetry/instrumentation-redis */
 
-import type { Span } from '@opentelemetry/api';
-import type { InstrumentationConfig, SemconvStability } from '@opentelemetry/instrumentation';
+import type { Span } from '@sentry/core';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 
 // ---- redis types ----
-
-/**
- * Function that can be used to serialize db.statement tag
- * @param cmdName - The name of the command (eg. set, get, mset)
- * @param cmdArgs - Array of arguments passed to the command
- * @returns serialized string that will be used as the db.statement attribute.
- */
-export type DbStatementSerializer = (cmdName: string, cmdArgs: Array<string | Buffer>) => string;
 
 /**
  * Function that can be used to add custom attributes to span on response from redis server
@@ -30,17 +22,8 @@ export interface RedisResponseCustomAttributeFunction {
 }
 
 export interface RedisInstrumentationConfig extends InstrumentationConfig {
-  /** Custom serializer function for the db.statement tag */
-  dbStatementSerializer?: DbStatementSerializer;
   /** Function for adding custom attributes on db response */
   responseHook?: RedisResponseCustomAttributeFunction;
-  /** Require parent to create redis span, default when unset is false */
-  requireParentSpan?: boolean;
-  /**
-   * Controls which semantic-convention attributes are emitted on spans.
-   * Default: 'OLD'.
-   */
-  semconvStability?: SemconvStability;
 }
 
 // ---- ioredis types ----

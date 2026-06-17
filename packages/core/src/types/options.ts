@@ -569,6 +569,11 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * This enables streaming gen_ai spans, avoiding payload size limits of usual transactions.
    *
+   * Because the v2 span format is not subject to the transaction payload-size limits that gen_ai message
+   * truncation exists to work around, enabling this option also disables gen_ai input truncation (and the
+   * inline-media redaction that rides along with it) by default. Set `enableTruncation: true` on the
+   * respective AI integration to opt back into truncation.
+   *
    * @default false
    */
   streamGenAiSpans?: boolean;

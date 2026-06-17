@@ -138,13 +138,20 @@ export class TediousInstrumentation extends InstrumentationBase<InstrumentationC
 
         const attributes: api.Attributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.otel.tedious',
+          // eslint-disable-next-line typescript/no-deprecated
           [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MSSQL,
+          // eslint-disable-next-line typescript/no-deprecated
           [ATTR_DB_NAME]: databaseName,
           // >=4 uses `authentication` object; older versions just userName and password pair
+          // eslint-disable-next-line typescript/no-deprecated
           [ATTR_DB_USER]: this.config?.userName ?? this.config?.authentication?.options?.userName,
+          // eslint-disable-next-line typescript/no-deprecated
           [ATTR_DB_STATEMENT]: sql,
+          // eslint-disable-next-line typescript/no-deprecated
           [ATTR_DB_SQL_TABLE]: request.table,
+          // eslint-disable-next-line typescript/no-deprecated
           [ATTR_NET_PEER_NAME]: this.config?.server,
+          // eslint-disable-next-line typescript/no-deprecated
           [ATTR_NET_PEER_PORT]: this.config?.options?.port,
         };
         const span = startInactiveSpan({

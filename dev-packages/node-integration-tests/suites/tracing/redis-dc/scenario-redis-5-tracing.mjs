@@ -5,7 +5,7 @@ async function run() {
   // is registered before node-redis eagerly creates its native TracingChannels on require().
   await Promise.resolve();
 
-  const { createClient } = await import('redis-5');
+  const { createClient } = await import('redis-5-tracing');
   const redisClient = await createClient({ socket: { host: '127.0.0.1', port: 6379 } }).connect();
 
   await Sentry.startSpan(
