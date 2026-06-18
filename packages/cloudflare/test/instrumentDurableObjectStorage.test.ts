@@ -1,17 +1,8 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectStorage } from '../src/instrumentations/instrumentDurableObjectStorage';
 import * as traceLinks from '../src/utils/traceLinks';
-
-vi.mock('@sentry/core', async importOriginal => {
-  const actual = await importOriginal<typeof sentryCore>();
-  return {
-    ...actual,
-    startSpan: vi.fn((opts, callback) => callback()),
-    getActiveSpan: vi.fn(),
-  };
-});
 
 vi.mock('../src/utils/traceLinks', async importOriginal => {
   const actual = await importOriginal<typeof traceLinks>();
@@ -22,42 +13,48 @@ vi.mock('../src/utils/traceLinks', async importOriginal => {
 });
 
 describe('instrumentDurableObjectStorage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('get', () => {
     it('instruments get with single key', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await instrumented.get('myKey');
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_get',
           op: 'db',
-          attributes: expect.objectContaining({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'get',
-          }),
+          },
         },
         expect.any(Function),
       );
     });
 
     it('instruments get with array of keys', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await instrumented.get(['key1', 'key2', 'key3']);
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_get',
           op: 'db',
-          attributes: expect.objectContaining({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'get',
-          }),
+          },
         },
         expect.any(Function),
       );
@@ -66,36 +63,42 @@ describe('instrumentDurableObjectStorage', () => {
 
   describe('put', () => {
     it('instruments put with single key', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await instrumented.put('myKey', 'myValue');
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_put',
           op: 'db',
-          attributes: expect.objectContaining({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'put',
-          }),
+          },
         },
         expect.any(Function),
       );
     });
 
     it('instruments put with object entries', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await instrumented.put({ key1: 'val1', key2: 'val2' });
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_put',
           op: 'db',
-          attributes: expect.objectContaining({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'put',
-          }),
+          },
         },
         expect.any(Function),
       );
@@ -104,36 +107,42 @@ describe('instrumentDurableObjectStorage', () => {
 
   describe('delete', () => {
     it('instruments delete with single key', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await instrumented.delete('myKey');
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_delete',
           op: 'db',
-          attributes: expect.objectContaining({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'delete',
-          }),
+          },
         },
         expect.any(Function),
       );
     });
 
     it('instruments delete with array of keys', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await instrumented.delete(['key1', 'key2']);
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_delete',
           op: 'db',
-          attributes: expect.objectContaining({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'delete',
-          }),
+          },
         },
         expect.any(Function),
       );
@@ -142,18 +151,21 @@ describe('instrumentDurableObjectStorage', () => {
 
   describe('list', () => {
     it('instruments list', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await instrumented.list();
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_list',
           op: 'db',
-          attributes: expect.objectContaining({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'list',
-          }),
+          },
         },
         expect.any(Function),
       );
@@ -162,24 +174,27 @@ describe('instrumentDurableObjectStorage', () => {
 
   describe('alarm methods', () => {
     it('instruments setAlarm', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await instrumented.setAlarm(Date.now() + 1000);
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_setAlarm',
           op: 'db',
-          attributes: expect.objectContaining({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'setAlarm',
-          }),
+          },
         },
         expect.any(Function),
       );
     });
 
-    it('stores span context when setAlarm is called (async)', async () => {
+    it('stores span context when setAlarm is called', async () => {
       const mockStorage = createMockStorage();
       const waitUntil = vi.fn();
       const instrumented = instrumentDurableObjectStorage(mockStorage, waitUntil);
@@ -190,7 +205,7 @@ describe('instrumentDurableObjectStorage', () => {
       expect(traceLinks.storeSpanContext).toHaveBeenCalledWith(mockStorage, 'alarm');
     });
 
-    it('calls teardown after promise resolves (async case)', async () => {
+    it('calls teardown after promise resolves', async () => {
       const callOrder: string[] = [];
       let resolveStorage: () => void;
       const storagePromise = new Promise<void>(resolve => {
@@ -212,15 +227,12 @@ describe('instrumentDurableObjectStorage', () => {
       const instrumented = instrumentDurableObjectStorage(mockStorage, waitUntil);
       const resultPromise = instrumented.setAlarm(Date.now() + 1000);
 
-      // Before resolving, waitUntil should not have been called yet
       expect(waitUntil).not.toHaveBeenCalled();
       expect(callOrder).toEqual(['setAlarm started']);
 
-      // Resolve the storage promise
       resolveStorage!();
       await resultPromise;
 
-      // After resolving, waitUntil should have been called
       expect(waitUntil).toHaveBeenCalledTimes(1);
       expect(callOrder).toEqual(['setAlarm started', 'setAlarm resolved', 'waitUntil called']);
     });
@@ -229,10 +241,9 @@ describe('instrumentDurableObjectStorage', () => {
       const callOrder: string[] = [];
 
       const mockStorage = createMockStorage();
-      // Make setAlarm return a sync value (not a promise)
       mockStorage.setAlarm = vi.fn().mockImplementation(() => {
         callOrder.push('setAlarm executed');
-        return undefined; // sync return
+        return undefined;
       });
 
       const waitUntil = vi.fn().mockImplementation(() => {
@@ -242,42 +253,47 @@ describe('instrumentDurableObjectStorage', () => {
       const instrumented = instrumentDurableObjectStorage(mockStorage, waitUntil);
       instrumented.setAlarm(Date.now() + 1000);
 
-      // For sync results, waitUntil should be called immediately after
       expect(waitUntil).toHaveBeenCalledTimes(1);
       expect(callOrder).toEqual(['setAlarm executed', 'waitUntil called']);
     });
 
     it('instruments getAlarm', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await instrumented.getAlarm();
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_getAlarm',
           op: 'db',
-          attributes: expect.objectContaining({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'getAlarm',
-          }),
+          },
         },
         expect.any(Function),
       );
     });
 
     it('instruments deleteAlarm', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await instrumented.deleteAlarm();
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_deleteAlarm',
           op: 'db',
-          attributes: expect.objectContaining({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'deleteAlarm',
-          }),
+          },
         },
         expect.any(Function),
       );
@@ -286,6 +302,7 @@ describe('instrumentDurableObjectStorage', () => {
 
   describe('non-instrumented methods', () => {
     it('does not instrument deleteAll, sync, transaction', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
@@ -293,7 +310,7 @@ describe('instrumentDurableObjectStorage', () => {
       await instrumented.sync();
       await instrumented.transaction(async txn => txn);
 
-      expect(sentryCore.startSpan).not.toHaveBeenCalled();
+      expect(startSpanSpy).not.toHaveBeenCalled();
     });
 
     it('does not instrument sql property', () => {
@@ -307,12 +324,13 @@ describe('instrumentDurableObjectStorage', () => {
 
   describe('sync KV instrumentation', () => {
     it('instruments the kv property with a proxy', () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       instrumented.kv.get('myKey');
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_get',
           op: 'db',
@@ -370,7 +388,8 @@ function createMockStorage(): any {
     sync: vi.fn().mockResolvedValue(undefined),
     transaction: vi.fn().mockImplementation(async (cb: () => unknown) => cb()),
     sql: {
-      exec: vi.fn(),
+      exec: vi.fn().mockReturnValue({ rowsRead: 0, rowsWritten: 0, toArray: () => [] }),
+      databaseSize: 0,
     },
     kv: {
       get: vi.fn().mockReturnValue(undefined),
