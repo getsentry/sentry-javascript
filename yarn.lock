@@ -7605,10 +7605,10 @@
     "@sentry/cli-win32-i686" "2.58.6"
     "@sentry/cli-win32-x64" "2.58.6"
 
-"@sentry/conventions@^0.11.0":
-  version "0.11.1"
-  resolved "https://registry.yarnpkg.com/@sentry/conventions/-/conventions-0.11.1.tgz#6409c71ae1f1ca4aa8a0d0affcee14aeb2713208"
-  integrity sha512-nk09uTX+e+oV2sEKsIONoBbnHzl/dQajlhz0VUrJIAE4W35g+oQp0gnbXB/+ZFJpc7v4GSVi+bP7Zri59Lq6Og==
+"@sentry/conventions@^0.12.0":
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/@sentry/conventions/-/conventions-0.12.0.tgz#e963cf928ac4d1585b1dcc196e767df3ac45ca5c"
+  integrity sha512-z1JQrl/1SLY+8wpzvork6vl+fpsg/oCCxM7HWWhUnI/R+OGNyoIzieQuggX3uUMY7NBtp8UWCQx6FeFazzOF9g==
 
 "@sentry/node-cpu-profiler@^2.4.2":
   version "2.4.2"
