@@ -8,15 +8,6 @@
  */
 /* eslint-disable */
 
-/*
- * This file contains constants for values that where replaced/removed from
- * Semantic Conventions long enough ago that they do not have `ATTR_*`
- * constants in the `@opentelemetry/semantic-conventions` package. Eventually
- * it is expected that this instrumention will be updated to emit telemetry
- * using modern Semantic Conventions, dropping the need for the constants in
- * this file.
- */
-
 /**
  * The message destination name. This might be equal to the span name but is required nevertheless.
  *

@@ -10,8 +10,6 @@
 /**
  * Deprecated, use `db.collection.name` instead.
  *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
  * @deprecated Replaced by `db.collection.name`.
  */
 export const ATTR_DB_MONGODB_COLLECTION = 'db.mongodb.collection' as const;
@@ -19,16 +17,12 @@ export const ATTR_DB_MONGODB_COLLECTION = 'db.mongodb.collection' as const;
 /**
  * Deprecated, use `server.address` on client spans and `client.address` on server spans.
  *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
  * @deprecated Replaced by `server.address` on client spans and `client.address` on server spans.
  */
 export const ATTR_NET_PEER_NAME = 'net.peer.name' as const;
 
 /**
  * Deprecated, use `server.port` on client spans and `client.port` on server spans.
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
  *
  * @deprecated Replaced by `server.port` on client spans and `client.port` on server spans.
  */

@@ -24,10 +24,7 @@ import {
   trace,
   ValueType,
 } from '@opentelemetry/api';
-import {
-  ATTR_HTTP_REQUEST_METHOD_ORIGINAL,
-  METRIC_HTTP_CLIENT_REQUEST_DURATION,
-} from '@opentelemetry/semantic-conventions';
+import { ATTR_HTTP_REQUEST_METHOD_ORIGINAL, METRIC_HTTP_CLIENT_REQUEST_DURATION } from './semconv';
 import {
   ERROR_TYPE,
   HTTP_REQUEST_METHOD,

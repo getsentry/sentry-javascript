@@ -19,7 +19,6 @@
  *
  * @example "1"
  *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
  */
 export const ATTR_MESSAGING_DESTINATION_PARTITION_ID = 'messaging.destination.partition.id' as const;
 
@@ -30,14 +29,12 @@ export const ATTR_MESSAGING_DESTINATION_PARTITION_ID = 'messaging.destination.pa
  *
  * @note If the key type is not string, it's string representation has to be supplied for the attribute. If the key has no unambiguous, canonical string form, don't include its value.
  *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
  */
 export const ATTR_MESSAGING_KAFKA_MESSAGE_KEY = 'messaging.kafka.message.key' as const;
 
 /**
  * A boolean that is true if the message is a tombstone.
  *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
  */
 export const ATTR_MESSAGING_KAFKA_MESSAGE_TOMBSTONE = 'messaging.kafka.message.tombstone' as const;
 
@@ -46,7 +43,6 @@ export const ATTR_MESSAGING_KAFKA_MESSAGE_TOMBSTONE = 'messaging.kafka.message.t
  *
  * @example 42
  *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
  */
 export const ATTR_MESSAGING_KAFKA_OFFSET = 'messaging.kafka.offset' as const;
 
@@ -71,12 +67,17 @@ export const MESSAGING_OPERATION_TYPE_VALUE_SEND = 'send' as const;
 export const MESSAGING_SYSTEM_VALUE_KAFKA = 'kafka' as const;
 
 /**
+ * Enum value "_OTHER" for attribute `error.type`. A fallback error value to be used when the
+ * instrumentation doesn't define a custom value.
+ */
+export const ERROR_TYPE_VALUE_OTHER = '_OTHER' as const;
+
+/**
  * Number of messages that were delivered to the application.
  *
  * @note Records the number of messages pulled from the broker or number of messages dispatched to the application in push-based scenarios.
  * The metric **SHOULD** be reported once per message delivery. For example, if receiving and processing operations are both instrumented for a single message delivery, this counter is incremented when the message is received and not reported when it is processed.
  *
- * @experimental This metric is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
  */
 export const METRIC_MESSAGING_CLIENT_CONSUMED_MESSAGES = 'messaging.client.consumed.messages' as const;
 
@@ -85,7 +86,6 @@ export const METRIC_MESSAGING_CLIENT_CONSUMED_MESSAGES = 'messaging.client.consu
  *
  * @note This metric **SHOULD NOT** be used to report processing duration - processing duration is reported in `messaging.process.duration` metric.
  *
- * @experimental This metric is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
  */
 export const METRIC_MESSAGING_CLIENT_OPERATION_DURATION = 'messaging.client.operation.duration' as const;
 
@@ -94,7 +94,6 @@ export const METRIC_MESSAGING_CLIENT_OPERATION_DURATION = 'messaging.client.oper
  *
  * @note This metric **MUST NOT** count messages that were created but haven't yet been sent.
  *
- * @experimental This metric is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
  */
 export const METRIC_MESSAGING_CLIENT_SENT_MESSAGES = 'messaging.client.sent.messages' as const;
 
@@ -103,6 +102,5 @@ export const METRIC_MESSAGING_CLIENT_SENT_MESSAGES = 'messaging.client.sent.mess
  *
  * @note This metric **MUST** be reported for operations with `messaging.operation.type` that matches `process`.
  *
- * @experimental This metric is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
  */
 export const METRIC_MESSAGING_PROCESS_DURATION = 'messaging.process.duration' as const;

@@ -29,3 +29,5 @@ export const ATTR_NET_PEER_PORT = 'net.peer.port' as const;
 export const ATTR_NET_TRANSPORT = 'net.transport' as const;
 
 export const DB_SYSTEM_NAME_VALUE_SQLITE = 'sqlite' as const;
+
+export const DB_SYSTEM_NAME_VALUE_POSTGRESQL = 'postgresql' as const;

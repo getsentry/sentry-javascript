@@ -54,10 +54,10 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
-import { METRIC_DB_CLIENT_OPERATION_DURATION } from '@opentelemetry/semantic-conventions';
 import {
   METRIC_DB_CLIENT_CONNECTION_COUNT,
   METRIC_DB_CLIENT_CONNECTION_PENDING_REQUESTS,
+  METRIC_DB_CLIENT_OPERATION_DURATION,
   DB_SYSTEM_VALUE_POSTGRESQL,
 } from './semconv';
 

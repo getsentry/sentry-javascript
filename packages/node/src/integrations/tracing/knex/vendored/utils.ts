@@ -9,8 +9,7 @@
 /* eslint-disable */
 
 import { Exception } from '@opentelemetry/api';
-import { DB_SYSTEM_NAME_VALUE_POSTGRESQL } from '@opentelemetry/semantic-conventions';
-import { DB_SYSTEM_NAME_VALUE_SQLITE } from './semconv';
+import { DB_SYSTEM_NAME_VALUE_POSTGRESQL, DB_SYSTEM_NAME_VALUE_SQLITE } from './semconv';
 
 type KnexError = Error & {
   code?: string;

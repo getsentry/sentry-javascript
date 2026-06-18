@@ -8,7 +8,6 @@ import {
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleFile } from './InstrumentationNodeModuleFile';
-import { ATTR_DB_RESPONSE_STATUS_CODE } from '@opentelemetry/semantic-conventions';
 import { DB_OPERATION_NAME, DB_QUERY_TEXT, DB_SYSTEM_NAME, ERROR_TYPE } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
@@ -25,6 +24,7 @@ import { DEBUG_BUILD } from '../../debug-build';
 
 const INTEGRATION_NAME = 'PostgresJs';
 const SUPPORTED_VERSIONS = ['>=3.0.0 <4'];
+const ATTR_DB_RESPONSE_STATUS_CODE = 'db.response.status_code';
 const SQL_OPERATION_REGEX = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i;
 
 type PostgresConnectionContext = {

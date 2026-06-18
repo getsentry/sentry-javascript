@@ -18,7 +18,6 @@ import {
   SemconvStability,
   semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
-import { DB_SYSTEM_NAME_VALUE_MYSQL } from '@opentelemetry/semantic-conventions';
 import {
   DB_NAME,
   DB_NAMESPACE,
@@ -34,6 +33,7 @@ import {
   ATTR_DB_CONNECTION_STRING,
   ATTR_NET_PEER_NAME,
   ATTR_NET_PEER_PORT,
+  DB_SYSTEM_NAME_VALUE_MYSQL,
   DB_SYSTEM_VALUE_MYSQL,
   METRIC_DB_CLIENT_CONNECTIONS_USAGE,
 } from './semconv';
