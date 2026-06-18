@@ -2,19 +2,19 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_HTTP_ROUTE,
-  SEMATTRS_DB_STATEMENT,
-  SEMATTRS_DB_SYSTEM,
-  SEMATTRS_FAAS_TRIGGER,
-  SEMATTRS_HTTP_HOST,
-  SEMATTRS_HTTP_METHOD,
-  SEMATTRS_HTTP_STATUS_CODE,
-  SEMATTRS_HTTP_TARGET,
-  SEMATTRS_HTTP_URL,
-  SEMATTRS_MESSAGING_SYSTEM,
-  SEMATTRS_RPC_SERVICE,
-} from '@opentelemetry/semantic-conventions';
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_SYSTEM_NAME,
+  FAAS_TRIGGER,
+  HTTP_HOST,
+  HTTP_METHOD,
+  HTTP_ROUTE,
+  HTTP_STATUS_CODE,
+  HTTP_TARGET,
+  HTTP_URL,
+  MESSAGING_SYSTEM,
+  RPC_SERVICE,
+} from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import {
@@ -51,7 +51,7 @@ describe('parseSpanDescription', () => {
     [
       'works with deprecated http method',
       {
-        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [HTTP_METHOD]: 'GET',
       },
       'test name',
       SpanKind.CLIENT,
@@ -77,8 +77,8 @@ describe('parseSpanDescription', () => {
     [
       'works with db system',
       {
-        [SEMATTRS_DB_SYSTEM]: 'mysql',
-        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+        [DB_SYSTEM]: 'mysql',
+        [DB_STATEMENT]: 'SELECT * from users',
       },
       'test name',
       SpanKind.CLIENT,
@@ -92,8 +92,8 @@ describe('parseSpanDescription', () => {
       'works with db system and custom source',
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-        [SEMATTRS_DB_SYSTEM]: 'mysql',
-        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+        [DB_SYSTEM]: 'mysql',
+        [DB_STATEMENT]: 'SELECT * from users',
       },
       'test name',
       SpanKind.CLIENT,
@@ -107,8 +107,8 @@ describe('parseSpanDescription', () => {
       'works with db system and custom source and custom name',
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-        [SEMATTRS_DB_SYSTEM]: 'mysql',
-        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+        [DB_SYSTEM]: 'mysql',
+        [DB_STATEMENT]: 'SELECT * from users',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
@@ -123,8 +123,8 @@ describe('parseSpanDescription', () => {
       'works with db system and component source and custom name',
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-        [SEMATTRS_DB_SYSTEM]: 'mysql',
-        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+        [DB_SYSTEM]: 'mysql',
+        [DB_STATEMENT]: 'SELECT * from users',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
@@ -138,7 +138,7 @@ describe('parseSpanDescription', () => {
     [
       'works with db system without statement',
       {
-        [SEMATTRS_DB_SYSTEM]: 'mysql',
+        [DB_SYSTEM]: 'mysql',
       },
       'test name',
       SpanKind.CLIENT,
@@ -151,8 +151,8 @@ describe('parseSpanDescription', () => {
     [
       'works with db.system.name (stable attribute)',
       {
-        [ATTR_DB_SYSTEM_NAME]: 'postgresql',
-        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+        [DB_SYSTEM_NAME]: 'postgresql',
+        [DB_STATEMENT]: 'SELECT * from users',
       },
       'test name',
       SpanKind.CLIENT,
@@ -165,7 +165,7 @@ describe('parseSpanDescription', () => {
     [
       'works with db.system.name without statement',
       {
-        [ATTR_DB_SYSTEM_NAME]: 'postgresql',
+        [DB_SYSTEM_NAME]: 'postgresql',
       },
       'test name',
       SpanKind.CLIENT,
@@ -178,9 +178,9 @@ describe('parseSpanDescription', () => {
     [
       'prefers db.system.name over deprecated db.system',
       {
-        [ATTR_DB_SYSTEM_NAME]: 'postgresql',
-        [SEMATTRS_DB_SYSTEM]: 'mysql',
-        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+        [DB_SYSTEM_NAME]: 'postgresql',
+        [DB_SYSTEM]: 'mysql',
+        [DB_STATEMENT]: 'SELECT * from users',
       },
       'test name',
       SpanKind.CLIENT,
@@ -193,7 +193,7 @@ describe('parseSpanDescription', () => {
     [
       'works with rpc service',
       {
-        [SEMATTRS_RPC_SERVICE]: 'rpc-test-service',
+        [RPC_SERVICE]: 'rpc-test-service',
       },
       'test name',
       undefined,
@@ -207,7 +207,7 @@ describe('parseSpanDescription', () => {
       'works with rpc service and custom source',
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-        [SEMATTRS_RPC_SERVICE]: 'rpc-test-service',
+        [RPC_SERVICE]: 'rpc-test-service',
       },
       'test name',
       undefined,
@@ -221,7 +221,7 @@ describe('parseSpanDescription', () => {
       'works with rpc service and custom source and custom name',
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-        [SEMATTRS_RPC_SERVICE]: 'rpc-test-service',
+        [RPC_SERVICE]: 'rpc-test-service',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
@@ -236,7 +236,7 @@ describe('parseSpanDescription', () => {
       'works with rpc service and component source and custom name',
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-        [SEMATTRS_RPC_SERVICE]: 'rpc-test-service',
+        [RPC_SERVICE]: 'rpc-test-service',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
@@ -250,7 +250,7 @@ describe('parseSpanDescription', () => {
     [
       'works with messaging system',
       {
-        [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
+        [MESSAGING_SYSTEM]: 'test-messaging-system',
       },
       'test name',
       undefined,
@@ -264,7 +264,7 @@ describe('parseSpanDescription', () => {
       'works with messaging system and custom source',
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-        [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
+        [MESSAGING_SYSTEM]: 'test-messaging-system',
       },
       'test name',
       undefined,
@@ -278,7 +278,7 @@ describe('parseSpanDescription', () => {
       'works with messaging system and custom source and custom name',
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-        [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
+        [MESSAGING_SYSTEM]: 'test-messaging-system',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
@@ -293,7 +293,7 @@ describe('parseSpanDescription', () => {
       'works with messaging system and component source and custom name',
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-        [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
+        [MESSAGING_SYSTEM]: 'test-messaging-system',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
@@ -307,7 +307,7 @@ describe('parseSpanDescription', () => {
     [
       'works with faas trigger',
       {
-        [SEMATTRS_FAAS_TRIGGER]: 'test-faas-trigger',
+        [FAAS_TRIGGER]: 'test-faas-trigger',
       },
       'test name',
       undefined,
@@ -321,7 +321,7 @@ describe('parseSpanDescription', () => {
       'works with faas trigger and custom source',
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-        [SEMATTRS_FAAS_TRIGGER]: 'test-faas-trigger',
+        [FAAS_TRIGGER]: 'test-faas-trigger',
       },
       'test name',
       undefined,
@@ -335,7 +335,7 @@ describe('parseSpanDescription', () => {
       'works with faas trigger and custom source and custom name',
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-        [SEMATTRS_FAAS_TRIGGER]: 'test-faas-trigger',
+        [FAAS_TRIGGER]: 'test-faas-trigger',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
@@ -350,7 +350,7 @@ describe('parseSpanDescription', () => {
       'works with faas trigger and component source and custom name',
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-        [SEMATTRS_FAAS_TRIGGER]: 'test-faas-trigger',
+        [FAAS_TRIGGER]: 'test-faas-trigger',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
@@ -385,9 +385,9 @@ describe('descriptionForHttpMethod', () => {
       'works with basic client GET',
       'GET',
       {
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path',
-        [SEMATTRS_HTTP_TARGET]: '/my-path',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_URL]: 'https://www.example.com/my-path',
+        [HTTP_TARGET]: '/my-path',
       },
       'test name',
       SpanKind.CLIENT,
@@ -404,9 +404,9 @@ describe('descriptionForHttpMethod', () => {
       'works with prefetch request',
       'GET',
       {
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path',
-        [SEMATTRS_HTTP_TARGET]: '/my-path',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_URL]: 'https://www.example.com/my-path',
+        [HTTP_TARGET]: '/my-path',
         'sentry.http.prefetch': true,
       },
       'test name',
@@ -424,9 +424,9 @@ describe('descriptionForHttpMethod', () => {
       'works with basic server POST',
       'POST',
       {
-        [SEMATTRS_HTTP_METHOD]: 'POST',
-        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path',
-        [SEMATTRS_HTTP_TARGET]: '/my-path',
+        [HTTP_METHOD]: 'POST',
+        [HTTP_URL]: 'https://www.example.com/my-path',
+        [HTTP_TARGET]: '/my-path',
       },
       'test name',
       SpanKind.SERVER,
@@ -443,10 +443,10 @@ describe('descriptionForHttpMethod', () => {
       'works with client GET with route',
       'GET',
       {
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path/123',
-        [SEMATTRS_HTTP_TARGET]: '/my-path/123',
-        [ATTR_HTTP_ROUTE]: '/my-path/:id',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_URL]: 'https://www.example.com/my-path/123',
+        [HTTP_TARGET]: '/my-path/123',
+        [HTTP_ROUTE]: '/my-path/:id',
       },
       'test name',
       SpanKind.CLIENT,
@@ -463,9 +463,9 @@ describe('descriptionForHttpMethod', () => {
       'works with basic client GET with SpanKind.INTERNAL',
       'GET',
       {
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path',
-        [SEMATTRS_HTTP_TARGET]: '/my-path',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_URL]: 'https://www.example.com/my-path',
+        [HTTP_TARGET]: '/my-path',
       },
       'test name',
       SpanKind.INTERNAL,
@@ -482,10 +482,10 @@ describe('descriptionForHttpMethod', () => {
       "doesn't overwrite span name with source custom",
       'GET',
       {
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path/123',
-        [SEMATTRS_HTTP_TARGET]: '/my-path/123',
-        [ATTR_HTTP_ROUTE]: '/my-path/:id',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_URL]: 'https://www.example.com/my-path/123',
+        [HTTP_TARGET]: '/my-path/123',
+        [HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
       },
       'test name',
@@ -503,10 +503,10 @@ describe('descriptionForHttpMethod', () => {
       'takes user-passed span name (with source custom)',
       'GET',
       {
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path/123',
-        [SEMATTRS_HTTP_TARGET]: '/my-path/123',
-        [ATTR_HTTP_ROUTE]: '/my-path/:id',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_URL]: 'https://www.example.com/my-path/123',
+        [HTTP_TARGET]: '/my-path/123',
+        [HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
@@ -525,10 +525,10 @@ describe('descriptionForHttpMethod', () => {
       'takes user-passed span name (with source component)',
       'GET',
       {
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path/123',
-        [SEMATTRS_HTTP_TARGET]: '/my-path/123',
-        [ATTR_HTTP_ROUTE]: '/my-path/:id',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_URL]: 'https://www.example.com/my-path/123',
+        [HTTP_TARGET]: '/my-path/123',
+        [HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
@@ -566,11 +566,11 @@ describe('getSanitizedUrl', () => {
     [
       'uses url without query for client request',
       {
-        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/?what=true',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
+        [HTTP_URL]: 'http://example.com/?what=true',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_TARGET]: '/?what=true',
+        [HTTP_HOST]: 'example.com:80',
+        [HTTP_STATUS_CODE]: 200,
       },
       SpanKind.CLIENT,
       {
@@ -584,11 +584,11 @@ describe('getSanitizedUrl', () => {
     [
       'uses url without hash for client request',
       {
-        [SEMATTRS_HTTP_URL]: 'http://example.com/sub#hash',
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/sub#hash',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
+        [HTTP_URL]: 'http://example.com/sub#hash',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_TARGET]: '/sub#hash',
+        [HTTP_HOST]: 'example.com:80',
+        [HTTP_STATUS_CODE]: 200,
       },
       SpanKind.CLIENT,
       {
@@ -602,12 +602,12 @@ describe('getSanitizedUrl', () => {
     [
       'uses route if available for client request',
       {
-        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/?what=true',
-        [ATTR_HTTP_ROUTE]: '/my-route',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
+        [HTTP_URL]: 'http://example.com/?what=true',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_TARGET]: '/?what=true',
+        [HTTP_ROUTE]: '/my-route',
+        [HTTP_HOST]: 'example.com:80',
+        [HTTP_STATUS_CODE]: 200,
       },
       SpanKind.CLIENT,
       {
@@ -621,10 +621,10 @@ describe('getSanitizedUrl', () => {
     [
       'falls back to target for client request if url not available',
       {
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/?what=true',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
+        [HTTP_METHOD]: 'GET',
+        [HTTP_TARGET]: '/?what=true',
+        [HTTP_HOST]: 'example.com:80',
+        [HTTP_STATUS_CODE]: 200,
       },
       SpanKind.CLIENT,
       {
@@ -638,11 +638,11 @@ describe('getSanitizedUrl', () => {
     [
       'uses target without query for server request',
       {
-        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/?what=true',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
+        [HTTP_URL]: 'http://example.com/?what=true',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_TARGET]: '/?what=true',
+        [HTTP_HOST]: 'example.com:80',
+        [HTTP_STATUS_CODE]: 200,
       },
       SpanKind.SERVER,
       {
@@ -656,11 +656,11 @@ describe('getSanitizedUrl', () => {
     [
       'uses target without hash for server request',
       {
-        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/sub#hash',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
+        [HTTP_URL]: 'http://example.com/?what=true',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_TARGET]: '/sub#hash',
+        [HTTP_HOST]: 'example.com:80',
+        [HTTP_STATUS_CODE]: 200,
       },
       SpanKind.SERVER,
       {
@@ -674,12 +674,12 @@ describe('getSanitizedUrl', () => {
     [
       'uses route for server request if available',
       {
-        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_HTTP_TARGET]: '/?what=true',
-        [ATTR_HTTP_ROUTE]: '/my-route',
-        [SEMATTRS_HTTP_HOST]: 'example.com:80',
-        [SEMATTRS_HTTP_STATUS_CODE]: 200,
+        [HTTP_URL]: 'http://example.com/?what=true',
+        [HTTP_METHOD]: 'GET',
+        [HTTP_TARGET]: '/?what=true',
+        [HTTP_ROUTE]: '/my-route',
+        [HTTP_HOST]: 'example.com:80',
+        [HTTP_STATUS_CODE]: 200,
       },
       SpanKind.SERVER,
       {

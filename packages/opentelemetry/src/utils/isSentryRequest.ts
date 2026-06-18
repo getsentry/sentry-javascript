@@ -1,4 +1,4 @@
-import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
+import { HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
 import { getClient, isSentryRequestUrl } from '@sentry/core';
 import type { AbstractSpan } from '../types';
 import { spanHasAttributes } from './spanTypes';
@@ -15,9 +15,9 @@ export function isSentryRequestSpan(span: AbstractSpan): boolean {
 
   const { attributes } = span;
 
-  // `ATTR_URL_FULL` is the new attribute, but we still support the old one, `ATTR_HTTP_URL`, for now.
+  // `URL_FULL` is the new attribute, but we still support the old one, `HTTP_URL`, for now.
   // eslint-disable-next-line typescript/no-deprecated
-  const httpUrl = attributes[SEMATTRS_HTTP_URL] || attributes[ATTR_URL_FULL];
+  const httpUrl = attributes[HTTP_URL] || attributes[URL_FULL];
 
   if (!httpUrl) {
     return false;
