@@ -1,8 +1,8 @@
-import { htmlTreeAsString } from '@sentry-internal/browser-utils';
+import { htmlTreeAsString } from '@sentry/browser-utils';
 import type { Breadcrumb, HandlerDataDom } from '@sentry/core';
-import { record } from '@sentry-internal/rrweb';
-import type { serializedElementNodeWithId, serializedNodeWithId } from '@sentry-internal/rrweb-snapshot';
-import { NodeType } from '@sentry-internal/rrweb-snapshot';
+import { record } from '@sentry/rrweb';
+import type { serializedElementNodeWithId, serializedNodeWithId } from '@sentry/rrweb-snapshot';
+import { NodeType } from '@sentry/rrweb-snapshot';
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
 import { handleClick } from './handleClick';

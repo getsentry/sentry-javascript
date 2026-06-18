@@ -27,6 +27,7 @@ import {
   getSdkMetadataForEnvelopeHeader,
 } from './utils/envelope';
 import { uuid4 } from './utils/misc';
+import { safeDateNow } from './utils/randomSafeContext';
 import { shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 
@@ -70,7 +71,7 @@ export function createSessionEnvelope(
 ): SessionEnvelope {
   const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
   const envelopeHeaders = {
-    sent_at: new Date().toISOString(),
+    sent_at: new Date(safeDateNow()).toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
@@ -134,7 +135,7 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   const tunnel = client?.getOptions().tunnel;
 
   const headers: SpanEnvelope[0] = {
-    sent_at: new Date().toISOString(),
+    sent_at: new Date(safeDateNow()).toISOString(),
     ...(dscHasRequiredProps(dsc) && { trace: dsc }),
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };

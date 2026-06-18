@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isDurableObjectNamespace, isJSRPC, isQueue } from '../../src/utils/isBinding';
+import { isD1Database, isDurableObjectNamespace, isJSRPC, isQueue } from '../../src/utils/isBinding';
 
 describe('isJSRPC', () => {
   it('returns false for a plain object', () => {
@@ -167,5 +167,46 @@ describe('isQueue', () => {
       newUniqueId: () => ({}),
     };
     expect(isQueue(doNamespace)).toBe(false);
+  });
+});
+
+describe('isD1Database', () => {
+  it('returns true for an object with prepare, batch, and exec methods', () => {
+    const d1 = {
+      prepare: () => ({}),
+      batch: async () => [],
+      exec: async () => ({}),
+      dump: async () => new ArrayBuffer(0),
+    };
+    expect(isD1Database(d1)).toBe(true);
+  });
+
+  it('returns false when prepare is missing', () => {
+    expect(isD1Database({ batch: async () => [], exec: async () => ({}) })).toBe(false);
+  });
+
+  it('returns false when batch is missing', () => {
+    expect(isD1Database({ prepare: () => ({}), exec: async () => ({}) })).toBe(false);
+  });
+
+  it('returns false when exec is missing', () => {
+    expect(isD1Database({ prepare: () => ({}), batch: async () => [] })).toBe(false);
+  });
+
+  it('returns false for null and undefined', () => {
+    expect(isD1Database(null)).toBe(false);
+    expect(isD1Database(undefined)).toBe(false);
+  });
+
+  it('returns false for a JSRPC proxy', () => {
+    const jsrpcProxy = new Proxy(
+      {},
+      {
+        get(_target, _prop) {
+          return () => {};
+        },
+      },
+    );
+    expect(isD1Database(jsrpcProxy)).toBe(false);
   });
 });

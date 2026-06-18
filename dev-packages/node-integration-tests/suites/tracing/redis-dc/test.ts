@@ -15,8 +15,8 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         data: expect.objectContaining({
           'sentry.op': 'db.redis',
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.system': 'redis',
-          'db.statement': 'SET dc-test-key ?',
+          'db.system.name': 'redis',
+          'db.query.text': 'SET dc-test-key ?',
         }),
       }),
       // cache SET: span name updated to key by cacheResponseHook
@@ -26,7 +26,7 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         origin: 'auto.db.redis.diagnostic_channel',
         data: expect.objectContaining({
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.statement': 'SET dc-cache:test-key ?',
+          'db.query.text': 'SET dc-cache:test-key ?',
           'cache.key': ['dc-cache:test-key'],
           'cache.item_size': 2,
         }),
@@ -38,7 +38,7 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         origin: 'auto.db.redis.diagnostic_channel',
         data: expect.objectContaining({
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.statement': 'SET dc-cache:test-key-ex ? ? ?',
+          'db.query.text': 'SET dc-cache:test-key-ex ? ? ?',
           'cache.key': ['dc-cache:test-key-ex'],
           'cache.item_size': 2,
         }),
@@ -49,8 +49,8 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         data: expect.objectContaining({
           'sentry.op': 'db.redis',
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.system': 'redis',
-          'db.statement': 'GET dc-test-key',
+          'db.system.name': 'redis',
+          'db.query.text': 'GET dc-test-key',
         }),
       }),
       // cache GET (hit)
@@ -60,7 +60,7 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         origin: 'auto.db.redis.diagnostic_channel',
         data: expect.objectContaining({
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.statement': 'GET dc-cache:test-key',
+          'db.query.text': 'GET dc-cache:test-key',
           'cache.hit': true,
           'cache.key': ['dc-cache:test-key'],
           'cache.item_size': 10,
@@ -73,7 +73,7 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         origin: 'auto.db.redis.diagnostic_channel',
         data: expect.objectContaining({
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.statement': 'GET dc-cache:unavailable-data',
+          'db.query.text': 'GET dc-cache:unavailable-data',
           'cache.hit': false,
           'cache.key': ['dc-cache:unavailable-data'],
         }),
@@ -86,8 +86,8 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         data: expect.objectContaining({
           'sentry.op': 'db.redis',
           'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.system': 'redis',
-          'db.statement': 'MGET ? ? ?',
+          'db.system.name': 'redis',
+          'db.query.text': 'MGET ? ? ?',
         }),
       }),
     ]),
@@ -99,7 +99,7 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
     transaction: 'redis-connect',
   };
 
-  createEsmAndCjsTests(__dirname, 'scenario-redis-5.mjs', 'instrument.mjs', (createTestRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-redis-5-tracing.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('should create spans for redis v5 commands via diagnostics_channel', { timeout: 60_000 }, async () => {
       await createTestRunner()
         .withDockerCompose({ workingDirectory: [__dirname] })

@@ -17,6 +17,46 @@ describe('instrumentEnv', () => {
     vi.clearAllMocks();
   });
 
+  it('detects and instruments D1Database bindings', async () => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    const mockStatement = {
+      bind: vi.fn(),
+      first: vi.fn().mockResolvedValue(null),
+      run: vi.fn().mockResolvedValue({ success: true, meta: { duration: 0, rows_read: 0, rows_written: 0 } }),
+      all: vi.fn().mockResolvedValue({ success: true, meta: { duration: 0, rows_read: 0, rows_written: 0 } }),
+      raw: vi.fn().mockResolvedValue([]),
+    };
+    const d1Database = {
+      prepare: vi.fn().mockReturnValue(mockStatement),
+      batch: vi.fn().mockResolvedValue([]),
+      exec: vi.fn().mockResolvedValue({ count: 0, duration: 0 }),
+      dump: vi.fn(),
+    };
+    const env = { DB: d1Database };
+    const instrumented = instrumentEnv(env);
+
+    const db = instrumented.DB as typeof d1Database;
+    await db.prepare('SELECT 1').first();
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ op: 'db.query', name: 'SELECT 1' }),
+      expect.any(Function),
+    );
+  });
+
+  it('caches instrumented D1 bindings across repeated access', () => {
+    const d1Database = {
+      prepare: vi.fn(),
+      batch: vi.fn(),
+      exec: vi.fn(),
+      dump: vi.fn(),
+    };
+    const env = { DB: d1Database };
+    const instrumented = instrumentEnv(env);
+
+    expect(instrumented.DB).toBe(instrumented.DB);
+  });
+
   it('returns primitive values unchanged', () => {
     const env = { SENTRY_DSN: 'https://key@sentry.io/123', PORT: 8080, DEBUG: true };
     const instrumented = instrumentEnv(env);
@@ -216,6 +256,56 @@ describe('instrumentEnv', () => {
     expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace);
   });
 
+  describe('mTLS Fetcher bindings', () => {
+    function createMtlsFetcherProxy(mockFetch: ReturnType<typeof vi.fn>) {
+      return new Proxy(
+        { fetch: mockFetch },
+        {
+          get(target, prop) {
+            if (prop in target) {
+              return Reflect.get(target, prop);
+            }
+            return () => {};
+          },
+        },
+      );
+    }
+
+    it('does not instrument mTLS Fetcher when enableRpcTracePropagation is disabled', () => {
+      const mockFetch = vi.fn();
+      const mtlsFetcher = createMtlsFetcherProxy(mockFetch);
+      const env = { MY_CERT: mtlsFetcher };
+      const instrumented = instrumentEnv(env);
+
+      expect(instrumented.MY_CERT).toBe(mtlsFetcher);
+    });
+
+    it('preserves existing headers and response on mTLS Fetcher fetch', async () => {
+      vi.spyOn(SentryCore, '_INTERNAL_getTracingHeadersForFetchRequest').mockReturnValue({
+        Authorization: 'Bearer client-cert-token',
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage: 'sentry-environment=production',
+      });
+
+      const mockFetch = vi.fn().mockResolvedValue(new Response('mtls-response'));
+      const mtlsFetcher = createMtlsFetcherProxy(mockFetch);
+      const env = { MY_CERT: mtlsFetcher };
+      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+
+      const response = await instrumented.MY_CERT.fetch('https://example.com/api', {
+        headers: { Authorization: 'Bearer client-cert-token' },
+      });
+
+      const [, init] = mockFetch.mock.calls[0]!;
+      const headers = new Headers(init?.headers);
+
+      expect(instrumented.MY_CERT).not.toBe(mtlsFetcher);
+      expect(headers.get('Authorization')).toBe('Bearer client-cert-token');
+      expect(headers.get('sentry-trace')).toBe('12345678901234567890123456789012-1234567890123456-1');
+      expect(await response.text()).toBe('mtls-response');
+    });
+  });
+
   describe('JSRPC RPC method instrumentation', () => {
     it('does not inject Sentry RPC meta by default (enableRpcTracePropagation not set)', () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
@@ -238,7 +328,7 @@ describe('instrumentEnv', () => {
       const env = { SERVICE: jsrpcProxy };
       const instrumented = instrumentEnv(env);
 
-      (instrumented.SERVICE as any).myRpcMethod('arg1', 42);
+      instrumented.SERVICE.myRpcMethod('arg1', 42);
 
       // Without enableRpcTracePropagation, no metadata should be injected
       expect(rpcMethod).toHaveBeenCalledWith('arg1', 42);
@@ -265,7 +355,7 @@ describe('instrumentEnv', () => {
       const env = { SERVICE: jsrpcProxy };
       const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
 
-      (instrumented.SERVICE as any).myRpcMethod('arg1', 42);
+      instrumented.SERVICE.myRpcMethod('arg1', 42);
 
       expect(rpcMethod).toHaveBeenCalledWith('arg1', 42, {
         __sentry_rpc_meta__: {
@@ -296,7 +386,7 @@ describe('instrumentEnv', () => {
       const env = { SERVICE: jsrpcProxy };
       const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
 
-      (instrumented.SERVICE as any).fetch('https://example.com');
+      instrumented.SERVICE.fetch('https://example.com');
 
       // fetch should use HTTP header injection, not trailing arg
       const callArgs = mockFetch.mock.calls[0];
@@ -321,7 +411,7 @@ describe('instrumentEnv', () => {
       const env = { SERVICE: jsrpcProxy };
       const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
 
-      (instrumented.SERVICE as any).myRpcMethod('arg1');
+      instrumented.SERVICE.myRpcMethod('arg1');
 
       expect(rpcMethod).toHaveBeenCalledWith('arg1');
     });

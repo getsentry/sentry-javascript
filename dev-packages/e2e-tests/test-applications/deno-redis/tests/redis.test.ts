@@ -21,10 +21,10 @@ test('GET command emits an http.server transaction containing a db.redis child s
   const redisSpan = transaction.spans!.find(span => span.op === 'db.redis');
   expect(redisSpan).toBeDefined();
   expect(redisSpan!.description).toBe('redis-GET');
-  expect(redisSpan!.data?.['db.system']).toBe('redis');
+  expect(redisSpan!.data?.['db.system.name']).toBe('redis');
   // Statement omits the value; for GET the only allowed arg is the key.
-  expect(redisSpan!.data?.['db.statement']).toBe('GET cache:user:42');
-  expect(redisSpan!.data?.['net.peer.port']).toBe(6379);
+  expect(redisSpan!.data?.['db.query.text']).toBe('GET cache:user:42');
+  expect(redisSpan!.data?.['server.port']).toBe(6379);
 });
 
 test('SET then GET emit two db.redis child spans on the same transaction', async ({ baseURL }) => {
@@ -65,7 +65,7 @@ test('MULTI batch emits a PIPELINE/MULTI batch span', async ({ baseURL }) => {
   const batchSpan = transaction.spans!.find(span => span.description === 'MULTI' || span.description === 'PIPELINE');
   expect(batchSpan).toBeDefined();
   expect(batchSpan!.op).toBe('db.redis');
-  expect(batchSpan!.data?.['db.system']).toBe('redis');
+  expect(batchSpan!.data?.['db.system.name']).toBe('redis');
 });
 
 test('shut down redis client', async ({ baseURL }) => {

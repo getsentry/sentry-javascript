@@ -1,7 +1,7 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import { ATTR_URL_QUERY, SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
+import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
 import type { EventProcessor } from '@sentry/core';
 import {
   applySdkMetadata,
@@ -29,6 +29,9 @@ import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
 export * from '@sentry/node';
 
+// Explicitly re-export so it is statically detectable by turbopack
+export { pinoIntegration } from '@sentry/node';
+
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 // Override core span methods with Next.js-specific implementations that support Cache Components
@@ -38,6 +41,9 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
 };
+
+// Call at module level so `next build` prerender workers still register the runner without `init`
+prepareSafeIdGeneratorContext();
 
 /**
  * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
@@ -182,15 +188,15 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
     // We need to drop these spans.
     if (
-      // eslint-disable-next-line deprecation/deprecation
-      (typeof spanAttributes[SEMATTRS_HTTP_TARGET] === 'string' &&
-        // eslint-disable-next-line deprecation/deprecation
-        spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_key') &&
-        // eslint-disable-next-line deprecation/deprecation
-        spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_client')) ||
-      (typeof spanAttributes[ATTR_URL_QUERY] === 'string' &&
-        spanAttributes[ATTR_URL_QUERY].includes('sentry_key') &&
-        spanAttributes[ATTR_URL_QUERY].includes('sentry_client'))
+      // eslint-disable-next-line typescript/no-deprecated
+      (typeof spanAttributes[HTTP_TARGET] === 'string' &&
+        // eslint-disable-next-line typescript/no-deprecated
+        spanAttributes[HTTP_TARGET].includes('sentry_key') &&
+        // eslint-disable-next-line typescript/no-deprecated
+        spanAttributes[HTTP_TARGET].includes('sentry_client')) ||
+      (typeof spanAttributes[URL_QUERY] === 'string' &&
+        spanAttributes[URL_QUERY].includes('sentry_key') &&
+        spanAttributes[URL_QUERY].includes('sentry_client'))
     ) {
       samplingDecision.decision = false;
     }

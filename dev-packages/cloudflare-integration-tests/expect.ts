@@ -61,7 +61,17 @@ export function expectedEvent(event: Event, { sdk }: { sdk: 'cloudflare' | 'hono
 
 export function eventEnvelope(
   event: Event,
-  { includeSampleRand = false, sdk = 'cloudflare' }: { includeSampleRand?: boolean; sdk?: 'cloudflare' | 'hono' } = {},
+  {
+    includeSamplingFields = false,
+    includeSampleRand = false,
+    includeTransaction = true,
+    sdk = 'cloudflare',
+  }: {
+    includeSamplingFields?: boolean;
+    includeSampleRand?: boolean;
+    includeTransaction?: boolean;
+    sdk?: 'cloudflare' | 'hono';
+  } = {},
 ): Envelope {
   return [
     {
@@ -72,10 +82,11 @@ export function eventEnvelope(
         environment: event.environment || 'production',
         public_key: 'public',
         trace_id: UUID_MATCHER,
-        sample_rate: expect.any(String),
+        ...(includeSamplingFields && { sample_rate: expect.any(String), sampled: expect.any(String) }),
         ...(includeSampleRand && { sample_rand: expect.stringMatching(/^[01](\.\d+)?$/) }),
-        sampled: expect.any(String),
-        transaction: expect.any(String),
+        // A new (head-of-trace) TwP trace does not stamp a local transaction in its DSC; the DSC is
+        // resolved from the scope. Continued traces still carry the upstream transaction.
+        ...(includeTransaction && { transaction: expect.any(String) }),
       },
     },
     [[{ type: 'event' }, expectedEvent(event, { sdk })]],

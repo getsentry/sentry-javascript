@@ -8,14 +8,17 @@ export {
 
 export {
   addPerformanceEntries,
+  addWebVitalsToSpan,
   startTrackingInteractions,
   startTrackingLongTasks,
   startTrackingLongAnimationFrames,
+  // eslint-disable-next-line typescript/no-deprecated
   startTrackingWebVitals,
   startTrackingINP,
   registerInpInteractionListener,
 } from './metrics/browserMetrics';
 
+// eslint-disable-next-line typescript/no-deprecated
 export { elementTimingIntegration, startTrackingElementTiming } from './metrics/elementTiming';
 
 export { extractNetworkProtocol } from './metrics/utils';

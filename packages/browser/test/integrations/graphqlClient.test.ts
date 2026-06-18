@@ -4,8 +4,8 @@
 
 import type { Client } from '@sentry/core/browser';
 import { SentrySpan, spanToJSON } from '@sentry/core/browser';
-import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
-import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
+import type { FetchHint, XhrHint } from '@sentry/browser-utils';
+import { SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
 import { describe, expect, test } from 'vitest';
 import {
   _getGraphQLOperation,

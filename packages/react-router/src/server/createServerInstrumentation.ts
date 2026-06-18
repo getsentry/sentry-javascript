@@ -1,5 +1,5 @@
 import { context, createContextKey } from '@opentelemetry/api';
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import {
   debug,
   flushIfServerless,
@@ -37,18 +37,18 @@ export interface CreateSentryServerInstrumentationOptions {
 
 /**
  * Creates a Sentry server instrumentation for React Router's instrumentation API.
- * @experimental
  */
 export function createSentryServerInstrumentation(
   options: CreateSentryServerInstrumentationOptions = {},
 ): ServerInstrumentation {
   const { captureErrors = true } = options;
 
-  markInstrumentationApiUsed();
-  DEBUG_BUILD && debug.log('React Router server instrumentation API enabled.');
+  DEBUG_BUILD && debug.log('React Router server instrumentation created.');
 
   return {
     handler(handler: InstrumentableRequestHandler) {
+      // Mark the instrumentation API active only when React Router actually invokes this
+      markInstrumentationApiUsed();
       handler.instrument({
         async request(handleRequest, info) {
           const pathname = getPathFromRequest(info.request);
@@ -115,6 +115,8 @@ export function createSentryServerInstrumentation(
     },
 
     route(route: InstrumentableRoute) {
+      // Also mark active here, in case route registration runs (mirrors the handler callback above).
+      markInstrumentationApiUsed();
       const routeId = route.id;
 
       route.instrument({
@@ -197,7 +199,7 @@ export function createSentryServerInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
-                [ATTR_HTTP_ROUTE]: routePattern,
+                [HTTP_ROUTE]: routePattern,
                 ...(middlewareName && { 'react_router.middleware.name': middlewareName }),
                 'react_router.middleware.index': middlewareIndex,
               },
@@ -256,7 +258,7 @@ function updateRootSpanWithRoute(method: string, pattern: string | undefined, ur
   const transactionName = `${method} ${routeName}`;
   updateSpanName(rootSpan, transactionName);
   rootSpan.setAttributes({
-    [ATTR_HTTP_ROUTE]: routeName,
+    [HTTP_ROUTE]: routeName,
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: hasPattern ? 'route' : 'url',
   });
 

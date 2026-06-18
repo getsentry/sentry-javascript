@@ -12,7 +12,7 @@ import {
   isSentryRequestUrl,
   supportsNativeFetch,
 } from '@sentry/core/browser';
-import { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
+import { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 
 export type HttpStatusCodeRange = [number, number] | number;
@@ -433,7 +433,7 @@ function _getDataCollectionSettings() {
   // collect headers/cookies with deny-list filtering even without sendDefaultPii).
   const options = client.getOptions();
   if (options.dataCollection == null) {
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     const enabled = Boolean(options.sendDefaultPii);
     return { cookies: enabled, requestHeaders: enabled, responseHeaders: enabled };
   }

@@ -7,8 +7,8 @@ import type {
   RedisTracingChannel,
   RedisTracingChannelFactory,
   RedisTracingChannelSubscribers,
-} from '@sentry-internal/server-utils';
-import { subscribeRedisDiagnosticChannels } from '@sentry-internal/server-utils';
+} from '@sentry/server-utils';
+import { subscribeRedisDiagnosticChannels } from '@sentry/server-utils';
 import type { Integration, IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../async';

@@ -43,6 +43,21 @@ describe('getRequestUrl', () => {
       },
       'data:text/plain;hello, world!',
     ],
+    // Paths starting with `//` are valid (e.g. S3 object keys) but would otherwise be
+    // parsed as protocol-relative URLs. See #21627.
+    [
+      { protocol: 'https:', hostname: 'my-bucket.s3.us-east-1.amazonaws.com', port: 443, path: '//test.html' },
+      'https://my-bucket.s3.us-east-1.amazonaws.com//test.html',
+    ],
+    [
+      {
+        protocol: 'https:',
+        hostname: 'my-bucket.s3.us-east-1.amazonaws.com',
+        port: 443,
+        path: '//Trust%20scores/test.html',
+      },
+      'https://my-bucket.s3.us-east-1.amazonaws.com//Trust%20scores/test.html',
+    ],
   ])('works with %s', (input: HttpRequestOptions, expected: string | undefined) => {
     // pretend to be a client request that option-ifies to this value
     const clientRequest = {
@@ -54,5 +69,11 @@ describe('getRequestUrl', () => {
     } as unknown as HttpClientRequest;
     expect(String(getRequestUrl(input))).toBe(expected);
     expect(getRequestUrlFromClientRequest(clientRequest)).toBe(expected);
+  });
+
+  it('does not throw for unparseable request options, returning an empty string', () => {
+    const input = { protocol: 'http:', hostname: '', port: 80, path: '//%' } as HttpRequestOptions;
+    expect(() => getRequestUrl(input)).not.toThrow();
+    expect(getRequestUrl(input)).toBe('');
   });
 });

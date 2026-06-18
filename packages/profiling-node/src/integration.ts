@@ -13,7 +13,7 @@ import {
   uuid4,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { CpuProfilerBindings, ProfileFormat, type RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
+import { CpuProfilerBindings, ProfileFormat, type RawThreadCpuProfile } from '@sentry/node-cpu-profiler';
 import { isMainThread } from 'worker_threads';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR } from './nodeVersion';

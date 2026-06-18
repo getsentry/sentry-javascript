@@ -254,8 +254,9 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
   } else if (typeof attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] === 'string') {
     // In this case we already get a properly formatted messages array, this is the preferred way to get the messages
     // This is the case for ai.generateText.doGenerate spans
+    const originalMessagesJson = attributes[AI_PROMPT_MESSAGES_ATTRIBUTE];
     try {
-      const messages = JSON.parse(attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]);
+      const messages = JSON.parse(originalMessagesJson);
       if (Array.isArray(messages)) {
         const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
 
@@ -264,9 +265,17 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         }
 
         const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
-        const messagesJson = enableTruncation
-          ? getTruncatedJsonString(filteredMessages)
-          : getJsonString(filteredMessages);
+
+        // `extractSystemInstructions` returns the original array reference unchanged when no
+        // system message is extracted. When truncation is also disabled, re-serializing would
+        // reproduce the SDK's own input string, so we reuse it instead of allocating a second
+        // full-size copy of the payload (matters for large prompts in memory-constrained runtimes).
+        const messagesJson =
+          !enableTruncation && filteredMessages === messages
+            ? originalMessagesJson
+            : enableTruncation
+              ? getTruncatedJsonString(filteredMessages)
+              : getJsonString(filteredMessages);
 
         span.setAttributes({
           [AI_PROMPT_MESSAGES_ATTRIBUTE]: messagesJson,

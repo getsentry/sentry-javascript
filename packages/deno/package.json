@@ -1,13 +1,13 @@
 {
   "name": "@sentry/deno",
-  "version": "10.56.0",
+  "version": "10.58.0",
   "description": "Official Sentry SDK for Deno",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/deno",
   "author": "Sentry",
   "license": "MIT",
-  "module": "build/index.mjs",
-  "types": "build/index.d.ts",
+  "module": "build/esm/index.js",
+  "types": "build/esm/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -25,8 +25,8 @@
   ],
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry-internal/server-utils": "10.56.0",
-    "@sentry/core": "10.56.0"
+    "@sentry/core": "10.58.0",
+    "@sentry/server-utils": "10.58.0"
   },
   "scripts": {
     "deno-types": "node ./scripts/download-deno-types.mjs",

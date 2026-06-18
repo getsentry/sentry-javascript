@@ -22,8 +22,8 @@ test('ioredis GET emits an http.server transaction containing a db.redis child s
   expect(redisSpan).toBeDefined();
   // ioredis publishes lowercase command names; node-redis publishes uppercase.
   expect(redisSpan!.description).toBe('redis-get');
-  expect(redisSpan!.data?.['db.system']).toBe('redis');
-  expect(redisSpan!.data?.['db.statement']).toBe('get iocache:user:42');
+  expect(redisSpan!.data?.['db.system.name']).toBe('redis');
+  expect(redisSpan!.data?.['db.query.text']).toBe('get iocache:user:42');
 });
 
 test('ioredis SET then GET emit two db.redis child spans on the same transaction', async ({ baseURL }) => {

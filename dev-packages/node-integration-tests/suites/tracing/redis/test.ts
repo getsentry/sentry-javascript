@@ -35,6 +35,21 @@ describe('redis auto instrumentation', () => {
           'db.statement': 'get test-key',
         }),
       }),
+      // a failing command produces a span with an error status
+      expect.objectContaining({
+        description: 'incr test-key',
+        op: 'db',
+        status: 'internal_error',
+        origin: 'auto.db.otel.redis',
+        data: expect.objectContaining({
+          'sentry.op': 'db',
+          'sentry.origin': 'auto.db.otel.redis',
+          'db.system': 'redis',
+          'net.peer.name': 'localhost',
+          'net.peer.port': 6379,
+          'db.statement': 'incr test-key',
+        }),
+      }),
     ]),
   };
 

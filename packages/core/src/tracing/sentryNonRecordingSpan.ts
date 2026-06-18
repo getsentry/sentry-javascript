@@ -8,12 +8,18 @@ import type {
   SpanTimeInput,
 } from '../types/span';
 import type { SpanStatus } from '../types/spanStatus';
+import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
 
 interface SentryNonRecordingSpanArguments extends SentrySpanArguments {
   dropReason?: EventDropReason;
 }
+
+// Brand used to detect non-recording spans via {@link spanIsNonRecordingSpan} without `instanceof`,
+// which is brittle when `@sentry/core` is duplicated across packages. We use `Symbol.for` so the key
+// is shared across copies of the module, and so user payloads (e.g. JSON) cannot spoof the marker.
+const NON_RECORDING_SPAN_FIELD = Symbol.for('sentry.nonRecordingSpan');
 
 /**
  * A Sentry Span that is non-recording, meaning it will not be sent to Sentry.
@@ -33,6 +39,7 @@ export class SentryNonRecordingSpan implements Span {
     this._traceId = spanContext.traceId || generateTraceId();
     this._spanId = spanContext.spanId || generateSpanId();
     this.dropReason = spanContext.dropReason;
+    addNonEnumerableProperty(this, NON_RECORDING_SPAN_FIELD, true);
   }
 
   /** @inheritdoc */
@@ -98,7 +105,14 @@ export class SentryNonRecordingSpan implements Span {
    * @hidden
    * @internal
    */
-  public recordException(_exception: unknown, _time?: number | undefined): void {
+  public recordException(_exception: unknown, _time?: SpanTimeInput | undefined): void {
     // noop
   }
+}
+
+/**
+ * Whether the given span is a {@link SentryNonRecordingSpan}.
+ */
+export function spanIsNonRecordingSpan(span: Span | undefined): span is SentryNonRecordingSpan {
+  return !!span && (span as { [NON_RECORDING_SPAN_FIELD]?: boolean })[NON_RECORDING_SPAN_FIELD] === true;
 }

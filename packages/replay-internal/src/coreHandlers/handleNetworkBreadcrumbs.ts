@@ -1,6 +1,6 @@
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbData, XhrBreadcrumbData } from '@sentry/core';
 import { getClient } from '@sentry/core';
-import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
+import type { FetchHint, XhrHint } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { ReplayContainer, ReplayNetworkOptions } from '../types';
 import { debug } from '../util/logger';

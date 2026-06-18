@@ -5,5 +5,16 @@
     "declaration": false,
     "declarationMap": false,
     "skipLibCheck": true
+  },
+
+  // `*.ts` helper scripts are run with ts-node, which executes them as CommonJS. The base config's
+  // `module: esnext` / `moduleResolution: bundler` is an ESM-only combo that makes ts-node hand the
+  // `.ts` file to Node's native ESM loader (which can't load `.ts`). ts-node merges this `ts-node`
+  // key across the `extends` chain, so this single override covers every package that extends this config.
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs",
+      "moduleResolution": "node"
+    }
   }
 }

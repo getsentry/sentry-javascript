@@ -107,7 +107,7 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     const { sendClientReports, enableLogs, _experiments, enableMetrics: enableMetricsOption } = this._options;
 
     // todo(v11): Remove the experimental flag
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     const enableMetrics = enableMetricsOption ?? _experiments?.enableMetrics ?? true;
 
     // Flush logs and metrics when page becomes hidden (e.g., tab switch, navigation)

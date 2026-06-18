@@ -3,7 +3,6 @@
   "include": ["./lib.deno.d.ts", "src/**/*", "example.ts"],
   "compilerOptions": {
     "lib": ["esnext"],
-    "module": "esnext",
     "target": "esnext"
   }
 }

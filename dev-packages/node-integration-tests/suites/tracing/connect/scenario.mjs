@@ -8,6 +8,13 @@ const port = 5986;
 const run = async () => {
   const app = connect();
 
+  // Path-less middleware produces `middleware`-type spans (named and anonymous).
+  app.use(function middleware1(req, res, next) {
+    next();
+  });
+
+  app.use((req, res, next) => next());
+
   app.use('/', function (req, res, next) {
     res.end('Hello World');
     next();

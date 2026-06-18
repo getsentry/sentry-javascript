@@ -17,28 +17,28 @@ targets:
     id: '@sentry/node-core'
     includeNames: /^sentry-node-core-\d.*\.tgz$/
   - name: npm
-    id: '@sentry-internal/server-utils'
-    includeNames: /^sentry-internal-server-utils-\d.*\.tgz$/
+    id: '@sentry/server-utils'
+    includeNames: /^sentry-server-utils-\d.*\.tgz$/
   ## 1.3 Browser Utils package
   - name: npm
-    id: '@sentry-internal/browser-utils'
-    includeNames: /^sentry-internal-browser-utils-\d.*\.tgz$/
-  ## 1.4 Replay Internal package (browser only)
+    id: '@sentry/browser-utils'
+    includeNames: /^sentry-browser-utils-\d.*\.tgz$/
+  ## 1.4 Replay package (browser only)
   - name: npm
-    id: '@sentry-internal/replay'
-    includeNames: /^sentry-internal-replay-\d.*\.tgz$/
+    id: '@sentry/replay'
+    includeNames: /^sentry-replay-\d.*\.tgz$/
   ## 1.5 OpenTelemetry package
   - name: npm
     id: '@sentry/opentelemetry'
     includeNames: /^sentry-opentelemetry-\d.*\.tgz$/
   ## 1.6 Feedback package (browser only)
   - name: npm
-    id: '@sentry-internal/feedback'
-    includeNames: /^sentry-internal-feedback-\d.*\.tgz$/
+    id: '@sentry/feedback'
+    includeNames: /^sentry-feedback-\d.*\.tgz$/
   ## 1.7 ReplayCanvas package (browser only)
   - name: npm
-    id: '@sentry-internal/replay-canvas'
-    includeNames: /^sentry-internal-replay-canvas-\d.*\.tgz$/
+    id: '@sentry/replay-canvas'
+    includeNames: /^sentry-replay-canvas-\d.*\.tgz$/
 
   ## 2. Browser & Node SDKs
   - name: npm
@@ -149,15 +149,15 @@ targets:
   ## 7. Other Packages
   ## 7.1
   - name: npm
-    id: '@sentry-internal/typescript'
-    includeNames: /^sentry-internal-typescript-\d.*\.tgz$/
+    id: '@sentry/typescript'
+    includeNames: /^sentry-typescript-\d.*\.tgz$/
   - name: npm
-    id: '@sentry-internal/eslint-plugin-sdk'
-    includeNames: /^sentry-internal-eslint-plugin-sdk-\d.*\.tgz$/
+    id: '@sentry/eslint-plugin-sdk'
+    includeNames: /^sentry-eslint-plugin-sdk-\d.*\.tgz$/
   ## 7.2
   - name: npm
-    id: '@sentry-internal/eslint-config-sdk'
-    includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
+    id: '@sentry/eslint-config-sdk'
+    includeNames: /^sentry-eslint-config-sdk-\d.*\.tgz$/
 
   # AWS Lambda Layer target
   - name: aws-lambda-layer

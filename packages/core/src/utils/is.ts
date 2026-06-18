@@ -137,7 +137,7 @@ export function isEvent(wat: unknown): wat is PolymorphicEvent {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  * @deprecated This is browser-specific and will be removed from `@sentry/core` in a future major version.
- * Import `isElement` from `@sentry-internal/browser-utils` instead.
+ * Import `isElement` from `@sentry/browser-utils` instead.
  */
 export function isElement(wat: unknown): boolean {
   return typeof Element !== 'undefined' && isInstanceOf(wat, Element);

@@ -61,6 +61,12 @@ let _basename: string = '';
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
+// Detect navigations in a layout effect so the navigation trace is set up before child route components'
+// passive mount effects fire requests (else they propagate the stale pageload trace).
+// Guard on `document` (present in real browsers and jsdom) so we only fall back to `useEffect` in true
+// SSR, where `useLayoutEffect` warns and effects don't run anyway.
+const useIsomorphicLayoutEffect = WINDOW?.document ? React.useLayoutEffect : React.useEffect;
+
 // Prevents duplicate spans when router.subscribe fires multiple times
 const activeNavigationSpans = new WeakMap<
   Client,
@@ -768,7 +774,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
     const stableLocationParam =
       typeof locationArg === 'string' || locationArg?.pathname ? (locationArg as { pathname: string }) : location;
 
-    _useEffect(() => {
+    useIsomorphicLayoutEffect(() => {
       const normalizedLocation =
         typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
 
@@ -1351,7 +1357,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
     const location = _useLocation();
     const navigationType = _useNavigationType();
 
-    _useEffect(
+    useIsomorphicLayoutEffect(
       () => {
         const routes = _createRoutesFromChildren(props.children) as RouteObject[];
 

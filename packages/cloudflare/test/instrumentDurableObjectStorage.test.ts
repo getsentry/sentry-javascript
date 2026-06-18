@@ -1,3 +1,4 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectStorage } from '../src/instrumentations/instrumentDurableObjectStorage';
@@ -304,6 +305,28 @@ describe('instrumentDurableObjectStorage', () => {
     });
   });
 
+  describe('sync KV instrumentation', () => {
+    it('instruments the kv property with a proxy', () => {
+      const mockStorage = createMockStorage();
+      const instrumented = instrumentDurableObjectStorage(mockStorage);
+
+      instrumented.kv.get('myKey');
+
+      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+        {
+          name: 'durable_object_storage_kv_get',
+          op: 'db',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare-durable-object-sql',
+            'db.operation.name': 'get',
+          },
+        },
+        expect.any(Function),
+      );
+    });
+  });
+
   describe('native getter preservation', () => {
     it('preserves native getter `this` binding through the proxy', () => {
       // Private fields simulate workerd's native brand check —
@@ -348,6 +371,12 @@ function createMockStorage(): any {
     transaction: vi.fn().mockImplementation(async (cb: () => unknown) => cb()),
     sql: {
       exec: vi.fn(),
+    },
+    kv: {
+      get: vi.fn().mockReturnValue(undefined),
+      put: vi.fn().mockReturnValue(undefined),
+      delete: vi.fn().mockReturnValue(false),
+      list: vi.fn().mockReturnValue([]),
     },
   };
 }

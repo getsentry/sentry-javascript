@@ -1,5 +1,4 @@
-import type { Span } from '@opentelemetry/api';
-import type { IntegrationFn } from '@sentry/core';
+import type { IntegrationFn, Span } from '@sentry/core';
 import {
   defineIntegration,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
@@ -9,7 +8,7 @@ import {
   spanToJSON,
   truncate,
 } from '@sentry/core';
-import { subscribeRedisDiagnosticChannels } from '@sentry-internal/server-utils';
+import { subscribeRedisDiagnosticChannels } from '@sentry/server-utils';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import { tracingChannel as otelTracingChannel } from '@sentry/opentelemetry/tracing-channel';
 import type { IORedisCommandArgs } from '../../../utils/redisCache';

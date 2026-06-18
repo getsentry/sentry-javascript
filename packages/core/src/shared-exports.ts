@@ -83,7 +83,7 @@ export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions } from './utils/tunnel';
 export { handleTunnelRequest } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line typescript/no-deprecated
 export { addAutoIpAddressToUser } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
@@ -126,7 +126,7 @@ export type { MaxRequestBodySize } from './utils/request';
 export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line typescript/no-deprecated
 export { inboundFiltersIntegration } from './integrations/eventFilters';
 export { eventFiltersIntegration } from './integrations/eventFilters';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
@@ -147,7 +147,7 @@ export { conversationIdIntegration } from './integrations/conversationId';
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
 // Therefore:
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line typescript/no-deprecated
 export { instrumentFetchRequest, _INTERNAL_getTracingHeadersForFetchRequest } from './fetch';
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
@@ -179,10 +179,12 @@ export type { LangChainOptions, LangChainIntegration } from './tracing/langchain
 export { instrumentStateGraphCompile, instrumentCreateReactAgent, instrumentLangGraph } from './tracing/langgraph';
 export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
+// eslint-disable-next-line typescript/no-deprecated
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';
 export type {
   AnthropicAiClient,
   AnthropicAiOptions,
+  // eslint-disable-next-line typescript/no-deprecated
   AnthropicAiInstrumentedMethod,
   AnthropicAiResponse,
 } from './tracing/anthropic-ai/types';
@@ -192,7 +194,7 @@ export type {
   GoogleGenAIOptions,
   GoogleGenAIInstrumentedMethod,
 } from './tracing/google-genai/types';
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line typescript/no-deprecated
 export type { GoogleGenAIIstrumentedMethod } from './tracing/google-genai/types';
 export { SpanBuffer } from './tracing/spans/spanBuffer';
 export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
@@ -208,7 +210,7 @@ export {
 export { applyAggregateErrorsToEvent } from './utils/aggregate-errors';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './utils/breadcrumb-log-level';
 export { dsnFromString, dsnToString, makeDsn } from './utils/dsn';
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line typescript/no-deprecated
 export { SentryError } from './utils/error';
 export { GLOBAL_OBJ } from './utils/worldwide';
 export type { InternalGlobal } from './utils/worldwide';
@@ -220,7 +222,7 @@ export { addHandler, maybeInstrument, resetInstrumentationHandlers, triggerHandl
 export {
   isDOMError,
   isDOMException,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   isElement,
   isError,
   isErrorEvent,
@@ -231,10 +233,10 @@ export {
   isPrimitive,
   isRegExp,
   isString,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   isSyntheticEvent,
   isThenable,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   isVueViewModel,
 } from './utils/is';
 export { isBrowser } from './utils/isBrowser';
@@ -255,7 +257,7 @@ export { setNormalizationDepthOverrideHint, setSkipNormalizationHint } from './u
 export {
   addNonEnumerableProperty,
   convertToPlainObject,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   dropUndefinedKeys,
   extractExceptionKeysForMessage,
   fill,
@@ -281,9 +283,9 @@ export {
   isNativeFunction,
   supportsDOMException,
   supportsErrorEvent,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   supportsFetch,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   supportsReferrerPolicy,
 } from './utils/supports';
 export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils/syncpromise';
@@ -491,7 +493,7 @@ export type {
   MetricType,
   SerializedMetric,
   SerializedMetricContainer,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   SerializedMetricAttributeValue,
 } from './types/metric';
 export type { TimedEvent } from './types/timedEvent';

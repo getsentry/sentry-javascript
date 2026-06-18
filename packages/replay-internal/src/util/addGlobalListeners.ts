@@ -1,9 +1,6 @@
 import type { DynamicSamplingContext } from '@sentry/core';
 import { addEventProcessor, getClient } from '@sentry/core';
-import {
-  addClickKeypressInstrumentationHandler,
-  addHistoryInstrumentationHandler,
-} from '@sentry-internal/browser-utils';
+import { addClickKeypressInstrumentationHandler, addHistoryInstrumentationHandler } from '@sentry/browser-utils';
 import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
 import { handleBeforeSendEvent } from '../coreHandlers/handleBeforeSendEvent';
 import { handleBreadcrumbs } from '../coreHandlers/handleBreadcrumbs';

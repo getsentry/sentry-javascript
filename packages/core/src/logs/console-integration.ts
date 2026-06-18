@@ -6,6 +6,8 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { ConsoleLevel } from '../types/instrument';
 import type { IntegrationFn } from '../types/integration';
 import { CONSOLE_LEVELS, debug } from '../utils/debug-logger';
+import { isPlainObject } from '../utils/is';
+import { normalize } from '../utils/normalize';
 import { _INTERNAL_captureLog } from './internal';
 import { createConsoleTemplateAttributes, formatConsoleArgs, hasConsoleSubstitutions } from './utils';
 
@@ -52,12 +54,32 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
 
         const isLevelLog = level === 'log';
 
-        const shouldGenerateTemplate =
-          args.length > 1 && typeof args[0] === 'string' && !hasConsoleSubstitutions(args[0]);
-        const attributes = {
-          ...DEFAULT_ATTRIBUTES,
-          ...(shouldGenerateTemplate ? createConsoleTemplateAttributes(firstArg, followingArgs) : {}),
-        };
+        const attributes: Record<string, unknown> = { ...DEFAULT_ATTRIBUTES };
+
+        if (isPlainObject(firstArg)) {
+          // Object-first: extract object keys as attributes, remaining args as parameters
+          Object.assign(attributes, normalize(firstArg, normalizeDepth, normalizeMaxBreadth));
+
+          const remainingArgsStartIndex = typeof args[1] === 'string' ? 2 : 1;
+          const remainingArgs = args.slice(remainingArgsStartIndex);
+
+          remainingArgs.forEach((arg, index) => {
+            attributes[`sentry.message.parameter.${index}`] = normalize(arg, normalizeDepth, normalizeMaxBreadth);
+          });
+        } else {
+          // Fallback: template + parameters when first arg is a string without substitutions
+          const shouldGenerateTemplate =
+            followingArgs.length > 0 && typeof firstArg === 'string' && !hasConsoleSubstitutions(firstArg);
+
+          if (shouldGenerateTemplate) {
+            const templateAttrs = createConsoleTemplateAttributes(firstArg, followingArgs);
+            for (const [key, value] of Object.entries(templateAttrs)) {
+              attributes[key] = key.startsWith('sentry.message.parameter.')
+                ? normalize(value, normalizeDepth, normalizeMaxBreadth)
+                : value;
+            }
+          }
+        }
 
         _INTERNAL_captureLog({
           level: isLevelLog ? 'info' : level,

@@ -1,5 +1,5 @@
-import { EventType, IncrementalSource, record } from '@sentry-internal/rrweb';
-import { NodeType } from '@sentry-internal/rrweb-snapshot';
+import { EventType, IncrementalSource, record } from '@sentry/rrweb';
+import { NodeType } from '@sentry/rrweb-snapshot';
 import { updateClickDetectorForRecordingEvent } from '../coreHandlers/handleClick';
 import { DEBUG_BUILD } from '../debug-build';
 import { saveSession } from '../session/saveSession';

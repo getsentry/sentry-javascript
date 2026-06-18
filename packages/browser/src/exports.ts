@@ -58,7 +58,7 @@ export {
   withScope,
   withIsolationScope,
   functionToStringIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   eventFiltersIntegration,
   dedupeIntegration,

@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import type { D1Database, D1PreparedStatement, D1Response } from '@cloudflare/workers-types';
 import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
 import { addBreadcrumb, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
+import { ensureInstrumented } from '../../instrument';
 
 // Patching is based on internal Cloudflare D1 API
 // https://github.com/cloudflare/workerd/blob/cd5279e7b305003f1d9c851e73efa9d67e4b68b2/src/cloudflare/internal/d1-api.ts
@@ -127,10 +129,27 @@ function createStartSpanOptions(query: string, type: 'first' | 'run' | 'all' | '
   };
 }
 
+function _instrumentD1(db: D1Database): D1Database {
+  db.prepare = new Proxy(db.prepare, {
+    apply(target, thisArg, args: Parameters<typeof db.prepare>) {
+      const [query] = args;
+      return instrumentD1PreparedStatement(Reflect.apply(target, thisArg, args), query);
+    },
+  });
+
+  return db;
+}
+
+export function instrumentD1(db: D1Database): D1Database {
+  return ensureInstrumented(db, _instrumentD1);
+}
+
+// todo(v11): Remove this export
 /**
  * Instruments Cloudflare D1 bindings with Sentry.
  *
- * Currently, only prepared statements are instrumented. `db.exec` and `db.batch` are not instrumented.
+ * @deprecated `withSentry()` automatically instruments all D1 bindings via `env`
+ * so this function is not needed anymore. It will be removed in the next major version of the SDK.
  *
  * @example
  *
@@ -142,13 +161,5 @@ function createStartSpanOptions(query: string, type: 'first' | 'run' | 'all' | '
  * ```
  */
 export function instrumentD1WithSentry(db: D1Database): D1Database {
-  // eslint-disable-next-line @typescript-eslint/unbound-method
-  db.prepare = new Proxy(db.prepare, {
-    apply(target, thisArg, args: Parameters<typeof db.prepare>) {
-      const [query] = args;
-      return instrumentD1PreparedStatement(Reflect.apply(target, thisArg, args), query);
-    },
-  });
-
-  return db;
+  return instrumentD1(db);
 }

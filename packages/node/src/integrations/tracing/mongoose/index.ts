@@ -1,19 +1,11 @@
 import { MongooseInstrumentation } from './vendored/mongoose';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '@sentry/node-core';
 
 const INTEGRATION_NAME = 'Mongoose';
 
-export const instrumentMongoose = generateInstrumentOnce(
-  INTEGRATION_NAME,
-  () =>
-    new MongooseInstrumentation({
-      responseHook(span) {
-        addOriginToSpan(span, 'auto.db.otel.mongoose');
-      },
-    }),
-);
+export const instrumentMongoose = generateInstrumentOnce(INTEGRATION_NAME, () => new MongooseInstrumentation());
 
 const _mongooseIntegration = (() => {
   return {

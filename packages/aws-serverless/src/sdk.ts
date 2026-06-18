@@ -168,7 +168,7 @@ export function wrapHandler<TEvent, TResult>(
 ): Handler<TEvent, TResult> | StreamifyHandler<TEvent, TResult> {
   const START_TIME = performance.now();
 
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   if (typeof wrapOptions.startTrace !== 'undefined') {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console

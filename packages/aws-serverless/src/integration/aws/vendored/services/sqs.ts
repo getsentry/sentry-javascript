@@ -1,36 +1,24 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-aws-sdk
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
-/* eslint-disable */
 
-import { Tracer, SpanKind, Span, propagation, trace, ROOT_CONTEXT, Attributes } from '@opentelemetry/api';
+import { SpanKind, Span, propagation, trace, ROOT_CONTEXT, Attributes } from '@opentelemetry/api';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import type { SQS } from '../aws-sdk.types';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
-import { ATTR_URL_FULL } from '@opentelemetry/semantic-conventions';
 import {
-  ATTR_MESSAGING_BATCH_MESSAGE_COUNT,
-  ATTR_MESSAGING_DESTINATION_NAME,
-  ATTR_MESSAGING_MESSAGE_ID,
-  ATTR_MESSAGING_OPERATION_TYPE,
-  ATTR_MESSAGING_SYSTEM,
-} from '../semconv';
+  MESSAGING_BATCH_MESSAGE_COUNT,
+  MESSAGING_DESTINATION_NAME,
+  MESSAGING_MESSAGE_ID,
+  MESSAGING_OPERATION_TYPE,
+  MESSAGING_SYSTEM,
+  URL_FULL,
+} from '@sentry/conventions/attributes';
 import {
   contextGetter,
   extractPropagationContext,
@@ -46,9 +34,9 @@ export class SqsServiceExtension implements ServiceExtension {
     let spanName: string | undefined;
 
     const spanAttributes: Attributes = {
-      [ATTR_MESSAGING_SYSTEM]: 'aws_sqs',
-      [ATTR_MESSAGING_DESTINATION_NAME]: queueName,
-      [ATTR_URL_FULL]: queueUrl,
+      [MESSAGING_SYSTEM]: 'aws_sqs',
+      [MESSAGING_DESTINATION_NAME]: queueName,
+      [URL_FULL]: queueUrl,
     };
 
     let isIncoming = false;
@@ -59,7 +47,7 @@ export class SqsServiceExtension implements ServiceExtension {
           isIncoming = true;
           spanKind = SpanKind.CONSUMER;
           spanName = `${queueName} receive`;
-          spanAttributes[ATTR_MESSAGING_OPERATION_TYPE] = 'receive';
+          spanAttributes[MESSAGING_OPERATION_TYPE] = 'receive';
 
           request.commandInput.MessageAttributeNames = addPropagationFieldsToAttributeNames(
             request.commandInput.MessageAttributeNames,
@@ -107,10 +95,10 @@ export class SqsServiceExtension implements ServiceExtension {
     }
   };
 
-  responseHook = (response: NormalizedResponse, span: Span, _tracer: Tracer, config: AwsSdkInstrumentationConfig) => {
+  responseHook = (response: NormalizedResponse, span: Span) => {
     switch (response.request.commandName) {
       case 'SendMessage':
-        span.setAttribute(ATTR_MESSAGING_MESSAGE_ID, response?.data?.MessageId);
+        span.setAttribute(MESSAGING_MESSAGE_ID, response?.data?.MessageId);
         break;
 
       case 'SendMessageBatch':
@@ -120,12 +108,12 @@ export class SqsServiceExtension implements ServiceExtension {
       case 'ReceiveMessage': {
         const messages: SQS.Message[] = response?.data?.Messages || [];
 
-        span.setAttribute(ATTR_MESSAGING_BATCH_MESSAGE_COUNT, messages.length);
+        span.setAttribute(MESSAGING_BATCH_MESSAGE_COUNT, messages.length);
 
         for (const message of messages) {
           const propagatedContext = propagation.extract(
             ROOT_CONTEXT,
-            extractPropagationContext(message, config.sqsExtractContextPropagationFromPayload),
+            extractPropagationContext(message),
             contextGetter,
           );
 
@@ -135,7 +123,7 @@ export class SqsServiceExtension implements ServiceExtension {
             span.addLink({
               context: spanContext,
               attributes: {
-                [ATTR_MESSAGING_MESSAGE_ID]: message.MessageId,
+                [MESSAGING_MESSAGE_ID]: message.MessageId,
               },
             });
           }

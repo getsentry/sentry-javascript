@@ -181,6 +181,19 @@ describe('browserTracingIntegration', () => {
     });
   });
 
+  it('auto-registers webVitalsIntegration', () => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration()],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(client.getIntegrationByName('WebVitals')).toBeDefined();
+  });
+
   it('works with tracing disabled', () => {
     const client = new BrowserClient(
       getDefaultBrowserClientOptions({
@@ -551,6 +564,52 @@ describe('browserTracingIntegration', () => {
       startBrowserTracingPageLoadSpan(client, { name: 'test pageload span' });
 
       expect(getCurrentScope().getScopeData().transactionName).toBe('test pageload span');
+    });
+
+    it('removes the readystatechange listener once the auto-finish signal is emitted', () => {
+      const addEventListenerSpy = vi.spyOn(WINDOW.document!, 'addEventListener');
+      const removeEventListenerSpy = vi.spyOn(WINDOW.document!, 'removeEventListener');
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      // The document is already loaded (readyState 'complete') in the test environment, so the auto-finish signal is
+      // emitted synchronously and the listener must be cleaned up right away instead of leaking with the idle span.
+      startBrowserTracingPageLoadSpan(client, { name: 'test span' });
+
+      const addedListener = addEventListenerSpy.mock.calls.find(([type]) => type === 'readystatechange')?.[1];
+      expect(addedListener).toBeDefined();
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('readystatechange', addedListener);
+    });
+
+    it('removes the readystatechange listener when the document finishes loading later', () => {
+      const readyStateSpy = vi.spyOn(WINDOW.document!, 'readyState', 'get').mockReturnValue('loading');
+      const removeEventListenerSpy = vi.spyOn(WINDOW.document!, 'removeEventListener');
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      startBrowserTracingPageLoadSpan(client, { name: 'test span' });
+
+      // While loading, no auto-finish signal is emitted yet, so the listener is still attached.
+      expect(removeEventListenerSpy).not.toHaveBeenCalledWith('readystatechange', expect.any(Function));
+
+      readyStateSpy.mockReturnValue('complete');
+      WINDOW.document!.dispatchEvent(new dom.window.Event('readystatechange'));
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('readystatechange', expect.any(Function));
     });
   });
 

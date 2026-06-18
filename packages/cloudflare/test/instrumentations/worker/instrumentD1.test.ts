@@ -1,7 +1,7 @@
 import type { D1Database, D1PreparedStatement } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { instrumentD1WithSentry } from '../../../src/instrumentations/worker/instrumentD1';
+import { instrumentD1, instrumentD1WithSentry } from '../../../src/instrumentations/worker/instrumentD1';
 
 const MOCK_FIRST_RETURN_VALUE = { id: 1, name: 'Foo' };
 
@@ -23,7 +23,40 @@ const MOCK_D1_RESPONSE = {
   },
 };
 
-describe('instrumentD1WithSentry', () => {
+function createMockD1Statement(): D1PreparedStatement {
+  return {
+    bind: vi.fn().mockImplementation(createMockD1Statement),
+    first: vi.fn().mockImplementation(() => Promise.resolve(MOCK_FIRST_RETURN_VALUE)),
+    run: vi.fn().mockImplementation(() => Promise.resolve(MOCK_D1_RESPONSE)),
+    all: vi.fn().mockImplementation(() => Promise.resolve(MOCK_D1_RESPONSE)),
+    raw: vi.fn().mockImplementation(() => Promise.resolve(MOCK_RAW_RETURN_VALUE)),
+  };
+}
+
+function createMockD1Database(): D1Database {
+  return {
+    prepare: vi.fn().mockImplementation(createMockD1Statement),
+    dump: vi.fn(),
+    batch: vi.fn(),
+    exec: vi.fn(),
+  };
+}
+
+describe('instrumentD1WithSentry (deprecated)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test('still instruments the database', async () => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+    await instrumentedDb.prepare('SELECT 1').first();
+
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('instrumentD1', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -31,34 +64,15 @@ describe('instrumentD1WithSentry', () => {
   const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
   const addBreadcrumbSpy = vi.spyOn(SentryCore, 'addBreadcrumb');
 
-  function createMockD1Statement(): D1PreparedStatement {
-    return {
-      bind: vi.fn().mockImplementation(createMockD1Statement),
-      first: vi.fn().mockImplementation(() => Promise.resolve(MOCK_FIRST_RETURN_VALUE)),
-      run: vi.fn().mockImplementation(() => Promise.resolve(MOCK_D1_RESPONSE)),
-      all: vi.fn().mockImplementation(() => Promise.resolve(MOCK_D1_RESPONSE)),
-      raw: vi.fn().mockImplementation(() => Promise.resolve(MOCK_RAW_RETURN_VALUE)),
-    };
-  }
-
-  function createMockD1Database(): D1Database {
-    return {
-      prepare: vi.fn().mockImplementation(createMockD1Statement),
-      dump: vi.fn(),
-      batch: vi.fn(),
-      exec: vi.fn(),
-    };
-  }
-
   describe('statement.first()', () => {
     test('does not change return value', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       const response = await instrumentedDb.prepare('SELECT * FROM users').first();
       expect(response).toEqual(MOCK_FIRST_RETURN_VALUE);
     });
 
     test('instruments with spans', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').first();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
@@ -76,7 +90,7 @@ describe('instrumentD1WithSentry', () => {
     });
 
     test('instruments with breadcrumbs', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').first();
 
       expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);
@@ -90,7 +104,7 @@ describe('instrumentD1WithSentry', () => {
     });
 
     test('works with statement.bind()', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').bind().first();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
@@ -100,13 +114,13 @@ describe('instrumentD1WithSentry', () => {
 
   describe('statement.run()', () => {
     test('does not change return value', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       const response = await instrumentedDb.prepare('INSERT INTO users (name) VALUES (?)').run();
       expect(response).toEqual(MOCK_D1_RESPONSE);
     });
 
     test('instruments with spans', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('INSERT INTO users (name) VALUES (?)').run();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
@@ -124,7 +138,7 @@ describe('instrumentD1WithSentry', () => {
     });
 
     test('instruments with breadcrumbs', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('INSERT INTO users (name) VALUES (?)').run();
 
       expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);
@@ -141,7 +155,7 @@ describe('instrumentD1WithSentry', () => {
     });
 
     test('works with statement.bind()', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').bind().run();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
@@ -151,13 +165,13 @@ describe('instrumentD1WithSentry', () => {
 
   describe('statement.all()', () => {
     test('does not change return value', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
-      const response = await instrumentedDb.prepare('INSERT INTO users (name) VALUES (?)').run();
+      const instrumentedDb = instrumentD1(createMockD1Database());
+      const response = await instrumentedDb.prepare('SELECT * FROM users').all();
       expect(response).toEqual(MOCK_D1_RESPONSE);
     });
 
     test('instruments with spans', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('INSERT INTO users (name) VALUES (?)').all();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
@@ -175,7 +189,7 @@ describe('instrumentD1WithSentry', () => {
     });
 
     test('instruments with breadcrumbs', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('INSERT INTO users (name) VALUES (?)').all();
 
       expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);
@@ -192,7 +206,7 @@ describe('instrumentD1WithSentry', () => {
     });
 
     test('works with statement.bind()', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').bind().all();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
@@ -202,13 +216,13 @@ describe('instrumentD1WithSentry', () => {
 
   describe('statement.raw()', () => {
     test('does not change return value', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       const response = await instrumentedDb.prepare('SELECT * FROM users').raw();
       expect(response).toEqual(MOCK_RAW_RETURN_VALUE);
     });
 
     test('instruments with spans', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').raw();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
@@ -226,7 +240,7 @@ describe('instrumentD1WithSentry', () => {
     });
 
     test('instruments with breadcrumbs', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').raw();
 
       expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);
@@ -240,11 +254,37 @@ describe('instrumentD1WithSentry', () => {
     });
 
     test('works with statement.bind()', async () => {
-      const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
+      const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').bind().raw();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('double instrumentation prevention', () => {
+    test('does not double-instrument the same database', async () => {
+      const db = createMockD1Database();
+      const first = instrumentD1(db);
+      const prepareAfterFirst = first.prepare;
+
+      const second = instrumentD1(db);
+
+      expect(first).toBe(second);
+      expect(second.prepare).toBe(prepareAfterFirst);
+    });
+
+    test('does not double-instrument when instrumentD1WithSentry is also used', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const db = createMockD1Database();
+      const fromEnv = instrumentD1(db);
+      const prepareAfterFirst = fromEnv.prepare;
+
+      const fromManual = instrumentD1WithSentry(db);
+
+      expect(fromEnv).toBe(fromManual);
+      expect(fromManual.prepare).toBe(prepareAfterFirst);
     });
   });
 });

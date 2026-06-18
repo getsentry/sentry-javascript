@@ -1,0 +1,9 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = false;
+---
+
+<Layout title="Endpoint Error">
+  <button onclick="fetch('endpoint-error/api?error=1')">Get Data</button>
+</Layout>
