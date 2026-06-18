@@ -5,7 +5,7 @@
  * using Node.js diagnostic_channel's `bindStore` mechanism.
  */
 import type { TracingChannel, TracingChannelSubscribers } from 'node:diagnostics_channel';
-import diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Span } from '@opentelemetry/api';
 import { context, trace } from '@opentelemetry/api';
 import { logger } from '@sentry/core';
