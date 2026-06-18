@@ -176,7 +176,7 @@ describe('bindTracingChannelToSpan', () => {
   });
 
   describe('auto lifecycle ending strategy', () => {
-    const MECHANISM = { mechanism: { type: 'auto.diagnostic_channels.bind_span' } };
+    const MECHANISM = { mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false } };
 
     // Returns a channel whose span we can observe, plus spies for `span.end` and `captureException`.
     function setup(name: string): {
@@ -219,7 +219,7 @@ describe('bindTracingChannelToSpan', () => {
       ).toThrow(error);
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToJSON(span).status).toBe('Error: sync-throw');
+      expect(spanToJSON(span).status).toBe('sync-throw');
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, MECHANISM);
     });
@@ -290,7 +290,7 @@ describe('bindTracingChannelToSpan', () => {
       await expect(promise).rejects.toThrow(error);
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToJSON(span).status).toBe('Error: async-reject');
+      expect(spanToJSON(span).status).toBe('async-reject');
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, MECHANISM);
     });
@@ -309,7 +309,7 @@ describe('bindTracingChannelToSpan', () => {
       ).toThrow(error);
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToJSON(span).status).toBe('Error: promise-sync-throw');
+      expect(spanToJSON(span).status).toBe('promise-sync-throw');
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, MECHANISM);
     });
@@ -352,7 +352,7 @@ describe('bindTracingChannelToSpan', () => {
       });
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToJSON(span).status).toBe('Error: callback-error');
+      expect(spanToJSON(span).status).toBe('callback-error');
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, MECHANISM);
     });
@@ -374,9 +374,122 @@ describe('bindTracingChannelToSpan', () => {
       ).toThrow(error);
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToJSON(span).status).toBe('Error: callback-sync-throw');
+      expect(spanToJSON(span).status).toBe('callback-sync-throw');
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, MECHANISM);
+    });
+  });
+
+  describe('captureError', () => {
+    it('does not capture the exception when `captureError` is false, but still sets error status', async () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+
+      const span = startInactiveSpan({ name: 'channel-span' });
+      const error = new Error('db-down');
+      const channel = bindTracingChannelToSpan(
+        tracingChannel<{ operation: string }>('test:captureError:off'),
+        () => span,
+        { captureError: false },
+      );
+
+      await expect(
+        channel.tracePromise(
+          async () => {
+            throw error;
+          },
+          { operation: 'read' },
+        ),
+      ).rejects.toThrow(error);
+
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(spanToJSON(span).status).toBe('db-down');
+      expect(spanToJSON(span).timestamp).toBeDefined();
+    });
+  });
+
+  describe('beforeSpanEnd', () => {
+    it('runs with the span still open so enrichment lands, then the span is ended (sync)', () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+
+      const span = startInactiveSpan({ name: 'channel-span' });
+      let openWhenCalled: boolean | undefined;
+      let receivedSpan: Span | undefined;
+      const channel = bindTracingChannelToSpan(
+        tracingChannel<{ operation: string }>('test:beforeSpanEnd:sync'),
+        () => span,
+        {
+          beforeSpanEnd(s, data) {
+            receivedSpan = s;
+            openWhenCalled = spanToJSON(s).timestamp === undefined;
+            expect(data._sentrySpan).toBe(s);
+            expect('result' in data).toBe(true);
+            s.setAttribute('enriched', true);
+          },
+        },
+      );
+
+      channel.traceSync(() => undefined, { operation: 'read' });
+
+      expect(receivedSpan).toBe(span);
+      expect(openWhenCalled).toBe(true);
+      expect(spanToJSON(span).timestamp).toBeDefined();
+      expect(spanToJSON(span).data.enriched).toBe(true);
+    });
+
+    it('runs before the span is ended on async completion', async () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+
+      const span = startInactiveSpan({ name: 'channel-span' });
+      const channel = bindTracingChannelToSpan(
+        tracingChannel<{ operation: string }>('test:beforeSpanEnd:async'),
+        () => span,
+        {
+          beforeSpanEnd(s) {
+            expect(spanToJSON(s).timestamp).toBeUndefined();
+            s.setAttribute('enriched', true);
+          },
+        },
+      );
+
+      await channel.tracePromise(async () => 'ok', { operation: 'read' });
+
+      expect(spanToJSON(span).timestamp).toBeDefined();
+      expect(spanToJSON(span).data.enriched).toBe(true);
+    });
+
+    it('runs on the error path with the error on the context object', async () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+      vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+
+      const span = startInactiveSpan({ name: 'channel-span' });
+      const error = new Error('boom');
+      let sawError: unknown;
+      const channel = bindTracingChannelToSpan(
+        tracingChannel<{ operation: string }>('test:beforeSpanEnd:error'),
+        () => span,
+        {
+          beforeSpanEnd(_s, data) {
+            sawError = (data as { error?: unknown }).error;
+          },
+        },
+      );
+
+      await expect(
+        channel.tracePromise(
+          async () => {
+            throw error;
+          },
+          { operation: 'read' },
+        ),
+      ).rejects.toThrow(error);
+
+      expect(sawError).toBe(error);
+      expect(spanToJSON(span).timestamp).toBeDefined();
     });
   });
 

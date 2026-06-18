@@ -19,16 +19,32 @@ export interface SentryTracingChannel<TData extends object = object> extends Omi
   unsubscribe(subscribers: Partial<TracingChannelSubscribers<TracingChannelPayloadWithSpan<TData>>>): void;
 }
 
-export interface TracingChannelBindingOptions {
-  lifecycle: 'auto' | 'manual';
+export interface TracingChannelBindingOptions<TData extends object = object> {
+  /**
+   * Whether the span is ended automatically (`auto`, default) or left to the caller (`manual`).
+   */
+  lifecycle?: 'auto' | 'manual';
+
+  /**
+   * Invoked with the span and the channel context object once the traced operation completes
+   * Use it to enrich the span from the result/error (branch on `'error' in data` / `'result' in data`) or to run cleanup.
+   */
+  beforeSpanEnd?: (span: Span, data: TracingChannelPayloadWithSpan<TData>) => void;
+
+  /**
+   * Whether a thrown error is captured as a Sentry event. The span is always marked with error
+   * status regardless. Defaults to `true`.
+   * Set `false` for instrumentation that only annotates the span and lets the error be captured at the boundary that owns it (e.g. db spans).
+   */
+  captureError?: boolean;
 }
 
-const NOOP = () => {};
+const NOOP = (): void => {};
 
 export function bindTracingChannelToSpan<TData extends object>(
   channel: TracingChannel<TData, TData>,
   getSpan: (data: TracingChannelPayloadWithSpan<TData>) => Span,
-  opts?: Partial<TracingChannelBindingOptions>,
+  opts?: TracingChannelBindingOptions<TData>,
 ): SentryTracingChannel<TData> {
   const binding = _INTERNAL_getTracingChannelBinding();
 
@@ -53,6 +69,8 @@ export function bindTracingChannelToSpan<TData extends object>(
     return sentryChannel;
   }
 
+  const beforeSpanEnd = opts?.beforeSpanEnd;
+
   sentryChannel.subscribe({
     start: NOOP,
     asyncStart: NOOP,
@@ -60,21 +78,44 @@ export function bindTracingChannelToSpan<TData extends object>(
       // The operation settled synchronously (returned or threw)
       // Presence checks because caller can return `undefined` result or throw a falsy value.
       if ('error' in data || 'result' in data) {
-        data._sentrySpan?.end();
+        endBoundSpan(data, beforeSpanEnd);
       }
     },
     error(data) {
-      captureException(data.error, {
-        mechanism: {
-          type: 'auto.diagnostic_channels.bind_span',
-        },
-      });
-      data._sentrySpan?.setStatus({ code: SPAN_STATUS_ERROR, message: String(data.error) });
+      if (opts?.captureError !== false) {
+        captureException(data.error, {
+          mechanism: {
+            type: 'auto.diagnostic_channels.bind_span',
+            handled: false,
+          },
+        });
+      }
+      data._sentrySpan?.setStatus({ code: SPAN_STATUS_ERROR, message: getErrorMessage(data.error) });
     },
     asyncEnd(data) {
-      data._sentrySpan?.end();
+      endBoundSpan(data, beforeSpanEnd);
     },
   });
 
   return sentryChannel;
+}
+
+function endBoundSpan<TData extends object>(
+  data: TracingChannelPayloadWithSpan<TData>,
+  beforeSpanEnd: TracingChannelBindingOptions<TData>['beforeSpanEnd'],
+): void {
+  const span = data._sentrySpan;
+  if (!span) {
+    return;
+  }
+  beforeSpanEnd?.(span, data);
+  span.end();
+}
+
+/** Best-effort short message for a span status: an error-like's `message`, otherwise its string form. */
+function getErrorMessage(error: unknown): string {
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message;
+  }
+  return String(error);
 }
