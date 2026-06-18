@@ -1,1 +1,1 @@
-export const APP_NAME = 'react-router-7-framework';
+export const APP_NAME = 'react-router-8-framework';

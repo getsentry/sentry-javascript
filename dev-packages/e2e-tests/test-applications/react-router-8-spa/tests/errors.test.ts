@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ page, baseURL }) => {
-  const errorEventPromise = waitForError('react-router-7-spa', event => {
+  const errorEventPromise = waitForError('react-router-8-spa', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 
@@ -30,11 +30,11 @@ test('Sends correct error event', async ({ page, baseURL }) => {
 });
 
 test('Sets correct transactionName', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-spa', async transactionEvent => {
+  const transactionPromise = waitForTransaction('react-router-8-spa', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const errorEventPromise = waitForError('react-router-7-spa', event => {
+  const errorEventPromise = waitForError('react-router-8-spa', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 

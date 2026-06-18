@@ -225,7 +225,7 @@ export interface ReactRouterOptions {
   lazyRouteManifest?: string[];
 }
 
-type V6CompatibleVersion = '6' | '7';
+type V6CompatibleVersion = '6' | '7' | '8';
 
 export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
   const existingChildren = parentRoute.children || [];

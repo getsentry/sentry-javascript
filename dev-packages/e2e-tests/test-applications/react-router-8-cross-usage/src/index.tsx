@@ -4,15 +4,15 @@ import ReactDOM from 'react-dom/client';
 import {
   Outlet,
   Route,
-  RouterProvider,
   Routes,
-  createBrowserRouter,
   createRoutesFromChildren,
   matchRoutes,
   useLocation,
   useNavigationType,
   useRoutes,
-} from 'react-router-dom';
+  RouterProvider,
+  createBrowserRouter,
+} from 'react-router';
 import Index from './pages/Index';
 
 const replay = Sentry.replayIntegration();
@@ -21,7 +21,7 @@ Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
-    Sentry.reactRouterV7BrowserTracingIntegration({
+    Sentry.reactRouterV8BrowserTracingIntegration({
       useEffect: React.useEffect,
       useLocation,
       useNavigationType,
@@ -43,9 +43,9 @@ Sentry.init({
   tunnel: 'http://localhost:3031',
 });
 
-const SentryRoutes = Sentry.withSentryReactRouterV7Routing(Routes);
-const sentryUseRoutes = Sentry.wrapUseRoutesV7(useRoutes);
-const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV7(createBrowserRouter);
+const SentryRoutes = Sentry.withSentryReactRouterV8Routing(Routes);
+const sentryUseRoutes = Sentry.wrapUseRoutesV8(useRoutes);
+const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV8(createBrowserRouter);
 
 const DetailsRoutes = () =>
   sentryUseRoutes([

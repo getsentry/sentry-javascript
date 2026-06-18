@@ -21,7 +21,7 @@ Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
   integrations: [
-    Sentry.reactRouterV7BrowserTracingIntegration({
+    Sentry.reactRouterV8BrowserTracingIntegration({
       useEffect: React.useEffect,
       useLocation,
       useNavigationType,
@@ -43,7 +43,7 @@ Sentry.init({
   dataCollection: { userInfo: true },
 });
 
-const SentryRoutes = Sentry.withSentryReactRouterV7Routing(Routes);
+const SentryRoutes = Sentry.withSentryReactRouterV8Routing(Routes);
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(

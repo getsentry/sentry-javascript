@@ -19,7 +19,7 @@ test.describe('Trace propagation', () => {
 
   test('should have trace connection', async ({ page }) => {
     const serverTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET *';
+      return transactionEvent.transaction === 'GET /{*splat}';
     });
 
     const clientTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {

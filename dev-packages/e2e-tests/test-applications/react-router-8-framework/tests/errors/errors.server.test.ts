@@ -27,7 +27,7 @@ test.describe('server-side errors', () => {
         ],
       },
       // todo: should be 'GET /errors/server-loader'
-      transaction: 'GET *',
+      transaction: 'GET /{*splat}',
       request: {
         url: expect.stringContaining('errors/server-loader'),
         headers: expect.any(Object),
@@ -75,7 +75,7 @@ test.describe('server-side errors', () => {
         ],
       },
       // todo: should be 'POST /errors/server-action'
-      transaction: 'POST *',
+      transaction: 'POST /{*splat}',
       request: {
         url: expect.stringContaining('errors/server-action'),
         headers: expect.any(Object),

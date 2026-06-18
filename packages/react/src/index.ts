@@ -30,3 +30,10 @@ export {
   wrapCreateMemoryRouterV7,
   wrapUseRoutesV7,
 } from './reactrouterv7';
+export {
+  reactRouterV8BrowserTracingIntegration,
+  withSentryReactRouterV8Routing,
+  wrapCreateBrowserRouterV8,
+  wrapCreateMemoryRouterV8,
+  wrapUseRoutesV8,
+} from './reactrouterv8';

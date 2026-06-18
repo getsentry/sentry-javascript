@@ -15,11 +15,11 @@ test('propagates the navigation trace (not the stale pageload trace) for a fetch
     });
   });
 
-  const pageloadTxnPromise = waitForTransaction('react-router-7-spa', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('react-router-8-spa', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('react-router-7-spa', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('react-router-8-spa', async transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === '/products';
   });
 
