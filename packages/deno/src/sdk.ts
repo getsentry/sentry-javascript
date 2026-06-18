@@ -19,10 +19,12 @@ import { contextLinesIntegration } from './integrations/contextlines';
 import {
   HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
   HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
+  MODULE_REGISTER_HOOKS_SUPPORTED,
   TRACING_CHANNEL_SUPPORTED,
 } from './denoVersion';
 import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
+import { denoMysqlIntegration } from './integrations/mysql';
 import { denoRedisIntegration } from './integrations/redis';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
@@ -54,6 +56,11 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
       : []),
     // node:diagnostics_channel.tracingChannel exists on Deno 1.44.3+.
     ...(TRACING_CHANNEL_SUPPORTED ? [denoRedisIntegration()] : []),
+    // orchestrion-based instrumentations.
+    // It's possible that the orchestrion channels will be injected AFTER
+    // (or in parallel to) loading the SDK, so we only gate on whether the
+    // feature is possible. If they're never loaded, it'll just be a no-op.
+    ...(MODULE_REGISTER_HOOKS_SUPPORTED ? [denoMysqlIntegration()] : []),
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),
