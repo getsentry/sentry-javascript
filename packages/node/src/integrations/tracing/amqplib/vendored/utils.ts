@@ -11,8 +11,8 @@
 
 import { Context, createContextKey, diag, Span, Attributes, AttributeValue } from '@opentelemetry/api';
 import { SemconvStability } from '@opentelemetry/instrumentation';
-import { ATTR_SERVER_ADDRESS, ATTR_SERVER_PORT } from '@opentelemetry/semantic-conventions';
-import { ATTR_MESSAGING_SYSTEM, ATTR_NET_PEER_NAME, ATTR_NET_PEER_PORT } from './semconv';
+import { MESSAGING_SYSTEM, SERVER_ADDRESS, SERVER_PORT } from '@sentry/conventions/attributes';
+import { ATTR_NET_PEER_NAME, ATTR_NET_PEER_PORT } from './semconv';
 import { ATTR_MESSAGING_PROTOCOL, ATTR_MESSAGING_PROTOCOL_VERSION, ATTR_MESSAGING_URL } from './semconv-obsolete';
 import type { Connection, Channel, ConfirmChannel, Options } from './amqplib-types';
 import type { ConsumeMessage, Message } from './types';
@@ -95,7 +95,7 @@ export const getConnectionAttributesFromServer = (conn: Connection): Attributes 
   const product = conn.serverProperties.product?.toLowerCase?.();
   if (product) {
     return {
-      [ATTR_MESSAGING_SYSTEM]: product,
+      [MESSAGING_SYSTEM]: product,
     };
   } else {
     return {};
@@ -127,7 +127,7 @@ export const getConnectionAttributesFromUrl = (
     }
     if (netSemconvStability & SemconvStability.STABLE) {
       Object.assign(attributes, {
-        ...extractConnectionAttributeOrLog(url, ATTR_SERVER_ADDRESS, hostname, 'hostname'),
+        ...extractConnectionAttributeOrLog(url, SERVER_ADDRESS, hostname, 'hostname'),
       });
     }
 
@@ -136,7 +136,7 @@ export const getConnectionAttributesFromUrl = (
       Object.assign(attributes, extractConnectionAttributeOrLog(url, ATTR_NET_PEER_PORT, port, 'port'));
     }
     if (netSemconvStability & SemconvStability.STABLE) {
-      Object.assign(attributes, extractConnectionAttributeOrLog(url, ATTR_SERVER_PORT, port, 'port'));
+      Object.assign(attributes, extractConnectionAttributeOrLog(url, SERVER_PORT, port, 'port'));
     }
   } else {
     const censoredUrl = censorPassword(url);
@@ -157,7 +157,7 @@ export const getConnectionAttributesFromUrl = (
       }
       if (netSemconvStability & SemconvStability.STABLE) {
         Object.assign(attributes, {
-          ...extractConnectionAttributeOrLog(censoredUrl, ATTR_SERVER_ADDRESS, hostname, 'hostname'),
+          ...extractConnectionAttributeOrLog(censoredUrl, SERVER_ADDRESS, hostname, 'hostname'),
         });
       }
 
@@ -166,7 +166,7 @@ export const getConnectionAttributesFromUrl = (
         Object.assign(attributes, extractConnectionAttributeOrLog(censoredUrl, ATTR_NET_PEER_PORT, port, 'port'));
       }
       if (netSemconvStability & SemconvStability.STABLE) {
-        Object.assign(attributes, extractConnectionAttributeOrLog(censoredUrl, ATTR_SERVER_PORT, port, 'port'));
+        Object.assign(attributes, extractConnectionAttributeOrLog(censoredUrl, SERVER_PORT, port, 'port'));
       }
     } catch (err) {
       diag.error('amqplib instrumentation: error while extracting connection details from connection url', {

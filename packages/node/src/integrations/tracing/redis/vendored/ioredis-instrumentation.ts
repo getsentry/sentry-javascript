@@ -19,15 +19,9 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
+import { DB_STATEMENT, DB_SYSTEM } from '@sentry/conventions/attributes';
 import { defaultDbStatementSerializer } from './redis-common';
-import {
-  ATTR_DB_CONNECTION_STRING,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-  DB_SYSTEM_VALUE_REDIS,
-} from './semconv';
+import { ATTR_DB_CONNECTION_STRING, ATTR_NET_PEER_NAME, ATTR_NET_PEER_PORT, DB_SYSTEM_VALUE_REDIS } from './semconv';
 import type { IORedisInstrumentationConfig } from './types';
 
 const PACKAGE_NAME = '@sentry/instrumentation-ioredis';
@@ -118,8 +112,10 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
 
         const { host, port } = this.options;
         const attributes: SpanAttributes = {
-          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
-          [ATTR_DB_STATEMENT]: defaultDbStatementSerializer(cmd.name, cmd.args),
+          /* eslint-disable typescript/no-deprecated */
+          [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
+          [DB_STATEMENT]: defaultDbStatementSerializer(cmd.name, cmd.args),
+          /* eslint-enable typescript/no-deprecated */
           [ATTR_DB_CONNECTION_STRING]: `redis://${host}:${port}`,
           [ATTR_NET_PEER_NAME]: host,
           [ATTR_NET_PEER_PORT]: port,
@@ -159,8 +155,10 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
 
         const { host, port } = this.options;
         const attributes: SpanAttributes = {
-          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
-          [ATTR_DB_STATEMENT]: 'connect',
+          /* eslint-disable typescript/no-deprecated */
+          [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
+          [DB_STATEMENT]: 'connect',
+          /* eslint-enable typescript/no-deprecated */
           [ATTR_DB_CONNECTION_STRING]: `redis://${host}:${port}`,
           [ATTR_NET_PEER_NAME]: host,
           [ATTR_NET_PEER_PORT]: port,

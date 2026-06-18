@@ -9,34 +9,9 @@
 /* eslint-disable */
 
 /**
- * @deprecated Replaced by `db.namespace`.
- */
-export const ATTR_DB_NAME = 'db.name' as const;
-
-/**
- * @deprecated Replaced by `db.operation.name`.
- */
-export const ATTR_DB_OPERATION = 'db.operation' as const;
-
-/**
  * @deprecated Replaced by `db.collection.name`.
  */
 export const ATTR_DB_SQL_TABLE = 'db.sql.table' as const;
-
-/**
- * @deprecated Replaced by `db.query.text`.
- */
-export const ATTR_DB_STATEMENT = 'db.statement' as const;
-
-/**
- * @deprecated Replaced by `db.system.name`.
- */
-export const ATTR_DB_SYSTEM = 'db.system' as const;
-
-/**
- * @deprecated Removed, no replacement at this time.
- */
-export const ATTR_DB_USER = 'db.user' as const;
 
 /**
  * @deprecated Replaced by `server.address` on client spans and `client.address` on server spans.

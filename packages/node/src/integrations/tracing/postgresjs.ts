@@ -8,13 +8,8 @@ import {
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleFile } from './InstrumentationNodeModuleFile';
-import {
-  ATTR_DB_OPERATION_NAME,
-  ATTR_DB_QUERY_TEXT,
-  ATTR_DB_RESPONSE_STATUS_CODE,
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_ERROR_TYPE,
-} from '@opentelemetry/semantic-conventions';
+import { ATTR_DB_RESPONSE_STATUS_CODE } from '@opentelemetry/semantic-conventions';
+import { DB_OPERATION_NAME, DB_QUERY_TEXT, DB_SYSTEM_NAME, ERROR_TYPE } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   debug,
@@ -187,13 +182,13 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
    */
   private _setOperationName(span: Span, sanitizedQuery: string | undefined, command?: string): void {
     if (command) {
-      span.setAttribute(ATTR_DB_OPERATION_NAME, command);
+      span.setAttribute(DB_OPERATION_NAME, command);
       return;
     }
     // Fallback: extract operation from the SQL query
     const operationMatch = sanitizedQuery?.match(SQL_OPERATION_REGEX);
     if (operationMatch?.[1]) {
-      span.setAttribute(ATTR_DB_OPERATION_NAME, operationMatch[1].toUpperCase());
+      span.setAttribute(DB_OPERATION_NAME, operationMatch[1].toUpperCase());
     }
   }
 
@@ -309,8 +304,8 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
           addOriginToSpan(span, 'auto.db.postgresjs');
 
           span.setAttributes({
-            [ATTR_DB_SYSTEM_NAME]: 'postgres',
-            [ATTR_DB_QUERY_TEXT]: sanitizedSqlQuery,
+            [DB_SYSTEM_NAME]: 'postgres',
+            [DB_QUERY_TEXT]: sanitizedSqlQuery,
           });
 
           // Note: No connection context available for pre-existing instances
@@ -355,7 +350,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
                   message: rejectArgs?.[0]?.message || 'unknown_error',
                 });
                 span.setAttribute(ATTR_DB_RESPONSE_STATUS_CODE, rejectArgs?.[0]?.code || 'unknown');
-                span.setAttribute(ATTR_ERROR_TYPE, rejectArgs?.[0]?.name || 'unknown');
+                span.setAttribute(ERROR_TYPE, rejectArgs?.[0]?.name || 'unknown');
                 self._setOperationName(span, sanitizedSqlQuery);
                 span.end();
               } catch (e) {

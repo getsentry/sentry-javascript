@@ -13,16 +13,8 @@ import * as api from '@opentelemetry/api';
 import { EventEmitter } from 'events';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
-import {
-  DB_SYSTEM_VALUE_MSSQL,
-  ATTR_DB_NAME,
-  ATTR_DB_SQL_TABLE,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
-  ATTR_DB_USER,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-} from './semconv';
+import { DB_NAME, DB_STATEMENT, DB_SYSTEM, DB_USER } from '@sentry/conventions/attributes';
+import { DB_SYSTEM_VALUE_MSSQL, ATTR_DB_SQL_TABLE, ATTR_NET_PEER_NAME, ATTR_NET_PEER_PORT } from './semconv';
 import type * as tedious from './tedious-types';
 import { getSpanName, once } from './utils';
 import {
@@ -139,14 +131,14 @@ export class TediousInstrumentation extends InstrumentationBase<InstrumentationC
         const attributes: api.Attributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.otel.tedious',
           // eslint-disable-next-line typescript/no-deprecated
-          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MSSQL,
+          [DB_SYSTEM]: DB_SYSTEM_VALUE_MSSQL,
           // eslint-disable-next-line typescript/no-deprecated
-          [ATTR_DB_NAME]: databaseName,
+          [DB_NAME]: databaseName,
           // >=4 uses `authentication` object; older versions just userName and password pair
           // eslint-disable-next-line typescript/no-deprecated
-          [ATTR_DB_USER]: this.config?.userName ?? this.config?.authentication?.options?.userName,
+          [DB_USER]: this.config?.userName ?? this.config?.authentication?.options?.userName,
           // eslint-disable-next-line typescript/no-deprecated
-          [ATTR_DB_STATEMENT]: sql,
+          [DB_STATEMENT]: sql,
           // eslint-disable-next-line typescript/no-deprecated
           [ATTR_DB_SQL_TABLE]: request.table,
           // eslint-disable-next-line typescript/no-deprecated

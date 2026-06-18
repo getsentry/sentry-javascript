@@ -14,18 +14,6 @@
  */
 
 /**
- * Deprecated, use `db.namespace` instead.
- *
- * @example customers
- * @example main
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
- * @deprecated Replaced by `db.namespace`.
- */
-export const ATTR_DB_NAME = 'db.name' as const;
-
-/**
  * Deprecated, use `db.collection.name` instead.
  *
  * @example "mytable"
@@ -35,39 +23,6 @@ export const ATTR_DB_NAME = 'db.name' as const;
  * @deprecated Replaced by `db.collection.name`, but only if not extracting the value from `db.query.text`.
  */
 export const ATTR_DB_SQL_TABLE = 'db.sql.table' as const;
-
-/**
- * The database statement being executed.
- *
- * @example SELECT * FROM wuser_table
- * @example SET mykey "WuValue"
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
- * @deprecated Replaced by `db.query.text`.
- */
-export const ATTR_DB_STATEMENT = 'db.statement' as const;
-
-/**
- * Deprecated, use `db.system.name` instead.
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
- * @deprecated Replaced by `db.system.name`.
- */
-export const ATTR_DB_SYSTEM = 'db.system' as const;
-
-/**
- * Deprecated, no replacement at this time.
- *
- * @example readonly_user
- * @example reporting_user
- *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
- *
- * @deprecated Removed, no replacement at this time.
- */
-export const ATTR_DB_USER = 'db.user' as const;
 
 /**
  * Deprecated, use `server.address` on client spans and `client.address` on server spans.
@@ -92,7 +47,7 @@ export const ATTR_NET_PEER_NAME = 'net.peer.name' as const;
 export const ATTR_NET_PEER_PORT = 'net.peer.port' as const;
 
 /**
- * Enum value "mssql" for attribute {@link ATTR_DB_SYSTEM}.
+ * Enum value "mssql" for attribute `db.system`.
  *
  * Microsoft SQL Server
  *

@@ -18,20 +18,20 @@ import {
   SemconvStability,
   semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
+import { DB_SYSTEM_NAME_VALUE_MYSQL } from '@opentelemetry/semantic-conventions';
 import {
-  ATTR_DB_NAMESPACE,
-  ATTR_DB_QUERY_TEXT,
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_SERVER_ADDRESS,
-  ATTR_SERVER_PORT,
-  DB_SYSTEM_NAME_VALUE_MYSQL,
-} from '@opentelemetry/semantic-conventions';
+  DB_NAME,
+  DB_NAMESPACE,
+  DB_QUERY_TEXT,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_SYSTEM_NAME,
+  DB_USER,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
 import {
   ATTR_DB_CONNECTION_STRING,
-  ATTR_DB_NAME,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
-  ATTR_DB_USER,
   ATTR_NET_PEER_NAME,
   ATTR_NET_PEER_PORT,
   DB_SYSTEM_VALUE_MYSQL,
@@ -263,16 +263,16 @@ export class MySQLInstrumentation extends InstrumentationBase<MySQLInstrumentati
         const portNumber = parseInt(port, 10);
         const dbQueryText = getDbQueryText(query);
         if (thisPlugin._dbSemconvStability & SemconvStability.OLD) {
-          attributes[ATTR_DB_SYSTEM] = DB_SYSTEM_VALUE_MYSQL;
+          attributes[DB_SYSTEM] = DB_SYSTEM_VALUE_MYSQL;
           attributes[ATTR_DB_CONNECTION_STRING] = getJDBCString(host, port, database);
-          attributes[ATTR_DB_NAME] = database;
-          attributes[ATTR_DB_USER] = user;
-          attributes[ATTR_DB_STATEMENT] = dbQueryText;
+          attributes[DB_NAME] = database;
+          attributes[DB_USER] = user;
+          attributes[DB_STATEMENT] = dbQueryText;
         }
         if (thisPlugin._dbSemconvStability & SemconvStability.STABLE) {
-          attributes[ATTR_DB_SYSTEM_NAME] = DB_SYSTEM_NAME_VALUE_MYSQL;
-          attributes[ATTR_DB_NAMESPACE] = database;
-          attributes[ATTR_DB_QUERY_TEXT] = dbQueryText;
+          attributes[DB_SYSTEM_NAME] = DB_SYSTEM_NAME_VALUE_MYSQL;
+          attributes[DB_NAMESPACE] = database;
+          attributes[DB_QUERY_TEXT] = dbQueryText;
         }
         if (thisPlugin._netSemconvStability & SemconvStability.OLD) {
           attributes[ATTR_NET_PEER_NAME] = host;
@@ -281,9 +281,9 @@ export class MySQLInstrumentation extends InstrumentationBase<MySQLInstrumentati
           }
         }
         if (thisPlugin._netSemconvStability & SemconvStability.STABLE) {
-          attributes[ATTR_SERVER_ADDRESS] = host;
+          attributes[SERVER_ADDRESS] = host;
           if (!isNaN(portNumber)) {
-            attributes[ATTR_SERVER_PORT] = portNumber;
+            attributes[SERVER_PORT] = portNumber;
           }
         }
         const span = thisPlugin.tracer.startSpan(getSpanName(query), {

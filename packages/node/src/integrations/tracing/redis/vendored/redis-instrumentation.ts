@@ -24,15 +24,9 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../../../debug-build';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
+import { DB_STATEMENT, DB_SYSTEM } from '@sentry/conventions/attributes';
 import { defaultDbStatementSerializer } from './redis-common';
-import {
-  ATTR_DB_CONNECTION_STRING,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-  DB_SYSTEM_VALUE_REDIS,
-} from './semconv';
+import { ATTR_DB_CONNECTION_STRING, ATTR_NET_PEER_NAME, ATTR_NET_PEER_PORT, DB_SYSTEM_VALUE_REDIS } from './semconv';
 import type { RedisInstrumentationConfig, RedisResponseCustomAttributeFunction } from './types';
 
 const PACKAGE_NAME = '@sentry/instrumentation-redis';
@@ -121,7 +115,8 @@ function removeCredentialsFromDBConnectionStringAttribute(url: string | undefine
 
 function getClientAttributes(options: any): SpanAttributes {
   return {
-    [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
+    // eslint-disable-next-line typescript/no-deprecated
+    [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
     [ATTR_NET_PEER_NAME]: options?.socket?.host,
     [ATTR_NET_PEER_PORT]: options?.socket?.port,
     [ATTR_DB_CONNECTION_STRING]: removeCredentialsFromDBConnectionStringAttribute(options?.url),
@@ -166,8 +161,10 @@ class RedisInstrumentationV2_V3 extends InstrumentationBase<RedisInstrumentation
           return original.apply(this, arguments);
         }
         const attributes: SpanAttributes = {
-          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
-          [ATTR_DB_STATEMENT]: defaultDbStatementSerializer(cmd.command, cmd.args),
+          /* eslint-disable typescript/no-deprecated */
+          [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
+          [DB_STATEMENT]: defaultDbStatementSerializer(cmd.command, cmd.args),
+          /* eslint-enable typescript/no-deprecated */
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };
         if (this.connection_options) {
@@ -444,7 +441,8 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
     const attributes = getClientAttributes(clientOptions);
     const dbStatement = defaultDbStatementSerializer(commandName, commandArgs);
     if (dbStatement != null) {
-      attributes[ATTR_DB_STATEMENT] = dbStatement;
+      // eslint-disable-next-line typescript/no-deprecated
+      attributes[DB_STATEMENT] = dbStatement;
     }
     const span = startInactiveSpan({
       name: `${RedisInstrumentationV4_V5.COMPONENT}-${commandName}`,

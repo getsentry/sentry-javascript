@@ -46,18 +46,18 @@ import { SDK_VERSION, timestampInSeconds } from '@sentry/core';
 const PACKAGE_NAME = '@sentry/instrumentation-pg';
 import { SpanNames } from './enums/SpanNames';
 import {
-  ATTR_ERROR_TYPE,
-  ATTR_SERVER_PORT,
-  ATTR_SERVER_ADDRESS,
-  ATTR_DB_NAMESPACE,
-  ATTR_DB_OPERATION_NAME,
-  ATTR_DB_SYSTEM_NAME,
-  METRIC_DB_CLIENT_OPERATION_DURATION,
-} from '@opentelemetry/semantic-conventions';
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_SYSTEM,
+  DB_SYSTEM_NAME,
+  ERROR_TYPE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { METRIC_DB_CLIENT_OPERATION_DURATION } from '@opentelemetry/semantic-conventions';
 import {
   METRIC_DB_CLIENT_CONNECTION_COUNT,
   METRIC_DB_CLIENT_CONNECTION_PENDING_REQUESTS,
-  ATTR_DB_SYSTEM,
   DB_SYSTEM_VALUE_POSTGRESQL,
 } from './semconv';
 
@@ -241,18 +241,12 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
 
   private recordOperationDuration(attributes: Attributes, startTime: number) {
     const metricsAttributes: Attributes = {};
-    const keysToCopy: string[] = [
-      ATTR_DB_NAMESPACE,
-      ATTR_ERROR_TYPE,
-      ATTR_SERVER_PORT,
-      ATTR_SERVER_ADDRESS,
-      ATTR_DB_OPERATION_NAME,
-    ];
+    const keysToCopy: string[] = [DB_NAMESPACE, ERROR_TYPE, SERVER_PORT, SERVER_ADDRESS, DB_OPERATION_NAME];
     if (this._semconvStability & SemconvStability.OLD) {
-      keysToCopy.push(ATTR_DB_SYSTEM);
+      keysToCopy.push(DB_SYSTEM);
     }
     if (this._semconvStability & SemconvStability.STABLE) {
-      keysToCopy.push(ATTR_DB_SYSTEM_NAME);
+      keysToCopy.push(DB_SYSTEM_NAME);
     }
 
     keysToCopy.forEach(key => {
@@ -304,14 +298,14 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
             : undefined;
 
         const attributes: Attributes = {
-          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
-          [ATTR_DB_NAMESPACE]: this.database,
-          [ATTR_SERVER_PORT]: this.connectionParameters.port,
-          [ATTR_SERVER_ADDRESS]: this.connectionParameters.host,
+          [DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
+          [DB_NAMESPACE]: this.database,
+          [SERVER_PORT]: this.connectionParameters.port,
+          [SERVER_ADDRESS]: this.connectionParameters.host,
         };
 
         if (queryConfig?.text) {
-          attributes[ATTR_DB_OPERATION_NAME] = utils.parseNormalizedOperationName(queryConfig?.text);
+          attributes[DB_OPERATION_NAME] = utils.parseNormalizedOperationName(queryConfig?.text);
         }
 
         const recordDuration = () => {

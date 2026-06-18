@@ -4,13 +4,13 @@ import { context, diag, SpanKind, trace } from '@opentelemetry/api';
 import { InstrumentationNodeModuleDefinition, isWrapped, safeExecuteInTheMiddle } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleFile } from '../../../InstrumentationNodeModuleFile';
 import {
-  ATTR_DB_COLLECTION_NAME,
-  ATTR_DB_NAMESPACE,
-  ATTR_DB_OPERATION_NAME,
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_SERVER_ADDRESS,
-  ATTR_SERVER_PORT,
-} from '@opentelemetry/semantic-conventions';
+  DB_COLLECTION_NAME,
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
 import type { FirebaseInstrumentation } from '../firebaseInstrumentation';
 import type {
@@ -248,7 +248,7 @@ function startDBSpan<AppModelType, DbModelType extends DocumentData>(
 ): Span {
   const span = tracer.startSpan(`${spanName} ${reference.path}`, { kind: SpanKind.CLIENT });
   addAttributes(span, reference);
-  span.setAttribute(ATTR_DB_OPERATION_NAME, spanName);
+  span.setAttribute(DB_OPERATION_NAME, spanName);
   return span;
 }
 
@@ -313,9 +313,9 @@ function addAttributes<AppModelType, DbModelType extends DocumentData>(
   const settings: FirestoreSettings = json.settings || {};
 
   const attributes: SpanAttributes = {
-    [ATTR_DB_COLLECTION_NAME]: reference.path,
-    [ATTR_DB_NAMESPACE]: firestoreApp.name,
-    [ATTR_DB_SYSTEM_NAME]: 'firebase.firestore',
+    [DB_COLLECTION_NAME]: reference.path,
+    [DB_NAMESPACE]: firestoreApp.name,
+    [DB_SYSTEM_NAME]: 'firebase.firestore',
     'firebase.firestore.type': reference.type,
     'firebase.firestore.options.projectId': firestoreOptions.projectId,
     'firebase.firestore.options.appId': firestoreOptions.appId,
@@ -326,10 +326,10 @@ function addAttributes<AppModelType, DbModelType extends DocumentData>(
   const { address, port } = getPortAndAddress(settings);
 
   if (address) {
-    attributes[ATTR_SERVER_ADDRESS] = address;
+    attributes[SERVER_ADDRESS] = address;
   }
   if (port) {
-    attributes[ATTR_SERVER_PORT] = port;
+    attributes[SERVER_PORT] = port;
   }
 
   span.setAttributes(attributes);

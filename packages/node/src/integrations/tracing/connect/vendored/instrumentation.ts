@@ -22,7 +22,7 @@ import {
 import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { replaceCurrentStackRoute, addNewStackLayer, generateRoute } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-connect';
@@ -82,7 +82,7 @@ export class ConnectInstrumentation extends InstrumentationBase {
       op: `${connectType}.connect`,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.connect',
-        [ATTR_HTTP_ROUTE]: routeName.length > 0 ? routeName : '/',
+        [HTTP_ROUTE]: routeName.length > 0 ? routeName : '/',
         [AttributeNames.CONNECT_TYPE]: connectType,
         [AttributeNames.CONNECT_NAME]: connectName,
       },

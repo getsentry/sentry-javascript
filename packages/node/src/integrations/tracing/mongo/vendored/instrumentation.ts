@@ -17,23 +17,23 @@ import {
   SemconvStability,
   semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
-import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import {
-  ATTR_DB_COLLECTION_NAME,
-  ATTR_DB_NAMESPACE,
-  ATTR_DB_OPERATION_NAME,
-  ATTR_DB_QUERY_TEXT,
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_SERVER_ADDRESS,
-  ATTR_SERVER_PORT,
-} from '@opentelemetry/semantic-conventions';
+  DB_COLLECTION_NAME,
+  DB_NAME,
+  DB_NAMESPACE,
+  DB_OPERATION,
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_SYSTEM_NAME,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import {
   ATTR_DB_CONNECTION_STRING,
   ATTR_DB_MONGODB_COLLECTION,
-  ATTR_DB_NAME,
-  ATTR_DB_OPERATION,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
   ATTR_NET_PEER_NAME,
   ATTR_NET_PEER_PORT,
   DB_SYSTEM_NAME_VALUE_MONGODB,
@@ -728,17 +728,17 @@ export class MongoDBInstrumentation extends InstrumentationBase<MongoDBInstrumen
     const attributes: Attributes = {};
 
     if (this._dbSemconvStability & SemconvStability.OLD) {
-      attributes[ATTR_DB_SYSTEM] = DB_SYSTEM_VALUE_MONGODB;
-      attributes[ATTR_DB_NAME] = dbName;
+      attributes[DB_SYSTEM] = DB_SYSTEM_VALUE_MONGODB;
+      attributes[DB_NAME] = dbName;
       attributes[ATTR_DB_MONGODB_COLLECTION] = dbCollection;
-      attributes[ATTR_DB_OPERATION] = operation;
+      attributes[DB_OPERATION] = operation;
       attributes[ATTR_DB_CONNECTION_STRING] = `mongodb://${host}:${port}/${dbName}`;
     }
     if (this._dbSemconvStability & SemconvStability.STABLE) {
-      attributes[ATTR_DB_SYSTEM_NAME] = DB_SYSTEM_NAME_VALUE_MONGODB;
-      attributes[ATTR_DB_NAMESPACE] = dbName;
-      attributes[ATTR_DB_OPERATION_NAME] = operation;
-      attributes[ATTR_DB_COLLECTION_NAME] = dbCollection;
+      attributes[DB_SYSTEM_NAME] = DB_SYSTEM_NAME_VALUE_MONGODB;
+      attributes[DB_NAMESPACE] = dbName;
+      attributes[DB_OPERATION_NAME] = operation;
+      attributes[DB_COLLECTION_NAME] = dbCollection;
     }
 
     if (host && port) {
@@ -746,7 +746,7 @@ export class MongoDBInstrumentation extends InstrumentationBase<MongoDBInstrumen
         attributes[ATTR_NET_PEER_NAME] = host;
       }
       if (this._netSemconvStability & SemconvStability.STABLE) {
-        attributes[ATTR_SERVER_ADDRESS] = host;
+        attributes[SERVER_ADDRESS] = host;
       }
       const portNumber = parseInt(port, 10);
       if (!isNaN(portNumber)) {
@@ -754,7 +754,7 @@ export class MongoDBInstrumentation extends InstrumentationBase<MongoDBInstrumen
           attributes[ATTR_NET_PEER_PORT] = portNumber;
         }
         if (this._netSemconvStability & SemconvStability.STABLE) {
-          attributes[ATTR_SERVER_PORT] = portNumber;
+          attributes[SERVER_PORT] = portNumber;
         }
       }
     }
@@ -770,10 +770,10 @@ export class MongoDBInstrumentation extends InstrumentationBase<MongoDBInstrumen
         () => {
           const query = dbStatementSerializer(commandObj);
           if (this._dbSemconvStability & SemconvStability.OLD) {
-            attributes[ATTR_DB_STATEMENT] = query;
+            attributes[DB_STATEMENT] = query;
           }
           if (this._dbSemconvStability & SemconvStability.STABLE) {
-            attributes[ATTR_DB_QUERY_TEXT] = query;
+            attributes[DB_QUERY_TEXT] = query;
           }
         },
         err => {
@@ -793,10 +793,10 @@ export class MongoDBInstrumentation extends InstrumentationBase<MongoDBInstrumen
     if (this._dbSemconvStability & SemconvStability.STABLE) {
       // https://opentelemetry.io/docs/specs/semconv/database/database-spans/#name
       spanName =
-        [attributes[ATTR_DB_OPERATION_NAME], attributes[ATTR_DB_COLLECTION_NAME]].filter(attr => attr).join(' ') ||
+        [attributes[DB_OPERATION_NAME], attributes[DB_COLLECTION_NAME]].filter(attr => attr).join(' ') ||
         DB_SYSTEM_NAME_VALUE_MONGODB;
     } else {
-      spanName = `mongodb.${attributes[ATTR_DB_OPERATION] || 'command'}`;
+      spanName = `mongodb.${attributes[DB_OPERATION] || 'command'}`;
     }
     return spanName;
   }

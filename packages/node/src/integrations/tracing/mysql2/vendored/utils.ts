@@ -10,14 +10,9 @@
  */
 
 import type { SpanAttributes } from '@sentry/core';
+import { DB_NAME, DB_USER } from '@sentry/conventions/attributes';
 import type { FormatFunction } from './mysql2-types';
-import {
-  ATTR_DB_CONNECTION_STRING,
-  ATTR_DB_NAME,
-  ATTR_DB_USER,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-} from './semconv';
+import { ATTR_DB_CONNECTION_STRING, ATTR_NET_PEER_NAME, ATTR_NET_PEER_PORT } from './semconv';
 
 interface QueryOptions {
   sql: string;
@@ -41,8 +36,9 @@ export function getConnectionAttributes(config: Config): SpanAttributes {
 
   const attrs: SpanAttributes = {
     [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, port, database),
-    [ATTR_DB_NAME]: database,
-    [ATTR_DB_USER]: user,
+    // eslint-disable-next-line typescript/no-deprecated
+    [DB_NAME]: database,
+    [DB_USER]: user,
     [ATTR_NET_PEER_NAME]: host,
   };
 

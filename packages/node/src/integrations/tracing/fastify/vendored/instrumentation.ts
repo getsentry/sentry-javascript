@@ -12,12 +12,7 @@
 
 import * as dc from 'node:diagnostics_channel';
 import { context, trace, SpanStatusCode, propagation, diag, type Span } from '@opentelemetry/api';
-import {
-  ATTR_HTTP_ROUTE,
-  ATTR_HTTP_RESPONSE_STATUS_CODE,
-  ATTR_HTTP_REQUEST_METHOD,
-  ATTR_URL_PATH,
-} from '@opentelemetry/semantic-conventions';
+import { HTTP_REQUEST_METHOD, HTTP_RESPONSE_STATUS_CODE, HTTP_ROUTE, URL_PATH } from '@sentry/conventions/attributes';
 import { InstrumentationBase, type InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { SDK_VERSION } from '@sentry/core';
 import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
@@ -173,7 +168,7 @@ export class FastifyOtelInstrumentation extends InstrumentationBase<FastifyOtelI
               routeOptions[hook] = handlerWrapper(handlerLike, hook, {
                 [ATTRIBUTE_NAMES.HOOK_NAME]: `${this.pluginName} - route -> ${hook}`,
                 [ATTRIBUTE_NAMES.FASTIFY_TYPE]: HOOK_TYPES.ROUTE,
-                [ATTR_HTTP_ROUTE]: routeOptions.url,
+                [HTTP_ROUTE]: routeOptions.url,
                 [ATTRIBUTE_NAMES.HOOK_CALLBACK_NAME]:
                   handlerLike.name?.length > 0 ? handlerLike.name : ANONYMOUS_FUNCTION_NAME,
               });
@@ -185,7 +180,7 @@ export class FastifyOtelInstrumentation extends InstrumentationBase<FastifyOtelI
                   handlerWrapper(handler, hook, {
                     [ATTRIBUTE_NAMES.HOOK_NAME]: `${this.pluginName} - route -> ${hook}`,
                     [ATTRIBUTE_NAMES.FASTIFY_TYPE]: HOOK_TYPES.ROUTE,
-                    [ATTR_HTTP_ROUTE]: routeOptions.url,
+                    [HTTP_ROUTE]: routeOptions.url,
                     [ATTRIBUTE_NAMES.HOOK_CALLBACK_NAME]:
                       handler.name?.length > 0 ? handler.name : ANONYMOUS_FUNCTION_NAME,
                   }),
@@ -216,7 +211,7 @@ export class FastifyOtelInstrumentation extends InstrumentationBase<FastifyOtelI
         routeOptions.handler = handlerWrapper(routeOptions.handler, 'handler', {
           [ATTRIBUTE_NAMES.HOOK_NAME]: `${this.pluginName} - route-handler`,
           [ATTRIBUTE_NAMES.FASTIFY_TYPE]: HOOK_TYPES.HANDLER,
-          [ATTR_HTTP_ROUTE]: routeOptions.url,
+          [HTTP_ROUTE]: routeOptions.url,
           [ATTRIBUTE_NAMES.HOOK_CALLBACK_NAME]:
             routeOptions.handler.name.length > 0 ? routeOptions.handler.name : ANONYMOUS_FUNCTION_NAME,
         });
@@ -241,12 +236,12 @@ export class FastifyOtelInstrumentation extends InstrumentationBase<FastifyOtelI
 
           const attributes: Record<string, string> = {
             [ATTRIBUTE_NAMES.ROOT]: PACKAGE_NAME,
-            [ATTR_HTTP_REQUEST_METHOD]: request.method,
-            [ATTR_URL_PATH]: request.url,
+            [HTTP_REQUEST_METHOD]: request.method,
+            [URL_PATH]: request.url,
           };
 
           if (request.routeOptions.url != null) {
-            attributes[ATTR_HTTP_ROUTE] = request.routeOptions.url;
+            attributes[HTTP_ROUTE] = request.routeOptions.url;
           }
 
           const span = this[kInstrumentation].tracer.startSpan('request', { attributes }, ctx);
@@ -271,7 +266,7 @@ export class FastifyOtelInstrumentation extends InstrumentationBase<FastifyOtelI
 
         if (span != null) {
           span.setAttributes({
-            [ATTR_HTTP_RESPONSE_STATUS_CODE]: reply.statusCode,
+            [HTTP_RESPONSE_STATUS_CODE]: reply.statusCode,
           });
           span.end();
         }
@@ -300,7 +295,7 @@ export class FastifyOtelInstrumentation extends InstrumentationBase<FastifyOtelI
           }
 
           span.setAttributes({
-            [ATTR_HTTP_RESPONSE_STATUS_CODE]: reply.statusCode,
+            [HTTP_RESPONSE_STATUS_CODE]: reply.statusCode,
           });
           span.end();
         }

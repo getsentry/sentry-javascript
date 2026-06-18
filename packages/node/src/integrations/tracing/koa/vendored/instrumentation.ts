@@ -22,7 +22,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/core';
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { getMiddlewareMetadata, isLayerIgnored } from './utils';
 import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 import { DEBUG_BUILD } from '../../../../debug-build';
@@ -171,7 +171,7 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
           },
         },
         () => {
-          const route = metadata.attributes[ATTR_HTTP_ROUTE];
+          const route = metadata.attributes[HTTP_ROUTE];
           if (getIsolationScope() === getDefaultIsolationScope()) {
             DEBUG_BUILD && debug.warn('Isolation scope is default isolation scope - skipping setting transactionName');
           } else if (route) {

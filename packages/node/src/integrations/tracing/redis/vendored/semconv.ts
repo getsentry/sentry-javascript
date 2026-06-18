@@ -17,8 +17,6 @@
 
 // Deprecated constants kept for backwards compatibility with older semconv
 export const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
-export const ATTR_DB_STATEMENT = 'db.statement';
-export const ATTR_DB_SYSTEM = 'db.system';
 export const ATTR_NET_PEER_NAME = 'net.peer.name';
 export const ATTR_NET_PEER_PORT = 'net.peer.port';
 export const DB_SYSTEM_NAME_VALUE_REDIS = 'redis';

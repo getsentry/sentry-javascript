@@ -23,27 +23,27 @@ import {
 } from '@opentelemetry/api';
 import { AttributeNames } from './enums/AttributeNames';
 import {
-  ATTR_ERROR_TYPE,
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_DB_NAMESPACE,
-  ATTR_SERVER_ADDRESS,
-  ATTR_SERVER_PORT,
-  ATTR_DB_QUERY_TEXT,
-  DB_SYSTEM_NAME_VALUE_POSTGRESQL,
-} from '@opentelemetry/semantic-conventions';
+  DB_NAME,
+  DB_NAMESPACE,
+  DB_QUERY_TEXT,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_SYSTEM_NAME,
+  DB_USER,
+  ERROR_TYPE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { DB_SYSTEM_NAME_VALUE_POSTGRESQL } from '@opentelemetry/semantic-conventions';
 import {
   ATTR_DB_CLIENT_CONNECTION_POOL_NAME,
   ATTR_DB_CLIENT_CONNECTION_STATE,
   DB_CLIENT_CONNECTION_STATE_VALUE_USED,
   DB_CLIENT_CONNECTION_STATE_VALUE_IDLE,
-  ATTR_DB_SYSTEM,
-  ATTR_DB_NAME,
-  ATTR_DB_USER,
   DB_SYSTEM_VALUE_POSTGRESQL,
   ATTR_DB_CONNECTION_STRING,
   ATTR_NET_PEER_PORT,
   ATTR_NET_PEER_NAME,
-  ATTR_DB_STATEMENT,
 } from './semconv';
 import {
   PgClientExtended,
@@ -150,10 +150,10 @@ export function getSemanticAttributesFromConnection(
   if (semconvStability & SemconvStability.OLD) {
     attributes = {
       ...attributes,
-      [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
-      [ATTR_DB_NAME]: params.database,
+      [DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
+      [DB_NAME]: params.database,
       [ATTR_DB_CONNECTION_STRING]: getConnectionString(params),
-      [ATTR_DB_USER]: params.user,
+      [DB_USER]: params.user,
       [ATTR_NET_PEER_NAME]: params.host, // required
       [ATTR_NET_PEER_PORT]: getPort(params.port),
     };
@@ -161,10 +161,10 @@ export function getSemanticAttributesFromConnection(
   if (semconvStability & SemconvStability.STABLE) {
     attributes = {
       ...attributes,
-      [ATTR_DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_POSTGRESQL,
-      [ATTR_DB_NAMESPACE]: params.namespace,
-      [ATTR_SERVER_ADDRESS]: params.host,
-      [ATTR_SERVER_PORT]: getPort(params.port),
+      [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_POSTGRESQL,
+      [DB_NAMESPACE]: params.namespace,
+      [SERVER_ADDRESS]: params.host,
+      [SERVER_PORT]: getPort(params.port),
     };
   }
 
@@ -189,21 +189,21 @@ export function getSemanticAttributesFromPoolConnection(
   if (semconvStability & SemconvStability.OLD) {
     attributes = {
       ...attributes,
-      [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
-      [ATTR_DB_NAME]: url?.pathname.slice(1) ?? params.database,
+      [DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
+      [DB_NAME]: url?.pathname.slice(1) ?? params.database,
       [ATTR_DB_CONNECTION_STRING]: getConnectionString(params),
       [ATTR_NET_PEER_NAME]: url?.hostname ?? params.host,
       [ATTR_NET_PEER_PORT]: Number(url?.port) || getPort(params.port),
-      [ATTR_DB_USER]: url?.username ?? params.user,
+      [DB_USER]: url?.username ?? params.user,
     };
   }
   if (semconvStability & SemconvStability.STABLE) {
     attributes = {
       ...attributes,
-      [ATTR_DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_POSTGRESQL,
-      [ATTR_DB_NAMESPACE]: params.namespace,
-      [ATTR_SERVER_ADDRESS]: url?.hostname ?? params.host,
-      [ATTR_SERVER_PORT]: Number(url?.port) || getPort(params.port),
+      [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_POSTGRESQL,
+      [DB_NAMESPACE]: params.namespace,
+      [SERVER_ADDRESS]: url?.hostname ?? params.host,
+      [SERVER_PORT]: Number(url?.port) || getPort(params.port),
     };
   }
 
@@ -240,10 +240,10 @@ export function handleConfigQuery(
   // Set attributes
   if (queryConfig.text) {
     if (semconvStability & SemconvStability.OLD) {
-      span.setAttribute(ATTR_DB_STATEMENT, queryConfig.text);
+      span.setAttribute(DB_STATEMENT, queryConfig.text);
     }
     if (semconvStability & SemconvStability.STABLE) {
-      span.setAttribute(ATTR_DB_QUERY_TEXT, queryConfig.text);
+      span.setAttribute(DB_QUERY_TEXT, queryConfig.text);
     }
   }
 
@@ -310,7 +310,7 @@ export function patchCallback(
   return function patchedCallback(this: PgClientExtended, err: Error, res: object) {
     if (err) {
       if (Object.prototype.hasOwnProperty.call(err, 'code')) {
-        attributes[ATTR_ERROR_TYPE] = (err as any)['code'];
+        attributes[ERROR_TYPE] = (err as any)['code'];
       }
       if (err instanceof Error) {
         span.recordException(sanitizedErrorMessage(err));

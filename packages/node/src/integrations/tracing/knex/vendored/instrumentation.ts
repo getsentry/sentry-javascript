@@ -23,25 +23,20 @@ import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFi
 import * as utils from './utils';
 import { KnexInstrumentationConfig } from './types';
 import {
-  ATTR_DB_COLLECTION_NAME,
-  ATTR_DB_NAMESPACE,
-  ATTR_DB_OPERATION_NAME,
-  ATTR_DB_QUERY_TEXT,
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_SERVER_ADDRESS,
-  ATTR_SERVER_PORT,
-} from '@opentelemetry/semantic-conventions';
-import {
-  ATTR_DB_NAME,
-  ATTR_DB_OPERATION,
-  ATTR_DB_SQL_TABLE,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
-  ATTR_DB_USER,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-  ATTR_NET_TRANSPORT,
-} from './semconv';
+  DB_COLLECTION_NAME,
+  DB_NAME,
+  DB_NAMESPACE,
+  DB_OPERATION,
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_SYSTEM_NAME,
+  DB_USER,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { ATTR_DB_SQL_TABLE, ATTR_NET_PEER_NAME, ATTR_NET_PEER_PORT, ATTR_NET_TRANSPORT } from './semconv';
 
 const PACKAGE_NAME = '@sentry/instrumentation-knex';
 
@@ -135,11 +130,11 @@ export class KnexInstrumentation extends InstrumentationBase<KnexInstrumentation
 
         if (instrumentation._semconvStability & SemconvStability.OLD) {
           Object.assign(attributes, {
-            [ATTR_DB_SYSTEM]: utils.mapSystem(this.client.driverName),
+            [DB_SYSTEM]: utils.mapSystem(this.client.driverName),
             [ATTR_DB_SQL_TABLE]: table,
-            [ATTR_DB_OPERATION]: operation,
-            [ATTR_DB_USER]: config?.connection?.user,
-            [ATTR_DB_NAME]: name,
+            [DB_OPERATION]: operation,
+            [DB_USER]: config?.connection?.user,
+            [DB_NAME]: name,
             [ATTR_NET_PEER_NAME]: config?.connection?.host ?? utils.extractHostFromConnectionString(connectionString),
             [ATTR_NET_PEER_PORT]: config?.connection?.port ?? utils.extractPortFromConnectionString(connectionString),
             [ATTR_NET_TRANSPORT]: transport,
@@ -147,21 +142,21 @@ export class KnexInstrumentation extends InstrumentationBase<KnexInstrumentation
         }
         if (instrumentation._semconvStability & SemconvStability.STABLE) {
           Object.assign(attributes, {
-            [ATTR_DB_SYSTEM_NAME]: utils.mapSystem(this.client.driverName),
-            [ATTR_DB_COLLECTION_NAME]: table,
-            [ATTR_DB_OPERATION_NAME]: operation,
-            [ATTR_DB_NAMESPACE]: name,
-            [ATTR_SERVER_ADDRESS]: config?.connection?.host ?? utils.extractHostFromConnectionString(connectionString),
-            [ATTR_SERVER_PORT]: config?.connection?.port ?? utils.extractPortFromConnectionString(connectionString),
+            [DB_SYSTEM_NAME]: utils.mapSystem(this.client.driverName),
+            [DB_COLLECTION_NAME]: table,
+            [DB_OPERATION_NAME]: operation,
+            [DB_NAMESPACE]: name,
+            [SERVER_ADDRESS]: config?.connection?.host ?? utils.extractHostFromConnectionString(connectionString),
+            [SERVER_PORT]: config?.connection?.port ?? utils.extractPortFromConnectionString(connectionString),
           });
         }
         if (maxQueryLength) {
           const queryText = utils.limitLength(query?.sql, maxQueryLength);
           if (instrumentation._semconvStability & SemconvStability.STABLE) {
-            attributes[ATTR_DB_QUERY_TEXT] = queryText;
+            attributes[DB_QUERY_TEXT] = queryText;
           }
           if (instrumentation._semconvStability & SemconvStability.OLD) {
-            attributes[ATTR_DB_STATEMENT] = queryText;
+            attributes[DB_STATEMENT] = queryText;
           }
         }
 

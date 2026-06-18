@@ -15,9 +15,10 @@ import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { SpanAttributes } from '@sentry/core';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
+import { DB_STATEMENT, DB_SYSTEM } from '@sentry/conventions/attributes';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import type { Connection, FormatFunction, Query, QueryError, QueryOptions } from './mysql2-types';
-import { ATTR_DB_STATEMENT, ATTR_DB_SYSTEM, DB_SYSTEM_VALUE_MYSQL } from './semconv';
+import { DB_SYSTEM_VALUE_MYSQL } from './semconv';
 import { getConnectionAttributes, getConnectionPrototypeToInstrument, getQueryText, getSpanName, once } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-mysql2';
@@ -111,8 +112,10 @@ export class MySQL2Instrumentation extends InstrumentationBase<InstrumentationCo
 
         const attributes: SpanAttributes = {
           ...getConnectionAttributes(this.config),
-          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
-          [ATTR_DB_STATEMENT]: getQueryText(query, format, values),
+          /* eslint-disable typescript/no-deprecated */
+          [DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
+          [DB_STATEMENT]: getQueryText(query, format, values),
+          /* eslint-enable typescript/no-deprecated */
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };
 

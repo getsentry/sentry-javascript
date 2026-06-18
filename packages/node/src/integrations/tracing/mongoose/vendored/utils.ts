@@ -9,25 +9,20 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
+import { DB_NAME, DB_USER } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Collection, MongooseError } from './mongoose-types';
-import {
-  ATTR_DB_MONGODB_COLLECTION,
-  ATTR_DB_NAME,
-  ATTR_DB_USER,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-} from './semconv';
+import { ATTR_DB_MONGODB_COLLECTION, ATTR_NET_PEER_NAME, ATTR_NET_PEER_PORT } from './semconv';
 
 export function getAttributesFromCollection(collection: Collection): SpanAttributes {
   return {
     // eslint-disable-next-line typescript/no-deprecated
     [ATTR_DB_MONGODB_COLLECTION]: collection.name,
     // eslint-disable-next-line typescript/no-deprecated
-    [ATTR_DB_NAME]: collection.conn.name,
+    [DB_NAME]: collection.conn.name,
     // eslint-disable-next-line typescript/no-deprecated
-    [ATTR_DB_USER]: collection.conn.user,
+    [DB_USER]: collection.conn.user,
     // eslint-disable-next-line typescript/no-deprecated
     [ATTR_NET_PEER_NAME]: collection.conn.host,
     // eslint-disable-next-line typescript/no-deprecated

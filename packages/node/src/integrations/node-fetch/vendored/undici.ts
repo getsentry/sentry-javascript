@@ -25,21 +25,23 @@ import {
   ValueType,
 } from '@opentelemetry/api';
 import {
-  ATTR_ERROR_TYPE,
-  ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_REQUEST_METHOD_ORIGINAL,
-  ATTR_HTTP_RESPONSE_STATUS_CODE,
-  ATTR_NETWORK_PEER_ADDRESS,
-  ATTR_NETWORK_PEER_PORT,
-  ATTR_SERVER_ADDRESS,
-  ATTR_SERVER_PORT,
-  ATTR_URL_FULL,
-  ATTR_URL_PATH,
-  ATTR_URL_QUERY,
-  ATTR_URL_SCHEME,
-  ATTR_USER_AGENT_ORIGINAL,
   METRIC_HTTP_CLIENT_REQUEST_DURATION,
 } from '@opentelemetry/semantic-conventions';
+import {
+  ERROR_TYPE,
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_STATUS_CODE,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  URL_FULL,
+  URL_PATH,
+  URL_QUERY,
+  URL_SCHEME,
+  USER_AGENT_ORIGINAL,
+} from '@sentry/conventions/attributes';
 
 import type {
   ListenerRecord,
@@ -225,21 +227,21 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     const urlScheme = requestUrl.protocol.replace(':', '');
     const requestMethod = this.getRequestMethod(request.method);
     const attributes: Attributes = {
-      [ATTR_HTTP_REQUEST_METHOD]: requestMethod,
+      [HTTP_REQUEST_METHOD]: requestMethod,
       [ATTR_HTTP_REQUEST_METHOD_ORIGINAL]: request.method,
-      [ATTR_URL_FULL]: requestUrl.toString(),
-      [ATTR_URL_PATH]: requestUrl.pathname,
-      [ATTR_URL_QUERY]: requestUrl.search,
-      [ATTR_URL_SCHEME]: urlScheme,
+      [URL_FULL]: requestUrl.toString(),
+      [URL_PATH]: requestUrl.pathname,
+      [URL_QUERY]: requestUrl.search,
+      [URL_SCHEME]: urlScheme,
     };
 
     const schemePorts: Record<string, string> = { https: '443', http: '80' };
     const serverAddress = requestUrl.hostname;
     const serverPort = requestUrl.port || schemePorts[urlScheme];
 
-    attributes[ATTR_SERVER_ADDRESS] = serverAddress;
+    attributes[SERVER_ADDRESS] = serverAddress;
     if (serverPort && !isNaN(Number(serverPort))) {
-      attributes[ATTR_SERVER_PORT] = Number(serverPort);
+      attributes[SERVER_PORT] = Number(serverPort);
     }
 
     // Get user agent from headers
@@ -251,7 +253,7 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
       // we're going to take last one like `curl` does
       // ref: https://curl.se/docs/manpage.html#-A
       const userAgent = Array.isArray(userAgentValues) ? userAgentValues[userAgentValues.length - 1] : userAgentValues;
-      attributes[ATTR_USER_AGENT_ORIGINAL] = userAgent;
+      attributes[USER_AGENT_ORIGINAL] = userAgent;
     }
 
     // Get attributes from the hook if present
@@ -335,8 +337,8 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     const { span } = record;
     const { remoteAddress, remotePort } = socket;
     const spanAttributes: Attributes = {
-      [ATTR_NETWORK_PEER_ADDRESS]: remoteAddress,
-      [ATTR_NETWORK_PEER_PORT]: remotePort,
+      [NETWORK_PEER_ADDRESS]: remoteAddress,
+      [NETWORK_PEER_PORT]: remotePort,
     };
 
     // After hooks have been processed (which may modify request headers)
@@ -368,7 +370,7 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
 
     const { span, attributes } = record;
     const spanAttributes: Attributes = {
-      [ATTR_HTTP_RESPONSE_STATUS_CODE]: response.statusCode,
+      [HTTP_RESPONSE_STATUS_CODE]: response.statusCode,
     };
 
     const config = this.getConfig();
@@ -459,7 +461,7 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     this._recordFromReq.delete(request);
 
     // Record metrics (with the error)
-    attributes[ATTR_ERROR_TYPE] = error.message;
+    attributes[ERROR_TYPE] = error.message;
     this.recordRequestDuration(attributes, startTime);
   }
 
@@ -468,12 +470,12 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     const metricsAttributes: Attributes = {};
     // Get the attribs already in span attributes
     const keysToCopy = [
-      ATTR_HTTP_RESPONSE_STATUS_CODE,
-      ATTR_HTTP_REQUEST_METHOD,
-      ATTR_SERVER_ADDRESS,
-      ATTR_SERVER_PORT,
-      ATTR_URL_SCHEME,
-      ATTR_ERROR_TYPE,
+      HTTP_RESPONSE_STATUS_CODE,
+      HTTP_REQUEST_METHOD,
+      SERVER_ADDRESS,
+      SERVER_PORT,
+      URL_SCHEME,
+      ERROR_TYPE,
     ];
     keysToCopy.forEach(key => {
       if (key in attributes) {
