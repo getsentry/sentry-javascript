@@ -172,6 +172,9 @@ jobs:
       changed_bun_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/bun-integration-tests') }}
+      changed_deno_integration:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/deno-integration-tests') }}
       changed_browser_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/browser-integration-tests') }}
@@ -953,6 +956,36 @@ jobs:
         working-directory: dev-packages/bun-integration-tests
         run: yarn test
 
+  job_deno_integration_tests:
+    name: Deno Integration Tests
+    needs: [job_get_metadata, job_build]
+    if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: 'package.json'
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2.0.4
+        with:
+          deno-version: 'v2.8.0'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Build @sentry/deno
+        working-directory: packages/deno
+        run: yarn build
+      - name: Run integration tests
+        working-directory: dev-packages/deno-integration-tests
+        run: yarn test
+
   job_build_tarballs:
     name: Build tarballs
     # We want to run this if:
@@ -1252,6 +1285,7 @@ jobs:
         job_cloudflare_integration_tests,
         job_bundler_plugin_integration_tests,
         job_bun_integration_tests,
+        job_deno_integration_tests,
         job_browser_playwright_tests,
         job_browser_loader_tests,
         job_e2e_tests,

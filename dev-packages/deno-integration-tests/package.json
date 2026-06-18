@@ -1,0 +1,25 @@
+{
+  "name": "@sentry-internal/deno-integration-tests",
+  "version": "10.62.0",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true,
+  "scripts": {
+    "deno-types": "node ./scripts/download-deno-types.mjs",
+    "install:deno": "node ./scripts/install-deno.mjs",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "test": "run-s install:deno deno-types test:unit",
+    "test:unit": "deno test --allow-net --allow-read --allow-run --allow-env --no-check"
+  },
+  "dependencies": {
+    "@sentry/core": "10.62.0",
+    "@sentry/deno": "10.62.0",
+    "mysql": "^2.18.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
