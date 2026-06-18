@@ -3,10 +3,11 @@ import { SDK_INFO } from '@opentelemetry/core';
 import { SERVICE_NAME, SERVICE_VERSION } from '@sentry/conventions/attributes';
 import { SDK_VERSION } from '@sentry/core';
 
-// These resource attributes are not (yet) part of `@sentry/conventions`, so we inline the
+// These resource attributes are not part of `@sentry/conventions`, so we inline the
 // stable OTel attribute keys here as plain strings rather than depending on
 // `@opentelemetry/semantic-conventions`. The string values must match exactly, as
 // `SDK_INFO` (from `@opentelemetry/core`) is keyed by them.
+// This is OTEL-specific and not relevant for Sentry, and will eventually go away.
 const ATTR_TELEMETRY_SDK_LANGUAGE = 'telemetry.sdk.language';
 const ATTR_TELEMETRY_SDK_NAME = 'telemetry.sdk.name';
 const ATTR_TELEMETRY_SDK_VERSION = 'telemetry.sdk.version';
