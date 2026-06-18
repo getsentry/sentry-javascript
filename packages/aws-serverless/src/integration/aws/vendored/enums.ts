@@ -18,13 +18,8 @@
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
 
-export const AWS_OPERATION = 'aws.operation';
 export const CLOUD_REGION = 'cloud.region';
-export const AWS_SERVICE_API = 'aws.service.api';
-export const AWS_SERVICE_NAME = 'aws.service.name';
-export const AWS_SERVICE_IDENTIFIER = 'aws.service.identifier';
 export const AWS_REQUEST_ID = 'aws.request.id';
 export const AWS_REQUEST_EXTENDED_ID = 'aws.request.extended_id';
-export const AWS_SIGNATURE_VERSION = 'aws.signature.version';
 export const AWS_S3_BUCKET = 'aws.s3.bucket';
 export const AWS_KINESIS_STREAM_NAME = 'aws.kinesis.stream.name';
