@@ -39,39 +39,52 @@ export interface TracingChannelBindingOptions<TData extends object = object> {
   captureError?: boolean;
 }
 
+/** Returned by {@link bindTracingChannelToSpan}: the bound channel plus a teardown handle. */
+export interface TracingChannelBindingHandle<TData extends object = object> {
+  /** The tracing channel with the span bound into async context (and, in `auto` mode, its lifecycle subscribed). */
+  channel: SentryTracingChannel<TData>;
+  /**
+   * Tears down the binding: unsubscribes the auto lifecycle handlers and unbinds the start store.
+   * Idempotent, and a no-op when no async context binding was available.
+   */
+  unbind: () => void;
+}
+
 const NOOP = (): void => {};
 
 export function bindTracingChannelToSpan<TData extends object>(
   channel: TracingChannel<TData, TData>,
   getSpan: (data: TracingChannelPayloadWithSpan<TData>) => Span,
   opts?: TracingChannelBindingOptions<TData>,
-): SentryTracingChannel<TData> {
+): TracingChannelBindingHandle<TData> {
+  const sentryChannel = channel as SentryTracingChannel<TData>;
   const binding = _INTERNAL_getTracingChannelBinding();
 
   if (!binding) {
     DEBUG_BUILD && debug.log('[TracingChannel] Could not access async context binding.');
-    return channel as SentryTracingChannel<TData>;
+    return { channel: sentryChannel, unbind: NOOP };
   }
 
-  channel.start.bindStore(
-    binding.asyncLocalStorage as AsyncLocalStorage<TData>,
-    (data: TracingChannelPayloadWithSpan<TData>) => {
-      const span = getSpan(data);
-      data._sentrySpan = span;
+  const asyncLocalStorage = binding.asyncLocalStorage as AsyncLocalStorage<TData>;
 
-      return binding.getStoreWithActiveSpan(span) as TData;
-    },
-  );
+  channel.start.bindStore(asyncLocalStorage, (data: TracingChannelPayloadWithSpan<TData>) => {
+    const span = getSpan(data);
+    data._sentrySpan = span;
 
-  const sentryChannel = channel as SentryTracingChannel<TData>;
+    return binding.getStoreWithActiveSpan(span) as TData;
+  });
+
+  const unbindStore = (): void => {
+    channel.start.unbindStore(asyncLocalStorage);
+  };
 
   if (opts?.lifecycle === 'manual') {
-    return sentryChannel;
+    return { channel: sentryChannel, unbind: unbindStore };
   }
 
   const beforeSpanEnd = opts?.beforeSpanEnd;
 
-  sentryChannel.subscribe({
+  const subscribers: Partial<TracingChannelSubscribers<TracingChannelPayloadWithSpan<TData>>> = {
     start: NOOP,
     asyncStart: NOOP,
     end(data) {
@@ -95,9 +108,17 @@ export function bindTracingChannelToSpan<TData extends object>(
     asyncEnd(data) {
       endBoundSpan(data, beforeSpanEnd);
     },
-  });
+  };
 
-  return sentryChannel;
+  sentryChannel.subscribe(subscribers);
+
+  return {
+    channel: sentryChannel,
+    unbind: () => {
+      sentryChannel.unsubscribe(subscribers);
+      unbindStore();
+    },
+  };
 }
 
 function endBoundSpan<TData extends object>(

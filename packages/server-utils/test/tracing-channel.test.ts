@@ -114,7 +114,7 @@ describe('bindTracingChannelToSpan', () => {
 
     const span = startInactiveSpan({ name: 'channel-span' });
     const getSpan = vi.fn(() => span);
-    const channel = bindTracingChannelToSpan(tracingChannel<{ operation: string }>('test:bind-span:data'), getSpan);
+    const { channel } = bindTracingChannelToSpan(tracingChannel<{ operation: string }>('test:bind-span:data'), getSpan);
 
     let dataSpan: Span | undefined;
     channel.subscribe({
@@ -134,7 +134,7 @@ describe('bindTracingChannelToSpan', () => {
     installTestAsyncContextStrategy();
 
     const span = startInactiveSpan({ name: 'channel-span' });
-    const channel = bindTracingChannelToSpan(
+    const { channel } = bindTracingChannelToSpan(
       tracingChannel<{ operation: string }>('test:bind-span:active'),
       () => span,
     );
@@ -156,7 +156,7 @@ describe('bindTracingChannelToSpan', () => {
     initTestClient();
 
     const parent = startInactiveSpan({ forceTransaction: true, name: 'parent-span' });
-    const channel = bindTracingChannelToSpan(
+    const { channel } = bindTracingChannelToSpan(
       tracingChannel<{ operation: string }>('test:bind-span:children'),
       () => parent,
     );
@@ -180,7 +180,7 @@ describe('bindTracingChannelToSpan', () => {
 
     // Returns a channel whose span we can observe, plus spies for `span.end` and `captureException`.
     function setup(name: string): {
-      channel: ReturnType<typeof bindTracingChannelToSpan>;
+      channel: ReturnType<typeof bindTracingChannelToSpan>['channel'];
       span: Span;
       endSpy: ReturnType<typeof vi.spyOn>;
       captureExceptionSpy: ReturnType<typeof vi.spyOn>;
@@ -190,7 +190,7 @@ describe('bindTracingChannelToSpan', () => {
       const span = startInactiveSpan({ name: 'channel-span' });
       const endSpy = vi.spyOn(span, 'end');
       const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
-      const channel = bindTracingChannelToSpan(tracingChannel<{ operation: string }>(name), () => span);
+      const { channel } = bindTracingChannelToSpan(tracingChannel<{ operation: string }>(name), () => span);
       return { channel, span, endSpy, captureExceptionSpy };
     }
 
@@ -388,7 +388,7 @@ describe('bindTracingChannelToSpan', () => {
 
       const span = startInactiveSpan({ name: 'channel-span' });
       const error = new Error('db-down');
-      const channel = bindTracingChannelToSpan(
+      const { channel } = bindTracingChannelToSpan(
         tracingChannel<{ operation: string }>('test:captureError:off'),
         () => span,
         { captureError: false },
@@ -417,7 +417,7 @@ describe('bindTracingChannelToSpan', () => {
       const span = startInactiveSpan({ name: 'channel-span' });
       let openWhenCalled: boolean | undefined;
       let receivedSpan: Span | undefined;
-      const channel = bindTracingChannelToSpan(
+      const { channel } = bindTracingChannelToSpan(
         tracingChannel<{ operation: string }>('test:beforeSpanEnd:sync'),
         () => span,
         {
@@ -444,7 +444,7 @@ describe('bindTracingChannelToSpan', () => {
       initTestClient();
 
       const span = startInactiveSpan({ name: 'channel-span' });
-      const channel = bindTracingChannelToSpan(
+      const { channel } = bindTracingChannelToSpan(
         tracingChannel<{ operation: string }>('test:beforeSpanEnd:async'),
         () => span,
         {
@@ -469,7 +469,7 @@ describe('bindTracingChannelToSpan', () => {
       const span = startInactiveSpan({ name: 'channel-span' });
       const error = new Error('boom');
       let sawError: unknown;
-      const channel = bindTracingChannelToSpan(
+      const { channel } = bindTracingChannelToSpan(
         tracingChannel<{ operation: string }>('test:beforeSpanEnd:error'),
         () => span,
         {
@@ -500,9 +500,13 @@ describe('bindTracingChannelToSpan', () => {
     const span = startInactiveSpan({ name: 'channel-span' });
     const endSpy = vi.spyOn(span, 'end');
     const getSpan = vi.fn(() => span);
-    const channel = bindTracingChannelToSpan(tracingChannel<{ operation: string }>('test:lifecycle:manual'), getSpan, {
-      lifecycle: 'manual',
-    });
+    const { channel } = bindTracingChannelToSpan(
+      tracingChannel<{ operation: string }>('test:lifecycle:manual'),
+      getSpan,
+      {
+        lifecycle: 'manual',
+      },
+    );
 
     let activeSpan: Span | undefined;
     channel.traceSync(
@@ -525,7 +529,7 @@ describe('bindTracingChannelToSpan', () => {
     const getSpan = vi.fn(() => span);
     const rawChannel = tracingChannel<{ operation: string }>('test:lifecycle:no-binding');
 
-    const channel = bindTracingChannelToSpan(rawChannel, getSpan);
+    const { channel } = bindTracingChannelToSpan(rawChannel, getSpan);
 
     expect(channel).toBe(rawChannel);
 
@@ -533,5 +537,33 @@ describe('bindTracingChannelToSpan', () => {
 
     expect(getSpan).not.toHaveBeenCalled();
     expect(endSpy).not.toHaveBeenCalled();
+  });
+
+  it('unbind detaches the binding: getSpan no longer runs and the span is no longer ended', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+
+    const span = startInactiveSpan({ name: 'channel-span' });
+    const endSpy = vi.spyOn(span, 'end');
+    const getSpan = vi.fn(() => span);
+    const { channel, unbind } = bindTracingChannelToSpan(
+      tracingChannel<{ operation: string }>('test:lifecycle:unbind'),
+      getSpan,
+    );
+
+    // Sanity: while bound, the span is created and ended.
+    channel.traceSync(() => undefined, { operation: 'read' });
+    expect(getSpan).toHaveBeenCalledTimes(1);
+    expect(endSpy).toHaveBeenCalledTimes(1);
+
+    unbind();
+
+    // After unbind, neither the start store nor the lifecycle handlers fire.
+    channel.traceSync(() => undefined, { operation: 'read' });
+    expect(getSpan).toHaveBeenCalledTimes(1);
+    expect(endSpy).toHaveBeenCalledTimes(1);
+
+    // Idempotent.
+    expect(() => unbind()).not.toThrow();
   });
 });
