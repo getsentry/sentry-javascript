@@ -44,7 +44,7 @@
     "@nestjs/common": "^11",
     "@nestjs/core": "^11",
     "@nestjs/platform-express": "^11",
-    "@prisma/adapter-pg": "7.2.0",
+    "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "6.15.0",
     "@sentry/aws-serverless": "10.58.0",
     "@sentry/core": "10.58.0",
