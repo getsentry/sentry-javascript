@@ -5,47 +5,9 @@
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-mongodb
  * - Upstream version: @opentelemetry/instrumentation-mongodb@0.71.0
+ * - Trimmed to the driver-internal types actually used by the instrumentation
  */
-/* eslint-disable */
 
-import { InstrumentationConfig } from '@opentelemetry/instrumentation';
-import { Span } from '@opentelemetry/api';
-
-export interface MongoDBInstrumentationExecutionResponseHook {
-  (span: Span, responseInfo: MongoResponseHookInformation): void;
-}
-
-/**
- * Function that can be used to serialize db.statement tag
- * @param cmd - MongoDB command object
- *
- * @returns serialized string that will be used as the db.statement attribute.
- */
-export type DbStatementSerializer = (cmd: Record<string, unknown>) => string;
-
-export interface MongoDBInstrumentationConfig extends InstrumentationConfig {
-  /**
-   * If true, additional information about query parameters and
-   * results will be attached (as `attributes`) to spans representing
-   * database operations.
-   */
-  enhancedDatabaseReporting?: boolean;
-
-  /**
-   * Hook that allows adding custom span attributes based on the data
-   * returned from MongoDB actions.
-   *
-   * @default undefined
-   */
-  responseHook?: MongoDBInstrumentationExecutionResponseHook;
-
-  /**
-   * Custom serializer function for the db.statement tag
-   */
-  dbStatementSerializer?: DbStatementSerializer;
-}
-
-export type Func<T> = (...args: unknown[]) => T;
 export type MongoInternalCommand = {
   findandmodify: boolean;
   createIndexes: boolean;
@@ -59,25 +21,7 @@ export type MongoInternalCommand = {
   u?: Record<string, unknown>;
 };
 
-export type ServerSession = {
-  id: any;
-  lastUse: number;
-  txnNumber: number;
-  isDirty: boolean;
-};
-
 export type CursorState = { cmd: MongoInternalCommand } & Record<string, unknown>;
-
-export interface MongoResponseHookInformation {
-  data: CommandResult;
-}
-
-// https://github.com/mongodb/node-mongodb-native/blob/3.6/lib/core/connection/command_result.js
-export type CommandResult = {
-  result?: unknown;
-  connection?: unknown;
-  message?: unknown;
-};
 
 // https://github.com/mongodb/node-mongodb-native/blob/3.6/lib/core/wireprotocol/index.js
 export type WireProtocolInternal = {
@@ -191,24 +135,3 @@ export type V4ConnectionPool = {
   // types of callback params are not needed
   checkOut: (callback: (error: any, connection: any) => void) => void;
 };
-
-export type V4Connect = {
-  connect: Function;
-  // From version 6.4.0 the method does not expect a callback and returns a promise
-  // https://github.com/mongodb/node-mongodb-native/blob/v6.4.0/src/cmap/connect.ts
-  connectPromise: (options: any) => Promise<any>;
-  // Earlier versions expect a callback param and return void
-  // https://github.com/mongodb/node-mongodb-native/blob/v4.2.2/src/cmap/connect.ts
-  connectCallback: (options: any, callback: any) => void;
-};
-
-// https://github.com/mongodb/node-mongodb-native/blob/v4.2.2/src/sessions.ts
-export type V4Session = {
-  acquire: () => ServerSession;
-  release: (session: ServerSession) => void;
-};
-
-/**
- * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#replacer
- */
-export type Replacer = (key: string, value: unknown) => unknown;
