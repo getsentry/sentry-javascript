@@ -254,8 +254,8 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
               span.end();
               return result;
             })
-            .catch((error: Error) => {
-              span.setStatus({ code: SPAN_STATUS_ERROR, message: error.message });
+            .catch((error: unknown) => {
+              span.setStatus({ code: SPAN_STATUS_ERROR, message: utils.getErrorMessage(error) });
               span.end();
               return Promise.reject(error);
             });

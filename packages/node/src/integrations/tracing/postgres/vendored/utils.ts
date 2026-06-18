@@ -34,6 +34,8 @@ import {
   DB_SYSTEM_VALUE_POSTGRESQL,
 } from './semconv';
 
+/* oxlint-disable typescript/no-deprecated */
+
 export const ORIGIN = 'auto.db.otel.postgres';
 
 /**
