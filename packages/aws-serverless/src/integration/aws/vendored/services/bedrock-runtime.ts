@@ -21,16 +21,18 @@
 import { Attributes, DiagLogger, diag, Span } from '@opentelemetry/api';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import {
-  ATTR_GEN_AI_SYSTEM,
-  ATTR_GEN_AI_OPERATION_NAME,
-  ATTR_GEN_AI_REQUEST_MODEL,
-  ATTR_GEN_AI_REQUEST_MAX_TOKENS,
-  ATTR_GEN_AI_REQUEST_TEMPERATURE,
-  ATTR_GEN_AI_REQUEST_TOP_P,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_REQUEST_TOP_P,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_SYSTEM,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+} from '@sentry/conventions/attributes';
+import {
   ATTR_GEN_AI_REQUEST_STOP_SEQUENCES,
-  ATTR_GEN_AI_USAGE_INPUT_TOKENS,
-  ATTR_GEN_AI_USAGE_OUTPUT_TOKENS,
-  ATTR_GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_OPERATION_NAME_VALUE_CHAT,
   GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
 } from '../semconv';
@@ -82,14 +84,14 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   ): RequestMetadata {
     let spanName = GEN_AI_OPERATION_NAME_VALUE_CHAT;
     const spanAttributes: Attributes = {
-      // eslint-disable-next-line typescript/no-deprecated
-      [ATTR_GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
-      [ATTR_GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_CHAT,
+      // oxlint-disable-next-line typescript/no-deprecated
+      [GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
+      [GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_CHAT,
     };
 
     const modelId = request.commandInput.modelId;
     if (modelId) {
-      spanAttributes[ATTR_GEN_AI_REQUEST_MODEL] = modelId;
+      spanAttributes[GEN_AI_REQUEST_MODEL] = modelId;
       if (spanName) {
         spanName += ` ${modelId}`;
       }
@@ -99,13 +101,13 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     if (inferenceConfig) {
       const { maxTokens, temperature, topP, stopSequences } = inferenceConfig;
       if (maxTokens !== undefined) {
-        spanAttributes[ATTR_GEN_AI_REQUEST_MAX_TOKENS] = maxTokens;
+        spanAttributes[GEN_AI_REQUEST_MAX_TOKENS] = maxTokens;
       }
       if (temperature !== undefined) {
-        spanAttributes[ATTR_GEN_AI_REQUEST_TEMPERATURE] = temperature;
+        spanAttributes[GEN_AI_REQUEST_TEMPERATURE] = temperature;
       }
       if (topP !== undefined) {
-        spanAttributes[ATTR_GEN_AI_REQUEST_TOP_P] = topP;
+        spanAttributes[GEN_AI_REQUEST_TOP_P] = topP;
       }
       if (stopSequences !== undefined) {
         spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = stopSequences;
@@ -127,102 +129,102 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     isStream: boolean,
   ): RequestMetadata {
     const spanAttributes: Attributes = {
-      // eslint-disable-next-line typescript/no-deprecated
-      [ATTR_GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
+      // oxlint-disable-next-line typescript/no-deprecated
+      [GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
       // add operation name for InvokeModel API
     };
 
     const modelId = request.commandInput?.modelId;
     if (modelId) {
-      spanAttributes[ATTR_GEN_AI_REQUEST_MODEL] = modelId;
+      spanAttributes[GEN_AI_REQUEST_MODEL] = modelId;
     }
 
     if (request.commandInput?.body) {
       const requestBody = JSON.parse(request.commandInput.body);
       if (modelId.includes('amazon.titan')) {
         if (requestBody.textGenerationConfig?.temperature !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TEMPERATURE] = requestBody.textGenerationConfig.temperature;
+          spanAttributes[GEN_AI_REQUEST_TEMPERATURE] = requestBody.textGenerationConfig.temperature;
         }
         if (requestBody.textGenerationConfig?.topP !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TOP_P] = requestBody.textGenerationConfig.topP;
+          spanAttributes[GEN_AI_REQUEST_TOP_P] = requestBody.textGenerationConfig.topP;
         }
         if (requestBody.textGenerationConfig?.maxTokenCount !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_MAX_TOKENS] = requestBody.textGenerationConfig.maxTokenCount;
+          spanAttributes[GEN_AI_REQUEST_MAX_TOKENS] = requestBody.textGenerationConfig.maxTokenCount;
         }
         if (requestBody.textGenerationConfig?.stopSequences !== undefined) {
           spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = requestBody.textGenerationConfig.stopSequences;
         }
       } else if (modelId.includes('amazon.nova')) {
         if (requestBody.inferenceConfig?.temperature !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TEMPERATURE] = requestBody.inferenceConfig.temperature;
+          spanAttributes[GEN_AI_REQUEST_TEMPERATURE] = requestBody.inferenceConfig.temperature;
         }
         if (requestBody.inferenceConfig?.top_p !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TOP_P] = requestBody.inferenceConfig.top_p;
+          spanAttributes[GEN_AI_REQUEST_TOP_P] = requestBody.inferenceConfig.top_p;
         }
         if (requestBody.inferenceConfig?.max_new_tokens !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_MAX_TOKENS] = requestBody.inferenceConfig.max_new_tokens;
+          spanAttributes[GEN_AI_REQUEST_MAX_TOKENS] = requestBody.inferenceConfig.max_new_tokens;
         }
         if (requestBody.inferenceConfig?.stopSequences !== undefined) {
           spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = requestBody.inferenceConfig.stopSequences;
         }
       } else if (modelId.includes('anthropic.claude')) {
         if (requestBody.max_tokens !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_MAX_TOKENS] = requestBody.max_tokens;
+          spanAttributes[GEN_AI_REQUEST_MAX_TOKENS] = requestBody.max_tokens;
         }
         if (requestBody.temperature !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TEMPERATURE] = requestBody.temperature;
+          spanAttributes[GEN_AI_REQUEST_TEMPERATURE] = requestBody.temperature;
         }
         if (requestBody.top_p !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TOP_P] = requestBody.top_p;
+          spanAttributes[GEN_AI_REQUEST_TOP_P] = requestBody.top_p;
         }
         if (requestBody.stop_sequences !== undefined) {
           spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = requestBody.stop_sequences;
         }
       } else if (modelId.includes('meta.llama')) {
         if (requestBody.max_gen_len !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_MAX_TOKENS] = requestBody.max_gen_len;
+          spanAttributes[GEN_AI_REQUEST_MAX_TOKENS] = requestBody.max_gen_len;
         }
         if (requestBody.temperature !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TEMPERATURE] = requestBody.temperature;
+          spanAttributes[GEN_AI_REQUEST_TEMPERATURE] = requestBody.temperature;
         }
         if (requestBody.top_p !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TOP_P] = requestBody.top_p;
+          spanAttributes[GEN_AI_REQUEST_TOP_P] = requestBody.top_p;
         }
         // request for meta llama models does not contain stop_sequences field
       } else if (modelId.includes('cohere.command-r')) {
         if (requestBody.max_tokens !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_MAX_TOKENS] = requestBody.max_tokens;
+          spanAttributes[GEN_AI_REQUEST_MAX_TOKENS] = requestBody.max_tokens;
         }
         if (requestBody.temperature !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TEMPERATURE] = requestBody.temperature;
+          spanAttributes[GEN_AI_REQUEST_TEMPERATURE] = requestBody.temperature;
         }
         if (requestBody.p !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TOP_P] = requestBody.p;
+          spanAttributes[GEN_AI_REQUEST_TOP_P] = requestBody.p;
         }
         if (requestBody.message !== undefined) {
           // NOTE: We approximate the token count since this value is not directly available in the body
           // According to Bedrock docs they use (total_chars / 6) to approximate token count for pricing.
           // https://docs.aws.amazon.com/bedrock/latest/userguide/model-customization-prepare.html
-          spanAttributes[ATTR_GEN_AI_USAGE_INPUT_TOKENS] = Math.ceil(requestBody.message.length / 6);
+          spanAttributes[GEN_AI_USAGE_INPUT_TOKENS] = Math.ceil(requestBody.message.length / 6);
         }
         if (requestBody.stop_sequences !== undefined) {
           spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = requestBody.stop_sequences;
         }
       } else if (modelId.includes('cohere.command')) {
         if (requestBody.max_tokens !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_MAX_TOKENS] = requestBody.max_tokens;
+          spanAttributes[GEN_AI_REQUEST_MAX_TOKENS] = requestBody.max_tokens;
         }
         if (requestBody.temperature !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TEMPERATURE] = requestBody.temperature;
+          spanAttributes[GEN_AI_REQUEST_TEMPERATURE] = requestBody.temperature;
         }
         if (requestBody.p !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TOP_P] = requestBody.p;
+          spanAttributes[GEN_AI_REQUEST_TOP_P] = requestBody.p;
         }
         if (requestBody.prompt !== undefined) {
           // NOTE: We approximate the token count since this value is not directly available in the body
           // According to Bedrock docs they use (total_chars / 6) to approximate token count for pricing.
           // https://docs.aws.amazon.com/bedrock/latest/userguide/model-customization-prepare.html
-          spanAttributes[ATTR_GEN_AI_USAGE_INPUT_TOKENS] = Math.ceil(requestBody.prompt.length / 6);
+          spanAttributes[GEN_AI_USAGE_INPUT_TOKENS] = Math.ceil(requestBody.prompt.length / 6);
         }
         if (requestBody.stop_sequences !== undefined) {
           spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = requestBody.stop_sequences;
@@ -232,16 +234,16 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           // NOTE: We approximate the token count since this value is not directly available in the body
           // According to Bedrock docs they use (total_chars / 6) to approximate token count for pricing.
           // https://docs.aws.amazon.com/bedrock/latest/userguide/model-customization-prepare.html
-          spanAttributes[ATTR_GEN_AI_USAGE_INPUT_TOKENS] = Math.ceil(requestBody.prompt.length / 6);
+          spanAttributes[GEN_AI_USAGE_INPUT_TOKENS] = Math.ceil(requestBody.prompt.length / 6);
         }
         if (requestBody.max_tokens !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_MAX_TOKENS] = requestBody.max_tokens;
+          spanAttributes[GEN_AI_REQUEST_MAX_TOKENS] = requestBody.max_tokens;
         }
         if (requestBody.temperature !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TEMPERATURE] = requestBody.temperature;
+          spanAttributes[GEN_AI_REQUEST_TEMPERATURE] = requestBody.temperature;
         }
         if (requestBody.top_p !== undefined) {
-          spanAttributes[ATTR_GEN_AI_REQUEST_TOP_P] = requestBody.top_p;
+          spanAttributes[GEN_AI_REQUEST_TOP_P] = requestBody.top_p;
         }
         if (requestBody.stop !== undefined) {
           spanAttributes[ATTR_GEN_AI_REQUEST_STOP_SEQUENCES] = requestBody.stop;
@@ -309,7 +311,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
 
   private static setStopReason(span: Span, stopReason: string | undefined) {
     if (stopReason !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [stopReason]);
+      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [stopReason]);
     }
   }
 
@@ -317,10 +319,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     if (usage) {
       const { inputTokens, outputTokens } = usage;
       if (inputTokens !== undefined) {
-        span.setAttribute(ATTR_GEN_AI_USAGE_INPUT_TOKENS, inputTokens);
+        span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, inputTokens);
       }
       if (outputTokens !== undefined) {
-        span.setAttribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, outputTokens);
+        span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, outputTokens);
       }
     }
   }
@@ -332,60 +334,60 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       const responseBody = JSON.parse(decodedResponseBody);
       if (currentModelId.includes('amazon.titan')) {
         if (responseBody.inputTextTokenCount !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_USAGE_INPUT_TOKENS, responseBody.inputTextTokenCount);
+          span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, responseBody.inputTextTokenCount);
         }
         if (responseBody.results?.[0]?.tokenCount !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.results[0].tokenCount);
+          span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.results[0].tokenCount);
         }
         if (responseBody.results?.[0]?.completionReason !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.results[0].completionReason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.results[0].completionReason]);
         }
       } else if (currentModelId.includes('amazon.nova')) {
         if (responseBody.usage !== undefined) {
           if (responseBody.usage.inputTokens !== undefined) {
-            span.setAttribute(ATTR_GEN_AI_USAGE_INPUT_TOKENS, responseBody.usage.inputTokens);
+            span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, responseBody.usage.inputTokens);
           }
           if (responseBody.usage.outputTokens !== undefined) {
-            span.setAttribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.usage.outputTokens);
+            span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.usage.outputTokens);
           }
         }
         if (responseBody.stopReason !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.stopReason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.stopReason]);
         }
       } else if (currentModelId.includes('anthropic.claude')) {
         if (responseBody.usage?.input_tokens !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_USAGE_INPUT_TOKENS, responseBody.usage.input_tokens);
+          span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, responseBody.usage.input_tokens);
         }
         if (responseBody.usage?.output_tokens !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.usage.output_tokens);
+          span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.usage.output_tokens);
         }
         if (responseBody.stop_reason !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.stop_reason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.stop_reason]);
         }
       } else if (currentModelId.includes('meta.llama')) {
         if (responseBody.prompt_token_count !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_USAGE_INPUT_TOKENS, responseBody.prompt_token_count);
+          span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, responseBody.prompt_token_count);
         }
         if (responseBody.generation_token_count !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.generation_token_count);
+          span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, responseBody.generation_token_count);
         }
         if (responseBody.stop_reason !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.stop_reason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.stop_reason]);
         }
       } else if (currentModelId.includes('cohere.command-r')) {
         if (responseBody.text !== undefined) {
           // NOTE: We approximate the token count since this value is not directly available in the body
           // According to Bedrock docs they use (total_chars / 6) to approximate token count for pricing.
           // https://docs.aws.amazon.com/bedrock/latest/userguide/model-customization-prepare.html
-          span.setAttribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(responseBody.text.length / 6));
+          span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(responseBody.text.length / 6));
         }
         if (responseBody.finish_reason !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.finish_reason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.finish_reason]);
         }
       } else if (currentModelId.includes('cohere.command')) {
         if (responseBody.generations?.[0]?.text !== undefined) {
           span.setAttribute(
-            ATTR_GEN_AI_USAGE_OUTPUT_TOKENS,
+            GEN_AI_USAGE_OUTPUT_TOKENS,
             // NOTE: We approximate the token count since this value is not directly available in the body
             // According to Bedrock docs they use (total_chars / 6) to approximate token count for pricing.
             // https://docs.aws.amazon.com/bedrock/latest/userguide/model-customization-prepare.html
@@ -393,12 +395,12 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           );
         }
         if (responseBody.generations?.[0]?.finish_reason !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.generations[0].finish_reason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.generations[0].finish_reason]);
         }
       } else if (currentModelId.includes('mistral')) {
         if (responseBody.outputs?.[0]?.text !== undefined) {
           span.setAttribute(
-            ATTR_GEN_AI_USAGE_OUTPUT_TOKENS,
+            GEN_AI_USAGE_OUTPUT_TOKENS,
             // NOTE: We approximate the token count since this value is not directly available in the body
             // According to Bedrock docs they use (total_chars / 6) to approximate token count for pricing.
             // https://docs.aws.amazon.com/bedrock/latest/userguide/model-customization-prepare.html
@@ -406,7 +408,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
           );
         }
         if (responseBody.outputs?.[0]?.stop_reason !== undefined) {
-          span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.outputs[0].stop_reason]);
+          span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [responseBody.outputs[0].stop_reason]);
         }
       }
     }
@@ -466,56 +468,56 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   private static recordNovaAttributes(parsedChunk: any, span: Span) {
     if (parsedChunk.metadata?.usage !== undefined) {
       if (parsedChunk.metadata?.usage.inputTokens !== undefined) {
-        span.setAttribute(ATTR_GEN_AI_USAGE_INPUT_TOKENS, parsedChunk.metadata.usage.inputTokens);
+        span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, parsedChunk.metadata.usage.inputTokens);
       }
       if (parsedChunk.metadata?.usage.outputTokens !== undefined) {
-        span.setAttribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.metadata.usage.outputTokens);
+        span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.metadata.usage.outputTokens);
       }
     }
     if (parsedChunk.messageStop?.stopReason !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.messageStop.stopReason]);
+      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.messageStop.stopReason]);
     }
   }
 
   private static recordClaudeAttributes(parsedChunk: any, span: Span) {
     if (parsedChunk.message?.usage?.input_tokens !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_USAGE_INPUT_TOKENS, parsedChunk.message.usage.input_tokens);
+      span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, parsedChunk.message.usage.input_tokens);
     }
     if (parsedChunk.message?.usage?.output_tokens !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.message.usage.output_tokens);
+      span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.message.usage.output_tokens);
     }
     if (parsedChunk.delta?.stop_reason !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.delta.stop_reason]);
+      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.delta.stop_reason]);
     }
   }
 
   private static recordTitanAttributes(parsedChunk: any, span: Span) {
     if (parsedChunk.inputTextTokenCount !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_USAGE_INPUT_TOKENS, parsedChunk.inputTextTokenCount);
+      span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, parsedChunk.inputTextTokenCount);
     }
     if (parsedChunk.totalOutputTextTokenCount !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.totalOutputTextTokenCount);
+      span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.totalOutputTextTokenCount);
     }
     if (parsedChunk.completionReason !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.completionReason]);
+      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.completionReason]);
     }
   }
   private static recordLlamaAttributes(parsedChunk: any, span: Span) {
     if (parsedChunk.prompt_token_count !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_USAGE_INPUT_TOKENS, parsedChunk.prompt_token_count);
+      span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, parsedChunk.prompt_token_count);
     }
     if (parsedChunk.generation_token_count !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.generation_token_count);
+      span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, parsedChunk.generation_token_count);
     }
     if (parsedChunk.stop_reason !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.stop_reason]);
+      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.stop_reason]);
     }
   }
 
   private static recordMistralAttributes(parsedChunk: any, span: Span) {
     if (parsedChunk.outputs?.[0]?.text !== undefined) {
       span.setAttribute(
-        ATTR_GEN_AI_USAGE_OUTPUT_TOKENS,
+        GEN_AI_USAGE_OUTPUT_TOKENS,
         // NOTE: We approximate the token count since this value is not directly available in the body
         // According to Bedrock docs they use (total_chars / 6) to approximate token count for pricing.
         // https://docs.aws.amazon.com/bedrock/latest/userguide/model-customization-prepare.html
@@ -523,14 +525,14 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       );
     }
     if (parsedChunk.outputs?.[0]?.stop_reason !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.outputs[0].stop_reason]);
+      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.outputs[0].stop_reason]);
     }
   }
 
   private static recordCohereAttributes(parsedChunk: any, span: Span) {
     if (parsedChunk.generations?.[0]?.text !== undefined) {
       span.setAttribute(
-        ATTR_GEN_AI_USAGE_OUTPUT_TOKENS,
+        GEN_AI_USAGE_OUTPUT_TOKENS,
         // NOTE: We approximate the token count since this value is not directly available in the body
         // According to Bedrock docs they use (total_chars / 6) to approximate token count for pricing.
         // https://docs.aws.amazon.com/bedrock/latest/userguide/model-customization-prepare.html
@@ -538,7 +540,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       );
     }
     if (parsedChunk.generations?.[0]?.finish_reason !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.generations[0].finish_reason]);
+      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.generations[0].finish_reason]);
     }
   }
 
@@ -547,10 +549,10 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       // NOTE: We approximate the token count since this value is not directly available in the body
       // According to Bedrock docs they use (total_chars / 6) to approximate token count for pricing.
       // https://docs.aws.amazon.com/bedrock/latest/userguide/model-customization-prepare.html
-      span.setAttribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(parsedChunk.text.length / 6));
+      span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, Math.ceil(parsedChunk.text.length / 6));
     }
     if (parsedChunk.finish_reason !== undefined) {
-      span.setAttribute(ATTR_GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.finish_reason]);
+      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [parsedChunk.finish_reason]);
     }
   }
 }

@@ -45,17 +45,12 @@ import {
   isWrapped,
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
-import {
-  ATTR_URL_FULL,
-  SEMATTRS_FAAS_EXECUTION,
-  SEMRESATTRS_CLOUD_ACCOUNT_ID,
-  SEMRESATTRS_FAAS_ID,
-} from '@opentelemetry/semantic-conventions';
+import { CLOUD_ACCOUNT_ID, FAAS_COLDSTART, URL_FULL } from '@sentry/conventions/attributes';
 import type { APIGatewayProxyEventHeaders, Callback, Context, Handler, StreamifyHandler } from 'aws-lambda';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { LambdaModule } from './internal-types';
-import { ATTR_FAAS_COLDSTART } from './semconv';
+import { ATTR_FAAS_EXECUTION, ATTR_FAAS_ID } from './semconv';
 import type { AwsLambdaInstrumentationConfig, EventContextExtractor } from './types';
 import { wrapHandler } from '../../sdk';
 import { SDK_VERSION } from '@sentry/core';
@@ -338,10 +333,10 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
       {
         kind: SpanKind.SERVER,
         attributes: {
-          [SEMATTRS_FAAS_EXECUTION]: context.awsRequestId,
-          [SEMRESATTRS_FAAS_ID]: context.invokedFunctionArn,
-          [SEMRESATTRS_CLOUD_ACCOUNT_ID]: AwsLambdaInstrumentation._extractAccountId(context.invokedFunctionArn),
-          [ATTR_FAAS_COLDSTART]: requestIsColdStart,
+          [ATTR_FAAS_EXECUTION]: context.awsRequestId,
+          [ATTR_FAAS_ID]: context.invokedFunctionArn,
+          [CLOUD_ACCOUNT_ID]: AwsLambdaInstrumentation._extractAccountId(context.invokedFunctionArn),
+          [FAAS_COLDSTART]: requestIsColdStart,
           ...AwsLambdaInstrumentation._extractOtherEventFields(event),
         },
       },
@@ -561,7 +556,7 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     const answer: Attributes = {};
     const fullUrl = this._extractFullUrl(event);
     if (fullUrl) {
-      answer[ATTR_URL_FULL] = fullUrl;
+      answer[URL_FULL] = fullUrl;
     }
     return answer;
   }
