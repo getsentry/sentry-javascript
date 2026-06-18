@@ -72,7 +72,7 @@ export class LambdaServiceExtension implements ServiceExtension {
     switch (response.request.commandName) {
       case LambdaCommands.Invoke:
         {
-          // eslint-disable-next-line typescript/no-deprecated
+          // oxlint-disable-next-line typescript/no-deprecated
           span.setAttribute(ATTR_FAAS_EXECUTION, response.requestId);
         }
         break;

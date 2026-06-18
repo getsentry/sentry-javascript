@@ -19,7 +19,7 @@
  */
 
 import { Attributes, SpanKind } from '@opentelemetry/api';
-import { AttributeNames } from '../enums';
+import { AWS_KINESIS_STREAM_NAME } from '../enums';
 import { AwsSdkInstrumentationConfig, NormalizedRequest } from '../types';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 
@@ -30,7 +30,7 @@ export class KinesisServiceExtension implements ServiceExtension {
     const spanAttributes: Attributes = {};
 
     if (streamName) {
-      spanAttributes[AttributeNames.AWS_KINESIS_STREAM_NAME] = streamName;
+      spanAttributes[AWS_KINESIS_STREAM_NAME] = streamName;
     }
 
     const isIncoming = false;

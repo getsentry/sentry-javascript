@@ -19,7 +19,7 @@
  */
 
 import { Attributes, SpanKind } from '@opentelemetry/api';
-import { AttributeNames } from '../enums';
+import { AWS_S3_BUCKET } from '../enums';
 import { AwsSdkInstrumentationConfig, NormalizedRequest } from '../types';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 
@@ -30,7 +30,7 @@ export class S3ServiceExtension implements ServiceExtension {
     const spanAttributes: Attributes = {};
 
     if (bucketName) {
-      spanAttributes[AttributeNames.AWS_S3_BUCKET] = bucketName;
+      spanAttributes[AWS_S3_BUCKET] = bucketName;
     }
 
     const isIncoming = false;

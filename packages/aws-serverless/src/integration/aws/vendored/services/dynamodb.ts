@@ -64,8 +64,11 @@ export class DynamodbServiceExtension implements ServiceExtension {
 
     const spanAttributes: Attributes = {};
 
+    // oxlint-disable-next-line typescript/no-deprecated
     spanAttributes[DB_SYSTEM] = DB_SYSTEM_VALUE_DYNAMODB;
+    // oxlint-disable-next-line typescript/no-deprecated
     spanAttributes[DB_NAME] = tableName;
+    // oxlint-disable-next-line typescript/no-deprecated
     spanAttributes[DB_OPERATION] = operation;
 
     // normalizedRequest.commandInput.RequestItems) is undefined when no table names are returned

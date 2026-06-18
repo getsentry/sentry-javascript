@@ -21,7 +21,7 @@
 import { Attributes, Context, context } from '@opentelemetry/api';
 import { RPC_METHOD, RPC_SERVICE } from '@sentry/conventions/attributes';
 import { ATTR_RPC_SYSTEM } from './semconv';
-import { AttributeNames } from './enums';
+import { CLOUD_REGION } from './enums';
 import { NormalizedRequest } from './types';
 
 export const removeSuffixFromStringIfExists = (str: string, suffixToRemove: string): string => {
@@ -48,7 +48,7 @@ export const extractAttributesFromNormalizedRequest = (normalizedRequest: Normal
     [ATTR_RPC_SYSTEM]: 'aws-api',
     [RPC_METHOD]: normalizedRequest.commandName,
     [RPC_SERVICE]: normalizedRequest.serviceName,
-    [AttributeNames.CLOUD_REGION]: normalizedRequest.region,
+    [CLOUD_REGION]: normalizedRequest.region,
   };
 };
 
