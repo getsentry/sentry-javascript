@@ -1,6 +1,6 @@
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
+import { HTTP_TARGET } from '@sentry/conventions/attributes';
 import {
   debug,
   getActiveSpan,
@@ -113,7 +113,7 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
               // TODO: try to set derived parameterized route from build here (args[0])
               const spanData = spanToJSON(rootSpan);
               // eslint-disable-next-line typescript/no-deprecated
-              const target = spanData.data[SEMATTRS_HTTP_TARGET] || url.pathname;
+              const target = spanData.data[HTTP_TARGET] || url.pathname;
               updateSpanName(rootSpan, `${request.method} ${target}`);
               rootSpan.setAttributes({
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
