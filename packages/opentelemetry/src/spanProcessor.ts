@@ -125,4 +125,10 @@ function backfillStreamedSpanDataFromOtel(spanJSON: StreamedSpanJSON, hint?: { s
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     ...data,
   });
+
+  if (kind !== SpanKind.INTERNAL) {
+    safeSetSpanJSONAttributes(spanJSON, {
+      'otel.kind': SpanKind[kind],
+    });
+  }
 }
