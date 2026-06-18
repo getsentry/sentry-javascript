@@ -668,8 +668,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /**
    * Register a callback for when a span JSON is processed, to add some data to the span JSON.
+   * The optional `hint` exposes additional context about the originating span (e.g. the OTel `spanKind`).
    */
-  public on(hook: 'processSpan', callback: (streamedSpanJSON: StreamedSpanJSON) => void): () => void;
+  public on(
+    hook: 'processSpan',
+    callback: (streamedSpanJSON: StreamedSpanJSON, hint?: { spanKind?: number }) => void,
+  ): () => void;
 
   /**
    * Register a callback for when a segment span JSON is processed, to add some data to the segment span JSON.
@@ -974,7 +978,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Fire a hook event when a span JSON is processed, to add some data to the span JSON.
    */
-  public emit(hook: 'processSpan', streamedSpanJSON: StreamedSpanJSON): void;
+  public emit(hook: 'processSpan', streamedSpanJSON: StreamedSpanJSON, hint?: { spanKind?: number }): void;
 
   /**
    * Fire a hook event for when a segment span JSON is processed, to add some data to the segment span JSON.

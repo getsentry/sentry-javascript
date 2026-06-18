@@ -1,6 +1,7 @@
 import type { Context } from '@opentelemetry/api';
-import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
+import { ROOT_CONTEXT, SpanKind, trace } from '@opentelemetry/api';
 import type { ReadableSpan, Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
+import type { SpanAttributes, StreamedSpanJSON } from '@sentry/core';
 import {
   addChildSpanToSpan,
   getClient,
@@ -9,11 +10,15 @@ import {
   hasSpanStreamingEnabled,
   logSpanEnd,
   logSpanStart,
+  safeSetSpanJSONAttributes,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { SentrySpanExporter } from './spanExporter';
 import { getScopesFromContext } from './utils/contextData';
+import { inferSpanData } from './utils/parseSpanDescription';
 import { setIsSetup } from './utils/setupCheck';
 /**
  * Converts OpenTelemetry Spans to Sentry Spans and sends them to Sentry via
@@ -25,6 +30,10 @@ export class SentrySpanProcessor implements SpanProcessorInterface {
   public constructor(options?: { timeout?: number }) {
     setIsSetup('SentrySpanProcessor');
     this._exporter = new SentrySpanExporter(options);
+
+    // Streamed spans skip the exporter, so they don't get op/source/name inferred from OTel
+    // semantic conventions. We backfill them here, reusing the same inference as the exporter.
+    getClient()?.on('processSpan', backfillStreamedSpanDataFromOtel);
   }
 
   /**
@@ -93,4 +102,27 @@ export class SentrySpanProcessor implements SpanProcessorInterface {
       this._exporter.export(span);
     }
   }
+}
+
+/**
+ * Backfill op, source, name and data on a streamed span JSON from OTel semantic conventions.
+ * Mirrors the inference the {@link SentrySpanExporter} applies to non-streamed spans via `getSpanData`.
+ * Explicitly set attributes are preserved via `safeSetSpanJSONAttributes`.
+ */
+function backfillStreamedSpanDataFromOtel(spanJSON: StreamedSpanJSON, hint?: { spanKind?: number }): void {
+  const attributes = spanJSON.attributes;
+  if (!attributes) {
+    return;
+  }
+
+  const kind = hint?.spanKind ?? SpanKind.INTERNAL;
+  const { op, description, source, data } = inferSpanData(spanJSON.name, attributes as unknown as SpanAttributes, kind);
+
+  spanJSON.name = description;
+
+  safeSetSpanJSONAttributes(spanJSON, {
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+    ...data,
+  });
 }
