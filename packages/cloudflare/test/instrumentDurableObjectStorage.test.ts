@@ -300,6 +300,29 @@ describe('instrumentDurableObjectStorage', () => {
     });
   });
 
+  it('instruments sql exec', () => {
+    const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+    const mockStorage = createMockStorage();
+    const instrumented = instrumentDurableObjectStorage(mockStorage);
+
+    instrumented.sql.exec('SELECT 1');
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      {
+        name: 'SELECT ?',
+        op: 'db.query',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          'db.system.name': 'cloudflare-durable-object-sql',
+          'db.operation.name': 'exec',
+          'db.query.text': 'SELECT ?',
+          'cloudflare.durable_object.query.bindings': 0,
+        },
+      },
+      expect.any(Function),
+    );
+  });
+
   describe('non-instrumented methods', () => {
     it('does not instrument deleteAll, sync, transaction', async () => {
       const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
@@ -311,14 +334,6 @@ describe('instrumentDurableObjectStorage', () => {
       await instrumented.transaction(async txn => txn);
 
       expect(startSpanSpy).not.toHaveBeenCalled();
-    });
-
-    it('does not instrument sql property', () => {
-      const mockStorage = createMockStorage();
-      const instrumented = instrumentDurableObjectStorage(mockStorage);
-
-      // sql is a property, not a method we instrument
-      expect(instrumented.sql).toBe(mockStorage.sql);
     });
   });
 
