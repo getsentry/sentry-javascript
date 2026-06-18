@@ -23,3 +23,5 @@ export type {
   RedisTracingChannelFactory,
   RedisTracingChannelSubscribers,
 } from './redis/redis-dc-subscriber';
+export { bindTracingChannelToSpan } from './tracing-channel';
+export type { SentryTracingChannel, TracingChannelPayloadWithSpan } from './tracing-channel';

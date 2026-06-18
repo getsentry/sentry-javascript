@@ -1,7 +1,7 @@
 import type { Carrier } from './../carrier';
 import { getMainCarrier, getSentryCarrier } from './../carrier';
 import { getStackAsyncContextStrategy } from './stackStrategy';
-import type { AsyncContextStrategy } from './types';
+import type { AsyncContextStrategy, TracingChannelBinding } from './types';
 
 /**
  * @private Private API with no semver guarantees!
@@ -28,4 +28,11 @@ export function getAsyncContextStrategy(carrier: Carrier): AsyncContextStrategy 
 
   // Otherwise, use the default one (stack)
   return getStackAsyncContextStrategy();
+}
+
+/**
+ * Get the runtime binding needed to connect tracing channels to async context.
+ */
+export function getTracingChannelBinding(): TracingChannelBinding | undefined {
+  return getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.();
 }

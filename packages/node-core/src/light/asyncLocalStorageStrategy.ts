@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Scope } from '@sentry/core';
 import {
+  _INTERNAL_setSpanForScope,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
   setAsyncContextStrategy,
@@ -80,5 +81,14 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
     withSetIsolationScope,
     getCurrentScope: () => getScopes().scope,
     getIsolationScope: () => getScopes().isolationScope,
+    getTracingChannelBinding: () => ({
+      asyncLocalStorage: asyncStorage,
+      getStoreWithActiveSpan: span => {
+        const scope = getScopes().scope.clone();
+        const isolationScope = getScopes().isolationScope;
+        _INTERNAL_setSpanForScope(scope, span);
+        return { scope, isolationScope };
+      },
+    }),
   });
 }

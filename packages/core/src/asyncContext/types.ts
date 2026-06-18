@@ -1,4 +1,5 @@
 import type { Scope } from '../scope';
+import type { Span } from '../types/span';
 import type { getTraceData } from '../utils/traceData';
 import type {
   continueTrace,
@@ -10,6 +11,11 @@ import type {
   withActiveSpan,
 } from './../tracing/trace';
 import type { getActiveSpan } from './../utils/spanUtils';
+
+export interface TracingChannelBinding {
+  asyncLocalStorage: unknown;
+  getStoreWithActiveSpan: (span: Span) => unknown;
+}
 
 /**
  * @private Private API with no semver guarantees!
@@ -80,4 +86,7 @@ export interface AsyncContextStrategy {
 
   /** Start a new trace, ensuring all spans in the callback share the same traceId. */
   startNewTrace?: typeof startNewTrace;
+
+  /** Get the runtime store required to bind tracing channels to an active span. */
+  getTracingChannelBinding?: () => TracingChannelBinding | undefined;
 }
