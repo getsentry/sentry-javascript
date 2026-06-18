@@ -75,6 +75,7 @@ export const getRouteMetadata = (
 } => {
   const attributes: Attributes = {
     [ATTR_HTTP_ROUTE]: route.path,
+    // eslint-disable-next-line typescript/no-deprecated
     [ATTR_HTTP_METHOD]: route.method,
   };
 
