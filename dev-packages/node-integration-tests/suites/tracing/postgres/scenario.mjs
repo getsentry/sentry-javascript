@@ -23,6 +23,18 @@ async function run() {
 
         await client.query('INSERT INTO "User" ("email", "name") VALUES ($1, $2)', ['tim', 'tim@domain.com']);
         await client.query('SELECT * FROM "User"');
+
+        // A named (prepared) query records its name as the `db.postgresql.plan` attribute
+        await client.query({
+          name: 'select-user-by-email',
+          text: 'SELECT * FROM "User" WHERE "email" = $1',
+          values: ['tim'],
+        });
+
+        // A failing query should still produce an errored span
+        await client.query('SELECT * FROM "does_not_exist_table"').catch(() => {
+          // swallow: we only care about the span it produces
+        });
       } finally {
         await client.end();
       }

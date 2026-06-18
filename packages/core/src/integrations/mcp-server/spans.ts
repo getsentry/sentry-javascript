@@ -105,8 +105,8 @@ function createMcpSpan(config: McpSpanConfig): unknown {
   };
 
   const client = getClient();
-  const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
-  const attributes = filterMcpPiiFromSpanData(rawAttributes, sendDefaultPii) as Record<string, string | number>;
+  const userInfo = Boolean(client?.getDataCollectionOptions().userInfo);
+  const attributes = filterMcpPiiFromSpanData(rawAttributes, userInfo) as Record<string, string | number>;
 
   return startSpan(
     {
@@ -200,8 +200,8 @@ export function buildMcpServerSpanConfig(
   };
 
   const client = getClient();
-  const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
-  const attributes = filterMcpPiiFromSpanData(rawAttributes, sendDefaultPii) as Record<string, string | number>;
+  const userInfo = Boolean(client?.getDataCollectionOptions().userInfo);
+  const attributes = filterMcpPiiFromSpanData(rawAttributes, userInfo) as Record<string, string | number>;
 
   return {
     name: spanName,

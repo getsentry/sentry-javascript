@@ -1,8 +1,6 @@
 // Automatic istrumentation for Express using OTel
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { context } from '@opentelemetry/api';
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 
 import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 import {
@@ -17,6 +15,7 @@ import {
 } from '@sentry/core';
 export { expressErrorHandler } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
+import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 
 const INTEGRATION_NAME = 'Express';
 const SUPPORTED_VERSIONS = ['>=4.0.0 <6'];
@@ -51,9 +50,8 @@ export class ExpressInstrumentation extends InstrumentationBase<ExpressInstrumen
           patchExpressModule(express, () => ({
             ...this.getConfig(),
             onRouteResolved(route) {
-              const rpcMetadata = getRPCMetadata(context.active());
-              if (route && rpcMetadata?.type === RPCType.HTTP) {
-                rpcMetadata.route = route;
+              if (route) {
+                setHttpServerSpanRouteAttribute(route);
               }
             },
           }));

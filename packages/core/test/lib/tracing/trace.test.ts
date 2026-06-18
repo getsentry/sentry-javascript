@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  getCapturedScopesOnSpan,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -8,6 +9,7 @@ import {
   Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setAsyncContextStrategy,
   setCurrentClient,
   spanToJSON,
@@ -230,18 +232,73 @@ describe('startSpan', () => {
     setCurrentClient(client);
     client.init();
 
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+    });
+
+    let scopeInCallback: Scope | undefined;
     const span = startSpan({ name: 'GET users/[id]' }, span => {
+      scopeInCallback = getCurrentScope();
       return span;
     });
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    expect(span.spanContext().traceId).toBe('12345678901234567890123456789012');
     expect(getDynamicSamplingContextFromSpan(span)).toEqual({
       environment: 'production',
-      sample_rate: '0',
-      sampled: 'false',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      transaction: 'GET users/[id]',
+    });
+
+    // Scopes are captured on the placeholder so consumers (e.g. SentryTraceProvider) can read them.
+    // `startSpan` forks the scope, so the captured scope is the one active inside the callback.
+    expect(getCapturedScopesOnSpan(span).scope).toBe(scopeInCallback);
+    expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
+  });
+
+  it('freezes a continued trace empty DSC as-is when tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({});
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    // A continued `sentry-trace` without baggage yields an empty frozen DSC marker.
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+      dsc: {},
+    });
+
+    const span = startSpan({ name: 'GET users/[id]' }, span => {
+      return span;
+    });
+
+    expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    expect(span.spanContext().traceId).toBe('12345678901234567890123456789012');
+    // We are not head of trace: don't fabricate client fields or inject the local transaction.
+    expect(getDynamicSamplingContextFromSpan(span)).toEqual({});
+  });
+
+  it('does not add a url-source span name to the DSC when tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({});
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const span = startSpan(
+      {
+        name: '/users/123e4567-e89b-12d3-a456-426614174000',
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+      },
+      span => span,
+    );
+
+    expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    // URLs might contain PII, so the span name must not end up in the DSC.
+    expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+      environment: 'production',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
   });
 
@@ -874,7 +931,9 @@ describe('startSpanManual', () => {
     setCurrentClient(client);
     client.init();
 
+    let scopeInCallback: Scope | undefined;
     const span = startSpanManual({ name: 'GET users/[id]' }, span => {
+      scopeInCallback = getCurrentScope();
       return span;
     });
 
@@ -882,11 +941,13 @@ describe('startSpanManual', () => {
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
     expect(getDynamicSamplingContextFromSpan(span)).toEqual({
       environment: 'production',
-      sample_rate: '0',
-      sampled: 'false',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      transaction: 'GET users/[id]',
     });
+
+    // Scopes are captured on the placeholder so consumers (e.g. SentryTraceProvider) can read them.
+    // `startSpanManual` forks the scope, so the captured scope is the one active inside the callback.
+    expect(getCapturedScopesOnSpan(span).scope).toBe(scopeInCallback);
+    expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
   });
 
   it('creates & finishes span', async () => {
@@ -1394,11 +1455,12 @@ describe('startInactiveSpan', () => {
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
     expect(getDynamicSamplingContextFromSpan(span)).toEqual({
       environment: 'production',
-      sample_rate: '0',
-      sampled: 'false',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      transaction: 'GET users/[id]',
     });
+
+    // Scopes are captured on the placeholder so consumers (e.g. SentryTraceProvider) can read them.
+    expect(getCapturedScopesOnSpan(span).scope).toBe(getCurrentScope());
+    expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
   });
 
   it('creates & finishes span', async () => {
@@ -2336,6 +2398,36 @@ describe('span hooks', () => {
     expect(startedSpans).toEqual(['span1', 'span2', 'span3', 'span5', 'span4']);
     expect(endedSpans).toEqual(['span5', 'span3', 'span2', 'span1']);
   });
+
+  it('captures scopes on a root span before the spanStart event fires', () => {
+    let scopeAtSpanStart: Scope | undefined;
+    let isolationScopeAtSpanStart: Scope | undefined;
+    client.on('spanStart', span => {
+      scopeAtSpanStart = getCapturedScopesOnSpan(span).scope;
+      isolationScopeAtSpanStart = getCapturedScopesOnSpan(span).isolationScope;
+    });
+
+    startInactiveSpan({ name: 'root span' });
+
+    expect(scopeAtSpanStart).toBe(getCurrentScope());
+    expect(isolationScopeAtSpanStart).toBe(getIsolationScope());
+  });
+
+  it('captures scopes on a child span before the spanStart event fires', () => {
+    let scopeAtSpanStart: Scope | undefined;
+    let isolationScopeAtSpanStart: Scope | undefined;
+    client.on('spanStart', span => {
+      scopeAtSpanStart = getCapturedScopesOnSpan(span).scope;
+      isolationScopeAtSpanStart = getCapturedScopesOnSpan(span).isolationScope;
+    });
+
+    startSpan({ name: 'parent span' }, () => {
+      startInactiveSpan({ name: 'child span' });
+
+      expect(scopeAtSpanStart).toBe(getCurrentScope());
+      expect(isolationScopeAtSpanStart).toBe(getIsolationScope());
+    });
+  });
 });
 
 describe('suppressTracing', () => {
@@ -2824,5 +2916,21 @@ describe('ignoreSpans (core path, streaming)', () => {
     const span = startInactiveSpan({ name: 'ignored-segment' });
     expect(span.spanContext().traceId).toBe(getCurrentScope().getPropagationContext().traceId);
     expect(span.spanContext().traceId).toBe('abc');
+  });
+
+  it('captures scopes on an ignored streamed span so its DSC can be resolved from the scope', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored'],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const span = startInactiveSpan({ name: 'ignored' });
+
+    expect(getCapturedScopesOnSpan(span).scope).toBe(getCurrentScope());
+    expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
   });
 });

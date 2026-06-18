@@ -132,6 +132,7 @@ function captureHandlerError(error: Error, methodName: keyof MCPServerInstance, 
  * @param serverInstance - MCP server instance
  */
 export function wrapToolHandlers(serverInstance: MCPServerInstance): void {
+  // eslint-disable-next-line typescript/no-deprecated
   if (typeof serverInstance.tool === 'function') wrapMethodHandler(serverInstance, 'tool');
   if (typeof serverInstance.registerTool === 'function') wrapMethodHandler(serverInstance, 'registerTool');
 }
@@ -142,6 +143,7 @@ export function wrapToolHandlers(serverInstance: MCPServerInstance): void {
  * @param serverInstance - MCP server instance
  */
 export function wrapResourceHandlers(serverInstance: MCPServerInstance): void {
+  // eslint-disable-next-line typescript/no-deprecated
   if (typeof serverInstance.resource === 'function') wrapMethodHandler(serverInstance, 'resource');
   if (typeof serverInstance.registerResource === 'function') wrapMethodHandler(serverInstance, 'registerResource');
 }
@@ -152,6 +154,7 @@ export function wrapResourceHandlers(serverInstance: MCPServerInstance): void {
  * @param serverInstance - MCP server instance
  */
 export function wrapPromptHandlers(serverInstance: MCPServerInstance): void {
+  // eslint-disable-next-line typescript/no-deprecated
   if (typeof serverInstance.prompt === 'function') wrapMethodHandler(serverInstance, 'prompt');
   if (typeof serverInstance.registerPrompt === 'function') wrapMethodHandler(serverInstance, 'registerPrompt');
 }

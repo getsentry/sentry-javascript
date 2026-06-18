@@ -1,6 +1,6 @@
 type ClassOption = string | RegExp;
 
-/** Duplicate this from @sentry-internal/rrweb so we can export this as well. */
+/** Duplicate this from @sentry/rrweb so we can export this as well. */
 export const ReplayEventTypeDomContentLoaded = 0;
 export const ReplayEventTypeLoad = 1;
 export const ReplayEventTypeFullSnapshot = 2;

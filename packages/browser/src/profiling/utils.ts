@@ -651,7 +651,7 @@ export function shouldProfileSpanLegacy(span: Span): boolean {
     return false;
   }
 
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const profilesSampleRate = (options as BrowserOptions).profilesSampleRate as
     | BrowserOptions['profilesSampleRate']
     | boolean;
@@ -729,7 +729,7 @@ export function shouldProfileSession(options: BrowserOptions): boolean {
  * Checks if legacy profiling is configured.
  */
 export function hasLegacyProfiling(options: BrowserOptions): boolean {
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   return typeof options.profilesSampleRate !== 'undefined';
 }
 

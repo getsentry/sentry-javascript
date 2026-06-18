@@ -176,7 +176,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
   const { _experiments, enableMetrics, beforeSendMetric } = client.getOptions();
 
   // todo(v11): Remove the experimental flag
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const metricsEnabled = enableMetrics ?? _experiments?.enableMetrics ?? true;
 
   if (!metricsEnabled) {
@@ -191,7 +191,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
   client.emit('processMetric', enrichedMetric);
 
   // todo(v11): Remove the experimental `beforeSendMetric`
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const beforeSendCallback = beforeSendMetric || _experiments?.beforeSendMetric;
   const processedMetric = beforeSendCallback ? beforeSendCallback(enrichedMetric) : enrichedMetric;
 
@@ -230,7 +230,7 @@ export function _INTERNAL_flushMetricsBuffer(client: Client, maybeMetricBuffer?:
     clientOptions._metadata,
     clientOptions.tunnel,
     client.getDsn(),
-    clientOptions.sendDefaultPii,
+    client.getDataCollectionOptions().userInfo,
   );
 
   // Clear the metric buffer after envelopes have been constructed.

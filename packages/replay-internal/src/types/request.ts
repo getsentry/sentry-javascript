@@ -1,4 +1,4 @@
-import type { NetworkMetaWarning } from '@sentry-internal/browser-utils';
+import type { NetworkMetaWarning } from '@sentry/browser-utils';
 
 type JsonObject = Record<string, unknown>;
 type JsonArray = unknown[];

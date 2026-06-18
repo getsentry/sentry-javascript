@@ -15,6 +15,7 @@ export { vercelWaitUntil } from './utils/vercelWaitUntil';
 export { flushIfServerless } from './utils/flushIfServerless';
 export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
+// eslint-disable-next-line typescript/no-deprecated
 export { patchExpressModule, setupExpressErrorHandler, expressErrorHandler } from './integrations/express/index';
 export type {
   ExpressIntegrationOptions,

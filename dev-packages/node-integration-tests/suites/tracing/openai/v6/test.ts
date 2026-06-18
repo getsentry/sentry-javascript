@@ -33,7 +33,7 @@ describe('OpenAI integration (V6)', () => {
     'scenario-chat.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('creates openai related spans with sendDefaultPii: false (v6)', async () => {
+      test('creates openai related spans with genAI recording disabled (v6)', async () => {
         await createRunner()
           .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
@@ -343,7 +343,7 @@ describe('OpenAI integration (V6)', () => {
     'scenario-chat.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('creates openai related spans with sendDefaultPii: true (v6)', async () => {
+      test('creates openai related spans with genAI recording enabled (v6)', async () => {
         await createRunner()
           .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
@@ -798,7 +798,7 @@ describe('OpenAI integration (V6)', () => {
     'scenario-embeddings.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('creates openai related spans with sendDefaultPii: false (v6)', async () => {
+      test('creates openai related spans with genAI recording disabled (v6)', async () => {
         await createRunner()
           .ignore('event')
           .expect({
@@ -941,7 +941,7 @@ describe('OpenAI integration (V6)', () => {
     'scenario-embeddings.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('creates openai related spans with sendDefaultPii: true (v6)', async () => {
+      test('creates openai related spans with genAI recording enabled (v6)', async () => {
         await createRunner()
           .ignore('event')
           .expect({

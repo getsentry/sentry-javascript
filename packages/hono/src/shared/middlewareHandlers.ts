@@ -12,12 +12,14 @@ import {
 import type { Context } from 'hono';
 import { routePath } from 'hono/route';
 import { hasFetchEvent } from '../utils/hono-context';
-import { isExpectedError } from './isExpectedError';
+import { defaultShouldHandleError } from './defaultShouldHandleError';
+import { type SentryHonoMiddlewareOptions } from '../shared/types';
+import { type GetConnInfo } from 'hono/conninfo';
 
 /**
  * Request handler for Hono framework
  */
-export function requestHandler(context: Context): void {
+export function requestHandler(context: Context, getConnInfo?: GetConnInfo): void {
   const defaultScope = getDefaultIsolationScope();
   const currentIsolationScope = getIsolationScope();
 
@@ -28,16 +30,62 @@ export function requestHandler(context: Context): void {
   isolationScope.setSDKProcessingMetadata({
     normalizedRequest: winterCGRequestToRequestData(hasFetchEvent(context) ? context.event.request : context.req.raw),
   });
+
+  if (getConnInfo) {
+    setConnInfoAttributes(context, getConnInfo, isolationScope);
+  }
+}
+
+/**
+ * Adds HTTP connection info (client IP, port, transport, address type) from Hono's `getConnInfo`
+ * helper to the root (server) span and the isolation scope.
+ */
+function setConnInfoAttributes(context: Context, getConnInfo: GetConnInfo, isolationScope: Scope): void {
+  const activeSpan = getActiveSpan();
+  if (!activeSpan) {
+    return;
+  }
+
+  let remote: ReturnType<GetConnInfo>['remote'] | undefined;
+  try {
+    remote = getConnInfo(context).remote;
+  } catch {
+    // The helper can throw when the underlying socket/env is unavailable (e.g. unsupported runtime).
+    return;
+  }
+
+  const { address, port, transport, addressType } = remote || {};
+
+  // Only collect client IP if `userInfo` is enabled (this is primarily for setting data with `.setUser`, but in this case we cannot check for `dataCollection.headers` or similar)
+  const ipAddress = address && getClient()?.getDataCollectionOptions().userInfo ? address : undefined;
+
+  getRootSpan(activeSpan).setAttributes({
+    'client.port': port,
+    'network.peer.port': port,
+    'network.transport': transport,
+    'network.type': addressType?.toLowerCase(),
+    'client.address': ipAddress,
+    'network.peer.address': ipAddress,
+  });
+
+  if (ipAddress) {
+    isolationScope.setUser({ ...isolationScope.getUser(), ip_address: ipAddress });
+  }
 }
 
 /**
  * Response handler for Hono framework
  */
-export function responseHandler(context: Context): void {
-  if (context.error && !isExpectedError(context.error)) {
-    getClient()?.captureException(context.error, {
-      mechanism: { handled: false, type: 'auto.http.hono.context_error' },
-    });
+export function responseHandler(
+  context: Context,
+  shouldHandleError?: SentryHonoMiddlewareOptions['shouldHandleError'],
+): void {
+  if (context.error) {
+    if ((shouldHandleError ?? defaultShouldHandleError)(context.error)) {
+      getClient()?.captureException(context.error, {
+        mechanism: { handled: false, type: 'auto.http.hono.context_error' },
+      });
+    }
   }
 }
 

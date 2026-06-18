@@ -3,6 +3,7 @@ import * as currentScopes from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import * as tracingModule from '../../../../src/tracing';
 import {
+  createMockClient,
   createMockMcpServer,
   createMockMcpServerWithPreregisteredHandlers,
   createMockMcpServerWithRegisterApi,
@@ -15,12 +16,7 @@ describe('wrapMcpServerWithSentry', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock client to return sendDefaultPii:
-    getClientSpy.mockReturnValue({
-      getOptions: () => ({ sendDefaultPii: true }),
-      getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
-      emit: vi.fn(),
-    } as any);
+    getClientSpy.mockReturnValue(createMockClient(true));
   });
 
   it('should return the same instance (modified) if it is a valid MCP server instance', () => {

@@ -1,10 +1,10 @@
-import { record } from '@sentry-internal/rrweb';
+import { record } from '@sentry/rrweb';
 import type { Mock, MockedFunction } from 'vitest';
 import { vi } from 'vitest';
 import type { RecordingEvent, ReplayEventWithTime } from '../../src/types';
 import { ReplayEventTypeFullSnapshot, ReplayEventTypeIncrementalSnapshot } from '../../src/types';
 
-vi.mock('@sentry-internal/rrweb', async () => {
+vi.mock('@sentry/rrweb', async () => {
   const mockRecordFn: Mock & Partial<RecordAdditionalProperties> = vi.fn(({ emit }) => {
     mockRecordFn._emitter = emit;
 
@@ -21,7 +21,7 @@ vi.mock('@sentry-internal/rrweb', async () => {
     mockRecordFn._emitter(createCheckoutPayload(isCheckout), isCheckout);
   });
 
-  const ActualRrweb = await vi.importActual('@sentry-internal/rrweb');
+  const ActualRrweb = await vi.importActual('@sentry/rrweb');
 
   mockRecordFn.mirror = ActualRrweb.record.mirror;
 

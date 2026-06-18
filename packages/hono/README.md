@@ -4,14 +4,13 @@
   </a>
 </p>
 
-# Official Sentry SDK for Hono (BETA)
+# Official Sentry SDK for Hono
 
 [![npm version](https://img.shields.io/npm/v/@sentry/hono.svg)](https://www.npmjs.com/package/@sentry/hono)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/hono.svg)](https://www.npmjs.com/package/@sentry/hono)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/hono.svg)](https://www.npmjs.com/package/@sentry/hono)
 
-This SDK is compatible with Hono 4+ and is currently in BETA. Beta features are still in progress and may have bugs.
-Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
+This SDK is compatible with Hono 4+.
 
 ## Links
 
@@ -189,3 +188,66 @@ app.use(
 
 serve(app);
 ```
+
+## Setup (Deno)
+
+### 1. Install Peer Dependency
+
+Additionally to `@sentry/hono`, install the `@sentry/deno` package:
+
+```bash
+npm install --save @sentry/deno
+```
+
+Make sure the installed version always stays in sync. The `@sentry/deno` package is a required peer dependency when using `@sentry/hono/deno`.
+You won't import `@sentry/deno` directly in your code, but it needs to be installed in your project.
+
+### 2. Initialize Sentry in your Hono app
+
+Initialize the Sentry Hono middleware as early as possible in your app, then serve it with `Deno.serve`:
+
+```ts
+import { Hono } from 'hono';
+import { sentry } from '@sentry/hono/deno';
+
+const app = new Hono();
+
+// Initialize Sentry middleware right after creating the app
+app.use(
+  sentry(app, {
+    dsn: '__DSN__', // or Deno.env.get('SENTRY_DSN')
+    tracesSampleRate: 1.0,
+  }),
+);
+
+// ... your routes and other middleware
+
+Deno.serve(app.fetch);
+```
+
+Run your app with the permissions Sentry needs to read environment variables and send events:
+
+```bash
+deno run --allow-net --allow-env --allow-read app.ts
+```
+
+## Filtering errors
+
+By default, `@sentry/hono` captures 5xx errors and plain `Error` objects, and ignores 3xx/4xx HTTP errors (redirects, not-found, bad request, etc.).
+
+Use `shouldHandleError` to override this on a per-error basis:
+
+```ts
+app.use(
+  sentry(app, {
+    dsn: '__DSN__',
+    shouldHandleError(error) {
+      const status = (error as { status?: number })?.status;
+      // Capture 401/403 in addition to the default 5xx errors
+      return status === 401 || status === 403 || typeof status !== 'number' || status >= 500;
+    },
+  }),
+);
+```
+
+Return `true` to capture the error, `false` to suppress it.

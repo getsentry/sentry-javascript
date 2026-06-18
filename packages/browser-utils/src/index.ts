@@ -8,14 +8,17 @@ export {
 
 export {
   addPerformanceEntries,
+  addWebVitalsToSpan,
   startTrackingInteractions,
   startTrackingLongTasks,
   startTrackingLongAnimationFrames,
+  // eslint-disable-next-line typescript/no-deprecated
   startTrackingWebVitals,
   startTrackingINP,
   registerInpInteractionListener,
 } from './metrics/browserMetrics';
 
+// eslint-disable-next-line typescript/no-deprecated
 export { elementTimingIntegration, startTrackingElementTiming } from './metrics/elementTiming';
 
 export { extractNetworkProtocol } from './metrics/utils';
@@ -33,5 +36,9 @@ export { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from './instrument/
 export { getBodyString, getFetchRequestArgBody, serializeFormData, parseXhrResponseHeaders } from './networkUtils';
 
 export { resourceTimingToSpanAttributes } from './metrics/resourceTiming';
+
+export { htmlTreeAsString } from './htmlTreeAsString';
+
+export { isElement } from './is';
 
 export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';

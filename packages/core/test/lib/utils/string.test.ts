@@ -1,5 +1,6 @@
-import { describe, expect, test, vi } from 'vitest';
-import { isMatchingPattern, stringMatchesSomePattern, truncate } from '../../../src/utils/string';
+import { afterEach, describe, expect, test, vi } from 'vitest';
+import { setNormalizeStringifier } from '../../../src';
+import { isMatchingPattern, safeJoin, stringMatchesSomePattern, truncate } from '../../../src/utils/string';
 
 describe('truncate()', () => {
   test('it works as expected', () => {
@@ -116,5 +117,81 @@ describe('stringMatchesSomePattern()', () => {
     expect(stringMatchesSomePattern(undefined as any, ['foo', 'nope'])).toEqual(false);
     expect(stringMatchesSomePattern({} as any, ['foo', 'nope'])).toEqual(false);
     expect(stringMatchesSomePattern([] as any, ['foo', 'nope'])).toEqual(false);
+  });
+});
+
+describe('safeJoin()', () => {
+  afterEach(() => {
+    // Some tests register a stringifier via `setNormalizeStringifier`; reset so we don't
+    // leak into unrelated tests sharing this module's global state.
+    setNormalizeStringifier(undefined);
+  });
+
+  test('joins primitive values with the given delimiter', () => {
+    expect(safeJoin(['a', 'b', 'c'], '-')).toEqual('a-b-c');
+    expect(safeJoin([1, 2, 3], '+')).toEqual('1+2+3');
+  });
+
+  test('defaults to comma-joining when no delimiter is provided', () => {
+    expect(safeJoin(['a', 'b', 'c'])).toEqual('a,b,c');
+  });
+
+  test('returns an empty string for an empty array', () => {
+    expect(safeJoin([], '-')).toEqual('');
+    expect(safeJoin([])).toEqual('');
+  });
+
+  test('returns an empty string when input is not an array', () => {
+    expect(safeJoin(null as any)).toEqual('');
+    expect(safeJoin(undefined as any)).toEqual('');
+    expect(safeJoin('not-an-array' as any)).toEqual('');
+    expect(safeJoin(42 as any)).toEqual('');
+    expect(safeJoin({} as any)).toEqual('');
+  });
+
+  test('stringifies primitive non-string values via `String(...)`', () => {
+    // `null` / `undefined` / `true` / `false` / `NaN` go through the primitive branch
+    // and are coerced with `String(...)` — which is different from what `normalize`
+    // would render (e.g. `'NaN'` here vs. `'[NaN]'` in normalized output).
+    expect(safeJoin([null, undefined, true, false, NaN], '|')).toEqual('null|undefined|true|false|NaN');
+  });
+
+  test('stringifies symbols and bigints via `String(...)`', () => {
+    expect(safeJoin([Symbol('foo'), BigInt(42)], '|')).toEqual('Symbol(foo)|42');
+  });
+
+  test('routes non-primitive values through `stringifyValue`', () => {
+    // Functions → `[Function: <name>]`. Plain objects → `[object Object]`.
+    function namedFn(): void {
+      /* no-empty */
+    }
+    expect(safeJoin([{ a: 1 }, namedFn], ' / ')).toEqual('[object Object] / [Function: namedFn]');
+  });
+
+  test('renders Errors via their constructor name & message', () => {
+    // Errors take the non-primitive branch and end up in `stringifyValue`'s
+    // `[object <ConstructorName>]` fallback.
+    expect(safeJoin([new Error('Boom'), new TypeError('Bad arg')], ' | ')).toEqual('Error: Boom | TypeError: Bad arg');
+  });
+
+  test('mixes primitives and objects in the same join', () => {
+    expect(safeJoin(['count:', 3, { ok: true }], ' ')).toEqual('count: 3 [object Object]');
+  });
+
+  test('honors a custom stringifier registered via `setNormalizeStringifier`', () => {
+    const stub = vi.fn((value: unknown): string | undefined => {
+      if (typeof value === 'object' && value !== null && (value as { mark?: unknown }).mark === true) {
+        return '[Marked]';
+      }
+      return undefined;
+    });
+    setNormalizeStringifier(stub);
+
+    expect(safeJoin([{ mark: true }, 'tail', { plain: 1 }], '/')).toEqual('[Marked]/tail/[object Object]');
+    expect(stub).toHaveBeenCalled();
+  });
+
+  test('supports an empty delimiter', () => {
+    expect(safeJoin(['a', 'b', 'c'], '')).toEqual('abc');
   });
 });

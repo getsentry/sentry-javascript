@@ -7,7 +7,6 @@ afterAll(() => {
 
 test('cron instrumentation', { timeout: 30_000 }, async () => {
   await createRunner(__dirname, 'scenario.ts')
-    .withMockSentryServer()
     .expect({
       check_in: {
         check_in_id: expect.any(String),

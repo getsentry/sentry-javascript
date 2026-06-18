@@ -1,12 +1,8 @@
 import * as net from 'node:net';
 import type { Span, Tracer } from '@opentelemetry/api';
 import { context, diag, SpanKind, trace } from '@opentelemetry/api';
-import {
-  InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
-  isWrapped,
-  safeExecuteInTheMiddle,
-} from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleDefinition, isWrapped, safeExecuteInTheMiddle } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../../../InstrumentationNodeModuleFile';
 import {
   ATTR_DB_COLLECTION_NAME,
   ATTR_DB_NAMESPACE,

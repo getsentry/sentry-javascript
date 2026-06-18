@@ -1,25 +1,6 @@
 /*
- * MIT License
- *
  * Copyright (c) 2024-present The Fastify team <https://github.com/fastify/fastify#team>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/fastify/otel/tree/bae80d6caef4287e7f01ff3c8dc753243706ea86
@@ -31,7 +12,6 @@
 
 import * as dc from 'node:diagnostics_channel';
 import { context, trace, SpanStatusCode, propagation, diag, type Span } from '@opentelemetry/api';
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import {
   ATTR_HTTP_ROUTE,
   ATTR_HTTP_RESPONSE_STATUS_CODE,
@@ -40,6 +20,7 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import { InstrumentationBase, type InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { SDK_VERSION } from '@sentry/core';
+import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 
 const PACKAGE_VERSION = SDK_VERSION;
 const PACKAGE_NAME = '@sentry/instrumentation-fastify';
@@ -254,10 +235,8 @@ export class FastifyOtelInstrumentation extends InstrumentationBase<FastifyOtelI
             ctx = propagation.extract(ctx, request.headers);
           }
 
-          const rpcMetadata = getRPCMetadata(ctx);
-
-          if (request.routeOptions.url != null && rpcMetadata?.type === RPCType.HTTP) {
-            rpcMetadata.route = request.routeOptions.url;
+          if (request.routeOptions.url != null) {
+            setHttpServerSpanRouteAttribute(request.routeOptions.url);
           }
 
           const attributes: Record<string, string> = {

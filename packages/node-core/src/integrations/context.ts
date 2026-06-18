@@ -102,7 +102,6 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
   async function addContext(event: Event): Promise<Event> {
     const updatedContext = _updateContext(await contextsPromise);
 
-    // TODO(v11): conditional with `sendDefaultPii` here?
     event.contexts = {
       ...event.contexts,
       app: { ...updatedContext.app, ...event.contexts?.app },

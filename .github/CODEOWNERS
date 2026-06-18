@@ -10,6 +10,7 @@
 # Node/server runtimes and related packages
 /packages/node/                     @getsentry/team-javascript-sdks-server
 /packages/node-core/                @getsentry/team-javascript-sdks-server
+/packages/server-utils/             @getsentry/team-javascript-sdks-server
 /packages/node-native/              @getsentry/team-javascript-sdks-server
 /packages/profiling-node/           @getsentry/team-javascript-sdks-server
 /packages/opentelemetry/            @getsentry/team-javascript-sdks-server

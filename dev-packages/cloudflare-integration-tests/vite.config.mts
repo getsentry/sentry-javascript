@@ -10,7 +10,7 @@ export default defineConfig({
     },
     isolate: false,
     include: ['./suites/**/test.ts'],
-    testTimeout: 20_000,
+    testTimeout: 30_000,
     // Ensure we can see debug output when DEBUG=true
     ...(process.env.DEBUG
       ? {

@@ -1,5 +1,4 @@
 import {
-  captureException,
   getActiveSpan,
   getOriginalFunction,
   getRootSpan,
@@ -10,7 +9,7 @@ import {
   type WrappedFunction,
 } from '@sentry/core';
 import { type MiddlewareHandler } from 'hono';
-import { isExpectedError } from './isExpectedError';
+import { defaultShouldHandleError } from './defaultShouldHandleError';
 
 const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
 
@@ -44,13 +43,11 @@ export function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHa
       try {
         return await handler(context, next);
       } catch (error) {
-        if (!isExpectedError(error)) {
+        // Error capture is handled by `responseHandler` via `context.error`, so this wrapper only sets
+        // span status (based on our default "error" conditions) and rethrows (no `captureException`).
+        if (defaultShouldHandleError(error)) {
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-          captureException(error, {
-            mechanism: { handled: false, type: MIDDLEWARE_ORIGIN },
-          });
         }
-
         throw error;
       } finally {
         span.end();

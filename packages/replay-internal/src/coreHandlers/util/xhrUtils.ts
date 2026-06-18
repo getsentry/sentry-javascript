@@ -1,6 +1,6 @@
 import type { Breadcrumb, XhrBreadcrumbData } from '@sentry/core';
-import type { NetworkMetaWarning, XhrHint } from '@sentry-internal/browser-utils';
-import { getBodyString, parseXhrResponseHeaders, SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
+import type { NetworkMetaWarning, XhrHint } from '@sentry/browser-utils';
+import { getBodyString, parseXhrResponseHeaders, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { ReplayContainer, ReplayNetworkOptions, ReplayNetworkRequestData } from '../../types';
 import { debug } from '../../util/logger';

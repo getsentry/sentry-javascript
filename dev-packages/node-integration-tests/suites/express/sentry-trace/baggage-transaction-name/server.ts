@@ -10,8 +10,6 @@ Sentry.init({
   // disable requests to /express
   tracePropagationTargets: [/^(?!.*express).*$/],
   tracesSampleRate: 1.0,
-  // TODO: We're rethinking the mechanism for including Pii data in DSC, hence commenting out sendDefaultPii for now
-  // sendDefaultPii: true,
   transport: loggingTransport,
 });
 

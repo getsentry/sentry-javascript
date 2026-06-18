@@ -22,6 +22,32 @@ describe('connect auto-instrumentation', () => {
         op: 'request_handler.connect',
         status: 'ok',
       }),
+
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'connect.name': 'middleware1',
+          'connect.type': 'middleware',
+          'sentry.origin': 'auto.http.otel.connect',
+          'sentry.op': 'middleware.connect',
+        }),
+        description: 'middleware1',
+        origin: 'auto.http.otel.connect',
+        op: 'middleware.connect',
+        status: 'ok',
+      }),
+
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'connect.name': 'anonymous',
+          'connect.type': 'middleware',
+          'sentry.origin': 'auto.http.otel.connect',
+          'sentry.op': 'middleware.connect',
+        }),
+        description: 'anonymous',
+        origin: 'auto.http.otel.connect',
+        op: 'middleware.connect',
+        status: 'ok',
+      }),
     ]),
   };
 
@@ -56,7 +82,30 @@ describe('connect auto-instrumentation', () => {
       test('should report errored transactions.', async () => {
         const runner = createTestRunner()
           .ignore('event')
-          .expect({ transaction: { transaction: 'GET /error' } })
+          .expect({
+            transaction: {
+              transaction: 'GET /error',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'connect.name': 'connectErrorMiddleware',
+                    'connect.type': 'middleware',
+                    'sentry.origin': 'auto.http.otel.connect',
+                    'sentry.op': 'middleware.connect',
+                  }),
+                  description: 'connectErrorMiddleware',
+                  origin: 'auto.http.otel.connect',
+                  op: 'middleware.connect',
+                }),
+
+                expect.objectContaining({
+                  description: '/error',
+                  op: 'request_handler.connect',
+                  status: 'internal_error',
+                }),
+              ]),
+            },
+          })
           .start();
         runner.makeRequest('get', '/error');
         await runner.completed();

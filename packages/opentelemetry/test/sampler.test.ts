@@ -1,7 +1,7 @@
 import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
-import { TraceState } from '@opentelemetry/core';
+import { TraceState } from '../src/utils/TraceState';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
-import { ATTR_HTTP_REQUEST_METHOD } from '@opentelemetry/semantic-conventions';
+import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
 import { generateSpanId, generateTraceId } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -130,7 +130,7 @@ describe('SentrySampler', () => {
     const spanName = 'test';
     const spanKind = SpanKind.CLIENT;
     const spanAttributes = {
-      [ATTR_HTTP_REQUEST_METHOD]: 'GET',
+      [HTTP_REQUEST_METHOD]: 'GET',
     };
     const links = undefined;
 
@@ -205,7 +205,7 @@ describe('SentrySampler', () => {
       const traceId = generateTraceId();
       const spanName = 'GET /health';
       const spanKind = SpanKind.SERVER;
-      const spanAttributes = { [ATTR_HTTP_REQUEST_METHOD]: 'GET' };
+      const spanAttributes = { [HTTP_REQUEST_METHOD]: 'GET' };
 
       const actual = sampler.shouldSample(ctx, traceId, spanName, spanKind, spanAttributes, undefined);
       expect(actual.decision).toBe(SamplingDecision.NOT_RECORD);
@@ -359,7 +359,7 @@ describe('SentrySampler', () => {
       const spanName = 'GET http://example.com/api';
       const spanKind = SpanKind.CLIENT;
       const spanAttributes = {
-        [ATTR_HTTP_REQUEST_METHOD]: 'GET',
+        [HTTP_REQUEST_METHOD]: 'GET',
       };
 
       const actual = sampler.shouldSample(ctx, traceId, spanName, spanKind, spanAttributes, undefined);

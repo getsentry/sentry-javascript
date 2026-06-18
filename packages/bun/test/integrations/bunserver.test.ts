@@ -1,7 +1,8 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+import { init } from '../../src';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
-import type { Span } from '@sentry/core';
+import type { DataCollection, Span } from '@sentry/core';
 
 describe('Bun Serve Integration', () => {
   const mockSpan = SentryCore.startInactiveSpan({ name: 'test span' });
@@ -469,6 +470,110 @@ describe('Bun Serve Integration', () => {
       );
 
       await server.stop();
+    });
+  });
+
+  describe('data collection', () => {
+    const setupClient = (dataCollection: DataCollection): void => {
+      init({
+        dsn: 'https://username@domain/123',
+        defaultIntegrations: false,
+        transport: () =>
+          SentryCore.createTransport({ recordDroppedEvent: () => undefined }, () => SentryCore.resolvedSyncPromise({})),
+        dataCollection,
+      });
+    };
+
+    afterEach(() => {
+      SentryCore.getCurrentScope().setClient(undefined);
+    });
+
+    test('keeps PII request headers when dataCollection enables full header collection', async () => {
+      setupClient({ httpHeaders: { request: true, response: true } });
+
+      const server = Bun.serve({
+        async fetch(_req) {
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`, {
+        headers: { 'X-Forwarded-For': '203.0.113.7' },
+      });
+
+      await server.stop();
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
+      expect(attributes?.['http.request.header.x_forwarded_for']).toBe('203.0.113.7');
+    });
+
+    test('filters request headers according to the dataCollection deny list', async () => {
+      // Deny a header that is not part of the built-in sensitive snippets, so the assertion proves
+      // the deny list is applied (the header would otherwise be collected by default).
+      setupClient({ httpHeaders: { request: { deny: ['x-internal'] } } });
+
+      const server = Bun.serve({
+        async fetch(_req) {
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`, {
+        headers: { 'X-Internal': 'internal-value', 'X-Public': 'public-value' },
+      });
+
+      await server.stop();
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
+      expect(attributes?.['http.request.header.x_internal']).toBe('[Filtered]');
+      expect(attributes?.['http.request.header.x_public']).toBe('public-value');
+    });
+
+    test('filters always-sensitive request headers even when collection is permissive', async () => {
+      setupClient({ httpHeaders: { request: true } });
+
+      const server = Bun.serve({
+        async fetch(_req) {
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`, {
+        headers: { Authorization: 'Bearer supersecret-token' },
+      });
+
+      await server.stop();
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
+      expect(attributes?.['http.request.header.authorization']).toBe('[Filtered]');
+    });
+
+    test('applies the dataCollection response header collection behavior', async () => {
+      setupClient({ httpHeaders: { response: { deny: ['x-internal'] } } });
+
+      const server = Bun.serve({
+        async fetch(_req) {
+          return new Response('Bun!', {
+            headers: new Headers({ 'x-internal': 'internal-value', 'x-public': 'public-value' }),
+          });
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`);
+
+      await server.stop();
+
+      expect(setAttributesSpy).toHaveBeenCalledTimes(1);
+      const responseAttributes = setAttributesSpy.mock.calls[0]?.[0];
+      expect(responseAttributes?.['http.response.header.x_internal']).toBe('[Filtered]');
+      expect(responseAttributes?.['http.response.header.x_public']).toBe('public-value');
     });
   });
 });

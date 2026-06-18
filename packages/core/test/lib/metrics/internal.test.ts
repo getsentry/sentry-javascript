@@ -7,6 +7,7 @@ import {
 } from '../../../src/metrics/internal';
 import type { Metric } from '../../../src/types/metric';
 import * as loggerModule from '../../../src/utils/debug-logger';
+import * as isBrowserModule from '../../../src/utils/isBrowser';
 import * as timeModule from '../../../src/utils/time';
 import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -250,6 +251,43 @@ describe('_INTERNAL_captureMetric', () => {
     const buffer = _INTERNAL_getMetricBuffer(client);
     expect(buffer).toHaveLength(1);
     expect(buffer?.[0]?.name).toBe('trigger.flush');
+  });
+
+  it('includes ingest_settings with auto when dataCollection.userInfo is true', () => {
+    vi.spyOn(isBrowserModule, 'isBrowser').mockReturnValue(true);
+
+    // TODO(v11) Remove `dataCollection` as the defaults should be applied without explicitly adding the option
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, dataCollection: {} });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+
+    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+
+    const sendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
+    _INTERNAL_flushMetricsBuffer(client);
+
+    const envelope = sendEnvelope.mock.calls[0]![0];
+    const envelopeItemPayload = envelope[1][0][1];
+    expect(envelopeItemPayload.ingest_settings).toEqual({ infer_ip: 'auto', infer_user_agent: 'auto' });
+  });
+
+  it('includes ingest_settings with never when dataCollection is not set (sendDefaultPii bridge defaults to userInfo: false)', () => {
+    vi.spyOn(isBrowserModule, 'isBrowser').mockReturnValue(true);
+
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+
+    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+
+    const sendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
+    _INTERNAL_flushMetricsBuffer(client);
+
+    const envelope = sendEnvelope.mock.calls[0]![0];
+    const envelopeItemPayload = envelope[1][0][1];
+    expect(envelopeItemPayload.ingest_settings).toEqual({ infer_ip: 'never', infer_user_agent: 'never' });
   });
 
   it('does not flush metrics buffer when it is empty', () => {

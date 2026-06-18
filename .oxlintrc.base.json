@@ -3,7 +3,7 @@
   "plugins": ["typescript", "import", "jsdoc", "vitest"],
   "rules": {
     "no-unused-vars": [
-      "warn",
+      "error",
       { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }
     ],
 
@@ -36,7 +36,8 @@
     "no-unsafe-optional-chaining": "off",
     "no-eval": "off",
     "no-import-assign": "off",
-    "typescript/no-duplicate-type-constituents": "off"
+    "typescript/no-duplicate-type-constituents": "off",
+    "typescript/no-deprecated": "error"
   },
   "overrides": [
     {
@@ -55,7 +56,7 @@
         "typescript/prefer-optional-chain": ["error"],
         "typescript/no-redundant-type-constituents": "off",
         "typescript/restrict-template-expressions": "off",
-        "typescript/await-thenable": "warn",
+        "typescript/await-thenable": "error",
         "typescript/no-base-to-string": "off"
       }
     },
@@ -101,7 +102,8 @@
         "typescript/no-misused-spread": "off",
         "typescript/require-array-sort-compare": "off",
         "typescript/no-base-to-string": "off",
-        "typescript/await-thenable": "off"
+        "typescript/await-thenable": "off",
+        "typescript/no-deprecated": "off"
       }
     },
     {
@@ -131,39 +133,49 @@
       }
     },
     {
+      "files": ["**/integration/aws/vendored/**/*.ts"],
+      "rules": {
+        "typescript/consistent-type-imports": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-explicit-any": "off",
+        "typescript/no-this-alias": "off",
+        "typescript/prefer-for-of": "off",
+        "typescript/unbound-method": "off",
+        "max-lines": "off",
+        "complexity": "off",
+        "no-param-reassign": "off"
+      }
+    },
+    {
       "files": ["**/integrations/tracing/redis/vendored/**/*.ts"],
       "rules": {
         "typescript/no-explicit-any": "off",
         "typescript/no-unsafe-member-access": "off",
         "typescript/no-this-alias": "off",
-        "max-lines": "off",
-        "no-bitwise": "off"
+        "max-lines": "off"
       }
     },
     {
       "files": [
-        "**/integrations/tracing/dataloader/vendored/**/*.ts",
-        "**/integrations/tracing/genericPool/vendored/**/*.ts",
-        "**/integrations/fs/vendored/**/*.ts",
         "**/integrations/tracing/knex/vendored/**/*.ts",
         "**/integrations/tracing/mongo/vendored/**/*.ts",
-        "**/integrations/tracing/koa/vendored/**/*.ts",
-        "**/integrations/tracing/connect/vendored/**/*.ts",
+        "**/integrations/tracing/graphql/vendored/**/*.ts",
         "**/integrations/tracing/mysql2/vendored/**/*.ts",
-        "**/integration/aws/vendored/**/*.ts",
-        "**/nestjs/src/integrations/vendored/**/*.ts",
         "**/integrations/tracing/kafka/vendored/**/*.ts",
         "**/integrations/tracing/tedious/vendored/**/*.ts",
         "**/integrations/tracing/hapi/vendored/**/*.ts",
         "**/integrations/tracing/mongoose/vendored/**/*.ts",
         "**/integrations/tracing/amqplib/vendored/**/*.ts",
         "**/integrations/tracing/prisma/vendored/**/*.ts",
-        "**/integrations/tracing/graphql/vendored/**/*.ts",
         "**/integrations/tracing/postgres/vendored/**/*.ts",
-        "**/integrations/tracing/fastify/vendored/**/*.ts"
+        "**/integrations/tracing/fastify/vendored/**/*.ts",
+        "**/integrations/tracing/redis/vendored/**/*.ts"
       ],
       "rules": {
-        "typescript/no-explicit-any": "off"
+        "typescript/no-explicit-any": "off",
+        "no-unsafe-member-access": "off",
+        "no-this-alias": "off"
       }
     },
     {

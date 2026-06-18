@@ -1,4 +1,4 @@
-import type { INode } from '@sentry-internal/rrweb-snapshot';
+import type { INode } from '@sentry/rrweb-snapshot';
 
 const INTERACTIVE_SELECTOR = 'button,a';
 

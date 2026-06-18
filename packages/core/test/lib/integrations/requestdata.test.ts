@@ -2,13 +2,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../../src/client';
 import * as currentScopes from '../../../src/currentScopes';
 import { requestDataIntegration } from '../../../src/integrations/requestdata';
+import type { DataCollection } from '../../../src/types/datacollection';
 import type { Event } from '../../../src/types/event';
 import type { StreamedSpanJSON } from '../../../src/types/span';
+import { resolveDataCollectionOptions } from '../../../src/utils/data-collection/resolveDataCollectionOptions';
 import { ipHeaderNames } from '../../../src/vendor/getIpAddress';
 
-function mockClient(sendDefaultPii: boolean | undefined): Client {
+function mockClient(sendDefaultPii: boolean | undefined, dataCollection?: DataCollection): Client {
   return {
     getOptions: () => ({ sendDefaultPii: sendDefaultPii as boolean | undefined }),
+    getDataCollectionOptions: () => resolveDataCollectionOptions({ sendDefaultPii, dataCollection }),
   } as unknown as Client;
 }
 
@@ -47,7 +50,7 @@ function richNormalizedRequest() {
 
 describe('requestDataIntegration', () => {
   describe('IP-related headers on event.request', () => {
-    it('removes known IP headers from event.request.headers when sendDefaultPii is false', () => {
+    it('removes known IP headers from event.request.headers when userInfo is false', () => {
       const integration = requestDataIntegration();
       const event = baseEvent();
 
@@ -58,7 +61,7 @@ describe('requestDataIntegration', () => {
       });
     });
 
-    it('removes every ipHeaderNames entry when sendDefaultPii is false', () => {
+    it('removes every ipHeaderNames entry when userInfo is false', () => {
       const integration = requestDataIntegration();
       const headers: Record<string, string> = { Host: 'example.com', 'X-Other': 'keep-me' };
       for (const name of ipHeaderNames) {
@@ -82,7 +85,7 @@ describe('requestDataIntegration', () => {
       });
     });
 
-    it('keeps IP headers on event.request.headers when sendDefaultPii is true', () => {
+    it('keeps IP headers on event.request.headers when userInfo is true', () => {
       const integration = requestDataIntegration();
       const event = baseEvent();
 
@@ -95,7 +98,7 @@ describe('requestDataIntegration', () => {
       });
     });
 
-    it('keeps IP headers when include.ip is true even if sendDefaultPii is false', () => {
+    it('keeps IP headers when include.ip is true even if userInfo is false', () => {
       const integration = requestDataIntegration({ include: { ip: true } });
       const event = baseEvent();
 
@@ -104,7 +107,7 @@ describe('requestDataIntegration', () => {
       expect(event.request?.headers?.['X-Forwarded-For']).toBe('192.168.1.1');
     });
 
-    it('strips IP headers when include.ip is false even if sendDefaultPii is true', () => {
+    it('strips IP headers when include.ip is false even if userInfo is true', () => {
       const integration = requestDataIntegration({ include: { ip: false } });
       const event = baseEvent();
 
@@ -113,7 +116,7 @@ describe('requestDataIntegration', () => {
       expect(event.request?.headers).toEqual({ Host: 'example.com' });
     });
 
-    it('removes every ipHeaderNames entry when keys use lowercase spelling and sendDefaultPii is false', () => {
+    it('removes every ipHeaderNames entry when keys use lowercase spelling and userInfo is false', () => {
       const integration = requestDataIntegration();
       const headers: Record<string, string> = { host: 'example.com', 'x-other': 'keep-me' };
       for (const name of ipHeaderNames) {
@@ -137,7 +140,7 @@ describe('requestDataIntegration', () => {
       });
     });
 
-    it('keeps lowercase IP headers on event.request.headers when sendDefaultPii is true', () => {
+    it('keeps lowercase IP headers on event.request.headers when userInfo is true', () => {
       const integration = requestDataIntegration();
       const event: Event = {
         sdkProcessingMetadata: {
@@ -164,7 +167,7 @@ describe('requestDataIntegration', () => {
   });
 
   describe('user.ip_address', () => {
-    it('does not set user.ip_address when sendDefaultPii is false', () => {
+    it('does not set user.ip_address when userInfo is false', () => {
       const integration = requestDataIntegration();
       const event = baseEvent();
 
@@ -173,7 +176,7 @@ describe('requestDataIntegration', () => {
       expect(event.user?.ip_address).toBeUndefined();
     });
 
-    it('sets user.ip_address from request headers when sendDefaultPii is true', () => {
+    it('sets user.ip_address from request headers when userInfo is true', () => {
       const integration = requestDataIntegration();
       const event = baseEvent();
 
@@ -182,7 +185,7 @@ describe('requestDataIntegration', () => {
       expect(event.user?.ip_address).toBe('192.168.1.1');
     });
 
-    it('sets user.ip_address from lowercase IP headers when sendDefaultPii is true', () => {
+    it('sets user.ip_address from lowercase IP headers when userInfo is true', () => {
       const integration = requestDataIntegration();
       const event: Event = {
         sdkProcessingMetadata: {
@@ -220,7 +223,7 @@ describe('requestDataIntegration', () => {
       expect(event.user?.ip_address).toBe('198.51.100.7');
     });
 
-    it('does not set user.ip_address from sdkProcessingMetadata when sendDefaultPii is false', () => {
+    it('does not set user.ip_address from sdkProcessingMetadata when userInfo is false', () => {
       const integration = requestDataIntegration();
       const event: Event = {
         sdkProcessingMetadata: {
@@ -273,7 +276,7 @@ describe('requestDataIntegration', () => {
       expect(event.request?.cookies).toEqual({ id: '42' });
     });
 
-    it('with include.headers false, still sets user.ip_address from original headers when sendDefaultPii is true', () => {
+    it('with include.headers false, still sets user.ip_address from original headers when userInfo is true', () => {
       const integration = requestDataIntegration({ include: { headers: false } });
       const event: Event = {
         sdkProcessingMetadata: {
@@ -452,7 +455,7 @@ describe('requestDataIntegration', () => {
   });
 
   describe('defaults and combined include options', () => {
-    it('with default include and sendDefaultPii true, copies method, url, query_string, data, headers, cookies, and user IP', () => {
+    it('with default include and userInfo true, copies method, url, query_string, data, headers, cookies, and user IP', () => {
       const integration = requestDataIntegration();
       const event: Event = {
         sdkProcessingMetadata: { normalizedRequest: richNormalizedRequest() },
@@ -476,7 +479,7 @@ describe('requestDataIntegration', () => {
       expect(event.user?.ip_address).toBe('192.168.1.1');
     });
 
-    it('with default include and sendDefaultPii false, keeps non-IP fields and strips IP from headers and user', () => {
+    it('with default include and userInfo false, keeps non-IP fields and strips IP from headers and user', () => {
       const integration = requestDataIntegration();
       const event: Event = {
         sdkProcessingMetadata: { normalizedRequest: richNormalizedRequest() },
@@ -668,7 +671,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
     expect(span.attributes).toEqual({});
   });
 
-  it('sets user.ip_address from headers when sendDefaultPii is true', () => {
+  it('sets user.ip_address from headers when userInfo is true', () => {
     const integration = requestDataIntegration();
     const span = makeSpan();
 
@@ -697,7 +700,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
     });
   });
 
-  it('does not set user.ip_address when sendDefaultPii is false', () => {
+  it('does not set user.ip_address when userInfo is false', () => {
     const integration = requestDataIntegration();
     const span = makeSpan();
 
@@ -866,6 +869,94 @@ describe('requestDataIntegration processSegmentSpan', () => {
       integration.processSegmentSpan!(span, mockClient(false));
 
       expect(span.attributes).not.toHaveProperty('url.query');
+    });
+
+    it('include.headers overrides dataCollection.httpHeaders.request=false on spans', () => {
+      const integration = requestDataIntegration({ include: { headers: true } });
+      const span = makeSpan();
+
+      mockIsolationScope({
+        headers: { 'content-type': 'application/json', accept: 'text/html' },
+      });
+
+      integration.processSegmentSpan!(span, mockClient(false, { httpHeaders: { request: false, response: false } }));
+
+      expect(span.attributes).toMatchObject({
+        'http.request.header.content_type': 'application/json',
+        'http.request.header.accept': 'text/html',
+      });
+    });
+
+    it('include.cookies overrides dataCollection.cookies=false on spans', () => {
+      const integration = requestDataIntegration({ include: { cookies: true } });
+      const span = makeSpan();
+
+      mockIsolationScope({
+        cookies: { theme: 'dark', locale: 'en' },
+      });
+
+      integration.processSegmentSpan!(span, mockClient(false, { cookies: false }));
+
+      expect(span.attributes).toMatchObject({
+        'http.request.header.cookie.theme': 'dark',
+        'http.request.header.cookie.locale': 'en',
+      });
+    });
+  });
+});
+
+describe('requestDataIntegration legacy sendDefaultPii bridge', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function makeSpan(overrides: Partial<StreamedSpanJSON> = {}): StreamedSpanJSON {
+    return {
+      name: 'GET /test',
+      span_id: 'abc123',
+      trace_id: 'def456',
+      start_timestamp: 0,
+      end_timestamp: 1,
+      status: 'ok',
+      is_segment: true,
+      attributes: {},
+      ...overrides,
+    };
+  }
+
+  function mockIsolationScope(normalizedRequest: Record<string, unknown>, ipAddress?: string): void {
+    vi.spyOn(currentScopes, 'getIsolationScope').mockReturnValue({
+      getScopeData: () => ({
+        sdkProcessingMetadata: { normalizedRequest, ipAddress },
+      }),
+    } as ReturnType<typeof currentScopes.getIsolationScope>);
+  }
+
+  it('sendDefaultPii: true bridges to userInfo: true and includes IP on events', () => {
+    const integration = requestDataIntegration();
+    const event = baseEvent();
+
+    integration.processEvent?.(event, {}, mockClient(true));
+
+    expect(event.user?.ip_address).toBe('192.168.1.1');
+    expect(event.request?.headers?.['X-Forwarded-For']).toBe('192.168.1.1');
+  });
+
+  it('sendDefaultPii: true bridges to userInfo: true and includes IP on spans', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      url: 'https://example.com',
+      headers: { 'x-forwarded-for': '203.0.113.50', 'content-type': 'application/json' },
+    });
+
+    integration.processSegmentSpan!(span, mockClient(true));
+
+    expect(span.attributes).toMatchObject({
+      'user.ip_address': '203.0.113.50',
+      'http.request.header.content_type': 'application/json',
+      'http.request.header.x_forwarded_for': '203.0.113.50',
     });
   });
 });

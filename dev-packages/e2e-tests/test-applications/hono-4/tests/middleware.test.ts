@@ -113,7 +113,7 @@ for (const { name, prefix } of SCENARIOS) {
       expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual(
         expect.objectContaining({
           handled: false,
-          type: 'auto.middleware.hono',
+          type: 'auto.http.hono.context_error',
         }),
       );
 

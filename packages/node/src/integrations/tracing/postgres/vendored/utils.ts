@@ -1,73 +1,42 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-pg
  * - Upstream version: @opentelemetry/instrumentation-pg@0.70.0
  * - Types from `pg` package inlined as simplified interfaces
- * - Minor TypeScript strictness adjustments
+ * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
-/* eslint-disable */
 
-import {
-  context,
-  trace,
-  Span,
-  SpanStatusCode,
-  Tracer,
-  SpanKind,
-  diag,
-  UpDownCounter,
-  Attributes,
-} from '@opentelemetry/api';
+import { SpanKind } from '@opentelemetry/api';
+import type { Span, SpanAttributes } from '@sentry/core';
+import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
 import { AttributeNames } from './enums/AttributeNames';
-import {
-  ATTR_ERROR_TYPE,
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_DB_NAMESPACE,
-  ATTR_SERVER_ADDRESS,
-  ATTR_SERVER_PORT,
-  ATTR_DB_QUERY_TEXT,
-  DB_SYSTEM_NAME_VALUE_POSTGRESQL,
-} from '@opentelemetry/semantic-conventions';
-import {
-  ATTR_DB_CLIENT_CONNECTION_POOL_NAME,
-  ATTR_DB_CLIENT_CONNECTION_STATE,
-  DB_CLIENT_CONNECTION_STATE_VALUE_USED,
-  DB_CLIENT_CONNECTION_STATE_VALUE_IDLE,
-  ATTR_DB_SYSTEM,
-  ATTR_DB_NAME,
-  ATTR_DB_USER,
-  DB_SYSTEM_VALUE_POSTGRESQL,
-  ATTR_DB_CONNECTION_STRING,
-  ATTR_NET_PEER_PORT,
-  ATTR_NET_PEER_NAME,
-  ATTR_DB_STATEMENT,
-} from './semconv';
-import {
+import { SpanNames } from './enums/SpanNames';
+import type {
   PgClientExtended,
-  PostgresCallback,
+  PgParsedConnectionParams,
   PgPoolCallback,
   PgPoolExtended,
-  PgParsedConnectionParams,
   PgPoolOptionsParams,
+  PostgresCallback,
 } from './internal-types';
-import { PgInstrumentationConfig } from './types';
-import type { PgClient, QueryResult, QueryArrayResult } from './pg-types';
-import { safeExecuteInTheMiddle, SemconvStability } from '@opentelemetry/instrumentation';
-import { SpanNames } from './enums/SpanNames';
+import type { PgClient } from './pg-types';
+import {
+  ATTR_DB_CONNECTION_STRING,
+  ATTR_DB_NAME,
+  ATTR_DB_STATEMENT,
+  ATTR_DB_SYSTEM,
+  ATTR_DB_USER,
+  ATTR_NET_PEER_NAME,
+  ATTR_NET_PEER_PORT,
+  DB_SYSTEM_VALUE_POSTGRESQL,
+} from './semconv';
+
+/* oxlint-disable typescript/no-deprecated */
+
+export const ORIGIN = 'auto.db.otel.postgres';
 
 /**
  * Helper function to get a low cardinality span name from whatever info we have
@@ -88,7 +57,7 @@ import { SpanNames } from './enums/SpanNames';
  *   `client.query()`. This will be undefined if `client.query()` was called
  *   with invalid arguments.
  */
-export function getQuerySpanName(dbName: string | undefined, queryConfig?: { text: string; name?: unknown }) {
+export function getQuerySpanName(dbName: string | undefined, queryConfig?: { text: string; name?: unknown }): string {
   // NB: when the query config is invalid, we omit the dbName too, so that
   // someone (or some tool) reading the span name doesn't misinterpret the
   // dbName as being a prepared statement or sql commit name.
@@ -104,7 +73,7 @@ export function getQuerySpanName(dbName: string | undefined, queryConfig?: { tex
   return `${SpanNames.QUERY_PREFIX}:${command}${dbName ? ` ${dbName}` : ''}`;
 }
 
-export function parseNormalizedOperationName(queryText: string) {
+export function parseNormalizedOperationName(queryText: string): string {
   // Trim the query text to handle leading/trailing whitespace
   const trimmedQuery = queryText.trim();
   const indexOfFirstSpace = trimmedQuery.indexOf(' ');
@@ -125,13 +94,13 @@ export function parseAndMaskConnectionString(connectionString: string): string {
     url.password = '';
 
     return url.toString();
-  } catch (e) {
+  } catch {
     // If parsing fails, return a generic connection string
     return 'postgresql://localhost:5432/';
   }
 }
 
-export function getConnectionString(params: PgParsedConnectionParams | PgPoolOptionsParams) {
+export function getConnectionString(params: PgParsedConnectionParams | PgPoolOptionsParams): string {
   if ('connectionString' in params && params.connectionString) {
     return parseAndMaskConnectionString(params.connectionString);
   }
@@ -152,96 +121,63 @@ function getPort(port: number | undefined): number | undefined {
   return undefined;
 }
 
-export function getSemanticAttributesFromConnection(
-  params: PgParsedConnectionParams,
-  semconvStability: SemconvStability,
-) {
-  let attributes: Attributes = {};
-
-  if (semconvStability & SemconvStability.OLD) {
-    attributes = {
-      ...attributes,
-      [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
-      [ATTR_DB_NAME]: params.database,
-      [ATTR_DB_CONNECTION_STRING]: getConnectionString(params),
-      [ATTR_DB_USER]: params.user,
-      [ATTR_NET_PEER_NAME]: params.host, // required
-      [ATTR_NET_PEER_PORT]: getPort(params.port),
-    };
-  }
-  if (semconvStability & SemconvStability.STABLE) {
-    attributes = {
-      ...attributes,
-      [ATTR_DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_POSTGRESQL,
-      [ATTR_DB_NAMESPACE]: params.namespace,
-      [ATTR_SERVER_ADDRESS]: params.host,
-      [ATTR_SERVER_PORT]: getPort(params.port),
-    };
-  }
-
-  return attributes;
+export function getSemanticAttributesFromConnection(params: PgParsedConnectionParams): SpanAttributes {
+  return {
+    [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
+    [ATTR_DB_NAME]: params.database,
+    [ATTR_DB_CONNECTION_STRING]: getConnectionString(params),
+    [ATTR_DB_USER]: params.user,
+    [ATTR_NET_PEER_NAME]: params.host, // required
+    [ATTR_NET_PEER_PORT]: getPort(params.port),
+  };
 }
 
-export function getSemanticAttributesFromPoolConnection(
-  params: PgPoolOptionsParams,
-  semconvStability: SemconvStability,
-) {
+export function getSemanticAttributesFromPoolConnection(params: PgPoolOptionsParams): SpanAttributes {
   let url: URL | undefined;
   try {
     url = params.connectionString ? new URL(params.connectionString) : undefined;
-  } catch (e) {
+  } catch {
     url = undefined;
   }
-  let attributes: Attributes = {
+
+  return {
     [AttributeNames.IDLE_TIMEOUT_MILLIS]: params.idleTimeoutMillis,
     [AttributeNames.MAX_CLIENT]: params.maxClient,
+    [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
+    [ATTR_DB_NAME]: url?.pathname.slice(1) ?? params.database,
+    [ATTR_DB_CONNECTION_STRING]: getConnectionString(params),
+    [ATTR_NET_PEER_NAME]: url?.hostname ?? params.host,
+    [ATTR_NET_PEER_PORT]: Number(url?.port) || getPort(params.port),
+    [ATTR_DB_USER]: url?.username ?? params.user,
   };
-
-  if (semconvStability & SemconvStability.OLD) {
-    attributes = {
-      ...attributes,
-      [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
-      [ATTR_DB_NAME]: url?.pathname.slice(1) ?? params.database,
-      [ATTR_DB_CONNECTION_STRING]: getConnectionString(params),
-      [ATTR_NET_PEER_NAME]: url?.hostname ?? params.host,
-      [ATTR_NET_PEER_PORT]: Number(url?.port) || getPort(params.port),
-      [ATTR_DB_USER]: url?.username ?? params.user,
-    };
-  }
-  if (semconvStability & SemconvStability.STABLE) {
-    attributes = {
-      ...attributes,
-      [ATTR_DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_POSTGRESQL,
-      [ATTR_DB_NAMESPACE]: params.namespace,
-      [ATTR_SERVER_ADDRESS]: url?.hostname ?? params.host,
-      [ATTR_SERVER_PORT]: Number(url?.port) || getPort(params.port),
-    };
-  }
-
-  return attributes;
 }
 
-export function shouldSkipInstrumentation(instrumentationConfig: PgInstrumentationConfig) {
-  return instrumentationConfig.requireParentSpan === true && trace.getSpan(context.active()) === undefined;
+/**
+ * The SDK always requires a parent span (it sets `requireParentSpan: true`), so
+ * we only instrument when there is an active span to parent the new span under.
+ */
+export function shouldSkipInstrumentation(): boolean {
+  return getActiveSpan() === undefined;
 }
 
-// Create a span from our normalized queryConfig object,
+// Create an (inactive) span from our normalized queryConfig object,
 // or return a basic span if no queryConfig was given/could be created.
 export function handleConfigQuery(
   this: PgClientExtended,
-  tracer: Tracer,
-  instrumentationConfig: PgInstrumentationConfig,
-  semconvStability: SemconvStability,
   queryConfig?: { text: string; values?: unknown; name?: unknown },
-) {
+): Span {
   // Create child span.
   const { connectionParameters } = this;
   const dbName = connectionParameters.database;
 
   const spanName = getQuerySpanName(dbName, queryConfig);
-  const span = tracer.startSpan(spanName, {
+  const span = startInactiveSpan({
+    name: spanName,
     kind: SpanKind.CLIENT,
-    attributes: getSemanticAttributesFromConnection(connectionParameters, semconvStability),
+    attributes: {
+      ...getSemanticAttributesFromConnection(connectionParameters),
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    },
   });
 
   if (!queryConfig) {
@@ -250,35 +186,7 @@ export function handleConfigQuery(
 
   // Set attributes
   if (queryConfig.text) {
-    if (semconvStability & SemconvStability.OLD) {
-      span.setAttribute(ATTR_DB_STATEMENT, queryConfig.text);
-    }
-    if (semconvStability & SemconvStability.STABLE) {
-      span.setAttribute(ATTR_DB_QUERY_TEXT, queryConfig.text);
-    }
-  }
-
-  if (instrumentationConfig.enhancedDatabaseReporting && Array.isArray(queryConfig.values)) {
-    try {
-      const convertedValues = queryConfig.values.map(value => {
-        if (value == null) {
-          return 'null';
-        } else if (value instanceof Buffer) {
-          return value.toString();
-        } else if (typeof value === 'object') {
-          if (typeof value.toPostgres === 'function') {
-            return value.toPostgres();
-          }
-          return JSON.stringify(value);
-        } else {
-          //string, number
-          return value.toString();
-        }
-      });
-      span.setAttribute(AttributeNames.PG_VALUES, convertedValues);
-    } catch (e) {
-      diag.error('failed to stringify ', queryConfig.values, e);
-    }
+    span.setAttribute(ATTR_DB_STATEMENT, queryConfig.text);
   }
 
   // Set plan name attribute, if present
@@ -289,130 +197,34 @@ export function handleConfigQuery(
   return span;
 }
 
-export function handleExecutionResult(
-  config: PgInstrumentationConfig,
-  span: Span,
-  pgResult: QueryResult | QueryArrayResult | unknown,
-) {
-  if (typeof config.responseHook === 'function') {
-    safeExecuteInTheMiddle(
-      () => {
-        config.responseHook!(span, {
-          data: pgResult as QueryResult | QueryArrayResult,
-        });
-      },
-      err => {
-        if (err) {
-          diag.error('Error running response hook', err);
-        }
-      },
-      true,
-    );
-  }
-}
-
-export function patchCallback(
-  instrumentationConfig: PgInstrumentationConfig,
-  span: Span,
-  cb: PostgresCallback,
-  attributes: Attributes,
-  recordDuration: { (): void },
-): PostgresCallback {
+export function patchCallback(span: Span, cb: PostgresCallback): PostgresCallback {
   return function patchedCallback(this: PgClientExtended, err: Error, res: object) {
     if (err) {
-      if (Object.prototype.hasOwnProperty.call(err, 'code')) {
-        attributes[ATTR_ERROR_TYPE] = (err as any)['code'];
-      }
-      if (err instanceof Error) {
-        span.recordException(sanitizedErrorMessage(err));
-      }
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: err.message,
-      });
-    } else {
-      handleExecutionResult(instrumentationConfig, span, res);
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: err.message });
     }
-
-    recordDuration();
     span.end();
     cb.call(this, err, res);
   };
 }
 
-export function getPoolName(pool: PgPoolOptionsParams): string {
-  let poolName = '';
-  poolName += (pool?.host ? `${pool.host}` : 'unknown_host') + ':';
-  poolName += (pool?.port ? `${pool.port}` : 'unknown_port') + '/';
-  poolName += pool?.database ? `${pool.database}` : 'unknown_database';
-
-  return poolName.trim();
-}
-
-export interface poolConnectionsCounter {
-  used: number;
-  idle: number;
-  pending: number;
-}
-
-export function updateCounter(
-  poolName: string,
-  pool: PgPoolExtended,
-  connectionCount: UpDownCounter,
-  connectionPendingRequests: UpDownCounter,
-  latestCounter: poolConnectionsCounter,
-): poolConnectionsCounter {
-  const all = pool.totalCount;
-  const pending = pool.waitingCount;
-  const idle = pool.idleCount;
-  const used = all - idle;
-
-  connectionCount.add(used - latestCounter.used, {
-    [ATTR_DB_CLIENT_CONNECTION_STATE]: DB_CLIENT_CONNECTION_STATE_VALUE_USED,
-    [ATTR_DB_CLIENT_CONNECTION_POOL_NAME]: poolName,
-  });
-
-  connectionCount.add(idle - latestCounter.idle, {
-    [ATTR_DB_CLIENT_CONNECTION_STATE]: DB_CLIENT_CONNECTION_STATE_VALUE_IDLE,
-    [ATTR_DB_CLIENT_CONNECTION_POOL_NAME]: poolName,
-  });
-
-  connectionPendingRequests.add(pending - latestCounter.pending, {
-    [ATTR_DB_CLIENT_CONNECTION_POOL_NAME]: poolName,
-  });
-
-  return { used: used, idle: idle, pending: pending };
-}
-
 export function patchCallbackPGPool(span: Span, cb: PgPoolCallback): PgPoolCallback {
   return function patchedCallback(this: PgPoolExtended, err: Error, res: object, done: any) {
     if (err) {
-      if (err instanceof Error) {
-        span.recordException(sanitizedErrorMessage(err));
-      }
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: err.message,
-      });
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: err.message });
     }
     span.end();
     cb.call(this, err, res, done);
   };
 }
 
-export function patchClientConnectCallback(span: Span, cb: Function): Function {
-  return function patchedClientConnectCallback(this: PgClient, err: Error) {
-    if (err) {
-      if (err instanceof Error) {
-        span.recordException(sanitizedErrorMessage(err));
-      }
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: err.message,
-      });
+export function patchClientConnectCallback(span: Span, cb: (...args: unknown[]) => void): (...args: unknown[]) => void {
+  return function patchedClientConnectCallback(this: PgClient, ...args: unknown[]) {
+    const err = args[0];
+    if (err instanceof Error) {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: err.message });
     }
     span.end();
-    cb.apply(this, arguments);
+    cb.apply(this, args);
   };
 }
 
@@ -421,7 +233,7 @@ export function patchClientConnectCallback(span: Span, cb: Function): Function {
  * defensive, to recognize the fact that, in JS, any kind of value (even
  * primitives) can be thrown.
  */
-export function getErrorMessage(e: unknown) {
+export function getErrorMessage(e: unknown): string | undefined {
   return typeof e === 'object' && e !== null && 'message' in e
     ? String((e as { message?: unknown }).message)
     : undefined;
@@ -435,14 +247,3 @@ export type ObjectWithText = {
   text: string;
   [k: string]: unknown;
 };
-
-/**
- * Generates a sanitized message for the error.
- * Only includes the error type and PostgreSQL error code, omitting any sensitive details.
- */
-export function sanitizedErrorMessage(error: unknown): string {
-  const name = (error as any)?.name ?? 'PostgreSQLError';
-  const code = (error as any)?.code ?? 'UNKNOWN';
-
-  return `PostgreSQL error of type '${name}' occurred (code: ${code})`;
-}
