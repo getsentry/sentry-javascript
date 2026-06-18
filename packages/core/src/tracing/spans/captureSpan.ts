@@ -143,7 +143,7 @@ function applyCommonSpanAttributes(
   // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
   safeSetSpanJSONAttributes(spanJSON, {
     [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: release,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: environment ?? DEFAULT_ENVIRONMENT,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: environment || DEFAULT_ENVIRONMENT,
     [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: serializedSegmentSpan.name,
     [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
     [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: sdk?.sdk?.name,
