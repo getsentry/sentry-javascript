@@ -5,16 +5,10 @@
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-knex
  * - Upstream version: @opentelemetry/instrumentation-knex@0.62.0
+ * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
-/* eslint-disable */
 
-import { Exception } from '@opentelemetry/api';
-import { DB_SYSTEM_NAME_VALUE_POSTGRESQL } from '@opentelemetry/semantic-conventions';
-import { DB_SYSTEM_NAME_VALUE_SQLITE } from './semconv';
-
-type KnexError = Error & {
-  code?: string;
-};
+import { DB_SYSTEM_NAME_VALUE_POSTGRESQL, DB_SYSTEM_NAME_VALUE_SQLITE } from './semconv';
 
 export const getFormatter = (runner: any) => {
   if (runner) {
@@ -31,19 +25,6 @@ export const getFormatter = (runner: any) => {
   }
   return () => '<noop formatter>';
 };
-
-export function otelExceptionFromKnexError(err: KnexError, message: string): Exception {
-  if (!(err && err instanceof Error)) {
-    return err;
-  }
-
-  return {
-    message,
-    code: err.code,
-    stack: err.stack,
-    name: err.name,
-  };
-}
 
 const systemMap = new Map([
   ['sqlite3', DB_SYSTEM_NAME_VALUE_SQLITE],
@@ -66,7 +47,7 @@ export const getName = (db: string, operation?: string, table?: string) => {
 
 export const limitLength = (str: string, maxLength: number) => {
   if (typeof str === 'string' && typeof maxLength === 'number' && 0 < maxLength && maxLength < str.length) {
-    return str.substring(0, maxLength) + '..';
+    return `${str.substring(0, maxLength)}..`;
   }
   return str;
 };
