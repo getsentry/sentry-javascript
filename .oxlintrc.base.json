@@ -175,8 +175,7 @@
       "rules": {
         "typescript/no-explicit-any": "off",
         "no-unsafe-member-access": "off",
-        "no-this-alias": "off",
-        "typescript/no-deprecated": "warn"
+        "no-this-alias": "off"
       }
     },
     {
