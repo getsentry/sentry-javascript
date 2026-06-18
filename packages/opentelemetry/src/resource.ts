@@ -1,14 +1,17 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import { SDK_INFO } from '@opentelemetry/core';
-import {
-  ATTR_SERVICE_NAME,
-  ATTR_SERVICE_VERSION,
-  ATTR_TELEMETRY_SDK_LANGUAGE,
-  ATTR_TELEMETRY_SDK_NAME,
-  ATTR_TELEMETRY_SDK_VERSION,
-  SEMRESATTRS_SERVICE_NAMESPACE,
-} from '@opentelemetry/semantic-conventions';
+import { SERVICE_NAME, SERVICE_VERSION } from '@sentry/conventions/attributes';
 import { SDK_VERSION } from '@sentry/core';
+
+// These resource attributes are not part of `@sentry/conventions`, so we inline the
+// stable OTel attribute keys here as plain strings rather than depending on
+// `@opentelemetry/semantic-conventions`. The string values must match exactly, as
+// `SDK_INFO` (from `@opentelemetry/core`) is keyed by them.
+// This is OTEL-specific and not relevant for Sentry, and will eventually go away.
+const ATTR_TELEMETRY_SDK_LANGUAGE = 'telemetry.sdk.language';
+const ATTR_TELEMETRY_SDK_NAME = 'telemetry.sdk.name';
+const ATTR_TELEMETRY_SDK_VERSION = 'telemetry.sdk.version';
+const SEMRESATTRS_SERVICE_NAMESPACE = 'service.namespace';
 
 type RawResourceAttribute = [string, AttributeValue | undefined];
 
@@ -85,13 +88,13 @@ export function getSentryResource(serviceNameFallback: string): SentryResource {
     // Lowest priority: Sentry defaults
     // eslint-disable-next-line typescript/no-deprecated
     [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
-    [ATTR_SERVICE_NAME]: serviceNameFallback,
+    [SERVICE_NAME]: serviceNameFallback,
     // OTEL_RESOURCE_ATTRIBUTES overrides defaults (including service.name and service.namespace)
     ...otelResourceAttrs,
     // OTEL_SERVICE_NAME explicitly overrides service.name
-    ...(otelServiceName ? { [ATTR_SERVICE_NAME]: otelServiceName } : {}),
+    ...(otelServiceName ? { [SERVICE_NAME]: otelServiceName } : {}),
     // Highest priority: Sentry SDK telemetry attrs (cannot be overridden by env vars)
-    [ATTR_SERVICE_VERSION]: SDK_VERSION,
+    [SERVICE_VERSION]: SDK_VERSION,
     [ATTR_TELEMETRY_SDK_LANGUAGE]: SDK_INFO[ATTR_TELEMETRY_SDK_LANGUAGE],
     [ATTR_TELEMETRY_SDK_NAME]: SDK_INFO[ATTR_TELEMETRY_SDK_NAME],
     [ATTR_TELEMETRY_SDK_VERSION]: SDK_INFO[ATTR_TELEMETRY_SDK_VERSION],
