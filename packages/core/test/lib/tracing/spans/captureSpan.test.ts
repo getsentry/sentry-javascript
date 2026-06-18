@@ -232,6 +232,78 @@ describe('captureSpan', () => {
     });
   });
 
+  it('falls back to "production" environment if not provided', () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        tracesSampleRate: 1,
+        release: '1.0.0',
+        // environment: undefined,
+      }),
+    );
+    client.init();
+
+    const span = withScope(scope => {
+      scope.setClient(client);
+
+      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      span.end();
+
+      return span;
+    });
+
+    expect(captureSpan(span, client)).toStrictEqual({
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      parent_span_id: undefined,
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      links: undefined,
+      start_timestamp: expect.any(Number),
+      name: 'my-span',
+      end_timestamp: expect.any(Number),
+      status: 'ok',
+      is_segment: true,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+          type: 'string',
+          value: 'http.client',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          type: 'string',
+          value: 'manual',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: {
+          type: 'integer',
+          value: 1,
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: {
+          value: 'my-span',
+          type: 'string',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: {
+          value: span.spanContext().spanId,
+          type: 'string',
+        },
+        'sentry.span.source': {
+          value: 'custom',
+          type: 'string',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
+          value: 'custom',
+          type: 'string',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: {
+          value: '1.0.0',
+          type: 'string',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          value: 'production',
+          type: 'string',
+        },
+      },
+      _segmentSpan: span,
+    });
+  });
+
   it('adds sentry.sdk.integrations to segment spans as an array attribute', () => {
     const client = new TestClient(
       getDefaultTestClientOptions({
