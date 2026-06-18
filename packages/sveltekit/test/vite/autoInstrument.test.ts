@@ -280,6 +280,51 @@ describe('makeAutoInstrumentationPlugin()', () => {
       );
     });
   });
+
+  describe('when the server build is detected via the Vite Environment API', () => {
+    // On Vite 6+ `config.build.ssr` no longer reliably reflects the per-environment
+    // build, so the plugin relies on the current environment (`this.environment.name`). When
+    // `onlyInstrumentClient` is `true`, universal load must not be wrapped in the `ssr` environment
+    // (but should still be wrapped in `client`), even when `config.build.ssr`/`configResolved`
+    // didn't flag a server build.
+    it.each(['path/to/+page.ts', 'path/to/+layout.js', 'path/to/+page.server.ts'])(
+      "doesn't wrap %s in the `ssr` environment",
+      async (path: string) => {
+        const plugin = makeAutoInstrumentationPlugin({
+          debug: false,
+          load: true,
+          serverLoad: true,
+          onlyInstrumentClient: true,
+        });
+
+        // `configResolved` is intentionally not called - `isServerBuild` stays `undefined`
+        // @ts-expect-error this exists and is callable; bind `this.environment` like Vite does
+        const loadResult = await plugin.load.call({ environment: { name: 'ssr' } }, path);
+
+        expect(loadResult).toEqual(null);
+      },
+    );
+
+    it('still wraps universal load in the `client` environment', async () => {
+      const plugin = makeAutoInstrumentationPlugin({
+        debug: false,
+        load: true,
+        serverLoad: true,
+        onlyInstrumentClient: true,
+      });
+
+      const path = 'path/to/+page.ts';
+      // @ts-expect-error this exists and is callable; bind `this.environment` like Vite does
+      const loadResult = await plugin.load.call({ environment: { name: 'client' } }, path);
+
+      expect(loadResult).toBe(
+        'import { wrapLoadWithSentry } from "@sentry/sveltekit";' +
+          `import * as userModule from "${path}?sentry-auto-wrap";` +
+          'export const load = userModule.load ? wrapLoadWithSentry(userModule.load) : undefined;' +
+          `export * from "${path}?sentry-auto-wrap";`,
+      );
+    });
+  });
 });
 
 describe('canWrapLoad', () => {
