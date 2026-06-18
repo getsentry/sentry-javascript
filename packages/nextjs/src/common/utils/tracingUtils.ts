@@ -1,4 +1,4 @@
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type { PropagationContext, Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
@@ -177,7 +177,7 @@ export function maybeEnhanceServerComponentSpanName(
   }
 
   const segment = spanAttributes[ATTR_NEXT_SEGMENT] as string;
-  const route = rootSpanAttributes[ATTR_HTTP_ROUTE];
+  const route = rootSpanAttributes[HTTP_ROUTE];
   const enhancedName = getEnhancedResolveSegmentSpanName({ segment, route: typeof route === 'string' ? route : '' });
   activeSpan.updateName(enhancedName);
   activeSpan.setAttributes({
