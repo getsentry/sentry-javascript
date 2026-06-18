@@ -25,9 +25,13 @@ describe('systemErrorIntegration', () => {
     vi.mocked(util.getSystemErrorMap).mockRestore();
   });
 
-  function createClient(sendDefaultPii = false): Client {
+  function createClient({ sendDefaultPii, userInfo }: { sendDefaultPii?: boolean; userInfo?: boolean } = {}): Client {
+    // When userInfo is explicitly provided, use it directly.
+    // Otherwise fall back to sendDefaultPii (mimicking resolveDataCollectionOptions).
+    const resolvedUserInfo = userInfo ?? sendDefaultPii ?? false;
     return {
       getOptions: () => ({ sendDefaultPii }),
+      getDataCollectionOptions: () => ({ userInfo: resolvedUserInfo }),
     } as unknown as Client;
   }
 
@@ -68,7 +72,7 @@ describe('systemErrorIntegration', () => {
     expect(result.exception?.values?.[0]?.value).not.toContain('/secret/path');
   });
 
-  it('keeps path in context when sendDefaultPii is true', () => {
+  it('keeps path in context when userInfo is true', () => {
     const errno = -2;
     vi.mocked(util.getSystemErrorMap).mockReturnValue(
       new Map<number, [string, string]>([[errno, ['ENOENT', 'no such file or directory']]]),
@@ -78,9 +82,66 @@ describe('systemErrorIntegration', () => {
     const error = Object.assign(new Error('boom'), { errno, path: '/secret/path' });
     const event = { exception: { values: [{ value: error.message }] } } as Event;
 
-    const result = integration.processEvent!(event, { originalException: error }, createClient(true)) as Event;
+    const result = integration.processEvent!(
+      event,
+      { originalException: error },
+      createClient({ userInfo: true }),
+    ) as Event;
 
     expect(result.contexts?.node_system_error).toEqual({ errno, path: '/secret/path' });
+  });
+
+  it('strips path from context when userInfo is false', () => {
+    const errno = -2;
+    vi.mocked(util.getSystemErrorMap).mockReturnValue(
+      new Map<number, [string, string]>([[errno, ['ENOENT', 'no such file or directory']]]),
+    );
+
+    const integration = systemErrorIntegration();
+    const error = Object.assign(new Error('boom'), { errno, path: '/secret/path' });
+    const event = { exception: { values: [{ value: error.message }] } } as Event;
+
+    const result = integration.processEvent!(event, { originalException: error }, createClient()) as Event;
+
+    expect(result.contexts?.node_system_error).toEqual({ errno });
+  });
+
+  it('keeps path in context when legacy sendDefaultPii is true', () => {
+    const errno = -2;
+    vi.mocked(util.getSystemErrorMap).mockReturnValue(
+      new Map<number, [string, string]>([[errno, ['ENOENT', 'no such file or directory']]]),
+    );
+
+    const integration = systemErrorIntegration();
+    const error = Object.assign(new Error('boom'), { errno, path: '/secret/path' });
+    const event = { exception: { values: [{ value: error.message }] } } as Event;
+
+    const result = integration.processEvent!(
+      event,
+      { originalException: error },
+      createClient({ sendDefaultPii: true }),
+    ) as Event;
+
+    expect(result.contexts?.node_system_error).toEqual({ errno, path: '/secret/path' });
+  });
+
+  it('strips path from context when legacy sendDefaultPii is false', () => {
+    const errno = -2;
+    vi.mocked(util.getSystemErrorMap).mockReturnValue(
+      new Map<number, [string, string]>([[errno, ['ENOENT', 'no such file or directory']]]),
+    );
+
+    const integration = systemErrorIntegration();
+    const error = Object.assign(new Error('boom'), { errno, path: '/secret/path' });
+    const event = { exception: { values: [{ value: error.message }] } } as Event;
+
+    const result = integration.processEvent!(
+      event,
+      { originalException: error },
+      createClient({ sendDefaultPii: false }),
+    ) as Event;
+
+    expect(result.contexts?.node_system_error).toEqual({ errno });
   });
 
   it('keeps path in context when includePaths option is true', () => {

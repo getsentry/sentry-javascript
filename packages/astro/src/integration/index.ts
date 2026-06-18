@@ -29,7 +29,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           clientInitPath,
           serverInitPath,
           autoInstrumentation,
-          // eslint-disable-next-line deprecation/deprecation
+          // eslint-disable-next-line typescript/no-deprecated
           sourceMapsUploadOptions,
           sourcemaps,
           // todo(v11): Extract `release` build time option here - cannot be done currently, because it conflicts with the `DeprecatedRuntimeOptions` type
@@ -64,7 +64,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         };
 
         const sourceMapsNeeded = sdkEnabled.client || sdkEnabled.server;
-        // eslint-disable-next-line deprecation/deprecation
+        // eslint-disable-next-line typescript/no-deprecated
         const { unstable_sentryVitePluginOptions: deprecatedVitePluginOptions, ...uploadOptions } =
           sourceMapsUploadOptions || {};
 
@@ -76,7 +76,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         const shouldUploadSourcemaps =
           (sourceMapsNeeded &&
             sourcemaps?.disable !== true &&
-            // eslint-disable-next-line deprecation/deprecation
+            // eslint-disable-next-line typescript/no-deprecated
             uploadOptions?.enabled) ??
           true;
 
@@ -87,7 +87,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           let updatedFilesToDeleteAfterUpload: string[] | undefined = undefined;
 
           if (
-            // eslint-disable-next-line deprecation/deprecation
+            // eslint-disable-next-line typescript/no-deprecated
             typeof uploadOptions?.filesToDeleteAfterUpload === 'undefined' &&
             typeof sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
             computedSourceMapSettings.previousUserSourceMapSetting === 'unset'
@@ -112,15 +112,15 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                 sentryVitePlugin({
                   applicationKey,
                   // Priority: top-level options > deprecated options > env vars
-                  // eslint-disable-next-line deprecation/deprecation
+                  // eslint-disable-next-line typescript/no-deprecated
                   org: org ?? uploadOptions.org ?? env.SENTRY_ORG,
-                  // eslint-disable-next-line deprecation/deprecation
+                  // eslint-disable-next-line typescript/no-deprecated
                   project: project ?? uploadOptions.project ?? env.SENTRY_PROJECT,
-                  // eslint-disable-next-line deprecation/deprecation
+                  // eslint-disable-next-line typescript/no-deprecated
                   authToken: authToken ?? uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
                   url: sentryUrl ?? env.SENTRY_URL,
                   headers,
-                  // eslint-disable-next-line deprecation/deprecation
+                  // eslint-disable-next-line typescript/no-deprecated
                   telemetry: telemetry ?? uploadOptions.telemetry ?? true,
                   silent: silent ?? false,
                   errorHandler,
@@ -133,11 +133,11 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                   debug: debug ?? false,
                   sourcemaps: {
                     ...sourcemaps,
-                    // eslint-disable-next-line deprecation/deprecation
+                    // eslint-disable-next-line typescript/no-deprecated
                     assets: sourcemaps?.assets ?? uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
                     filesToDeleteAfterUpload:
                       sourcemaps?.filesToDeleteAfterUpload ??
-                      // eslint-disable-next-line deprecation/deprecation
+                      // eslint-disable-next-line typescript/no-deprecated
                       uploadOptions?.filesToDeleteAfterUpload ??
                       updatedFilesToDeleteAfterUpload,
                     ...unstableMerged_sentryVitePluginOptions?.sourcemaps,

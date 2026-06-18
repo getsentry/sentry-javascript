@@ -13,10 +13,10 @@ export {
   addIntegration,
   amqplibIntegration,
   anthropicAIIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   anrIntegration,
   googleGenAIIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
@@ -65,11 +65,12 @@ export {
   winterCGHeadersToDict,
   graphqlIntegration,
   hapiIntegration,
+  // eslint-disable-next-line typescript/no-deprecated
   honoIntegration,
   httpIntegration,
   httpServerIntegration,
   httpServerSpansIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   eventFiltersIntegration,
   initOpenTelemetry,
@@ -127,6 +128,7 @@ export {
   setupConnectErrorHandler,
   setupExpressErrorHandler,
   setupHapiErrorHandler,
+  // eslint-disable-next-line typescript/no-deprecated
   setupHonoErrorHandler,
   setupKoaErrorHandler,
   setUser,

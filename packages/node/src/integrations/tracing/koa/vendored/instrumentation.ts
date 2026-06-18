@@ -1,40 +1,47 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-koa
  * - Upstream version: @opentelemetry/instrumentation-koa@0.66.0
  * - Minor TypeScript strictness adjustments for this repository's compiler settings
+ * - Span creation migrated to the @sentry/core API; op/origin/name and transaction name folded into
+ *   span creation (previously set via a Sentry requestHook)
  */
-/* eslint-disable */
 
 import * as api from '@opentelemetry/api';
-import {
-  isWrapped,
-  InstrumentationBase,
-  InstrumentationNodeModuleDefinition,
-  safeExecuteInTheMiddle,
-} from '@opentelemetry/instrumentation';
+import { isWrapped, InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 
-import { KoaLayerType, KoaInstrumentationConfig } from './types';
-import { SDK_VERSION } from '@sentry/core';
+import { KoaLayerType, type KoaInstrumentationConfig } from './types';
+import {
+  debug,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startSpan,
+} from '@sentry/core';
+import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import { getMiddlewareMetadata, isLayerIgnored } from './utils';
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
-import { Next, kLayerPatched, KoaContext, KoaMiddleware, KoaPatchedMiddleware } from './internal-types';
+import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
+import { DEBUG_BUILD } from '../../../../debug-build';
+import { AttributeNames } from './enums/AttributeNames';
+import {
+  kLayerPatched,
+  type Next,
+  type KoaContext,
+  type KoaMiddleware,
+  type KoaPatchedMiddleware,
+} from './internal-types';
 
 const PACKAGE_NAME = '@sentry/instrumentation-koa';
+
+interface KoaModuleExports {
+  prototype: { use: KoaMiddleware };
+}
+
+type KoaModule = KoaModuleExports & { [Symbol.toStringTag]?: string; default?: KoaModuleExports };
 
 /** Koa instrumentation for OpenTelemetry */
 export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationConfig> {
@@ -46,8 +53,8 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
     return new InstrumentationNodeModuleDefinition(
       'koa',
       ['>=2.0.0 <4'],
-      (module: any) => {
-        const moduleExports: any =
+      (module: KoaModule) => {
+        const moduleExports =
           module[Symbol.toStringTag] === 'Module'
             ? module.default // ESM
             : module; // CommonJS
@@ -60,12 +67,12 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
         this._wrap(moduleExports.prototype, 'use', this._getKoaUsePatch.bind(this));
         return module;
       },
-      (module: any) => {
-        const moduleExports: any =
+      (module: KoaModule) => {
+        const moduleExports =
           module[Symbol.toStringTag] === 'Module'
             ? module.default // ESM
             : module; // CommonJS
-        if (isWrapped(moduleExports.prototype.use)) {
+        if (moduleExports && isWrapped(moduleExports.prototype.use)) {
           this._unwrap(moduleExports.prototype, 'use');
         }
       },
@@ -77,15 +84,13 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
    * middleware layer which is introduced
    * @param {KoaMiddleware} middleware - the original middleware function
    */
-  private _getKoaUsePatch(original: (middleware: KoaMiddleware) => any) {
-    const plugin = this;
-    return function use(this: any, middlewareFunction: KoaMiddleware) {
-      let patchedFunction: KoaMiddleware;
-      if (middlewareFunction.router) {
-        patchedFunction = plugin._patchRouterDispatch(middlewareFunction);
-      } else {
-        patchedFunction = plugin._patchLayer(middlewareFunction, false);
-      }
+  private _getKoaUsePatch(original: (middleware: KoaMiddleware) => unknown) {
+    const patchRouterDispatch = this._patchRouterDispatch.bind(this);
+    const patchLayer = this._patchLayer.bind(this);
+    return function use(this: unknown, middlewareFunction: KoaMiddleware) {
+      const patchedFunction = middlewareFunction.router
+        ? patchRouterDispatch(middlewareFunction)
+        : patchLayer(middlewareFunction, false);
       return original.apply(this, [patchedFunction]);
     };
   }
@@ -98,18 +103,14 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
    * routed middleware
    */
   private _patchRouterDispatch(dispatchLayer: KoaMiddleware): KoaMiddleware {
-    api.diag.debug('Patching @koa/router dispatch');
-
     const router = dispatchLayer.router;
 
     const routesStack = router?.stack ?? [];
     for (const pathLayer of routesStack) {
       const path = pathLayer.path;
-      // Type cast needed: router.stack comes from @types/koa@2.x but we use @types/koa@3.x
-      // See internal-types.ts for full explanation
-      const pathStack = pathLayer.stack as any;
+      const pathStack = pathLayer.stack;
       for (let j = 0; j < pathStack.length; j++) {
-        const routedMiddleware: KoaMiddleware = pathStack[j];
+        const routedMiddleware: KoaMiddleware = pathStack[j]!;
         pathStack[j] = this._patchLayer(routedMiddleware, true, path);
       }
     }
@@ -139,58 +140,47 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
       middlewareLayer.constructor.name === 'GeneratorFunction' ||
       middlewareLayer.constructor.name === 'AsyncGeneratorFunction'
     ) {
-      api.diag.debug('ignoring generator-based Koa middleware layer');
       return middlewareLayer;
     }
 
     middlewareLayer[kLayerPatched] = true;
 
-    api.diag.debug('patching Koa middleware layer');
-    return async (context: KoaContext, next: Next) => {
+    return (context: KoaContext, next: Next) => {
       const parent = api.trace.getSpan(api.context.active());
       if (parent === undefined) {
         return middlewareLayer(context, next);
       }
       const metadata = getMiddlewareMetadata(context, middlewareLayer, isRouter, layerPath);
-      const span = this.tracer.startSpan(metadata.name, {
-        attributes: metadata.attributes,
-      });
 
-      const rpcMetadata = getRPCMetadata(api.context.active());
-
-      if (rpcMetadata?.type === RPCType.HTTP && context._matchedRoute) {
-        rpcMetadata.route = context._matchedRoute.toString();
+      if (context._matchedRoute) {
+        setHttpServerSpanRouteAttribute(context._matchedRoute.toString());
       }
 
-      const { requestHook } = this.getConfig();
-      if (requestHook) {
-        safeExecuteInTheMiddle(
-          () =>
-            requestHook(span, {
-              context,
-              middlewareLayer,
-              layerType,
-            }),
-          e => {
-            if (e) {
-              api.diag.error('koa instrumentation: request hook failed', e);
-            }
+      const koaName = metadata.attributes[AttributeNames.KOA_NAME];
+      // Somehow, name is sometimes `''` for middleware spans
+      // See: https://github.com/open-telemetry/opentelemetry-js-contrib/issues/2220
+      const name = typeof koaName === 'string' ? koaName || '< unknown >' : metadata.name;
+
+      return startSpan(
+        {
+          name,
+          op: `${layerType}.koa`,
+          attributes: {
+            ...metadata.attributes,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.koa',
           },
-          true,
-        );
-      }
-
-      const newContext = api.trace.setSpan(api.context.active(), span);
-      return api.context.with(newContext, async () => {
-        try {
-          return await middlewareLayer(context, next);
-        } catch (err: any) {
-          span.recordException(err);
-          throw err;
-        } finally {
-          span.end();
-        }
-      });
+        },
+        () => {
+          const route = metadata.attributes[ATTR_HTTP_ROUTE];
+          if (getIsolationScope() === getDefaultIsolationScope()) {
+            DEBUG_BUILD && debug.warn('Isolation scope is default isolation scope - skipping setting transactionName');
+          } else if (route) {
+            const method = (context.request as { method?: string } | undefined)?.method?.toUpperCase() || 'GET';
+            getIsolationScope().setTransactionName(`${method} ${route}`);
+          }
+          return middlewareLayer(context, next);
+        },
+      );
     };
   }
 }

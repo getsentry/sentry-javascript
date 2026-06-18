@@ -1,7 +1,7 @@
 {
   "name": "@sentry-internal/clear-cache-gh-action",
   "description": "An internal Github Action to clear GitHub caches.",
-  "version": "10.54.0",
+  "version": "10.58.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -18,7 +18,7 @@
     "@actions/github": "^5.0.0"
   },
   "devDependencies": {
-    "eslint-plugin-regexp": "^1.15.0"
+    "eslint-plugin-regexp": "^3.1.0"
   },
   "volta": {
     "extends": "../../package.json"

@@ -1,17 +1,6 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-pg
@@ -26,10 +15,10 @@ import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
   safeExecuteInTheMiddle,
-  InstrumentationNodeModuleFile,
   SemconvStability,
   semconvStabilityFromStr,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import {
   context,
   trace,
@@ -39,7 +28,6 @@ import {
   Histogram,
   ValueType,
   Attributes,
-  HrTime,
   UpDownCounter,
 } from '@opentelemetry/api';
 import type { PgClient } from './pg-types';
@@ -54,10 +42,9 @@ import {
 import { PgInstrumentationConfig } from './types';
 import * as utils from './utils';
 import { addSqlCommenterComment } from '../../utils/sql-common';
-import { SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, timestampInSeconds } from '@sentry/core';
 const PACKAGE_NAME = '@sentry/instrumentation-pg';
 import { SpanNames } from './enums/SpanNames';
-import { hrTime, hrTimeDuration, hrTimeToMilliseconds } from '@opentelemetry/core';
 import {
   ATTR_ERROR_TYPE,
   ATTR_SERVER_PORT,
@@ -252,7 +239,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
     };
   }
 
-  private recordOperationDuration(attributes: Attributes, startTime: HrTime) {
+  private recordOperationDuration(attributes: Attributes, startTime: number) {
     const metricsAttributes: Attributes = {};
     const keysToCopy: string[] = [
       ATTR_DB_NAMESPACE,
@@ -274,7 +261,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
       }
     });
 
-    const durationSeconds = hrTimeToMilliseconds(hrTimeDuration(startTime, hrTime())) / 1000;
+    const durationSeconds = timestampInSeconds() - startTime;
     this._operationDuration.record(durationSeconds, metricsAttributes);
   }
 
@@ -286,7 +273,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
         if (utils.shouldSkipInstrumentation(plugin.getConfig())) {
           return original.apply(this, args as never);
         }
-        const startTime = hrTime();
+        const startTime = timestampInSeconds();
 
         // client.query(text, cb?), client.query(text, values, cb?), and
         // client.query(configObj, cb?) are all valid signatures. We construct

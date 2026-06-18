@@ -70,9 +70,9 @@ export {
   instrumentLangChainEmbeddings,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   anrIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
@@ -91,7 +91,7 @@ export {
   requestDataIntegration,
   fsIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
@@ -141,7 +141,9 @@ export {
   processSessionIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
+  // eslint-disable-next-line typescript/no-deprecated
   honoIntegration,
+  // eslint-disable-next-line typescript/no-deprecated
   setupHonoErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
@@ -191,7 +193,7 @@ export {
 
 export type { BunOptions } from './types';
 
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line typescript/no-deprecated
 export { BunClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';

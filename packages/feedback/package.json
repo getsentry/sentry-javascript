@@ -1,6 +1,6 @@
 {
-  "name": "@sentry-internal/feedback",
-  "version": "10.54.0",
+  "name": "@sentry/feedback",
+  "version": "10.58.0",
   "description": "Sentry SDK integration for user feedback",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/feedback",
@@ -18,6 +18,7 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "react-native": "./build/npm/esm/index.js",
       "import": {
         "types": "./build/npm/types/index.d.ts",
         "default": "./build/npm/esm/index.js"
@@ -39,7 +40,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "10.54.0"
+    "@sentry/core": "10.58.0"
   },
   "devDependencies": {
     "preact": "^10.19.4"
@@ -58,7 +59,7 @@
     "build:bundle:watch": "yarn build:bundle --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build sentry-internal-feedback-*.tgz",
+    "clean": "rimraf build sentry-feedback-*.tgz",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",

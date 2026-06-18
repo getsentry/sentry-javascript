@@ -1,6 +1,6 @@
 import type { SpanContext } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
-import { TraceState } from '@opentelemetry/core';
+import { TraceState } from '../../src/utils/TraceState';
 import type { Event, TransactionEvent } from '@sentry/core';
 import {
   addBreadcrumb,
@@ -612,7 +612,7 @@ describe('Integration | Transactions', () => {
     expect(finishedSpans.length).toBe(0);
   });
 
-  it('discards child spans that are finished after 5 minutes their parent span has been sent', async () => {
+  it('sends child spans that are finished after 5 minutes as orphaned transactions', async () => {
     const timeout = 5 * 60 * 1000;
     const now = Date.now();
     vi.useFakeTimers();
@@ -631,14 +631,6 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const spanProcessor = getSpanProcessor();
-
-    const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
-
-    if (!exporter) {
-      throw new Error('No exporter found, aborting test...');
-    }
-
     startSpanManual({ name: 'test name' }, async span => {
       const subSpan = startInactiveSpan({ name: 'inner span 1' });
       subSpan.end();
@@ -654,18 +646,15 @@ describe('Integration | Transactions', () => {
 
     vi.advanceTimersByTime(timeout + 2);
 
-    expect(transactions).toHaveLength(1);
+    expect(transactions).toHaveLength(2);
     expect(transactions[0]?.spans).toHaveLength(1);
 
-    // subSpan2 is pending (and will eventually be cleaned up)
-    const finishedSpans: any = [];
-    exporter['_finishedSpanBuckets'].forEach(bucket => {
-      if (bucket) {
-        finishedSpans.push(...bucket.spans);
-      }
+    expect(transactions[1]?.transaction).toBe('inner span 2');
+    expect(transactions[1]?.contexts?.trace?.data).toEqual({
+      'sentry.parent_span_already_sent': true,
+      'sentry.origin': 'manual',
+      'sentry.source': 'custom',
     });
-    expect(finishedSpans.length).toBe(1);
-    expect(finishedSpans[0]?.name).toBe('inner span 2');
   });
 
   it('only considers sent spans, not finished spans, for flushing orphaned spans of sent spans', async () => {

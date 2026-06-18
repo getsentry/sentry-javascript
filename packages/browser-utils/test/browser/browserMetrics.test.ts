@@ -9,12 +9,14 @@ import {
   setCurrentClient,
   spanToJSON,
 } from '@sentry/core';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   _addMeasureSpans,
   _addNavigationSpans,
   _addResourceSpans,
   _setResourceRequestAttributes,
+  addWebVitalsToSpan,
+  startTrackingWebVitals,
 } from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
@@ -46,6 +48,102 @@ function mockPerformanceResourceTiming(
 ): PerformanceResourceTiming & AdditionalPerformanceResourceTiming {
   return data as PerformanceResourceTiming & AdditionalPerformanceResourceTiming;
 }
+
+describe('addWebVitalsToSpan', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+
+    const client = new TestClient(
+      getDefaultClientOptions({
+        tracesSampleRate: 1,
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('clears pending measurements when the performance API is unavailable', async () => {
+    let performanceObserverCallback: ((list: PerformanceObserverEntryList) => void) | undefined;
+    class MockPerformanceObserver {
+      public static supportedEntryTypes = ['paint'];
+
+      public constructor(callback: (list: PerformanceObserverEntryList) => void) {
+        performanceObserverCallback = callback;
+      }
+
+      public observe(): void {
+        // noop
+      }
+
+      public disconnect(): void {
+        // noop
+      }
+    }
+
+    vi.stubGlobal('PerformanceObserver', MockPerformanceObserver);
+    vi.stubGlobal('addEventListener', vi.fn());
+    vi.stubGlobal('removeEventListener', vi.fn());
+    vi.stubGlobal('document', {
+      prerendering: false,
+      readyState: 'complete',
+      visibilityState: 'visible',
+    });
+
+    const cleanupWebVitals = startTrackingWebVitals({
+      recordClsStandaloneSpans: undefined,
+      recordLcpStandaloneSpans: undefined,
+      client: getClient()!,
+    });
+
+    performanceObserverCallback?.({
+      getEntries: () => [
+        {
+          entryType: 'paint',
+          name: 'first-paint',
+          duration: 0,
+          startTime: 12,
+          toJSON: () => ({}),
+        },
+        {
+          entryType: 'paint',
+          name: 'first-contentful-paint',
+          duration: 0,
+          startTime: 18,
+          toJSON: () => ({}),
+        },
+      ],
+    } as PerformanceObserverEntryList);
+    await Promise.resolve();
+    cleanupWebVitals();
+
+    vi.stubGlobal('addEventListener', undefined);
+    const spanWithPendingMeasurements = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+    addWebVitalsToSpan(spanWithPendingMeasurements, {
+      recordClsOnPageloadSpan: true,
+      recordLcpOnPageloadSpan: true,
+      spanStreamingEnabled: true,
+    });
+
+    vi.stubGlobal('addEventListener', vi.fn());
+
+    const nextPageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+    addWebVitalsToSpan(nextPageloadSpan, {
+      recordClsOnPageloadSpan: true,
+      recordLcpOnPageloadSpan: true,
+      spanStreamingEnabled: true,
+    });
+
+    expect(spanToJSON(nextPageloadSpan).data['browser.web_vital.fp.value']).toBeUndefined();
+    expect(spanToJSON(nextPageloadSpan).data['browser.web_vital.fcp.value']).toBeUndefined();
+  });
+});
 
 describe('_addMeasureSpans', () => {
   const span = new SentrySpan({ op: 'pageload', name: '/', sampled: true });

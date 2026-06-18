@@ -43,7 +43,7 @@ export function extractGenAiSpansFromEvent(event: Event, client: Client): SpanCo
 
   event.spans = remainingSpans;
 
-  const inferSetting = client.getOptions().sendDefaultPii ? 'auto' : 'never';
+  const inferSetting = client.getDataCollectionOptions().userInfo ? 'auto' : 'never';
 
   return [
     { type: 'span', item_count: genAiSpans.length, content_type: 'application/vnd.sentry.items.span.v2+json' },

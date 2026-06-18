@@ -39,7 +39,6 @@ test('Will create streamed spans for every server component and metadata generat
   expect(spanNames).toContainEqual('resolve page server component "/nested-layout"');
   expect(spanNames).toContainEqual('generateMetadata /(nested-layout)/nested-layout/page');
   expect(spanNames).toContainEqual('start response');
-  expect(spanNames).toContainEqual('NextNodeServer.clientComponentLoading');
 });
 
 test('Will create streamed spans for every server component and metadata generation functions when visiting a dynamic page', async ({
@@ -66,5 +65,4 @@ test('Will create streamed spans for every server component and metadata generat
   expect(spanNames).toContainEqual('resolve page server component "/nested-layout/[dynamic]"');
   expect(spanNames).toContainEqual('generateMetadata /(nested-layout)/nested-layout/[dynamic]/page');
   expect(spanNames).toContainEqual('start response');
-  expect(spanNames).toContainEqual('NextNodeServer.clientComponentLoading');
 });

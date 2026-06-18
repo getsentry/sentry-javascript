@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getCurrentScope, getGlobalScope, getIsolationScope, setCurrentClient } from '../../../../src';
-import { resolveAIRecordingOptions, wrapPromiseWithMethods } from '../../../../src/tracing/ai/utils';
+import {
+  resolveAIRecordingOptions,
+  shouldEnableTruncation,
+  wrapPromiseWithMethods,
+} from '../../../../src/tracing/ai/utils';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 describe('resolveAIRecordingOptions', () => {
@@ -16,26 +20,119 @@ describe('resolveAIRecordingOptions', () => {
     getGlobalScope().clear();
   });
 
-  function setup(sendDefaultPii: boolean): void {
+  function setupWithSendDefaultPii(sendDefaultPii: boolean): void {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1, sendDefaultPii });
     const client = new TestClient(options);
     setCurrentClient(client);
     client.init();
   }
 
-  it('defaults to false when sendDefaultPii is false', () => {
-    setup(false);
+  function setupWithDataCollection(genAI: { inputs?: boolean; outputs?: boolean }): void {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, dataCollection: { genAI } });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+  }
+
+  it('defaults to false when no client is set', () => {
     expect(resolveAIRecordingOptions()).toEqual({ recordInputs: false, recordOutputs: false });
   });
 
-  it('respects sendDefaultPii: true', () => {
-    setup(true);
+  it('defaults to false when sendDefaultPii is false (bridge)', () => {
+    setupWithSendDefaultPii(false);
+    expect(resolveAIRecordingOptions()).toEqual({ recordInputs: false, recordOutputs: false });
+  });
+
+  it('defaults to true when sendDefaultPii is true (bridge)', () => {
+    setupWithSendDefaultPii(true);
     expect(resolveAIRecordingOptions()).toEqual({ recordInputs: true, recordOutputs: true });
   });
 
-  it('explicit options override sendDefaultPii', () => {
-    setup(true);
+  it('explicit options override sendDefaultPii bridge', () => {
+    setupWithSendDefaultPii(true);
     expect(resolveAIRecordingOptions({ recordInputs: false })).toEqual({ recordInputs: false, recordOutputs: true });
+  });
+
+  it('respects dataCollection.genAI.inputs and outputs', () => {
+    setupWithDataCollection({ inputs: true, outputs: true });
+    expect(resolveAIRecordingOptions()).toEqual({ recordInputs: true, recordOutputs: true });
+  });
+
+  it('respects dataCollection.genAI.inputs: false, outputs: false', () => {
+    setupWithDataCollection({ inputs: false, outputs: false });
+    expect(resolveAIRecordingOptions()).toEqual({ recordInputs: false, recordOutputs: false });
+  });
+
+  it('supports asymmetric dataCollection.genAI (inputs: true, outputs: false)', () => {
+    setupWithDataCollection({ inputs: true, outputs: false });
+    expect(resolveAIRecordingOptions()).toEqual({ recordInputs: true, recordOutputs: false });
+  });
+
+  it('supports asymmetric dataCollection.genAI (inputs: false, outputs: true)', () => {
+    setupWithDataCollection({ inputs: false, outputs: true });
+    expect(resolveAIRecordingOptions()).toEqual({ recordInputs: false, recordOutputs: true });
+  });
+
+  it('explicit options override dataCollection.genAI', () => {
+    setupWithDataCollection({ inputs: true, outputs: true });
+    expect(resolveAIRecordingOptions({ recordInputs: false })).toEqual({ recordInputs: false, recordOutputs: true });
+  });
+
+  it('explicit false overrides dataCollection.genAI.inputs: true', () => {
+    setupWithDataCollection({ inputs: true, outputs: true });
+    expect(resolveAIRecordingOptions({ recordInputs: false, recordOutputs: false })).toEqual({
+      recordInputs: false,
+      recordOutputs: false,
+    });
+  });
+});
+
+describe('shouldEnableTruncation', () => {
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+  });
+
+  afterEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+  });
+
+  function setupClient(options: Parameters<typeof getDefaultTestClientOptions>[0] = {}): void {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, ...options }));
+    setCurrentClient(client);
+    client.init();
+  }
+
+  it('defaults to true when no client is set', () => {
+    expect(shouldEnableTruncation(undefined)).toBe(true);
+  });
+
+  it('defaults to true with a default client (no streaming)', () => {
+    setupClient();
+    expect(shouldEnableTruncation(undefined)).toBe(true);
+  });
+
+  it('defaults to false when streamGenAiSpans is enabled', () => {
+    setupClient({ streamGenAiSpans: true });
+    expect(shouldEnableTruncation(undefined)).toBe(false);
+  });
+
+  it('defaults to false when span streaming is enabled (traceLifecycle: stream)', () => {
+    setupClient({ traceLifecycle: 'stream' });
+    expect(shouldEnableTruncation(undefined)).toBe(false);
+  });
+
+  it('explicit enableTruncation: true overrides streamGenAiSpans', () => {
+    setupClient({ streamGenAiSpans: true });
+    expect(shouldEnableTruncation(true)).toBe(true);
+  });
+
+  it('explicit enableTruncation: false overrides the default', () => {
+    setupClient();
+    expect(shouldEnableTruncation(false)).toBe(false);
   });
 });
 

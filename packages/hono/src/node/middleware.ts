@@ -1,4 +1,5 @@
-import { type BaseTransportOptions, debug, type Options, getClient } from '@sentry/core';
+import { type BaseTransportOptions, consoleSandbox, debug, getClient, type Options } from '@sentry/core';
+import { getConnInfo } from '@hono/node-server/conninfo';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { applyPatches } from '../shared/applyPatches';
@@ -17,18 +18,32 @@ export interface HonoNodeOptions extends Options<BaseTransportOptions> {}
 export const sentry = <E extends Env>(app: Hono<E>, options?: SentryHonoMiddlewareOptions): MiddlewareHandler => {
   const sentryClient = getClient();
   if (sentryClient === undefined) {
-    debug.warn(
-      'Sentry is not initialized. Call `init()` from @sentry/hono/node in an `instrument.ts` file loaded via `--import` to set up Sentry for your application.',
-    );
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[@sentry/hono] Sentry is not initialized. Call `init()` from `@sentry/hono/node` in an `instrument.ts` file loaded via `--import` to set up Sentry for your application.',
+      );
+    });
   } else {
-    sentryClient.getOptions().debug &&
-      debug.log('Sentry is initialized, proceeding to set up Hono `sentry` middleware.');
+    const isInitializedWithHonoSdk = sentryClient.getOptions()._metadata?.sdk?.name === 'sentry.javascript.hono';
+
+    if (!isInitializedWithHonoSdk) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[Sentry] Sentry was not initialized with `@sentry/hono/node`. Please import from `@sentry/hono/node` to ensure Hono-specific instrumentation is applied correctly.',
+        );
+      });
+    } else {
+      sentryClient.getOptions().debug &&
+        debug.log('Sentry is initialized, proceeding to set up Hono `sentry` middleware.');
+    }
   }
 
   applyPatches(app);
 
   return async (context, next) => {
-    requestHandler(context);
+    requestHandler(context, getConnInfo);
 
     await next(); // Handler runs in between Request above ⤴ and Response below ⤵
 

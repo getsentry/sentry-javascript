@@ -1,5 +1,5 @@
 import { context } from '@opentelemetry/api';
-import { ATTR_HTTP_REQUEST_METHOD, ATTR_HTTP_ROUTE, SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
+import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
   getCapturedScopesOnSpan,
@@ -37,20 +37,20 @@ export function handleOnSpanStart(span: Span): void {
   if (typeof spanAttributes?.[ATTR_NEXT_ROUTE] === 'string') {
     // Only hoist the http.route attribute if the transaction doesn't already have it
     if (
-      // eslint-disable-next-line deprecation/deprecation
-      (rootSpanAttributes?.[ATTR_HTTP_REQUEST_METHOD] || rootSpanAttributes?.[SEMATTRS_HTTP_METHOD]) &&
-      !rootSpanAttributes?.[ATTR_HTTP_ROUTE]
+      // eslint-disable-next-line typescript/no-deprecated
+      (rootSpanAttributes?.[HTTP_REQUEST_METHOD] || rootSpanAttributes?.[HTTP_METHOD]) &&
+      !rootSpanAttributes?.[HTTP_ROUTE]
     ) {
       const route = spanAttributes[ATTR_NEXT_ROUTE].replace(/\/route$/, '');
       rootSpan.updateName(route);
-      rootSpan.setAttribute(ATTR_HTTP_ROUTE, route);
+      rootSpan.setAttribute(HTTP_ROUTE, route);
       // Preserving the original attribute despite internally not depending on it
       rootSpan.setAttribute(ATTR_NEXT_ROUTE, route);
 
       // Update the isolation scope's transaction name so that non-transaction events
       // (e.g. captureMessage, captureException) also get the parameterized route.
-      // eslint-disable-next-line deprecation/deprecation
-      const method = rootSpanAttributes?.[ATTR_HTTP_REQUEST_METHOD] || rootSpanAttributes?.[SEMATTRS_HTTP_METHOD];
+      // eslint-disable-next-line typescript/no-deprecated
+      const method = rootSpanAttributes?.[HTTP_REQUEST_METHOD] || rootSpanAttributes?.[HTTP_METHOD];
       if (typeof method === 'string') {
         getIsolationScope().setTransactionName(`${method} ${route}`);
       }
@@ -67,7 +67,7 @@ export function handleOnSpanStart(span: Span): void {
     const middlewareName = spanAttributes[ATTR_NEXT_SPAN_NAME];
     if (typeof middlewareName === 'string') {
       rootSpan.updateName(middlewareName);
-      rootSpan.setAttribute(ATTR_HTTP_ROUTE, middlewareName);
+      rootSpan.setAttribute(HTTP_ROUTE, middlewareName);
       rootSpan.setAttribute(ATTR_NEXT_SPAN_NAME, middlewareName);
     }
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto');

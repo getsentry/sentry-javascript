@@ -1,6 +1,4 @@
-import { context } from '@opentelemetry/api';
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import {
   flushIfServerless,
   getActiveSpan,
@@ -73,13 +71,6 @@ export function wrapSentryHandleRequest(
       // Normalize route name - avoid "//" for root routes
       const routeName = parameterizedPath.startsWith('/') ? parameterizedPath : `/${parameterizedPath}`;
 
-      // The express instrumentation writes on the rpcMetadata and that ends up stomping on the `http.route` attribute.
-      const rpcMetadata = getRPCMetadata(context.active());
-
-      if (rpcMetadata?.type === RPCType.HTTP) {
-        rpcMetadata.route = routeName;
-      }
-
       const transactionName = `${request.method} ${routeName}`;
 
       updateSpanName(rootSpan, transactionName);
@@ -89,12 +80,12 @@ export function wrapSentryHandleRequest(
       // Don't override origin when instrumentation API is used (preserve instrumentation_api origin)
       if (isInstrumentationApiUsed()) {
         rootSpan.setAttributes({
-          [ATTR_HTTP_ROUTE]: routeName,
+          [HTTP_ROUTE]: routeName,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         });
       } else {
         rootSpan.setAttributes({
-          [ATTR_HTTP_ROUTE]: routeName,
+          [HTTP_ROUTE]: routeName,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
         });

@@ -11,6 +11,7 @@ import {
   useNavigationType,
 } from 'react-router';
 import Index from './pages/Index';
+import Products from './pages/Products';
 import SSE from './pages/SSE';
 import User from './pages/User';
 
@@ -39,7 +40,7 @@ Sentry.init({
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
   tunnel: 'http://localhost:3031',
-  sendDefaultPii: true,
+  dataCollection: { userInfo: true },
 });
 
 const SentryRoutes = Sentry.withSentryReactRouterV7Routing(Routes);
@@ -50,6 +51,7 @@ root.render(
     <SentryRoutes>
       <Route path="/" element={<Index />} />
       <Route path="/user/:id" element={<User />} />
+      <Route path="/products" element={<Products />} />
       <Route path="/sse" element={<SSE />} />
     </SentryRoutes>
   </BrowserRouter>,

@@ -1,4 +1,4 @@
-import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
+import { HTTP_TARGET } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
 import {
   debug,
@@ -24,8 +24,14 @@ type SpanOptions = {
 // Track if we've already warned about duplicate instrumentation
 let hasWarnedAboutDuplicateActionInstrumentation = false;
 
+// todo(v11): Remove this deprecated wrapper in favor of the instrumentation API (`createSentryServerInstrumentation`).
 /**
  * Wraps a React Router server action function with Sentry performance monitoring.
+ *
+ * @deprecated Use React Router's instrumentation API instead: export
+ * `instrumentations = [createSentryServerInstrumentation()]` from your `entry.server.tsx` to instrument all server
+ * actions without wrapping them individually. This manual wrapper will be removed in a future major.
+ *
  * @param options - Optional span configuration options including name, operation, description and attributes
  * @param actionFn - The server action function to wrap
  *
@@ -66,8 +72,8 @@ export function wrapServerAction<T>(
       const root = getRootSpan(active);
       const spanData = spanToJSON(root);
       if (spanData.origin === 'auto.http.otel.http') {
-        // eslint-disable-next-line deprecation/deprecation
-        const target = spanData.data[SEMATTRS_HTTP_TARGET];
+        // eslint-disable-next-line typescript/no-deprecated
+        const target = spanData.data[HTTP_TARGET];
 
         if (target) {
           // We cannot rely on the regular span name inferral here, as the express instrumentation sets `*` as the route

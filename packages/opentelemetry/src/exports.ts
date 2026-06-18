@@ -40,6 +40,7 @@ export { suppressTracing } from './utils/suppressTracing';
 export { setupEventContextTrace } from './setupEventContextTrace';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';
+// eslint-disable-next-line typescript/no-deprecated
 export { wrapContextManagerClass } from './contextManager';
 
 export { SentryPropagator, shouldPropagateTraceForUrl } from './propagator';

@@ -4,5 +4,5 @@
 
 export declare class Pool<T> {
   acquire(priority?: number): PromiseLike<T>;
-  [key: string]: any;
+  [key: string]: unknown;
 }

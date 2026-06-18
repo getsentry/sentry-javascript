@@ -68,9 +68,17 @@ packages/**/*.junit.xml
 # Local Claude Code settings that should not be committed
 .claude/settings.local.json
 .claude/worktrees
+.claude/scheduled_tasks.lock
 
 # Triage report
 **/triage_report.md
+
+# Dependabot auto-triage run artifacts
+noise.json
+fix-candidates-runtime.json
+fix-candidates-dev.json
+pr-body-*.md
+fix-result-*.md
 
 # Environment variables
 .env

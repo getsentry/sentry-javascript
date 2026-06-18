@@ -122,7 +122,7 @@ export function supportsNativeFetch(): boolean {
   // so create a "pure" iframe to see if that has native fetch
   let result = false;
   const doc = WINDOW.document;
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   if (doc && typeof (doc.createElement as unknown) === 'function') {
     try {
       const sandbox = doc.createElement('iframe');

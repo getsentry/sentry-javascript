@@ -1,5 +1,5 @@
 import { captureSession, debug, defineIntegration, getIsolationScope, startSession } from '@sentry/core/browser';
-import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
+import { addHistoryInstrumentationHandler } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 

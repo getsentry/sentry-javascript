@@ -33,7 +33,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
     'scenario.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('creates langchain related spans with sendDefaultPii: false', async () => {
+      test('creates langchain related spans with genAI recording disabled', async () => {
         await createRunner()
           .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
@@ -104,7 +104,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
     'scenario.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('creates langchain related spans with sendDefaultPii: true', async () => {
+      test('creates langchain related spans with genAI recording enabled', async () => {
         await createRunner()
           .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
@@ -216,7 +216,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario-message-truncation.mjs',
-    'instrument-with-pii.mjs',
+    'instrument-with-truncation.mjs',
     (createRunner, test) => {
       test('truncates messages when they exceed byte limit', async () => {
         await createRunner()

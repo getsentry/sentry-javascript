@@ -6,6 +6,10 @@
 
 # Sentry Integration for Feedback
 
+> [!NOTE]
+> This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
+> public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
+
 This SDK is **considered experimental and in a beta state**. It may experience breaking changes, and may be discontinued
 at any time. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have
 any feedback/concerns.

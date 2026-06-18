@@ -93,7 +93,7 @@ export function maybeCreateRouteManifest(
   userSentryOptions: SentryBuildOptions,
 ): RouteManifest | undefined {
   // Handle deprecated option with warning
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   if (userSentryOptions.disableManifestInjection) {
     // eslint-disable-next-line no-console
     console.warn(
@@ -107,7 +107,7 @@ export function maybeCreateRouteManifest(
   }
 
   // Still check the deprecated option if the new option is not set
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   if (userSentryOptions.routeManifestInjection === undefined && userSentryOptions.disableManifestInjection) {
     return undefined;
   }

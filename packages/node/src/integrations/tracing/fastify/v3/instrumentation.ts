@@ -22,7 +22,6 @@
  */
 
 import { type Attributes, context, SpanStatusCode, trace } from '@opentelemetry/api';
-import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
@@ -37,6 +36,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
+import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 import type {
   FastifyErrorCodes,
   FastifyInstance,
@@ -99,12 +99,11 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
 
       const anyRequest = request as any;
 
-      const rpcMetadata = getRPCMetadata(context.active());
       const routeName = anyRequest.routeOptions
         ? anyRequest.routeOptions.url // since fastify@4.10.0
         : request.routerPath;
-      if (routeName && rpcMetadata?.type === RPCType.HTTP) {
-        rpcMetadata.route = routeName;
+      if (routeName) {
+        setHttpServerSpanRouteAttribute(routeName);
       }
 
       const method = request.method || 'GET';
@@ -266,7 +265,7 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
       const spanAttributes: Attributes = {
         [AttributeNames.PLUGIN_NAME]: this.pluginName,
         [AttributeNames.FASTIFY_TYPE]: FastifyTypes.REQUEST_HANDLER,
-        // eslint-disable-next-line deprecation/deprecation
+        // eslint-disable-next-line typescript/no-deprecated
         [SEMATTRS_HTTP_ROUTE]: anyRequest.routeOptions
           ? anyRequest.routeOptions.url // since fastify@4.10.0
           : request.routerPath,

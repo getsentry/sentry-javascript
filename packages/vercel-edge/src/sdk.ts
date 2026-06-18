@@ -45,19 +45,19 @@ declare const process: {
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
 /** Get the default integrations for the browser SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  // todo(v11): remove options parameter
   return [
     dedupeIntegration(),
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
     linkedErrorsIntegration(),
     winterCGFetchIntegration(),
     consoleIntegration(),
-    // TODO(v11): integration can be included - but integration should not add IP address etc
-    ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
+    requestDataIntegration(),
   ];
 }
 
@@ -169,6 +169,7 @@ export function setupOtel(client: VercelEdgeClient): void {
     ],
   });
 
+  // eslint-disable-next-line typescript/no-deprecated
   const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
 
   trace.setGlobalTracerProvider(provider);

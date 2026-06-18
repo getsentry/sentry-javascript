@@ -30,7 +30,7 @@ describe('OpenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates openai related spans with sendDefaultPii: false', async () => {
+    test('creates openai related spans with genAI recording disabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -330,7 +330,7 @@ describe('OpenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates openai related spans with sendDefaultPii: true', async () => {
+    test('creates openai related spans with genAI recording enabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -810,7 +810,7 @@ describe('OpenAI integration', () => {
   );
 
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates openai related spans with sendDefaultPii: false', async () => {
+    test('creates openai related spans with genAI recording disabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({
@@ -943,7 +943,7 @@ describe('OpenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates openai related spans with sendDefaultPii: true', async () => {
+    test('creates openai related spans with genAI recording enabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({
@@ -1174,7 +1174,7 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(
     __dirname,
     'truncation/scenario-message-truncation-completions.mjs',
-    'instrument-with-pii.mjs',
+    'instrument-with-truncation.mjs',
     (createRunner, test) => {
       test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
         await createRunner()
@@ -1278,7 +1278,7 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(
     __dirname,
     'truncation/scenario-message-truncation-responses.mjs',
-    'instrument-with-pii.mjs',
+    'instrument-with-truncation.mjs',
     (createRunner, test) => {
       test('truncates string inputs when they exceed byte limit', async () => {
         await createRunner()
@@ -1603,7 +1603,7 @@ describe('OpenAI integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-vision.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-vision.mjs', 'instrument-with-truncation.mjs', (createRunner, test) => {
     test('redacts inline base64 image data in vision requests', async () => {
       await createRunner()
         .ignore('event')

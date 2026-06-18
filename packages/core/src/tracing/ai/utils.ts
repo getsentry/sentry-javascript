@@ -45,26 +45,37 @@ export interface InstrumentedMethodEntry {
 export type InstrumentedMethodRegistry = Record<string, InstrumentedMethodEntry>;
 
 /**
- * Resolves AI recording options by falling back to the client's `sendDefaultPii` setting.
- * Precedence: explicit option > sendDefaultPii > false
+ * Resolves AI recording options by falling back to the client's `dataCollection.genAI` settings.
+ * Precedence: explicit option > dataCollection.genAI > sendDefaultPii > false
  */
 export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?: T): T & Required<AIRecordingOptions> {
-  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+  const genAI = getClient()?.getDataCollectionOptions().genAI;
   return {
     ...options,
-    recordInputs: options?.recordInputs ?? sendDefaultPii,
-    recordOutputs: options?.recordOutputs ?? sendDefaultPii,
+    recordInputs: options?.recordInputs ?? genAI?.inputs ?? false,
+    recordOutputs: options?.recordOutputs ?? genAI?.outputs ?? false,
   } as T & Required<AIRecordingOptions>;
 }
 
 /**
  * Resolves whether truncation should be enabled.
  * If the user explicitly set `enableTruncation`, that value is used.
- * Otherwise, truncation is disabled when span streaming is active.
+ * Otherwise, truncation is disabled whenever gen_ai spans are sent through the span streaming / v2
+ * span path, i.e. full span streaming (`traceLifecycle: 'stream'`) or `streamGenAiSpans`. That path
+ * is not subject to the transaction payload-size limits that truncation works around, so the full
+ * message data can be retained.
  */
 export function shouldEnableTruncation(enableTruncation: boolean | undefined): boolean {
+  if (enableTruncation !== undefined) {
+    return enableTruncation;
+  }
+
   const client = getClient();
-  return enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
+  if (!client) {
+    return true;
+  }
+
+  return !hasSpanStreamingEnabled(client) && !client.getOptions().streamGenAiSpans;
 }
 
 /**

@@ -189,6 +189,48 @@ app.use(
 serve(app);
 ```
 
+## Setup (Deno)
+
+### 1. Install Peer Dependency
+
+Additionally to `@sentry/hono`, install the `@sentry/deno` package:
+
+```bash
+npm install --save @sentry/deno
+```
+
+Make sure the installed version always stays in sync. The `@sentry/deno` package is a required peer dependency when using `@sentry/hono/deno`.
+You won't import `@sentry/deno` directly in your code, but it needs to be installed in your project.
+
+### 2. Initialize Sentry in your Hono app
+
+Initialize the Sentry Hono middleware as early as possible in your app, then serve it with `Deno.serve`:
+
+```ts
+import { Hono } from 'hono';
+import { sentry } from '@sentry/hono/deno';
+
+const app = new Hono();
+
+// Initialize Sentry middleware right after creating the app
+app.use(
+  sentry(app, {
+    dsn: '__DSN__', // or Deno.env.get('SENTRY_DSN')
+    tracesSampleRate: 1.0,
+  }),
+);
+
+// ... your routes and other middleware
+
+Deno.serve(app.fetch);
+```
+
+Run your app with the permissions Sentry needs to read environment variables and send events:
+
+```bash
+deno run --allow-net --allow-env --allow-read app.ts
+```
+
 ## Filtering errors
 
 By default, `@sentry/hono` captures 5xx errors and plain `Error` objects, and ignores 3xx/4xx HTTP errors (redirects, not-found, bad request, etc.).

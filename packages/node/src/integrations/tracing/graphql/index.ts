@@ -1,10 +1,7 @@
-import type { AttributeValue } from '@opentelemetry/api';
-import { SpanStatusCode } from '@opentelemetry/api';
 import { GraphQLInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, getRootSpan, spanToJSON } from '@sentry/core';
-import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '@sentry/opentelemetry';
+import { defineIntegration } from '@sentry/core';
+import { generateInstrumentOnce } from '@sentry/node-core';
 
 interface GraphqlOptions {
   /**
@@ -40,59 +37,7 @@ const INTEGRATION_NAME = 'Graphql';
 export const instrumentGraphql = generateInstrumentOnce(
   INTEGRATION_NAME,
   GraphQLInstrumentation,
-  (_options: GraphqlOptions) => {
-    const options = getOptionsWithDefaults(_options);
-
-    return {
-      ...options,
-      responseHook(span, result) {
-        addOriginToSpan(span, 'auto.graphql.otel.graphql');
-
-        // We want to ensure spans are marked as errored if there are errors in the result
-        // We only do that if the span is not already marked with a status
-        const resultWithMaybeError = result as { errors?: { message: string }[] };
-        if (resultWithMaybeError.errors?.length && !spanToJSON(span).status) {
-          span.setStatus({ code: SpanStatusCode.ERROR });
-        }
-
-        const attributes = spanToJSON(span).data;
-
-        // If operation.name is not set, we fall back to use operation.type only
-        const operationType = attributes['graphql.operation.type'];
-        const operationName = attributes['graphql.operation.name'];
-
-        if (options.useOperationNameForRootSpan && operationType) {
-          const rootSpan = getRootSpan(span);
-          const rootSpanAttributes = spanToJSON(rootSpan).data;
-
-          const existingOperations = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION] || [];
-
-          const newOperation = operationName ? `${operationType} ${operationName}` : `${operationType}`;
-
-          // We keep track of each operation on the root span
-          // This can either be a string, or an array of strings (if there are multiple operations)
-          if (Array.isArray(existingOperations)) {
-            (existingOperations as string[]).push(newOperation);
-            rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, existingOperations);
-          } else if (typeof existingOperations === 'string') {
-            rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, [existingOperations, newOperation]);
-          } else {
-            rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, newOperation);
-          }
-
-          if (!spanToJSON(rootSpan).data['original-description']) {
-            rootSpan.setAttribute('original-description', spanToJSON(rootSpan).description);
-          }
-          // Important for e.g. @sentry/aws-serverless because this would otherwise overwrite the name again
-          rootSpan.updateName(
-            `${spanToJSON(rootSpan).data['original-description']} (${getGraphqlOperationNamesFromAttribute(
-              existingOperations,
-            )})`,
-          );
-        }
-      },
-    };
-  },
+  (_options: GraphqlOptions) => getOptionsWithDefaults(_options),
 );
 
 const _graphqlIntegration = ((options: GraphqlOptions = {}) => {
@@ -131,22 +76,4 @@ function getOptionsWithDefaults(options?: GraphqlOptions): GraphqlOptions {
     useOperationNameForRootSpan: true,
     ...options,
   };
-}
-
-// copy from packages/opentelemetry/utils
-function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
-  if (Array.isArray(attr)) {
-    // oxlint-disable-next-line typescript/require-array-sort-compare
-    const sorted = attr.slice().sort();
-
-    // Up to 5 items, we just add all of them
-    if (sorted.length <= 5) {
-      return sorted.join(', ');
-    } else {
-      // Else, we add the first 5 and the diff of other operations
-      return `${sorted.slice(0, 5).join(', ')}, +${sorted.length - 5}`;
-    }
-  }
-
-  return `${attr}`;
 }
