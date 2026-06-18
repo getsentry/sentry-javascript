@@ -2,12 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test.describe('server-side errors', () => {
-  // FIXME(sveltekit-3): the universal load function's frame is reported as `load$1` (not `load`)
-  // because the SDK still wraps universal `+page.ts` load in the server build. Unlike server-only
-  // load, this isn't suppressed by native-tracing detection: the wrapper is skipped via
-  // `config.build.ssr`, which is unreliable under Vite 8's Environment API. Unskip once the SDK
-  // detects the server environment via the Vite Environment API.
-  test.skip('captures universal load error', async ({ page }) => {
+  test('captures universal load error', async ({ page }) => {
     const errorEventPromise = waitForError('sveltekit-3', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Universal Load Error (server)';
     });
