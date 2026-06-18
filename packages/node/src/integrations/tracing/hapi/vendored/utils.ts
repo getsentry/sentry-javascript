@@ -7,21 +7,19 @@
  * - Upstream version: @opentelemetry/instrumentation-hapi@0.64.0
  * - Types vendored from @hapi/hapi as simplified interfaces
  */
-/* eslint-disable */
 
-import { Attributes } from '@opentelemetry/api';
-import { ATTR_HTTP_ROUTE, ATTR_HTTP_REQUEST_METHOD } from '@opentelemetry/semantic-conventions';
+import type { Attributes } from '@opentelemetry/api';
+import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import { ATTR_HTTP_METHOD } from './semconv';
 import type * as Hapi from './hapi-types';
 import {
   HapiLayerType,
   HapiLifecycleMethodNames,
-  HapiPluginObject,
-  PatchableExtMethod,
-  ServerExtDirectInput,
+  type HapiPluginObject,
+  type PatchableExtMethod,
+  type ServerExtDirectInput,
 } from './internal-types';
 import { AttributeNames } from './enums/AttributeNames';
-import { SemconvStability } from '@opentelemetry/instrumentation';
 
 export function getPluginName<T>(plugin: Hapi.Plugin<T>): string {
   if ((plugin as Hapi.PluginNameVersion).name) {
@@ -59,7 +57,6 @@ export const isPatchableExtMethod = (
 
 export const getRouteMetadata = (
   route: Hapi.ServerRoute,
-  semconvStability: SemconvStability,
   pluginName?: string,
 ): {
   attributes: Attributes;
@@ -67,18 +64,9 @@ export const getRouteMetadata = (
 } => {
   const attributes: Attributes = {
     [ATTR_HTTP_ROUTE]: route.path,
+    // eslint-disable-next-line typescript/no-deprecated
+    [ATTR_HTTP_METHOD]: route.method,
   };
-  if (semconvStability & SemconvStability.OLD) {
-    attributes[ATTR_HTTP_METHOD] = route.method;
-  }
-  if (semconvStability & SemconvStability.STABLE) {
-    // Note: This currently does *not* normalize the method name to uppercase
-    // and conditionally include `http.request.method.original` as described
-    // at https://opentelemetry.io/docs/specs/semconv/http/http-spans/
-    // These attributes are for a *hapi* span, and not the parent HTTP span,
-    // so the HTTP span guidance doesn't strictly apply.
-    attributes[ATTR_HTTP_REQUEST_METHOD] = route.method;
-  }
 
   let name;
   if (pluginName) {
