@@ -1,3 +1,22 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { tracingChannel } from 'node:diagnostics_channel';
+import type { Scope, Span } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
+import {
+  _INTERNAL_setSpanForScope,
+  Client,
+  createTransport,
+  getActiveSpan,
+  getCurrentScope,
+  getDefaultCurrentScope,
+  getDefaultIsolationScope,
+  getGlobalScope,
+  initAndBind,
+  resolvedSyncPromise,
+  setAsyncContextStrategy,
+  spanToJSON,
+  startSpan,
+} from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   _resetRedisDiagnosticChannelsForTesting,
@@ -6,304 +25,253 @@ import {
   REDIS_DC_CHANNEL_BATCH,
   REDIS_DC_CHANNEL_COMMAND,
   REDIS_DC_CHANNEL_CONNECT,
-  subscribeRedisDiagnosticChannels,
-  type RedisTracingChannel,
   type RedisTracingChannelFactory,
-  type RedisTracingChannelSubscribers,
+  subscribeRedisDiagnosticChannels,
 } from '../../src/redis/redis-dc-subscriber';
-import { SPAN_STATUS_ERROR } from '@sentry/core';
 
-interface RecordedChannel {
-  subs: Partial<RedisTracingChannelSubscribers<unknown>>;
+interface TestStore {
+  scope: Scope;
+  isolationScope: Scope;
 }
 
-// fake tracing-channel factory that stores subscribers in channels by name
-function makeFakeFactory(): {
-  factory: RedisTracingChannelFactory;
-  channels: Record<string, RecordedChannel>;
-} {
-  const channels: Record<string, RecordedChannel> = {};
-  const factory: RedisTracingChannelFactory = (name, _transform) => {
-    const recorded: RecordedChannel = { subs: {} };
-    channels[name] = recorded;
-    return {
-      subscribe(subs: Partial<RedisTracingChannelSubscribers<unknown>>) {
-        Object.assign(recorded.subs, subs);
+class TestClient extends Client<any> {
+  public eventFromException(): PromiseLike<any> {
+    return resolvedSyncPromise({});
+  }
+  public eventFromMessage(): PromiseLike<any> {
+    return resolvedSyncPromise({});
+  }
+}
+
+function initTestClient(): void {
+  initAndBind(TestClient, {
+    dsn: 'https://username@domain/123',
+    integrations: [],
+    sendClientReports: false,
+    stackParser: () => [],
+    tracesSampleRate: 1,
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, () => resolvedSyncPromise({})),
+  });
+}
+
+function installTestAsyncContextStrategy(): void {
+  const asyncStorage = new AsyncLocalStorage<TestStore>();
+
+  function getScopes(): TestStore {
+    return (
+      asyncStorage.getStore() || {
+        scope: getDefaultCurrentScope(),
+        isolationScope: getDefaultIsolationScope(),
+      }
+    );
+  }
+
+  setAsyncContextStrategy({
+    withScope: callback => {
+      const scope = getScopes().scope.clone();
+      const isolationScope = getScopes().isolationScope;
+      return asyncStorage.run({ scope, isolationScope }, () => callback(scope));
+    },
+    withSetScope: (scope, callback) => {
+      const isolationScope = getScopes().isolationScope;
+      return asyncStorage.run({ scope, isolationScope }, () => callback(scope));
+    },
+    withIsolationScope: callback => {
+      const scope = getScopes().scope;
+      const isolationScope = getScopes().isolationScope.clone();
+      return asyncStorage.run({ scope, isolationScope }, () => callback(isolationScope));
+    },
+    withSetIsolationScope: (isolationScope, callback) => {
+      const scope = getScopes().scope;
+      return asyncStorage.run({ scope, isolationScope }, () => callback(isolationScope));
+    },
+    getCurrentScope: () => getScopes().scope,
+    getIsolationScope: () => getScopes().isolationScope,
+    getTracingChannelBinding: () => ({
+      asyncLocalStorage: asyncStorage,
+      getStoreWithActiveSpan: span => {
+        const scope = getScopes().scope.clone();
+        const isolationScope = getScopes().isolationScope;
+        _INTERNAL_setSpanForScope(scope, span);
+        return { scope, isolationScope };
       },
-    } as unknown as RedisTracingChannel<object>;
-  };
-  return { factory, channels };
+    }),
+  });
 }
 
-function makeSpan() {
-  return {
-    end: vi.fn(),
-    setStatus: vi.fn(),
-    setAttribute: vi.fn(),
-    setAttributes: vi.fn(),
-    updateName: vi.fn(),
-    spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id', traceFlags: 1 }),
-  };
+/** Drives a channel's `tracePromise` and captures the span bound by the subscriber. */
+async function traceCommand(
+  channelName: string,
+  data: Record<string, unknown>,
+  outcome: { result?: unknown; error?: Error },
+): Promise<{ span: Span | undefined; childParentSpanId: string | undefined }> {
+  const channel = tracingChannel(channelName);
+  let span: Span | undefined;
+  let childParentSpanId: string | undefined;
+
+  const run = channel.tracePromise(async () => {
+    span = getActiveSpan();
+    startSpan({ name: 'child' }, child => {
+      childParentSpanId = spanToJSON(child).parent_span_id;
+    });
+    if (outcome.error) {
+      throw outcome.error;
+    }
+    return outcome.result;
+  }, data);
+
+  await run.catch(() => undefined);
+
+  return { span, childParentSpanId };
 }
+
+const factory = tracingChannel as RedisTracingChannelFactory;
 
 describe('subscribeRedisDiagnosticChannels', () => {
-  let factory: RedisTracingChannelFactory;
-  let channels: Record<string, RecordedChannel>;
-  let mockSpan: ReturnType<typeof makeSpan>;
   let responseHook: ReturnType<typeof vi.fn>;
+  let captureExceptionSpy: ReturnType<typeof vi.spyOn>;
 
-  const subs = (name: string) =>
-    channels[name]!.subs as {
-      asyncEnd: (data: any) => void;
-      error: (data: any) => void;
-    };
-
+  // `node:diagnostics_channel` channels are process-global. `_reset…` calls each binding's `unbind`,
+  // so we can subscribe and fully detach per test without handlers leaking across tests.
   beforeEach(() => {
-    _resetRedisDiagnosticChannelsForTesting();
-    ({ factory, channels } = makeFakeFactory());
-    mockSpan = makeSpan();
+    installTestAsyncContextStrategy();
+    initTestClient();
     responseHook = vi.fn();
+    captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
     subscribeRedisDiagnosticChannels(factory, responseHook);
   });
 
   afterEach(() => {
+    _resetRedisDiagnosticChannelsForTesting();
+    setAsyncContextStrategy(undefined);
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+    getGlobalScope().clear();
     vi.clearAllMocks();
   });
 
   describe('node-redis command channel', () => {
-    describe('asyncEnd (success path)', () => {
-      it('calls the response hook with sliced args and ends the span', () => {
-        const data = {
-          command: 'GET',
-          args: ['GET', 'cache:key'],
-          result: 'hit-value',
-          _sentrySpan: mockSpan,
-        };
-        subs(REDIS_DC_CHANNEL_COMMAND).asyncEnd(data);
+    it('creates a db.redis span, runs the response hook with sliced args, and ends the span', async () => {
+      const { span } = await traceCommand(
+        REDIS_DC_CHANNEL_COMMAND,
+        { command: 'GET', args: ['GET', 'cache:key'], serverAddress: '127.0.0.1', serverPort: 6379 },
+        { result: 'hit-value' },
+      );
 
-        expect(responseHook).toHaveBeenCalledWith(mockSpan, 'GET', ['cache:key'], 'hit-value');
-        expect(mockSpan.end).toHaveBeenCalledTimes(1);
-      });
+      expect(span).toBeDefined();
+      const json = spanToJSON(span!);
+      expect(json.description).toBe('redis-GET');
+      expect(json.op).toBe('db.redis');
+      expect(json.data['db.system.name']).toBe('redis');
+      expect(json.data['db.query.text']).toBe('GET cache:key');
+      expect(json.timestamp).toBeDefined();
 
-      it('strips the command name from args before passing to the response hook', () => {
-        const data = {
-          command: 'MGET',
-          args: ['MGET', 'key1', 'key2', 'key3'],
-          result: ['v1', 'v2', 'v3'],
-          _sentrySpan: mockSpan,
-        };
-        subs(REDIS_DC_CHANNEL_COMMAND).asyncEnd(data);
-
-        expect(responseHook).toHaveBeenCalledWith(mockSpan, 'MGET', ['key1', 'key2', 'key3'], ['v1', 'v2', 'v3']);
-      });
-
-      it('bails early when _sentrySpan is absent', () => {
-        subs(REDIS_DC_CHANNEL_COMMAND).asyncEnd({ command: 'GET', args: ['GET', 'k'], result: 'v' });
-
-        expect(responseHook).not.toHaveBeenCalled();
-        expect(mockSpan.end).not.toHaveBeenCalled();
-      });
+      // command name is stripped from args before the hook sees them
+      expect(responseHook).toHaveBeenCalledWith(span, 'GET', ['cache:key'], 'hit-value');
     });
 
-    describe('error path', () => {
-      it('sets error status and ends the span in the error handler', () => {
-        const error = new Error('ECONNREFUSED');
-        const data = { command: 'SET', args: ['SET', 'k', 'v'], error, _sentrySpan: mockSpan };
-        subs(REDIS_DC_CHANNEL_COMMAND).error(data);
+    it('sets error status and does NOT capture an exception on failure', async () => {
+      const { span } = await traceCommand(
+        REDIS_DC_CHANNEL_COMMAND,
+        { command: 'SET', args: ['SET', 'k', 'v'] },
+        { error: new Error('ECONNREFUSED') },
+      );
 
-        expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'ECONNREFUSED' });
-        expect(mockSpan.end).toHaveBeenCalledTimes(1);
-      });
-
-      it('does not call the response hook or end the span a second time in asyncEnd when error is set', () => {
-        const error = new Error('ECONNREFUSED');
-        const data = { command: 'GET', args: ['GET', 'k'], error, _sentrySpan: mockSpan };
-
-        // TracingChannel fires error first, then asyncEnd, on the same data object.
-        subs(REDIS_DC_CHANNEL_COMMAND).error(data);
-        subs(REDIS_DC_CHANNEL_COMMAND).asyncEnd(data);
-
-        expect(responseHook).not.toHaveBeenCalled();
-        expect(mockSpan.end).toHaveBeenCalledTimes(1);
-      });
-
-      it('bails early in error handler when _sentrySpan is absent', () => {
-        subs(REDIS_DC_CHANNEL_COMMAND).error({ command: 'GET', args: ['GET', 'k'], error: new Error('x') });
-
-        expect(mockSpan.setStatus).not.toHaveBeenCalled();
-        expect(mockSpan.end).not.toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe('node-redis batch channel', () => {
-    describe('asyncEnd (success path)', () => {
-      it('ends the span', () => {
-        const data = { batchMode: 'PIPELINE', batchSize: 3, _sentrySpan: mockSpan };
-        subs(REDIS_DC_CHANNEL_BATCH).asyncEnd(data);
-
-        expect(mockSpan.end).toHaveBeenCalledTimes(1);
-      });
-
-      it('bails early when _sentrySpan is absent', () => {
-        subs(REDIS_DC_CHANNEL_BATCH).asyncEnd({ batchMode: 'MULTI' });
-
-        expect(mockSpan.end).not.toHaveBeenCalled();
-      });
+      expect(spanToJSON(span!).status).toBe('ECONNREFUSED');
+      expect(spanToJSON(span!).timestamp).toBeDefined();
+      expect(responseHook).not.toHaveBeenCalled();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
-    describe('error path', () => {
-      it('sets error status and ends the span in the error handler', () => {
-        const error = new Error('MULTI aborted');
-        const data = { batchMode: 'MULTI', error, _sentrySpan: mockSpan };
-        subs(REDIS_DC_CHANNEL_BATCH).error(data);
+    it('parents the redis span to the surrounding span and parents children to the redis span', async () => {
+      let outerSpanId: string | undefined;
+      let result: Awaited<ReturnType<typeof traceCommand>> | undefined;
 
-        expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'MULTI aborted' });
-        expect(mockSpan.end).toHaveBeenCalledTimes(1);
+      await startSpan({ name: 'outer' }, async outer => {
+        outerSpanId = outer.spanContext().spanId;
+        result = await traceCommand(REDIS_DC_CHANNEL_COMMAND, { command: 'GET', args: ['GET', 'k'] }, { result: 'v' });
       });
 
-      it('does not end the span a second time in asyncEnd when error is set', () => {
-        const error = new Error('MULTI aborted');
-        const data = { batchMode: 'MULTI', error, _sentrySpan: mockSpan };
-
-        subs(REDIS_DC_CHANNEL_BATCH).error(data);
-        subs(REDIS_DC_CHANNEL_BATCH).asyncEnd(data);
-
-        expect(mockSpan.end).toHaveBeenCalledTimes(1);
-      });
-    });
-  });
-
-  describe('node-redis connect channel', () => {
-    describe('asyncEnd (success path)', () => {
-      it('ends the span', () => {
-        const data = { serverAddress: '127.0.0.1', serverPort: 6379, _sentrySpan: mockSpan };
-        subs(REDIS_DC_CHANNEL_CONNECT).asyncEnd(data);
-
-        expect(mockSpan.end).toHaveBeenCalledTimes(1);
-      });
-
-      it('bails early when _sentrySpan is absent', () => {
-        subs(REDIS_DC_CHANNEL_CONNECT).asyncEnd({ serverAddress: '127.0.0.1' });
-
-        expect(mockSpan.end).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('error path', () => {
-      it('sets error status and ends the span in the error handler', () => {
-        const error = new Error('connect ECONNREFUSED');
-        const data = { serverAddress: '127.0.0.1', serverPort: 6379, error, _sentrySpan: mockSpan };
-        subs(REDIS_DC_CHANNEL_CONNECT).error(data);
-
-        expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'connect ECONNREFUSED' });
-        expect(mockSpan.end).toHaveBeenCalledTimes(1);
-      });
-
-      it('does not end the span a second time in asyncEnd when error is set', () => {
-        const error = new Error('connect ECONNREFUSED');
-        const data = { serverAddress: '127.0.0.1', error, _sentrySpan: mockSpan };
-
-        subs(REDIS_DC_CHANNEL_CONNECT).error(data);
-        subs(REDIS_DC_CHANNEL_CONNECT).asyncEnd(data);
-
-        expect(mockSpan.end).toHaveBeenCalledTimes(1);
-      });
+      expect(spanToJSON(result!.span!).parent_span_id).toBe(outerSpanId);
+      expect(result!.childParentSpanId).toBe(result!.span!.spanContext().spanId);
     });
   });
 
   describe('ioredis command channel', () => {
-    it('calls the response hook with args as published by ioredis (no slicing)', () => {
-      const data = {
-        command: 'get',
-        args: ['cache:key'],
-        result: 'hit-value',
-        _sentrySpan: mockSpan,
-      };
-      subs(IOREDIS_DC_CHANNEL_COMMAND).asyncEnd(data);
+    it('does not slice the first arg (ioredis omits the command name)', async () => {
+      const { span } = await traceCommand(
+        IOREDIS_DC_CHANNEL_COMMAND,
+        { command: 'mget', args: ['key1', 'key2'] },
+        { result: ['v1', 'v2'] },
+      );
 
-      expect(responseHook).toHaveBeenCalledWith(mockSpan, 'get', ['cache:key'], 'hit-value');
-      expect(mockSpan.end).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not slice the first arg for ioredis command payloads', () => {
-      const data = {
-        command: 'mget',
-        args: ['key1', 'key2', 'key3'],
-        result: ['v1', 'v2', 'v3'],
-        _sentrySpan: mockSpan,
-      };
-      subs(IOREDIS_DC_CHANNEL_COMMAND).asyncEnd(data);
-
-      expect(responseHook).toHaveBeenCalledWith(mockSpan, 'mget', ['key1', 'key2', 'key3'], ['v1', 'v2', 'v3']);
-    });
-
-    it('handles batch metadata on ioredis command payloads without a separate batch channel', () => {
-      const data = {
-        command: 'set',
-        args: ['cache:key', '?'],
-        batchMode: 'MULTI',
-        batchSize: 2,
-        result: 'OK',
-        _sentrySpan: mockSpan,
-      };
-      subs(IOREDIS_DC_CHANNEL_COMMAND).asyncEnd(data);
-
-      expect(channels['ioredis:batch']).toBeUndefined();
-      expect(responseHook).toHaveBeenCalledWith(mockSpan, 'set', ['cache:key', '?'], 'OK');
-      expect(mockSpan.end).toHaveBeenCalledTimes(1);
-    });
-
-    it('sets error status and ends the span in the error handler', () => {
-      const error = new Error('WRONGTYPE');
-      const data = { command: 'hset', args: ['key', 'field', '?'], error, _sentrySpan: mockSpan };
-      subs(IOREDIS_DC_CHANNEL_COMMAND).error(data);
-
-      expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'WRONGTYPE' });
-      expect(mockSpan.end).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not call the response hook or end the span a second time in asyncEnd when error is set', () => {
-      const error = new Error('WRONGTYPE');
-      const data = { command: 'hset', args: ['key', 'field', '?'], error, _sentrySpan: mockSpan };
-
-      subs(IOREDIS_DC_CHANNEL_COMMAND).error(data);
-      subs(IOREDIS_DC_CHANNEL_COMMAND).asyncEnd(data);
-
-      expect(responseHook).not.toHaveBeenCalled();
-      expect(mockSpan.end).toHaveBeenCalledTimes(1);
+      expect(spanToJSON(span!).data['db.query.text']).toBe('mget key1 key2');
+      expect(responseHook).toHaveBeenCalledWith(span, 'mget', ['key1', 'key2'], ['v1', 'v2']);
     });
   });
 
-  describe('ioredis connect channel', () => {
-    it('ends the span on success', () => {
-      const data = { serverAddress: 'localhost', serverPort: 6379, _sentrySpan: mockSpan };
-      subs(IOREDIS_DC_CHANNEL_CONNECT).asyncEnd(data);
+  describe('batch channel', () => {
+    it('creates a batch span and ends it', async () => {
+      const { span } = await traceCommand(
+        REDIS_DC_CHANNEL_BATCH,
+        { batchMode: 'PIPELINE', batchSize: 3 },
+        { result: ['OK', 'OK', 'OK'] },
+      );
 
-      expect(mockSpan.end).toHaveBeenCalledTimes(1);
+      expect(spanToJSON(span!).description).toBe('PIPELINE');
+      expect(spanToJSON(span!).op).toBe('db.redis');
+      expect(spanToJSON(span!).timestamp).toBeDefined();
     });
 
-    it('sets error status and ends the span in the error handler', () => {
-      const error = new Error('connect ECONNREFUSED');
-      const data = { serverAddress: 'localhost', serverPort: 1, error, _sentrySpan: mockSpan };
-      subs(IOREDIS_DC_CHANNEL_CONNECT).error(data);
+    it('sets error status without capturing on failure', async () => {
+      const { span } = await traceCommand(
+        REDIS_DC_CHANNEL_BATCH,
+        { batchMode: 'MULTI' },
+        { error: new Error('MULTI aborted') },
+      );
 
-      expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'connect ECONNREFUSED' });
-      expect(mockSpan.end).toHaveBeenCalledTimes(1);
+      expect(spanToJSON(span!).status).toBe('MULTI aborted');
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('connect channel', () => {
+    it('creates a db.redis.connect span', async () => {
+      const { span } = await traceCommand(
+        REDIS_DC_CHANNEL_CONNECT,
+        { serverAddress: '127.0.0.1', serverPort: 6379 },
+        { result: undefined },
+      );
+
+      expect(spanToJSON(span!).description).toBe('redis-connect');
+      expect(spanToJSON(span!).op).toBe('db.redis.connect');
+      expect(spanToJSON(span!).timestamp).toBeDefined();
+    });
+
+    it('also subscribes the ioredis connect channel', async () => {
+      const { span } = await traceCommand(
+        IOREDIS_DC_CHANNEL_CONNECT,
+        { serverAddress: 'localhost', serverPort: 6379 },
+        { result: undefined },
+      );
+
+      expect(spanToJSON(span!).op).toBe('db.redis.connect');
+      expect(spanToJSON(span!).timestamp).toBeDefined();
     });
   });
 
   describe('idempotency', () => {
-    it('does not re-subscribe on a second call, but updates the response hook', () => {
-      // First subscription happened in beforeEach. Replay with a new hook —
-      // the same channel subscribers stay in place, but the new hook fires.
+    it('does not re-subscribe on a second call, but updates the response hook', async () => {
       const secondHook = vi.fn();
       subscribeRedisDiagnosticChannels(factory, secondHook);
 
-      const data = { command: 'GET', args: ['GET', 'k'], result: 'v', _sentrySpan: mockSpan };
-      subs(REDIS_DC_CHANNEL_COMMAND).asyncEnd(data);
+      const { span } = await traceCommand(
+        REDIS_DC_CHANNEL_COMMAND,
+        { command: 'GET', args: ['GET', 'k'] },
+        { result: 'v' },
+      );
 
-      expect(secondHook).toHaveBeenCalledTimes(1);
+      expect(secondHook).toHaveBeenCalledWith(span, 'GET', ['k'], 'v');
       expect(responseHook).not.toHaveBeenCalled();
     });
   });

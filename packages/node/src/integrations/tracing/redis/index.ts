@@ -8,9 +8,9 @@ import {
   spanToJSON,
   truncate,
 } from '@sentry/core';
-import { subscribeRedisDiagnosticChannels } from '@sentry/server-utils';
+import { tracingChannel } from 'node:diagnostics_channel';
+import { subscribeRedisDiagnosticChannels, type RedisTracingChannelFactory } from '@sentry/server-utils';
 import { generateInstrumentOnce } from '@sentry/node-core';
-import { tracingChannel as otelTracingChannel } from '@sentry/opentelemetry/tracing-channel';
 import type { IORedisCommandArgs } from '../../../utils/redisCache';
 import {
   calculateCacheItemSize,
@@ -122,11 +122,13 @@ export const instrumentRedis = Object.assign(
     instrumentIORedis();
     instrumentRedisModule();
     // node-redis >= 5.12.0 and ioredis >= 5.11.0 publish via diagnostics_channel.
-    // We pass `@sentry/opentelemetry/tracing-channel` as the factory so the span
-    // becomes the active OTel context via `bindStore`. That factory needs the
-    // Sentry OTel context manager to be registered, which `initOpenTelemetry()`
-    // does after integration `setupOnce`, so defer to the next tick.
-    void Promise.resolve().then(() => subscribeRedisDiagnosticChannels(otelTracingChannel, cacheResponseHook));
+    // `bindTracingChannelToSpan` (inside the subscriber) makes the span the active
+    // OTel context via `bindStore`, which needs the Sentry OTel context manager to
+    // be registered — `initOpenTelemetry()` does that after integration `setupOnce`,
+    // so defer to the next tick.
+    void Promise.resolve().then(() =>
+      subscribeRedisDiagnosticChannels(tracingChannel as RedisTracingChannelFactory, cacheResponseHook),
+    );
 
     // todo: implement them gradually
     // new LegacyRedisInstrumentation({}),

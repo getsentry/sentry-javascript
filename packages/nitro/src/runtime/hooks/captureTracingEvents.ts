@@ -1,5 +1,5 @@
+import { tracingChannel } from 'node:diagnostics_channel';
 import {
-  captureException,
   getActiveSpan,
   getClient,
   getHttpSpanDetailsFromUrlObject,
@@ -12,11 +12,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   type Span,
-  SPAN_STATUS_ERROR,
-  startSpanManual,
+  startInactiveSpan,
   updateSpanName,
 } from '@sentry/core';
-import { tracingChannel, type TracingChannelContextWithSpan } from '@sentry/opentelemetry/tracing-channel';
+import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '@sentry/server-utils';
 import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
 import type { RequestEvent as SrvxRequestEvent } from 'srvx/tracing';
 import { setServerTimingHeaders } from './setServerTimingHeaders';
@@ -53,19 +52,12 @@ function getResponseStatusCode(result: unknown): number | undefined {
   return undefined;
 }
 
-function onTraceEnd(data: TracingChannelContextWithSpan<{ result?: unknown }>): void {
+/** Applies the HTTP status from the traced handler's result to the span, when present. */
+function applyResponseStatus(span: Span, data: TracingChannelPayloadWithSpan<{ result?: unknown }>): void {
   const statusCode = getResponseStatusCode(data.result);
-  if (data._sentrySpan && statusCode !== undefined) {
-    setHttpStatus(data._sentrySpan, statusCode);
+  if (statusCode !== undefined) {
+    setHttpStatus(span, statusCode);
   }
-
-  data._sentrySpan?.end();
-}
-
-function onTraceError(data: TracingChannelContextWithSpan<{ error: unknown }>): void {
-  captureException(data.error, { mechanism: { type: 'auto.http.nitro.onTraceError', handled: false } });
-  data._sentrySpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-  data._sentrySpan?.end();
 }
 
 /**
@@ -88,64 +80,61 @@ function getParameterizedRoute(event: H3TracingRequestEvent['event']): string | 
 }
 
 function setupH3TracingChannels(): void {
-  const h3Channel = tracingChannel<H3TracingRequestEvent>('h3.request', data => {
-    const parsedUrl = parseStringToURLObject(data.event.url.href);
-    const routePattern = getParameterizedRoute(data.event);
+  const { channel: h3Channel } = bindTracingChannelToSpan(
+    tracingChannel<H3TracingRequestEvent>('h3.request'),
+    data => {
+      const parsedUrl = parseStringToURLObject(data.event.url.href);
+      const routePattern = getParameterizedRoute(data.event);
 
-    const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(
-      parsedUrl,
-      'server',
-      'auto.http.nitro.h3',
-      { method: data.event.req.method },
-      routePattern,
-    );
+      const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(
+        parsedUrl,
+        'server',
+        'auto.http.nitro.h3',
+        { method: data.event.req.method },
+        routePattern,
+      );
 
-    return startSpanManual(
-      {
+      const span = startInactiveSpan({
         name: spanName,
         attributes: {
           ...urlAttributes,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.h3',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: data?.type === 'middleware' ? 'middleware.nitro' : 'http.server',
         },
-      },
-      span => {
-        setParameterizedRouteAttributes(span, data.event);
+      });
 
-        return span;
+      setParameterizedRouteAttributes(span, data.event);
+
+      return span;
+    },
+    {
+      beforeSpanEnd(span, data) {
+        applyResponseStatus(span, data);
+
+        // Update the root span (srvx transaction) with the parameterized route name.
+        // The srvx span is created before h3 resolves the route, so it initially has the raw URL.
+        // Note: data.type is always 'middleware' here regardless of handler type, so we rely on
+        // getParameterizedRoute() to filter out catch-all routes instead.
+        const rootSpan = getRootSpan(span);
+        if (rootSpan && rootSpan !== span) {
+          const routePattern = getParameterizedRoute(data.event);
+          if (routePattern) {
+            const method = data.event.req.method || 'GET';
+            updateSpanName(rootSpan, `${method} ${routePattern}`);
+            rootSpan.setAttributes({
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+              'http.route': routePattern,
+            });
+          }
+        }
       },
-    );
-  });
+    },
+  );
 
   h3Channel.subscribe({
     start: (data: H3TracingRequestEvent) => {
       setServerTimingHeaders(data.event);
     },
-    asyncEnd: (data: TracingChannelContextWithSpan<H3TracingRequestEvent>) => {
-      onTraceEnd(data);
-
-      if (!data._sentrySpan) {
-        return;
-      }
-
-      // Update the root span (srvx transaction) with the parameterized route name.
-      // The srvx span is created before h3 resolves the route, so it initially has the raw URL.
-      // Note: data.type is always 'middleware' in asyncEnd regardless of handler type,
-      // so we rely on getParameterizedRoute() to filter out catch-all routes instead.
-      const rootSpan = getRootSpan(data._sentrySpan);
-      if (rootSpan && rootSpan !== data._sentrySpan) {
-        const routePattern = getParameterizedRoute(data.event);
-        if (routePattern) {
-          const method = data.event.req.method || 'GET';
-          updateSpanName(rootSpan, `${method} ${routePattern}`);
-          rootSpan.setAttributes({
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-            'http.route': routePattern,
-          });
-        }
-      }
-    },
-    error: onTraceError,
   });
 }
 
@@ -154,19 +143,20 @@ function setupSrvxTracingChannels(): void {
   // WeakMap ensures per-request isolation in concurrent environments and automatic cleanup.
   const requestParentSpans = new WeakMap<Request, Span>();
 
-  const fetchChannel = tracingChannel<SrvxRequestEvent>('srvx.request', data => {
-    const parsedUrl = data.request._url ? parseStringToURLObject(data.request._url.href) : undefined;
-    const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.srvx', {
-      method: data.request.method,
-    });
+  bindTracingChannelToSpan(
+    tracingChannel<SrvxRequestEvent>('srvx.request'),
+    data => {
+      const parsedUrl = data.request._url ? parseStringToURLObject(data.request._url.href) : undefined;
+      const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.srvx', {
+        method: data.request.method,
+      });
 
-    const headerAttributes = httpHeadersToSpanAttributes(
-      Object.fromEntries(data.request.headers.entries()),
-      getClient()?.getDataCollectionOptions() ?? false,
-    );
+      const headerAttributes = httpHeadersToSpanAttributes(
+        Object.fromEntries(data.request.headers.entries()),
+        getClient()?.getDataCollectionOptions() ?? false,
+      );
 
-    return startSpanManual(
-      {
+      return startInactiveSpan({
         name: spanName,
         attributes: {
           ...urlAttributes,
@@ -177,43 +167,36 @@ function setupSrvxTracingChannels(): void {
         },
         // Use the same parent span as middleware to make them siblings
         parentSpan: requestParentSpans.get(data.request) || undefined,
+      });
+    },
+    {
+      beforeSpanEnd(span, data) {
+        applyResponseStatus(span, data);
+
+        // Clean up parent span reference after the fetch handler completes (success or error).
+        requestParentSpans.delete(data.request);
       },
-      span => span,
-    );
-  });
-
-  // Subscribe to events (span already created in bindStore)
-  fetchChannel.subscribe({
-    asyncEnd: data => {
-      onTraceEnd(data);
-
-      // Clean up parent span reference after the fetch handler completes.
-      requestParentSpans.delete(data.request);
     },
-    error: data => {
-      onTraceError(data);
-      // Clean up parent span reference on error too
-      requestParentSpans.delete(data.request);
-    },
-  });
+  );
 
-  const middlewareChannel = tracingChannel<SrvxRequestEvent>('srvx.middleware', data => {
-    // For the first middleware, capture the current parent span per-request
-    if (data.middleware?.index === 0) {
-      const activeSpan = getActiveSpan();
-      if (activeSpan) {
-        requestParentSpans.set(data.request, activeSpan);
+  bindTracingChannelToSpan(
+    tracingChannel<SrvxRequestEvent>('srvx.middleware'),
+    data => {
+      // For the first middleware, capture the current parent span per-request
+      if (data.middleware?.index === 0) {
+        const activeSpan = getActiveSpan();
+        if (activeSpan) {
+          requestParentSpans.set(data.request, activeSpan);
+        }
       }
-    }
 
-    const parsedUrl = data.request._url ? parseStringToURLObject(data.request._url.href) : undefined;
-    const [, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.srvx', {
-      method: data.request.method,
-    });
+      const parsedUrl = data.request._url ? parseStringToURLObject(data.request._url.href) : undefined;
+      const [, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.srvx', {
+        method: data.request.method,
+      });
 
-    // Create span as a child of the original parent, not the previous middleware
-    return startSpanManual(
-      {
+      // Create span as a child of the original parent, not the previous middleware
+      return startInactiveSpan({
         name: `${data.middleware?.handler.name ?? 'unknown'} - ${data.request.method} ${data.request._url?.pathname}`,
         attributes: {
           ...urlAttributes,
@@ -221,16 +204,14 @@ function setupSrvxTracingChannels(): void {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nitro',
         },
         parentSpan: requestParentSpans.get(data.request) || undefined,
+      });
+    },
+    {
+      beforeSpanEnd(span, data) {
+        applyResponseStatus(span, data);
       },
-      span => span,
-    );
-  });
-
-  // Subscribe to events (span already created in bindStore)
-  middlewareChannel.subscribe({
-    asyncEnd: onTraceEnd,
-    error: onTraceError,
-  });
+    },
+  );
 }
 
 /**

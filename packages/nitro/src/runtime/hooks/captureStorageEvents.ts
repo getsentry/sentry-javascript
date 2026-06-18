@@ -1,16 +1,15 @@
+import { tracingChannel } from 'node:diagnostics_channel';
 import {
-  captureException,
   flushIfServerless,
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
-  startSpanManual,
+  startInactiveSpan,
 } from '@sentry/core';
-import { tracingChannel, type TracingChannelContextWithSpan } from '@sentry/opentelemetry/tracing-channel';
+import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import type { TraceContext } from 'unstorage/tracing';
 
 const ORIGIN = 'auto.cache.nitro';
@@ -57,11 +56,12 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
   const keys = (data: TraceContext): string[] => data.keys ?? [];
   const mountBase = (data: TraceContext): string => (data.base ?? '').replace(/:$/, '');
 
-  const channel = tracingChannel<TraceContext>(`unstorage.${operation}`, data => {
-    const cacheKeys = keys(data);
+  bindTracingChannelToSpan(
+    tracingChannel<TraceContext>(`unstorage.${operation}`),
+    data => {
+      const cacheKeys = keys(data);
 
-    return startSpanManual(
-      {
+      return startInactiveSpan({
         name: cacheKeys.join(', ') || operation,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `cache.${normalizeMethodName(operation)}`,
@@ -71,34 +71,24 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
           'db.collection.name': mountBase(data),
           'db.system.name': data.driver?.name ?? 'unknown',
         },
-      },
-      span => span,
-    );
-  });
-
-  channel.subscribe({
-    asyncEnd(data: TracingChannelContextWithSpan<TraceContext & { result?: unknown }>) {
-      if (data._sentrySpan && CACHE_HIT_OPERATIONS.has(operation)) {
-        const hit = operation === 'hasItem' ? Boolean(data.result) : isCacheHit(data.keys?.[0], data.result);
-        data._sentrySpan.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, hit);
-      }
-
-      data._sentrySpan?.setStatus({ code: SPAN_STATUS_OK });
-      data._sentrySpan?.end();
-
-      void flushIfServerless();
-    },
-    error(data: TracingChannelContextWithSpan<TraceContext & { error?: unknown }>) {
-      captureException(data.error, {
-        mechanism: { handled: false, type: ORIGIN },
       });
-
-      data._sentrySpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      data._sentrySpan?.end();
-
-      void flushIfServerless();
     },
-  });
+    {
+      beforeSpanEnd(span, data) {
+        // Auto-capture + error status is handled by the binding; only enrich the success path.
+        if (!('error' in data)) {
+          const result = (data as { result?: unknown }).result;
+          if (CACHE_HIT_OPERATIONS.has(operation)) {
+            const hit = operation === 'hasItem' ? Boolean(result) : isCacheHit(data.keys?.[0], result);
+            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, hit);
+          }
+          span.setStatus({ code: SPAN_STATUS_OK });
+        }
+
+        void flushIfServerless();
+      },
+    },
+  );
 }
 
 function normalizeMethodName(methodName: string): string {
