@@ -6,7 +6,7 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router": "7.13.0",
+    "react-router": "7.15.1",
     "@react-router/node": "7.13.0",
     "@react-router/serve": "7.13.0",
     "@sentry/react-router": "file:../../packed/sentry-react-router-packed.tgz",
