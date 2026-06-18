@@ -29,12 +29,8 @@ try {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore Rollup transpiles import.meta for us for CJS
   const dirname = path.dirname(fileURLToPath(import.meta.url));
-  COMPONENT_ANNOTATION_LOADER = path.resolve(
-    dirname,
-    typeof __dirname !== 'undefined'
-      ? 'component-annotation-transform.js' // CJS
-      : 'component-annotation-transform.mjs', // ESM
-  );
+  // The Rollup build emits `.js` for both CJS and ESM, so the extension is the same in both.
+  COMPONENT_ANNOTATION_LOADER = path.resolve(dirname, 'component-annotation-transform.js');
 }
 
 // since webpack 5.1 compiler contains webpack module so plugins always use correct webpack version
