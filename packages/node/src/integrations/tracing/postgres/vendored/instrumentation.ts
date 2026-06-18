@@ -97,7 +97,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
         if (isWrapped(moduleExports.prototype.connect)) {
           this._unwrap(moduleExports.prototype, 'connect');
         }
-        this._wrap(moduleExports.prototype, 'connect', this._getPoolConnectPatch() as any);
+        this._wrap(moduleExports.prototype, 'connect', this._getPoolConnectPatch());
         return moduleExports;
       },
       (module: any) => {
@@ -126,9 +126,9 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
       this._unwrap(moduleExports.prototype, 'connect');
     }
 
-    this._wrap(moduleExports.prototype, 'query', this._getClientQueryPatch() as any);
+    this._wrap(moduleExports.prototype, 'query', this._getClientQueryPatch());
 
-    this._wrap(moduleExports.prototype, 'connect', this._getClientConnectPatch() as any);
+    this._wrap(moduleExports.prototype, 'connect', this._getClientConnectPatch());
 
     return module;
   }
@@ -272,7 +272,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
     return (originalConnect: (...args: any[]) => any) => {
       return function connect(this: PgPoolExtended, callback?: PgPoolCallback) {
         if (utils.shouldSkipInstrumentation() || plugin.getConfig().ignoreConnectSpans) {
-          return originalConnect.call(this, callback as any);
+          return originalConnect.call(this, callback);
         }
 
         const span = startInactiveSpan({
@@ -292,7 +292,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
         }
 
         const connectResult: unknown = withActiveSpan(span, () => {
-          return originalConnect.call(this, cb as any);
+          return originalConnect.call(this, cb);
         });
 
         return handleConnectResult(span, connectResult);
