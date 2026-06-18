@@ -1,6 +1,7 @@
 import type { Envelope, SerializedStreamedSpanContainer } from '@sentry/core';
 import {
   SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
@@ -86,6 +87,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentName },
           [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
         },
         name: 'test-child-span',
         is_segment: false,
@@ -107,6 +109,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
           [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentName },
           [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
         },
         links: [
           {
@@ -141,6 +144,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
           [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentName },
           [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
         },
         name: 'test-manual-span',
         is_segment: false,
@@ -161,6 +165,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentName },
           [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
         },
         name: 'test-span',
         is_segment: false,
@@ -187,6 +192,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.server' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { type: 'string', value: 'route' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
           'sentry.span.source': { type: 'string', value: 'route' },
           'server.address': {
             type: 'string',
