@@ -17,7 +17,7 @@ test('Sends an error event to Sentry', async ({ request }) => {
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual(
     expect.objectContaining({
       handled: false,
-      type: 'auto.diagnostic_channels.bind_span',
+      type: 'auto.http.nitro.onTraceError',
     }),
   );
 });
