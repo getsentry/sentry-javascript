@@ -728,12 +728,18 @@ export function createSentryBuildPluginManager(
           } finally {
             if (folderToCleanUp && !process.env?.['SENTRY_TEST_OVERRIDE_TEMP_DIR']) {
               logger.debug('Cleaning up temporary files...');
-              await startSpan({ name: 'cleanup', scope: sentryScope }, async () => {
-                if (folderToCleanUp) {
-                  await fs.promises.rm(folderToCleanUp, { recursive: true, force: true });
-                  logger.debug(`Temporary folder deleted: ${folderToCleanUp}`);
-                }
-              });
+              try {
+                await startSpan({ name: 'cleanup', scope: sentryScope }, async () => {
+                  if (folderToCleanUp) {
+                    await fs.promises.rm(folderToCleanUp, { recursive: true, force: true });
+                    logger.debug(`Temporary folder deleted: ${folderToCleanUp}`);
+                  }
+                });
+              } catch (e) {
+                // A failed cleanup must not skip the teardown steps below (freeing upload
+                // dependencies, flushing telemetry), so swallow and log instead of rethrowing.
+                logger.debug('Failed to clean up temporary folder:', e);
+              }
             }
             logger.debug('Freeing upload dependencies...');
             freeUploadDependencyOnBuildArtifacts();
