@@ -9,6 +9,8 @@
     "build": "vite build",
     "build:no-sentry": "vite build --mode no-sentry",
     "build:init-only": "vite build --mode init-only",
+    "build:errors-only": "vite build --mode errors-only",
+    "build:tracing": "vite build --mode tracing",
     "build:tracing-replay": "vite build --mode tracing-replay",
     "preview": "vite preview",
     "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
