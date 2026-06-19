@@ -112,7 +112,7 @@
     "premove": "^4.0.0",
     "rolldown": "^1.0.0",
     "vitest": "^4.0.0",
-    "webpack": "5.76.0"
+    "webpack": "5.104.1"
   },
   "volta": {
     "extends": "../../package.json"
