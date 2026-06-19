@@ -21,9 +21,11 @@ async function run() {
       prompt: 'Where is the first span?',
     });
 
-    // This span should have input and output prompts attached because telemetry is explicitly enabled.
+    // This span should have input and output prompts attached because recording is explicitly enabled.
+    // (v6 enables recording implicitly from `isEnabled: true`; v7's diagnostics channel only carries
+    // the explicit `recordInputs`/`recordOutputs` flags, so we set them here to exercise both.)
     await generateText({
-      experimental_telemetry: { isEnabled: true },
+      experimental_telemetry: { isEnabled: true, recordInputs: true, recordOutputs: true },
       model: new MockLanguageModelV3({
         doGenerate: async () => ({
           finishReason: { unified: 'stop', raw: 'stop' },
