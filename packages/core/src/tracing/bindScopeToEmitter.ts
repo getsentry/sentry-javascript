@@ -139,6 +139,10 @@ function patchAddListener(ee: EventEmitterLike, original: BoundListener, scope: 
   };
 }
 
+// Unlike `patchRemoveAllListeners`, this intentionally leaves the map entry in place: Node counts
+// duplicate registrations, so the same wrapper may still be registered after removing one instance,
+// and later `removeListener` calls need the mapping to find it. The entry is in a `WeakMap` keyed by
+// the user listener, so it is GC'd once the user drops their reference — no manual cleanup needed.
 function patchRemoveListener(ee: EventEmitterLike, original: BoundListener): BoundListener {
   return function (this: unknown, ...args: unknown[]) {
     const event = args[0] as string;
@@ -155,6 +159,9 @@ function patchRemoveListener(ee: EventEmitterLike, original: BoundListener): Bou
   };
 }
 
+// Safe to drop map entries here (unlike `patchRemoveListener`): this removes *every* listener for the
+// event at once, so no registration referencing those wrappers remains. It also reclaims keys from the
+// strong outer `Map` (keyed by event-name strings), which would otherwise accumulate indefinitely.
 function patchRemoveAllListeners(ee: EventEmitterLike, original: BoundListener): BoundListener {
   return function (this: unknown, ...args: unknown[]) {
     const map = getPatchMap(ee);
