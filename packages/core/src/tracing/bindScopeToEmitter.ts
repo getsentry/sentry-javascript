@@ -12,7 +12,7 @@ type BoundListener = (...args: unknown[]) => unknown;
  * - the DOM `EventTarget` dedupes by `(type, callback, capture)`, so reusing the wrapper preserves
  *   that idempotency; a fresh wrapper per call would defeat it and fire the listener repeatedly.
  */
-type ListenerPatchMap = Record<string, WeakMap<BoundListener, BoundListener> | undefined>;
+type ListenerPatchMap = Map<string, WeakMap<BoundListener, BoundListener>>;
 
 // We patch both Node.js `EventEmitter` registration methods (`on`, `addListener`, ...) and the DOM
 // `EventTarget.addEventListener`, so this works for Node emitters and browser-native event targets.
@@ -116,10 +116,10 @@ function patchAddListener(ee: EventEmitterLike, original: BoundListener, scope: 
     }
 
     const map = getPatchMap(ee) || createPatchMap(ee);
-    let listeners = map[event];
+    let listeners = map.get(event);
     if (!listeners) {
       listeners = new WeakMap();
-      map[event] = listeners;
+      map.set(event, listeners);
     }
 
     // Reuse one stable wrapper per listener so repeat registrations are handled correctly by the
@@ -145,7 +145,7 @@ function patchRemoveListener(ee: EventEmitterLike, original: BoundListener): Bou
     const listener = args[1];
     const rest = args.slice(2);
 
-    const boundListener = isBoundListener(listener) ? getPatchMap(ee)?.[event]?.get(listener) : undefined;
+    const boundListener = isBoundListener(listener) ? getPatchMap(ee)?.get(event)?.get(listener) : undefined;
     if (!boundListener) {
       return original.apply(this, args);
     }
@@ -164,7 +164,7 @@ function patchRemoveAllListeners(ee: EventEmitterLike, original: BoundListener):
         createPatchMap(ee);
       } else {
         const event = args[0] as string;
-        map[event] = undefined;
+        map.delete(event);
       }
     }
     return original.apply(this, args);
@@ -172,7 +172,7 @@ function patchRemoveAllListeners(ee: EventEmitterLike, original: BoundListener):
 }
 
 function createPatchMap(ee: EventEmitterLike): ListenerPatchMap {
-  const map = Object.create(null) as ListenerPatchMap;
+  const map: ListenerPatchMap = new Map();
   (ee as Record<symbol, ListenerPatchMap>)[SCOPE_BOUND_LISTENERS] = map;
   return map;
 }
