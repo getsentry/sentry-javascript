@@ -8,7 +8,6 @@
  * - The `createHook`/`endHook`/`requireParentSpan` config options were removed in favor of Sentry-specific options.
  */
 
-import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type * as fs from 'fs';
 
 // oxlint-disable-next-line typescript/no-explicit-any
@@ -45,7 +44,7 @@ export type FPMember =
   | FunctionPropertyNames<(typeof fs)['promises']>
   | FunctionPropertyNamesTwoLevels<(typeof fs)['promises']>;
 
-export interface FsInstrumentationConfig extends InstrumentationConfig {
+export interface FsInstrumentationConfig {
   /**
    * Setting this option to `true` will include any filepath arguments from your `fs` API calls as span attributes.
    */

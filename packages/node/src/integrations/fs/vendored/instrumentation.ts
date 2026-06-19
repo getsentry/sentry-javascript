@@ -9,30 +9,25 @@
  * - The OpenTelemetry tracer APIs were replaced with Sentry's `startSpan`/`startInactiveSpan`/`suppressTracing`
  *   and the configurable `createHook`/`endHook`/`requireParentSpan` options were removed in favor of inlined,
  *   Sentry-specific span attributes.
+ * - Completely reworked to create Sentry spans rather than OTel spans.
  */
 
-import { context } from '@opentelemetry/api';
-import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
-  SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
+  getActiveSpan,
   startInactiveSpan,
   startSpan,
   suppressTracing,
+  withActiveSpan,
 } from '@sentry/core';
-import type * as fs from 'fs';
+import * as fs from 'fs';
 import { promisify } from 'util';
 import { CALLBACK_FUNCTIONS, PROMISE_FUNCTIONS, SYNC_FUNCTIONS } from './constants';
 import type { FMember, FPMember, FsInstrumentationConfig, GenericFunction } from './types';
 import { indexFs } from './utils';
-
-type FS = typeof fs;
-type FSPromises = (typeof fs)['promises'];
-
-const PACKAGE_NAME = '@sentry/instrumentation-fs';
 
 const SPAN_ORIGIN = 'auto.file.fs';
 const SPAN_OP = 'file';
@@ -141,213 +136,171 @@ function patchedFunctionWithOriginalProperties<T extends GenericFunction>(patche
   return Object.assign(patchedFunction, original);
 }
 
-export class FsInstrumentation extends InstrumentationBase<FsInstrumentationConfig> {
-  public constructor(config: FsInstrumentationConfig = {}) {
-    super(PACKAGE_NAME, SDK_VERSION, config);
+// Tracks patched methods to prevent double-patching if `enableFsInstrumentation` is called more than once.
+const _patched = new WeakMap<Record<string, GenericFunction>, Set<string>>();
+
+function _patchMethod(
+  obj: Record<string, GenericFunction>,
+  name: string,
+  wrapper: (original: GenericFunction) => GenericFunction,
+): void {
+  const original = obj[name];
+  if (typeof original !== 'function') return;
+  let patched = _patched.get(obj);
+  if (!patched) {
+    patched = new Set();
+    _patched.set(obj, patched);
   }
+  if (patched.has(name)) return;
+  patched.add(name);
+  obj[name] = wrapper(original);
+}
 
-  public init(): InstrumentationNodeModuleDefinition[] {
-    return [
-      new InstrumentationNodeModuleDefinition(
-        'fs',
-        ['*'],
-        (fs: FS) => {
-          for (const fName of SYNC_FUNCTIONS) {
-            const { objectToPatch, functionNameToPatch } = indexFs(fs, fName);
-
-            if (isWrapped(objectToPatch[functionNameToPatch])) {
-              this._unwrap(objectToPatch, functionNameToPatch);
-            }
-            this._wrap(objectToPatch, functionNameToPatch, this._patchSyncFunction.bind(this, fName));
-          }
-          for (const fName of CALLBACK_FUNCTIONS) {
-            const { objectToPatch, functionNameToPatch } = indexFs(fs, fName);
-            if (isWrapped(objectToPatch[functionNameToPatch])) {
-              this._unwrap(objectToPatch, functionNameToPatch);
-            }
-            if (fName === 'exists') {
-              // handling separately because of the inconsistent cb style:
-              // `exists` doesn't have error as the first argument, but the result
-              this._wrap(objectToPatch, functionNameToPatch, this._patchExistsCallbackFunction.bind(this, fName));
-              continue;
-            }
-            this._wrap(objectToPatch, functionNameToPatch, this._patchCallbackFunction.bind(this, fName));
-          }
-          for (const fName of PROMISE_FUNCTIONS) {
-            if (isWrapped(fs.promises[fName])) {
-              this._unwrap(fs.promises, fName);
-            }
-            this._wrap(fs.promises, fName, this._patchPromiseFunction.bind(this, fName));
-          }
-          return fs;
-        },
-        (fs: FS) => {
-          if (fs === undefined) return;
-          for (const fName of SYNC_FUNCTIONS) {
-            const { objectToPatch, functionNameToPatch } = indexFs(fs, fName);
-            if (isWrapped(objectToPatch[functionNameToPatch])) {
-              this._unwrap(objectToPatch, functionNameToPatch);
-            }
-          }
-          for (const fName of CALLBACK_FUNCTIONS) {
-            const { objectToPatch, functionNameToPatch } = indexFs(fs, fName);
-            if (isWrapped(objectToPatch[functionNameToPatch])) {
-              this._unwrap(objectToPatch, functionNameToPatch);
-            }
-          }
-          for (const fName of PROMISE_FUNCTIONS) {
-            if (isWrapped(fs.promises[fName])) {
-              this._unwrap(fs.promises, fName);
-            }
-          }
-        },
-      ),
-      new InstrumentationNodeModuleDefinition(
-        'fs/promises',
-        ['*'],
-        (fsPromises: FSPromises) => {
-          for (const fName of PROMISE_FUNCTIONS) {
-            if (isWrapped(fsPromises[fName])) {
-              this._unwrap(fsPromises, fName);
-            }
-            this._wrap(fsPromises, fName, this._patchPromiseFunction.bind(this, fName));
-          }
-          return fsPromises;
-        },
-        (fsPromises: FSPromises) => {
-          if (fsPromises === undefined) return;
-          for (const fName of PROMISE_FUNCTIONS) {
-            if (isWrapped(fsPromises[fName])) {
-              this._unwrap(fsPromises, fName);
-            }
-          }
-        },
-      ),
-    ];
-  }
-
-  protected _patchSyncFunction<T extends GenericFunction>(functionName: FMember, original: T): T {
-    // oxlint-disable-next-line typescript/no-this-alias
-    const instrumentation = this;
-    const patchedFunction = function (this: unknown, ...args: Parameters<T>): ReturnType<T> {
-      const config = instrumentation.getConfig();
-      const attributes = getSpanAttributes(functionName, args, config);
-
-      return startSpan({ name: `fs.${functionName}`, onlyIfParent: true, attributes }, span => {
-        try {
-          // Suppress tracing for internal fs calls
-          return suppressTracing(() => original.apply(this, args)) as ReturnType<T>;
-        } catch (error) {
-          recordError(span, error, config);
-          throw error;
-        }
-      });
-    };
-    return patchedFunctionWithOriginalProperties(patchedFunction as T, original);
-  }
-
-  protected _patchCallbackFunction<T extends GenericFunction>(functionName: FMember, original: T): T {
-    // oxlint-disable-next-line typescript/no-this-alias
-    const instrumentation = this;
-    const patchedFunction = function (this: unknown, ...args: Parameters<T>): ReturnType<T> {
-      const config = instrumentation.getConfig();
-
-      const lastIdx = args.length - 1;
-      const cb: unknown = args[lastIdx];
-      if (typeof cb !== 'function') {
-        // TODO: what to do if we are pretty sure it's going to throw
-        return original.apply(this, args) as ReturnType<T>;
-      }
-
-      const attributes = getSpanAttributes(functionName, args, config);
-      const span = startInactiveSpan({ name: `fs.${functionName}`, onlyIfParent: true, attributes });
-
-      // Return to the context active during the call in the callback
-      args[lastIdx] = context.bind(context.active(), function (this: unknown, ...cbArgs: unknown[]) {
-        const error = cbArgs[0];
-        if (error) {
-          recordError(span, error, config);
-        }
-        span.end();
-        return cb.apply(this, cbArgs);
-      });
-
+function _patchSyncFunction<T extends GenericFunction>(
+  functionName: FMember,
+  original: T,
+  config: FsInstrumentationConfig,
+): T {
+  const patchedFunction = function (this: unknown, ...args: Parameters<T>): ReturnType<T> {
+    const attributes = getSpanAttributes(functionName, args, config);
+    return startSpan({ name: `fs.${functionName}`, onlyIfParent: true, attributes }, span => {
       try {
-        // Suppress tracing for internal fs calls
         return suppressTracing(() => original.apply(this, args)) as ReturnType<T>;
       } catch (error) {
         recordError(span, error, config);
-        span.end();
         throw error;
       }
-    };
-    return patchedFunctionWithOriginalProperties(patchedFunction as T, original);
-  }
-
-  protected _patchExistsCallbackFunction<T extends GenericFunction>(functionName: 'exists', original: T): T {
-    // oxlint-disable-next-line typescript/no-this-alias
-    const instrumentation = this;
-    const patchedFunction = function (this: unknown, ...args: Parameters<T>): ReturnType<T> {
-      const config = instrumentation.getConfig();
-
-      const lastIdx = args.length - 1;
-      const cb: unknown = args[lastIdx];
-      if (typeof cb !== 'function') {
-        return original.apply(this, args) as ReturnType<T>;
-      }
-
-      const attributes = getSpanAttributes(functionName, args, config);
-      const span = startInactiveSpan({ name: `fs.${functionName}`, onlyIfParent: true, attributes });
-
-      // Return to the context active during the call in the callback
-      args[lastIdx] = context.bind(context.active(), function (this: unknown, ...cbArgs: unknown[]) {
-        // `exists` never calls the callback with an error
-        span.end();
-        return cb.apply(this, cbArgs);
-      });
-
-      try {
-        // Suppress tracing for internal fs calls
-        return suppressTracing(() => original.apply(this, args)) as ReturnType<T>;
-      } catch (error) {
-        recordError(span, error, config);
-        span.end();
-        throw error;
-      }
-    };
-    const functionWithOriginalProperties = patchedFunctionWithOriginalProperties(patchedFunction as T, original);
-
-    // `exists` has a custom promisify function because of the inconsistent signature
-    // replicating that on the patched function
-    const promisified = function (path: unknown): Promise<unknown> {
-      return new Promise(resolve => (functionWithOriginalProperties as GenericFunction)(path, resolve));
-    };
-    Object.defineProperty(promisified, 'name', { value: functionName });
-    Object.defineProperty(functionWithOriginalProperties, promisify.custom, {
-      value: promisified,
     });
+  };
+  return patchedFunctionWithOriginalProperties(patchedFunction as T, original);
+}
 
-    return functionWithOriginalProperties;
+function _patchCallbackFunction<T extends GenericFunction>(
+  functionName: FMember,
+  original: T,
+  config: FsInstrumentationConfig,
+): T {
+  const patchedFunction = function (this: unknown, ...args: Parameters<T>): ReturnType<T> {
+    const lastIdx = args.length - 1;
+    const cb: unknown = args[lastIdx];
+    if (typeof cb !== 'function') {
+      return original.apply(this, args) as ReturnType<T>;
+    }
+
+    const attributes = getSpanAttributes(functionName, args, config);
+    const span = startInactiveSpan({ name: `fs.${functionName}`, onlyIfParent: true, attributes });
+    const parentSpan = getActiveSpan();
+
+    // Wrap the callback to end the span and restore the caller's active span context.
+    // fs callbacks fire from Node's I/O event loop where the AsyncLocalStorage context
+    // is lost, so any spans created inside the callback would otherwise have no parent.
+    args[lastIdx] = function (this: unknown, ...cbArgs: unknown[]) {
+      const error = cbArgs[0];
+      if (error) {
+        recordError(span, error, config);
+      }
+      span.end();
+      if (parentSpan) {
+        return withActiveSpan(parentSpan, () => (cb as GenericFunction).apply(this, cbArgs));
+      }
+      return (cb as GenericFunction).apply(this, cbArgs);
+    };
+
+    try {
+      return suppressTracing(() => original.apply(this, args)) as ReturnType<T>;
+    } catch (error) {
+      recordError(span, error, config);
+      span.end();
+      throw error;
+    }
+  };
+  return patchedFunctionWithOriginalProperties(patchedFunction as T, original);
+}
+
+function _patchExistsCallbackFunction<T extends GenericFunction>(original: T, config: FsInstrumentationConfig): T {
+  const functionName = 'exists' as FMember;
+  const patchedFunction = function (this: unknown, ...args: Parameters<T>): ReturnType<T> {
+    const lastIdx = args.length - 1;
+    const cb: unknown = args[lastIdx];
+    if (typeof cb !== 'function') {
+      return original.apply(this, args) as ReturnType<T>;
+    }
+
+    const attributes = getSpanAttributes(functionName, args, config);
+    const span = startInactiveSpan({ name: `fs.${functionName}`, onlyIfParent: true, attributes });
+    const parentSpan = getActiveSpan();
+
+    // `exists` never calls the callback with an error
+    args[lastIdx] = function (this: unknown, ...cbArgs: unknown[]) {
+      span.end();
+      if (parentSpan) {
+        return withActiveSpan(parentSpan, () => (cb as GenericFunction).apply(this, cbArgs));
+      }
+      return (cb as GenericFunction).apply(this, cbArgs);
+    };
+
+    try {
+      return suppressTracing(() => original.apply(this, args)) as ReturnType<T>;
+    } catch (error) {
+      recordError(span, error, config);
+      span.end();
+      throw error;
+    }
+  };
+  const functionWithOriginalProperties = patchedFunctionWithOriginalProperties(patchedFunction as T, original);
+
+  // `exists` has a custom promisify function because of the inconsistent signature
+  // replicating that on the patched function
+  const promisified = function (path: unknown): Promise<unknown> {
+    return new Promise(resolve => (functionWithOriginalProperties as GenericFunction)(path, resolve));
+  };
+  Object.defineProperty(promisified, 'name', { value: functionName });
+  Object.defineProperty(functionWithOriginalProperties, promisify.custom, {
+    value: promisified,
+  });
+
+  return functionWithOriginalProperties;
+}
+
+function _patchPromiseFunction<T extends GenericFunction>(
+  functionName: FPMember,
+  original: T,
+  config: FsInstrumentationConfig,
+): T {
+  const patchedFunction = async function (this: unknown, ...args: Parameters<T>): Promise<unknown> {
+    const attributes = getSpanAttributes(functionName, args, config);
+    return startSpan({ name: `fs.${functionName}`, onlyIfParent: true, attributes }, async span => {
+      try {
+        return await suppressTracing(() => original.apply(this, args) as Promise<unknown>);
+      } catch (error) {
+        recordError(span, error, config);
+        throw error;
+      }
+    });
+  };
+  return patchedFunctionWithOriginalProperties(patchedFunction as unknown as T, original);
+}
+
+export function enableFsInstrumentation(config: FsInstrumentationConfig = {}): void {
+  for (const fName of SYNC_FUNCTIONS) {
+    const { objectToPatch, functionNameToPatch } = indexFs(fs, fName);
+    _patchMethod(objectToPatch, functionNameToPatch, original => _patchSyncFunction(fName, original, config));
   }
 
-  protected _patchPromiseFunction<T extends GenericFunction>(functionName: FPMember, original: T): T {
-    // oxlint-disable-next-line typescript/no-this-alias
-    const instrumentation = this;
-    const patchedFunction = async function (this: unknown, ...args: Parameters<T>): Promise<unknown> {
-      const config = instrumentation.getConfig();
-      const attributes = getSpanAttributes(functionName, args, config);
+  for (const fName of CALLBACK_FUNCTIONS) {
+    const { objectToPatch, functionNameToPatch } = indexFs(fs, fName);
+    if (fName === 'exists') {
+      _patchMethod(objectToPatch, functionNameToPatch, original => _patchExistsCallbackFunction(original, config));
+    } else {
+      _patchMethod(objectToPatch, functionNameToPatch, original => _patchCallbackFunction(fName, original, config));
+    }
+  }
 
-      return startSpan({ name: `fs.${functionName}`, onlyIfParent: true, attributes }, async span => {
-        try {
-          // Suppress tracing for internal fs calls
-          return await suppressTracing(() => original.apply(this, args) as Promise<unknown>);
-        } catch (error) {
-          recordError(span, error, config);
-          throw error;
-        }
-      });
-    };
-    return patchedFunctionWithOriginalProperties(patchedFunction as unknown as T, original);
+  // `fs.promises` and `import { readFile } from 'fs/promises'` share the same object in Node 14+,
+  // so patching one covers both.
+  const fsPromises = fs.promises as unknown as Record<string, GenericFunction>;
+  for (const fName of PROMISE_FUNCTIONS) {
+    _patchMethod(fsPromises, fName, original => _patchPromiseFunction(fName, original, config));
   }
 }
 

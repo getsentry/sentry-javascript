@@ -1,8 +1,9 @@
 import { defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
-import { FsInstrumentation } from './vendored/instrumentation';
+import { enableFsInstrumentation } from './vendored/instrumentation';
 
 const INTEGRATION_NAME = 'FileSystem';
+
+let _isEnabled = false;
 
 /**
  * This integration will create spans for `fs` API operations, like reading and writing files.
@@ -16,6 +17,11 @@ const INTEGRATION_NAME = 'FileSystem';
 export const fsIntegration = defineIntegration(
   (
     options: {
+      /**
+       * Whether to enable the plugin.
+       * @default true
+       */
+      enabled?: boolean;
       /**
        * Setting this option to `true` will include any filepath arguments from your `fs` API calls as span attributes.
        *
@@ -34,14 +40,10 @@ export const fsIntegration = defineIntegration(
     return {
       name: INTEGRATION_NAME,
       setupOnce() {
-        generateInstrumentOnce(
-          INTEGRATION_NAME,
-          () =>
-            new FsInstrumentation({
-              recordFilePaths: options.recordFilePaths,
-              recordErrorMessagesAsSpanAttributes: options.recordErrorMessagesAsSpanAttributes,
-            }),
-        )();
+        if (options.enabled === false) return;
+        if (_isEnabled) return;
+        _isEnabled = true;
+        enableFsInstrumentation(options);
       },
     };
   },
