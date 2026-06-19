@@ -19,11 +19,18 @@ export interface SentryTracingChannel<TData extends object = object> extends Omi
   unsubscribe(subscribers: Partial<TracingChannelSubscribers<TracingChannelPayloadWithSpan<TData>>>): void;
 }
 
-export interface TracingChannelBindingOptions<TData extends object = object> {
+interface TracingChannelManualBindingOptions {
   /**
    * Whether the span is ended automatically (`auto`, default) or left to the caller (`manual`).
    */
-  lifecycle?: 'auto' | 'manual';
+  lifecycle: 'manual';
+}
+
+interface TracingChannelAutoBindingOptions<TData extends object = object> {
+  /**
+   * Whether the span is ended automatically (`auto`, default) or left to the caller (`manual`).
+   */
+  lifecycle?: 'auto' | undefined;
 
   /**
    * Invoked with the span and the channel context object once the traced operation completes
@@ -38,6 +45,10 @@ export interface TracingChannelBindingOptions<TData extends object = object> {
    */
   captureError?: boolean;
 }
+
+export type TracingChannelBindingOptions<TData extends object = object> =
+  | TracingChannelAutoBindingOptions<TData>
+  | TracingChannelManualBindingOptions;
 
 /** Returned by {@link bindTracingChannelToSpan}: the bound channel plus a teardown handle. */
 export interface TracingChannelBindingHandle<TData extends object = object> {
@@ -78,7 +89,7 @@ export function bindTracingChannelToSpan<TData extends object>(
     channel.start.unbindStore(asyncLocalStorage);
   };
 
-  if (opts?.lifecycle === 'manual') {
+  if (opts && 'lifecycle' in opts && opts.lifecycle === 'manual') {
     return { channel: sentryChannel, unbind: unbindStore };
   }
 
@@ -123,7 +134,7 @@ export function bindTracingChannelToSpan<TData extends object>(
 
 function endBoundSpan<TData extends object>(
   data: TracingChannelPayloadWithSpan<TData>,
-  beforeSpanEnd: TracingChannelBindingOptions<TData>['beforeSpanEnd'],
+  beforeSpanEnd: TracingChannelAutoBindingOptions<TData>['beforeSpanEnd'],
 ): void {
   const span = data._sentrySpan;
   if (!span) {
