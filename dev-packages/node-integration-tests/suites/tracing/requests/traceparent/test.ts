@@ -5,10 +5,13 @@ import { createEsmAndCjsTests } from '../../../../utils/runner';
 describe('outgoing traceparent', () => {
   createEsmAndCjsTests(__dirname, 'scenario-fetch.mjs', 'instrument.mjs', (createRunner, test) => {
     test('outgoing fetch requests should get traceparent headers', async () => {
-      expect.assertions(5);
+      expect.assertions(7);
+
+      let outgoingSentryTrace: string | undefined;
 
       const [SERVER_URL, closeTestServer] = await createTestServer()
         .get('/api/v1', headers => {
+          outgoingSentryTrace = headers['sentry-trace'] as string;
           expect(headers['baggage']).toEqual(expect.any(String));
           expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})-1$/));
           expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000-0');
@@ -19,8 +22,14 @@ describe('outgoing traceparent', () => {
       await createRunner()
         .withEnv({ SERVER_URL })
         .expect({
-          transaction: {
-            // we're not too concerned with the actual transaction here since this is tested elsewhere
+          // The propagated `sentry-trace` must reference the `http.client` span, not the surrounding transaction span.
+          transaction: event => {
+            const propagatedSpanId = outgoingSentryTrace?.split('-')[1];
+            const httpClientSpan = event.spans?.find(span => span.op === 'http.client');
+
+            expect(httpClientSpan).toBeDefined();
+            expect(propagatedSpanId).toBe(httpClientSpan?.span_id);
+            expect(propagatedSpanId).not.toBe(event.contexts?.trace?.span_id);
           },
         })
         .start()

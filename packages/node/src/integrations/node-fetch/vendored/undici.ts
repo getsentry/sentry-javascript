@@ -6,26 +6,29 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/ed97091c9890dd18e52759f2ea98e9d7593b3ae4/packages/instrumentation-undici
  * - Upstream version: @opentelemetry/instrumentation-undici@0.24.0
  * - Tracking issue: https://github.com/getsentry/sentry-javascript/issues/20165
- * - Minor TypeScript strictness adjustments for this repository's compiler settings
+ * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
+ * - Dropped the OTel metrics (no MeterProvider is wired up) and the dead
+ *   `requireParentforSpans` code path (the SDK always passes `false`)
+ * - Dropped the `@opentelemetry/instrumentation` base (undici reports via `diagnostics_channel`,
+ *   so no module patching was needed) — now a plain class wired up directly by the integration
  */
-/* eslint-disable -- vendored @opentelemetry/instrumentation-undici (#20165) */
 
 import * as diagch from 'diagnostics_channel';
 import { URL } from 'url';
 
-import { InstrumentationBase, safeExecuteInTheMiddle } from '@opentelemetry/instrumentation';
-import type { Attributes, Histogram, Span } from '@opentelemetry/api';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
-  context,
-  INVALID_SPAN_CONTEXT,
-  propagation,
-  SpanKind,
-  SpanStatusCode,
-  trace,
-  ValueType,
-} from '@opentelemetry/api';
+  debug,
+  getClient,
+  getTraceData,
+  LRUMap,
+  shouldPropagateTraceForUrl,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  withActiveSpan,
+} from '@sentry/core';
+import { DEBUG_BUILD } from '../../../debug-build';
 import {
-  ATTR_ERROR_TYPE,
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_REQUEST_METHOD_ORIGINAL,
   ATTR_HTTP_RESPONSE_STATUS_CODE,
@@ -38,11 +41,11 @@ import {
   ATTR_URL_QUERY,
   ATTR_URL_SCHEME,
   ATTR_USER_AGENT_ORIGINAL,
-  METRIC_HTTP_CLIENT_REQUEST_DURATION,
-} from '@opentelemetry/semantic-conventions';
+} from './semconv';
 
 import type {
   ListenerRecord,
+  RequestErrorMessage,
   RequestHeadersMessage,
   RequestMessage,
   RequestTrailersMessage,
@@ -50,58 +53,44 @@ import type {
 } from './internal-types';
 import type { UndiciInstrumentationConfig, UndiciRequest } from './types';
 
-import { SDK_VERSION, timestampInSeconds } from '@sentry/core';
+// `SpanKind.CLIENT`, inlined to avoid importing from `@opentelemetry/api`.
+const SPAN_KIND_CLIENT = 2;
 
-interface InstrumentationRecord {
-  span: Span;
-  attributes: Attributes;
-  startTime: number;
+/** Replaces OTel's `safeExecuteInTheMiddle`: run `fn`, route any error to `onError`, and swallow it. */
+function safeExecute<T>(fn: () => T, onError: (error: unknown) => void): T | undefined {
+  try {
+    return fn();
+  } catch (error) {
+    onError(error);
+    return undefined;
+  }
 }
-
-const PACKAGE_NAME = '@sentry/instrumentation-undici';
 
 // A combination of https://github.com/elastic/apm-agent-nodejs and
 // https://github.com/gadget-inc/opentelemetry-instrumentations/blob/main/packages/opentelemetry-instrumentation-undici/src/index.ts
-export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumentationConfig> {
-  // Keep ref to avoid https://github.com/nodejs/node/issues/42170 bug and for
-  // unsubscribing.
-  declare private _channelSubs: Array<ListenerRecord>;
-  private _recordFromReq = new WeakMap<UndiciRequest, InstrumentationRecord>();
-
-  declare private _httpClientDurationHistogram: Histogram;
+//
+// Not an OTel `InstrumentationBase` (undici reports via `diagnostics_channel`, not module patching);
+// the integration wires this up directly via `enable()` / `disable()`.
+export class UndiciInstrumentation {
+  // Keep ref to avoid https://github.com/nodejs/node/issues/42170 bug and for unsubscribing.
+  private _channelSubs: Array<ListenerRecord> = [];
+  private _spanFromReq = new WeakMap<UndiciRequest, Span>();
+  // Caches trace-propagation decisions per URL so we don't recompute the `tracePropagationTargets` regexes per request.
+  private _propagationDecisionMap = new LRUMap<string, boolean>(100);
+  private _config: UndiciInstrumentationConfig;
 
   constructor(config: UndiciInstrumentationConfig = {}) {
-    super(PACKAGE_NAME, SDK_VERSION, config);
+    this._config = config;
   }
 
-  // No need to instrument files/modules
-  protected override init() {
-    return undefined;
-  }
-
-  override disable(): void {
-    super.disable();
+  public disable(): void {
     this._channelSubs.forEach(sub => sub.unsubscribe());
     this._channelSubs.length = 0;
   }
 
-  override enable(): void {
-    // "enabled" handling is currently a bit messy with InstrumentationBase.
-    // If constructed with `{enabled: false}`, this `.enable()` is still called,
-    // and `this.getConfig().enabled !== this.isEnabled()`, creating confusion.
-    //
-    // For now, this class will setup for instrumenting if `.enable()` is
-    // called, but use `this.getConfig().enabled` to determine if
-    // instrumentation should be generated. This covers the more likely common
-    // case of config being given a construction time, rather than later via
-    // `instance.enable()`, `.disable()`, or `.setConfig()` calls.
-    super.enable();
-
-    // This method is called by the super-class constructor before ours is
-    // called. So we need to ensure the property is initalized.
-    this._channelSubs = this._channelSubs || [];
-
-    // Avoid to duplicate subscriptions
+  /** Subscribe to the undici diagnostics channels (idempotent). */
+  public enable(): void {
+    // Avoid duplicate subscriptions
     if (this._channelSubs.length > 0) {
       return;
     }
@@ -113,18 +102,10 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     this.subscribeToChannel('undici:request:error', this.onError.bind(this));
   }
 
-  protected override _updateMetricInstruments() {
-    this._httpClientDurationHistogram = this.meter.createHistogram(METRIC_HTTP_CLIENT_REQUEST_DURATION, {
-      description: 'Measures the duration of outbound HTTP requests.',
-      unit: 's',
-      valueType: ValueType.DOUBLE,
-      advice: {
-        explicitBucketBoundaries: [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10],
-      },
-    });
-  }
-
-  private subscribeToChannel(diagnosticChannel: string, onMessage: (message: any, name: string | symbol) => void) {
+  private subscribeToChannel(
+    diagnosticChannel: string,
+    onMessage: (message: any, name: string | symbol) => void,
+  ): void {
     // `diagnostics_channel` had a ref counting bug until v18.19.0.
     // https://github.com/nodejs/node/pull/47520
     const [major = 0, minor = 0] = process.version
@@ -149,7 +130,7 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     });
   }
 
-  private parseRequestHeaders(request: UndiciRequest) {
+  private parseRequestHeaders(request: UndiciRequest): Map<string, string | string[]> {
     const result = new Map<string, string | string[]>();
 
     if (Array.isArray(request.headers)) {
@@ -201,30 +182,28 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     // - instrumentation is disabled
     // - ignored by config
     // - method is 'CONNECT'
-    const config = this.getConfig();
+    const config = this._config;
     const enabled = config.enabled !== false;
-    const shouldIgnoreReq = safeExecuteInTheMiddle(
+    const shouldIgnoreReq = safeExecute(
       () => !enabled || request.method === 'CONNECT' || config.ignoreRequestHook?.(request),
-      e => e && this._diag.error('caught ignoreRequestHook error: ', e),
-      true,
+      e => e && DEBUG_BUILD && debug.error('caught ignoreRequestHook error: ', e),
     );
 
     if (shouldIgnoreReq) {
       return;
     }
 
-    const startTime = timestampInSeconds();
     let requestUrl;
     try {
       requestUrl = new URL(request.path, request.origin);
     } catch (err) {
-      this._diag.warn('could not determine url.full:', err);
+      DEBUG_BUILD && debug.warn('could not determine url.full:', err);
       // Skip instrumenting this request.
       return;
     }
     const urlScheme = requestUrl.protocol.replace(':', '');
     const requestMethod = this.getRequestMethod(request.method);
-    const attributes: Attributes = {
+    const attributes: SpanAttributes = {
       [ATTR_HTTP_REQUEST_METHOD]: requestMethod,
       [ATTR_HTTP_REQUEST_METHOD_ORIGINAL]: request.method,
       [ATTR_URL_FULL]: requestUrl.toString(),
@@ -255,10 +234,9 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     }
 
     // Get attributes from the hook if present
-    const hookAttributes = safeExecuteInTheMiddle(
+    const hookAttributes = safeExecute(
       () => config.startSpanHook?.(request),
-      e => e && this._diag.error('caught startSpanHook error: ', e),
-      true,
+      e => e && DEBUG_BUILD && debug.error('caught startSpanHook error: ', e),
     );
     if (hookAttributes) {
       Object.entries(hookAttributes).forEach(([key, val]) => {
@@ -266,75 +244,39 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
       });
     }
 
-    // Check if parent span is required via config and:
-    // - if a parent is required but not present, we use a `NoopSpan` to still
-    //   propagate context without recording it.
-    // - create a span otherwise
-    const activeCtx = context.active();
-    const currentSpan = trace.getSpan(activeCtx);
-    let span: Span;
-
-    if (config.requireParentforSpans && (!currentSpan || !trace.isSpanContextValid(currentSpan.spanContext()))) {
-      span = trace.wrapSpanContext(INVALID_SPAN_CONTEXT);
-    } else {
-      span = this.tracer.startSpan(
-        requestMethod === '_OTHER' ? 'HTTP' : requestMethod,
-        {
-          kind: SpanKind.CLIENT,
-          attributes: attributes,
-        },
-        activeCtx,
-      );
-    }
+    const span = startInactiveSpan({
+      name: requestMethod === '_OTHER' ? 'HTTP' : requestMethod,
+      kind: SPAN_KIND_CLIENT,
+      attributes,
+    });
 
     // Execute the request hook if defined
-    safeExecuteInTheMiddle(
+    safeExecute(
       () => config.requestHook?.(span, request),
-      e => e && this._diag.error('caught requestHook error: ', e),
-      true,
+      e => e && DEBUG_BUILD && debug.error('caught requestHook error: ', e),
     );
 
-    // Context propagation goes last so no hook can tamper
-    // the propagation headers
-    const requestContext = trace.setSpan(context.active(), span);
-    const addedHeaders: Record<string, string> = {};
-    propagation.inject(requestContext, addedHeaders);
+    // Context propagation goes last so no hook can tamper the propagation headers.
+    // We propagate the trace data of the freshly created client span (not the active parent span)
+    // so downstream services are parented to the http.client span, matching the upstream behavior.
+    this.injectTracePropagationHeaders(span, request, requestUrl.toString());
 
-    const headerEntries = Object.entries(addedHeaders);
-
-    for (let i = 0; i < headerEntries.length; i++) {
-      const pair = headerEntries[i];
-      if (!pair) {
-        continue;
-      }
-      const [k, v] = pair;
-
-      if (typeof request.addHeader === 'function') {
-        request.addHeader(k, v);
-      } else if (typeof request.headers === 'string') {
-        request.headers += `${k}: ${v}\r\n`;
-      } else if (Array.isArray(request.headers)) {
-        // undici@6.11.0 accidentally, briefly removed `request.addHeader()`.
-        request.headers.push(k, v);
-      }
-    }
-    this._recordFromReq.set(request, { span, attributes, startTime });
+    this._spanFromReq.set(request, span);
   }
 
   // This is the 2nd message we receive for each request. It is fired when connection with
   // the remote is established and about to send the first byte. Here we do have info about the
   // remote address and port so we can populate some `network.*` attributes into the span
   private onRequestHeaders({ request, socket }: RequestHeadersMessage): void {
-    const record = this._recordFromReq.get(request);
+    const span = this._spanFromReq.get(request);
 
-    if (!record) {
+    if (!span) {
       return;
     }
 
-    const config = this.getConfig();
-    const { span } = record;
+    const config = this._config;
     const { remoteAddress, remotePort } = socket;
-    const spanAttributes: Attributes = {
+    const spanAttributes: SpanAttributes = {
       [ATTR_NETWORK_PEER_ADDRESS]: remoteAddress,
       [ATTR_NETWORK_PEER_PORT]: remotePort,
     };
@@ -360,28 +302,26 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
   // headers are received, body may not be accessible yet.
   // From the response headers we can set the status and content length
   private onResponseHeaders({ request, response }: ResponseHeadersMessage): void {
-    const record = this._recordFromReq.get(request);
+    const span = this._spanFromReq.get(request);
 
-    if (!record) {
+    if (!span) {
       return;
     }
 
-    const { span, attributes } = record;
-    const spanAttributes: Attributes = {
+    const spanAttributes: SpanAttributes = {
       [ATTR_HTTP_RESPONSE_STATUS_CODE]: response.statusCode,
     };
 
-    const config = this.getConfig();
+    const config = this._config;
 
     // Execute the response hook if defined
-    safeExecuteInTheMiddle(
+    safeExecute(
       () => config.responseHook?.(span, { request, response }),
-      e => e && this._diag.error('caught responseHook error: ', e),
-      true,
+      e => e && DEBUG_BUILD && debug.error('caught responseHook error: ', e),
     );
 
     if (config.headersToSpanAttributes?.responseHeaders) {
-      const headersToAttribs = new Set();
+      const headersToAttribs = new Set<string>();
       config.headersToSpanAttributes?.responseHeaders.forEach(name => headersToAttribs.add(name.toLowerCase()));
 
       for (let idx = 0; idx < response.headers.length; idx = idx + 2) {
@@ -405,28 +345,24 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     }
 
     span.setAttributes(spanAttributes);
-    span.setStatus({
-      code: response.statusCode >= 400 ? SpanStatusCode.ERROR : SpanStatusCode.UNSET,
-    });
-    record.attributes = Object.assign(attributes, spanAttributes);
+
+    // The Sentry pipeline infers `ok` / `not_found` / etc. from `http.response.status_code` when the
+    // status is left unset, so we only need to flag erroneous responses explicitly.
+    if (response.statusCode >= 400) {
+      span.setStatus({ code: SPAN_STATUS_ERROR });
+    }
   }
 
   // This is the last event we receive if the request went without any errors
   private onDone({ request }: RequestTrailersMessage): void {
-    const record = this._recordFromReq.get(request);
+    const span = this._spanFromReq.get(request);
 
-    if (!record) {
+    if (!span) {
       return;
     }
 
-    const { span, attributes, startTime } = record;
-
-    // End the span
     span.end();
-    this._recordFromReq.delete(request);
-
-    // Record metrics
-    this.recordRequestDuration(attributes, startTime);
+    this._spanFromReq.delete(request);
   }
 
   // This is the event we get when something is wrong in the request like
@@ -435,14 +371,12 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
   // - requests aborted through an `AbortController.signal`
   // NOTE: server errors are considered valid responses and it's the lib consumer
   // who should deal with that.
-  private onError({ request, error }: any): void {
-    const record = this._recordFromReq.get(request);
+  private onError({ request, error }: RequestErrorMessage): void {
+    const span = this._spanFromReq.get(request);
 
-    if (!record) {
+    if (!span) {
       return;
     }
-
-    const { span, attributes, startTime } = record;
 
     // NOTE: in `undici@6.3.0` when request aborted the error type changes from
     // a custom error (`RequestAbortedError`) to a built-in `DOMException` carrying
@@ -450,40 +384,50 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     // - `code` is from DOMEXception (ABORT_ERR: 20)
     // - `message` changes
     // - stacktrace is smaller and contains node internal frames
-    span.recordException(error);
     span.setStatus({
-      code: SpanStatusCode.ERROR,
+      code: SPAN_STATUS_ERROR,
       message: error.message,
     });
     span.end();
-    this._recordFromReq.delete(request);
-
-    // Record metrics (with the error)
-    attributes[ATTR_ERROR_TYPE] = error.message;
-    this.recordRequestDuration(attributes, startTime);
+    this._spanFromReq.delete(request);
   }
 
-  private recordRequestDuration(attributes: Attributes, startTime: number) {
-    // Time to record metrics
-    const metricsAttributes: Attributes = {};
-    // Get the attribs already in span attributes
-    const keysToCopy = [
-      ATTR_HTTP_RESPONSE_STATUS_CODE,
-      ATTR_HTTP_REQUEST_METHOD,
-      ATTR_SERVER_ADDRESS,
-      ATTR_SERVER_PORT,
-      ATTR_URL_SCHEME,
-      ATTR_ERROR_TYPE,
-    ];
-    keysToCopy.forEach(key => {
-      if (key in attributes) {
-        metricsAttributes[key] = attributes[key];
-      }
-    });
+  // Propagate the trace data of the given (client) span into the outgoing request headers, gated by
+  // `tracePropagationTargets`. Mirrors what `propagation.inject()` did with the SentryPropagator, but
+  // via Sentry's `getTraceData()` so we stay off OpenTelemetry's propagation API.
+  private injectTracePropagationHeaders(span: Span, request: UndiciRequest, url: string): void {
+    const { tracePropagationTargets, propagateTraceparent } = getClient()?.getOptions() ?? {};
 
-    // Take the duration and record it
-    const durationSeconds = timestampInSeconds() - startTime;
-    this._httpClientDurationHistogram.record(durationSeconds, metricsAttributes);
+    if (!shouldPropagateTraceForUrl(url, tracePropagationTargets, this._propagationDecisionMap)) {
+      return;
+    }
+
+    // We make the freshly created client span active so the propagated headers reference it (and not
+    // the parent span). Passing `{ span }` to `getTraceData()` is not enough: for an inactive span it
+    // resolves to the span's *captured* scope, whose active span is still the parent.
+    const addedHeaders = withActiveSpan(span, () => getTraceData({ propagateTraceparent }));
+
+    const headerEntries = Object.entries(addedHeaders);
+
+    for (let i = 0; i < headerEntries.length; i++) {
+      const pair = headerEntries[i];
+      if (!pair) {
+        continue;
+      }
+      const [k, v] = pair;
+      if (!v) {
+        continue;
+      }
+
+      if (typeof request.addHeader === 'function') {
+        request.addHeader(k, v);
+      } else if (typeof request.headers === 'string') {
+        request.headers += `${k}: ${v}\r\n`;
+      } else if (Array.isArray(request.headers)) {
+        // undici@6.11.0 accidentally, briefly removed `request.addHeader()`.
+        request.headers.push(k, v);
+      }
+    }
   }
 
   private getRequestMethod(original: string): string {
