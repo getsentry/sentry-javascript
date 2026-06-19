@@ -728,7 +728,7 @@ export function createSentryBuildPluginManager(
           } finally {
             if (folderToCleanUp && !process.env?.['SENTRY_TEST_OVERRIDE_TEMP_DIR']) {
               logger.debug('Cleaning up temporary files...');
-              void startSpan({ name: 'cleanup', scope: sentryScope }, async () => {
+              await startSpan({ name: 'cleanup', scope: sentryScope }, async () => {
                 if (folderToCleanUp) {
                   await fs.promises.rm(folderToCleanUp, { recursive: true, force: true });
                   logger.debug(`Temporary folder deleted: ${folderToCleanUp}`);
