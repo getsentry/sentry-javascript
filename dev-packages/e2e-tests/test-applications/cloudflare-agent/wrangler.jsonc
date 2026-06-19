@@ -20,7 +20,7 @@
   },
 
   "upload_source_maps": true,
-  "compatibility_flags": ["nodejs_compat", "nodejs_als"],
+  "compatibility_flags": ["nodejs_compat"],
 
   "durable_objects": {
     "bindings": [{ "name": "MyAgent", "class_name": "MyAgent" }],
