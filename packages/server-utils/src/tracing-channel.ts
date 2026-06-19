@@ -1,6 +1,6 @@
 import type { TracingChannel, TracingChannelSubscribers } from 'node:diagnostics_channel';
 import type { AsyncLocalStorage } from 'node:async_hooks';
-import type { Span } from '@sentry/core';
+import type { ExclusiveEventHintOrCaptureContext, Span } from '@sentry/core';
 import { _INTERNAL_getTracingChannelBinding, debug, captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 
@@ -39,11 +39,11 @@ interface TracingChannelAutoBindingOptions<TData extends object = object> {
   beforeSpanEnd?: (span: Span, data: TracingChannelPayloadWithSpan<TData>) => void;
 
   /**
-   * Whether a thrown error is captured as a Sentry event. The span is always marked with error
-   * status regardless. Defaults to `true`.
+   * Whether a thrown error is captured as a Sentry event. The span is always marked with error status regardless. Defaults to `true`.
+   * You can alternatively pass a function that sets the ExclusiveEventHintOrCaptureContext on the captured error.
    * Set `false` for instrumentation that only annotates the span and lets the error be captured at the boundary that owns it (e.g. db spans).
    */
-  captureError?: boolean;
+  captureError?: boolean | ((e: unknown) => ExclusiveEventHintOrCaptureContext);
 }
 
 export type TracingChannelBindingOptions<TData extends object = object> =
@@ -63,9 +63,18 @@ export interface TracingChannelBindingHandle<TData extends object = object> {
 
 const NOOP = (): void => {};
 
+/**
+ * Bind a span (and, in `auto` mode, its lifecycle) to a tracing channel so the span becomes the
+ * active async context for the traced operation.
+ *
+ * `getSpan` may return `undefined` to opt a payload out entirely: nothing is bound, no span is
+ * tracked, and the active context is left untouched. Use it for events that ride the same channel
+ * but should reuse the enclosing span instead of opening (and ending) their own — e.g. an agent
+ * loop's per-step events, where ending a freshly opened span would close the parent prematurely.
+ */
 export function bindTracingChannelToSpan<TData extends object>(
   channel: TracingChannel<TData, TData>,
-  getSpan: (data: TracingChannelPayloadWithSpan<TData>) => Span,
+  getSpan: (data: TracingChannelPayloadWithSpan<TData>) => Span | undefined,
   opts?: TracingChannelBindingOptions<TData>,
 ): TracingChannelBindingHandle<TData> {
   const sentryChannel = channel as SentryTracingChannel<TData>;
@@ -80,6 +89,10 @@ export function bindTracingChannelToSpan<TData extends object>(
 
   channel.start.bindStore(asyncLocalStorage, (data: TracingChannelPayloadWithSpan<TData>) => {
     const span = getSpan(data);
+    if (!span) {
+      // Leave the active context untouched so nested operations keep parenting to the enclosing span.
+      return asyncLocalStorage.getStore() as TData;
+    }
     data._sentrySpan = span;
 
     return binding.getStoreWithActiveSpan(span) as TData;
@@ -95,6 +108,19 @@ export function bindTracingChannelToSpan<TData extends object>(
 
   const beforeSpanEnd = opts?.beforeSpanEnd;
 
+  const getErrorHint = (e: unknown): ExclusiveEventHintOrCaptureContext => {
+    if (typeof opts?.captureError === 'function') {
+      return opts.captureError(e);
+    }
+
+    return {
+      mechanism: {
+        type: 'auto.diagnostic_channels.bind_span',
+        handled: false,
+      },
+    };
+  };
+
   const subscribers: Partial<TracingChannelSubscribers<TracingChannelPayloadWithSpan<TData>>> = {
     start: NOOP,
     asyncStart: NOOP,
@@ -106,15 +132,18 @@ export function bindTracingChannelToSpan<TData extends object>(
       }
     },
     error(data) {
-      if (opts?.captureError !== false) {
-        captureException(data.error, {
-          mechanism: {
-            type: 'auto.diagnostic_channels.bind_span',
-            handled: false,
-          },
-        });
+      // No span was bound for this payload (`getSpan` returned undefined), so there is nothing to
+      // annotate and no instrumentation that owns capturing this error.
+      const span = data._sentrySpan;
+      if (!span) {
+        return;
       }
-      data._sentrySpan?.setStatus({ code: SPAN_STATUS_ERROR, message: getErrorMessage(data.error) });
+
+      if (opts?.captureError !== false) {
+        captureException(data.error, getErrorHint(data.error));
+      }
+
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: getErrorMessage(data.error) });
     },
     asyncEnd(data) {
       endBoundSpan(data, beforeSpanEnd);

@@ -407,6 +407,94 @@ describe('bindTracingChannelToSpan', () => {
       expect(spanToJSON(span).status).toBe('db-down');
       expect(spanToJSON(span).timestamp).toBeDefined();
     });
+
+    it('captures the exception with the default mechanism when `captureError` is true', async () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+
+      const span = startInactiveSpan({ name: 'channel-span' });
+      const error = new Error('boom');
+      const { channel } = bindTracingChannelToSpan(
+        tracingChannel<{ operation: string }>('test:captureError:true'),
+        () => span,
+        { captureError: true },
+      );
+
+      await expect(
+        channel.tracePromise(
+          async () => {
+            throw error;
+          },
+          { operation: 'read' },
+        ),
+      ).rejects.toThrow(error);
+
+      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+        mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false },
+      });
+      expect(spanToJSON(span).status).toBe('boom');
+    });
+
+    it('captures the exception with the hint returned by a `captureError` function, passing it the thrown error', async () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+
+      const span = startInactiveSpan({ name: 'channel-span' });
+      const error = new Error('boom');
+      const captureError = vi.fn(() => ({ mechanism: { type: 'auto.http.custom', handled: false } }));
+      const { channel } = bindTracingChannelToSpan(
+        tracingChannel<{ operation: string }>('test:captureError:fn'),
+        () => span,
+        { captureError },
+      );
+
+      await expect(
+        channel.tracePromise(
+          async () => {
+            throw error;
+          },
+          { operation: 'read' },
+        ),
+      ).rejects.toThrow(error);
+
+      expect(captureError).toHaveBeenCalledTimes(1);
+      expect(captureError).toHaveBeenCalledWith(error);
+      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+        mechanism: { type: 'auto.http.custom', handled: false },
+      });
+      expect(spanToJSON(span).status).toBe('boom');
+    });
+
+    it('uses the default mechanism when `captureError` is a function on the synchronous error path', () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+
+      const span = startInactiveSpan({ name: 'channel-span' });
+      const error = new Error('sync-boom');
+      const captureError = vi.fn((e: unknown) => ({ extra: { caught: e instanceof Error } }));
+      const { channel } = bindTracingChannelToSpan(
+        tracingChannel<{ operation: string }>('test:captureError:fn-sync'),
+        () => span,
+        { captureError },
+      );
+
+      expect(() =>
+        channel.traceSync(
+          () => {
+            throw error;
+          },
+          { operation: 'read' },
+        ),
+      ).toThrow(error);
+
+      expect(captureError).toHaveBeenCalledWith(error);
+      expect(captureExceptionSpy).toHaveBeenCalledWith(error, { extra: { caught: true } });
+    });
   });
 
   describe('beforeSpanEnd', () => {
@@ -565,5 +653,65 @@ describe('bindTracingChannelToSpan', () => {
 
     // Idempotent.
     expect(() => unbind()).not.toThrow();
+  });
+
+  describe('getSpan returns undefined', () => {
+    it('skips binding and lifecycle, leaving the enclosing span as the active parent', () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+
+      const getSpan = vi.fn(() => undefined);
+      const { channel } = bindTracingChannelToSpan(tracingChannel<{ operation: string }>('test:skip:active'), getSpan);
+
+      let dataSpan: Span | undefined;
+      channel.subscribe({
+        end: data => {
+          dataSpan = data._sentrySpan;
+        },
+      });
+
+      let enclosingSpanId: string | undefined;
+      let childParentSpanId: string | undefined;
+      startSpan({ forceTransaction: true, name: 'enclosing-span' }, enclosing => {
+        enclosingSpanId = enclosing.spanContext().spanId;
+        channel.traceSync(
+          () => {
+            startSpan({ name: 'child-span' }, child => {
+              childParentSpanId = spanToJSON(child).parent_span_id;
+            });
+          },
+          { operation: 'read' },
+        );
+      });
+
+      expect(getSpan).toHaveBeenCalledTimes(1);
+      // No span was stamped onto the payload, so the lifecycle handlers have nothing to end.
+      expect(dataSpan).toBeUndefined();
+      // The context is left untouched, so children still parent to the enclosing span.
+      expect(childParentSpanId).toBe(enclosingSpanId);
+    });
+
+    it('does not capture the exception on the error path when no span was bound', async () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+
+      const { channel } = bindTracingChannelToSpan(
+        tracingChannel<{ operation: string }>('test:skip:error'),
+        () => undefined,
+      );
+
+      const error = new Error('boom');
+      await expect(
+        channel.tracePromise(
+          async () => {
+            throw error;
+          },
+          { operation: 'read' },
+        ),
+      ).rejects.toThrow(error);
+
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
   });
 });
