@@ -50,6 +50,7 @@ sentryTest('should update spans for GraphQL fetch requests', async ({ getLocalTe
       type: 'fetch',
       'http.method': 'POST',
       'http.url': 'http://sentry-test.io/foo',
+      'url.full': 'http://sentry-test.io/foo',
       url: 'http://sentry-test.io/foo',
       'server.address': 'sentry-test.io',
       'sentry.op': 'http.client',

@@ -33,6 +33,7 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, p
       data: {
         'http.method': 'GET',
         'http.url': `http://sentry-test-site.example/${index}`,
+        'url.full': `http://sentry-test-site.example/${index}`,
         url: `http://sentry-test-site.example/${index}`,
         'server.address': 'sentry-test-site.example',
         type: 'fetch',
