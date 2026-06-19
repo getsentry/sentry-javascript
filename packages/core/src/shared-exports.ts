@@ -124,6 +124,8 @@ export {
 } from './utils/request';
 export type { MaxRequestBodySize } from './utils/request';
 export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
+export { SPAN_KIND } from './spanKind';
+export type { SpanKindValue } from './spanKind';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
 // eslint-disable-next-line typescript/no-deprecated
