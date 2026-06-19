@@ -1,7 +1,7 @@
 import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT, SpanKind, trace } from '@opentelemetry/api';
 import type { ReadableSpan, Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
-import type { SpanAttributes, StreamedSpanJSON } from '@sentry/core';
+import type { Client, SpanAttributes, StreamedSpanJSON } from '@sentry/core';
 import {
   addChildSpanToSpan,
   getClient,
@@ -26,14 +26,18 @@ import { setIsSetup } from './utils/setupCheck';
  */
 export class SentrySpanProcessor implements SpanProcessorInterface {
   private _exporter: SentrySpanExporter;
+  private _client: Client | undefined;
 
-  public constructor(options?: { timeout?: number }) {
+  public constructor(options?: { timeout?: number; client?: Client }) {
     setIsSetup('SentrySpanProcessor');
     this._exporter = new SentrySpanExporter(options);
+    this._client = options?.client ?? getClient();
 
-    // Streamed spans skip the exporter, so they don't get op/source/name inferred from OTel
-    // semantic conventions. We backfill them here, reusing the same inference as the exporter.
-    getClient()?.on('processSpan', backfillStreamedSpanDataFromOtel);
+    if (this._client && hasSpanStreamingEnabled(this._client)) {
+      // Streamed spans skip the exporter, so they don't get op/source/name inferred from OTel
+      // semantic conventions. We backfill them here, reusing the same inference as the exporter.
+      this._client.on('processSpan', backfillStreamedSpanDataFromOtel);
+    }
   }
 
   /**
@@ -85,19 +89,17 @@ export class SentrySpanProcessor implements SpanProcessorInterface {
 
     logSpanStart(span);
 
-    const client = getClient();
-    client?.emit('spanStart', span);
+    this._client?.emit('spanStart', span);
   }
 
   /** @inheritDoc */
   public onEnd(span: Span & ReadableSpan): void {
     logSpanEnd(span);
 
-    const client = getClient();
-    client?.emit('spanEnd', span);
+    this._client?.emit('spanEnd', span);
 
-    if (client && hasSpanStreamingEnabled(client)) {
-      client.emit('afterSpanEnd', span);
+    if (this._client && hasSpanStreamingEnabled(this._client)) {
+      this._client.emit('afterSpanEnd', span);
     } else {
       this._exporter.export(span);
     }
