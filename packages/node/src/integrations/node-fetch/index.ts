@@ -53,13 +53,16 @@ interface NodeFetchOptions extends Pick<
   ignoreOutgoingRequests?: (url: string) => boolean;
 }
 
-const instrumentOtelNodeFetch = generateInstrumentOnce(
-  INTEGRATION_NAME,
-  UndiciInstrumentation,
-  (options: NodeFetchOptions) => {
-    return _getConfigWithDefaults(options);
-  },
-);
+let _undiciInstrumentation: UndiciInstrumentation | undefined;
+
+// Sets up the vendored undici instrumentation (emits `http.client` spans & propagates traces).
+// The module-level singleton mirrors `generateInstrumentOnce`'s "instrument once per process" behavior.
+function instrumentNodeFetchSpans(options: NodeFetchOptions): void {
+  if (!_undiciInstrumentation) {
+    _undiciInstrumentation = new UndiciInstrumentation(_getConfigWithDefaults(options));
+  }
+  _undiciInstrumentation.enable();
+}
 
 const instrumentSentryNodeFetch = generateInstrumentOnce(
   `${INTEGRATION_NAME}.sentry`,
@@ -75,14 +78,14 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
     setupOnce() {
       const instrumentSpans = _shouldInstrumentSpans(options, getClient<NodeClient>()?.getOptions());
 
-      // This is the "regular" OTEL instrumentation that emits spans
+      // This is the instrumentation that emits spans & propagates traces for outgoing fetch requests
       if (instrumentSpans) {
-        instrumentOtelNodeFetch(options);
+        instrumentNodeFetchSpans(options);
       }
 
-      // This is the Sentry-specific instrumentation that creates breadcrumbs & propagates traces
-      // This must be registered after the OTEL one, to ensure that the core trace propagation logic takes presedence
-      // Otherwise, the sentry-trace header may be set multiple times
+      // This is the Sentry-specific instrumentation that creates breadcrumbs & propagates traces.
+      // It must subscribe to the diagnostics channels after the span instrumentation above, so the core
+      // trace propagation logic takes precedence. Otherwise, the sentry-trace header may be set multiple times.
       instrumentSentryNodeFetch(options);
     },
   };

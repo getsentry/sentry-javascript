@@ -9,20 +9,19 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  * - Dropped the OTel metrics (no MeterProvider is wired up) and the dead
  *   `requireParentforSpans` code path (the SDK always passes `false`)
+ * - Dropped the `@opentelemetry/instrumentation` base (undici reports via `diagnostics_channel`,
+ *   so no module patching was needed) — now a plain class wired up directly by the integration
  */
 
 import * as diagch from 'diagnostics_channel';
 import { URL } from 'url';
 
-import { SpanKind } from '@opentelemetry/api';
-import { InstrumentationBase, safeExecuteInTheMiddle } from '@opentelemetry/instrumentation';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
   getClient,
   getTraceData,
   LRUMap,
-  SDK_VERSION,
   shouldPropagateTraceForUrl,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -54,50 +53,44 @@ import type {
 } from './internal-types';
 import type { UndiciInstrumentationConfig, UndiciRequest } from './types';
 
-const PACKAGE_NAME = '@sentry/instrumentation-undici';
+// `SpanKind.CLIENT`, inlined to avoid importing from `@opentelemetry/api`.
+const SPAN_KIND_CLIENT = 2;
+
+/** Replaces OTel's `safeExecuteInTheMiddle`: run `fn`, route any error to `onError`, and swallow it. */
+function safeExecute<T>(fn: () => T, onError: (error: unknown) => void): T | undefined {
+  try {
+    return fn();
+  } catch (error) {
+    onError(error);
+    return undefined;
+  }
+}
 
 // A combination of https://github.com/elastic/apm-agent-nodejs and
 // https://github.com/gadget-inc/opentelemetry-instrumentations/blob/main/packages/opentelemetry-instrumentation-undici/src/index.ts
-export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumentationConfig> {
-  // Keep ref to avoid https://github.com/nodejs/node/issues/42170 bug and for
-  // unsubscribing.
-  declare private _channelSubs: Array<ListenerRecord>;
+//
+// Not an OTel `InstrumentationBase` (undici reports via `diagnostics_channel`, not module patching);
+// the integration wires this up directly via `enable()` / `disable()`.
+export class UndiciInstrumentation {
+  // Keep ref to avoid https://github.com/nodejs/node/issues/42170 bug and for unsubscribing.
+  private _channelSubs: Array<ListenerRecord> = [];
   private _spanFromReq = new WeakMap<UndiciRequest, Span>();
   // Caches trace-propagation decisions per URL so we don't recompute the `tracePropagationTargets` regexes per request.
   private _propagationDecisionMap = new LRUMap<string, boolean>(100);
+  private _config: UndiciInstrumentationConfig;
 
   constructor(config: UndiciInstrumentationConfig = {}) {
-    super(PACKAGE_NAME, SDK_VERSION, config);
+    this._config = config;
   }
 
-  // No need to instrument files/modules
-  protected override init(): void {
-    return undefined;
-  }
-
-  override disable(): void {
-    super.disable();
+  public disable(): void {
     this._channelSubs.forEach(sub => sub.unsubscribe());
     this._channelSubs.length = 0;
   }
 
-  override enable(): void {
-    // "enabled" handling is currently a bit messy with InstrumentationBase.
-    // If constructed with `{enabled: false}`, this `.enable()` is still called,
-    // and `this.getConfig().enabled !== this.isEnabled()`, creating confusion.
-    //
-    // For now, this class will setup for instrumenting if `.enable()` is
-    // called, but use `this.getConfig().enabled` to determine if
-    // instrumentation should be generated. This covers the more likely common
-    // case of config being given a construction time, rather than later via
-    // `instance.enable()`, `.disable()`, or `.setConfig()` calls.
-    super.enable();
-
-    // This method is called by the super-class constructor before ours is
-    // called. So we need to ensure the property is initalized.
-    this._channelSubs = this._channelSubs || [];
-
-    // Avoid to duplicate subscriptions
+  /** Subscribe to the undici diagnostics channels (idempotent). */
+  public enable(): void {
+    // Avoid duplicate subscriptions
     if (this._channelSubs.length > 0) {
       return;
     }
@@ -189,12 +182,11 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     // - instrumentation is disabled
     // - ignored by config
     // - method is 'CONNECT'
-    const config = this.getConfig();
+    const config = this._config;
     const enabled = config.enabled !== false;
-    const shouldIgnoreReq = safeExecuteInTheMiddle(
+    const shouldIgnoreReq = safeExecute(
       () => !enabled || request.method === 'CONNECT' || config.ignoreRequestHook?.(request),
       e => e && DEBUG_BUILD && debug.error('caught ignoreRequestHook error: ', e),
-      true,
     );
 
     if (shouldIgnoreReq) {
@@ -242,10 +234,9 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
     }
 
     // Get attributes from the hook if present
-    const hookAttributes = safeExecuteInTheMiddle(
+    const hookAttributes = safeExecute(
       () => config.startSpanHook?.(request),
       e => e && DEBUG_BUILD && debug.error('caught startSpanHook error: ', e),
-      true,
     );
     if (hookAttributes) {
       Object.entries(hookAttributes).forEach(([key, val]) => {
@@ -255,15 +246,14 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
 
     const span = startInactiveSpan({
       name: requestMethod === '_OTHER' ? 'HTTP' : requestMethod,
-      kind: SpanKind.CLIENT,
+      kind: SPAN_KIND_CLIENT,
       attributes,
     });
 
     // Execute the request hook if defined
-    safeExecuteInTheMiddle(
+    safeExecute(
       () => config.requestHook?.(span, request),
       e => e && DEBUG_BUILD && debug.error('caught requestHook error: ', e),
-      true,
     );
 
     // Context propagation goes last so no hook can tamper the propagation headers.
@@ -284,7 +274,7 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
       return;
     }
 
-    const config = this.getConfig();
+    const config = this._config;
     const { remoteAddress, remotePort } = socket;
     const spanAttributes: SpanAttributes = {
       [ATTR_NETWORK_PEER_ADDRESS]: remoteAddress,
@@ -322,13 +312,12 @@ export class UndiciInstrumentation extends InstrumentationBase<UndiciInstrumenta
       [ATTR_HTTP_RESPONSE_STATUS_CODE]: response.statusCode,
     };
 
-    const config = this.getConfig();
+    const config = this._config;
 
     // Execute the response hook if defined
-    safeExecuteInTheMiddle(
+    safeExecute(
       () => config.responseHook?.(span, { request, response }),
       e => e && DEBUG_BUILD && debug.error('caught responseHook error: ', e),
-      true,
     );
 
     if (config.headersToSpanAttributes?.responseHeaders) {
