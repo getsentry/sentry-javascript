@@ -16,6 +16,7 @@ export {
   reactRouterV4BrowserTracingIntegration,
   reactRouterV5BrowserTracingIntegration,
 } from './reactrouter';
+/* oxlint-disable typescript/no-deprecated -- Intentional re-exports for backwards compatibility */
 export {
   reactRouterV6BrowserTracingIntegration,
   withSentryReactRouterV6Routing,
@@ -30,10 +31,11 @@ export {
   wrapCreateMemoryRouterV7,
   wrapUseRoutesV7,
 } from './reactrouterv7';
+/* oxlint-enable typescript/no-deprecated */
 export {
-  reactRouterV8BrowserTracingIntegration,
-  withSentryReactRouterV8Routing,
-  wrapCreateBrowserRouterV8,
-  wrapCreateMemoryRouterV8,
-  wrapUseRoutesV8,
-} from './reactrouterv8';
+  reactRouterBrowserTracingIntegration,
+  wrapReactRouterRouting,
+  wrapCreateBrowserRouter,
+  wrapCreateMemoryRouter,
+  wrapUseRoutes,
+} from './reactrouter.compat';

@@ -15,7 +15,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
     contexts: {
       trace: {
         op: 'pageload',
-        origin: 'auto.pageload.react.reactrouter_v8',
+        origin: 'auto.pageload.react.reactrouter',
       },
     },
     transaction: '/projects/:projectId/views/:viewId/:detailId',
@@ -39,7 +39,7 @@ test('sends a pageload transaction with a parameterized URL - alternative route'
     contexts: {
       trace: {
         op: 'pageload',
-        origin: 'auto.pageload.react.reactrouter_v8',
+        origin: 'auto.pageload.react.reactrouter',
       },
     },
     transaction: '/projects/:projectId/old-views/:viewId/:detailId',
@@ -65,7 +65,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     contexts: {
       trace: {
         op: 'pageload',
-        origin: 'auto.pageload.react.reactrouter_v8',
+        origin: 'auto.pageload.react.reactrouter',
       },
     },
     transaction: '/',
@@ -83,7 +83,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     contexts: {
       trace: {
         op: 'navigation',
-        origin: 'auto.navigation.react.reactrouter_v8',
+        origin: 'auto.navigation.react.reactrouter',
       },
     },
     transaction: '/projects/:projectId/views/:viewId/:detailId',
@@ -109,7 +109,7 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
     contexts: {
       trace: {
         op: 'pageload',
-        origin: 'auto.pageload.react.reactrouter_v8',
+        origin: 'auto.pageload.react.reactrouter',
       },
     },
     transaction: '/',
@@ -127,7 +127,7 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
     contexts: {
       trace: {
         op: 'navigation',
-        origin: 'auto.navigation.react.reactrouter_v8',
+        origin: 'auto.navigation.react.reactrouter',
       },
     },
     transaction: '/projects/:projectId/old-views/:viewId/:detailId',

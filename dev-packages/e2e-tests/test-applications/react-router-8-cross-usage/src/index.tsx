@@ -21,7 +21,7 @@ Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
-    Sentry.reactRouterV8BrowserTracingIntegration({
+    Sentry.reactRouterBrowserTracingIntegration({
       useEffect: React.useEffect,
       useLocation,
       useNavigationType,
@@ -43,9 +43,9 @@ Sentry.init({
   tunnel: 'http://localhost:3031',
 });
 
-const SentryRoutes = Sentry.withSentryReactRouterV8Routing(Routes);
-const sentryUseRoutes = Sentry.wrapUseRoutesV8(useRoutes);
-const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV8(createBrowserRouter);
+const SentryRoutes = Sentry.wrapReactRouterRouting(Routes);
+const sentryUseRoutes = Sentry.wrapUseRoutes(useRoutes);
+const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouter(createBrowserRouter);
 
 const DetailsRoutes = () =>
   sentryUseRoutes([

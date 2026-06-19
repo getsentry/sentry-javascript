@@ -225,7 +225,7 @@ export interface ReactRouterOptions {
   lazyRouteManifest?: string[];
 }
 
-type V6CompatibleVersion = '6' | '7' | '8';
+type V6CompatibleVersion = '6' | '7' | '';
 
 export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
   const existingChildren = parentRoute.children || [];
@@ -500,7 +500,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
   if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
     DEBUG_BUILD &&
       debug.warn(
-        `reactRouterV${version}Instrumentation was unable to wrap the \`createRouter\` function because of one or more missing parameters.`,
+        `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createRouter\` function because of one or more missing parameters.`,
       );
 
     return createRouterFunction;
@@ -572,7 +572,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
   if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
     DEBUG_BUILD &&
       debug.warn(
-        `reactRouterV${version}Instrumentation was unable to wrap the \`createMemoryRouter\` function because of one or more missing parameters.`,
+        `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createMemoryRouter\` function because of one or more missing parameters.`,
       );
 
     return createRouterFunction;
@@ -735,7 +735,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.reactrouter_v${version}`,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.reactrouter${version ? `_v${version}` : ''}`,
           },
         });
       }
@@ -1031,7 +1031,7 @@ export function handleNavigation(opts: {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter${version ? `_v${version}` : ''}`,
         },
       });
     } catch (e) {

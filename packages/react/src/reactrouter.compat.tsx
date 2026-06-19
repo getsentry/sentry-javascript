@@ -11,52 +11,62 @@ import {
 import type { CreateRouterFunction, Router, RouterState, UseRoutes } from './types';
 
 /**
- * A browser tracing integration that uses React Router v8 to instrument navigations.
+ * A browser tracing integration that uses React Router to instrument navigations.
  * Expects `useEffect`, `useLocation`, `useNavigationType`, `createRoutesFromChildren` and `matchRoutes` to be passed as options.
+ *
+ * Works with React Router v6+.
  */
-export function reactRouterV8BrowserTracingIntegration(
+export function reactRouterBrowserTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
 ): Integration {
-  return createReactRouterV6CompatibleTracingIntegration(options, '8');
+  return createReactRouterV6CompatibleTracingIntegration(options, '');
 }
 
 /**
- * A higher-order component that adds Sentry routing instrumentation to a React Router v8 Route component.
+ * A higher-order component that adds Sentry routing instrumentation to a React Router Route component.
  * This is used to automatically capture route changes as transactions.
+ *
+ * Works with React Router v6+.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function withSentryReactRouterV8Routing<P extends Record<string, any>, R extends React.FC<P>>(routes: R): R {
-  return createV6CompatibleWithSentryReactRouterRouting<P, R>(routes, '8');
+export function wrapReactRouterRouting<P extends Record<string, any>, R extends React.FC<P>>(routes: R): R {
+  return createV6CompatibleWithSentryReactRouterRouting<P, R>(routes, '');
 }
 
 /**
- * A wrapper function that adds Sentry routing instrumentation to a React Router v8 createBrowserRouter function.
+ * A wrapper function that adds Sentry routing instrumentation to a React Router createBrowserRouter function.
  * This is used to automatically capture route changes as transactions when using the createBrowserRouter API.
+ *
+ * Works with React Router v6+.
  */
-export function wrapCreateBrowserRouterV8<
+export function wrapCreateBrowserRouter<
   TState extends RouterState = RouterState,
   TRouter extends Router<TState> = Router<TState>,
 >(createRouterFunction: CreateRouterFunction<TState, TRouter>): CreateRouterFunction<TState, TRouter> {
-  return createV6CompatibleWrapCreateBrowserRouter(createRouterFunction, '8');
+  return createV6CompatibleWrapCreateBrowserRouter(createRouterFunction, '');
 }
 
 /**
- * A wrapper function that adds Sentry routing instrumentation to a React Router v8 createMemoryRouter function.
+ * A wrapper function that adds Sentry routing instrumentation to a React Router createMemoryRouter function.
  * This is used to automatically capture route changes as transactions when using the createMemoryRouter API.
  * The difference between createBrowserRouter and createMemoryRouter is that with createMemoryRouter,
  * optional `initialEntries` are also taken into account.
+ *
+ * Works with React Router v6+.
  */
-export function wrapCreateMemoryRouterV8<
+export function wrapCreateMemoryRouter<
   TState extends RouterState = RouterState,
   TRouter extends Router<TState> = Router<TState>,
 >(createMemoryRouterFunction: CreateRouterFunction<TState, TRouter>): CreateRouterFunction<TState, TRouter> {
-  return createV6CompatibleWrapCreateMemoryRouter(createMemoryRouterFunction, '8');
+  return createV6CompatibleWrapCreateMemoryRouter(createMemoryRouterFunction, '');
 }
 
 /**
- * A wrapper function that adds Sentry routing instrumentation to a React Router v8 useRoutes hook.
+ * A wrapper function that adds Sentry routing instrumentation to a React Router useRoutes hook.
  * This is used to automatically capture route changes as transactions when using the useRoutes hook.
+ *
+ * Works with React Router v6+.
  */
-export function wrapUseRoutesV8(origUseRoutes: UseRoutes): UseRoutes {
-  return createV6CompatibleWrapUseRoutes(origUseRoutes, '8');
+export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
+  return createV6CompatibleWrapUseRoutes(origUseRoutes, '');
 }
