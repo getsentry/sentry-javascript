@@ -46,7 +46,7 @@ import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
-import { getCapturedScopesOnSpan } from './utils';
+import { getCapturedScopesOnSpan, spanShouldInferOtelSource } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
 
@@ -200,7 +200,14 @@ export class SentrySpan implements Span {
    */
   public updateName(name: string): this {
     this._name = name;
-    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+    // Renaming a span marks its name as explicitly chosen, so we stamp `custom`.
+    // The exception is spans created by SentryTraceProvider: those are branded for
+    // OTel-style source inference at span end (mirroring OTel SDK spans, which have
+    // no Sentry source concept), so instrumentations renaming them must not pin
+    // `custom` — applyOtelSpanData infers the correct source (e.g. 'route', 'task').
+    if (!spanShouldInferOtelSource(this)) {
+      this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+    }
     return this;
   }
 
