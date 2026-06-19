@@ -2,6 +2,7 @@ import {
   mysqlChannelIntegration,
   lruMemoizerChannelIntegration,
   detectOrchestrionSetup,
+  vercelAiChannelIntegration,
 } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
@@ -41,7 +42,11 @@ import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInject
  */
 export function experimentalUseDiagnosticsChannelInjection(): void {
   setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
-    const integrations = [mysqlChannelIntegration(), lruMemoizerChannelIntegration()] as const;
+    const integrations = [
+      mysqlChannelIntegration(),
+      lruMemoizerChannelIntegration(),
+      vercelAiChannelIntegration(),
+    ] as const;
     const replacedOtelIntegrationNames = integrations.map(i => i.name);
 
     return {

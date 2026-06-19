@@ -24,9 +24,11 @@ import {
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
 
 describe.each([
-  ['6', '^6.0.0'],
-  ['7', '7.0.0-beta.179'],
-])('Vercel AI integration (version %s)', (version, vercelAiVersion) => {
+  ['6', {}, '^6.0.0'],
+  ['6', { USE_ORCHESTRION: 'true' }, '^6.0.0'],
+  ['7', {}, '7.0.0-beta.179'],
+  ['7', { USE_ORCHESTRION: 'true' }, '7.0.0-beta.179'],
+])('Vercel AI integration (version %s, env %o)', (version, env: Record<string, string>, vercelAiVersion) => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -36,9 +38,12 @@ describe.each([
   const nodeVersion = NODE_VERSION.major;
   const failsOnCjs = version === '7' && nodeVersion === 18;
 
-  // v6 is instrumented via the OTel processor, v7 via the `ai:telemetry` tracing-channel subscriber,
-  // so the span origin differs by version.
-  const expectedOrigin = version === '7' ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
+  const useOrchestrion = env.USE_ORCHESTRION === 'true';
+  const usesChannels = version === '7' || useOrchestrion;
+
+  // in v7 and orchestrion mode, we use the channel-based integration
+  // else, we use the OTel processor
+  const expectedOrigin = usesChannels ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
 
   // We only run this in ESM and CJS to verify full support
   // Other suites we only run in ESM to simplify the test setup
@@ -49,6 +54,7 @@ describe.each([
     (createRunner, test) => {
       test('creates ai spans for dataCollection defaults', async () => {
         await createRunner()
+          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -174,6 +180,7 @@ describe.each([
     (createRunner, test) => {
       test('creates ai spans when dataCollection.genAi has inputs and outputs disabled', async () => {
         await createRunner()
+          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -233,10 +240,10 @@ describe.each([
               // On v6, vercel AI natively defaults to recording inputs and outputs by default when telemetry is enabled
               // On v7, we do not have access to this, so this defaults to false in this case
               expect(secondInvokeAgentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value).toEqual(
-                version === '6' ? '[{"role":"user","content":"Where is the second span?"}]' : undefined,
+                !usesChannels ? '[{"role":"user","content":"Where is the second span?"}]' : undefined,
               );
               expect(secondInvokeAgentSpan.attributes?.[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value).toEqual(
-                version === '6'
+                !usesChannels
                   ? '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]'
                   : undefined,
               );
@@ -300,6 +307,7 @@ describe.each([
         let errorEvent: Event | undefined;
 
         await createRunner()
+          .withEnv(env)
           .expect({
             transaction: transaction => {
               transactionEvent = transaction;
@@ -369,6 +377,7 @@ describe.each([
     (createRunner, test) => {
       test('creates ai related spans', async () => {
         await createRunner()
+          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -411,6 +420,7 @@ describe.each([
     (createRunner, test) => {
       test('creates spans for ToolLoopAgent with tool calls', async () => {
         await createRunner()
+          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -474,6 +484,7 @@ describe.each([
     (createRunner, test) => {
       test('parents concurrent calls that share one model instance correctly', async () => {
         await createRunner()
+          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -529,6 +540,7 @@ describe.each([
         'creates streamText spans with the model call parented to invoke_agent',
         async () => {
           await createRunner()
+            .withEnv(env)
             .expect({ transaction: { transaction: 'main' } })
             .expect({
               span: container => {
@@ -569,6 +581,7 @@ describe.each([
     (createRunner, test) => {
       test('finishes spans with an error status when the operation rejects', async () => {
         await createRunner()
+          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -609,6 +622,7 @@ describe.each([
     (createRunner, test) => {
       test('derives provider-metadata token breakdown, conversation id and system instructions', async () => {
         await createRunner()
+          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
