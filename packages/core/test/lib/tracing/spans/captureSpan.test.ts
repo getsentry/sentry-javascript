@@ -397,8 +397,10 @@ describe('captureSpan', () => {
         }),
       );
 
+      const preprocessSpanFn = vi.fn();
       const processSpanFn = vi.fn();
       const processSegmentSpanFn = vi.fn();
+      client.on('preprocessSpan', preprocessSpanFn);
       client.on('processSpan', processSpanFn);
       client.on('processSegmentSpan', processSegmentSpanFn);
 
@@ -406,10 +408,11 @@ describe('captureSpan', () => {
 
       captureSpan(span, client);
 
-      expect(processSpanFn).toHaveBeenCalledWith(
+      expect(preprocessSpanFn).toHaveBeenCalledWith(
         expect.objectContaining({ span_id: span.spanContext().spanId }),
         expect.objectContaining({ spanKind: undefined }),
       );
+      expect(processSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: span.spanContext().spanId }));
       expect(processSegmentSpanFn).toHaveBeenCalledWith(
         expect.objectContaining({ span_id: span.spanContext().spanId }),
       );
@@ -426,8 +429,10 @@ describe('captureSpan', () => {
         }),
       );
 
+      const preprocessSpanFn = vi.fn();
       const processSpanFn = vi.fn();
       const processSegmentSpanFn = vi.fn();
+      client.on('preprocessSpan', preprocessSpanFn);
       client.on('processSpan', processSpanFn);
       client.on('processSegmentSpan', processSegmentSpanFn);
 
@@ -450,10 +455,11 @@ describe('captureSpan', () => {
       expect(serializedChildSpan?.name).toBe('child');
       expect(serializedChildSpan?.is_segment).toBe(false);
 
-      expect(processSpanFn).toHaveBeenCalledWith(
+      expect(preprocessSpanFn).toHaveBeenCalledWith(
         expect.objectContaining({ span_id: serializedChildSpan?.span_id }),
         expect.objectContaining({ spanKind: undefined }),
       );
+      expect(processSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: serializedChildSpan?.span_id }));
       expect(processSegmentSpanFn).not.toHaveBeenCalled();
     });
   });

@@ -27,6 +27,7 @@ import { setIsSetup } from './utils/setupCheck';
 export class SentrySpanProcessor implements SpanProcessorInterface {
   private _exporter: SentrySpanExporter;
   private _client: Client | undefined;
+  private _unsubscribePreprocessSpan: (() => void) | undefined = undefined;
 
   public constructor(options?: { timeout?: number; client?: Client }) {
     setIsSetup('SentrySpanProcessor');
@@ -36,7 +37,9 @@ export class SentrySpanProcessor implements SpanProcessorInterface {
     if (this._client && hasSpanStreamingEnabled(this._client)) {
       // Streamed spans skip the exporter, so they don't get op/source/name inferred from OTel
       // semantic conventions. We backfill them here, reusing the same inference as the exporter.
-      this._client.on('processSpan', backfillStreamedSpanDataFromOtel);
+      // This runs as a `preprocessSpan` subscriber so the inferred data is available to all
+      // `processSpan`/`processSegmentSpan` hooks (incl. integrations) and `beforeSendSpan`.
+      this._unsubscribePreprocessSpan = this._client.on('preprocessSpan', backfillStreamedSpanDataFromOtel);
     }
   }
 
@@ -51,6 +54,7 @@ export class SentrySpanProcessor implements SpanProcessorInterface {
    * @inheritDoc
    */
   public async shutdown(): Promise<void> {
+    this._unsubscribePreprocessSpan?.();
     this._exporter.clear();
   }
 
