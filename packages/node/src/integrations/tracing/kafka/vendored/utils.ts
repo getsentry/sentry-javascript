@@ -8,12 +8,13 @@
  * - Span creation extracted here and migrated to the @sentry/core API; origin folded into span creation
  */
 
-import { SpanKind, TraceFlags } from '@opentelemetry/api';
+import { TraceFlags } from '@opentelemetry/api';
 import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
 import {
   getTraceData,
   propagationContextFromHeaders,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
@@ -96,7 +97,7 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
 
   return startInactiveSpan({
     name: `${operationName} ${topic}`,
-    kind: operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE ? SpanKind.CLIENT : SpanKind.CONSUMER,
+    kind: operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE ? SPAN_KIND.CLIENT : SPAN_KIND.CONSUMER,
     links,
     attributes: {
       ...attributes,
@@ -118,7 +119,7 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
 export function startProducerSpan(topic: string, message: Message): Span {
   const span = startInactiveSpan({
     name: `send ${topic}`,
-    kind: SpanKind.PRODUCER,
+    kind: SPAN_KIND.PRODUCER,
     attributes: {
       [ATTR_MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
       [ATTR_MESSAGING_DESTINATION_NAME]: topic,

@@ -9,7 +9,6 @@
  * - Span creation migrated to the @sentry/core API; origin folded into span creation
  */
 
-import * as api from '@opentelemetry/api';
 import { EventEmitter } from 'events';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
@@ -25,9 +24,11 @@ import {
 } from './semconv';
 import type * as tedious from './tedious-types';
 import { getSpanName, once } from './utils';
+import type { SpanAttributes } from '@sentry/core';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
@@ -136,7 +137,7 @@ export class TediousInstrumentation extends InstrumentationBase<InstrumentationC
           return request.sqlTextOrProcedure;
         })(request);
 
-        const attributes: api.Attributes = {
+        const attributes: SpanAttributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.otel.tedious',
           // eslint-disable-next-line typescript/no-deprecated
           [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MSSQL,
@@ -156,7 +157,7 @@ export class TediousInstrumentation extends InstrumentationBase<InstrumentationC
         };
         const span = startInactiveSpan({
           name: getSpanName(operation, databaseName, sql, request.table),
-          kind: api.SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes,
         });
 

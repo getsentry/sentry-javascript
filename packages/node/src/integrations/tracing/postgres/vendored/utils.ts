@@ -9,9 +9,14 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
+import {
+  getActiveSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+} from '@sentry/core';
 import { AttributeNames } from './enums/AttributeNames';
 import { SpanNames } from './enums/SpanNames';
 import type {
@@ -173,7 +178,7 @@ export function handleConfigQuery(
   const spanName = getQuerySpanName(dbName, queryConfig);
   const span = startInactiveSpan({
     name: spanName,
-    kind: SpanKind.CLIENT,
+    kind: SPAN_KIND.CLIENT,
     attributes: {
       ...getSemanticAttributesFromConnection(connectionParameters),
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,

@@ -9,9 +9,14 @@
  */
 
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
-import { SpanKind } from '@opentelemetry/api';
 import type { BatchLoadFn, DataLoader, DataLoaderConstructor } from './types';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import {
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
+  startSpan,
+} from '@sentry/core';
 
 const MODULE_NAME = 'dataloader';
 const PACKAGE_NAME = '@sentry/instrumentation-dataloader';
@@ -152,7 +157,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
       return startSpan(
         {
           name: getSpanName(this, 'load'),
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('load'),
@@ -190,7 +195,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
       return startSpan(
         {
           name: getSpanName(this, 'loadMany'),
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('loadMany'),
@@ -216,7 +221,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
       return startSpan(
         {
           name: getSpanName(this, 'prime'),
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('prime'),
@@ -242,7 +247,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
       return startSpan(
         {
           name: getSpanName(this, 'clear'),
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('clear'),
@@ -268,7 +273,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
       return startSpan(
         {
           name: getSpanName(this, 'clearAll'),
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('clearAll'),
