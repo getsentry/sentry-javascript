@@ -39,9 +39,23 @@ const SCOPE_BOUND_LISTENERS = Symbol('SentryScopeBoundListeners');
  */
 type EventEmitterLike = Record<string, unknown>;
 
-// Guards against double-wrapping when a patched `on`/`addListener` delegates to another patched
-// registration method internally. Binding is synchronous, so a module-level flag is safe here.
-let isAddingBoundListener = false;
+// Tracks the scope-bound wrapper currently being registered. Node's `once`/`prependOnceListener`
+// synchronously re-enter `on`/`prependListener`, passing an internal "once wrapper" whose `.listener`
+// is our wrapper; that re-entry must not be wrapped again. We scope the guard to that exact wrapper
+// rather than using a blanket flag for the whole registration, so unrelated listeners added in the same
+// synchronous window — e.g. from a Node `newListener` handler, or on another bound emitter — are still
+// wrapped and keep their scope. Binding is synchronous, so a module-level value (with save/restore for
+// nesting) is safe here.
+let registeringWrapper: BoundListener | undefined;
+
+// True when `listener` is the wrapper we're mid-registering, or a Node once-wrapper around it (Node sets
+// `.listener` on the once-wrapper to the function we passed). These are the only re-entrant adds to skip.
+function isReentrantWrapperRegistration(listener: BoundListener): boolean {
+  return (
+    registeringWrapper !== undefined &&
+    (listener === registeringWrapper || (listener as { listener?: unknown }).listener === registeringWrapper)
+  );
+}
 
 /**
  * Binds a scope to the given event emitter, so that any listener added to it runs with that scope
@@ -109,9 +123,10 @@ function patchAddListener(ee: EventEmitterLike, original: BoundListener, scope: 
     // Extra args (e.g. the `options` argument of `addEventListener`) must be forwarded verbatim.
     const rest = args.slice(2);
 
-    // Pass through anything we can't wrap: re-entrant registrations and non-function listeners
-    // (e.g. `EventListener` objects passed to `addEventListener`).
-    if (isAddingBoundListener || !isBoundListener(listener)) {
+    // Pass through what we must not wrap: non-function listeners (e.g. `EventListener` objects passed to
+    // `addEventListener`) and the re-entrant once-wrapper registration. Anything else is wrapped, even
+    // when added synchronously mid-registration.
+    if (!isBoundListener(listener) || isReentrantWrapperRegistration(listener)) {
       return original.apply(this, args);
     }
 
@@ -130,11 +145,12 @@ function patchAddListener(ee: EventEmitterLike, original: BoundListener, scope: 
       listeners.set(listener, boundListener);
     }
 
-    isAddingBoundListener = true;
+    const previous = registeringWrapper;
+    registeringWrapper = boundListener;
     try {
       return original.call(this, event, boundListener, ...rest);
     } finally {
-      isAddingBoundListener = false;
+      registeringWrapper = previous;
     }
   };
 }

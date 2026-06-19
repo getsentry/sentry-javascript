@@ -206,6 +206,56 @@ describe('bindScopeToEmitter', () => {
     expect(listener).not.toHaveBeenCalled();
   });
 
+  it('binds listeners registered from a synchronous `newListener` handler', () => {
+    const emitter = new EventEmitter();
+
+    let boundScope: Scope | undefined;
+    withScope(scope => {
+      boundScope = scope;
+      bindScopeToEmitter(emitter);
+    });
+
+    // `newListener` fires synchronously *during* the `original.call` of the outer registration. A
+    // listener added from it must still be scope-bound (the guard must not suppress unrelated adds).
+    let scopeInNested: Scope | undefined;
+    const nested = (): void => {
+      scopeInNested = getCurrentScope();
+    };
+    emitter.once('newListener', () => {
+      emitter.on('nested', nested);
+    });
+
+    emitter.on('data', () => {});
+    emitter.emit('nested');
+
+    expect(scopeInNested).toBe(boundScope);
+  });
+
+  it('binds listeners registered on another bound emitter mid-registration', () => {
+    const outer = new EventEmitter();
+    const inner = new EventEmitter();
+
+    let boundScope: Scope | undefined;
+    withScope(scope => {
+      boundScope = scope;
+      bindScopeToEmitter(outer);
+      bindScopeToEmitter(inner);
+    });
+
+    // Registering on `inner` while `outer` is mid-registration must not be skipped by the shared guard.
+    let scopeInInner: Scope | undefined;
+    outer.once('newListener', () => {
+      inner.on('data', () => {
+        scopeInInner = getCurrentScope();
+      });
+    });
+
+    outer.on('data', () => {});
+    inner.emit('data');
+
+    expect(scopeInInner).toBe(boundScope);
+  });
+
   it('supports removeAllListeners', () => {
     const emitter = new EventEmitter();
 
