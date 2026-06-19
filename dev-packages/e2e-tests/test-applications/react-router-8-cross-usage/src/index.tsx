@@ -4,15 +4,15 @@ import ReactDOM from 'react-dom/client';
 import {
   Outlet,
   Route,
-  RouterProvider,
   Routes,
-  createBrowserRouter,
   createRoutesFromChildren,
   matchRoutes,
   useLocation,
   useNavigationType,
   useRoutes,
-} from 'react-router-dom';
+  RouterProvider,
+  createBrowserRouter,
+} from 'react-router';
 import Index from './pages/Index';
 
 const replay = Sentry.replayIntegration();

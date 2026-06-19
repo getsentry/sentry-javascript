@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(react): Add version-agnostic React Router SPA exports ([#21633](https://github.com/getsentry/sentry-javascript/pull/21633))**
+
+  `@sentry/react` now exports version-agnostic wrappers for React Router v6+ SPA instrumentation.
+  The new exports replace the version-specific `V6`/`V7` variants, which are now deprecated:
+
+  | Deprecated                                      | New                                    |
+  | ----------------------------------------------- | -------------------------------------- |
+  | `reactRouterV6BrowserTracingIntegration` / `V7` | `reactRouterBrowserTracingIntegration` |
+  | `withSentryReactRouterV6Routing` / `V7`         | `wrapReactRouterRouting`               |
+  | `wrapCreateBrowserRouterV6` / `V7`              | `wrapCreateBrowserRouter`              |
+  | `wrapCreateMemoryRouterV6` / `V7`               | `wrapCreateMemoryRouter`               |
+  | `wrapUseRoutesV6` / `V7`                        | `wrapUseRoutes`                        |
+
+  The deprecated exports continue to work and will be removed in the next major version.
+
 ## 10.58.0
 
 ### Important Changes

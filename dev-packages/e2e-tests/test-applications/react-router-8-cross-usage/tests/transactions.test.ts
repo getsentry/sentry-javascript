@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
+  const transactionPromise = waitForTransaction('react-router-8-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -26,7 +26,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 });
 
 test('sends a pageload transaction with a parameterized URL - alternative route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
+  const transactionPromise = waitForTransaction('react-router-8-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -50,11 +50,11 @@ test('sends a pageload transaction with a parameterized URL - alternative route'
 });
 
 test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('react-router-8-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('react-router-8-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -94,11 +94,11 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 });
 
 test('sends a navigation transaction with a parameterized URL - alternative route', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('react-router-8-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('react-router-8-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 

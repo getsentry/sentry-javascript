@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForEnvelopeItem, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-spa', async transactionEvent => {
+  const transactionPromise = waitForTransaction('react-router-8-spa', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -26,11 +26,11 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 
 test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
   page.on('console', msg => console.log(msg.text()));
-  const pageloadTxnPromise = waitForTransaction('react-router-7-spa', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('react-router-8-spa', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('react-router-7-spa', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('react-router-8-spa', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -56,7 +56,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 });
 
 test('sends an INP span', async ({ page }) => {
-  const inpSpanPromise = waitForEnvelopeItem('react-router-7-spa', item => {
+  const inpSpanPromise = waitForEnvelopeItem('react-router-8-spa', item => {
     return item[0].type === 'span';
   });
 

@@ -1,4 +1,3 @@
-// React Router v7 uses the same integration as v6
 import type { browserTracingIntegration } from '@sentry/browser';
 import type { Integration } from '@sentry/core';
 import type { ReactRouterOptions } from './reactrouter-compat-utils';
@@ -12,62 +11,62 @@ import {
 import type { CreateRouterFunction, Router, RouterState, UseRoutes } from './types';
 
 /**
- * A browser tracing integration that uses React Router v7 to instrument navigations.
+ * A browser tracing integration that uses React Router to instrument navigations.
  * Expects `useEffect`, `useLocation`, `useNavigationType`, `createRoutesFromChildren` and `matchRoutes` to be passed as options.
  *
- * @deprecated Use `reactRouterBrowserTracingIntegration` instead.
+ * Works with React Router v6+.
  */
-export function reactRouterV7BrowserTracingIntegration(
+export function reactRouterBrowserTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
 ): Integration {
-  return createReactRouterV6CompatibleTracingIntegration(options, '7');
+  return createReactRouterV6CompatibleTracingIntegration(options, '');
 }
 
 /**
- * A higher-order component that adds Sentry routing instrumentation to a React Router v7 Route component.
+ * A higher-order component that adds Sentry routing instrumentation to a React Router Route component.
  * This is used to automatically capture route changes as transactions.
  *
- * @deprecated Use `wrapReactRouterRouting` instead.
+ * Works with React Router v6+.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function withSentryReactRouterV7Routing<P extends Record<string, any>, R extends React.FC<P>>(routes: R): R {
-  return createV6CompatibleWithSentryReactRouterRouting<P, R>(routes, '7');
+export function wrapReactRouterRouting<P extends Record<string, any>, R extends React.FC<P>>(routes: R): R {
+  return createV6CompatibleWithSentryReactRouterRouting<P, R>(routes, '');
 }
 
 /**
- * A wrapper function that adds Sentry routing instrumentation to a React Router v7 createBrowserRouter function.
+ * A wrapper function that adds Sentry routing instrumentation to a React Router createBrowserRouter function.
  * This is used to automatically capture route changes as transactions when using the createBrowserRouter API.
  *
- * @deprecated Use `wrapCreateBrowserRouter` instead.
+ * Works with React Router v6+.
  */
-export function wrapCreateBrowserRouterV7<
+export function wrapCreateBrowserRouter<
   TState extends RouterState = RouterState,
   TRouter extends Router<TState> = Router<TState>,
 >(createRouterFunction: CreateRouterFunction<TState, TRouter>): CreateRouterFunction<TState, TRouter> {
-  return createV6CompatibleWrapCreateBrowserRouter(createRouterFunction, '7');
+  return createV6CompatibleWrapCreateBrowserRouter(createRouterFunction, '');
 }
 
 /**
- * A wrapper function that adds Sentry routing instrumentation to a React Router v7 createMemoryRouter function.
+ * A wrapper function that adds Sentry routing instrumentation to a React Router createMemoryRouter function.
  * This is used to automatically capture route changes as transactions when using the createMemoryRouter API.
  * The difference between createBrowserRouter and createMemoryRouter is that with createMemoryRouter,
  * optional `initialEntries` are also taken into account.
  *
- * @deprecated Use `wrapCreateMemoryRouter` instead.
+ * Works with React Router v6+.
  */
-export function wrapCreateMemoryRouterV7<
+export function wrapCreateMemoryRouter<
   TState extends RouterState = RouterState,
   TRouter extends Router<TState> = Router<TState>,
 >(createMemoryRouterFunction: CreateRouterFunction<TState, TRouter>): CreateRouterFunction<TState, TRouter> {
-  return createV6CompatibleWrapCreateMemoryRouter(createMemoryRouterFunction, '7');
+  return createV6CompatibleWrapCreateMemoryRouter(createMemoryRouterFunction, '');
 }
 
 /**
- * A wrapper function that adds Sentry routing instrumentation to a React Router v7 useRoutes hook.
+ * A wrapper function that adds Sentry routing instrumentation to a React Router useRoutes hook.
  * This is used to automatically capture route changes as transactions when using the useRoutes hook.
  *
- * @deprecated Use `wrapUseRoutes` instead.
+ * Works with React Router v6+.
  */
-export function wrapUseRoutesV7(origUseRoutes: UseRoutes): UseRoutes {
-  return createV6CompatibleWrapUseRoutes(origUseRoutes, '7');
+export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
+  return createV6CompatibleWrapUseRoutes(origUseRoutes, '');
 }
