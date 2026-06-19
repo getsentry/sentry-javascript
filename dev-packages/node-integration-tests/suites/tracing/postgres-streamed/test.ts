@@ -29,6 +29,10 @@ const COMMON_DB_ATTRIBUTES = {
     type: 'integer',
     value: expect.any(Number),
   },
+  'otel.kind': {
+    type: 'string',
+    value: 'CLIENT',
+  },
   'sentry.environment': {
     type: 'string',
     value: 'production',

@@ -12,7 +12,9 @@ describe('mysql auto instrumentation (streamed)', () => {
     const segmentSpan = container.items.find(item => item.is_segment);
     expect(segmentSpan?.name).toBe('Test Transaction');
 
-    const dbSpans = container.items.filter(item => item.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db');
+    const dbSpans = container.items.filter(
+      spanItem => spanItem.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db',
+    );
 
     expect(dbSpans.length).toBe(2);
 
@@ -42,6 +44,10 @@ describe('mysql auto instrumentation (streamed)', () => {
           'net.peer.port': {
             type: 'integer',
             value: expect.any(Number),
+          },
+          'otel.kind': {
+            type: 'string',
+            value: 'CLIENT',
           },
           'sentry.environment': {
             type: 'string',
@@ -114,6 +120,10 @@ describe('mysql auto instrumentation (streamed)', () => {
           'net.peer.port': {
             type: 'integer',
             value: expect.any(Number),
+          },
+          'otel.kind': {
+            type: 'string',
+            value: 'CLIENT',
           },
           'sentry.environment': {
             type: 'string',
