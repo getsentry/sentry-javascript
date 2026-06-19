@@ -36,4 +36,9 @@ const tsConfig = require(baseTscConfigPath);
 // TS 3.8 fails build when it encounters a config option it does not understand, so we remove it :(
 delete tsConfig.compilerOptions.noUncheckedIndexedAccess;
 
+// TS 3.8 doesn't support "bundler" moduleResolution (introduced in TS 5.0)
+if (tsConfig.compilerOptions.moduleResolution === 'bundler') {
+  tsConfig.compilerOptions.moduleResolution = 'node';
+}
+
 writeFileSync(baseTscConfigPath, JSON.stringify(tsConfig, null, 2));

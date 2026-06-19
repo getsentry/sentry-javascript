@@ -51,7 +51,7 @@ export function getDefaultIntegrations(): Integration[] {
   return [
     // Common
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),

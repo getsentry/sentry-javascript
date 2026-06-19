@@ -180,7 +180,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         options.outgoingRequestHook?.(span, request);
         // We monkey-patch `req.once('response'), which is used to trigger
         // the callback of the request, so that it runs in the active context
-        // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
+        // eslint-disable-next-line @typescript-eslint/unbound-method, typescript/no-deprecated
         const originalOnce = request.once;
 
         const newOnce = new Proxy(originalOnce, {
@@ -199,7 +199,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           },
         });
 
-        // eslint-disable-next-line deprecation/deprecation
+        // eslint-disable-next-line typescript/no-deprecated
         request.once = newOnce;
       },
       outgoingResponseHook(span, response) {

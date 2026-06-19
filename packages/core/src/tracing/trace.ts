@@ -11,7 +11,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
-import type { DynamicSamplingContext } from '../types/envelope';
 import type { ClientOptions } from '../types/options';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
@@ -30,7 +29,7 @@ import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tra
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
-import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
+import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { setCapturedScopesOnSpan } from './utils';
@@ -72,17 +71,13 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
       const activeSpan = missingRequiredParent
-        ? new SentryNonRecordingSpan()
+        ? startMissingRequiredParentSpan(scope, client)
         : createChildOrRootSpan({
             parentSpan,
             spanArguments,
             forceTransaction,
             scope,
           });
-
-      if (missingRequiredParent) {
-        client?.recordDroppedEvent('no_parent_span', 'span');
-      }
 
       // Ignored root spans still need to be set on scope so that `getActiveSpan()` returns them
       // and descendants are also non-recording. Ignored child spans don't need this because
@@ -139,17 +134,13 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
       const activeSpan = missingRequiredParent
-        ? new SentryNonRecordingSpan()
+        ? startMissingRequiredParentSpan(scope, getClient())
         : createChildOrRootSpan({
             parentSpan,
             spanArguments,
             forceTransaction,
             scope,
           });
-
-      if (missingRequiredParent) {
-        getClient()?.recordDroppedEvent('no_parent_span', 'span');
-      }
 
       // We don't set ignored child spans onto the scope because there likely is an active,
       // unignored span on the scope already.
@@ -209,8 +200,7 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
     const missingRequiredParent = options.onlyIfParent && !parentSpan;
 
     if (missingRequiredParent) {
-      client?.recordDroppedEvent('no_parent_span', 'span');
-      return new SentryNonRecordingSpan();
+      return startMissingRequiredParentSpan(scope, client);
     }
 
     return createChildOrRootSpan({
@@ -333,6 +323,19 @@ export function startNewTrace<T>(callback: () => T): T {
   });
 }
 
+/**
+ * The placeholder returned from `startSpan*` when `onlyIfParent` is set but there is no parent span.
+ * It carries the current trace id and captured scopes so the trace data it propagates (and any nested
+ * span that resolves it as its root via `getRootSpan`) reads its DSC from the scope, preserving a
+ * continued trace's DSC instead of fabricating a fresh client one. Also records the dropped-span outcome.
+ */
+function startMissingRequiredParentSpan(scope: Scope, client: Client | undefined): SentryNonRecordingSpan {
+  client?.recordDroppedEvent('no_parent_span', 'span');
+  const span = new SentryNonRecordingSpan({ traceId: scope.getPropagationContext().traceId });
+  setCapturedScopesOnSpan(span, scope, getIsolationScope());
+  return span;
+}
+
 function createChildOrRootSpan({
   parentSpan,
   spanArguments,
@@ -344,20 +347,25 @@ function createChildOrRootSpan({
   forceTransaction?: boolean;
   scope: Scope;
 }): Span {
-  if (!hasSpansEnabled()) {
-    const span = new SentryNonRecordingSpan();
+  const isolationScope = getIsolationScope();
 
-    // If this is a root span, we ensure to freeze a DSC
-    // So we can have at least partial data here
-    if (forceTransaction || !parentSpan) {
-      const dsc = {
-        sampled: 'false',
-        sample_rate: '0',
-        transaction: spanArguments.name,
-        ...getDynamicSamplingContextFromSpan(span),
-      } satisfies Partial<DynamicSamplingContext>;
-      freezeDscOnSpan(span, dsc);
+  if (!hasSpansEnabled()) {
+    const scopePropagationContext = { ...isolationScope.getPropagationContext(), ...scope.getPropagationContext() };
+    const traceId = parentSpan ? parentSpan.spanContext().traceId : scopePropagationContext.traceId;
+
+    // The placeholder is a thin marker; it carries no sampling decision or DSC. Both are read from
+    // the scope: the sampling decision in `getTraceData`, the DSC in `getDynamicSamplingContextFromSpan`.
+    const span = new SentryNonRecordingSpan({ traceId });
+
+    // Nested placeholders link to their parent so `getRootSpan` resolves to the root placeholder,
+    // whose captured scope is the source of truth. Root/forced placeholders are their own root.
+    if (parentSpan && !forceTransaction) {
+      addChildSpanToSpan(parentSpan, span);
     }
+
+    // Capture scopes so consumers (e.g. SentryTraceProvider) can read them and so the DSC can be
+    // resolved from the scope by `getDynamicSamplingContextFromSpan`. Consistent with `startIdleSpan`.
+    setCapturedScopesOnSpan(span, scope, isolationScope);
 
     return span;
   }
@@ -370,17 +378,18 @@ function createChildOrRootSpan({
       client?.recordDroppedEvent('ignored', 'span');
     }
 
-    return new SentryNonRecordingSpan({
+    const ignoredSpan = new SentryNonRecordingSpan({
       dropReason: 'ignored',
       traceId: parentSpan?.spanContext().traceId ?? scope.getPropagationContext().traceId,
     });
-  }
+    setCapturedScopesOnSpan(ignoredSpan, scope, isolationScope);
 
-  const isolationScope = getIsolationScope();
+    return ignoredSpan;
+  }
 
   let span: Span;
   if (parentSpan && !forceTransaction) {
-    span = _startChildSpan(parentSpan, scope, spanArguments);
+    span = _startChildSpan(parentSpan, scope, spanArguments, isolationScope);
     addChildSpanToSpan(parentSpan, span);
   } else if (parentSpan) {
     // If we forced a transaction but have a parent span, make sure to continue from the parent span, not the scope
@@ -395,6 +404,7 @@ function createChildOrRootSpan({
         ...spanArguments,
       },
       scope,
+      isolationScope,
       parentSampled,
     );
 
@@ -417,6 +427,7 @@ function createChildOrRootSpan({
         ...spanArguments,
       },
       scope,
+      isolationScope,
       parentSampled,
     );
 
@@ -426,8 +437,6 @@ function createChildOrRootSpan({
   }
 
   logSpanStart(span);
-
-  setCapturedScopesOnSpan(span, scope, isolationScope);
 
   return span;
 }
@@ -459,7 +468,12 @@ function getAcs(): AsyncContextStrategy {
   return getAsyncContextStrategy(carrier);
 }
 
-function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {
+function _startRootSpan(
+  spanArguments: SentrySpanArguments,
+  scope: Scope,
+  isolationScope: Scope,
+  parentSampled?: boolean,
+): SentrySpan {
   const client = getClient();
   const options: Partial<ClientOptions> = client?.getOptions() || {};
 
@@ -506,6 +520,8 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
     client.recordDroppedEvent('sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
   }
 
+  setCapturedScopesOnSpan(rootSpan, scope, isolationScope);
+
   if (client) {
     client.emit('spanStart', rootSpan);
   }
@@ -517,7 +533,12 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
  * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
  * This inherits the sampling decision from the parent span.
  */
-function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySpanArguments): Span {
+function _startChildSpan(
+  parentSpan: Span,
+  scope: Scope,
+  spanArguments: SentrySpanArguments,
+  isolationScope: Scope,
+): Span {
   const { spanId, traceId } = parentSpan.spanContext();
   const isTracingSuppressed = _isTracingSuppressed(scope);
   const sampled = isTracingSuppressed ? false : spanIsSampled(parentSpan);
@@ -533,14 +554,16 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
 
   addChildSpanToSpan(parentSpan, childSpan);
 
+  setCapturedScopesOnSpan(childSpan, scope, isolationScope);
+
   const client = getClient();
 
   if (!client) {
     return childSpan;
   }
 
-  if (hasSpanStreamingEnabled(client) && childSpan instanceof SentryNonRecordingSpan) {
-    if (parentSpan instanceof SentryNonRecordingSpan && parentSpan.dropReason) {
+  if (hasSpanStreamingEnabled(client) && spanIsNonRecordingSpan(childSpan)) {
+    if (spanIsNonRecordingSpan(parentSpan) && parentSpan.dropReason) {
       // We land here if the parent span was a segment span that was ignored (`ignoreSpans`).
       // In this case, the child was also ignored (see `sampled` above) but we need to
       // record a client outcome for the child.
@@ -617,7 +640,7 @@ function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: Se
 }
 
 function _isIgnoredSpan(span: Span): span is SentryNonRecordingSpan {
-  return span instanceof SentryNonRecordingSpan && span.dropReason === 'ignored';
+  return spanIsNonRecordingSpan(span) && span.dropReason === 'ignored';
 }
 
 function _isTracingSuppressed(scope: Scope): boolean {

@@ -28,6 +28,12 @@ async function run() {
         await collection.findOne({ title: 'South Park' });
 
         await collection.find({ title: 'South Park' }).toArray();
+
+        // Issue a query the server rejects to exercise the error-status span path.
+        await collection
+          .find({ $thisOperatorDoesNotExist: 1 })
+          .toArray()
+          .catch(() => {});
       } finally {
         await client.close();
       }

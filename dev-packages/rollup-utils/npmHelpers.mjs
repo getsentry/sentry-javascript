@@ -179,10 +179,23 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 /**
  * This creates a loader file at the target location as part of the rollup build.
  * This loader script can then be used in combination with various Node.js flags (like --import=...) to monkeypatch 3rd party modules.
+ *
+ * @param {string} outputFolder Build output folder.
+ * @param {'otel' | 'sentry-node'} hookVariant Which hook template to use.
+ * @param {{ injectDiagnosticsChannel?: boolean }} [options] When `injectDiagnosticsChannel`
+ *   is set (only valid for the `'otel'` variant), the generated `import-hook.mjs`
+ *   additionally imports `@sentry/server-utils/orchestrion/import-hook`, which
+ *   registers the diagnostics-channel injection. Used by `@sentry/node` so that
+ *   `node --import @sentry/node/import` injects the channels unconditionally.
  */
-export function makeOtelLoaders(outputFolder, hookVariant) {
+export function makeOtelLoaders(outputFolder, hookVariant, options = {}) {
   if (hookVariant !== 'otel' && hookVariant !== 'sentry-node') {
     throw new Error('hookVariant is neither "otel" nor "sentry-node". Pick one.');
+  }
+
+  const { injectDiagnosticsChannel = false } = options;
+  if (injectDiagnosticsChannel && hookVariant !== 'otel') {
+    throw new Error('injectDiagnosticsChannel is only supported with the "otel" hookVariant.');
   }
 
   const expectedRegisterLoaderLocation = `${outputFolder}/import-hook.mjs`;
@@ -229,7 +242,11 @@ export function makeOtelLoaders(outputFolder, hookVariant) {
       input: path.join(
         __dirname,
         'code',
-        hookVariant === 'otel' ? 'otelEsmImportHookTemplate.js' : 'sentryNodeEsmImportHookTemplate.js',
+        hookVariant === 'otel'
+          ? injectDiagnosticsChannel
+            ? 'otelEsmImportHookWithDiagnosticsChannelTemplate.js'
+            : 'otelEsmImportHookTemplate.js'
+          : 'sentryNodeEsmImportHookTemplate.js',
       ),
       external: /.*/,
       output: {

@@ -1,0 +1,23 @@
+{
+  "name": "deno-mysql",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "docker compose up -d --wait && deno run --allow-net --allow-env --allow-read --allow-sys --allow-write src/app.ts",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
+    "mysql": "2.18.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

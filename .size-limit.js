@@ -395,6 +395,23 @@ module.exports = [
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
+    name: '@sentry/node/import (ESM hook with diagnostics-channel injection)',
+    path: ['node_modules/@apm-js-collab/tracing-hooks/hook.mjs', 'packages/node/build/import-hook.mjs'],
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
+    gzip: true,
+    limit: '100 KB',
+    disablePlugins: ['@size-limit/esbuild'],
+  },
+  {
+    name: '@sentry/node/light',
+    path: 'packages/node-core/build/esm/light/index.js',
+    import: createImport('init'),
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
+    gzip: true,
+    limit: '100 KB',
+    disablePlugins: ['@size-limit/esbuild'],
+  },
+  {
     name: '@sentry/node - without tracing',
     path: 'packages/node/build/esm/index.js',
     import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),

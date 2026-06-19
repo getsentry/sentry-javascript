@@ -1,4 +1,4 @@
-/* eslint-disable deprecation/deprecation */
+/* eslint-disable typescript/no-deprecated */
 import type { CustomSamplingContext, Span } from '@sentry/core';
 import { debug, spanIsSampled, spanToJSON, uuid4 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';

@@ -2,7 +2,6 @@
  * Simplified type definitions vendored from mongoose.
  * Only includes the types actually accessed by the instrumentation.
  */
-/* eslint-disable */
 
 export interface Collection {
   name: string;
@@ -37,3 +36,7 @@ export declare const Aggregate: {
   prototype: any;
   [key: string]: any;
 };
+
+export interface MongooseError extends Error {
+  code?: number;
+}

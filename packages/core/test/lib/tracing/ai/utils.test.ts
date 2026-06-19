@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getCurrentScope, getGlobalScope, getIsolationScope, setCurrentClient } from '../../../../src';
-import { resolveAIRecordingOptions, wrapPromiseWithMethods } from '../../../../src/tracing/ai/utils';
+import {
+  resolveAIRecordingOptions,
+  shouldEnableTruncation,
+  wrapPromiseWithMethods,
+} from '../../../../src/tracing/ai/utils';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 describe('resolveAIRecordingOptions', () => {
@@ -80,6 +84,55 @@ describe('resolveAIRecordingOptions', () => {
       recordInputs: false,
       recordOutputs: false,
     });
+  });
+});
+
+describe('shouldEnableTruncation', () => {
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+  });
+
+  afterEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+  });
+
+  function setupClient(options: Parameters<typeof getDefaultTestClientOptions>[0] = {}): void {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, ...options }));
+    setCurrentClient(client);
+    client.init();
+  }
+
+  it('defaults to true when no client is set', () => {
+    expect(shouldEnableTruncation(undefined)).toBe(true);
+  });
+
+  it('defaults to true with a default client (no streaming)', () => {
+    setupClient();
+    expect(shouldEnableTruncation(undefined)).toBe(true);
+  });
+
+  it('defaults to false when streamGenAiSpans is enabled', () => {
+    setupClient({ streamGenAiSpans: true });
+    expect(shouldEnableTruncation(undefined)).toBe(false);
+  });
+
+  it('defaults to false when span streaming is enabled (traceLifecycle: stream)', () => {
+    setupClient({ traceLifecycle: 'stream' });
+    expect(shouldEnableTruncation(undefined)).toBe(false);
+  });
+
+  it('explicit enableTruncation: true overrides streamGenAiSpans', () => {
+    setupClient({ streamGenAiSpans: true });
+    expect(shouldEnableTruncation(true)).toBe(true);
+  });
+
+  it('explicit enableTruncation: false overrides the default', () => {
+    setupClient();
+    expect(shouldEnableTruncation(false)).toBe(false);
   });
 });
 

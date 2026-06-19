@@ -191,6 +191,6 @@ basePaths.forEach(basePath => {
   app.route(basePath, baseApp);
 });
 
-const port = 8787;
-serve({ fetch: app.fetch, port });
-sendPortToRunner(port);
+serve({ fetch: app.fetch, port: 0 }, info => {
+  sendPortToRunner(info.port);
+});

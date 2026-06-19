@@ -271,3 +271,83 @@ test('should create spans for fs operations that take target argument', async ()
   expect(result).toEqual('done');
   await runner.completed();
 });
+
+test('records file path but not error messages when only `recordFilePaths` is enabled', async () => {
+  const runner = createRunner(__dirname, 'server-record-paths-only.ts')
+    .expect({
+      transaction: {
+        transaction: 'GET /readFile-error',
+        spans: expect.arrayContaining([
+          expect.objectContaining({
+            description: 'fs.readFile',
+            op: 'file',
+            status: 'internal_error',
+            // `path_argument` is recorded, but `fs_error` is NOT, since `recordErrorMessagesAsSpanAttributes` is off
+            data: {
+              path_argument: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+            },
+          }),
+        ]),
+      },
+    })
+    .start();
+
+  const result = await runner.makeRequest('get', '/readFile-error');
+  expect(result).toEqual('done');
+  await runner.completed();
+});
+
+test('records error messages but not file paths when only `recordErrorMessagesAsSpanAttributes` is enabled', async () => {
+  const runner = createRunner(__dirname, 'server-record-errors-only.ts')
+    .expect({
+      transaction: {
+        transaction: 'GET /readFile-error',
+        spans: expect.arrayContaining([
+          expect.objectContaining({
+            description: 'fs.readFile',
+            op: 'file',
+            status: 'internal_error',
+            // `fs_error` is recorded, but `path_argument` is NOT, since `recordFilePaths` is off
+            data: {
+              fs_error: expect.stringMatching('ENOENT: no such file or directory,'),
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+            },
+          }),
+        ]),
+      },
+    })
+    .start();
+
+  const result = await runner.makeRequest('get', '/readFile-error');
+  expect(result).toEqual('done');
+  await runner.completed();
+});
+
+test('does not record file paths on successful operations when only `recordErrorMessagesAsSpanAttributes` is enabled', async () => {
+  const runner = createRunner(__dirname, 'server-record-errors-only.ts')
+    .expect({
+      transaction: {
+        transaction: 'GET /readFile',
+        spans: expect.arrayContaining([
+          expect.objectContaining({
+            description: 'fs.readFile',
+            op: 'file',
+            status: 'ok',
+            // Neither `path_argument` nor `fs_error` are recorded
+            data: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+            },
+          }),
+        ]),
+      },
+    })
+    .start();
+
+  const result = await runner.makeRequest('get', '/readFile');
+  expect(result).toEqual('done');
+  await runner.completed();
+});

@@ -50,7 +50,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
   return [
     dedupeIntegration(),
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
@@ -169,6 +169,7 @@ export function setupOtel(client: VercelEdgeClient): void {
     ],
   });
 
+  // eslint-disable-next-line typescript/no-deprecated
   const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
 
   trace.setGlobalTracerProvider(provider);

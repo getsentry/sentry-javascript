@@ -18,7 +18,7 @@
     "@sentry/deno": "latest || *",
     "@sentry/hono": "latest || *",
     "@sentry/node": "latest || *",
-    "@hono/node-server": "^1.19.10",
+    "@hono/node-server": "^2.0.5",
     "hono": "^4.12.14"
   },
   "devDependencies": {

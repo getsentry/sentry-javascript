@@ -93,7 +93,11 @@ test.describe('request data extraction', () => {
 
   test('includes query_string when present', async ({ baseURL }) => {
     const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${PREFIX}`;
+      return (
+        event.contexts?.trace?.op === 'http.server' &&
+        event.transaction === `GET ${PREFIX}` &&
+        event.request?.query_string === 'foo=bar&baz=42'
+      );
     });
 
     const response = await fetch(`${baseURL}${PREFIX}?foo=bar&baz=42`);

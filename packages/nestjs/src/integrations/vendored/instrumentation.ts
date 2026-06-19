@@ -1,17 +1,6 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-nestjs-core
@@ -25,9 +14,9 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
 } from '@opentelemetry/instrumentation';
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
-import { SDK_VERSION, startSpan } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import { AttributeNames, NestType } from './enums';
 
 const PACKAGE_NAME = '@sentry/instrumentation-nestjs-core';
@@ -137,8 +126,10 @@ function createWrapNestFactoryCreate(moduleVersion?: string) {
       return startSpan(
         {
           name: 'Create Nest App',
+          op: `${NestType.APP_CREATION}.nestjs`,
           attributes: {
             ...NestInstrumentation.COMMON_ATTRIBUTES,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
             [AttributeNames.TYPE]: NestType.APP_CREATION,
             [AttributeNames.VERSION]: moduleVersion,
             [AttributeNames.MODULE]: nestModule.name,
@@ -165,15 +156,18 @@ function createWrapCreateHandler(moduleVersion: string | undefined) {
         const req = handlerArgs[0] as NestRequest;
         const attributes: SpanAttributes = {
           ...NestInstrumentation.COMMON_ATTRIBUTES,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
           [AttributeNames.VERSION]: moduleVersion,
           [AttributeNames.TYPE]: NestType.REQUEST_CONTEXT,
-          [ATTR_HTTP_ROUTE]: req.route?.path || req.routeOptions?.url || req.routerPath,
+          [HTTP_ROUTE]: req.route?.path || req.routeOptions?.url || req.routerPath,
           [AttributeNames.CONTROLLER]: instanceName,
           [AttributeNames.CALLBACK]: callbackName,
         };
         attributes['http.method'] = req.method;
         attributes['http.url'] = req.originalUrl || req.url;
-        return startSpan({ name: spanName, attributes }, () => handler.apply(this, handlerArgs));
+        return startSpan({ name: spanName, op: `${NestType.REQUEST_CONTEXT}.nestjs`, attributes }, () =>
+          handler.apply(this, handlerArgs),
+        );
       };
     };
   };
@@ -183,12 +177,15 @@ function createWrapHandler(moduleVersion: string | undefined, handler: AnyFn): A
   const spanName = handler.name || 'anonymous nest handler';
   const attributes: SpanAttributes = {
     ...NestInstrumentation.COMMON_ATTRIBUTES,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
     [AttributeNames.VERSION]: moduleVersion,
     [AttributeNames.TYPE]: NestType.REQUEST_HANDLER,
     [AttributeNames.CALLBACK]: handler.name,
   };
   const wrappedHandler = function (this: unknown, ...args: unknown[]) {
-    return startSpan({ name: spanName, attributes }, () => handler.apply(this, args));
+    return startSpan({ name: spanName, op: `${NestType.REQUEST_HANDLER}.nestjs`, attributes }, () =>
+      handler.apply(this, args),
+    );
   };
 
   if (handler.name) {

@@ -15,6 +15,7 @@ export { postgresIntegration } from './integrations/tracing/postgres';
 export { postgresJsIntegration } from './integrations/tracing/postgresjs';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
+// eslint-disable-next-line typescript/no-deprecated
 export { honoIntegration, setupHonoErrorHandler } from './integrations/tracing/hono';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
@@ -46,6 +47,7 @@ export {
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
 } from './sdk';
+export { experimentalUseDiagnosticsChannelInjection } from './sdk/experimentalUseDiagnosticsChannelInjection';
 export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 
@@ -72,7 +74,7 @@ export {
   withMonitor,
   requestDataIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
@@ -182,9 +184,9 @@ export {
   modulesIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   anrIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   disableAnrDetectionForCallback,
   spotlightIntegration,
   childProcessIntegration,
