@@ -116,7 +116,6 @@ function _shouldInstrumentSpans(options: NodeFetchOptions, clientOptions: Partia
 /** Exported only for tests. */
 export function _getConfigWithDefaults(options: Partial<NodeFetchOptions> = {}): UndiciInstrumentationConfig {
   const instrumentationConfig = {
-    requireParentforSpans: false,
     ignoreRequestHook: request => {
       const url = getAbsoluteUrl(request.origin, request.path);
       const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;

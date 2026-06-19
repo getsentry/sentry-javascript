@@ -7,7 +7,6 @@
  * - Upstream version: @opentelemetry/instrumentation-undici@0.24.0
  * - Tracking issue: https://github.com/getsentry/sentry-javascript/issues/20165
  */
-/* eslint-disable -- vendored @opentelemetry/instrumentation-undici (#20165) */
 
 import type { UndiciRequest, UndiciResponse } from './types';
 
