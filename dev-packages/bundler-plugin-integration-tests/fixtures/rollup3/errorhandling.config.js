@@ -1,4 +1,4 @@
-import { sentryRollupPlugin } from "@sentry/rollup-plugin";
+import { sentryRollupPlugin } from "@sentry/bundler-plugins/rollup";
 import { defineConfig } from "rollup";
 import { getErrorHandlingConfig } from "../configs/errorhandling.config.js";
 

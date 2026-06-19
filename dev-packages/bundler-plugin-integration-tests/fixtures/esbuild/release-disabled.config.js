@@ -1,5 +1,5 @@
 import * as esbuild from "esbuild";
-import { sentryEsbuildPlugin } from "@sentry/esbuild-plugin";
+import { sentryEsbuildPlugin } from "@sentry/bundler-plugins/esbuild";
 import { sentryConfig } from "../configs/release-disabled.config.js";
 
 await esbuild.build({

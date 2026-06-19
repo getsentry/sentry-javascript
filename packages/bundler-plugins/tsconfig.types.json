@@ -5,7 +5,8 @@
   "compilerOptions": {
     "rootDir": "./src",
     "declaration": true,
+    "declarationMap": true,
     "emitDeclarationOnly": true,
-    "declarationDir": "./dist/types"
+    "outDir": "build/types"
   }
 }

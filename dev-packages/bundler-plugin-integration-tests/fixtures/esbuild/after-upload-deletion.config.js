@@ -1,5 +1,5 @@
 import * as esbuild from "esbuild";
-import { sentryEsbuildPlugin } from "@sentry/esbuild-plugin";
+import { sentryEsbuildPlugin } from "@sentry/bundler-plugins/esbuild";
 import { sentryConfig } from "../configs/after-upload-deletion.config.js";
 
 await esbuild.build({

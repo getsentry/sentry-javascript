@@ -221,7 +221,7 @@ describe('generateReleaseInjectorCode', () => {
       injectBuildInformation: false,
     });
 
-    expect(generatedCode.code()).toMatchSnapshot();
+    expect(generatedCode.code()).toMatch(/e\.SENTRY_RELEASE=\{id:"1\.2\.3"\};/);
   });
 
   it('generates code with release and build information', () => {
@@ -242,7 +242,12 @@ describe('generateReleaseInjectorCode', () => {
       injectBuildInformation: true,
     });
 
-    expect(generatedCode.code()).toMatchSnapshot();
+    expect(generatedCode.code()).toMatch(/e\.SENTRY_RELEASE=\{id:"1\.2\.3"\};/);
+    // `nodeVersion` is environment-dependent, so match it loosely while asserting the
+    // deterministic build-information parts derived from the mocked package.json.
+    expect(generatedCode.code()).toMatch(
+      /e\.SENTRY_BUILD_INFO=\{"deps":\["myDep","rollup"\],"depsVersions":\{"rollup":3\},"nodeVersion":\d+\};/,
+    );
   });
 });
 

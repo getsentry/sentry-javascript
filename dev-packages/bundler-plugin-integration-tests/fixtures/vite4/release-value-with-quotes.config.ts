@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import { sentryVitePlugin } from "@sentry/vite-plugin";
+import { sentryVitePlugin } from "@sentry/bundler-plugins/vite";
 import { sentryConfig } from "../configs/release-value-with-quotes.config.js";
 
 export default defineConfig({

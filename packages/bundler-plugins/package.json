@@ -10,45 +10,49 @@
     "access": "public"
   },
   "files": [
-    "dist",
+    "/build",
     "sentry-release-injection-file.js",
     "sentry-esbuild-debugid-injection-file.js"
   ],
+  "main": "build/cjs/core/index.js",
+  "module": "build/esm/core/index.js",
+  "types": "build/types/core/index.d.ts",
   "exports": {
+    "./package.json": "./package.json",
     "./webpack": {
-      "types": "./dist/types/webpack/index.d.ts",
-      "import": "./dist/esm/webpack/index.mjs",
-      "require": "./dist/cjs/webpack/index.js"
+      "types": "./build/types/webpack/index.d.ts",
+      "import": "./build/esm/webpack/index.js",
+      "require": "./build/cjs/webpack/index.js"
     },
     "./webpack5": {
-      "types": "./dist/types/webpack/webpack5.d.ts",
-      "import": "./dist/esm/webpack/webpack5.mjs",
-      "require": "./dist/cjs/webpack/webpack5.js"
+      "types": "./build/types/webpack/webpack5.d.ts",
+      "import": "./build/esm/webpack/webpack5.js",
+      "require": "./build/cjs/webpack/webpack5.js"
     },
     "./rollup": {
-      "types": "./dist/types/rollup/index.d.ts",
-      "import": "./dist/esm/rollup/index.mjs",
-      "require": "./dist/cjs/rollup/index.js"
+      "types": "./build/types/rollup/index.d.ts",
+      "import": "./build/esm/rollup/index.js",
+      "require": "./build/cjs/rollup/index.js"
     },
     "./vite": {
-      "types": "./dist/types/vite/index.d.ts",
-      "import": "./dist/esm/vite/index.mjs",
-      "require": "./dist/cjs/vite/index.js"
+      "types": "./build/types/vite/index.d.ts",
+      "import": "./build/esm/vite/index.js",
+      "require": "./build/cjs/vite/index.js"
     },
     "./esbuild": {
-      "types": "./dist/types/esbuild/index.d.ts",
-      "import": "./dist/esm/esbuild/index.mjs",
-      "require": "./dist/cjs/esbuild/index.js"
+      "types": "./build/types/esbuild/index.d.ts",
+      "import": "./build/esm/esbuild/index.js",
+      "require": "./build/cjs/esbuild/index.js"
     },
     "./core": {
-      "types": "./dist/types/core/index.d.ts",
-      "import": "./dist/esm/core/index.mjs",
-      "require": "./dist/cjs/core/index.js"
+      "types": "./build/types/core/index.d.ts",
+      "import": "./build/esm/core/index.js",
+      "require": "./build/cjs/core/index.js"
     },
     "./babel-plugin": {
-      "types": "./dist/types/babel-plugin/index.d.ts",
-      "import": "./dist/esm/babel-plugin/index.mjs",
-      "require": "./dist/cjs/babel-plugin/index.js"
+      "types": "./build/types/babel-plugin/index.d.ts",
+      "import": "./build/esm/babel-plugin/index.js",
+      "require": "./build/cjs/babel-plugin/index.js"
     },
     "./sentry-release-injection-file": {
       "import": "./sentry-release-injection-file.js",
@@ -59,31 +63,56 @@
       "require": "./sentry-esbuild-debugid-injection-file.js"
     },
     "./webpack-loader": {
-      "require": "./dist/cjs/webpack/component-annotation-transform.js"
+      "require": "./build/cjs/webpack/component-annotation-transform.js"
     }
   },
   "scripts": {
-    "prebuild": "node -p \"'export const LIB_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/core/version.ts",
-    "build": "premove ./dist && run-p build:rollup build:types && run-s build:npm",
-    "build:watch": "run-p build:rollup:watch build:types:watch",
-    "build:rollup": "rolldown --config rollup.config.mjs",
-    "build:rollup:watch": "rolldown --config rollup.config.mjs --watch --no-watch.clearScreen",
-    "build:types": "tsc --project types.tsconfig.json",
-    "build:types:watch": "tsc --project types.tsconfig.json --watch --preserveWatchOutput",
-    "build:npm": "npm pack",
+    "build": "run-p build:transpile build:types",
+    "build:dev": "yarn build",
+    "build:version": "node -p \"'export const LIB_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/core/version.ts",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types:core": "tsc -p tsconfig.types.json",
+    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:watch": "run-p build:transpile:watch",
+    "build:dev:watch": "yarn build:watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
+    "build:tarball": "npm pack",
+    "prebuild": "yarn build:version",
+    "precheck:types": "yarn build:version",
+    "pretest": "yarn build:version",
+    "pretest:unit": "yarn build:version",
     "check:types": "run-p check:types:src check:types:test",
     "check:types:src": "tsc --project ./tsconfig.json --noEmit",
     "check:types:test": "tsc --project ./test/tsconfig.json --noEmit",
-    "clean": "run-s clean:build",
+    "clean": "rimraf build dist coverage sentry-bundler-plugins-*.tgz",
     "clean:all": "run-p clean clean:deps",
-    "clean:build": "premove ./dist *.tgz",
-    "clean:deps": "premove node_modules",
-    "pretest": "yarn prebuild",
-    "test": "vitest run"
+    "clean:deps": "rimraf node_modules",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "dependsOn": [
+          "build:version",
+          "^build:transpile"
+        ]
+      },
+      "build:types": {
+        "dependsOn": [
+          "build:version",
+          "^build:types"
+        ]
+      }
+    }
   },
   "dependencies": {
     "@babel/core": "^7.18.5",
     "@sentry/cli": "^2.58.6",
+    "@sentry/core": "10.57.0",
     "dotenv": "^16.3.1",
     "find-up": "^5.0.0",
     "glob": "^13.0.6",
@@ -103,15 +132,12 @@
   },
   "devDependencies": {
     "@babel/preset-react": "^7.23.3",
-    "@sentry/core": "10.56.0",
-    "@sentry/types": "10.56.0",
-    "@sentry-internal/dev-utils": "5.3.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^18.6.3",
     "@types/webpack": "npm:@types/webpack@^4",
     "premove": "^4.0.0",
     "rolldown": "^1.0.0",
-    "vitest": "^4.0.0",
+    "vitest": "^3.2.6",
     "webpack": "5.104.1"
   },
   "volta": {

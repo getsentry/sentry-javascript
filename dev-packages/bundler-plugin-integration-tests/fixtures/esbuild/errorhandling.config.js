@@ -1,5 +1,5 @@
 import * as esbuild from "esbuild";
-import { sentryEsbuildPlugin } from "@sentry/esbuild-plugin";
+import { sentryEsbuildPlugin } from "@sentry/bundler-plugins/esbuild";
 import { getErrorHandlingConfig } from "../configs/errorhandling.config.js";
 
 const FAKE_SENTRY_PORT = process.env.FAKE_SENTRY_PORT || "9876";

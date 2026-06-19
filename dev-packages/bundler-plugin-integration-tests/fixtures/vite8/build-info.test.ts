@@ -12,7 +12,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles }) => {
     		e.SENTRY_RELEASE = { id: "build-information-injection-test" };
     		e.SENTRY_BUILD_INFO = {
     			"deps": [
-    				"@sentry/vite-plugin",
+    				"@sentry/bundler-plugins",
     				"@vitejs/plugin-react",
     				"react",
     				"vite"

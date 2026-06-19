@@ -1,5 +1,5 @@
 {
-  "name": "@sentry-internal/integration-tests-next",
+  "name": "@sentry-internal/bundler-plugin-integration-tests",
   "version": "5.3.0",
   "license": "MIT",
   "private": true,
@@ -12,14 +12,11 @@
     "clean:deps": "premove node_modules"
   },
   "dependencies": {
-    "@sentry/esbuild-plugin": "5.3.0",
-    "@sentry/rollup-plugin": "5.3.0",
-    "@sentry/vite-plugin": "5.3.0",
-    "@sentry/webpack-plugin": "5.3.0"
+    "@sentry/bundler-plugins": "5.3.0"
   },
   "devDependencies": {
     "premove": "^4.0.0",
-    "vitest": "^4.0.0"
+    "vitest": "^3.2.6"
   },
   "volta": {
     "extends": "../../package.json"

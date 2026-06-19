@@ -1,13 +1,19 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRateLimiter } from '../../src/integrations/local-variables/common';
 import { createCallbackList } from '../../src/integrations/local-variables/local-variables-sync';
 import { NODE_MAJOR } from '../../src/nodeVersion';
 
-vi.useFakeTimers();
-
 const describeIf = (condition: boolean) => (condition ? describe : describe.skip);
 
 describeIf(NODE_MAJOR >= 18)('LocalVariables', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('createCallbackList', () => {
     it('Should call callbacks in reverse order', () =>
       new Promise<void>(done => {
