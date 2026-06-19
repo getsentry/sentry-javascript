@@ -21,6 +21,8 @@ describe('mysql auto instrumentation', () => {
           'net.peer.port': 3306,
           'db.user': 'root',
         }),
+        // all db spans have an error status because we don't have an actual mysql DB server running for these tests
+        status: 'internal_error',
       });
 
     return {
