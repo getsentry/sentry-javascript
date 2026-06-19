@@ -132,7 +132,6 @@
   },
   "devDependencies": {
     "@babel/preset-react": "^7.23.3",
-    "@sentry/types": "10.57.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^18.6.3",
     "@types/webpack": "npm:@types/webpack@^4",
