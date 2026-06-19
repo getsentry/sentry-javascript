@@ -137,7 +137,7 @@
     "@types/webpack": "npm:@types/webpack@^4",
     "premove": "^4.0.0",
     "rolldown": "^1.0.0",
-    "vitest": "^4.0.0",
+    "vitest": "^3.2.6",
     "webpack": "5.104.1"
   },
   "volta": {
