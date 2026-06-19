@@ -5,7 +5,7 @@
  * using Node.js diagnostic_channel's `bindStore` mechanism.
  */
 import type { TracingChannel, TracingChannelSubscribers } from 'node:diagnostics_channel';
-import { tracingChannel as nativeTracingChannel } from 'node:diagnostics_channel';
+import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Span } from '@opentelemetry/api';
 import { context, trace } from '@opentelemetry/api';
 import { logger } from '@sentry/core';
@@ -53,9 +53,10 @@ export function tracingChannel<TData extends object = object>(
   channelNameOrInstance: string,
   transformStart: OtelTracingChannelTransform<TData>,
 ): OtelTracingChannel<TData, TracingChannelContextWithSpan<TData>> {
-  const channel = nativeTracingChannel<TracingChannelContextWithSpan<TData>, TracingChannelContextWithSpan<TData>>(
-    channelNameOrInstance,
-  ) as unknown as OtelTracingChannel<TData, TracingChannelContextWithSpan<TData>>;
+  const channel = diagnosticsChannel.tracingChannel<
+    TracingChannelContextWithSpan<TData>,
+    TracingChannelContextWithSpan<TData>
+  >(channelNameOrInstance) as unknown as OtelTracingChannel<TData, TracingChannelContextWithSpan<TData>>;
 
   let lookup: AsyncLocalStorageLookup | undefined;
   try {
