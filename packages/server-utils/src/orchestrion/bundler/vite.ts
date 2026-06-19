@@ -2,12 +2,12 @@
 // time, injecting `diagnostics_channel.tracingChannel` calls into the libraries
 // listed in `SENTRY_INSTRUMENTATIONS`.
 //
-// This file is published ESM-only via the `@sentry/node/orchestrion/vite`
+// This file is published ESM-only via the `@sentry/server-utils/orchestrion/vite`
 // subpath export. `@apm-js-collab/code-transformer-bundler-plugins` is
 // `"type": "module"`, so consuming it from a CJS build is intentionally
 // unsupported — vite.config.ts is almost always ESM in practice. The CJS
 // rollup variant still emits this file, but `package.json` only exposes the
-// ESM entry, so attempts to `require('@sentry/node/orchestrion/vite')` will
+// ESM entry, so attempts to `require('@sentry/server-utils/orchestrion/vite')` will
 // fail at resolution time rather than producing a half-broken plugin.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,10 +15,10 @@ type UnknownPlugin = any;
 
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
 import MagicString from 'magic-string';
-import { SENTRY_INSTRUMENTATIONS } from '../config';
+import { INSTRUMENTED_MODULE_NAMES, SENTRY_INSTRUMENTATIONS } from '../config';
 
 // `vite` types live in the package's ESM-only subpath; under Node16 module
-// resolution with TS treating @sentry/node as CJS, importing them produces a
+// resolution with TS treating @sentry/server-utils as CJS, importing them produces a
 // false positive. We don't need the runtime value for typing — `UnknownPlugin`
 // is sufficient — so we omit the import entirely.
 
@@ -64,8 +64,6 @@ function bundlerMarkerPlugin(): UnknownPlugin {
     '',
   ].join('\n');
 
-  const instrumentedModules = Array.from(new Set(SENTRY_INSTRUMENTATIONS.map(i => i.module.name)));
-
   return {
     name: 'sentry-orchestrion-marker',
     enforce: 'pre' as const,
@@ -77,7 +75,7 @@ function bundlerMarkerPlugin(): UnknownPlugin {
       // diagnostics_channel calls never get injected. Vite merges array
       // `noExternal` entries with the user's config, so we don't overwrite
       // their additions.
-      return { ssr: { noExternal: instrumentedModules } };
+      return { ssr: { noExternal: INSTRUMENTED_MODULE_NAMES } };
     },
     renderChunk(code: string, chunk: { isEntry: boolean }): { code: string; map: unknown } | null {
       if (!chunk.isEntry) return null;

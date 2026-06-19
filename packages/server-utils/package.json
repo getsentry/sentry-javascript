@@ -1,6 +1,6 @@
 {
   "name": "@sentry/server-utils",
-  "version": "10.58.0",
+  "version": "10.59.0",
   "description": "Server Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/server-utils",
@@ -18,55 +18,31 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "import": {
-        "types": "./build/types/index.d.ts",
-        "default": "./build/esm/index.js"
-      },
-      "require": {
-        "types": "./build/types/index.d.ts",
-        "default": "./build/cjs/index.js"
-      }
+      "types": "./build/types/index.d.ts",
+      "import": "./build/esm/index.js",
+      "require": "./build/cjs/index.js"
     },
     "./orchestrion": {
-      "import": {
-        "types": "./build/types/orchestrion/index.d.ts",
-        "default": "./build/esm/orchestrion/index.js"
-      },
-      "require": {
-        "types": "./build/types/orchestrion/index.d.ts",
-        "default": "./build/cjs/orchestrion/index.js"
-      }
+      "types": "./build/types/orchestrion/index.d.ts",
+      "import": "./build/esm/orchestrion/index.js",
+      "require": "./build/cjs/orchestrion/index.js"
     },
     "./orchestrion/config": {
-      "import": {
-        "types": "./build/types/orchestrion/config.d.ts",
-        "default": "./build/esm/orchestrion/config.js"
-      },
-      "require": {
-        "types": "./build/types/orchestrion/config.d.ts",
-        "default": "./build/cjs/orchestrion/config.js"
-      }
+      "types": "./build/types/orchestrion/config.d.ts",
+      "import": "./build/esm/orchestrion/config.js",
+      "require": "./build/cjs/orchestrion/config.js"
     },
     "./orchestrion/register": {
-      "import": {
-        "types": "./build/types/orchestrion/runtime/register.d.ts",
-        "default": "./build/esm/orchestrion/runtime/register.js"
-      },
-      "require": {
-        "types": "./build/types/orchestrion/runtime/register.d.ts",
-        "default": "./build/cjs/orchestrion/runtime/register.js"
-      }
+      "types": "./build/types/orchestrion/runtime/register.d.ts",
+      "import": "./build/esm/orchestrion/runtime/register.js",
+      "require": "./build/cjs/orchestrion/runtime/register.js"
     },
     "./orchestrion/vite": {
       "types": "./build/types/orchestrion/bundler/vite.d.ts",
-      "import": {
-        "default": "./build/esm/orchestrion/bundler/vite.js"
-      }
+      "import": "./build/esm/orchestrion/bundler/vite.js"
     },
     "./orchestrion/import-hook": {
-      "import": {
-        "default": "./build/orchestrion/import-hook.mjs"
-      }
+      "import": "./build/orchestrion/import-hook.mjs"
     }
   },
   "typesVersions": {
@@ -110,12 +86,12 @@
     "@apm-js-collab/code-transformer": "^0.15.0",
     "@apm-js-collab/tracing-hooks": "^0.10.0",
     "@sentry/conventions": "^0.12.0",
-    "@sentry/core": "10.58.0",
+    "@sentry/core": "10.59.0",
     "magic-string": "~0.30.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.1",
-    "vite": "^5.0.0"
+    "vite": "^6.4.3"
   },
   "peerDependencies": {
     "vite": "^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0"

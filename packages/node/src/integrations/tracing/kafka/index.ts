@@ -1,22 +1,11 @@
 import { KafkaJsInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '@sentry/node-core';
 
 const INTEGRATION_NAME = 'Kafka';
 
-export const instrumentKafka = generateInstrumentOnce(
-  INTEGRATION_NAME,
-  () =>
-    new KafkaJsInstrumentation({
-      consumerHook(span) {
-        addOriginToSpan(span, 'auto.kafkajs.otel.consumer');
-      },
-      producerHook(span) {
-        addOriginToSpan(span, 'auto.kafkajs.otel.producer');
-      },
-    }),
-);
+export const instrumentKafka = generateInstrumentOnce(INTEGRATION_NAME, () => new KafkaJsInstrumentation());
 
 const _kafkaIntegration = (() => {
   return {

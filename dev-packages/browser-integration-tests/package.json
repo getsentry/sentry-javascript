@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "10.58.0",
+  "version": "10.59.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -56,13 +56,13 @@
     "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts"
   },
   "dependencies": {
-    "@babel/core": "^7.27.7",
+    "@babel/core": "^7.29.6",
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "~1.56.0",
     "@sentry/rrweb": "2.43.2",
-    "@sentry/browser": "10.58.0",
-    "@sentry/replay": "10.58.0",
-    "@sentry/opentelemetry": "10.58.0",
+    "@sentry/browser": "10.59.0",
+    "@sentry/replay": "10.59.0",
+    "@sentry/opentelemetry": "10.59.0",
     "@supabase/supabase-js": "2.49.3",
     "axios": "1.16.0",
     "babel-loader": "^10.1.1",
