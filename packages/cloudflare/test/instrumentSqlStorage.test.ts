@@ -96,26 +96,9 @@ describe('instrumentSqlStorage', () => {
     expect(result).toBe(mockCursor);
   });
 
-  it('sets rowsRead and rowsWritten attributes on the span', () => {
-    const mockSpan = createMockSpan();
-    vi.spyOn(sentryCore, 'startSpan').mockImplementation((_opts, callback) => callback(mockSpan as any));
-
-    const mockCursor = createMockCursor({ rowsRead: 10, rowsWritten: 3 });
-    const mockSql = createMockSqlStorage(mockCursor);
-    const instrumented = instrumentSqlStorage(mockSql);
-
-    instrumented.exec('INSERT INTO users VALUES (?)');
-
-    expect(mockSpan.setAttributes).toHaveBeenCalledWith({
-      'cloudflare.durable_object.response.rows_read': 10,
-      'cloudflare.durable_object.response.rows_written': 3,
-    });
-  });
-
-  it('adds a breadcrumb with the sanitized query and row stats', () => {
+  it('adds a breadcrumb with the sanitized query', () => {
     const addBreadcrumbSpy = vi.spyOn(sentryCore, 'addBreadcrumb');
-    const mockCursor = createMockCursor({ rowsRead: 5, rowsWritten: 0 });
-    const mockSql = createMockSqlStorage(mockCursor);
+    const mockSql = createMockSqlStorage();
     const instrumented = instrumentSqlStorage(mockSql);
 
     instrumented.exec('SELECT * FROM users');
@@ -123,10 +106,6 @@ describe('instrumentSqlStorage', () => {
     expect(addBreadcrumbSpy).toHaveBeenCalledWith({
       category: 'query',
       message: 'SELECT * FROM users',
-      data: {
-        'cloudflare.durable_object.response.rows_read': 5,
-        'cloudflare.durable_object.response.rows_written': 0,
-      },
     });
   });
 
@@ -177,22 +156,15 @@ describe('instrumentSqlStorage', () => {
   });
 });
 
-function createMockSpan() {
-  return {
-    setAttributes: vi.fn(),
-    setStatus: vi.fn(),
-  };
-}
-
-function createMockCursor(overrides?: { rowsRead?: number; rowsWritten?: number }) {
+function createMockCursor() {
   return {
     next: vi.fn(),
     toArray: vi.fn().mockReturnValue([]),
     one: vi.fn(),
     raw: vi.fn(),
     columnNames: [],
-    rowsRead: overrides?.rowsRead ?? 0,
-    rowsWritten: overrides?.rowsWritten ?? 0,
+    rowsRead: 0,
+    rowsWritten: 0,
   };
 }
 

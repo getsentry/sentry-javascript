@@ -32,23 +32,14 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
               'cloudflare.durable_object.query.bindings': bindings.length,
             },
           },
-          span => {
+          () => {
             const cursor: SqlStorageCursor<Record<string, SqlStorageValue>> = (
               original as (...a: unknown[]) => SqlStorageCursor<Record<string, SqlStorageValue>>
             ).apply(target, args);
 
-            span.setAttributes({
-              'cloudflare.durable_object.response.rows_read': cursor.rowsRead,
-              'cloudflare.durable_object.response.rows_written': cursor.rowsWritten,
-            });
-
             addBreadcrumb({
               category: 'query',
               message: sanitizedQuery,
-              data: {
-                'cloudflare.durable_object.response.rows_read': cursor.rowsRead,
-                'cloudflare.durable_object.response.rows_written': cursor.rowsWritten,
-              },
             });
 
             return cursor;

@@ -42,8 +42,6 @@ it('instruments SQL exec operations on Durable Object storage', async ({ signal 
               'db.operation.name': 'exec',
               'db.query.text': 'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)',
               'cloudflare.durable_object.query.bindings': 0,
-              'cloudflare.durable_object.response.rows_read': expect.any(Number),
-              'cloudflare.durable_object.response.rows_written': expect.any(Number),
             }),
           }),
           expect.objectContaining({
@@ -55,7 +53,6 @@ it('instruments SQL exec operations on Durable Object storage', async ({ signal 
               'db.operation.name': 'exec',
               'db.query.text': 'INSERT INTO users (name) VALUES (?)',
               'cloudflare.durable_object.query.bindings': 1,
-              'cloudflare.durable_object.response.rows_written': expect.any(Number),
             }),
           }),
           expect.objectContaining({
@@ -67,7 +64,6 @@ it('instruments SQL exec operations on Durable Object storage', async ({ signal 
               'db.operation.name': 'exec',
               'db.query.text': 'SELECT * FROM users',
               'cloudflare.durable_object.query.bindings': 0,
-              'cloudflare.durable_object.response.rows_read': expect.any(Number),
             }),
           }),
         ]),
