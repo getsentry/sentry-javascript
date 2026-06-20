@@ -7,6 +7,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { SPAN_STATUS_ERROR, startSpanManual } from '../tracing';
 import type { Span } from '../types/span';
 import { debug } from '../utils/debug-logger';
+import { getSqlQuerySummary } from '../utils/sql';
 import { getActiveSpan } from '../utils/spanUtils';
 
 const SQL_OPERATION_REGEX = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i;
@@ -226,10 +227,11 @@ function _wrapSingleQueryHandle(
 
     const fullQuery = _reconstructQuery(query.strings);
     const sanitizedSqlQuery = _sanitizeSqlQuery(fullQuery);
+    const querySummary = getSqlQuerySummary(fullQuery);
 
     return startSpanManual(
       {
-        name: sanitizedSqlQuery || 'postgresjs.query',
+        name: querySummary || sanitizedSqlQuery || 'postgresjs.query',
         op: 'db',
       },
       (span: Span) => {
@@ -238,6 +240,7 @@ function _wrapSingleQueryHandle(
         span.setAttributes({
           'db.system.name': 'postgres',
           'db.query.text': sanitizedSqlQuery,
+          'db.query.summary': querySummary,
         });
 
         const connectionContext = sqlInstance
