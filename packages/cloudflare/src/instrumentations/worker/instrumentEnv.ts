@@ -1,8 +1,9 @@
 import type { CloudflareOptions } from '../../client';
-import { isDurableObjectNamespace, isJSRPC, isQueue } from '../../utils/isBinding';
+import { isAnalyticsEngineDataset, isDurableObjectNamespace, isJSRPC, isQueue } from '../../utils/isBinding';
 import { appendRpcMeta } from '../../utils/rpcMeta';
 import { getEffectiveRpcPropagation } from '../../utils/rpcOptions';
 import { instrumentDurableObjectNamespace, STUB_NON_RPC_METHODS } from '../instrumentDurableObjectNamespace';
+import { instrumentAnalyticsEngineWithSentry } from './instrumentAnalyticsEngine';
 import { instrumentFetcher } from './instrumentFetcher';
 import { instrumentQueueProducer } from './instrumentQueueProducer';
 
@@ -50,6 +51,13 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
       if (isQueue(item)) {
         const bindingName = typeof prop === 'string' ? prop : String(prop);
         const instrumented = instrumentQueueProducer(item, bindingName);
+        instrumentedBindings.set(item, instrumented);
+        return instrumented;
+      }
+
+      if (isAnalyticsEngineDataset(item)) {
+        const bindingName = typeof prop === 'string' ? prop : String(prop);
+        const instrumented = instrumentAnalyticsEngineWithSentry(item, bindingName);
         instrumentedBindings.set(item, instrumented);
         return instrumented;
       }

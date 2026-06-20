@@ -31,7 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import type { DurableObjectNamespace, Queue } from '@cloudflare/workers-types';
+import type { AnalyticsEngineDataset, DurableObjectNamespace, Queue } from '@cloudflare/workers-types';
 
 /**
  * Checks if a value is a JSRPC proxy (service binding).
@@ -66,4 +66,12 @@ export function isDurableObjectNamespace(item: unknown): item is DurableObjectNa
  */
 export function isQueue(item: unknown): item is Queue {
   return item != null && isNotJSRPC(item) && typeof item.send === 'function' && typeof item.sendBatch === 'function';
+}
+
+/**
+ * Duck-type check for AnalyticsEngineDataset bindings.
+ * AnalyticsEngineDataset has a single `writeDataPoint` method.
+ */
+export function isAnalyticsEngineDataset(item: unknown): item is AnalyticsEngineDataset {
+  return item != null && isNotJSRPC(item) && typeof item.writeDataPoint === 'function';
 }

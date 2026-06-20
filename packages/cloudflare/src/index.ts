@@ -127,6 +127,7 @@ export { fetchIntegration } from './integrations/fetch';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export { honoIntegration } from './integrations/hono';
 
+export { instrumentAnalyticsEngineWithSentry } from './instrumentations/worker/instrumentAnalyticsEngine';
 export { instrumentD1WithSentry } from './instrumentations/worker/instrumentD1';
 
 export { instrumentWorkflowWithSentry } from './workflows';

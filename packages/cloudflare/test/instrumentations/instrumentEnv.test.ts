@@ -216,6 +216,27 @@ describe('instrumentEnv', () => {
     expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace);
   });
 
+  it('wraps AnalyticsEngineDataset bindings in a proxy', () => {
+    const writeDataPoint = vi.fn();
+    const dataset = { writeDataPoint };
+    const env = { MY_AE: dataset };
+    const instrumented = instrumentEnv(env);
+
+    const wrapped = instrumented.MY_AE as typeof dataset;
+    expect(wrapped).not.toBe(dataset);
+    wrapped.writeDataPoint({ doubles: [1] });
+    expect(writeDataPoint).toHaveBeenCalledTimes(1);
+    expect(writeDataPoint).toHaveBeenCalledWith({ doubles: [1] });
+  });
+
+  it('caches the wrapped AnalyticsEngineDataset binding across repeated access', () => {
+    const dataset = { writeDataPoint: vi.fn() };
+    const env = { MY_AE: dataset };
+    const instrumented = instrumentEnv(env);
+
+    expect(instrumented.MY_AE).toBe(instrumented.MY_AE);
+  });
+
   describe('JSRPC RPC method instrumentation', () => {
     it('does not inject Sentry RPC meta by default (enableRpcTracePropagation not set)', () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
