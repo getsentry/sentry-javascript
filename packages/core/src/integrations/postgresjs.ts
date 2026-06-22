@@ -227,7 +227,7 @@ function _wrapSingleQueryHandle(
 
     const fullQuery = _reconstructQuery(query.strings);
     const sanitizedSqlQuery = _sanitizeSqlQuery(fullQuery);
-    const querySummary = getSqlQuerySummary(fullQuery);
+    const querySummary = getSqlQuerySummary(sanitizedSqlQuery);
 
     return startSpanManual(
       {
