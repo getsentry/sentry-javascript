@@ -2,6 +2,11 @@ import * as Sentry from '@sentry/react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
+const sentryInitStart = performance.now();
+performance.mark('sentry-sdk-init-start', {
+  detail: { mode: import.meta.env.MODE ?? 'unknown_mode' },
+});
+
 if (import.meta.env.MODE === 'tracing-replay') {
   Sentry.init({
     dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
@@ -33,6 +38,16 @@ if (import.meta.env.MODE === 'tracing-replay') {
   // no DSN warning). We're measuring pure SDK-loading + tree-shaking cost.
   Sentry.init({ enabled: false });
 }
+
+performance.measure('sentry-sdk-init-duration', {
+  detail: { mode: import.meta.env.MODE ?? 'unknown_mode' },
+  start: sentryInitStart,
+  end: performance.now(),
+});
+performance.mark('sentry-sdk-init-end', {
+  detail: { mode: import.meta.env.MODE ?? 'unknown_mode' },
+});
+
 // 'no-sentry' mode: all branches above are statically dead, so Vite drops
 // the @sentry/react import entirely from the bundle.
 
