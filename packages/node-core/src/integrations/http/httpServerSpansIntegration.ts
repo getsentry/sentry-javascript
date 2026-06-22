@@ -226,15 +226,25 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
       });
     },
     processEvent(event) {
-      // Drop transaction if it has a status code that should be ignored
       if (event.type === 'transaction') {
         const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
         if (typeof statusCode === 'number') {
-          const shouldDrop = shouldFilterStatusCode(statusCode, ignoreStatusCodes);
-          if (shouldDrop) {
+          // Drop transaction if it has a status code that should be ignored
+          if (shouldFilterStatusCode(statusCode, ignoreStatusCodes)) {
             DEBUG_BUILD && debug.log('Dropping transaction due to status code', statusCode);
             return null;
           }
+
+          // Surface the HTTP status as the top-level `response` context. The OTel SDK span
+          // exporter already does this on its path; doing it here covers transactions produced
+          // by the `SentryTracerProvider`, which bypasses that exporter.
+          event.contexts = {
+            ...event.contexts,
+            response: {
+              ...event.contexts?.response,
+              status_code: statusCode,
+            },
+          };
         }
       }
 
