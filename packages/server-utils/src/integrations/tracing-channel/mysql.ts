@@ -1,4 +1,4 @@
-import { tracingChannel } from 'node:diagnostics_channel';
+import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   debug,
@@ -73,7 +73,7 @@ const _mysqlChannelIntegration = (() => {
     name: INTEGRATION_NAME,
     setupOnce() {
       DEBUG_BUILD && debug.log(`[orchestrion:mysql] subscribing to channel "${CHANNELS.MYSQL_QUERY}"`);
-      const queryCh = tracingChannel(CHANNELS.MYSQL_QUERY);
+      const queryCh = diagnosticsChannel.tracingChannel(CHANNELS.MYSQL_QUERY);
 
       // Each `context` object is shared across start/end/asyncStart/asyncEnd/error
       // for one call (orchestrion creates one per invocation). We key the span
