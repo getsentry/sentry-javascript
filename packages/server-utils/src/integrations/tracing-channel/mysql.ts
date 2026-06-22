@@ -1,13 +1,14 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { IntegrationFn, Span } from '@sentry/core';
+import type { IntegrationFn, Scope, Span } from '@sentry/core';
 import {
+  bindScopeToEmitter,
   debug,
   defineIntegration,
-  getActiveSpan,
+  getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
-  withActiveSpan,
+  withScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -81,6 +82,12 @@ const _mysqlChannelIntegration = (() => {
       // asyncEnd for some reason.
       const spans = new WeakMap<object, Span>();
 
+      // The scope active when the query was issued, keyed by the same per-call
+      // `context` object. The streamable no-callback path needs it in `end`
+      // (where `ctx.result` first becomes available) to bind the returned
+      // `Query` emitter's listeners to it — see the `end` hook.
+      const parentScopes = new WeakMap<object, Scope>();
+
       // `subscribe()` requires all five lifecycle hooks. The orchestrion
       // `wrapAuto` transform fires events in one of four orders depending on
       // call shape:
@@ -144,14 +151,18 @@ const _mysqlChannelIntegration = (() => {
           // caller's `connection.query` call, so OTel context is still
           // correct). `asyncStart`/`asyncEnd` fire from the same lost context
           // as the callback itself, so they're too late.
-          const parentSpan = getActiveSpan();
-          if (parentSpan && ctx.arguments.length > 0) {
+          const scope = getCurrentScope();
+
+          // Keep track of the scope that was active when the query was issued.
+          parentScopes.set(rawCtx, scope);
+
+          if (ctx.arguments.length > 0) {
             const cbIdx = ctx.arguments.length - 1;
             const orchestrionWrappedCb = ctx.arguments[cbIdx];
             if (typeof orchestrionWrappedCb === 'function') {
               const wrapped = orchestrionWrappedCb as (...a: unknown[]) => unknown;
               ctx.arguments[cbIdx] = function (this: unknown, ...args: unknown[]): unknown {
-                return withActiveSpan(parentSpan, () => wrapped.apply(this, args));
+                return withScope(scope, () => wrapped.apply(this, args));
               };
             }
           }
@@ -183,6 +194,22 @@ const _mysqlChannelIntegration = (() => {
           if (result && typeof result === 'object' && hasOnMethod(result)) {
             const span = spans.get(rawCtx);
             if (!span) return;
+
+            // Bind the streamed `Query`'s listeners to the scope that was active
+            // when the query was issued. mysql v2 emits `'end'`/`'error'`/
+            // `'fields'`/… from its socket data handler, where the
+            // AsyncLocalStorage store backing `getActiveSpan()` no longer
+            // reflects the caller's context. Without this, a span started inside
+            // a user's stream listener would begin a fresh root trace instead of
+            // nesting under the active parent. `bindScopeToEmitter` patches the
+            // emitter's `on`/`addListener`/… so listeners the user adds after
+            // `query()` returns inherit the scope — mirroring what
+            // `@opentelemetry/instrumentation-mysql` does via `context.bind`.
+            const parentScope = parentScopes.get(rawCtx);
+            if (parentScope) {
+              bindScopeToEmitter(result, parentScope);
+            }
+
             result.on('error', err => {
               span.setStatus({
                 code: SPAN_STATUS_ERROR,
@@ -224,6 +251,7 @@ const _mysqlChannelIntegration = (() => {
         if (!span) return;
         span.end();
         spans.delete(rawCtx);
+        parentScopes.delete(rawCtx);
       }
     },
   };
