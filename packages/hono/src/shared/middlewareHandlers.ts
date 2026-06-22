@@ -22,9 +22,8 @@ import { type GetConnInfo } from 'hono/conninfo';
 export function requestHandler(context: Context, getConnInfo?: GetConnInfo): void {
   const isolationScope = getCurrentIsolationScope();
 
-  // Set a provisional route name as early as possible so events captured during the request
-  // (and the transaction itself, should processing be interrupted) already carry the route.
-  // It is re-resolved authoritatively in `responseHandler` once the middleware chain has run.
+  // Set a provisional route name as early as possible so events captured during the request already carry the route.
+  // It is re-resolved in `responseHandler` once the middleware chain has run.
   updateSpanRouteName(isolationScope, context);
 
   isolationScope.setSDKProcessingMetadata({
