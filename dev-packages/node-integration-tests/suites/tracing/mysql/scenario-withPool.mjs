@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 import mysql from 'mysql';
 
-const connection = mysql.createConnection({
+const pool = mysql.createPool({
   port: Number(process.env.MYSQL_PORT),
   user: 'root',
   password: 'docker',
@@ -13,10 +13,10 @@ Sentry.startSpanManual(
     name: 'Test Transaction',
   },
   span => {
-    connection.query('SELECT 1 + 1 AS solution', function () {
-      connection.query('SELECT NOW()', ['1', '2'], () => {
+    pool.query('SELECT 1 + 1 AS solution', function () {
+      pool.query('SELECT NOW()', ['1', '2'], () => {
         span.end();
-        connection.end();
+        pool.end();
       });
     });
   },

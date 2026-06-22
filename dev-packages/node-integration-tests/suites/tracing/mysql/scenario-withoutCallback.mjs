@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/node';
 import mysql from 'mysql';
 
 const connection = mysql.createConnection({
+  port: Number(process.env.MYSQL_PORT),
   user: 'root',
   password: 'docker',
 });
