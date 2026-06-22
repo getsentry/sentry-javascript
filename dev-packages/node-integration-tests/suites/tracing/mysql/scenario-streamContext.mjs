@@ -31,11 +31,12 @@ Sentry.startSpanManual(
           // noop
         });
 
+        // Wait to ensure the query span has been finished
         setTimeout(() => {
           innerSpan.end();
           span.end();
           connection.end();
-        }, 500);
+        }, 1);
       });
     });
   },

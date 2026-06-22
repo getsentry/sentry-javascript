@@ -33,7 +33,7 @@ Sentry.startSpanManual(
       setTimeout(() => {
         span.end();
         connection.end();
-      }, 500);
+      }, 1);
     });
   },
 );
