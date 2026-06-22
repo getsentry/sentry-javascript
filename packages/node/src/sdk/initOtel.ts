@@ -18,7 +18,6 @@ import {
   SentrySpanProcessor,
   SentryTracerProvider,
   setIsSetup,
-  setOpenTelemetryContextAsyncContextStrategy,
 } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
@@ -93,7 +92,6 @@ export function setupOtel(
   options: AdditionalOpenTelemetryOptions = {},
 ): [OpenTelemetryTracerProvider | undefined, AsyncLocalStorageLookup | undefined] {
   if (client.getOptions()._experiments?.useSentryTracerProvider) {
-    setOpenTelemetryContextAsyncContextStrategy();
     return setupSentryTracerProvider(client, options);
   }
 
