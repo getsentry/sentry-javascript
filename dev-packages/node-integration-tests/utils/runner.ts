@@ -20,7 +20,7 @@ import { existsSync } from 'fs';
 import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { basename, join } from 'path';
 import { inspect, promisify } from 'util';
-import { afterAll, beforeAll, describe, test } from 'vitest';
+import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
 import type { DeepPartial } from './assertions';
 import {
   assertEnvelopeHeader,
@@ -309,47 +309,51 @@ export function createEsmAndCjsTests(
     }
   }
 
-  describe('esm/cjs', () => {
-    const esmTestFn = options?.failsOnEsm ? test.fails : test;
-    describe('esm', () => {
-      callback(
-        () => createRunner(esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun),
-        esmTestFn,
-        'esm',
-        tmpDirPath,
-      );
-    });
-
-    const cjsTestFn = options?.failsOnCjs ? test.fails : test;
-    describe('cjs', () => {
-      callback(
-        () => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath),
-        cjsTestFn,
-        'cjs',
-        tmpDirPath,
-      );
-    });
-
-    // Create tmp directory and install additionalDependencies (with retries)
-    beforeAll(async () => {
-      await createTmpDir();
-    }, 120_000);
-
-    // Clean up the tmp directory after both esm and cjs suites have run
-    afterAll(async () => {
-      // First do cleanup!
-      cleanupChildProcesses();
-
-      try {
-        await rm(tmpDirPath, { recursive: true, force: true });
-      } catch {
-        if (process.env.DEBUG) {
-          // eslint-disable-next-line no-console
-          console.error(`Failed to remove tmp dir: ${tmpDirPath}`);
+  // Wrap the test API so it prepends the test name with the mode
+  function wrapTestApi(api: TestAPI | typeof test.fails, suffix: string) {
+    return new Proxy(api, {
+      apply: (target, _thisArg, args: Parameters<typeof api>) => {
+        if (typeof args[0] === 'string') {
+          args[0] = `${args[0]} [${suffix}]`;
         }
+
+        return target(...args);
+      },
+    });
+  }
+
+  const esmTestFn = options?.failsOnEsm ? wrapTestApi(test.fails, 'esm - fails') : wrapTestApi(test, 'esm');
+  const cjsTestFn = options?.failsOnCjs ? wrapTestApi(test.fails, 'cjs - fails') : wrapTestApi(test, 'cjs');
+
+
+  callback(
+    () => createRunner(esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun),
+    esmTestFn,
+    'esm',
+    tmpDirPath,
+  );
+
+  callback(() => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath), cjsTestFn, 'cjs', tmpDirPath);
+
+  // Create tmp directory and install additionalDependencies (with retries)
+  beforeAll(async () => {
+    await createTmpDir();
+  }, 120_000);
+
+  // Clean up the tmp directory after both esm and cjs suites have run
+  afterAll(async () => {
+    // First do cleanup!
+    cleanupChildProcesses();
+
+    try {
+      await rm(tmpDirPath, { recursive: true, force: true });
+    } catch {
+      if (process.env.DEBUG) {
+        // eslint-disable-next-line no-console
+        console.error(`Failed to remove tmp dir: ${tmpDirPath}`);
       }
-    }, 30_000);
-  });
+    }
+  }, 30_000);
 }
 
 async function convertEsmFileToCjs(inputPath: string, outputPath: string): Promise<void> {
