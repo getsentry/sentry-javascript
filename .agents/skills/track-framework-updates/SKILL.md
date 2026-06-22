@@ -1,6 +1,9 @@
 ---
 name: track-framework-updates
-description: Produce a weekly digest of upstream framework/library activity (releases, Discussions, RFCs, RSS) for the Sentry JS SDK. Use when asked to "track framework updates", "check framework releases", "what changed upstream", "weekly framework digest", "what's new in React/Next/Nuxt/etc.", or to surface backlog candidates from upstream frameworks.
+description:
+  Produce a weekly digest of upstream framework/library activity (releases, Discussions, RFCs, RSS) for the Sentry JS SDK.
+  Use when asked to "track framework updates", "check framework releases", "what changed upstream", "weekly framework digest", "what's new in React/Next/Nuxt/etc.", or to surface backlog candidates from upstream frameworks.
+  Do NOT use for checking Sentry SDK releases, internal package updates, or individual bug triage.
 argument-hint: '[--since-days N]'
 ---
 
