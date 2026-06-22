@@ -163,14 +163,6 @@ function setupSentryTracerProvider(
 
     event.contexts = {
       ...event.contexts,
-      ...(typeof event.contexts?.trace?.data?.['http.response.status_code'] === 'number'
-        ? {
-            response: {
-              ...event.contexts.response,
-              status_code: event.contexts.trace.data['http.response.status_code'],
-            },
-          }
-        : undefined),
       otel: {
         resource: provider.resource?.attributes,
         ...event.contexts?.otel,
