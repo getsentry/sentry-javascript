@@ -29,11 +29,8 @@ Sentry.startSpanManual(
     });
 
     query.on('end', () => {
-      // Wait a bit to ensure the query span has been finished
-      setTimeout(() => {
-        span.end();
-        connection.end();
-      }, 1);
+      span.end();
+      connection.end();
     });
   },
 );

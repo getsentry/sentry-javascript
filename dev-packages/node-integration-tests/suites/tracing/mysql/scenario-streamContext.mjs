@@ -23,6 +23,8 @@ Sentry.startSpanManual(
 
     // This should _not_ be the parent of the listener-child!
     Sentry.startSpanManual({ name: 'inner-span' }, innerSpan => {
+      // The instrumentation registers its own `end` listener (which finishes the query span) when
+      // `query()` is called, before this one — so by the time we run here, the query span is finished.
       query.on('end', () => {
         // A span started from inside a stream listener should be a child of the parent context that was
         // active when the query was issued (the transaction here), not of the query span itself. This
@@ -31,12 +33,9 @@ Sentry.startSpanManual(
           // noop
         });
 
-        // Wait to ensure the query span has been finished
-        setTimeout(() => {
-          innerSpan.end();
-          span.end();
-          connection.end();
-        }, 1);
+        innerSpan.end();
+        span.end();
+        connection.end();
       });
     });
   },
