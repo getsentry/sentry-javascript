@@ -170,7 +170,8 @@ def collect(since_days: int) -> list[dict[str, Any]]:
                     }
                 )
         entry["items"].sort(
-            key=lambda i: i.get("publishedAt") or "", reverse=True
+            key=lambda i: _parse_date(i.get("publishedAt")) or datetime.min,
+            reverse=True,
         )
         results.append(entry)
     return results

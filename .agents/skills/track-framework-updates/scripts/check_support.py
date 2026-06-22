@@ -101,7 +101,12 @@ def collect() -> list[dict[str, Any]]:
         sentry_packages = fw.get("sentryPackages", [])
         all_peers: dict[str, str] = {}
         for pkg in sentry_packages:
-            all_peers.update(_read_peer_deps(pkg))
+            for dep, range_str in _read_peer_deps(pkg).items():
+                existing = all_peers.get(dep)
+                if existing is None:
+                    all_peers[dep] = range_str
+                elif range_str != existing:
+                    all_peers[dep] = f"{existing} || {range_str}"
 
         results.append(
             {
