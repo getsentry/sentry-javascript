@@ -1,9 +1,10 @@
 name: Track Framework Updates
 
 on:
-  schedule:
-    # Every Monday Morning at 04:00 UTC
-    - cron: '0 4 * * 1'
+  # For future use (first, we test it manually)
+  # schedule:
+  #  # Every Monday Morning at 04:00 UTC
+  #  - cron: '0 4 * * 1'
   workflow_dispatch:
     inputs:
       since_days:
