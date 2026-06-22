@@ -30,9 +30,12 @@ import type { Integration, Span } from '@sentry/core';
 import {
   captureException,
   debug,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   getActiveSpan,
   getClient,
+  getTruncatedJsonString,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  shouldEnableTruncation,
   SPAN_STATUS_ERROR,
   spanToTraceContext,
   startInactiveSpan,
@@ -246,6 +249,9 @@ export function subscribeVercelAiTracingChannel(tracingChannel: VercelAiTracingC
           code: SPAN_STATUS_ERROR,
           message: data.error instanceof Error ? data.error.message : 'unknown_error',
         });
+        // `asyncEnd` bails when `data.error` is set, so this is the only place that finishes a
+        // rejected operation's span — without this `.end()` the span would stay open in the trace.
+        span.end();
       },
     });
   } catch {
@@ -271,7 +277,7 @@ export function createSpanFromMessage(
     return getActiveSpan();
   }
 
-  const { recordInputs } = getRecordingOptions(event);
+  const { recordInputs, enableTruncation } = getRecordingOptions(event);
   const provider = asString(event.provider);
   const modelId = asString(event.modelId);
   const callId = asString(event.callId);
@@ -293,9 +299,9 @@ export function createSpanFromMessage(
   switch (type) {
     case 'generateText':
     case 'streamText':
-      return buildInvokeAgentSpan(event, baseAttributes, recordInputs, callId, type === 'streamText');
+      return buildInvokeAgentSpan(event, baseAttributes, recordInputs, enableTruncation, callId, type === 'streamText');
     case 'languageModelCall':
-      return buildModelCallSpan(event, baseAttributes, recordInputs, callId, modelId);
+      return buildModelCallSpan(event, baseAttributes, recordInputs, enableTruncation, callId, modelId);
     case 'executeTool':
       return buildToolSpan(event, recordInputs);
     case 'embed':
@@ -326,6 +332,7 @@ function buildInvokeAgentSpan(
   event: Record<string, unknown>,
   baseAttributes: Attributes,
   recordInputs: boolean,
+  enableTruncation: boolean,
   callId: string | undefined,
   isStream: boolean,
 ): Span {
@@ -339,7 +346,7 @@ function buildInvokeAgentSpan(
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     [GEN_AI_RESPONSE_STREAMING]: isStream,
     ...(functionId ? { [GEN_AI_FUNCTION_ID]: functionId } : {}),
-    ...(recordInputs ? buildInputMessageAttributes(event) : {}),
+    ...(recordInputs ? buildInputMessageAttributes(event, enableTruncation) : {}),
   });
 }
 
@@ -347,6 +354,7 @@ function buildModelCallSpan(
   event: Record<string, unknown>,
   baseAttributes: Attributes,
   recordInputs: boolean,
+  enableTruncation: boolean,
   callId: string | undefined,
   modelId: string | undefined,
 ): Span {
@@ -357,7 +365,7 @@ function buildModelCallSpan(
   return startGenAiSpan(GEN_AI_GENERATE_CONTENT_OPERATION, modelId, {
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
-    ...(recordInputs ? buildInputMessageAttributes(event) : {}),
+    ...(recordInputs ? buildInputMessageAttributes(event, enableTruncation) : {}),
     ...(recordInputs && Array.isArray(event.tools)
       ? { [GEN_AI_REQUEST_AVAILABLE_TOOLS]: safeStringify(event.tools) }
       : {}),
@@ -556,16 +564,21 @@ function captureToolError(span: Span, data: VercelAiChannelMessage, error: unkno
   });
 }
 
-function getRecordingOptions(event: Record<string, unknown>): { recordInputs: boolean; recordOutputs: boolean } {
+function getRecordingOptions(event: Record<string, unknown>): {
+  recordInputs: boolean;
+  recordOutputs: boolean;
+  enableTruncation: boolean;
+} {
   const client = getClient();
   const genAI = client?.getDataCollectionOptions().genAI;
   const options = client?.getIntegrationByName<
-    Integration & { options?: { recordInputs?: boolean; recordOutputs?: boolean } }
+    Integration & { options?: { recordInputs?: boolean; recordOutputs?: boolean; enableTruncation?: boolean } }
   >(INTEGRATION_NAME)?.options;
 
   return {
     recordInputs: resolveRecording(options?.recordInputs, event.recordInputs, genAI?.inputs),
     recordOutputs: resolveRecording(options?.recordOutputs, event.recordOutputs, genAI?.outputs),
+    enableTruncation: shouldEnableTruncation(options?.enableTruncation),
   };
 }
 
@@ -589,14 +602,21 @@ function resolveRecording(integrationOption: unknown, perCallOption: unknown, gl
   return globalDefault === true;
 }
 
-function buildInputMessageAttributes(event: Record<string, unknown>): Record<string, string> {
+function buildInputMessageAttributes(
+  event: Record<string, unknown>,
+  enableTruncation: boolean,
+): Record<string, string | number> {
   // The AI SDK start events extend `StandardizedPrompt`; messages live on `messages`, otherwise the
   // simpler `prompt` field is used.
   const messages = event.messages ?? event.prompt;
   if (messages === undefined) {
     return {};
   }
-  return { [GEN_AI_INPUT_MESSAGES]: safeStringify(messages) };
+  return {
+    [GEN_AI_INPUT_MESSAGES]: enableTruncation ? getTruncatedJsonString(messages) : safeStringify(messages),
+    // The original (pre-truncation) message count, so the product can show how many were dropped.
+    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: Array.isArray(messages) ? messages.length : 1,
+  };
 }
 
 function asString(value: unknown): string | undefined {

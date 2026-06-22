@@ -512,4 +512,41 @@ describe.each([
       },
     },
   );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-rejected-model.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('finishes spans with an error status when the operation rejects', async () => {
+        await createRunner()
+          .withEnv(env)
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              // The model throws, so the operation rejects. The spans must still be *finished* (and
+              // therefore present in the transaction) with an error status — not left open.
+              const invokeAgent = container.items.find(
+                span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
+              )!;
+              expect(invokeAgent).toBeDefined();
+              expect(invokeAgent.status).toBe('error');
+
+              const generateContent = container.items.find(
+                span => span.attributes?.['sentry.op']?.value === 'gen_ai.generate_content',
+              )!;
+              expect(generateContent).toBeDefined();
+              expect(generateContent.status).toBe('error');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
 });
