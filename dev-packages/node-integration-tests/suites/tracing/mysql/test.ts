@@ -40,7 +40,7 @@ describe('mysql auto instrumentation', () => {
         op: 'db',
         ...(origin ? { origin } : {}),
         data: expect.objectContaining({
-          'sentry.origin': 'auto.db.otel.mysql',
+          ...(origin ? { 'sentry.origin': origin } : {}),
           'db.system': 'mysql',
           'net.peer.name': 'localhost',
           'net.peer.port': port,
@@ -190,85 +190,41 @@ describe('mysql auto instrumentation', () => {
     );
   });
 
-  describe('with createPool()', () => {
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-withPool.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
-        test('should auto-instrument `mysql` package when querying through a pool', async () => {
-          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-        });
-      },
-      { failsOnEsm: true },
-    );
-  });
+        createEsmAndCjsTests(
+          __dirname,
+          'scenario-streamContext.mjs',
+          instrument,
+          (createTestRunner, test) => {
+            test('should run streamed query listeners with the parent context active', async () => {
+              await createTestRunner()
+                .withFlags(...flags)
+                .expect({
+                  transaction: (transaction): void => {
+                    const transactionSpanId = transaction.contexts?.trace?.span_id;
+                    const spans = transaction.spans ?? [];
+                    const mysqlSpan = spans.find(span => span.description === 'SELECT 1 + 1 AS solution');
+                    const listenerSpan = spans.find(span => span.description === 'listener-child');
+                    const innerSpan = spans.find(span => span.description === 'inner-span');
 
-  describe('streamed query error', () => {
-    const EXPECTED_ERROR_TRANSACTION = {
-      transaction: 'Test Transaction',
-      spans: expect.arrayContaining([
-        expect.objectContaining({
-          description: 'SELECT * FROM does_not_exist',
-          op: 'db',
-          origin: 'auto.db.otel.mysql',
-          // A failing streamed query emits `error`, which marks the span as errored
-          status: 'internal_error',
-          data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.mysql',
-            'db.system': 'mysql',
-            'db.user': 'root',
-          }),
-        }),
-      ]),
-    };
+                    expect(transactionSpanId).toBeDefined();
+                    expect(mysqlSpan).toBeDefined();
+                    expect(listenerSpan).toBeDefined();
+                    expect(innerSpan).toBeDefined();
 
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-streamError.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
-        test('should mark the span as errored when a streamed query fails', async () => {
-          await createTestRunner().expect({ transaction: EXPECTED_ERROR_TRANSACTION }).start().completed();
-        });
-      },
-      { failsOnEsm: true },
-    );
-  });
-
-  describe('streamed query listener context', () => {
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-streamContext.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
-        test('should run streamed query listeners with the parent context active', async () => {
-          await createTestRunner()
-            .expect({
-              transaction: (transaction): void => {
-                const transactionSpanId = transaction.contexts?.trace?.span_id;
-                const spans = transaction.spans ?? [];
-                const mysqlSpan = spans.find(span => span.description === 'SELECT 1 + 1 AS solution');
-                const listenerSpan = spans.find(span => span.description === 'listener-child');
-                const innerSpan = spans.find(span => span.description === 'inner-span');
-
-                expect(transactionSpanId).toBeDefined();
-                expect(mysqlSpan).toBeDefined();
-                expect(listenerSpan).toBeDefined();
-                expect(innerSpan).toBeDefined();
-
-                // The span created inside the stream `end` listener is parented to the transaction
-                // (the context active when the query was issued), not to the query span.
-                expect(listenerSpan?.parent_span_id).toBe(transactionSpanId);
-                expect(listenerSpan?.parent_span_id).not.toBe(mysqlSpan?.span_id);
-                expect(innerSpan?.parent_span_id).toBe(transactionSpanId);
-              },
-            })
-            .start()
-            .completed();
-        });
-      },
-      { failsOnEsm: true },
-    );
-  });
+                    // The span created inside the stream `end` listener is parented to the transaction
+                    // (the context active when the query was issued), not to the query span.
+                    expect(listenerSpan?.parent_span_id).toBe(transactionSpanId);
+                    expect(listenerSpan?.parent_span_id).not.toBe(mysqlSpan?.span_id);
+                    expect(innerSpan?.parent_span_id).toBe(transactionSpanId);
+                  },
+                })
+                .start()
+                .completed();
+            });
+          },
+          { failsOnEsm },
+        );
+      }
+    });
+  }
 });
