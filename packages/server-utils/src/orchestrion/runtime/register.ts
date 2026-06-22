@@ -2,8 +2,8 @@ import { debug } from '@sentry/core';
 import * as Module from 'node:module';
 import { DEBUG_BUILD } from '../../debug-build';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
-import { ModulePatch, initialize, resolve, load } from '@apm-js-collab/tracing-hooks';
-
+import ModulePatch from '@apm-js-collab/tracing-hooks';
+import { initialize, resolve, load } from '@apm-js-collab/tracing-hooks/hook-sync.mjs';
 declare global {
   // eslint-disable-next-line no-var
   var __SENTRY_ORCHESTRION__: { runtime?: boolean; bundler?: boolean } | undefined;
