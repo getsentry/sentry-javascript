@@ -64,20 +64,38 @@ export function startMysqlTestServer({ host = '127.0.0.1', port = 0 } = {}) {
     socket.write(packet(0, initialHandshake()));
 
     let sawHandshakeResponse = false;
-    socket.on('data', (data: Buffer) => {
-      if (!sawHandshakeResponse) {
-        // First inbound packet is the client's handshake response → accept auth.
-        sawHandshakeResponse = true;
-        socket.write(packet(2, okPacket()));
-        return;
+    let buffered = Buffer.alloc(0);
+    socket.on('data', (chunk: Buffer) => {
+      // TCP may coalesce several packets into one `data` event or split one packet across events, so
+      // we can't assume one packet per read. Accumulate bytes and frame on the 3-byte length header,
+      // consuming only whole packets — otherwise a coalesced handshake-response + COM_QUERY would lose
+      // its tail and the client would hang.
+      buffered = buffered.length ? Buffer.concat([buffered, chunk]) : chunk;
+
+      while (buffered.length >= 4) {
+        // Packet: [3-byte LE payload length][1-byte seq][payload].
+        const payloadLength = buffered.readUIntLE(0, 3);
+        const packetLength = 4 + payloadLength;
+        if (buffered.length < packetLength) {
+          break; // rest of this packet hasn't arrived yet
+        }
+        const pkt = buffered.subarray(0, packetLength);
+        buffered = buffered.subarray(packetLength);
+
+        if (!sawHandshakeResponse) {
+          // First inbound packet is the client's handshake response → accept auth.
+          sawHandshakeResponse = true;
+          socket.write(packet(2, okPacket()));
+          continue;
+        }
+
+        // Command packet: payload is [1-byte command][args]. For COM_QUERY (0x03) the args are the SQL
+        // text. Queries referencing the conventional missing table fail (so error-path tests work);
+        // every other command succeeds with an OK. The command resets the sequence, so our reply is seq 1.
+        const isQuery = payloadLength > 1 && pkt[4] === 0x03;
+        const sql = isQuery ? pkt.subarray(5).toString('latin1') : '';
+        socket.write(packet(1, sql.includes('does_not_exist') ? errPacket() : okPacket()));
       }
-      // Subsequent command packet: [3-byte len][1-byte seq][1-byte command][payload]. For COM_QUERY
-      // (0x03) the payload is the SQL text. Queries referencing the conventional missing table fail
-      // (so error-path tests work); every other command succeeds with an OK. The command resets the
-      // sequence, so our reply is seq 1.
-      const isQuery = data.length > 5 && data[4] === 0x03;
-      const sql = isQuery ? data.subarray(5).toString('latin1') : '';
-      socket.write(packet(1, sql.includes('does_not_exist') ? errPacket() : okPacket()));
     });
   });
   // Never let a listen error crash the test process.
