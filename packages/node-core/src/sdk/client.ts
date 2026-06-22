@@ -14,7 +14,7 @@ import {
 import {
   type AsyncLocalStorageLookup,
   getTraceContextForScope,
-  type OpenTelemetryTraceProvider,
+  type OpenTelemetryTracerProvider,
 } from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
@@ -24,7 +24,7 @@ const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitr
 
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
-  public traceProvider: OpenTelemetryTraceProvider | undefined;
+  public traceProvider: OpenTelemetryTracerProvider | undefined;
   public asyncLocalStorageLookup: AsyncLocalStorageLookup | undefined;
 
   private _tracer: Tracer | undefined;

@@ -12,7 +12,7 @@ import {
   applyOtelSpanData,
   type AsyncLocalStorageLookup,
   getSentryResource,
-  type OpenTelemetryTraceProvider,
+  type OpenTelemetryTracerProvider,
   SentryPropagator,
   SentrySampler,
   SentrySpanProcessor,
@@ -91,7 +91,7 @@ function getPreloadMethods(integrationNames?: string[]): ((() => void) & { id: s
 export function setupOtel(
   client: NodeClient,
   options: AdditionalOpenTelemetryOptions = {},
-): [OpenTelemetryTraceProvider | undefined, AsyncLocalStorageLookup | undefined] {
+): [OpenTelemetryTracerProvider | undefined, AsyncLocalStorageLookup | undefined] {
   if (client.getOptions()._experiments?.useSentryTracerProvider) {
     setOpenTelemetryContextAsyncContextStrategy();
     return setupSentryTracerProvider(client, options);
