@@ -310,7 +310,8 @@ export function createEsmAndCjsTests(
   }
 
   // Wrap the test API so it prepends the test name with the mode
-  function wrapTestApi(api: TestAPI | typeof test.fails, suffix: string) {
+  // Also wraps the nested fields `only`, `skip`, `each`, and `for`
+  function wrapTestApi(api: TestAPI | typeof test.fails | typeof test.only | typeof test.skip, suffix: string) {
     return new Proxy(api, {
       apply: (target, _thisArg, args: Parameters<typeof api>) => {
         if (typeof args[0] === 'string') {
@@ -318,6 +319,37 @@ export function createEsmAndCjsTests(
         }
 
         return target(...args);
+      },
+
+      get: (target, prop: 'only' | 'skip' | 'each' | 'for') => {
+        if (prop === 'only' || prop === 'skip') {
+          return wrapTestApi(target[prop], suffix);
+        }
+
+        if (prop === 'each' || prop === 'for') {
+          return wrapTestEachApi(target[prop], suffix);
+        }
+
+        return Reflect.get(target, prop);
+      },
+    });
+  }
+
+  // For test.each, we can't just wrap the function itself, but need to wrap the returned function
+  // As usage is e.g. test.each(...)('test name', () => {})
+  function wrapTestEachApi<Api extends typeof test.each | typeof test.for>(api: Api, suffix: string) {
+    return new Proxy(api, {
+      apply: (target, thisArg, args: Parameters<typeof api>) => {
+        const res = Reflect.apply(target, thisArg, args);
+
+        return new Proxy(res, {
+          apply: (target, thisArg, args: Parameters<ReturnType<typeof test.each>>) => {
+            if (typeof args[0] === 'string') {
+              args[0] = `${args[0]} [${suffix}]`;
+            }
+            return Reflect.apply(target, thisArg, args);
+          },
+        });
       },
     });
   }
