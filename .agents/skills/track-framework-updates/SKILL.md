@@ -120,6 +120,7 @@ Scripts live in `scripts/` and use only Python stdlib + the `gh` CLI.
 | `fetch_rss.py`         | RSS/Atom feeds via `urllib` + `xml.etree`.                              |
 | `check_support.py`     | Reads local `peerDependencies` and lists E2E test apps.                 |
 | `check_sources.py`     | Compares `packages/` against `sources.json` to find untracked packages. |
+| `write_job_summary.py` | Extracts run metrics from Claude execution output for CI job summary.   |
 | `_common.py`           | Shared: date-window math, `sources.json` loader, `gh` API helpers.      |
 
 ## Data files
