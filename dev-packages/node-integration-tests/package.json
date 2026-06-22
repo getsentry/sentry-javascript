@@ -62,6 +62,7 @@
     "cron": "^3.1.6",
     "dataloader": "2.2.2",
     "express": "^4.21.2",
+    "fastify": "^5.7.0",
     "generic-pool": "^3.9.0",
     "graphql": "^16.11.0",
     "graphql-tag": "^2.12.6",

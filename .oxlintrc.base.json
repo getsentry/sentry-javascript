@@ -169,13 +169,21 @@
         "**/integrations/tracing/amqplib/vendored/**/*.ts",
         "**/integrations/tracing/prisma/vendored/**/*.ts",
         "**/integrations/tracing/postgres/vendored/**/*.ts",
-        "**/integrations/tracing/fastify/vendored/**/*.ts",
         "**/integrations/tracing/redis/vendored/**/*.ts"
       ],
       "rules": {
         "typescript/no-explicit-any": "off",
         "no-unsafe-member-access": "off",
         "no-this-alias": "off"
+      }
+    },
+    {
+      "files": ["**/integrations/tracing/fastify/instrumentation.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off",
+        "no-unsafe-member-access": "off",
+        "no-this-alias": "off",
+        "max-lines": "off"
       }
     },
     {

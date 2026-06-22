@@ -1,21 +1,13 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { FastifyOtelInstrumentation } from './vendored/instrumentation';
-import type { Instrumentation, InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type { IntegrationFn, Span } from '@sentry/core';
-import {
-  captureException,
-  debug,
-  defineIntegration,
-  getClient,
-  getIsolationScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
-} from '@sentry/core';
+import { captureException, debug, defineIntegration, getClient } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../../debug-build';
+import { instrumentFastify } from './instrumentation';
 import type { FastifyInstance, FastifyMinimal, FastifyReply, FastifyRequest } from './types';
 import { FastifyInstrumentationV3 } from './v3/instrumentation';
+
+export { instrumentFastify };
 
 /**
  * Options for the Fastify integration.
@@ -136,29 +128,20 @@ function handleFastifyError(
   }
 }
 
-export const instrumentFastify = generateInstrumentOnce(`${INTEGRATION_NAME}.v5`, () => {
-  const fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation();
-  const plugin = fastifyOtelInstrumentationInstance.plugin();
+let _errorChannelSubscribed = false;
 
-  // This message handler works for Fastify versions 3, 4 and 5
-  diagnosticsChannel.subscribe('fastify.initialization', message => {
-    const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
+/**
+ * Subscribe to the Fastify v5 error diagnostics channel.
+ *
+ * This diagnostics channel only works on Fastify version 5.
+ * For versions 3 and 4, we use `setupFastifyErrorHandler` instead.
+ */
+function subscribeToFastifyErrorChannel(): void {
+  if (_errorChannelSubscribed) {
+    return;
+  }
+  _errorChannelSubscribed = true;
 
-    fastifyInstance?.register(plugin).after(err => {
-      if (err) {
-        DEBUG_BUILD && debug.error('Failed to setup Fastify instrumentation', err);
-      } else {
-        instrumentClient();
-
-        if (fastifyInstance) {
-          instrumentOnRequest(fastifyInstance);
-        }
-      }
-    });
-  });
-
-  // This diagnostics channel only works on Fastify version 5
-  // For versions 3 and 4, we use `setupFastifyErrorHandler` instead
   diagnosticsChannel.subscribe('tracing:fastify.request.handler:error', message => {
     const { error, request, reply } = message as {
       error: Error;
@@ -168,10 +151,7 @@ export const instrumentFastify = generateInstrumentOnce(`${INTEGRATION_NAME}.v5`
 
     handleFastifyError.call(handleFastifyError, error, request, reply, 'diagnostics-channel');
   });
-
-  // Returning this as Instrumentation to avoid leaking @fastify/otel types into the public API
-  return fastifyOtelInstrumentationInstance as unknown as Instrumentation<InstrumentationConfig>;
-});
+}
 
 const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationOptions>) => {
   let _shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
@@ -183,6 +163,7 @@ const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationO
 
       instrumentFastifyV3();
       instrumentFastify();
+      subscribeToFastifyErrorChannel();
     },
     getShouldHandleError() {
       return _shouldHandleError;
@@ -263,68 +244,4 @@ export function setupFastifyErrorHandler(fastify: FastifyMinimal, options?: Part
   );
 
   fastify.register(plugin);
-}
-
-function addFastifySpanAttributes(span: Span): void {
-  const spanJSON = spanToJSON(span);
-  const spanName = spanJSON.description;
-  const attributes = spanJSON.data;
-
-  const type = attributes['fastify.type'];
-
-  const isHook = type === 'hook';
-  const isHandler = type === spanName?.startsWith('handler -');
-  // In @fastify/otel `request-handler` is separated by dash, not underscore
-  const isRequestHandler = spanName === 'request' || type === 'request-handler';
-
-  // If this is already set, or we have no fastify span, no need to process again...
-  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || (!isHandler && !isRequestHandler && !isHook)) {
-    return;
-  }
-
-  const opPrefix = isHook ? 'hook' : isHandler ? 'middleware' : isRequestHandler ? 'request_handler' : '<unknown>';
-
-  span.setAttributes({
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.fastify',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${opPrefix}.fastify`,
-  });
-
-  const attrName = attributes['fastify.name'] || attributes['plugin.name'] || attributes['hook.name'];
-  if (typeof attrName === 'string') {
-    // Try removing `fastify -> ` and `@fastify/otel -> ` prefixes
-    // This is a bit of a hack, and not always working for all spans
-    // But it's the best we can do without a proper API
-    const updatedName = attrName
-      .replace(/^fastify -> /, '')
-      .replace(/^@fastify\/otel -> /, '')
-      .replace(/^@sentry\/instrumentation-fastify -> /, '');
-
-    span.updateName(updatedName);
-  }
-}
-
-function instrumentClient(): void {
-  const client = getClient();
-  if (client) {
-    client.on('spanStart', (span: Span) => {
-      addFastifySpanAttributes(span);
-    });
-  }
-}
-
-function instrumentOnRequest(fastify: FastifyInstance): void {
-  fastify.addHook('onRequest', async (request: FastifyRequest & { opentelemetry?: () => { span?: Span } }, _reply) => {
-    if (request.opentelemetry) {
-      const { span } = request.opentelemetry();
-
-      if (span) {
-        addFastifySpanAttributes(span);
-      }
-    }
-
-    const routeName = request.routeOptions?.url;
-    const method = request.method || 'GET';
-
-    getIsolationScope().setTransactionName(`${method} ${routeName}`);
-  });
 }
