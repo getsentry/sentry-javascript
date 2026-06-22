@@ -20,6 +20,7 @@ export {
   startNewTrace,
   SUPPRESS_TRACING_KEY,
 } from './trace';
+export { bindScopeToEmitter } from './bindScopeToEmitter';
 export {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
