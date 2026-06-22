@@ -9,7 +9,7 @@
  * - The OpenTelemetry tracer APIs were replaced with Sentry's `startSpan`/`startInactiveSpan`/`suppressTracing`
  *   and the configurable `createHook`/`endHook`/`requireParentSpan` options were removed in favor of inlined,
  *   Sentry-specific span attributes.
- * - Completely reworked to create Sentry spans rather than OTel spans.
+ * - Completely reworked to no longer reference OpenTelemetry.
  */
 
 import type { Span, SpanAttributes } from '@sentry/core';
