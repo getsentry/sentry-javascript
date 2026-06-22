@@ -32,7 +32,7 @@ from email.utils import parsedate_to_datetime
 from typing import Any
 from xml.etree import ElementTree
 
-from _common import cutoff, load_frameworks, parse_iso
+from _common import cutoff, load_frameworks, parse_iso, sanitize_untrusted_text
 
 USER_AGENT = "sentry-javascript-track-framework-updates/1.0"
 TIMEOUT_SECONDS = 20
@@ -163,7 +163,7 @@ def collect(since_days: int) -> list[dict[str, Any]]:
                     continue
                 entry["items"].append(
                     {
-                        "title": item["title"],
+                        "title": sanitize_untrusted_text(item["title"]),
                         "url": item["url"],
                         "publishedAt": item["publishedAt"],
                         "feed": feed_url,

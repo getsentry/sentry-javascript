@@ -21,6 +21,7 @@ __all__ = [
     "gh_graphql",
     "load_frameworks",
     "parse_iso",
+    "sanitize_untrusted_text",
 ]
 
 SOURCES_PATH = os.path.join(
@@ -114,3 +115,46 @@ def gh_graphql(query: str, variables: dict[str, str] | None = None) -> Any:
         cmd += ["-F", f"{key}={val}"]
     result = subprocess.run(cmd, check=True, capture_output=True, text=True)
     return json.loads(result.stdout) if result.stdout.strip() else None
+
+
+# ---------------------------------------------------------------------------
+# Content sanitization
+# ---------------------------------------------------------------------------
+
+_INJECTION_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(p, re.IGNORECASE)
+    for p in [
+        r"ignore\s+(all\s+)?(previous|prior|above)\s+(instructions|prompts|context)",
+        r"(system|admin)\s*(override|prompt|instruction|message)",
+        r"you\s+are\s+now\s+(a|an|the)\b",
+        r"do\s+not\s+follow\s+(the|your|any)\s+(previous|above|prior)",
+        r"disregard\s+(all|any|the|your)\s+(previous|prior|above)",
+        r"new\s+instructions?\s*:",
+        r"<\s*/?\s*system\s*>",
+        r"\[INST\]",
+        r"<<\s*SYS\s*>>",
+        r"Human:\s",
+        r"Assistant:\s",
+    ]
+]
+
+_REDACTION = "[redacted-untrusted-directive]"
+
+
+def sanitize_untrusted_text(text: str) -> str:
+    """Redact lines in untrusted text that resemble prompt injection attempts.
+
+    Operates line-by-line: if a line matches a known injection pattern it is replaced with a redaction marker.
+    """
+    if not text:
+        return text
+    lines = text.split("\n")
+    cleaned = []
+    for line in lines:
+        for pattern in _INJECTION_PATTERNS:
+            if pattern.search(line):
+                cleaned.append(_REDACTION)
+                break
+        else:
+            cleaned.append(line)
+    return "\n".join(cleaned)
