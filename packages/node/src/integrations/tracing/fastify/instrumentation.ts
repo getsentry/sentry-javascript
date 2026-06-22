@@ -14,12 +14,9 @@ import { HTTP_REQUEST_METHOD, HTTP_RESPONSE_STATUS_CODE, HTTP_ROUTE, URL_PATH } 
 import type { Span } from '@sentry/core';
 import {
   debug,
-  getClient,
   getIsolationScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
-  spanToJSON,
   startInactiveSpan,
   startSpan,
 } from '@sentry/core';
@@ -29,6 +26,10 @@ import type { FastifyInstance, FastifyRequest } from './types';
 
 const PACKAGE_NAME = '@sentry/instrumentation-fastify';
 const SUPPORTED_VERSIONS = '>=4.0.0 <6';
+
+const ORIGIN = 'auto.http.otel.fastify';
+const HOOK_OP = 'hook.fastify';
+const REQUEST_HANDLER_OP = 'request_handler.fastify';
 
 const FASTIFY_HOOKS = [
   'onRequest',
@@ -40,17 +41,14 @@ const FASTIFY_HOOKS = [
   'onResponse',
   'onError',
 ];
-const ATTRIBUTE_NAMES = {
-  HOOK_NAME: 'hook.name',
-  FASTIFY_TYPE: 'fastify.type',
-  HOOK_CALLBACK_NAME: 'hook.callback.name',
-  ROOT: 'fastify.root',
-};
-const HOOK_TYPES = {
-  ROUTE: 'route-hook',
-  INSTANCE: 'hook',
-  HANDLER: 'request-handler',
-};
+const ATTRIBUTE_HOOK_NAME = 'hook.name' as const;
+const ATTRIBUTE_FASTIFY_TYPE = 'fastify.type' as const;
+const ATTRIBUTE_HOOK_CALLBACK_NAME = 'hook.callback.name' as const;
+const ATTRIBUTE_FASTIFY_ROOT = 'fastify.root' as const;
+
+const HOOK_TYPE_ROUTE = 'route-hook' as const;
+const HOOK_TYPE_INSTANCE = 'hook' as const;
+const HOOK_TYPE_HANDLER = 'request-handler' as const;
 const ANONYMOUS_FUNCTION_NAME = 'anonymous';
 
 const kRequestSpan = Symbol('sentry fastify request span');
@@ -114,20 +112,20 @@ function otelWireRoute(this: any, routeOptions: any): void {
   routeOptions.onError = appendRouteHook(routeOptions.onError, recordErrorInSpanHook);
 
   routeOptions.handler = handlerWrapper(routeOptions.handler, 'handler', {
-    [ATTRIBUTE_NAMES.HOOK_NAME]: `${this.pluginName} - route-handler`,
-    [ATTRIBUTE_NAMES.FASTIFY_TYPE]: HOOK_TYPES.HANDLER,
+    [ATTRIBUTE_HOOK_NAME]: `${this.pluginName} - route-handler`,
+    [ATTRIBUTE_FASTIFY_TYPE]: HOOK_TYPE_HANDLER,
     [HTTP_ROUTE]: routeOptions.url,
-    [ATTRIBUTE_NAMES.HOOK_CALLBACK_NAME]:
+    [ATTRIBUTE_HOOK_CALLBACK_NAME]:
       routeOptions.handler.name.length > 0 ? routeOptions.handler.name : ANONYMOUS_FUNCTION_NAME,
   });
 }
 
 function routeHookAttributes(pluginName: string, hook: string, handler: AnyFn, url: string): Record<string, string> {
   return {
-    [ATTRIBUTE_NAMES.HOOK_NAME]: `${pluginName} - route -> ${hook}`,
-    [ATTRIBUTE_NAMES.FASTIFY_TYPE]: HOOK_TYPES.ROUTE,
+    [ATTRIBUTE_HOOK_NAME]: `${pluginName} - route -> ${hook}`,
+    [ATTRIBUTE_FASTIFY_TYPE]: HOOK_TYPE_ROUTE,
     [HTTP_ROUTE]: url,
-    [ATTRIBUTE_NAMES.HOOK_CALLBACK_NAME]: handler.name?.length > 0 ? handler.name : ANONYMOUS_FUNCTION_NAME,
+    [ATTRIBUTE_HOOK_CALLBACK_NAME]: handler.name?.length > 0 ? handler.name : ANONYMOUS_FUNCTION_NAME,
   };
 }
 
@@ -148,7 +146,8 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
   }
 
   const attributes: Record<string, string> = {
-    [ATTRIBUTE_NAMES.ROOT]: PACKAGE_NAME,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    [ATTRIBUTE_FASTIFY_ROOT]: PACKAGE_NAME,
     [HTTP_REQUEST_METHOD]: request.method,
     [URL_PATH]: request.url,
   };
@@ -157,7 +156,7 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
     attributes[HTTP_ROUTE] = request.routeOptions.url;
   }
 
-  request[kRequestSpan] = startInactiveSpan({ name: 'request', attributes });
+  request[kRequestSpan] = startInactiveSpan({ name: 'request', op: REQUEST_HANDLER_OP, attributes });
 
   hookDone();
 }
@@ -214,9 +213,9 @@ function addHookPatched(this: any, name: string, hook: AnyFn): unknown {
       this,
       name,
       handlerWrapper(hook, name, {
-        [ATTRIBUTE_NAMES.HOOK_NAME]: `${this.pluginName} - ${name}`,
-        [ATTRIBUTE_NAMES.FASTIFY_TYPE]: HOOK_TYPES.INSTANCE,
-        [ATTRIBUTE_NAMES.HOOK_CALLBACK_NAME]: hook.name?.length > 0 ? hook.name : ANONYMOUS_FUNCTION_NAME,
+        [ATTRIBUTE_HOOK_NAME]: `${this.pluginName} - ${name}`,
+        [ATTRIBUTE_FASTIFY_TYPE]: HOOK_TYPE_INSTANCE,
+        [ATTRIBUTE_HOOK_CALLBACK_NAME]: hook.name?.length > 0 ? hook.name : ANONYMOUS_FUNCTION_NAME,
       }),
     );
   }
@@ -231,9 +230,9 @@ function setNotFoundHandlerPatched(this: any, hooks: any, handler?: any): void {
     setNotFoundHandlerOriginal.call(
       this,
       handlerWrapper(hooks, 'notFoundHandler', {
-        [ATTRIBUTE_NAMES.HOOK_NAME]: `${this.pluginName} - not-found-handler`,
-        [ATTRIBUTE_NAMES.FASTIFY_TYPE]: HOOK_TYPES.INSTANCE,
-        [ATTRIBUTE_NAMES.HOOK_CALLBACK_NAME]: hooks.name?.length > 0 ? hooks.name : ANONYMOUS_FUNCTION_NAME,
+        [ATTRIBUTE_HOOK_NAME]: `${this.pluginName} - not-found-handler`,
+        [ATTRIBUTE_FASTIFY_TYPE]: HOOK_TYPE_INSTANCE,
+        [ATTRIBUTE_HOOK_CALLBACK_NAME]: hooks.name?.length > 0 ? hooks.name : ANONYMOUS_FUNCTION_NAME,
       }),
     );
     return;
@@ -241,18 +240,18 @@ function setNotFoundHandlerPatched(this: any, hooks: any, handler?: any): void {
 
   if (hooks.preValidation != null) {
     hooks.preValidation = handlerWrapper(hooks.preValidation, 'notFoundHandler - preValidation', {
-      [ATTRIBUTE_NAMES.HOOK_NAME]: `${this.pluginName} - not-found-handler - preValidation`,
-      [ATTRIBUTE_NAMES.FASTIFY_TYPE]: HOOK_TYPES.INSTANCE,
-      [ATTRIBUTE_NAMES.HOOK_CALLBACK_NAME]:
+      [ATTRIBUTE_HOOK_NAME]: `${this.pluginName} - not-found-handler - preValidation`,
+      [ATTRIBUTE_FASTIFY_TYPE]: HOOK_TYPE_INSTANCE,
+      [ATTRIBUTE_HOOK_CALLBACK_NAME]:
         hooks.preValidation.name?.length > 0 ? hooks.preValidation.name : ANONYMOUS_FUNCTION_NAME,
     });
   }
 
   if (hooks.preHandler != null) {
     hooks.preHandler = handlerWrapper(hooks.preHandler, 'notFoundHandler - preHandler', {
-      [ATTRIBUTE_NAMES.HOOK_NAME]: `${this.pluginName} - not-found-handler - preHandler`,
-      [ATTRIBUTE_NAMES.FASTIFY_TYPE]: HOOK_TYPES.INSTANCE,
-      [ATTRIBUTE_NAMES.HOOK_CALLBACK_NAME]:
+      [ATTRIBUTE_HOOK_NAME]: `${this.pluginName} - not-found-handler - preHandler`,
+      [ATTRIBUTE_FASTIFY_TYPE]: HOOK_TYPE_INSTANCE,
+      [ATTRIBUTE_HOOK_CALLBACK_NAME]:
         hooks.preHandler.name?.length > 0 ? hooks.preHandler.name : ANONYMOUS_FUNCTION_NAME,
     });
   }
@@ -261,9 +260,9 @@ function setNotFoundHandlerPatched(this: any, hooks: any, handler?: any): void {
     this,
     hooks,
     handlerWrapper(handler, 'notFoundHandler', {
-      [ATTRIBUTE_NAMES.HOOK_NAME]: `${this.pluginName} - not-found-handler`,
-      [ATTRIBUTE_NAMES.FASTIFY_TYPE]: HOOK_TYPES.INSTANCE,
-      [ATTRIBUTE_NAMES.HOOK_CALLBACK_NAME]: handler.name?.length > 0 ? handler.name : ANONYMOUS_FUNCTION_NAME,
+      [ATTRIBUTE_HOOK_NAME]: `${this.pluginName} - not-found-handler`,
+      [ATTRIBUTE_FASTIFY_TYPE]: HOOK_TYPE_INSTANCE,
+      [ATTRIBUTE_HOOK_CALLBACK_NAME]: handler.name?.length > 0 ? handler.name : ANONYMOUS_FUNCTION_NAME,
     }),
   );
 }
@@ -288,10 +287,20 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
     const parentSpan = (request[kRequestSpan] as Span | null) ?? undefined;
     const handlerName = handler.name?.length > 0 ? handler.name : (this.pluginName ?? ANONYMOUS_FUNCTION_NAME);
 
+    const hookType = spanAttributes[ATTRIBUTE_FASTIFY_TYPE];
+    const op =
+      hookType === HOOK_TYPE_INSTANCE ? HOOK_OP : hookType === HOOK_TYPE_HANDLER ? REQUEST_HANDLER_OP : undefined;
+
+    const name = op ? stripFastifyPrefix(spanAttributes[ATTRIBUTE_HOOK_NAME]) : `${hookName} - ${handlerName}`;
+
     return startSpan(
       {
-        name: `${hookName} - ${handlerName}`,
-        attributes: spanAttributes,
+        name,
+        op,
+        attributes: {
+          ...spanAttributes,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        },
         parentSpan,
       },
       () => handler.call(this, ...args),
@@ -299,63 +308,19 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
   };
 }
 
-function addFastifySpanAttributes(span: Span): void {
-  const spanJSON = spanToJSON(span);
-  const spanName = spanJSON.description;
-  const attributes = spanJSON.data;
-
-  const type = attributes['fastify.type'];
-
-  const isHook = type === 'hook';
-  const isHandler = type === spanName?.startsWith('handler -');
-  // In @fastify/otel `request-handler` is separated by dash, not underscore
-  const isRequestHandler = spanName === 'request' || type === 'request-handler';
-
-  // If this is already set, or we have no fastify span, no need to process again...
-  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || (!isHandler && !isRequestHandler && !isHook)) {
-    return;
-  }
-
-  const opPrefix = isHook ? 'hook' : isHandler ? 'middleware' : isRequestHandler ? 'request_handler' : '<unknown>';
-
-  span.setAttributes({
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.fastify',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${opPrefix}.fastify`,
-  });
-
-  const attrName = attributes['fastify.name'] || attributes['plugin.name'] || attributes['hook.name'];
-  if (typeof attrName === 'string') {
-    // Try removing `fastify -> ` and `@fastify/otel -> ` prefixes
-    // This is a bit of a hack, and not always working for all spans
-    // But it's the best we can do without a proper API
-    const updatedName = attrName
-      .replace(/^fastify -> /, '')
-      .replace(/^@fastify\/otel -> /, '')
-      .replace(/^@sentry\/instrumentation-fastify -> /, '');
-
-    span.updateName(updatedName);
-  }
-}
-
-function instrumentClient(): void {
-  const client = getClient();
-  if (client) {
-    client.on('spanStart', (span: Span) => {
-      addFastifySpanAttributes(span);
-    });
-  }
+/**
+ * Strip the framework/plugin prefixes from a Fastify `hook.name` to derive a readable span name.
+ * This is a bit of a hack and does not always work for all spans, but it's the best we can do without a proper API.
+ */
+function stripFastifyPrefix(hookName = ''): string {
+  return hookName
+    .replace(/^fastify -> /, '')
+    .replace(/^@fastify\/otel -> /, '')
+    .replace(/^@sentry\/instrumentation-fastify -> /, '');
 }
 
 function instrumentOnRequest(fastify: FastifyInstance): void {
-  fastify.addHook('onRequest', async (request: FastifyRequest & { opentelemetry?: () => { span?: Span } }, _reply) => {
-    if (request.opentelemetry) {
-      const { span } = request.opentelemetry();
-
-      if (span) {
-        addFastifySpanAttributes(span);
-      }
-    }
-
+  fastify.addHook('onRequest', async (request: FastifyRequest, _reply) => {
     const routeName = request.routeOptions?.url;
     const method = request.method || 'GET';
 
@@ -384,12 +349,8 @@ export const instrumentFastify = Object.assign(
       fastifyInstance?.register(fastifyOtelPlugin).after(err => {
         if (err) {
           DEBUG_BUILD && debug.error('Failed to setup Fastify instrumentation', err);
-        } else {
-          instrumentClient();
-
-          if (fastifyInstance) {
-            instrumentOnRequest(fastifyInstance);
-          }
+        } else if (fastifyInstance) {
+          instrumentOnRequest(fastifyInstance);
         }
       });
     });
