@@ -1,9 +1,8 @@
 import { debug } from '@sentry/core';
-import { createRequire } from 'node:module';
 import * as Module from 'node:module';
-import { pathToFileURL } from 'node:url';
 import { DEBUG_BUILD } from '../../debug-build';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
+import { ModulePatch, initialize, resolve, load } from '@apm-js-collab/tracing-hooks';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -29,7 +28,7 @@ export function registerDiagnosticsChannelInjection(): void {
   const g = (globalThis.__SENTRY_ORCHESTRION__ ??= {});
 
   // Already injected (runtime --import hook or bundler plugin) — nothing to do.
-  if (g.runtime || g.bundler) {
+  if (g.runtime) {
     return;
   }
 
@@ -44,15 +43,6 @@ export function registerDiagnosticsChannelInjection(): void {
     (nodeVersion[0] === 24 && (nodeVersion[1] ?? 0) >= 13) ||
     (denoVersion[0] ?? 0) > 2 ||
     (denoVersion[0] === 2 && (denoVersion[1] ?? 0) >= 8);
-
-  // Prefer the builtin `require` if possible. This is present in CommonJS,
-  // including a bundler's CJS output, so no need to ever have to evaluate
-  // `import.meta.url` there.
-  //
-  // esbuild and friends rewrite `import.meta.url` to `{}` for CJS output,
-  // which would make `createRequire(undefined)` throw.
-  // Only use `import.meta.url` in true ESM, where there's no `require`
-  const nodeRequire = typeof require === 'function' ? require : createRequire(import.meta.url);
 
   // `Module.registerHooks` / `Module.register` are newer than the @types/node
   // we build against, hence the cast.
@@ -72,11 +62,6 @@ export function registerDiagnosticsChannelInjection(): void {
       // We require() the module here so that we can synchronously load it,
       // including from a CommonJS Sentry build, without bundlers pulling in.
       // All versions in stableSyncHooks support this.
-      const { initialize, resolve, load } = nodeRequire('@apm-js-collab/tracing-hooks/hook-sync.mjs') as {
-        initialize: (opts: { instrumentations: unknown }) => void;
-        resolve: unknown;
-        load: unknown;
-      };
       initialize({ instrumentations: SENTRY_INSTRUMENTATIONS });
       mod.registerHooks({ resolve, load });
       DEBUG_BUILD && debug.log('[orchestrion] registered diagnostics-channel injection via Module.registerHooks()');
@@ -84,10 +69,7 @@ export function registerDiagnosticsChannelInjection(): void {
       // `Module.register` + the `_compile` patch is Node 18.19–24.12 / 25.0
       // path. Bun/Deno are excluded: they don't support this combination and
       // must use the stable `registerHooks` path above (or none at all).
-      // Resolve the hook to an absolute file URL ourselves so
-      // `Module.register` needs no `parentURL`, so no need for
-      // `import.meta.url` polyfilling
-      mod.register(pathToFileURL(nodeRequire.resolve('@apm-js-collab/tracing-hooks/hook.mjs')).href, {
+      mod.register('@apm-js-collab/tracing-hooks/hook.mjs', {
         data: { instrumentations: SENTRY_INSTRUMENTATIONS },
       });
 
@@ -96,9 +78,6 @@ export function registerDiagnosticsChannelInjection(): void {
       // are resolved through the CJS machinery and never reach the ESM
       // register hook, so without this patch the file we want to instrument
       // loads untransformed.
-      const ModulePatch = nodeRequire('@apm-js-collab/tracing-hooks') as new (opts: { instrumentations: unknown }) => {
-        patch: () => void;
-      };
       new ModulePatch({ instrumentations: SENTRY_INSTRUMENTATIONS }).patch();
       DEBUG_BUILD && debug.log('[orchestrion] registered diagnostics-channel injection via Module.register()');
     } else {
