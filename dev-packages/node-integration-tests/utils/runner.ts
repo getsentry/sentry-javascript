@@ -313,12 +313,12 @@ export function createEsmAndCjsTests(
   // Also wraps the nested fields `only`, `skip`, `each`, and `for`
   function wrapTestApi(api: TestAPI | typeof test.fails | typeof test.only | typeof test.skip, suffix: string) {
     return new Proxy(api, {
-      apply: (target, _thisArg, args: Parameters<typeof api>) => {
+      apply: (target, thisArg, args: Parameters<typeof api>) => {
         if (typeof args[0] === 'string') {
           args[0] = `${args[0]} [${suffix}]`;
         }
 
-        return target(...args);
+        return Reflect.apply(target, thisArg, args);
       },
 
       get: (target, prop: 'only' | 'skip' | 'each' | 'for') => {
