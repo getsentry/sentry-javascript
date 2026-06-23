@@ -109,10 +109,15 @@ export class SentryTracer implements Tracer {
       return _INTERNAL_startInactiveSpan({ ...sentryOptions, parentSpan: parentSpan as unknown as Span });
     }
 
-    return _INTERNAL_startInactiveSpan({
-      ...sentryOptions,
-      parentSpan: hasExplicitContext ? null : undefined,
-    });
+    // No parent span and no remote parent: this is a fresh root span. Start a new trace instead of
+    // continuing the scope's (possibly auto-generated) propagation context, matching the OpenTelemetry
+    // SDK where each root span without an incoming trace gets its own trace id.
+    return startNewTrace(() =>
+      _INTERNAL_startInactiveSpan({
+        ...sentryOptions,
+        parentSpan: hasExplicitContext ? null : undefined,
+      }),
+    );
   }
 
   private _startRootSpanWithRemoteParent(
