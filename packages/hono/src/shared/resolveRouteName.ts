@@ -1,21 +1,11 @@
 import type { Context } from 'hono';
 import { matchedRoutes, routePath } from 'hono/route';
+import { isMiddleware } from '../utils/isMiddleware';
 
-// Hono stores the unwrapped handler here when it wraps a sub-app handler for a custom `onError`.
-// See https://github.com/honojs/hono/blob/9f0dadf141a3242a6c3b77462c7d33c6ce0f599d/src/hono-base.ts#L224-L226
-const COMPOSED_HANDLER = '__COMPOSED_HANDLER';
-
-// Hono doesn't flag middleware, so we infer it from arity (# of params): middleware is `(context, next)`, handlers are `(context)`.
+// Arity alone is enough here (unlike `wrapSubAppMiddleware` in patchRoute.ts, which also needs position)
+// We only want the path, and inline middleware shares its handler's path.
 function isRouteHandler(handler: unknown): boolean {
-  if (typeof handler !== 'function') {
-    return false;
-  }
-
-  // Unwrap onError-wrapped handlers so we check the original handler's arity, not the wrapper's
-  const composed = (handler as unknown as Record<string, unknown>)[COMPOSED_HANDLER];
-  const original = typeof composed === 'function' ? composed : handler;
-
-  return (original as (...args: unknown[]) => unknown).length < 2;
+  return typeof handler === 'function' && !isMiddleware(handler);
 }
 
 /**
