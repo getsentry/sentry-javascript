@@ -59,12 +59,12 @@ const NOOP = (): void => {};
  * but should reuse the enclosing span instead of opening (and ending) their own — e.g. an agent
  * loop's per-step events, where ending a freshly opened span would close the parent prematurely.
  */
-export function bindTracingChannelToSpanWithLifeCycle<TData extends object>(
+export function bindTracingChannelToSpan<TData extends object>(
   channel: TracingChannel<TData, TData>,
   getSpan: (data: TracingChannelPayloadWithSpan<TData>) => Span | undefined,
   opts?: TracingChannelLifeCycleOptions<TData>,
 ): TracingChannelBindingHandle<TData> {
-  const handle = bindTracingChannelToSpan(channel, getSpan);
+  const handle = bindSpanToChannelStore(channel, getSpan);
 
   const beforeSpanEnd = opts?.beforeSpanEnd;
   const getErrorHint = (e: unknown): ExclusiveEventHintOrCaptureContext => {
@@ -121,12 +121,13 @@ export function bindTracingChannelToSpanWithLifeCycle<TData extends object>(
 }
 
 /**
- * Bind a span to a tracing channel so the span becomes the active async context for the traced
- * operation. The caller owns the span lifecycle and any error handling.
+ * Bind a span into the channel's async context so it becomes active for the traced operation,
+ * without managing its lifecycle. The primitive behind {@link bindTracingChannelToSpan}, which
+ * layers span-ending and error handling on top.
  *
  * `getSpan` may return `undefined` to leave the active context untouched for that payload.
  */
-export function bindTracingChannelToSpan<TData extends object>(
+function bindSpanToChannelStore<TData extends object>(
   channel: TracingChannel<TData, TData>,
   getSpan: (data: TracingChannelPayloadWithSpan<TData>) => Span | undefined,
 ): TracingChannelBindingHandle<TData> {

@@ -23,7 +23,7 @@ export type {
   RedisTracingChannelFactory,
   RedisTracingChannelSubscribers,
 } from './redis/redis-dc-subscriber';
-export { bindTracingChannelToSpan, bindTracingChannelToSpanWithLifeCycle } from './tracing-channel';
+export { bindTracingChannelToSpan } from './tracing-channel';
 export type {
   SentryTracingChannel,
   TracingChannelLifeCycleOptions,
