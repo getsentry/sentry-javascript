@@ -178,15 +178,6 @@
       }
     },
     {
-      "files": ["**/integrations/tracing/fastify/instrumentation.ts"],
-      "rules": {
-        "typescript/no-explicit-any": "off",
-        "no-unsafe-member-access": "off",
-        "no-this-alias": "off",
-        "max-lines": "off"
-      }
-    },
-    {
       "files": ["**/scenarios/**", "**/rollup-utils/**"],
       "rules": {
         "no-console": "off"

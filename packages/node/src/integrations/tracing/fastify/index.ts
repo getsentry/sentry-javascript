@@ -1,13 +1,24 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { IntegrationFn, Span } from '@sentry/core';
-import { captureException, debug, defineIntegration, getClient } from '@sentry/core';
+import type { Integration, IntegrationFn } from '@sentry/core';
+import { defineIntegration, getClient } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
-import { DEBUG_BUILD } from '../../../debug-build';
-import { instrumentFastify } from './instrumentation';
 import type { FastifyInstance, FastifyMinimal, FastifyReply, FastifyRequest } from './types';
 import { FastifyInstrumentationV3 } from './v3/instrumentation';
+import {
+  fastifyIntegration as serverUtilsFastifyIntegration,
+  instrumentFastifyV5,
+  handleFastifyError,
+} from '@sentry/server-utils';
 
-export { instrumentFastify };
+interface FastifyIntegration extends Integration {
+  getShouldHandleError: () => (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
+  // This will be removed in the next major version.
+  setShouldHandleError: (
+    shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean,
+  ) => void;
+}
+
+// oxlint-disable-next-line typescript/no-deprecated
+export { instrumentFastifyV5 as instrumentFastify };
 
 /**
  * Options for the Fastify integration.
@@ -88,7 +99,7 @@ export const instrumentFastifyV3 = generateInstrumentOnce(
   () => new FastifyInstrumentationV3(),
 );
 
-function getFastifyIntegration(): ReturnType<typeof _fastifyIntegration> | undefined {
+function getFastifyIntegration(): FastifyIntegration | undefined {
   const client = getClient();
   if (!client) {
     return undefined;
@@ -97,79 +108,14 @@ function getFastifyIntegration(): ReturnType<typeof _fastifyIntegration> | undef
   }
 }
 
-function handleFastifyError(
-  this: {
-    diagnosticsChannelExists?: boolean;
-  },
-  error: Error,
-  request: FastifyRequest & { opentelemetry?: () => { span?: Span } },
-  reply: FastifyReply,
-  handlerOrigin: 'diagnostics-channel' | 'onError-hook',
-): void {
-  const shouldHandleError = getFastifyIntegration()?.getShouldHandleError() || defaultShouldHandleError;
-  // Diagnostics channel runs before the onError hook, so we can use it to check if the handler was already registered
-  if (handlerOrigin === 'diagnostics-channel') {
-    this.diagnosticsChannelExists = true;
-  }
-
-  if (this.diagnosticsChannelExists && handlerOrigin === 'onError-hook') {
-    DEBUG_BUILD &&
-      debug.warn(
-        'Fastify error handler was already registered via diagnostics channel.',
-        'You can safely remove `setupFastifyErrorHandler` call and set `shouldHandleError` on the integration options.',
-      );
-
-    // If the diagnostics channel already exists, we don't need to handle the error again
-    return;
-  }
-
-  if (shouldHandleError(error, request, reply)) {
-    captureException(error, { mechanism: { handled: false, type: 'auto.function.fastify' } });
-  }
-}
-
-let _errorChannelSubscribed = false;
-
-/**
- * Subscribe to the Fastify v5 error diagnostics channel.
- *
- * This diagnostics channel only works on Fastify version 5.
- * For versions 3 and 4, we use `setupFastifyErrorHandler` instead.
- */
-function subscribeToFastifyErrorChannel(): void {
-  if (_errorChannelSubscribed) {
-    return;
-  }
-  _errorChannelSubscribed = true;
-
-  diagnosticsChannel.subscribe('tracing:fastify.request.handler:error', message => {
-    const { error, request, reply } = message as {
-      error: Error;
-      request: FastifyRequest & { opentelemetry?: () => { span?: Span } };
-      reply: FastifyReply;
-    };
-
-    handleFastifyError.call(handleFastifyError, error, request, reply, 'diagnostics-channel');
-  });
-}
-
-const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationOptions>) => {
-  let _shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
+const _fastifyIntegration = ((options: Partial<FastifyIntegrationOptions>) => {
+  const parentIntegration = serverUtilsFastifyIntegration(options) as FastifyIntegration;
 
   return {
-    name: INTEGRATION_NAME,
+    ...parentIntegration,
     setupOnce() {
-      _shouldHandleError = shouldHandleError || defaultShouldHandleError;
-
       instrumentFastifyV3();
-      instrumentFastify();
-      subscribeToFastifyErrorChannel();
-    },
-    getShouldHandleError() {
-      return _shouldHandleError;
-    },
-    setShouldHandleError(fn: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean): void {
-      _shouldHandleError = fn;
+      parentIntegration.setupOnce?.();
     },
   };
 }) satisfies IntegrationFn;
@@ -193,17 +139,6 @@ const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationO
 export const fastifyIntegration = defineIntegration((options: Partial<FastifyIntegrationOptions> = {}) =>
   _fastifyIntegration(options),
 );
-
-/**
- * Default function to determine if an error should be sent to Sentry
- *
- * 3xx and 4xx errors are not sent by default.
- */
-function defaultShouldHandleError(_error: Error, _request: FastifyRequest, reply: FastifyReply): boolean {
-  const statusCode = reply.statusCode;
-  // 3xx and 4xx errors are not sent by default.
-  return statusCode >= 500 || statusCode <= 299;
-}
 
 /**
  * Add an Fastify error handler to capture errors to Sentry.
@@ -233,6 +168,7 @@ export function setupFastifyErrorHandler(fastify: FastifyMinimal, options?: Part
   const plugin = Object.assign(
     function (fastify: FastifyInstance, _options: unknown, done: () => void): void {
       fastify.addHook('onError', async (request, reply, error) => {
+        // oxlint-disable-next-line typescript/no-deprecated
         handleFastifyError.call(handleFastifyError, error, request, reply, 'onError-hook');
       });
       done();

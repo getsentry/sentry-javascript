@@ -9,20 +9,28 @@
  *   APIs in favor of the Sentry span API.
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-this-alias */
+/* eslint-disable max-lines */
+
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { HTTP_REQUEST_METHOD, HTTP_RESPONSE_STATUS_CODE, HTTP_ROUTE, URL_PATH } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
   debug,
+  getActiveSpan,
   getIsolationScope,
+  getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
+  spanToJSON,
   startInactiveSpan,
   startSpan,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../../debug-build';
-import { setHttpServerSpanRouteAttribute } from '../../../utils/setHttpServerSpanRouteAttribute';
 import type { FastifyInstance, FastifyRequest } from './types';
+import { DEBUG_BUILD } from '../../../debug-build';
 
 const PACKAGE_NAME = '@sentry/instrumentation-fastify';
 const SUPPORTED_VERSIONS = '>=4.0.0 <6';
@@ -141,10 +149,6 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
     return hookDone();
   }
 
-  if (request.routeOptions.url != null) {
-    setHttpServerSpanRouteAttribute(request.routeOptions.url);
-  }
-
   const attributes: Record<string, string> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     [ATTRIBUTE_FASTIFY_ROOT]: PACKAGE_NAME,
@@ -152,8 +156,16 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
     [URL_PATH]: request.url,
   };
 
-  if (request.routeOptions.url != null) {
-    attributes[HTTP_ROUTE] = request.routeOptions.url;
+  const route = request.routeOptions.url as string | undefined;
+  if (route != null) {
+    attributes[HTTP_ROUTE] = route;
+
+    // Update the route of the request on the root span, if it is a http.server span
+    const activeSpan = getActiveSpan();
+    const rootSpan = activeSpan && getRootSpan(activeSpan);
+    if (rootSpan && spanToJSON(rootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'http.server') {
+      rootSpan.setAttribute(HTTP_ROUTE, route);
+    }
   }
 
   request[kRequestSpan] = startInactiveSpan({ name: 'request', op: REQUEST_HANDLER_OP, attributes });
