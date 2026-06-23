@@ -38,6 +38,42 @@ import {
 
 const execPromise = promisify(exec);
 
+const NPM_INSTALL_MAX_RETRIES = 3;
+const NPM_INSTALL_RETRY_DELAY_MS = 2_000;
+
+async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
+  for (let attempt = 1; attempt <= NPM_INSTALL_MAX_RETRIES; attempt++) {
+    try {
+      const { stdout, stderr } = await execPromise('npm install --prefer-offline --silent --no-audit --no-fund', {
+        cwd,
+        encoding: 'utf8',
+      });
+
+      if (process.env.DEBUG) {
+        // eslint-disable-next-line no-console
+        console.log('[additionalDependencies via npm]', deps.join(' '));
+        // eslint-disable-next-line no-console
+        console.log('[npm stdout]', stdout);
+        // eslint-disable-next-line no-console
+        console.log('[npm stderr]', stderr);
+      }
+      return;
+    } catch (error) {
+      if (attempt < NPM_INSTALL_MAX_RETRIES) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `npm install attempt ${attempt}/${NPM_INSTALL_MAX_RETRIES} failed, retrying in ${NPM_INSTALL_RETRY_DELAY_MS}ms...`,
+        );
+        await new Promise(resolve => setTimeout(resolve, NPM_INSTALL_RETRY_DELAY_MS));
+      } else {
+        throw new Error(
+          `Failed to install additionalDependencies in tmp dir ${cwd} after ${NPM_INSTALL_MAX_RETRIES} attempts: ${error}`,
+        );
+      }
+    }
+  }
+}
+
 const CLEANUP_STEPS = new Set<VoidFunction>();
 
 export function cleanupChildProcesses(): void {
@@ -259,39 +295,16 @@ export function createEsmAndCjsTests(
 
       await writeFile(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
 
-      try {
-        const deps = Object.entries(additionalDependencies).map(([name, range]) => {
-          if (!range || typeof range !== 'string') {
-            throw new Error(`Invalid version range for "${name}": ${String(range)}`);
-          }
-          return `${name}@${range}`;
-        });
-
-        if (deps.length > 0) {
-          try {
-            // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
-            // We rely on the generated package.json dependencies and run a plain install.
-            const { stdout, stderr } = await execPromise('npm install --silent --no-audit --no-fund', {
-              cwd: tmpDirPath,
-              encoding: 'utf8',
-            });
-
-            if (process.env.DEBUG) {
-              // eslint-disable-next-line no-console
-              console.log('[additionalDependencies via npm]', deps.join(' '));
-              // eslint-disable-next-line no-console
-              console.log('[npm stdout]', stdout);
-              // eslint-disable-next-line no-console
-              console.log('[npm stderr]', stderr);
-            }
-          } catch (error) {
-            throw new Error(`Failed to install additionalDependencies in tmp dir ${tmpDirPath}: ${error}`);
-          }
+      const deps = Object.entries(additionalDependencies).map(([name, range]) => {
+        if (!range || typeof range !== 'string') {
+          throw new Error(`Invalid version range for "${name}": ${String(range)}`);
         }
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to install additionalDependencies:', e);
-        throw e;
+        return `${name}@${range}`;
+      });
+
+      if (deps.length > 0) {
+        // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
+        await npmInstallWithRetry(tmpDirPath, deps);
       }
     }
   }
@@ -317,10 +330,10 @@ export function createEsmAndCjsTests(
       );
     });
 
-    // Create tmp directory
+    // Create tmp directory and install additionalDependencies (with retries)
     beforeAll(async () => {
       await createTmpDir();
-    }, 60_000);
+    }, 120_000);
 
     // Clean up the tmp directory after both esm and cjs suites have run
     afterAll(async () => {
