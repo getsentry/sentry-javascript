@@ -49,6 +49,8 @@ export {
   setExtras,
   setTag,
   setTags,
+  setAttribute,
+  setAttributes,
   setUser,
   setConversationId,
   getSpanStatusFromHttpCode,

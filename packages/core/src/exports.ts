@@ -1,3 +1,4 @@
+import type { AttributeObject, RawAttribute, RawAttributes } from './attributes';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { CaptureContext } from './scope';
@@ -101,6 +102,52 @@ export function setTags(tags: { [key: string]: Primitive }): void {
  */
 export function setTag(key: string, value: Primitive): void {
   getIsolationScope().setTag(key, value);
+}
+
+/**
+ * Sets attributes on the isolation scope.
+ *
+ * These attributes are applied to logs, metrics and streamed spans.
+ *
+ * Supported attribute value types are `string`, `number`, `boolean`, `string[]`, `number[]` and `boolean[]`.
+ *
+ * @param attributes - The attributes to set on the scope, as key-value pairs.
+ *
+ * @example
+ * ```typescript
+ * Sentry.setAttributes({
+ *   is_admin: true,
+ *   payment_selection: 'credit_card',
+ *   render_duration: 150,
+ * });
+ * ```
+ */
+export function setAttributes<T extends Record<string, unknown>>(attributes: RawAttributes<T>): void {
+  getIsolationScope().setAttributes(attributes);
+}
+
+/**
+ * Sets an attribute on the isolation scope.
+ *
+ * These attributes are applied to logs, metrics and streamed spans.
+ *
+ * Supported attribute value types are `string`, `number`, `boolean`, `string[]`, `number[]` and `boolean[]`.
+ *
+ * @param key - The attribute key.
+ * @param value - The attribute value.
+ *
+ * @example
+ * ```typescript
+ * Sentry.setAttribute('is_admin', true);
+ * Sentry.setAttribute('render_duration', 150);
+ * ```
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function setAttribute<T extends RawAttribute<T> extends { value: any } | { unit: any } ? AttributeObject : unknown>(
+  key: string,
+  value: RawAttribute<T>,
+): void {
+  getIsolationScope().setAttribute(key, value);
 }
 
 /**
