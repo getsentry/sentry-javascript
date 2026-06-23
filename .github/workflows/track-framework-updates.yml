@@ -57,7 +57,6 @@ jobs:
             Do NOT use Bash redirection (> file) — it is blocked.
             Do NOT use `python3 -c` or inline Python — only the skill's scripts are allowed.
             Do NOT attempt to delete (`rm`) files.
-            After writing the digest, append the Markdown digest to $GITHUB_STEP_SUMMARY.
           claude_args: |
             --model claude-opus-4-8
             --max-turns 80

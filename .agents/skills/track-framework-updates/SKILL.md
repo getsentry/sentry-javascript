@@ -118,8 +118,6 @@ Produce **three files** in the skill's `output/` directory:
 
 After writing both digest files, print the full Markdown digest to the terminal.
 
-**If `$GITHUB_STEP_SUMMARY` is set** (CI environment), also append the Markdown digest to the Job Summary.
-
 ## Scripts
 
 Scripts live in `scripts/` and use only Python stdlib + the `gh` CLI.
