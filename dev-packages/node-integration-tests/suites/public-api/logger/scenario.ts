@@ -20,8 +20,8 @@ async function run(): Promise<void> {
   // global scope, log attribute
   Sentry.logger.info('log_after_global_scope', { log_attr: 'log_attr_2' }, {});
 
-  Sentry.withIsolationScope(isolationScope => {
-    isolationScope.setAttribute('isolation_scope_1_attr', { value: 100, unit: 'millisecond' });
+  Sentry.withIsolationScope(() => {
+    Sentry.setAttribute('isolation_scope_1_attr', { value: 100, unit: 'millisecond' });
 
     // global scope, isolation scope, log attribute
     Sentry.logger.info('log_with_isolation_scope', { log_attr: 'log_attr_3' }, {});

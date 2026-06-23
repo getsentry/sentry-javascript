@@ -66,6 +66,8 @@ export {
   setMeasurement,
   setTag,
   setTags,
+  setAttribute,
+  setAttributes,
   setUser,
   spanToBaggageHeader,
   spanToJSON,

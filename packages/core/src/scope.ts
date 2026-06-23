@@ -323,22 +323,18 @@ export class Scope {
   /**
    * Sets attributes onto the scope.
    *
-   * These attributes are currently applied to logs and metrics.
-   * In the future, they will also be applied to spans.
+   * These attributes are applied to logs, metrics and streamed spans.
    *
-   * Important: For now, only strings, numbers and boolean attributes are supported, despite types allowing for
-   * more complex attribute types. We'll add this support in the future but already specify the wider type to
-   * avoid a breaking change in the future.
+   * Supported attribute value types are `string`, `number`, `boolean`, `string[]`, `number[]` and `boolean[]`.
    *
-   * @param newAttributes - The attributes to set on the scope. You can either pass in key-value pairs, or
-   * an object with a `value` and an optional `unit` (if applicable to your attribute).
+   * @param newAttributes - The attributes to set on the scope, as key-value pairs.
    *
    * @example
    * ```typescript
    * scope.setAttributes({
    *   is_admin: true,
    *   payment_selection: 'credit_card',
-   *   render_duration: { value: 'render_duration', unit: 'ms' },
+   *   render_duration: 150,
    * });
    * ```
    */
@@ -355,21 +351,17 @@ export class Scope {
   /**
    * Sets an attribute onto the scope.
    *
-   * These attributes are currently applied to logs and metrics.
-   * In the future, they will also be applied to spans.
+   * These attributes are applied to logs, metrics and streamed spans.
    *
-   * Important: For now, only strings, numbers and boolean attributes are supported, despite types allowing for
-   * more complex attribute types. We'll add this support in the future but already specify the wider type to
-   * avoid a breaking change in the future.
+   * Supported attribute value types are `string`, `number`, `boolean`, `string[]`, `number[]` and `boolean[]`.
    *
    * @param key - The attribute key.
-   * @param value - the attribute value. You can either pass in a raw value, or an attribute
-   * object with a `value` and an optional `unit` (if applicable to your attribute).
+   * @param value - The attribute value.
    *
    * @example
    * ```typescript
    * scope.setAttribute('is_admin', true);
-   * scope.setAttribute('render_duration', { value: 'render_duration', unit: 'ms' });
+   * scope.setAttribute('render_duration', 150);
    * ```
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

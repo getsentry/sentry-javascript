@@ -30,6 +30,8 @@ export {
   setExtras,
   setTag,
   setTags,
+  setAttribute,
+  setAttributes,
   setUser,
   getSpanStatusFromHttpCode,
   setHttpStatus,
