@@ -4,6 +4,33 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.60.0
+
+### Other Changes
+
+- feat(cloudflare): Add R2 bucket auto-instrumentation ([#21327](https://github.com/getsentry/sentry-javascript/pull/21327))
+- feat(core): Add `bindScopeToEmitter` to bind a scope to an event emitter ([#21594](https://github.com/getsentry/sentry-javascript/pull/21594))
+- feat(deps): Bump @hapi/wreck from 18.1.0 to 18.1.2 ([#21178](https://github.com/getsentry/sentry-javascript/pull/21178))
+- fix(browser): Ensure `url.full` and `http.url` attributes have the same values on `http.client` spans ([#21660](https://github.com/getsentry/sentry-javascript/pull/21660))
+- fix(server-utils): Avoid directly importing `tracingChannel` for Node v18 compatibility ([#21662](https://github.com/getsentry/sentry-javascript/pull/21662))
+- fix(server-utils): Remove optional `vite` peer dependency ([#21677](https://github.com/getsentry/sentry-javascript/pull/21677))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore: Add bundler-plugins to craft ([#21701](https://github.com/getsentry/sentry-javascript/pull/21701))
+- chore: Cleanup unused imports of `@opentelemetry/core` ([#21679](https://github.com/getsentry/sentry-javascript/pull/21679))
+- fix(bundler-plugins): Integration with monorepo build ([#21479](https://github.com/getsentry/sentry-javascript/pull/21479))
+- ref(core): Gate updateName() custom source on an OTel inference brand ([#21649](https://github.com/getsentry/sentry-javascript/pull/21649))
+- ref(core/opentelemetry): Move OTel span data inference from `captureSpan` to `SentrySpanProcessor` ([#21648](https://github.com/getsentry/sentry-javascript/pull/21648))
+- ref(node): Remove unused sql-common helper and `@opentelemetry/core` dep ([#21688](https://github.com/getsentry/sentry-javascript/pull/21688))
+- ref(node): Streamline kafkajs instrumentation ([#21647](https://github.com/getsentry/sentry-javascript/pull/21647))
+- ref(node): Streamline undici (node-fetch) instrumentation ([#21650](https://github.com/getsentry/sentry-javascript/pull/21650))
+- ref(vercel-edge): Drop unused `@opentelemetry/semantic-conventions` dependency ([#21691](https://github.com/getsentry/sentry-javascript/pull/21691))
+- ref(vercel-edge): Remove `@opentelemetry/resources` dependency ([#21690](https://github.com/getsentry/sentry-javascript/pull/21690))
+
+</details>
+
 ## 10.59.0
 
 ### Important Changes
