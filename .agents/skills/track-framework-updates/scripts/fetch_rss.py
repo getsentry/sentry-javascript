@@ -162,7 +162,7 @@ def collect(since_days: int) -> list[dict[str, Any]]:
                 if published is None or published < since:
                     continue
                 url = item["url"]
-                if url and not url.startswith("https://"):
+                if not url.startswith("https://"):
                     continue
                 entry["items"].append(
                     {
