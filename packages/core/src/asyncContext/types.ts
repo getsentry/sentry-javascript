@@ -12,8 +12,20 @@ import type {
 } from './../tracing/trace';
 import type { getActiveSpan } from './../utils/spanUtils';
 
+/*
+ * @private Private API with no semver guarantees!
+ *
+ * A binding object used to enable context propagation for a tracing channel against a span
+ */
 export interface TracingChannelBinding {
+  /**
+   * The ALS instance that will be bound to the channel.
+   */
   asyncLocalStorage: unknown;
+
+  /**
+   * Activates a span for the tracing channels nested invocations, the return value wi
+   */
   getStoreWithActiveSpan: (span: Span) => unknown;
 }
 
