@@ -167,6 +167,7 @@ describe('subscribeRedisDiagnosticChannels', () => {
       expect(json.timestamp).toBeDefined();
 
       // command name is stripped from args before the hook sees them
+      expect(responseHook).toHaveBeenCalledTimes(1);
       expect(responseHook).toHaveBeenCalledWith(span, 'GET', ['cache:key'], 'hit-value');
     });
 
@@ -206,6 +207,7 @@ describe('subscribeRedisDiagnosticChannels', () => {
       );
 
       expect(spanToJSON(span!).data['db.query.text']).toBe('mget key1 key2');
+      expect(responseHook).toHaveBeenCalledTimes(1);
       expect(responseHook).toHaveBeenCalledWith(span, 'mget', ['key1', 'key2'], ['v1', 'v2']);
     });
   });
@@ -271,6 +273,7 @@ describe('subscribeRedisDiagnosticChannels', () => {
         { result: 'v' },
       );
 
+      expect(secondHook).toHaveBeenCalledTimes(1);
       expect(secondHook).toHaveBeenCalledWith(span, 'GET', ['k'], 'v');
       expect(responseHook).not.toHaveBeenCalled();
     });
