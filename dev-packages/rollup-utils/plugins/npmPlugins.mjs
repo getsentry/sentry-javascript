@@ -140,10 +140,8 @@ export function makeProductionReplacePlugin() {
 
 const REMOVE_CJS_BLOCK = /\/\*! rollup-include-cjs-only \*\/[\s\S]*?\/\*! rollup-include-cjs-only-end \*\/\s*/g;
 const REMOVE_ESM_BLOCK = /\/\*! rollup-include-esm-only \*\/[\s\S]*?\/\*! rollup-include-esm-only-end \*\/\s*/g;
-const STRIP_CJS_MARKERS =
-  /\/\*! rollup-include-cjs-only(?:-end)? \*\/\s*/g;
-const STRIP_ESM_MARKERS =
-  /\/\*! rollup-include-esm-only(?:-end)? \*\/\s*/g;
+const STRIP_CJS_MARKERS = /\/\*! rollup-include-cjs-only(?:-end)? \*\/\s*/g;
+const STRIP_ESM_MARKERS = /\/\*! rollup-include-esm-only(?:-end)? \*\/\s*/g;
 
 export function makeEsmCjsReplacePlugin(type) {
   const removeBlock = type === 'esm' ? REMOVE_CJS_BLOCK : REMOVE_ESM_BLOCK;
