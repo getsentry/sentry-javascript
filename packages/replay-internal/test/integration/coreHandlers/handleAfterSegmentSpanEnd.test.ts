@@ -91,4 +91,24 @@ describe('Integration | coreHandlers | handleAfterSegmentSpanEnd', () => {
 
     expect(Array.from(replay.getContext().traceIds)).toEqual([]);
   });
+
+  it('does not record traceIds for unsampled spans', async () => {
+    ({ replay } = await resetSdkMock({
+      replayOptions: {
+        stickySession: false,
+      },
+      sentryOptions: {
+        replaysSessionSampleRate: 1.0,
+        replaysOnErrorSampleRate: 0.0,
+      },
+    }));
+
+    const client = getClient()!;
+
+    client.emit('afterSegmentSpanEnd', {
+      spanContext: () => ({ traceId: 'trace-unsampled', spanId: 'span1', traceFlags: 0 }),
+    } as unknown as Span);
+
+    expect(Array.from(replay.getContext().traceIds)).toEqual([]);
+  });
 });
