@@ -15,6 +15,7 @@ import { defineConfig } from 'rollup';
 import {
   makeDebugBuildStatementReplacePlugin,
   makeEsbuildPlugin,
+  makeEsmCjsReplacePlugin,
   makeNodeResolvePlugin,
   makeProductionReplacePlugin,
   makeRrwebBuildPlugin,
@@ -129,40 +130,36 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 
   if (emitCjs) {
     if (splitDevProd) {
-      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') } });
+      variantSpecificConfigs.push({
+        output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') },
+        plugins: [makeEsmCjsReplacePlugin('cjs')],
+      });
       variantSpecificConfigs.push({
         output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/prod') },
-        plugins: [makeProductionReplacePlugin()],
+        plugins: [makeProductionReplacePlugin(), makeEsmCjsReplacePlugin('cjs')],
       });
     } else {
-      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } });
+      variantSpecificConfigs.push({
+        output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') },
+        plugins: [makeEsmCjsReplacePlugin('cjs')],
+      });
     }
   }
 
   if (emitEsm) {
     if (splitDevProd) {
       variantSpecificConfigs.push({
-        output: {
-          format: 'esm',
-          dir: path.join(baseConfig.output.dir, 'esm/dev'),
-          plugins: [makePackageNodeEsm()],
-        },
+        output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm/dev') },
+        plugins: [makePackageNodeEsm(), makeEsmCjsReplacePlugin('esm')],
       });
       variantSpecificConfigs.push({
-        output: {
-          format: 'esm',
-          dir: path.join(baseConfig.output.dir, 'esm/prod'),
-          plugins: [makePackageNodeEsm()],
-        },
-        plugins: [makeProductionReplacePlugin()],
+        output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm/prod') },
+        plugins: [makePackageNodeEsm(), makeProductionReplacePlugin(), makeEsmCjsReplacePlugin('esm')],
       });
     } else {
       variantSpecificConfigs.push({
-        output: {
-          format: 'esm',
-          dir: path.join(baseConfig.output.dir, 'esm'),
-          plugins: [makePackageNodeEsm()],
-        },
+        output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm') },
+        plugins: [makePackageNodeEsm(), makeEsmCjsReplacePlugin('esm')],
       });
     }
   }
