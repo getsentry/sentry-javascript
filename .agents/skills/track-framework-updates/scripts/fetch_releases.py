@@ -52,7 +52,7 @@ def fetch_releases_for_repo(repo: str, since: datetime) -> list[dict[str, Any]]:
         published = parse_iso(rel.get("published_at"))
         if published is None or published < since:
             continue
-        body = sanitize_untrusted_text((rel.get("body") or "")[:MAX_BODY_CHARS])
+        body = sanitize_untrusted_text(rel.get("body") or "")[:MAX_BODY_CHARS]
         recent.append(
             {
                 "tag": rel.get("tag_name"),

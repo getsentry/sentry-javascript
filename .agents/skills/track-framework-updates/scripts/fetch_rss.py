@@ -161,10 +161,13 @@ def collect(since_days: int) -> list[dict[str, Any]]:
                 published = _parse_date(item.get("publishedAt"))
                 if published is None or published < since:
                     continue
+                url = item["url"]
+                if url and not url.startswith("https://"):
+                    continue
                 entry["items"].append(
                     {
                         "title": sanitize_untrusted_text(item["title"]),
-                        "url": item["url"],
+                        "url": url,
                         "publishedAt": item["publishedAt"],
                         "feed": feed_url,
                     }
