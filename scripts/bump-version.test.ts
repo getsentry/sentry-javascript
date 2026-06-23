@@ -281,8 +281,7 @@ describe('bump-version', () => {
       },
       pnpm: {
         overrides: {
-          '@sentry/bundler-plugins':
-            'file:../../../../packages/bundler-plugins/sentry-bundler-plugins-10.0.0.tgz',
+          '@sentry/bundler-plugins': 'file:../../../../packages/bundler-plugins/sentry-bundler-plugins-10.0.0.tgz',
           '@sentry/core': 'file:../../../../packages/core/sentry-core-10.0.0.tgz',
         },
       },
@@ -296,9 +295,7 @@ describe('bump-version', () => {
     expect(fixture.pnpm.overrides['@sentry/bundler-plugins']).toBe(
       'file:../../../../packages/bundler-plugins/sentry-bundler-plugins-10.1.0.tgz',
     );
-    expect(fixture.pnpm.overrides['@sentry/core']).toBe(
-      'file:../../../../packages/core/sentry-core-10.1.0.tgz',
-    );
+    expect(fixture.pnpm.overrides['@sentry/core']).toBe('file:../../../../packages/core/sentry-core-10.1.0.tgz');
   });
 
   it('throws when a workspace package.json is unreadable and does not partially update', () => {

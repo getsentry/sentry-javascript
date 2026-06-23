@@ -26,10 +26,7 @@ function updateWorkspaceDeps(pkgPath, workspaceNames, newVersion, { bumpVersion 
     for (const [dep, value] of Object.entries(pkg.pnpm.overrides)) {
       if (!workspaceNames.has(dep)) continue;
 
-      pkg.pnpm.overrides[dep] = value.replace(
-        /(?<=sentry-[\w-]+-)\d+\.\d+\.\d+(-[\w.]+)?(?=\.tgz$)/,
-        newVersion,
-      );
+      pkg.pnpm.overrides[dep] = value.replace(/(?<=sentry-[\w-]+-)\d+\.\d+\.\d+(-[\w.]+)?(?=\.tgz$)/, newVersion);
     }
   }
 
