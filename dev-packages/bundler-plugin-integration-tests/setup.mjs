@@ -19,6 +19,13 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 // so the fixture installs below resolve the local build rather than a published version.
 const repoRoot = join(__dirname, '..', '..');
 const bundlerPluginsDir = join(repoRoot, 'packages', 'bundler-plugins');
+
+const coreDir = join(repoRoot, 'packages', 'core');
+console.log('Building @sentry/core and its workspace dependencies...');
+execSync('yarn build:dev:filter @sentry/core', { cwd: repoRoot, stdio: 'inherit' });
+console.log('Packing @sentry/core...');
+execSync('yarn build:tarball', { cwd: coreDir, stdio: 'inherit' });
+
 console.log('Building @sentry/bundler-plugins and its workspace dependencies...');
 execSync('yarn build:dev:filter @sentry/bundler-plugins', { cwd: repoRoot, stdio: 'inherit' });
 console.log('Packing @sentry/bundler-plugins...');
