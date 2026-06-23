@@ -260,6 +260,47 @@ describe('bump-version', () => {
     expect(() => bumpVersions(rootDir, '2.0.0')).toThrow('workspaces');
   });
 
+  it('updates bundler-plugin integration test fixture versions and tarball paths', () => {
+    const rootDir = tracked(
+      setupFixture({
+        packages: {
+          'packages/core': { name: '@sentry/core', version: '10.0.0' },
+          'packages/bundler-plugins': { name: '@sentry/bundler-plugins', version: '10.0.0' },
+        },
+      }),
+    );
+
+    const fixturesDir = path.join(rootDir, 'dev-packages', 'bundler-plugin-integration-tests', 'fixtures');
+    writePackageJson(path.join(fixturesDir, 'esbuild'), {
+      name: 'esbuild-integration-tests',
+      version: '1.0.0',
+      private: true,
+      dependencies: {
+        esbuild: '0.28.0',
+        '@sentry/bundler-plugins': '10.0.0',
+      },
+      pnpm: {
+        overrides: {
+          '@sentry/bundler-plugins':
+            'file:../../../../packages/bundler-plugins/sentry-bundler-plugins-10.0.0.tgz',
+          '@sentry/core': 'file:../../../../packages/core/sentry-core-10.0.0.tgz',
+        },
+      },
+    });
+
+    bumpVersions(rootDir, '10.1.0');
+
+    const fixture = readPackageJson(path.join(fixturesDir, 'esbuild'));
+    expect(fixture.dependencies['@sentry/bundler-plugins']).toBe('10.1.0');
+    expect(fixture.dependencies['esbuild']).toBe('0.28.0');
+    expect(fixture.pnpm.overrides['@sentry/bundler-plugins']).toBe(
+      'file:../../../../packages/bundler-plugins/sentry-bundler-plugins-10.1.0.tgz',
+    );
+    expect(fixture.pnpm.overrides['@sentry/core']).toBe(
+      'file:../../../../packages/core/sentry-core-10.1.0.tgz',
+    );
+  });
+
   it('throws when a workspace package.json is unreadable and does not partially update', () => {
     const rootDir = tracked(createTempDir());
     writePackageJson(rootDir, {
