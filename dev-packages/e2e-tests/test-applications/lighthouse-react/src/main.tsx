@@ -33,6 +33,27 @@ if (import.meta.env.MODE === 'tracing-replay') {
     release: 'lighthouse-fixture',
     environment: 'qa',
   });
+} else if (import.meta.env.MODE === 'no-integrations') {
+  // DSN set but every integration disabled. Isolates the cost of the enabled
+  // client itself from the default instrumentation that wraps DOM/timer/network APIs.
+  Sentry.init({
+    dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
+    release: 'lighthouse-fixture',
+    environment: 'qa',
+    defaultIntegrations: false,
+    integrations: [],
+  });
+} else if (import.meta.env.MODE === 'no-browser-api-errors') {
+  // Default integrations minus BrowserApiErrors, which wraps addEventListener/
+  // removeEventListener on ~32 prototypes plus setTimeout/setInterval/rAF/XHR.
+  // Isolates that global monkey-patching cost from the rest of the defaults.
+  Sentry.init({
+    dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
+    release: 'lighthouse-fixture',
+    environment: 'qa',
+    integrations: defaultIntegrations =>
+      defaultIntegrations.filter(integration => integration.name !== 'BrowserApiErrors'),
+  });
 } else if (import.meta.env.MODE === 'init-only') {
   // enabled: false makes the SDK a guaranteed no-op (no transport allocation,
   // no DSN warning). We're measuring pure SDK-loading + tree-shaking cost.

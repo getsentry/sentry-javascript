@@ -10,6 +10,8 @@
     "build:no-sentry": "vite build --mode no-sentry",
     "build:init-only": "vite build --mode init-only",
     "build:errors-only": "vite build --mode errors-only",
+    "build:no-integrations": "vite build --mode no-integrations",
+    "build:no-browser-api-errors": "vite build --mode no-browser-api-errors",
     "build:tracing": "vite build --mode tracing",
     "build:tracing-replay": "vite build --mode tracing-replay",
     "preview": "vite preview",
