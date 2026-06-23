@@ -42,14 +42,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "sentryTest": {
-    "variants": [
-      {
-        "build-command": "env E2E_USE_SENTRY_TRACER_PROVIDER=1 pnpm test:build",
-        "assert-command": "env E2E_USE_SENTRY_TRACER_PROVIDER=1 pnpm test:assert",
-        "label": "nestjs-distributed-tracing (sentry-tracer-provider)"
-      }
-    ]
   }
 }

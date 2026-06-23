@@ -97,7 +97,9 @@ describe('Integration | Transactions', () => {
       origin: 'auto.test',
     });
 
-    expect(transaction.sdkProcessingMetadata?.sampleRate).toEqual(1);
+    // The sample rate is carried by the dynamic sampling context (asserted below). The
+    // `SentryTracerProvider` builds transactions via core's span capture, which does not write the
+    // (unused) `sdkProcessingMetadata.sampleRate` field the OpenTelemetry SDK exporter does.
     expect(transaction.sdkProcessingMetadata?.dynamicSamplingContext).toEqual({
       environment: 'production',
       public_key: expect.any(String),
@@ -558,7 +560,9 @@ describe('Integration | Transactions', () => {
     const logs: unknown[] = [];
     vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
+    // This test inspects the `SentrySpanProcessor`/exporter buffering, which only exists on the
+    // OpenTelemetry SDK provider, so opt out of the default `SentryTracerProvider`.
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction, openTelemetryBasicTracerProvider: true });
 
     const spanProcessor = getSpanProcessor();
 
@@ -630,10 +634,13 @@ describe('Integration | Transactions', () => {
     const logs: unknown[] = [];
     vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
+    // `maxSpanWaitDuration` configures the `SentrySpanProcessor` timeout, which only exists on the
+    // OpenTelemetry SDK provider, so opt out of the default `SentryTracerProvider`.
     mockSdkInit({
       tracesSampleRate: 1,
       beforeSendTransaction,
       maxSpanWaitDuration: 100 * 60,
+      openTelemetryBasicTracerProvider: true,
     });
 
     Sentry.startSpanManual({ name: 'test name' }, rootSpan => {

@@ -1,4 +1,5 @@
 import { trace } from '@opentelemetry/api';
+import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Integration } from '@sentry/core';
 import { debug, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
@@ -196,20 +197,25 @@ describe('init()', () => {
       expect(client?.traceProvider).not.toBeDefined();
     });
 
-    it('uses the minimal Sentry trace provider when the experiment is enabled', () => {
-      init({ dsn: PUBLIC_DSN, _experiments: { useSentryTracerProvider: true } });
+    it('uses the minimal Sentry trace provider by default', () => {
+      init({ dsn: PUBLIC_DSN });
 
       const client = getClient<NodeClient>();
 
       expect(client?.traceProvider).toBeInstanceOf(SentryOpentelemetry.SentryTracerProvider);
     });
 
-    it('warns and ignores additional span processors when the minimal Sentry trace provider is enabled', () => {
-      const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
+    it('uses the OpenTelemetry SDK tracer provider when opted in via `openTelemetryBasicTracerProvider`', () => {
+      init({ dsn: PUBLIC_DSN, openTelemetryBasicTracerProvider: true });
 
+      const client = getClient<NodeClient>();
+
+      expect(client?.traceProvider).toBeInstanceOf(BasicTracerProvider);
+    });
+
+    it('uses the OpenTelemetry SDK tracer provider when custom span processors are provided', () => {
       init({
         dsn: PUBLIC_DSN,
-        _experiments: { useSentryTracerProvider: true },
         openTelemetrySpanProcessors: [
           {
             forceFlush: () => Promise.resolve(),
@@ -220,9 +226,9 @@ describe('init()', () => {
         ],
       });
 
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Ignoring `openTelemetrySpanProcessors` because `_experiments.useSentryTracerProvider` is enabled.',
-      );
+      const client = getClient<NodeClient>();
+
+      expect(client?.traceProvider).toBeInstanceOf(BasicTracerProvider);
     });
 
     it('does not mark SentryTracerProvider as set up when global registration fails', () => {
@@ -231,7 +237,7 @@ describe('init()', () => {
       const setIsSetupSpy = vi.spyOn(SentryOpentelemetry, 'setIsSetup');
       const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
 
-      init({ dsn: PUBLIC_DSN, _experiments: { useSentryTracerProvider: true } });
+      init({ dsn: PUBLIC_DSN });
 
       expect(getClient<NodeClient>()?.traceProvider).not.toBeDefined();
       expect(setIsSetupSpy).not.toHaveBeenCalledWith('SentryTracerProvider');

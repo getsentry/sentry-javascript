@@ -5,13 +5,6 @@ Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
-  ...(process.env.E2E_USE_SENTRY_TRACER_PROVIDER === '1'
-    ? {
-        _experiments: {
-          useSentryTracerProvider: true,
-        },
-      }
-    : {}),
   tracePropagationTargets: ['http://localhost:3030', '/external-allowed'],
   transportOptions: {
     // We expect the app to send a lot of events in a short time
