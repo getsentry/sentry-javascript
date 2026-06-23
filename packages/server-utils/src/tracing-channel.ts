@@ -130,8 +130,11 @@ export function bindTracingChannelToSpan<TData extends object>(
   channel: TracingChannel<TData, TData>,
   getSpan: (data: TracingChannelPayloadWithSpan<TData>) => Span | undefined,
 ): TracingChannelBindingHandle<TData> {
+  // Grabs the tracing channel binding defined by the AsyncContext strategy implementation
   const binding = _INTERNAL_getTracingChannelBinding();
 
+  // If no binding, then either the implementer doesn't support tracing channels or there is no active strategy
+  // Failure mode here means we would still access the channel and potentially subscribe to it, but parenting will be off.
   if (!binding) {
     DEBUG_BUILD && debug.log('[TracingChannel] Could not access async context binding.');
 
@@ -141,8 +144,14 @@ export function bindTracingChannelToSpan<TData extends object>(
     };
   }
 
+  // Grab the ALS instance, we don't really care what is in it as long as the AsyncContext strategy can use its value to figure out parenting.
   const asyncLocalStorage = binding.asyncLocalStorage as AsyncLocalStorage<TData>;
 
+  // bindStore activates the ALS for the traced call; any getStore() inside it returns the value bound for that context.
+  // 1. Produce: getStoreWithActiveSpan(span) clones the current scope, plants the span via _INTERNAL_setSpanForScope, and returns { scope, isolationScope }, the active context carrying our span.
+  // 2. Bind: the courier hands that opaque value to channel.start.bindStore(asyncLocalStorage, producer), which runs the traced op inside asyncLocalStorage.run(value, …); it never inspects the value.
+  // 3. Read: inside the op, Sentry's scope machinery calls getScopes() → asyncStorage.getStore() on that same ALS, so getCurrentScope/getIsolationScope/getActiveSpan resolve to the scope carrying our span.
+  // 4. Nest: any child span started in the traced op parents to that active span.
   channel.start.bindStore(asyncLocalStorage, (data: TracingChannelPayloadWithSpan<TData>) => {
     const span = getSpan(data);
     if (!span) {
