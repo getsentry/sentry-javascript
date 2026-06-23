@@ -1,5 +1,10 @@
 export { registerSpanErrorInstrumentation } from './errors';
-export { setCapturedScopesOnSpan, getCapturedScopesOnSpan } from './utils';
+export {
+  setCapturedScopesOnSpan,
+  getCapturedScopesOnSpan,
+  markSpanForOtelSourceInference,
+  spanShouldInferOtelSource,
+} from './utils';
 export { startIdleSpan, TRACING_DEFAULTS } from './idleSpan';
 export { SentrySpan } from './sentrySpan';
 export { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
@@ -15,6 +20,7 @@ export {
   startNewTrace,
   SUPPRESS_TRACING_KEY,
 } from './trace';
+export { bindScopeToEmitter } from './bindScopeToEmitter';
 export {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,

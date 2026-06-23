@@ -63,6 +63,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   startNewTrace,
+  bindScopeToEmitter,
   suppressTracing,
   withActiveSpan,
   getSpanDescendants,

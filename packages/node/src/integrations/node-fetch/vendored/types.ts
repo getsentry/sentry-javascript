@@ -7,10 +7,9 @@
  * - Upstream version: @opentelemetry/instrumentation-undici@0.24.0
  * - Tracking issue: https://github.com/getsentry/sentry-javascript/issues/20165
  */
-/* eslint-disable -- vendored @opentelemetry/instrumentation-undici (#20165) */
 
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
-import type { Attributes, Span } from '@opentelemetry/api';
+import type { Span, SpanAttributes } from '@sentry/core';
 
 export interface UndiciRequest {
   origin: string;
@@ -54,7 +53,7 @@ export interface ResponseHookFunction<RequestType = UndiciRequest, ResponseType 
 }
 
 export interface StartSpanHookFunction<T = UndiciRequest> {
-  (request: T): Attributes;
+  (request: T): SpanAttributes;
 }
 
 // This package will instrument HTTP requests made through `undici` or  `fetch` global API
@@ -71,8 +70,6 @@ export interface UndiciInstrumentationConfig<
   responseHook?: ResponseHookFunction<RequestType, ResponseType>;
   /** Function for adding custom attributes before a span is started */
   startSpanHook?: StartSpanHookFunction<RequestType>;
-  /** Require parent to create span for outgoing requests */
-  requireParentforSpans?: boolean;
   /** Map the following HTTP headers to span attributes. */
   headersToSpanAttributes?: {
     requestHeaders?: string[];

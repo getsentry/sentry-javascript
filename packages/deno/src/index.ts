@@ -65,6 +65,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   startNewTrace,
+  bindScopeToEmitter,
   suppressTracing,
   // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,

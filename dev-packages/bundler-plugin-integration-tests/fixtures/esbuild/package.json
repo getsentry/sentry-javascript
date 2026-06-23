@@ -1,0 +1,18 @@
+{
+  "name": "esbuild-integration-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "esbuild": "0.28.0",
+    "@sentry/bundler-plugins": "5.3.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@sentry/bundler-plugins": "file:../../../../packages/bundler-plugins/sentry-bundler-plugins-5.3.0.tgz"
+    },
+    "patchedDependencies": {
+      "@sentry/cli": "../patches/@sentry__cli.patch"
+    }
+  }
+}

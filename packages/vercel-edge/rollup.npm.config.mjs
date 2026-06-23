@@ -73,6 +73,32 @@ export default makeNPMConfigVariants(
             }
           },
         },
+        {
+          // `@opentelemetry/sdk-trace-base` is bundled here, and its `BasicTracerProvider`
+          // statically imports `defaultResource` from `@opentelemetry/resources` as a fallback
+          // (`mergedConfig.resource ?? defaultResource()`). Sentry always supplies its own
+          // resource via `getSentryResource()`, so the fallback never runs. Shimming the import
+          // lets us drop the `@opentelemetry/resources` dependency and avoids bundling its
+          // node-only resource detectors into the edge runtime.
+          name: 'otel-resources-shim',
+          resolveId: source => (source === '@opentelemetry/resources' ? '\0otel_resources_sentry_shim' : null),
+          load: id =>
+            id === '\0otel_resources_sentry_shim'
+              ? `
+                export function defaultResource() {
+                  return {
+                    attributes: {},
+                    merge() {
+                      return this;
+                    },
+                    getRawAttributes() {
+                      return [];
+                    },
+                  };
+                }
+              `
+              : null,
+        },
       ],
     },
   }),
