@@ -9,7 +9,7 @@ import {
   SPAN_STATUS_OK,
   startInactiveSpan,
 } from '@sentry/core';
-import { bindTracingChannelToSpanWithLifeCycle } from '@sentry/server-utils';
+import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import type { TraceContext } from 'unstorage/tracing';
 
 const ORIGIN = 'auto.cache.nitro';
@@ -56,7 +56,7 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
   const keys = (data: TraceContext): string[] => data.keys ?? [];
   const mountBase = (data: TraceContext): string => (data.base ?? '').replace(/:$/, '');
 
-  bindTracingChannelToSpanWithLifeCycle(
+  bindTracingChannelToSpan(
     tracingChannel<TraceContext>(`unstorage.${operation}`),
     data => {
       const cacheKeys = keys(data);

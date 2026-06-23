@@ -15,7 +15,7 @@ import {
   startInactiveSpan,
   updateSpanName,
 } from '@sentry/core';
-import { bindTracingChannelToSpanWithLifeCycle, type TracingChannelPayloadWithSpan } from '@sentry/server-utils';
+import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '@sentry/server-utils';
 import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
 import type { RequestEvent as SrvxRequestEvent } from 'srvx/tracing';
 import { setServerTimingHeaders } from './setServerTimingHeaders';
@@ -80,7 +80,7 @@ function getParameterizedRoute(event: H3TracingRequestEvent['event']): string | 
 }
 
 function setupH3TracingChannels(): void {
-  const { channel: h3Channel } = bindTracingChannelToSpanWithLifeCycle(
+  const { channel: h3Channel } = bindTracingChannelToSpan(
     tracingChannel<H3TracingRequestEvent>('h3.request'),
     data => {
       const parsedUrl = parseStringToURLObject(data.event.url.href);
@@ -149,7 +149,7 @@ function setupSrvxTracingChannels(): void {
   // WeakMap ensures per-request isolation in concurrent environments and automatic cleanup.
   const requestParentSpans = new WeakMap<Request, Span>();
 
-  bindTracingChannelToSpanWithLifeCycle(
+  bindTracingChannelToSpan(
     tracingChannel<SrvxRequestEvent>('srvx.request'),
     data => {
       const parsedUrl = data.request._url ? parseStringToURLObject(data.request._url.href) : undefined;
@@ -185,7 +185,7 @@ function setupSrvxTracingChannels(): void {
     },
   );
 
-  bindTracingChannelToSpanWithLifeCycle(
+  bindTracingChannelToSpan(
     tracingChannel<SrvxRequestEvent>('srvx.middleware'),
     data => {
       // For the first middleware, capture the current parent span per-request
