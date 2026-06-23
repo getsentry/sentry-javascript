@@ -1,4 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('fastify auto-instrumentation', () => {
@@ -46,38 +47,44 @@ describe('fastify auto-instrumentation', () => {
       await runner.completed();
     });
 
-    test('captures errors thrown in route handlers', async () => {
-      const runner = createRunner()
-        .ignore('transaction')
-        .expect({
-          event: {
-            exception: {
-              values: [
-                {
-                  type: 'Error',
-                  value: 'This is an exception with id 123',
-                  mechanism: {
-                    type: 'auto.function.fastify',
-                    handled: false,
+    // Fastify v5 only publishes the `tracing:fastify.request.handler:error` diagnostics channel when
+    // `tracingChannel(...).hasSubscribers` is truthy. That aggregate getter does not exist on Node 18
+    // (it was added in Node 20), so fastify takes the fast path and never publishes the channel there —
+    // making automatic error capture (without `setupFastifyErrorHandler`) impossible on Node 18.
+    conditionalTest({ min: 20 })('error capture via diagnostics channel', () => {
+      test('captures errors thrown in route handlers', async () => {
+        const runner = createRunner()
+          .ignore('transaction')
+          .expect({
+            event: {
+              exception: {
+                values: [
+                  {
+                    type: 'Error',
+                    value: 'This is an exception with id 123',
+                    mechanism: {
+                      type: 'auto.function.fastify',
+                      handled: false,
+                    },
                   },
+                ],
+              },
+              transaction: 'GET /test-exception/:id',
+              // The error must be parented to the fastify request span (not the root `http.server` span),
+              // so the trace context carries a `parent_span_id`.
+              contexts: {
+                trace: {
+                  trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                  span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                  parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
                 },
-              ],
-            },
-            transaction: 'GET /test-exception/:id',
-            // The error must be parented to the fastify request span (not the root `http.server` span),
-            // so the trace context carries a `parent_span_id`.
-            contexts: {
-              trace: {
-                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
               },
             },
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/test-exception/123', { expectError: true });
-      await runner.completed();
+          })
+          .start();
+        runner.makeRequest('get', '/test-exception/123', { expectError: true });
+        await runner.completed();
+      });
     });
 
     test('propagates trace data to outgoing requests within a request handler', async () => {
