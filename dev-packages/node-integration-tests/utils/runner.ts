@@ -357,15 +357,28 @@ export function createEsmAndCjsTests(
   const esmTestFn = options?.failsOnEsm ? wrapTestApi(test.fails, 'esm - fails') : wrapTestApi(test, 'esm');
   const cjsTestFn = options?.failsOnCjs ? wrapTestApi(test.fails, 'cjs - fails') : wrapTestApi(test, 'cjs');
 
+  // Track the runners created by this invocation so we can tear down only their resources in
+  // `afterAll` — rather than clearing the global `CLEANUP_STEPS`, which would also kill child
+  // processes, docker containers and mock servers owned by sibling suites in the same worker.
+  const createdRunners = new Set<ReturnType<typeof createRunner>>();
+  function trackRunner(runner: ReturnType<typeof createRunner>): ReturnType<typeof createRunner> {
+    createdRunners.add(runner);
+    return runner;
+  }
 
   callback(
-    () => createRunner(esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun),
+    () => trackRunner(createRunner(esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun)),
     esmTestFn,
     'esm',
     tmpDirPath,
   );
 
-  callback(() => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath), cjsTestFn, 'cjs', tmpDirPath);
+  callback(
+    () => trackRunner(createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath)),
+    cjsTestFn,
+    'cjs',
+    tmpDirPath,
+  );
 
   // Create tmp directory and install additionalDependencies (with retries)
   beforeAll(async () => {
@@ -374,8 +387,11 @@ export function createEsmAndCjsTests(
 
   // Clean up the tmp directory after both esm and cjs suites have run
   afterAll(async () => {
-    // First do cleanup!
-    cleanupChildProcesses();
+    // First do cleanup — but only of the runners this invocation created!
+    for (const runner of createdRunners) {
+      runner.cleanup();
+    }
+    createdRunners.clear();
 
     try {
       await rm(tmpDirPath, { recursive: true, force: true });
@@ -418,7 +434,24 @@ export function createRunner(...paths: string[]) {
     flags.push('-r', 'ts-node/register');
   }
 
+  // Cleanup steps registered by this specific runner (child process, docker, mock server). They are
+  // also added to the global `CLEANUP_STEPS` so the `process.on('exit')` backstop still covers them,
+  // but tracking them per-runner lets `cleanup()` tear down only this runner's resources.
+  const runnerCleanupSteps = new Set<VoidFunction>();
+  function registerCleanupStep(step: VoidFunction): void {
+    runnerCleanupSteps.add(step);
+    CLEANUP_STEPS.add(step);
+  }
+
   return {
+    /** Run (and de-register) only the cleanup steps registered by this runner. */
+    cleanup: function (): void {
+      for (const step of runnerCleanupSteps) {
+        step();
+        CLEANUP_STEPS.delete(step);
+      }
+      runnerCleanupSteps.clear();
+    },
     expect: function (expected: Expected) {
       if (ensureNoErrorOutput) {
         throw new Error('You should not use `ensureNoErrorOutput` when using `expect`!');
@@ -618,13 +651,13 @@ export function createRunner(...paths: string[]) {
       startup
         .then(([dockerChild, [mockServerPort, mockServerClose]]) => {
           if (mockServerClose) {
-            CLEANUP_STEPS.add(() => {
+            registerCleanupStep(() => {
               mockServerClose();
             });
           }
 
           if (dockerChild) {
-            CLEANUP_STEPS.add(dockerChild);
+            registerCleanupStep(dockerChild);
           }
 
           const env = mockServerPort
@@ -661,7 +694,7 @@ export function createRunner(...paths: string[]) {
             complete(e);
           });
 
-          CLEANUP_STEPS.add(() => {
+          registerCleanupStep(() => {
             child?.kill();
           });
 
