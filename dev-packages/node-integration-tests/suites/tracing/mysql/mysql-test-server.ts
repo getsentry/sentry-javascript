@@ -57,8 +57,15 @@ function errPacket(): Buffer {
   return Buffer.concat([head, state, msg]);
 }
 
-/** Start the server on the given host/port. Returns the `net.Server` (call `.close()` to stop). */
-export function startMysqlTestServer({ host = '127.0.0.1', port = 0 } = {}) {
+/**
+ * Start the server on the given host/port. Returns the `net.Server` (call `.close()` to stop).
+ *
+ * `host` defaults to `undefined` so the server listens on all interfaces (dual-stack). The `mysql`
+ * client connects to `localhost`, which resolves to IPv6 `::1` first — binding only to IPv4
+ * `127.0.0.1` would get `ECONNREFUSED ::1` on Node 18 (where `autoSelectFamily` is off, so it never
+ * falls back to IPv4 the way Node 20+ does).
+ */
+export function startMysqlTestServer({ host, port = 0 }: { host?: string; port?: number } = {}) {
   const server = net.createServer(socket => {
     socket.on('error', () => {}); // ignore abrupt client disconnects
     socket.write(packet(0, initialHandshake()));
