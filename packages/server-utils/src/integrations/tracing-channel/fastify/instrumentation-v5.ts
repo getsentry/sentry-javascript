@@ -28,6 +28,7 @@ import {
   spanToJSON,
   startInactiveSpan,
   startSpan,
+  withActiveSpan,
 } from '@sentry/core';
 import type { FastifyInstance, FastifyRequest } from './types';
 import { DEBUG_BUILD } from '../../../debug-build';
@@ -168,9 +169,15 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
     }
   }
 
-  request[kRequestSpan] = startInactiveSpan({ name: 'request', op: REQUEST_HANDLER_OP, attributes });
+  const requestSpan = startInactiveSpan({ name: 'request', op: REQUEST_HANDLER_OP, attributes });
+  request[kRequestSpan] = requestSpan;
 
-  hookDone();
+  // Set the request span as the active span for the remainder of the request lifecycle, so that
+  // downstream hooks/handlers as well as errors captured via the error diagnostics channel are
+  // parented to it (otherwise they would attach to the root `http.server` span instead).
+  withActiveSpan(requestSpan, () => {
+    hookDone();
+  });
 }
 
 function finalizeNotFoundSpanHook(request: any, reply: any, hookDone: () => void): void {

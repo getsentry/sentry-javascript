@@ -1,7 +1,6 @@
 import type { FastifyIntegration, FastifyReply, FastifyRequest } from './types';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { DEBUG_BUILD } from '../../../debug-build';
-import type { Span } from '@sentry/core';
 import { getClient, debug, captureException } from '@sentry/core';
 import { defaultShouldHandleError, INTEGRATION_NAME } from './utils';
 
@@ -17,7 +16,7 @@ export function subscribeToFastifyErrorChannel(): void {
   diagnosticsChannel.subscribe('tracing:fastify.request.handler:error', message => {
     const { error, request, reply } = message as {
       error: Error;
-      request: FastifyRequest & { opentelemetry?: () => { span?: Span } };
+      request: FastifyRequest;
       reply: FastifyReply;
     };
 

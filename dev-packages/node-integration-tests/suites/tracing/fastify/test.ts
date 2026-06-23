@@ -64,6 +64,15 @@ describe('fastify auto-instrumentation', () => {
               ],
             },
             transaction: 'GET /test-exception/:id',
+            // The error must be parented to the fastify request span (not the root `http.server` span),
+            // so the trace context carries a `parent_span_id`.
+            contexts: {
+              trace: {
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+              },
+            },
           },
         })
         .start();
