@@ -9,7 +9,7 @@ import {
 import type { Span } from '@sentry/core';
 import { debug, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { bindTracingChannelToSpan } from '../tracing-channel';
+import { bindTracingChannelToSpanWithLifeCycle } from '../tracing-channel';
 
 // Channel names published by node-redis >= 5.12.0 and ioredis >= 5.11.0.
 // Hardcoded so the subscriber does not have to import either library — the
@@ -157,7 +157,7 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
   channelName: string,
   getCommandArgs: (data: T) => string[],
 ): () => void {
-  return bindTracingChannelToSpan(
+  return bindTracingChannelToSpanWithLifeCycle(
     tracingChannel<T>(channelName),
     data => {
       // `args` is already sanitized by the publishing library (node-redis /
@@ -194,7 +194,7 @@ function setupBatchChannel(
   channelName: string,
   getOperationName: (data: RedisBatchData) => string,
 ): () => void {
-  return bindTracingChannelToSpan(
+  return bindTracingChannelToSpanWithLifeCycle(
     tracingChannel<RedisBatchData>(channelName),
     data => {
       return startInactiveSpan({
@@ -216,7 +216,7 @@ function setupBatchChannel(
 }
 
 function setupConnectChannel(tracingChannel: RedisTracingChannelFactory, channelName: string): () => void {
-  return bindTracingChannelToSpan(
+  return bindTracingChannelToSpanWithLifeCycle(
     tracingChannel<RedisConnectData>(channelName),
     data => {
       return startInactiveSpan({
