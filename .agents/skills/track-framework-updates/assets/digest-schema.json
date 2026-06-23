@@ -35,5 +35,6 @@
       ]
     }
   ],
+  "untrackedPackages": ["@sentry/foo — SDK packages not covered by sources.json. Empty array if all covered."],
   "runNotes": ["Any fetcher errors. Empty array if none."]
 }

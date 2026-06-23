@@ -36,6 +36,17 @@ If the command fails due to sandbox network restrictions, re-run with broader pe
 
 Override `--since-days` only when the user explicitly requests a different window.
 
+### Step 1b: Check source coverage
+
+Run from the repo root:
+
+```bash
+python3 .agents/skills/track-framework-updates/scripts/check_sources.py
+```
+
+This compares the `@sentry/*` packages in `packages/` against the `sentryPackages` listed in `sources.json`.
+If any public SDK packages are **not** tracked by any framework entry, they will appear in the `untracked` array which should be added to the resulting digest.
+
 ### Step 2: Check current SDK support
 
 Run from the repo root:
@@ -108,6 +119,7 @@ Scripts live in `scripts/` and use only Python stdlib + the `gh` CLI.
 | `fetch_discussions.py` | GitHub Discussions (GraphQL) + RFC-repo PRs (REST). Links only.         |
 | `fetch_rss.py`         | RSS/Atom feeds via `urllib` + `xml.etree`.                              |
 | `check_support.py`     | Reads local `peerDependencies` and lists E2E test apps.                 |
+| `check_sources.py`     | Compares `packages/` against `sources.json` to find untracked packages. |
 | `_common.py`           | Shared: date-window math, `sources.json` loader, `gh` API helpers.      |
 
 ## Data files

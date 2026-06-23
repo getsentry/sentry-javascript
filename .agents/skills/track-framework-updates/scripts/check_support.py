@@ -61,7 +61,7 @@ def _find_e2e_apps(framework_name: str) -> list[str]:
     # Order matters: check specific names before generic ones.
     prefix_map: list[tuple[str, list[str]]] = [
         ("next", ["nextjs-"]),
-        ("sveltekit", ["sveltekit-", "sveltekit-"]),
+        ("sveltekit", ["sveltekit-"]),
         ("react router", ["react-router-", "create-remix-"]),
         ("remix", ["react-router-", "create-remix-"]),
         ("tanstack", ["tanstackstart-", "tanstack-"]),

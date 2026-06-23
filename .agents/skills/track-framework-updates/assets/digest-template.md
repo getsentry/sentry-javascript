@@ -35,6 +35,14 @@ _Window: last <SINCE_DAYS> days · generated <GENERATED_AT>_
 
 <!-- Same per-framework structure as Client-Side. -->
 
+## Source coverage
+
+⚠ The following SDK packages are **not tracked** in `sources.json`. Add an upstream framework entry or exclude them in `scripts/check_sources.py`:
+
+- `@sentry/<package>`
+
+<!-- Omit this section entirely if all packages are tracked or excluded. -->
+
 ## Run notes
 
 - <Framework>: <error message>
