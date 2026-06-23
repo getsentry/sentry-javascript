@@ -14,10 +14,8 @@
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "bash ./nuxt-start-dev-server.bash && TEST_ENV=development playwright test environment",
     "test:build": "pnpm install && pnpm build",
-    "test:build:sentry-tracer-provider": "E2E_USE_SENTRY_TRACER_PROVIDER=1 pnpm test:build",
     "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitropack@npm:nitropack-nightly@latest && pnpm install --force && pnpm build",
-    "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:assert:sentry-tracer-provider": "E2E_USE_SENTRY_TRACER_PROVIDER=1 pnpm test:assert"
+    "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
     "@pinia/nuxt": "^0.5.5",
@@ -37,13 +35,6 @@
       {
         "build-command": "pnpm test:build-canary",
         "label": "nuxt-4 (canary)"
-      }
-    ],
-    "variants": [
-      {
-        "build-command": "pnpm test:build:sentry-tracer-provider",
-        "assert-command": "pnpm test:assert:sentry-tracer-provider",
-        "label": "nuxt-4 (sentry-tracer-provider)"
       }
     ]
   }

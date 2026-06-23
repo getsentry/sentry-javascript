@@ -466,14 +466,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
      * @deprecated Use the top level `enableLogs` option instead.
      */
     enableLogs?: boolean;
-
-    /**
-     * Use Sentry's minimal OpenTelemetry tracer provider instead of the full OpenTelemetry SDK tracer provider.
-     *
-     * @default false
-     * @experimental
-     */
-    useSentryTracerProvider?: boolean;
   };
 
   /**

@@ -91,8 +91,15 @@ export function setupOtel(
   client: NodeClient,
   options: AdditionalOpenTelemetryOptions = {},
 ): [OpenTelemetryTracerProvider | undefined, AsyncLocalStorageLookup | undefined] {
-  if (client.getOptions()._experiments?.useSentryTracerProvider) {
-    return setupSentryTracerProvider(client, options);
+  // Sentry's minimal tracer provider is the default. We fall back to the full OpenTelemetry SDK
+  // `BasicTracerProvider` when the user explicitly opts in via `openTelemetryBasicTracerProvider`, or
+  // when they provide custom `openTelemetrySpanProcessors` — those require the SDK span pipeline
+  // that the minimal provider does not run.
+  const shouldUseBasicTracerProvider =
+    client.getOptions().openTelemetryBasicTracerProvider || !!options.spanProcessors?.length;
+
+  if (!shouldUseBasicTracerProvider) {
+    return setupSentryTracerProvider(client);
   }
 
   // Create and configure NodeTracerProvider
@@ -121,15 +128,7 @@ export function setupOtel(
 
 function setupSentryTracerProvider(
   client: NodeClient,
-  options: AdditionalOpenTelemetryOptions = {},
 ): [SentryTracerProvider | undefined, AsyncLocalStorageLookup | undefined] {
-  if (options.spanProcessors?.length) {
-    DEBUG_BUILD &&
-      coreDebug.warn(
-        'Ignoring `openTelemetrySpanProcessors` because `_experiments.useSentryTracerProvider` is enabled.',
-      );
-  }
-
   const provider = new SentryTracerProvider({ resource: getSentryResource('node') });
 
   if (!trace.setGlobalTracerProvider(provider)) {

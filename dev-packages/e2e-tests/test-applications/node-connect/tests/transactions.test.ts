@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-const useSentryTracerProvider = process.env.E2E_USE_SENTRY_TRACER_PROVIDER === '1';
-
 test('Sends an API route transaction', async ({ baseURL }) => {
   const pageloadTransactionEventPromise = waitForTransaction('node-connect', transactionEvent => {
     return (
@@ -92,11 +90,8 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   expect(transactionEvent).toEqual(
     expect.objectContaining({
       // The SentryTracerProvider serializes native child spans in start/tree order, so the
-      // Connect handler span appears before the manual span created inside it. The legacy
-      // OTel exporter path emits them in finish order, where the manual span comes first.
-      spans: useSentryTracerProvider
-        ? [connectSpanExpectation, manualSpanExpectation]
-        : [manualSpanExpectation, connectSpanExpectation],
+      // Connect handler span appears before the manual span created inside it.
+      spans: [connectSpanExpectation, manualSpanExpectation],
       transaction: 'GET /test-transaction',
       type: 'transaction',
       transaction_info: {
