@@ -28,7 +28,7 @@ import type {
   TextMapGetter,
   TracerProvider,
 } from '@opentelemetry/api';
-import { context as otelContext, diag, propagation, ROOT_CONTEXT, trace } from '@opentelemetry/api';
+import { context as otelContext, propagation, ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
@@ -39,6 +39,7 @@ import {
 import { CLOUD_ACCOUNT_ID, FAAS_COLDSTART, URL_FULL } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
+  debug,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -49,11 +50,11 @@ import { captureException } from '@sentry/node';
 import type { APIGatewayProxyEventHeaders, Callback, Context, Handler, StreamifyHandler } from 'aws-lambda';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { LambdaModule } from './internal-types';
 import { ATTR_FAAS_EXECUTION, ATTR_FAAS_ID } from './semconv';
 import type { AwsLambdaInstrumentationConfig, EventContextExtractor } from './types';
 import { wrapHandler } from '../../sdk';
 import { markEventUnhandled } from '../../utils';
+import { DEBUG_BUILD } from '../../debug-build';
 
 // OpenTelemetry package version was 0.54.0 at time of vendoring.
 const PACKAGE_VERSION = SDK_VERSION;
@@ -72,6 +73,8 @@ export const lambdaMaxInitInMilliseconds = 10_000;
 const AWS_HANDLER_STREAMING_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming');
 const AWS_HANDLER_HIGHWATERMARK_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming.highWaterMark');
 const AWS_HANDLER_STREAMING_RESPONSE = 'response';
+
+type LambdaModule = Record<string, Handler>;
 
 /**
  *
@@ -93,10 +96,11 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
 
     // _HANDLER and LAMBDA_TASK_ROOT are always defined in Lambda but guard bail out if in the future this changes.
     if (!taskRoot || !handlerDef) {
-      this._diag.debug('Skipping lambda instrumentation: no _HANDLER/lambdaHandler or LAMBDA_TASK_ROOT.', {
-        taskRoot,
-        handlerDef,
-      });
+      DEBUG_BUILD &&
+        debug.log('Skipping lambda instrumentation: no _HANDLER/lambdaHandler or LAMBDA_TASK_ROOT.', {
+          taskRoot,
+          handlerDef,
+        });
       return [];
     }
 
@@ -121,11 +125,12 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     const [module, functionName] = handler.split('.', 2);
 
     if (!module || !functionName) {
-      this._diag.warn('Invalid handler definition', {
-        handler,
-        moduleRoot,
-        module,
-      });
+      DEBUG_BUILD &&
+        debug.warn('Invalid handler definition', {
+          handler,
+          moduleRoot,
+          module,
+        });
       return [];
     }
 
@@ -148,24 +153,26 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
             // fallback to .cjs (CommonJS)
             filename += '.cjs';
           } catch (e3) {
-            this._diag.warn(
-              'No handler file was able to resolved with one of the known extensions for the file',
-              filename,
-            );
+            DEBUG_BUILD &&
+              debug.warn(
+                'No handler file was able to resolved with one of the known extensions for the file',
+                filename,
+              );
           }
         }
       }
     }
 
-    diag.debug('Instrumenting lambda handler', {
-      taskRoot,
-      handlerDef,
-      handler,
-      moduleRoot,
-      module,
-      filename,
-      functionName,
-    });
+    DEBUG_BUILD &&
+      debug.log('Instrumenting lambda handler', {
+        taskRoot,
+        handlerDef,
+        handler,
+        moduleRoot,
+        module,
+        filename,
+        functionName,
+      });
 
     const lambdaStartTime = this.getConfig().lambdaStartTime || Date.now() - Math.floor(1000 * process.uptime());
 
@@ -228,7 +235,7 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
    *
    */
   private _getPatchHandler(original: Handler | StreamifyHandler, lambdaStartTime: number): Handler | StreamifyHandler {
-    diag.debug('patch handler function');
+    DEBUG_BUILD && debug.log('patch handler function');
     const plugin = this;
 
     let requestHandledBefore = false;
@@ -441,13 +448,13 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
   private _wrapCallback(original: Callback, span: Span): Callback {
     const plugin = this;
     return function wrappedCallback(this: never, err, res) {
-      diag.debug('executing wrapped lookup callback function');
+      DEBUG_BUILD && debug.log('executing wrapped lookup callback function');
       if (err) {
         plugin._captureError(err);
       }
 
       plugin._endSpan(span, err, () => {
-        diag.debug('executing original lookup callback function');
+        DEBUG_BUILD && debug.log('executing original lookup callback function');
         return original.apply(this, [err, res]);
       });
     };
@@ -476,16 +483,18 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     if (this._traceForceFlusher) {
       flushers.push(this._traceForceFlusher());
     } else {
-      diag.debug(
-        'Spans may not be exported for the lambda function because we are not force flushing before callback.',
-      );
+      DEBUG_BUILD &&
+        debug.log(
+          'Spans may not be exported for the lambda function because we are not force flushing before callback.',
+        );
     }
     if (this._metricForceFlusher) {
       flushers.push(this._metricForceFlusher());
     } else {
-      diag.debug(
-        'Metrics may not be exported for the lambda function because we are not force flushing before callback.',
-      );
+      DEBUG_BUILD &&
+        debug.log(
+          'Metrics may not be exported for the lambda function because we are not force flushing before callback.',
+        );
     }
 
     const FORCE_FLUSH_TIMEOUT_MS = 2000;
@@ -584,7 +593,7 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     const extractedContext = safeExecuteInTheMiddle(
       () => eventContextExtractor(event, context),
       e => {
-        if (e) diag.error('aws-lambda instrumentation: eventContextExtractor error', e);
+        if (e) DEBUG_BUILD && debug.error('aws-lambda instrumentation: eventContextExtractor error', e);
       },
       true,
     );
