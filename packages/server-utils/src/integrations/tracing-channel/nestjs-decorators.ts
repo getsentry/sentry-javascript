@@ -10,11 +10,7 @@ import {
   startSpanManual,
   withActiveSpan,
 } from '@sentry/core';
-
-/**
- * A function of unknown signature.
- */
-export type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
+import type { AnyFn } from './nestjs-shared';
 
 const OP_MIDDLEWARE = 'middleware.nestjs';
 const ORIGIN_MIDDLEWARE = 'auto.middleware.nestjs';

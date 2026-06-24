@@ -88,6 +88,54 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
     astQuery: 'FunctionDeclaration[id.name="Catch"] ReturnStatement > ArrowFunctionExpression',
     functionQuery: { kind: 'Sync' },
   },
+  // @nestjs/schedule @Cron/@Interval/@Timeout: `function Cron(...) { return
+  // applyDecorators(...); }` — the returned decorator has no inline arrow to
+  // target, so we match the factory function and use `mutableResult` to wrap the
+  // decorator it returns (which rewrites the user handler `descriptor.value` with
+  // isolation-scope + error capture). Mirrors `SentryNestScheduleInstrumentation`.
+  // Version range scoped to the verified compiled shape (4.x).
+  {
+    channelName: 'cronDecorator',
+    module: { name: '@nestjs/schedule', versionRange: '>=4.0.0 <5', filePath: 'dist/decorators/cron.decorator.js' },
+    functionQuery: { functionName: 'Cron', kind: 'Sync', mutableResult: true },
+  },
+  {
+    channelName: 'intervalDecorator',
+    module: { name: '@nestjs/schedule', versionRange: '>=4.0.0 <5', filePath: 'dist/decorators/interval.decorator.js' },
+    functionQuery: { functionName: 'Interval', kind: 'Sync', mutableResult: true },
+  },
+  {
+    channelName: 'timeoutDecorator',
+    module: { name: '@nestjs/schedule', versionRange: '>=4.0.0 <5', filePath: 'dist/decorators/timeout.decorator.js' },
+    functionQuery: { functionName: 'Timeout', kind: 'Sync', mutableResult: true },
+  },
+  {
+    // @nestjs/event-emitter @OnEvent: `const OnEvent = (event, options) => {
+    //   const decoratorFactory = (t, k, d) => {…}; return decoratorFactory; }`
+    // `OnEvent` is an arrow assigned to a const, so `expressionName`.
+    // `mutableResult` wraps the returned decorator, which rewrites the handler to
+    // open an `event.nestjs` span. Mirrors `SentryNestEventInstrumentation`.
+    channelName: 'onEventDecorator',
+    module: {
+      name: '@nestjs/event-emitter',
+      versionRange: '>=2.0.0 <3',
+      filePath: 'dist/decorators/on-event.decorator.js',
+    },
+    functionQuery: { expressionName: 'OnEvent', kind: 'Sync', mutableResult: true },
+  },
+  {
+    // @nestjs/bullmq @Processor: `function Processor(...) { return (target) => {…}; }`
+    // The factory arg carries the queue name, so we match the factory and use
+    // `mutableResult` to wrap the returned class decorator (which patches
+    // `target.prototype.process`). Mirrors `SentryNestBullMQInstrumentation`.
+    channelName: 'processorDecorator',
+    module: {
+      name: '@nestjs/bullmq',
+      versionRange: '>=10.0.0 <12',
+      filePath: 'dist/decorators/processor.decorator.js',
+    },
+    functionQuery: { functionName: 'Processor', kind: 'Sync', mutableResult: true },
+  },
 ];
 
 /**

@@ -4,8 +4,11 @@ import { debug, defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInacti
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
-import type { AnyFn, CatchTarget, InjectableTarget } from './nestjs-decorators';
+import type { CatchTarget, InjectableTarget } from './nestjs-decorators';
 import { patchCatchTarget, patchInjectableTarget } from './nestjs-decorators';
+import { subscribeNestHandlerDecorators } from './nestjs-handler-wrappers';
+import type { AnyFn, ChannelContext } from './nestjs-shared';
+import { isWrapped, markWrapped } from './nestjs-shared';
 
 // NOTE: this uses the same name as the OTel integration by design.
 // When enabled, the OTel 'Nest' integration is omitted from the default set.
@@ -32,29 +35,6 @@ const TYPE_REQUEST_CONTEXT = 'request_context';
 const TYPE_REQUEST_HANDLER = 'handler';
 
 const NOOP = (): void => {};
-
-// Marks a function as already wrapped so repeated subscriptions (e.g. a second
-// `setupOnce`) don't double-wrap a callback or returned handler.
-const SENTRY_WRAPPED = Symbol.for('sentry.orchestrion.nestjs.wrapped');
-
-function isWrapped(fn: AnyFn): boolean {
-  return !!(fn as AnyFn & Record<symbol, unknown>)[SENTRY_WRAPPED];
-}
-
-function markWrapped(fn: AnyFn): void {
-  (fn as AnyFn & Record<symbol, unknown>)[SENTRY_WRAPPED] = true;
-}
-
-/**
- * The orchestrion tracing-channel context. `arguments` is the live call args
- * array; `result` is the (sync) return value when `mutableResult` is set.
- */
-interface ChannelContext {
-  arguments: unknown[];
-  moduleVersion?: string;
-  result?: unknown;
-  error?: unknown;
-}
 
 /** Minimal request shape, across the express/fastify adapters. */
 interface NestRequest {
@@ -262,6 +242,9 @@ const _nestjsChannelIntegration = (() => {
         patchInjectableTarget(target, seenInterceptorContexts),
       );
       subscribeDecoratorChannel<CatchTarget>(CHANNELS.NESTJS_CATCH, patchCatchTarget);
+
+      // @Cron/@Interval/@Timeout (schedule), @OnEvent (event), @Processor (bullmq).
+      subscribeNestHandlerDecorators();
     },
   };
 }) satisfies IntegrationFn;

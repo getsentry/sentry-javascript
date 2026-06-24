@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { Scope, Span } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import {
   _INTERNAL_setSpanForScope,
   Client,
@@ -514,8 +515,156 @@ describe('nestjsChannelIntegration: @Catch (exception filter)', () => {
     }
     applyCatch(HttpExceptionFilter);
 
-    // Missing host → guard short-circuits, no span opened.
+    // Missing host -> guard short-circuits, no span opened.
     new HttpExceptionFilter().catch('boom', undefined);
     expect(spanInside).toBeUndefined();
+  });
+});
+
+describe('nestjsChannelIntegration: schedule / event / bullmq', () => {
+  afterEach(() => {
+    setAsyncContextStrategy(undefined);
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+    vi.restoreAllMocks();
+  });
+
+  // Drive a decorator-factory channel: node's traceSync sets `data.result` to
+  // the factory's return (our `originalDecorator`), then the subscriber's `end`
+  // (mutableResult) replaces it. Returns the effective (wrapped) decorator.
+  function driveFactory(channelName: string, factoryArgs: unknown[], originalDecorator: AnyFn): AnyFn {
+    const data: { arguments: unknown[]; result?: unknown } = { arguments: factoryArgs };
+    tracingChannel<{ arguments: unknown[]; result?: unknown }>(channelName).traceSync(() => originalDecorator, data);
+    return data.result as AnyFn;
+  }
+
+  it('schedule @Cron: wraps the handler with isolation scope + error capture, preserving name', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+    const captureSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+
+    let originalCalled = false;
+    const original: AnyFn = (_t, _k, descriptor) => {
+      originalCalled = true;
+      return descriptor;
+    };
+    const wrappedDecorator = driveFactory(CHANNELS.NESTJS_SCHEDULE_CRON, ['*/5 * * * *'], original);
+
+    const handler = function doCron(): void {
+      throw new Error('cron boom');
+    };
+    const descriptor: PropertyDescriptor = { value: handler, configurable: true };
+    wrappedDecorator({}, 'doCron', descriptor);
+
+    expect(originalCalled).toBe(true);
+    expect(descriptor.value).not.toBe(handler);
+    expect((descriptor.value as AnyFn).name).toBe('doCron');
+
+    expect(() => (descriptor.value as AnyFn)()).toThrow('cron boom');
+    expect(captureSpy).toHaveBeenCalledWith(expect.any(Error), {
+      mechanism: { handled: false, type: 'auto.function.nestjs.cron' },
+    });
+  });
+
+  it('schedule @Interval: captures async (rejected) errors with the interval mechanism', async () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+    const captureSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+
+    const wrappedDecorator = driveFactory(CHANNELS.NESTJS_SCHEDULE_INTERVAL, [1000], (_t, _k, d) => d);
+    const descriptor: PropertyDescriptor = {
+      value: async function doInterval(): Promise<never> {
+        throw new Error('interval boom');
+      },
+      configurable: true,
+    };
+    wrappedDecorator({}, 'doInterval', descriptor);
+
+    await expect((descriptor.value as AnyFn)()).rejects.toThrow('interval boom');
+    expect(captureSpy).toHaveBeenCalledWith(expect.any(Error), {
+      mechanism: { handled: false, type: 'auto.function.nestjs.interval' },
+    });
+  });
+
+  it('event @OnEvent: opens an event.nestjs transaction named from the event', async () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    const wrappedDecorator = driveFactory(CHANNELS.NESTJS_ONEVENT, ['user.created'], (_t, _k, d) => d);
+
+    let spanInside: Span | undefined;
+    const descriptor: PropertyDescriptor = {
+      value: async function onUserCreated(): Promise<string> {
+        spanInside = getActiveSpan();
+        return 'ok';
+      },
+      configurable: true,
+    };
+    wrappedDecorator({}, 'onUserCreated', descriptor);
+
+    await (descriptor.value as AnyFn)();
+
+    const json = spanToJSON(spanInside!);
+    expect(json.description).toBe('event user.created');
+    expect(json.op).toBe('event.nestjs');
+    expect(json.origin).toBe('auto.event.nestjs');
+  });
+
+  it('bullmq @Processor: patches `process` into a queue.process transaction (string queue name)', async () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    let originalCalled = false;
+    const wrappedDecorator = driveFactory(CHANNELS.NESTJS_PROCESSOR, ['emails'], () => {
+      originalCalled = true;
+    });
+
+    let spanInside: Span | undefined;
+    class EmailProcessor {
+      public async process(_job: unknown): Promise<string> {
+        spanInside = getActiveSpan();
+        return 'done';
+      }
+    }
+    const originalProcess = EmailProcessor.prototype.process;
+    wrappedDecorator(EmailProcessor);
+
+    expect(originalCalled).toBe(true);
+    expect(EmailProcessor.prototype.process).not.toBe(originalProcess);
+
+    await new EmailProcessor().process({});
+    const json = spanToJSON(spanInside!);
+    expect(json.description).toBe('emails process');
+    expect(json.op).toBe('queue.process');
+    expect(json.origin).toBe('auto.queue.nestjs.bullmq');
+    expect(json.data).toMatchObject({
+      'messaging.system': 'bullmq',
+      'messaging.destination.name': 'emails',
+    });
+  });
+
+  it('bullmq @Processor: derives the queue name from an options object', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    const wrappedDecorator = driveFactory(CHANNELS.NESTJS_PROCESSOR, [{ name: 'reports' }], () => undefined);
+
+    let spanInside: Span | undefined;
+    class ReportsProcessor {
+      public async process(): Promise<void> {
+        spanInside = getActiveSpan();
+      }
+    }
+    wrappedDecorator(ReportsProcessor);
+    return new ReportsProcessor().process().then(() => {
+      expect(spanToJSON(spanInside!).description).toBe('reports process');
+    });
   });
 });
