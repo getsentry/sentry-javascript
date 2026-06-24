@@ -1,31 +1,19 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, getCurrentScope, safeSetSpanJSONAttributes } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node';
-import { eventContextExtractor } from '../utils';
 import { AwsLambdaInstrumentation } from './instrumentation-aws-lambda/instrumentation';
 
 interface AwsLambdaOptions {
   /**
-   * Disables the AWS context propagation and instead uses
-   * Sentry's context. Defaults to `true`, in order for
-   * Sentry trace propagation to take precedence, but can
-   * be disabled if you want AWS propagation to take take
-   * precedence.
+   * @deprecated This option no longer does anything and will be removed in a future major version.
+   * Sentry trace propagation always takes precedence.
    */
   disableAwsContextPropagation?: boolean;
 }
 
-export const instrumentAwsLambda = generateInstrumentOnce(
-  'AwsLambda',
-  AwsLambdaInstrumentation,
-  (options: AwsLambdaOptions) => {
-    return {
-      disableAwsContextPropagation: true,
-      ...options,
-      eventContextExtractor,
-    };
-  },
-);
+export const instrumentAwsLambda = generateInstrumentOnce('AwsLambda', AwsLambdaInstrumentation, () => {
+  return {};
+});
 
 const AWS_LAMBDA_CONTEXT_FIELDS = [
   'aws_request_id',

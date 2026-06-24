@@ -21,14 +21,8 @@
  * limitations under the License.
  */
 
-import type {
-  Attributes,
-  Context as OtelContext,
-  MeterProvider,
-  TextMapGetter,
-  TracerProvider,
-} from '@opentelemetry/api';
-import { context as otelContext, propagation, ROOT_CONTEXT, trace } from '@opentelemetry/api';
+import type { Attributes, Context as OtelContext, MeterProvider, TracerProvider } from '@opentelemetry/api';
+import { context as otelContext, ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
@@ -47,27 +41,18 @@ import {
   withActiveSpan,
 } from '@sentry/core';
 import { captureException } from '@sentry/node';
-import type { APIGatewayProxyEventHeaders, Callback, Context, Handler, StreamifyHandler } from 'aws-lambda';
+import type { Callback, Context, Handler, StreamifyHandler } from 'aws-lambda';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ATTR_FAAS_EXECUTION, ATTR_FAAS_ID } from './semconv';
-import type { AwsLambdaInstrumentationConfig, EventContextExtractor } from './types';
+import type { AwsLambdaInstrumentationConfig } from './types';
 import { wrapHandler } from '../../sdk';
-import { markEventUnhandled } from '../../utils';
+import { eventContextExtractor, markEventUnhandled } from '../../utils';
 import { DEBUG_BUILD } from '../../debug-build';
 
 // OpenTelemetry package version was 0.54.0 at time of vendoring.
 const PACKAGE_VERSION = SDK_VERSION;
 const PACKAGE_NAME = '@sentry/instrumentation-aws-lambda';
-
-const headerGetter: TextMapGetter<APIGatewayProxyEventHeaders> = {
-  keys(carrier): string[] {
-    return Object.keys(carrier);
-  },
-  get(carrier, key: string) {
-    return carrier[key];
-  },
-};
 
 export const lambdaMaxInitInMilliseconds = 10_000;
 const AWS_HANDLER_STREAMING_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming');
@@ -376,12 +361,17 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
   }
 
   private _determineParent(event: any, context: Context): OtelContext {
-    const config = this.getConfig();
-    return AwsLambdaInstrumentation._determineParent(
-      event,
-      context,
-      config.eventContextExtractor || AwsLambdaInstrumentation._defaultEventContextExtractor,
+    const extractedContext = safeExecuteInTheMiddle(
+      () => eventContextExtractor(event, context),
+      e => {
+        if (e) DEBUG_BUILD && debug.error('aws-lambda instrumentation: eventContextExtractor error', e);
+      },
+      true,
     );
+    if (trace.getSpan(extractedContext)?.spanContext()) {
+      return extractedContext;
+    }
+    return ROOT_CONTEXT;
   }
 
   private _isStreamingHandler<TEvent, TResult>(
@@ -525,15 +515,6 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
   /**
    *
    */
-  private static _defaultEventContextExtractor(event: any): OtelContext {
-    // The default extractor tries to get sampled trace header from HTTP headers.
-    const httpHeaders = event.headers || {};
-    return propagation.extract(otelContext.active(), httpHeaders, headerGetter);
-  }
-
-  /**
-   *
-   */
   private static _extractOtherEventFields(event: any): Attributes {
     const answer: Attributes = {};
     const fullUrl = this._extractFullUrl(event);
@@ -580,26 +561,5 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
       }
     }
     return answer;
-  }
-
-  /**
-   *
-   */
-  private static _determineParent(
-    event: any,
-    context: Context,
-    eventContextExtractor: EventContextExtractor,
-  ): OtelContext {
-    const extractedContext = safeExecuteInTheMiddle(
-      () => eventContextExtractor(event, context),
-      e => {
-        if (e) DEBUG_BUILD && debug.error('aws-lambda instrumentation: eventContextExtractor error', e);
-      },
-      true,
-    );
-    if (trace.getSpan(extractedContext)?.spanContext()) {
-      return extractedContext;
-    }
-    return ROOT_CONTEXT;
   }
 }

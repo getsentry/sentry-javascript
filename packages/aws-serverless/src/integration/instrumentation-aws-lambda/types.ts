@@ -15,14 +15,9 @@
  * limitations under the License.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Context as OtelContext } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
-import type { Context } from 'aws-lambda';
 
-export type EventContextExtractor = (event: any, context: Context) => OtelContext;
 export interface AwsLambdaInstrumentationConfig extends InstrumentationConfig {
-  eventContextExtractor?: EventContextExtractor;
   lambdaHandler?: string;
   lambdaStartTime?: number;
 }

@@ -68,8 +68,7 @@ export function getAwsTraceData(event: HandlerEvent, context?: HandlerContext): 
  * A custom event context extractor for the aws integration. It takes sentry trace data
  * from the context rather than the event, with the event being a fallback.
  *
- * Is only used when the handler was successfully wrapped by otel and the integration option
- * `disableAwsContextPropagation` is `true`.
+ * Is only used when the handler was successfully wrapped by otel.
  */
 export function eventContextExtractor(event: HandlerEvent, context?: HandlerContext): OtelContext {
   // The default context extractor tries to get sampled trace headers from HTTP headers
