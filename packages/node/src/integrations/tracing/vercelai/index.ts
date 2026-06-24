@@ -1,8 +1,7 @@
 import type { Client, IntegrationFn } from '@sentry/core';
 import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce, type modulesIntegration } from '@sentry/node-core';
-import { tracingChannel as otelTracingChannel } from '@sentry/opentelemetry/tracing-channel';
-import { subscribeVercelAiTracingChannel } from '@sentry/server-utils';
+import { vercelAiIntegration as serverUtilsVercelAiIntegration } from '@sentry/server-utils';
 import { INTEGRATION_NAME } from './constants';
 import { SentryVercelAiInstrumentation } from './instrumentation';
 import type { VercelAiOptions } from './types';
@@ -21,16 +20,14 @@ function shouldForceIntegration(client: Client): boolean {
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
   let instrumentation: undefined | SentryVercelAiInstrumentation;
 
+  const parentIntegration = serverUtilsVercelAiIntegration(options);
+
   return {
     name: INTEGRATION_NAME,
     options,
     setupOnce() {
       instrumentation = instrumentVercelAi();
-
-      // Subscribe to the `ai` SDK's native telemetry tracing channel (ai >= 7).
-      // This is a no-op on versions that don't publish to the channel, so it is always safe to call.
-      // The factory needs the Sentry OTel context manager, which `initOpenTelemetry()` registers after `setupOnce`, so defer a tick.
-      void Promise.resolve().then(() => subscribeVercelAiTracingChannel(otelTracingChannel));
+      parentIntegration.setupOnce?.();
     },
     afterAllSetup(client) {
       // Auto-detect if we should force the integration when running with 'ai' package available

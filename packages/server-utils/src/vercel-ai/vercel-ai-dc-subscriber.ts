@@ -26,13 +26,11 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL_SPAN_OP, GEN_AI_INVOKE_AGENT_SPAN_OP } from '@sentry/conventions/op';
-import type { Integration, Span } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import {
   captureException,
-  debug,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-  getActiveSpan,
   getClient,
   getProviderMetadataAttributes,
   getTruncatedJsonString,
@@ -43,7 +41,8 @@ import {
   startInactiveSpan,
   withScope,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
+import type { TracingChannel } from 'node:diagnostics_channel';
+import { bindTracingChannelToSpan } from '../tracing-channel';
 
 /**
  * The single tracing channel the `ai` package (>= 7) publishes all telemetry lifecycle events to
@@ -53,7 +52,6 @@ import { DEBUG_BUILD } from '../debug-build';
 const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
 
 const ORIGIN = 'auto.vercelai.channel';
-const INTEGRATION_NAME = 'VercelAI';
 
 // `@sentry/conventions` does not expose these yet, so we keep the literals here.
 const GEN_AI_TOOL_CALL_ID_ATTRIBUTE = 'gen_ai.tool.call.id';
@@ -140,8 +138,6 @@ function resolveToolDescription(callId: string | undefined, toolName: string, to
   return undefined;
 }
 
-const NOOP = (): void => {};
-
 /** The lifecycle event types the `ai:telemetry` channel can carry. */
 export type ChannelEventType =
   | 'generateText'
@@ -165,26 +161,6 @@ export interface VercelAiChannelMessage {
 }
 
 /**
- * Payload observed by subscribers — the channel context with the span stamped on by the factory's
- * `start` transform, plus a marker for events we deliberately don't open a span for (`step`).
- */
-export type VercelAiTracingChannelContextWithSpan<T> = T & { _sentrySpan?: Span; _sentrySkip?: boolean };
-
-/** Subscriber object accepted by {@link VercelAiTracingChannel.subscribe}. */
-interface VercelAiTracingChannelSubscribers<T> {
-  start: (data: VercelAiTracingChannelContextWithSpan<T>) => void;
-  asyncStart: (data: VercelAiTracingChannelContextWithSpan<T>) => void;
-  asyncEnd: (data: VercelAiTracingChannelContextWithSpan<T>) => void;
-  end: (data: VercelAiTracingChannelContextWithSpan<T>) => void;
-  error: (data: VercelAiTracingChannelContextWithSpan<T>) => void;
-}
-
-/** Minimal tracing-channel surface the subscriber depends on. */
-interface VercelAiTracingChannel<T extends object> {
-  subscribe(subs: Partial<VercelAiTracingChannelSubscribers<T>>): void;
-}
-
-/**
  * Platform-provided factory that returns a tracing channel for the given channel name. The factory
  * is responsible for, when `start` fires, calling `transformStart(data)` and storing the returned
  * span on `data._sentrySpan` so the subscriber's `asyncEnd`/`error` handlers can read it.
@@ -194,10 +170,14 @@ interface VercelAiTracingChannel<T extends object> {
  * nested AI SDK operations (model calls, tool calls) become children of the enclosing span without
  * any manual parent bookkeeping here.
  */
-type VercelAiTracingChannelFactory = <T extends object>(
-  name: string,
-  transformStart: (data: T) => Span | undefined,
-) => VercelAiTracingChannel<T>;
+type VercelAiTracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
+
+/** Integration-level recording options, pinned at subscribe time so we never look the integration up per event. */
+interface VercelAiChannelOptions {
+  recordInputs?: boolean;
+  recordOutputs?: boolean;
+  enableTruncation?: boolean;
+}
 
 let subscribed = false;
 
@@ -206,62 +186,37 @@ let subscribed = false;
  * available in `ai` >= 7) and emit fully-formed `gen_ai.*` spans directly — no OpenTelemetry span
  * post-processing involved.
  *
+ * The integration passes its options in directly (rather than us looking the integration up on every
+ * event); the global `dataCollection.genAI` default is still read from the client per event.
+ *
  * Safe to always call: on `ai` versions that don't publish to the channel (e.g. < 7) nothing is
  * ever emitted and this is inert, so there is no double-instrumentation against the OTel-based
  * patcher. Idempotent.
  */
-export function subscribeVercelAiTracingChannel(tracingChannel: VercelAiTracingChannelFactory): void {
+export function subscribeVercelAiTracingChannel(
+  tracingChannel: VercelAiTracingChannelFactory,
+  options: VercelAiChannelOptions = {},
+): void {
   if (subscribed) {
     return;
   }
   subscribed = true;
 
-  try {
-    const channel = tracingChannel<VercelAiChannelMessage>(AI_SDK_TELEMETRY_TRACING_CHANNEL, createSpanFromMessage);
-
-    channel.subscribe({
-      start: NOOP,
-      asyncStart: NOOP,
-      // `end` fires synchronously before the traced promise settles, so it's too early to finish an
-      // async span. We finish on `asyncEnd` (success) / `error` instead.
-      end: NOOP,
-      asyncEnd: data => {
-        // `step` reuses the active span; the error handler ends on failure.
-        if (data._sentrySkip || data.error) {
-          return;
-        }
-        const span = data._sentrySpan;
-        if (!span) {
-          return;
-        }
-        enrichSpanOnEnd(span, data);
-        span.end();
+  bindTracingChannelToSpan(
+    tracingChannel<VercelAiChannelMessage>(AI_SDK_TELEMETRY_TRACING_CHANNEL),
+    data => createSpanFromMessage(data, options),
+    {
+      // The helper ends the span; we enrich it from the settled result first (tokens, output messages,
+      // finish reasons, response model/id, provider metadata) and drop the per-operation `callId` maps.
+      beforeSpanEnd: (span, data) => {
+        enrichSpanOnEnd(span, data, options);
         clearOperationId(data);
       },
-      error: data => {
-        if (data._sentrySkip) {
-          return;
-        }
-        // Always drop the mapping (even if the span is missing) so a rejected call can't leak a stale
-        // `callId` → operationId entry.
-        clearOperationId(data);
-        const span = data._sentrySpan;
-        if (!span) {
-          return;
-        }
-        span.setStatus({
-          code: SPAN_STATUS_ERROR,
-          message: data.error instanceof Error ? data.error.message : 'unknown_error',
-        });
-        // `asyncEnd` bails when `data.error` is set, so this is the only place that finishes a
-        // rejected operation's span — without this `.end()` the span would stay open in the trace.
-        span.end();
-      },
-    });
-  } catch {
-    // The factory relies on `node:diagnostics_channel`, which isn't always available. Fail closed.
-    DEBUG_BUILD && debug.log('Vercel AI node:diagnostics_channel subscription failed.');
-  }
+      // AI operation errors are surfaced on the owning span's status; the SDK (and the boundary that
+      // awaited the call) owns capturing them. Tool errors are captured explicitly in `enrichSpanOnEnd`.
+      captureError: false,
+    },
+  );
 }
 
 /**
@@ -271,17 +226,18 @@ export function subscribeVercelAiTracingChannel(tracingChannel: VercelAiTracingC
  * payload to skip ending it.
  */
 export function createSpanFromMessage(
-  data: VercelAiTracingChannelContextWithSpan<VercelAiChannelMessage>,
+  data: VercelAiChannelMessage,
+  channelOptions: VercelAiChannelOptions,
 ): Span | undefined {
   const { type, event } = data;
 
   if (type === 'step' || !event || typeof event !== 'object') {
-    data._sentrySkip = true;
-    // The active span is the enclosing invoke_agent span; reusing it leaves the tree unchanged.
-    return getActiveSpan();
+    // Opt out: returning `undefined` leaves the enclosing `invoke_agent` span as the active context
+    // (model-call and tool-call events nest under it) without opening — or ending — a span of its own.
+    return undefined;
   }
 
-  const { recordInputs, enableTruncation } = getRecordingOptions(event);
+  const { recordInputs, enableTruncation } = getRecordingOptions(event, channelOptions);
   const provider = asString(event.provider);
   const modelId = asString(event.modelId);
   const callId = asString(event.callId);
@@ -316,8 +272,8 @@ export function createSpanFromMessage(
     case 'rerank':
       return startGenAiSpan(GEN_AI_RERANK_OPERATION, modelId, baseAttributes);
     default:
-      data._sentrySkip = true;
-      return getActiveSpan();
+      // Unknown event type: opt out rather than open a span we can't shape correctly.
+      return undefined;
   }
 }
 
@@ -400,13 +356,17 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
  * Everything here is guarded: when a field is missing or the shape differs across `ai` versions,
  * we simply don't set the attribute rather than emit a malformed span.
  */
-export function enrichSpanOnEnd(span: Span, data: VercelAiChannelMessage): void {
+export function enrichSpanOnEnd(
+  span: Span,
+  data: VercelAiChannelMessage,
+  channelOptions: VercelAiChannelOptions,
+): void {
   const { type, result } = data;
   if (!isRecord(result)) {
     return;
   }
 
-  const { recordOutputs } = getRecordingOptions(data.event);
+  const { recordOutputs } = getRecordingOptions(data.event, channelOptions);
 
   if (type === 'executeTool') {
     if (recordOutputs) {
@@ -574,21 +534,20 @@ function captureToolError(span: Span, data: VercelAiChannelMessage, error: unkno
   });
 }
 
-function getRecordingOptions(event: Record<string, unknown>): {
+function getRecordingOptions(
+  event: Record<string, unknown>,
+  channelOptions: VercelAiChannelOptions,
+): {
   recordInputs: boolean;
   recordOutputs: boolean;
   enableTruncation: boolean;
 } {
-  const client = getClient();
-  const genAI = client?.getDataCollectionOptions().genAI;
-  const options = client?.getIntegrationByName<
-    Integration & { options?: { recordInputs?: boolean; recordOutputs?: boolean; enableTruncation?: boolean } }
-  >(INTEGRATION_NAME)?.options;
+  const genAI = getClient()?.getDataCollectionOptions().genAI;
 
   return {
-    recordInputs: resolveRecording(options?.recordInputs, event.recordInputs, genAI?.inputs),
-    recordOutputs: resolveRecording(options?.recordOutputs, event.recordOutputs, genAI?.outputs),
-    enableTruncation: shouldEnableTruncation(options?.enableTruncation),
+    recordInputs: resolveRecording(channelOptions.recordInputs, event.recordInputs, genAI?.inputs),
+    recordOutputs: resolveRecording(channelOptions.recordOutputs, event.recordOutputs, genAI?.outputs),
+    enableTruncation: shouldEnableTruncation(channelOptions.enableTruncation),
   };
 }
 
