@@ -3,6 +3,13 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 
 const sentryInitStart = performance.now();
+
+performance.measure('sentry-sdk-pre-init-duration', {
+  detail: { mode: import.meta.env.MODE ?? 'unknown_mode' },
+  start: performance.timeOrigin,
+  end: sentryInitStart,
+});
+
 performance.mark('sentry-sdk-init-start', {
   detail: { mode: import.meta.env.MODE ?? 'unknown_mode' },
 });
@@ -33,6 +40,22 @@ if (import.meta.env.MODE === 'tracing-replay') {
     release: 'lighthouse-fixture',
     environment: 'qa',
   });
+} else if (import.meta.env.MODE === 'minimal-integrations') {
+  // Minimal integratoins setup only (everything necessary to automatically get errors)
+  Sentry.init({
+    dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
+    release: 'lighthouse-fixture',
+    environment: 'qa',
+    defaultIntegrations: false,
+    integrations: [
+      Sentry.globalHandlersIntegration(),
+      Sentry.linkedErrorsIntegration(),
+      Sentry.dedupeIntegration(),
+      // for good measure, let's include event filters since noise reduction is usually desired
+      // 99% of this integration's work is done in an event processor, so outside the hot path
+      Sentry.eventFiltersIntegration(),
+    ],
+  });
 } else if (import.meta.env.MODE === 'no-integrations') {
   // DSN set but every integration disabled. Isolates the cost of the enabled
   // client itself from the default instrumentation that wraps DOM/timer/network APIs.
@@ -53,6 +76,15 @@ if (import.meta.env.MODE === 'tracing-replay') {
     environment: 'qa',
     integrations: defaultIntegrations =>
       defaultIntegrations.filter(integration => integration.name !== 'BrowserApiErrors'),
+  });
+} else if (import.meta.env.MODE === 'no-browser-breadcrumbs') {
+  // Default integrations minus Breadcrumbs, which adds a lot of monkey patching to
+  // DOM and Network APIs as well as event targets and listeners
+  Sentry.init({
+    dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
+    release: 'lighthouse-fixture',
+    environment: 'qa',
+    integrations: defaultIntegrations => defaultIntegrations.filter(integration => integration.name !== 'Breadcrumbs'),
   });
 } else if (import.meta.env.MODE === 'init-only') {
   // enabled: false makes the SDK a guaranteed no-op (no transport allocation,
