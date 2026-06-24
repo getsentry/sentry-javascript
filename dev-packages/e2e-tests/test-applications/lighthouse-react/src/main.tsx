@@ -118,5 +118,30 @@ performance.mark('sentry-sdk-init-end', {
 // 'no-sentry' mode: all branches above are statically dead, so Vite drops
 // the @sentry/react import entirely from the bundle.
 
+// Elements tagged with `elementtiming` (e.g. the hero logo) emit a
+// PerformanceElementTiming entry when painted. Re-emit each as a
+// performance.measure spanning time origin -> render so the element's render
+// duration lands on the same timeline as the SDK init marks.
+// `PerformanceElementTiming` isn't in this project's TS lib, so type it locally.
+type ElementTimingEntry = PerformanceEntry & {
+  identifier: string;
+  renderTime: number;
+  loadTime: number;
+};
+
+const elementTimingObserver = new PerformanceObserver(list => {
+  for (const entry of list.getEntries() as ElementTimingEntry[]) {
+    const renderEnd = entry.renderTime || entry.loadTime;
+
+    performance.measure(`element-timing-${entry.identifier}`, {
+      detail: { mode: import.meta.env.MODE ?? 'unknown_mode', identifier: entry.identifier },
+      start: 0,
+      end: renderEnd,
+    });
+  }
+});
+
+elementTimingObserver.observe({ type: 'element', buffered: true });
+
 const root = createRoot(document.getElementById('root')!);
 root.render(<App />);
