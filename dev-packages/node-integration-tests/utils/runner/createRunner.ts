@@ -108,7 +108,7 @@ type StartResult = {
   ): Promise<T | undefined>;
 };
 
-const CLEANUP_STEPS = new Set<VoidFunction>();
+export const CLEANUP_STEPS = new Set<VoidFunction>();
 
 export function cleanupChildProcesses(): void {
   for (const step of CLEANUP_STEPS) {
