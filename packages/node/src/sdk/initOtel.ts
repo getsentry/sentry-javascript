@@ -154,7 +154,7 @@ function setupSentryTracerProvider(
   });
 
   client.on('preprocessEvent', event => {
-    if (event.type !== 'transaction' || client.getOptions().traceLifecycle === 'stream') {
+    if (event.type !== 'transaction') {
       return;
     }
 
