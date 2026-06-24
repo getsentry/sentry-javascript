@@ -593,7 +593,7 @@ function buildInputMessageAttributes(
   // separate `instructions` field. The OTel path lifts the system message out of the prompt into
   // `gen_ai.system_instructions` as `[{ type: 'text', content }]`; mirror that shape here.
   const instructions = asString(event.instructions);
-  if (instructions !== undefined) {
+  if (instructions) {
     attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE] = safeStringify([{ type: 'text', content: instructions }]);
   }
 
