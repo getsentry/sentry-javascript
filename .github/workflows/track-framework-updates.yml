@@ -60,7 +60,7 @@ jobs:
           claude_args: |
             --model claude-opus-4-8
             --max-turns 80
-            --allowedTools "Read,Write(.agents/skills/track-framework-updates/output/*),Bash(python3 .agents/skills/track-framework-updates/scripts/collect_updates.py *),Bash(python3 .agents/skills/track-framework-updates/scripts/check_support.py)"
+            --allowedTools "Read,Write(/.agents/skills/track-framework-updates/output/**),Bash(python3 .agents/skills/track-framework-updates/scripts/collect_updates.py *),Bash(python3 .agents/skills/track-framework-updates/scripts/check_support.py)"
 
       - name: Post job summary
         if: always()
