@@ -23,6 +23,7 @@ import type { Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
   getClient,
+  getSpanStatusFromHttpCode,
   hasSpanStreamingEnabled,
   isTracingSuppressed,
   LRUMap,
@@ -369,10 +370,13 @@ function onResponseHeaders(config: NodeFetchOptions, { request, response }: Resp
 
   span.setAttributes(spanAttributes);
 
-  // The Sentry pipeline infers `ok` / `not_found` / etc. from `http.response.status_code` when the
-  // status is left unset, so we only need to flag erroneous responses explicitly.
+  // Resolve the HTTP status code to a Sentry span status here (like the raw http client/server
+  // instrumentation does) instead of setting a bare error and deferring to downstream inference.
+  // The SentryTracerProvider's status finalization reads the already-stringified span status, which
+  // can no longer be inferred back to `not_found` etc. the way the OpenTelemetry SDK exporter's
+  // `mapStatus` does from the raw `{ code, message }`.
   if (response.statusCode >= 400) {
-    span.setStatus({ code: SPAN_STATUS_ERROR });
+    span.setStatus(getSpanStatusFromHttpCode(response.statusCode));
   }
 }
 
