@@ -103,6 +103,16 @@ app.get('/mkdtemp', async (_, res) => {
   res.send('done');
 });
 
+app.get('/exists', async (_, res) => {
+  await new Promise<void>(resolve => {
+    fs.exists(path.join(__dirname, 'fixtures', 'some-file.txt'), () => {
+      resolve();
+    });
+  });
+  await util.promisify(fs.exists)(path.join(__dirname, 'fixtures', 'some-file-promisify.txt'));
+  res.send('done');
+});
+
 app.get('/symlink', async (_, res) => {
   await new Promise<void>(resolve => {
     fs.symlink(
