@@ -1,8 +1,18 @@
-import type { Span } from '@opentelemetry/api';
-import { context, SpanStatusCode, trace } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { isThenable } from '@sentry/core';
+import { ATTR_HTTP_REQUEST_METHOD, ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import type { Span } from '@sentry/core';
+import {
+  debug,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  isThenable,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  spanToJSON,
+  startSpan,
+} from '@sentry/core';
+import { DEBUG_BUILD } from '../../../debug-build';
 import { AttributeNames, HonoTypes } from './constants';
 import type {
   Context,
@@ -19,20 +29,11 @@ import type {
 const PACKAGE_NAME = '@sentry/instrumentation-hono';
 const PACKAGE_VERSION = '0.0.1';
 
-export interface HonoResponseHookFunction {
-  (span: Span): void;
-}
-
-export interface HonoInstrumentationConfig extends InstrumentationConfig {
-  /** Function for adding custom span attributes from the response */
-  responseHook?: HonoResponseHookFunction;
-}
-
 /**
  * Hono instrumentation for OpenTelemetry
  */
-export class HonoInstrumentation extends InstrumentationBase<HonoInstrumentationConfig> {
-  public constructor(config: HonoInstrumentationConfig = {}) {
+export class HonoInstrumentation extends InstrumentationBase<InstrumentationConfig> {
+  public constructor(config: InstrumentationConfig = {}) {
     super(PACKAGE_NAME, PACKAGE_VERSION, config);
   }
 
@@ -169,64 +170,22 @@ export class HonoInstrumentation extends InstrumentationBase<HonoInstrumentation
       }
 
       const path = c.req.path;
-      const span = instrumentation.tracer.startSpan(path);
 
-      return context.with(trace.setSpan(context.active(), span), () => {
-        return instrumentation._safeExecute(
-          () => {
-            const result = handler.apply(this, [c, next]);
-            if (isThenable(result)) {
-              return result.then(result => {
-                const type = instrumentation._determineHandlerType(result);
-                span.setAttributes({
-                  [AttributeNames.HONO_TYPE]: type,
-                  [AttributeNames.HONO_NAME]: type === HonoTypes.REQUEST_HANDLER ? path : handler.name || 'anonymous',
-                });
-                instrumentation.getConfig().responseHook?.(span);
-                return result;
-              });
-            } else {
-              const type = instrumentation._determineHandlerType(result);
-              span.setAttributes({
-                [AttributeNames.HONO_TYPE]: type,
-                [AttributeNames.HONO_NAME]: type === HonoTypes.REQUEST_HANDLER ? path : handler.name || 'anonymous',
-              });
-              instrumentation.getConfig().responseHook?.(span);
-              return result;
-            }
-          },
-          () => span.end(),
-          error => {
-            instrumentation._handleError(span, error);
-            span.end();
-          },
-        );
-      });
+      return startSpan(
+        { name: path, attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.hono' } },
+        span => {
+          const result = handler.apply(this, [c, next]);
+          if (isThenable(result)) {
+            return result.then(resolved => {
+              instrumentation._onHandlerComplete(span, resolved, path, handler);
+              return resolved;
+            });
+          }
+          instrumentation._onHandlerComplete(span, result, path, handler);
+          return result;
+        },
+      );
     };
-  }
-
-  /**
-   * Safely executes a function and handles errors.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _safeExecute(execute: () => any, onSuccess: () => void, onFailure: (error: unknown) => void): () => any {
-    try {
-      const result = execute();
-
-      if (isThenable(result)) {
-        result.then(
-          () => onSuccess(),
-          (error: unknown) => onFailure(error),
-        );
-      } else {
-        onSuccess();
-      }
-
-      return result;
-    } catch (error: unknown) {
-      onFailure(error);
-      throw error;
-    }
   }
 
   /**
@@ -239,15 +198,29 @@ export class HonoInstrumentation extends InstrumentationBase<HonoInstrumentation
   }
 
   /**
-   * Handles errors by setting the span status and recording the exception.
+   * Sets Sentry span attributes once the handler has resolved.
    */
-  private _handleError(span: Span, error: unknown): void {
-    if (error instanceof Error) {
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: error.message,
-      });
-      span.recordException(error);
+  private _onHandlerComplete(span: Span, result: unknown, path: string, handler: Handler | MiddlewareHandler): void {
+    const type = this._determineHandlerType(result);
+    const name = type === HonoTypes.REQUEST_HANDLER ? path : handler.name || 'anonymous';
+
+    span.setAttributes({
+      [AttributeNames.HONO_TYPE]: type,
+      [AttributeNames.HONO_NAME]: name,
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.hono`,
+    });
+    span.updateName(name);
+
+    if (getIsolationScope() === getDefaultIsolationScope()) {
+      DEBUG_BUILD && debug.warn('Isolation scope is default isolation scope - skipping setting transactionName');
+      return;
+    }
+
+    const spanData = spanToJSON(span).data;
+    const route = spanData[ATTR_HTTP_ROUTE];
+    const method = spanData[ATTR_HTTP_REQUEST_METHOD];
+    if (typeof route === 'string' && typeof method === 'string') {
+      getIsolationScope().setTransactionName(`${method} ${route}`);
     }
   }
 }
