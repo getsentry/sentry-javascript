@@ -33,6 +33,20 @@ if (import.meta.env.MODE === 'tracing-replay') {
     integrations: [Sentry.browserTracingIntegration()],
     tracesSampleRate: 1.0,
   });
+} else if (import.meta.env.MODE === 'tracing-lazy-import') {
+  // Tracing + errors, but browsertracing loaded lazily.
+  // (We don't recommend this setup anywhere and neither will it work well.
+  // this is purely for testing if it changes anything about overhead.)
+  Sentry.init({
+    dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
+    release: 'lighthouse-fixture',
+    environment: 'qa',
+    tracesSampleRate: 1.0,
+  });
+
+  import('@sentry/react').then(lazySentry => {
+    Sentry.addIntegration(lazySentry.browserTracingIntegration());
+  });
 } else if (import.meta.env.MODE === 'errors-only') {
   // Default integrations only — errors are always captured, no tracing or replay.
   Sentry.init({
