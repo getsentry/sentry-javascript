@@ -47,7 +47,7 @@ import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
-import { getCapturedScopesOnSpan, spanShouldInferOtelSource } from './utils';
+import { getCapturedScopesOnSpan, markSpanSourceAsExplicit, spanShouldInferOtelSource } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
 
@@ -165,6 +165,12 @@ export class SentrySpan implements Span {
       delete this._attributes[key];
     } else {
       this._attributes[key] = value;
+    }
+
+    // Setting the source on a span branded for OTel-style inference means user code is choosing it
+    // explicitly, so flag it to keep `applyOtelSpanData` from overriding it with an inferred source.
+    if (key === SEMANTIC_ATTRIBUTE_SENTRY_SOURCE && value !== undefined && spanShouldInferOtelSource(this)) {
+      markSpanSourceAsExplicit(this);
     }
 
     return this;

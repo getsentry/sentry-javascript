@@ -12,6 +12,12 @@ const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
 // so the key is shared across duplicated copies of `@sentry/core`.
 const OTEL_SOURCE_INFERENCE_SPAN_FIELD = Symbol.for('sentry.otelSourceInference');
 
+// Brand marking a span (otherwise subject to OTel-style source inference, see above) whose
+// `sentry.source` was explicitly set by user code after creation, so `applyOtelSpanData` stops
+// inferring and respects the chosen source and name. This is what tells a user-set `custom` source
+// apart from the default `custom` that `_startRootSpan` stamps on every root span.
+const OTEL_SOURCE_EXPLICITLY_SET_SPAN_FIELD = Symbol.for('sentry.otelSourceExplicitlySet');
+
 type SpanWithScopes = Span & {
   [SCOPE_ON_START_SPAN_FIELD]?: Scope;
   [ISOLATION_SCOPE_ON_START_SPAN_FIELD]?: MaybeWeakRef<Scope>;
@@ -19,6 +25,7 @@ type SpanWithScopes = Span & {
 
 type SpanWithOtelSourceInference = Span & {
   [OTEL_SOURCE_INFERENCE_SPAN_FIELD]?: boolean;
+  [OTEL_SOURCE_EXPLICITLY_SET_SPAN_FIELD]?: boolean;
 };
 
 /** Store the scope & isolation scope for a span, which can the be used when it is finished. */
@@ -56,4 +63,19 @@ export function markSpanForOtelSourceInference(span: Span): void {
 /** Whether a span is marked for OTel-style `sentry.source` inference (see {@link markSpanForOtelSourceInference}). */
 export function spanShouldInferOtelSource(span: Span): boolean {
   return (span as SpanWithOtelSourceInference)[OTEL_SOURCE_INFERENCE_SPAN_FIELD] === true;
+}
+
+/**
+ * Mark that user code explicitly set `sentry.source` on a span subject to OTel-style inference, so
+ * `applyOtelSpanData` keeps that source (and name) instead of overriding it. Set by `SentrySpan`
+ * when `setAttribute` writes the source on an already-branded span (the default `custom` source is
+ * stamped at construction, before the brand, so it doesn't trip this).
+ */
+export function markSpanSourceAsExplicit(span: Span): void {
+  addNonEnumerableProperty(span, OTEL_SOURCE_EXPLICITLY_SET_SPAN_FIELD, true);
+}
+
+/** Whether user code explicitly set `sentry.source` on a span (see {@link markSpanSourceAsExplicit}). */
+export function spanSourceWasExplicitlySet(span: Span): boolean {
+  return (span as SpanWithOtelSourceInference)[OTEL_SOURCE_EXPLICITLY_SET_SPAN_FIELD] === true;
 }
