@@ -13,6 +13,7 @@
  */
 export const CHANNELS = {
   MYSQL_QUERY: 'orchestrion:mysql:query',
+  NESTJS_APP_CREATION: 'orchestrion:@nestjs/core:nestFactoryCreate',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
