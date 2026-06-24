@@ -15,6 +15,8 @@ export const CHANNELS = {
   MYSQL_QUERY: 'orchestrion:mysql:query',
   NESTJS_APP_CREATION: 'orchestrion:@nestjs/core:nestFactoryCreate',
   NESTJS_ROUTER_CONTEXT: 'orchestrion:@nestjs/core:routerExecutionContextCreate',
+  NESTJS_INJECTABLE: 'orchestrion:@nestjs/common:injectableDecorator',
+  NESTJS_CATCH: 'orchestrion:@nestjs/common:catchDecorator',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

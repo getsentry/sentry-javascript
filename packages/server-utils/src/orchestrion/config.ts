@@ -56,6 +56,38 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
     module: { name: '@nestjs/core', versionRange: '>=8.0.0 <12', filePath: 'router/router-execution-context.js' },
     functionQuery: { className: 'RouterExecutionContext', methodName: 'create', kind: 'Sync', mutableResult: true },
   },
+  {
+    // `@nestjs/common/decorators/core/injectable.decorator.js`:
+    //   `function Injectable(options) { return (target) => { ... }; }`
+    // The inner decorator arrow is anonymous + returned, so only a raw
+    // `astQuery` can target it. The subscriber's `start` receives the
+    // decorated class as `arguments[0]` and patches its prototype
+    // use/canActivate/transform/intercept methods, reproducing the
+    // vendored `SentryNestInstrumentation` middleware/guard/pipe/interceptor
+    // spans. No span on the decorator itself, so `kind: 'Sync'` with no
+    // `mutableResult`.
+    channelName: 'injectableDecorator',
+    module: {
+      name: '@nestjs/common',
+      versionRange: '>=8.0.0 <12',
+      filePath: 'decorators/core/injectable.decorator.js',
+    },
+    astQuery: 'FunctionDeclaration[id.name="Injectable"] ReturnStatement > ArrowFunctionExpression',
+    functionQuery: { kind: 'Sync' },
+  },
+  {
+    // `@nestjs/common/decorators/core/catch.decorator.js`:
+    //   `function Catch(...exceptions) { return (target) => { ... }; }`
+    // Same anonymous-returned-arrow shape as `Injectable`. The subscriber's
+    // `start` patches the exception filter's prototype `catch` method to
+    // open an `exception_filter` span.
+    //
+    // Mirrors the vendored `SentryNestInstrumentation` `@Catch` wrap.
+    channelName: 'catchDecorator',
+    module: { name: '@nestjs/common', versionRange: '>=8.0.0 <12', filePath: 'decorators/core/catch.decorator.js' },
+    astQuery: 'FunctionDeclaration[id.name="Catch"] ReturnStatement > ArrowFunctionExpression',
+    functionQuery: { kind: 'Sync' },
+  },
 ];
 
 /**

@@ -1,15 +1,11 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
-import {
-  debug,
-  defineIntegration,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-  startSpan,
-} from '@sentry/core';
+import { debug, defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, startSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import type { AnyFn, CatchTarget, InjectableTarget } from './nestjs-decorators';
+import { patchCatchTarget, patchInjectableTarget } from './nestjs-decorators';
 
 // NOTE: this uses the same name as the OTel integration by design.
 // When enabled, the OTel 'Nest' integration is omitted from the default set.
@@ -35,7 +31,7 @@ const TYPE_APP_CREATION = 'app_creation';
 const TYPE_REQUEST_CONTEXT = 'request_context';
 const TYPE_REQUEST_HANDLER = 'handler';
 
-type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
+const NOOP = (): void => {};
 
 // Marks a function as already wrapped so repeated subscriptions (e.g. a second
 // `setupOnce`) don't double-wrap a callback or returned handler.
@@ -50,24 +46,10 @@ function markWrapped(fn: AnyFn): void {
 }
 
 /**
- * The shape orchestrion's `tracePromise` transform attaches to the
- * tracing-channel context for `NestFactoryStatic.prototype.create`.
- * `arguments[0]` is the root application module class.
+ * The orchestrion tracing-channel context. `arguments` is the live call args
+ * array; `result` is the (sync) return value when `mutableResult` is set.
  */
-interface NestFactoryCreateData {
-  arguments: unknown[];
-  moduleVersion?: string;
-  result?: unknown;
-  error?: unknown;
-}
-
-/**
- * The shape orchestrion's `traceSync` (+ `mutableResult`) transform attaches to
- * the tracing-channel context for `RouterExecutionContext.prototype.create`.
- * `arguments[0]` is the controller instance, `arguments[1]` the route handler
- * callback, and `result` is the per-request handler `create` returns.
- */
-interface RouterCreateData {
+interface ChannelContext {
   arguments: unknown[];
   moduleVersion?: string;
   result?: unknown;
@@ -90,10 +72,12 @@ interface ReflectWithMetadata {
   defineMetadata?: (key: unknown, value: unknown, target: object) => void;
 }
 
-// Copy NestJS reflect-metadata from the original handler onto the wrapper so
-// other decorators (param decorators, guards, `@EventPattern`, ...) that
-// read it keep working. No-op when `reflect-metadata` isn't loaded. Mirrors
-// vendored `@opentelemetry/instrumentation-nestjs-core` behaviour.
+/**
+ * Copy NestJS reflect-metadata from the original handler onto the wrapper so
+ * other decorators (param decorators, guards, `@EventPattern`, ...) that
+ * read it keep working. No-op when `reflect-metadata` isn't loaded. Mirrors
+ * vendored `@opentelemetry/instrumentation-nestjs-core` behaviour.
+ */
 function copyReflectMetadata(from: object, to: object): void {
   const R = Reflect as unknown as ReflectWithMetadata;
   if (
@@ -108,9 +92,11 @@ function copyReflectMetadata(from: object, to: object): void {
   }
 }
 
-// Wraps the route-handler callback (`create`'s `arguments[1]`) so each
-// invocation opens the `handler.nestjs` span (REQUEST_HANDLER). Preserves the
-// original `.name` and reflect-metadata so NestJS reflection is unaffected.
+/**
+ * Wrap the route-handler callback (`create`'s `arguments[1]`) so each
+ * invocation opens the `handler.nestjs` span (REQUEST_HANDLER). Preserve the
+ * original `.name` and reflect-metadata so NestJS reflection is unaffected.
+ */
 function wrapRouteHandler(callback: AnyFn, moduleVersion?: string): AnyFn {
   if (isWrapped(callback)) {
     return callback;
@@ -136,9 +122,11 @@ function wrapRouteHandler(callback: AnyFn, moduleVersion?: string): AnyFn {
   return wrapped;
 }
 
-// Wraps the per-request handler `create` returns so each request opens the
-// `request_context.nestjs` span (REQUEST_CONTEXT), carrying the controller /
-// callback names captured at setup plus the per-request http.* attributes.
+/**
+ * Wrap per-request handler `create` returns so each request opens the
+ * `request_context.nestjs` span (REQUEST_CONTEXT), carrying the controller /
+ * callback names captured at setup plus the per-request http.* attributes.
+ */
 function wrapRequestContextHandler(
   handler: AnyFn,
   instanceName: string,
@@ -168,19 +156,44 @@ function wrapRequestContextHandler(
   return wrapped;
 }
 
+/**
+ * Subscribe to a decorator channel (`Injectable`/`Catch`)
+ *
+ * The orchestrion transform targets the decorator's inner arrow, so `start`
+ * receives the decorated class as `arguments[0]`. There is no span around the
+ * decorator itself.
+ *
+ * `patch` method installs the prototype-method proxies that open spans later.
+ */
+function subscribeDecoratorChannel<T>(channelName: string, patch: (target: T) => void): void {
+  diagnosticsChannel.tracingChannel<ChannelContext>(channelName).subscribe({
+    start(data) {
+      const target = data.arguments?.[0] as T | undefined;
+      if (target) {
+        patch(target);
+      }
+    },
+    end: NOOP,
+    asyncStart: NOOP,
+    asyncEnd: NOOP,
+    error: NOOP,
+  });
+}
+
 const _nestjsChannelIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      DEBUG_BUILD && debug.log('[orchestrion:nestjs] subscribing to @nestjs/core channels');
+      DEBUG_BUILD && debug.log('[orchestrion:nestjs] subscribing to @nestjs channels');
 
       // App-creation span: `bindTracingChannelToSpan` opens the span on
-      // `start`, makes it the active context for the bootstrap, and ends
-      // it on `asyncEnd` (or `end` if `create` throws synchronously).
-      // `captureError: false`. Failed bootstrap surfaces to the caller.
+      // `start`, makes it the active context for the bootstrap, and ends it
+      // on `asyncEnd` (or `end` if `create` throws synchronously).
+      //
+      // `captureError: false` a failed bootstrap surfaces to the caller.
       // We just annotate the span.
       bindTracingChannelToSpan(
-        diagnosticsChannel.tracingChannel<NestFactoryCreateData>(CHANNELS.NESTJS_APP_CREATION),
+        diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_APP_CREATION),
         data => {
           const moduleCls = data.arguments?.[0] as { name?: string } | undefined;
           return startInactiveSpan({
@@ -198,27 +211,25 @@ const _nestjsChannelIntegration = (() => {
         { captureError: false },
       );
 
-      // Request-context + request-handler spans.
+      // request_context + request_handler. `RouterExecutionContext.create`
+      // runs once per route at setup: it receives `(instance, callback, ...)`
+      // and RETURNS the per-request handler. We don't span `create` itself.
+      // `start` wraps the callback arg (-> handler span per call) and
+      // because the config sets `mutableResult`, `end` replaces the returned
+      // handler (-> request_context span per request).
       //
-      // `RouterExecutionContext.create` runs once per route at setup
-      // it receives `(instance, callback, ...)` and RETURNS the per-request
-      // handler. We don't span `create` itself. Instead `start` wraps the
-      // callback arg (-> one handler span per call) and, because the
-      // config sets `mutableResult: true`, `end` replaces the returned
-      // handler (-> one request_context span per request).
-      //
-      // Both wrappers open their span at invoke time, inside the request
-      // context, so they parent correctly.
-      const routerCh = diagnosticsChannel.tracingChannel<RouterCreateData>(CHANNELS.NESTJS_ROUTER_CONTEXT);
+      // Both wrappers open their span at invoke time, inside the live
+      // request context, so they parent correctly.
       const routerMeta = new WeakMap<object, { instanceName: string; callbackName: string; moduleVersion?: string }>();
-      routerCh.subscribe({
+      diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_ROUTER_CONTEXT).subscribe({
         start(data) {
           const instance = data.arguments?.[0] as { constructor?: { name?: string } } | undefined;
           const callback = data.arguments?.[1];
-          const instanceName = instance?.constructor?.name || 'UnnamedInstance';
-          const callbackName = typeof callback === 'function' ? callback.name : '';
-          routerMeta.set(data, { instanceName, callbackName, moduleVersion: data.moduleVersion });
-
+          routerMeta.set(data, {
+            instanceName: instance?.constructor?.name || 'UnnamedInstance',
+            callbackName: typeof callback === 'function' ? callback.name : '',
+            moduleVersion: data.moduleVersion,
+          });
           if (typeof callback === 'function') {
             data.arguments[1] = wrapRouteHandler(callback as AnyFn, data.moduleVersion);
           }
@@ -236,16 +247,21 @@ const _nestjsChannelIntegration = (() => {
           }
           routerMeta.delete(data);
         },
-        asyncStart() {
-          // `create` is synchronous; no async events fire.
-        },
-        asyncEnd() {
-          // `create` is synchronous; no async events fire.
-        },
+        asyncStart: NOOP,
+        asyncEnd: NOOP,
         error(data) {
           routerMeta.delete(data);
         },
       });
+
+      // @Injectable (middleware/guard/pipe/interceptor) and @Catch (exception
+      // filter): both decorators share the `(target) => {...}`
+      // inner-arrow shape.
+      const seenInterceptorContexts = new WeakSet<object>();
+      subscribeDecoratorChannel<InjectableTarget>(CHANNELS.NESTJS_INJECTABLE, target =>
+        patchInjectableTarget(target, seenInterceptorContexts),
+      );
+      subscribeDecoratorChannel<CatchTarget>(CHANNELS.NESTJS_CATCH, patchCatchTarget);
     },
   };
 }) satisfies IntegrationFn;
@@ -253,8 +269,8 @@ const _nestjsChannelIntegration = (() => {
 /**
  * EXPERIMENTAL orchestrion-driven NestJS integration.
  *
- * Subscribes to the diagnostics_channels the orchestrion code transform
- * injects into `@nestjs/core` (see `orchestrion/config.ts`). Requires the
- * orchestrion runtime hook or bundler plugin to be active.
+ * Subscribes to the diagnostics_channels the orchestrion code transform injects
+ * into `@nestjs/core` and `@nestjs/common` (see `orchestrion/config.ts`).
+ * Requires the orchestrion runtime hook or bundler plugin to be active.
  */
 export const nestjsChannelIntegration = defineIntegration(_nestjsChannelIntegration);

@@ -16,7 +16,7 @@ import {
   setAsyncContextStrategy,
   spanToJSON,
 } from '@sentry/core';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { nestjsChannelIntegration } from '../../src/orchestrion';
 import { CHANNELS } from '../../src/orchestrion/channels';
 
@@ -243,7 +243,7 @@ describe('nestjsChannelIntegration: request_context / request_handler', () => {
     expect(contextSpanJson!.op).toBe('request_context.nestjs');
     expect(contextSpanJson!.origin).toBe('auto.http.otel.nestjs');
     expect(contextSpanJson!.data).toMatchObject({
-      'component': '@nestjs/core',
+      component: '@nestjs/core',
       'nestjs.type': 'request_context',
       'nestjs.controller': 'CatsController',
       'nestjs.callback': 'getCats',
@@ -280,7 +280,7 @@ describe('nestjsChannelIntegration: request_context / request_handler', () => {
     expect(handlerSpanJson!.op).toBe('handler.nestjs');
     expect(handlerSpanJson!.origin).toBe('auto.http.otel.nestjs');
     expect(handlerSpanJson!.data).toMatchObject({
-      'component': '@nestjs/core',
+      component: '@nestjs/core',
       'nestjs.type': 'handler',
       'nestjs.callback': 'getCats',
       'nestjs.version': '10.4.1',
@@ -313,5 +313,209 @@ describe('nestjsChannelIntegration: request_context / request_handler', () => {
 
     expect(contextSpanId).toBeDefined();
     expect(handlerParentSpanId).toBe(contextSpanId);
+  });
+});
+
+describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/interceptor)', () => {
+  afterEach(() => {
+    setAsyncContextStrategy(undefined);
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+  });
+
+  // Fire the @Injectable channel against `target` (as if its decorator arrow
+  // ran), so the subscriber's `start` patches `target.prototype`.
+  function applyInjectable(target: object): void {
+    tracingChannel<{ arguments: unknown[] }>(CHANNELS.NESTJS_INJECTABLE).traceSync(() => undefined, {
+      arguments: [target],
+    });
+  }
+
+  it('middleware: opens a span on `use`, ended when `next()` is called', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    let spanInside: ReturnType<typeof getActiveSpan>;
+    class LoggerMiddleware {
+      public use(_req: unknown, _res: unknown, next: () => void): void {
+        spanInside = getActiveSpan();
+        next();
+      }
+    }
+    applyInjectable(LoggerMiddleware);
+
+    const next = vi.fn();
+    new LoggerMiddleware().use({ url: '/' }, {}, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    const json = spanToJSON(spanInside!);
+    expect(json.description).toBe('LoggerMiddleware');
+    expect(json.op).toBe('middleware.nestjs');
+    expect(json.origin).toBe('auto.middleware.nestjs');
+    // startSpanManual span ends when the proxied `next` is called.
+    expect(json.timestamp).toBeDefined();
+  });
+
+  it('guard: wraps `canActivate` in a span and preserves its return value', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    let spanInside: ReturnType<typeof getActiveSpan>;
+    class AuthGuard {
+      public canActivate(_ctx: unknown): boolean {
+        spanInside = getActiveSpan();
+        return true;
+      }
+    }
+    applyInjectable(AuthGuard);
+
+    expect(new AuthGuard().canActivate({ ctx: true })).toBe(true);
+    const json = spanToJSON(spanInside!);
+    expect(json.description).toBe('AuthGuard');
+    expect(json.op).toBe('middleware.nestjs');
+    expect(json.origin).toBe('auto.middleware.nestjs.guard');
+  });
+
+  it('pipe: wraps `transform` in a span and preserves its return value', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    let spanInside: ReturnType<typeof getActiveSpan>;
+    class ParseIntPipe {
+      public transform(value: string, _metadata: unknown): number {
+        spanInside = getActiveSpan();
+        return Number.parseInt(value, 10);
+      }
+    }
+    applyInjectable(ParseIntPipe);
+
+    expect(new ParseIntPipe().transform('42', { type: 'param' })).toBe(42);
+    const json = spanToJSON(spanInside!);
+    expect(json.description).toBe('ParseIntPipe');
+    expect(json.op).toBe('middleware.nestjs');
+    expect(json.origin).toBe('auto.middleware.nestjs.pipe');
+  });
+
+  it('interceptor: opens a before-span (ended at next.handle) and instruments the returned observable', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    // Minimal rxjs-like observable whose subscription records teardown fns.
+    const teardowns: Array<() => void> = [];
+    const observable = {
+      subscribe(): { add: (fn: () => void) => void } {
+        return { add: (fn: () => void) => void teardowns.push(fn) };
+      },
+    };
+
+    let beforeSpan: ReturnType<typeof getActiveSpan>;
+    class LoggingInterceptor {
+      public intercept(_context: unknown, next: { handle: () => unknown }): unknown {
+        beforeSpan = getActiveSpan();
+        return next.handle();
+      }
+    }
+    applyInjectable(LoggingInterceptor);
+
+    const next = { handle: () => observable };
+    const returned = new LoggingInterceptor().intercept({}, next) as typeof observable;
+
+    // Passthrough: the same observable is returned (with `subscribe` proxied).
+    expect(returned).toBe(observable);
+
+    const beforeJson = spanToJSON(beforeSpan!);
+    expect(beforeJson.description).toBe('LoggingInterceptor');
+    expect(beforeJson.op).toBe('middleware.nestjs');
+    expect(beforeJson.origin).toBe('auto.middleware.nestjs.interceptor');
+    // before-span ends when `next.handle()` is called.
+    expect(beforeJson.timestamp).toBeDefined();
+
+    // The returned observable was instrumented: subscribing registers an
+    // after-span teardown (proving the after-span was created).
+    returned.subscribe();
+    expect(teardowns).toHaveLength(1);
+    expect(() => teardowns.forEach(fn => fn())).not.toThrow();
+  });
+
+  it('skips targets flagged __SENTRY_INTERNAL__', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    class InternalGuard {
+      public canActivate(_ctx: unknown): boolean {
+        return true;
+      }
+    }
+    (InternalGuard as unknown as { __SENTRY_INTERNAL__?: boolean }).__SENTRY_INTERNAL__ = true;
+    const original = InternalGuard.prototype.canActivate;
+    applyInjectable(InternalGuard);
+
+    // Not patched: the prototype method is untouched.
+    expect(InternalGuard.prototype.canActivate).toBe(original);
+  });
+});
+
+describe('nestjsChannelIntegration: @Catch (exception filter)', () => {
+  afterEach(() => {
+    setAsyncContextStrategy(undefined);
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+  });
+
+  function applyCatch(target: object): void {
+    tracingChannel<{ arguments: unknown[] }>(CHANNELS.NESTJS_CATCH).traceSync(() => undefined, {
+      arguments: [target],
+    });
+  }
+
+  it('wraps `catch` in an exception_filter span and preserves its return value', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    let spanInside: ReturnType<typeof getActiveSpan>;
+    class HttpExceptionFilter {
+      public catch(exception: unknown, _host: unknown): string {
+        spanInside = getActiveSpan();
+        return `handled:${String(exception)}`;
+      }
+    }
+    applyCatch(HttpExceptionFilter);
+
+    const ret = new HttpExceptionFilter().catch('boom', { switchToHttp: () => ({}) });
+    expect(ret).toBe('handled:boom');
+
+    const json = spanToJSON(spanInside!);
+    expect(json.description).toBe('HttpExceptionFilter');
+    expect(json.op).toBe('middleware.nestjs');
+    expect(json.origin).toBe('auto.middleware.nestjs.exception_filter');
+  });
+
+  it('does not open a span when exception or host is absent', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    let spanInside: ReturnType<typeof getActiveSpan> = undefined;
+    class HttpExceptionFilter {
+      public catch(_exception: unknown, _host: unknown): string {
+        spanInside = getActiveSpan();
+        return 'ok';
+      }
+    }
+    applyCatch(HttpExceptionFilter);
+
+    // Missing host → guard short-circuits, no span opened.
+    new HttpExceptionFilter().catch('boom', undefined);
+    expect(spanInside).toBeUndefined();
   });
 });
