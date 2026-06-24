@@ -619,14 +619,14 @@ function log(...args: unknown[]): void {
  * same `@sentry/node` instance. Otherwise we fall back to `--require
  * auto-flush.cjs`.
  *
- * Node accepts both `--import foo` (two array elements) and `--import=foo`
- * (one element); we have to recognise both, otherwise tests using the
- * `=value` form (e.g. `withFlags('--import=@sentry/node/init')` in
- * `suites/no-code/test.ts`) silently get `auto-flush.cjs` and the flush
- * targets the wrong SDK instance.
+ * Node accepts both `--import foo` (two array elements, e.g. `withInstrument`
+ * or `withFlags('--import', foo)`) and `--import=foo` (one element, e.g.
+ * `withFlags('--import=@sentry/node/init')` in `suites/no-code/test.ts`); we
+ * have to recognise both, otherwise the missed form silently gets
+ * `auto-flush.cjs` and the flush targets the wrong SDK instance.
  */
 function buildAutoFlushFlags(existingFlags: readonly string[]): string[] {
-  const isEsm = existingFlags.some(flag => flag.startsWith('--import='));
+  const isEsm = existingFlags.some(flag => flag === '--import' || flag.startsWith('--import='));
   if (isEsm) {
     return ['--import', join(__dirname, 'auto-flush.mjs')];
   }
