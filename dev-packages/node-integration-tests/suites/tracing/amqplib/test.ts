@@ -30,9 +30,9 @@ describe('amqplib auto-instrumentation', () => {
   });
 
   describe.each([
-    ['v1', 'docker-compose-v1.yml', { amqplib: '^1.0.0' }],
-    ['v2', 'docker-compose.yml', {}],
-  ])('%s', (version, dockerFile, additionalDependencies) => {
+    ['v1', { amqplib: '^1.0.0' }],
+    ['v2', {}],
+  ])('%s', (version, additionalDependencies) => {
     createEsmAndCjsTests(
       __dirname,
       'scenario.mjs',
@@ -44,9 +44,7 @@ describe('amqplib auto-instrumentation', () => {
           const receivedTransactions: TransactionEvent[] = [];
 
           await createTestRunner()
-            .withEnv({ AMQP_PORT: version === 'v1' ? '5673' : '5672' })
             .withDockerCompose({
-              composeFile: dockerFile,
               workingDirectory: [__dirname],
             })
             .expect({
