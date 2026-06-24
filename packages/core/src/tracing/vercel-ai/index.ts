@@ -7,6 +7,7 @@ import type { Event } from '../../types/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
 import { spanToJSON } from '../../utils/spanUtils';
 import {
+  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -516,77 +517,91 @@ export function addVercelAiProcessors(client: Client): void {
   });
 }
 
+/**
+ * Derive the `gen_ai.usage.*` cache/reasoning/prediction token attributes and `gen_ai.conversation.id`
+ * from an AI SDK `providerMetadata` object.
+ *
+ * Shared between the OTel processor (which parses `providerMetadata` from a serialized span attribute)
+ * and the `ai` >= 7 tracing-channel subscriber (which receives it as an object on the channel result),
+ * so both paths emit an identical shape. Pass the already-parsed object; unknown/empty input yields `{}`.
+ */
+export function getProviderMetadataAttributes(providerMetadata: unknown): Record<string, number | string> {
+  const attributes: Record<string, number | string> = {};
+
+  if (!providerMetadata || typeof providerMetadata !== 'object') {
+    return attributes;
+  }
+  const metadata = providerMetadata as ProviderMetadata;
+
+  // OpenAI (v5 uses 'openai', v6 Azure Responses API uses 'azure')
+  const openaiMetadata: OpenAiProviderMetadata | undefined = metadata.openai ?? metadata.azure;
+  if (openaiMetadata) {
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE, openaiMetadata.cachedPromptTokens);
+    setAttributeIfDefined(attributes, 'gen_ai.usage.output_tokens.reasoning', openaiMetadata.reasoningTokens);
+    setAttributeIfDefined(
+      attributes,
+      'gen_ai.usage.output_tokens.prediction_accepted',
+      openaiMetadata.acceptedPredictionTokens,
+    );
+    setAttributeIfDefined(
+      attributes,
+      'gen_ai.usage.output_tokens.prediction_rejected',
+      openaiMetadata.rejectedPredictionTokens,
+    );
+    setAttributeIfDefined(attributes, GEN_AI_CONVERSATION_ID_ATTRIBUTE, openaiMetadata.responseId);
+  }
+
+  if (metadata.anthropic) {
+    const cachedInputTokens =
+      metadata.anthropic.usage?.cache_read_input_tokens ?? metadata.anthropic.cacheReadInputTokens;
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE, cachedInputTokens);
+
+    const cacheWriteInputTokens =
+      metadata.anthropic.usage?.cache_creation_input_tokens ?? metadata.anthropic.cacheCreationInputTokens;
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE, cacheWriteInputTokens);
+  }
+
+  if (metadata.bedrock?.usage) {
+    setAttributeIfDefined(
+      attributes,
+      GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
+      metadata.bedrock.usage.cacheReadInputTokens,
+    );
+    setAttributeIfDefined(
+      attributes,
+      GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
+      metadata.bedrock.usage.cacheWriteInputTokens,
+    );
+  }
+
+  if (metadata.deepseek) {
+    setAttributeIfDefined(
+      attributes,
+      GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
+      metadata.deepseek.promptCacheHitTokens,
+    );
+    setAttributeIfDefined(attributes, 'gen_ai.usage.input_tokens.cache_miss', metadata.deepseek.promptCacheMissTokens);
+  }
+
+  return attributes;
+}
+
 function addProviderMetadataToAttributes(attributes: Record<string, unknown>): void {
   const providerMetadata = attributes[AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE] as string | undefined;
-  if (providerMetadata) {
-    try {
-      const providerMetadataObject = JSON.parse(providerMetadata) as ProviderMetadata;
-
-      // Handle OpenAI metadata (v5 uses 'openai', v6 Azure Responses API uses 'azure')
-      const openaiMetadata: OpenAiProviderMetadata | undefined =
-        providerMetadataObject.openai ?? providerMetadataObject.azure;
-      if (openaiMetadata) {
-        setAttributeIfDefined(
-          attributes,
-          GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
-          openaiMetadata.cachedPromptTokens,
-        );
-        setAttributeIfDefined(attributes, 'gen_ai.usage.output_tokens.reasoning', openaiMetadata.reasoningTokens);
-        setAttributeIfDefined(
-          attributes,
-          'gen_ai.usage.output_tokens.prediction_accepted',
-          openaiMetadata.acceptedPredictionTokens,
-        );
-        setAttributeIfDefined(
-          attributes,
-          'gen_ai.usage.output_tokens.prediction_rejected',
-          openaiMetadata.rejectedPredictionTokens,
-        );
-        if (!attributes['gen_ai.conversation.id']) {
-          setAttributeIfDefined(attributes, 'gen_ai.conversation.id', openaiMetadata.responseId);
-        }
+  if (!providerMetadata) {
+    return;
+  }
+  try {
+    const derived = getProviderMetadataAttributes(JSON.parse(providerMetadata) as ProviderMetadata);
+    for (const [key, value] of Object.entries(derived)) {
+      // Preserve the original behaviour of not overwriting an already-set conversation id.
+      if (key === GEN_AI_CONVERSATION_ID_ATTRIBUTE && attributes[key]) {
+        continue;
       }
-
-      if (providerMetadataObject.anthropic) {
-        const cachedInputTokens =
-          providerMetadataObject.anthropic.usage?.cache_read_input_tokens ??
-          providerMetadataObject.anthropic.cacheReadInputTokens;
-        setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE, cachedInputTokens);
-
-        const cacheWriteInputTokens =
-          providerMetadataObject.anthropic.usage?.cache_creation_input_tokens ??
-          providerMetadataObject.anthropic.cacheCreationInputTokens;
-        setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE, cacheWriteInputTokens);
-      }
-
-      if (providerMetadataObject.bedrock?.usage) {
-        setAttributeIfDefined(
-          attributes,
-          GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
-          providerMetadataObject.bedrock.usage.cacheReadInputTokens,
-        );
-        setAttributeIfDefined(
-          attributes,
-          GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
-          providerMetadataObject.bedrock.usage.cacheWriteInputTokens,
-        );
-      }
-
-      if (providerMetadataObject.deepseek) {
-        setAttributeIfDefined(
-          attributes,
-          GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
-          providerMetadataObject.deepseek.promptCacheHitTokens,
-        );
-        setAttributeIfDefined(
-          attributes,
-          'gen_ai.usage.input_tokens.cache_miss',
-          providerMetadataObject.deepseek.promptCacheMissTokens,
-        );
-      }
-    } catch {
-      // Ignore
+      attributes[key] = value;
     }
+  } catch {
+    // Ignore
   }
 }
 

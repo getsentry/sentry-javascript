@@ -31,8 +31,10 @@ import {
   captureException,
   debug,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   getActiveSpan,
   getClient,
+  getProviderMetadataAttributes,
   getTruncatedJsonString,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   shouldEnableTruncation,
@@ -455,6 +457,12 @@ export function enrichSpanOnEnd(span: Span, data: VercelAiChannelMessage): void 
     span.setAttribute(GEN_AI_RESPONSE_MODEL, responseModel);
   }
 
+  // Provider-specific cache/reasoning/prediction token breakdowns and `gen_ai.conversation.id`.
+  // The channel exposes `providerMetadata` as an object (the OTel path parses it from a string);
+  // both share `getProviderMetadataAttributes` so the emitted shape is identical.
+  const providerMetadata = (result as { providerMetadata?: unknown }).providerMetadata;
+  span.setAttributes(getProviderMetadataAttributes(providerMetadata));
+
   if (recordOutputs) {
     // `languageModelCall` exposes the response as a `content` parts array; top-level results expose
     // `text` + `toolCalls`. Both normalize into the OTel `gen_ai.output.messages` assistant message.
@@ -608,17 +616,26 @@ function buildInputMessageAttributes(
   event: Record<string, unknown>,
   enableTruncation: boolean,
 ): Record<string, string | number> {
+  const attributes: Record<string, string | number> = {};
+
+  // `ai` >= 7 forbids system messages in `messages`/`prompt` and exposes the system prompt as a
+  // separate `instructions` field. The OTel path lifts the system message out of the prompt into
+  // `gen_ai.system_instructions` as `[{ type: 'text', content }]`; mirror that shape here.
+  const instructions = asString(event.instructions);
+  if (instructions !== undefined) {
+    attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE] = safeStringify([{ type: 'text', content: instructions }]);
+  }
+
   // The AI SDK start events extend `StandardizedPrompt`; messages live on `messages`, otherwise the
   // simpler `prompt` field is used.
   const messages = event.messages ?? event.prompt;
-  if (messages === undefined) {
-    return {};
-  }
-  return {
-    [GEN_AI_INPUT_MESSAGES]: enableTruncation ? getTruncatedJsonString(messages) : safeStringify(messages),
+  if (messages !== undefined) {
+    attributes[GEN_AI_INPUT_MESSAGES] = enableTruncation ? getTruncatedJsonString(messages) : safeStringify(messages);
     // The original (pre-truncation) message count, so the product can show how many were dropped.
-    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: Array.isArray(messages) ? messages.length : 1,
-  };
+    attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE] = Array.isArray(messages) ? messages.length : 1;
+  }
+
+  return attributes;
 }
 
 function asString(value: unknown): string | undefined {

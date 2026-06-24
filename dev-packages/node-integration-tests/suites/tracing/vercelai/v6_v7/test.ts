@@ -1,6 +1,7 @@
 import { NODE_VERSION, type Event } from '@sentry/node';
 import { afterAll, describe, expect } from 'vitest';
 import {
+  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
@@ -8,6 +9,7 @@ import {
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
   GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
   GEN_AI_TOOL_INPUT_ATTRIBUTE,
@@ -15,15 +17,16 @@ import {
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
   GEN_AI_TOOL_TYPE_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
 
 describe.each([
-  ['6', { VERCEL_AI_VERSION: '6' }, '^6.0.0'],
-  ['7', { VERCEL_AI_VERSION: '7' }, '7.0.0-beta.179'],
-])('Vercel AI integration (version %s, env: %o)', (version, env: Record<string, string>, vercelAiVersion: string) => {
+  ['6', '^6.0.0'],
+  ['7', '7.0.0-beta.179'],
+])('Vercel AI integration (version %s)', (version, vercelAiVersion) => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -32,6 +35,10 @@ describe.each([
   // This fails on Node 18 only, as newer versions of ESM support require
   const nodeVersion = NODE_VERSION.major;
   const failsOnCjs = version === '7' && nodeVersion === 18;
+
+  // v6 is instrumented via the OTel processor, v7 via the `ai:telemetry` tracing-channel subscriber,
+  // so the span origin differs by version.
+  const expectedOrigin = version === '7' ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
 
   // We only run this in ESM and CJS to verify full support
   // Other suites we only run in ESM to simplify the test setup
@@ -42,10 +49,13 @@ describe.each([
     (createRunner, test) => {
       test('creates ai spans for dataCollection defaults', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
               expect(container.items).toHaveLength(7);
               const firstInvokeAgentSpan = container.items.find(
                 span =>
@@ -164,10 +174,13 @@ describe.each([
     (createRunner, test) => {
       test('creates ai spans when dataCollection.genAi has inputs and outputs disabled', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
               expect(container.items).toHaveLength(7);
               const firstInvokeAgentSpan = container.items.find(
                 span =>
@@ -287,7 +300,6 @@ describe.each([
         let errorEvent: Event | undefined;
 
         await createRunner()
-          .withEnv(env)
           .expect({
             transaction: transaction => {
               transactionEvent = transaction;
@@ -295,6 +307,10 @@ describe.each([
           })
           .expect({
             span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
               expect(container.items).toHaveLength(3);
               const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent')!;
               expect(invokeAgentSpan).toBeDefined();
@@ -353,10 +369,13 @@ describe.each([
     (createRunner, test) => {
       test('creates ai related spans', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
               expect(container.items).toHaveLength(7);
               const invokeAgentSpans = container.items.filter(
                 span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
@@ -392,10 +411,13 @@ describe.each([
     (createRunner, test) => {
       test('creates spans for ToolLoopAgent with tool calls', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
               expect(container.items).toHaveLength(4);
               const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent weather_agent')!;
               expect(invokeAgentSpan).toBeDefined();
@@ -452,10 +474,13 @@ describe.each([
     (createRunner, test) => {
       test('parents concurrent calls that share one model instance correctly', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
               const invokeAgents = container.items.filter(
                 span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
               );
@@ -497,10 +522,13 @@ describe.each([
     (createRunner, test) => {
       test('creates streamText spans with the model call parented to invoke_agent', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
               const invokeAgent = container.items.find(
                 span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
               )!;
@@ -533,10 +561,13 @@ describe.each([
     (createRunner, test) => {
       test('finishes spans with an error status when the operation rejects', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
               // The model throws, so the operation rejects. The spans must still be *finished* (and
               // therefore present in the transaction) with an error status — not left open.
               const invokeAgent = container.items.find(
@@ -550,6 +581,57 @@ describe.each([
               )!;
               expect(generateContent).toBeDefined();
               expect(generateContent.status).toBe('error');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-provider-metadata.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('derives provider-metadata token breakdown, conversation id and system instructions', async () => {
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
+              const generateContent = container.items.find(
+                span => span.attributes?.['sentry.op']?.value === 'gen_ai.generate_content',
+              )!;
+              expect(generateContent).toBeDefined();
+
+              // Cache/reasoning token breakdown and conversation id are derived from the model's
+              // `providerMetadata` — by the OTel processor on v6 and by the channel subscriber on v7,
+              // both via the shared `getProviderMetadataAttributes` helper, so the shape is identical.
+              expect(generateContent.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE]?.value).toBe(5);
+              expect(generateContent.attributes?.['gen_ai.usage.output_tokens.reasoning']?.value).toBe(7);
+              expect(generateContent.attributes?.[GEN_AI_CONVERSATION_ID_ATTRIBUTE]?.value).toBe('resp_abc123');
+
+              const invokeAgent = container.items.find(
+                span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
+              )!;
+              expect(invokeAgent).toBeDefined();
+
+              // The system prompt is supplied via the v7-only `instructions` option. Only the channel
+              // instrumentation surfaces it (as `gen_ai.system_instructions`); v6 has no such option.
+              if (version === '7') {
+                const expected = '[{"type":"text","content":"You are a helpful assistant."}]';
+                expect(invokeAgent.attributes?.[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]?.value).toBe(expected);
+                expect(generateContent.attributes?.[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]?.value).toBe(expected);
+              }
             },
           })
           .start()
