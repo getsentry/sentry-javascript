@@ -7,7 +7,7 @@ import { getHttpRequestData, WINDOW } from '../helpers';
  */
 export const httpContextIntegration = defineIntegration(() => {
   return {
-    name: 'HttpContext',
+    name: 'HttpContext' as const,
     preprocessEvent(event) {
       // if none of the information we want exists, don't bother
       if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {

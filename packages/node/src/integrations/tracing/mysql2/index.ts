@@ -3,7 +3,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 
-const INTEGRATION_NAME = 'Mysql2';
+const INTEGRATION_NAME = 'Mysql2' as const;
 
 export const instrumentMysql2 = generateInstrumentOnce(INTEGRATION_NAME, () => new MySQL2Instrumentation());
 

@@ -5,7 +5,7 @@ const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 const DEFAULT_LINES_OF_CONTEXT = 7;
 
-const INTEGRATION_NAME = 'ContextLines';
+const INTEGRATION_NAME = 'ContextLines' as const;
 
 // TODO(v11): Use `dataCollection.frameContextLines` default (5)
 interface ContextLinesOptions {

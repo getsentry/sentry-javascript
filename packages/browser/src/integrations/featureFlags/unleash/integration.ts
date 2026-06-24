@@ -39,7 +39,7 @@ type UnleashIntegrationOptions = {
 export const unleashIntegration = defineIntegration(
   ({ featureFlagClientClass: unleashClientClass }: UnleashIntegrationOptions) => {
     return {
-      name: 'Unleash',
+      name: 'Unleash' as const,
 
       setupOnce() {
         const unleashClientPrototype = unleashClientClass.prototype as UnleashClient;

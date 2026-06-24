@@ -28,7 +28,7 @@ import {
 import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../debug-build';
 
-const INTEGRATION_NAME = 'PostgresJs';
+const INTEGRATION_NAME = 'PostgresJs' as const;
 const SUPPORTED_VERSIONS = ['>=3.0.0 <4'];
 const SQL_OPERATION_REGEX = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i;
 

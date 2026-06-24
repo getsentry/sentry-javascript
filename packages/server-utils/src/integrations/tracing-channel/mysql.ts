@@ -15,7 +15,7 @@ import { CHANNELS } from '../../orchestrion/channels';
 
 // NOTE: this uses the same name as the OTel integration by design.
 // When enabled, OTel 'Mysql' integration is omitted from the default set.
-const INTEGRATION_NAME = 'Mysql';
+const INTEGRATION_NAME = 'Mysql' as const;
 
 // OpenTelemetry "OLD" db/net semantic-conventions. We inline them rather than
 // importing `@opentelemetry/semantic-conventions` to keep this integration's

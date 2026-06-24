@@ -7,7 +7,7 @@ type ModuleInfo = Record<string, string>;
 
 let moduleCache: ModuleInfo | undefined;
 
-const INTEGRATION_NAME = 'Modules';
+const INTEGRATION_NAME = 'Modules' as const;
 
 declare const __SENTRY_SERVER_MODULES__: Record<string, string>;
 

@@ -10,7 +10,7 @@ import { spanIsSampled } from '../utils/spanUtils';
 
 export const spanStreamingIntegration = defineIntegration(() => {
   return {
-    name: 'SpanStreaming',
+    name: 'SpanStreaming' as const,
 
     setup(client) {
       const initialMessage = 'SpanStreaming integration requires';

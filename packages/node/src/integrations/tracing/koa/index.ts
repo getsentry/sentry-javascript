@@ -11,7 +11,7 @@ interface KoaOptions {
   ignoreLayersType?: Array<'middleware' | 'router'>;
 }
 
-const INTEGRATION_NAME = 'Koa';
+const INTEGRATION_NAME = 'Koa' as const;
 
 export const instrumentKoa = generateInstrumentOnce(
   INTEGRATION_NAME,

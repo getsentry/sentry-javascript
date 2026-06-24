@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { getCurrentScope } from '../../src/currentScopes';
-import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
+import {
+  addIntegration,
+  extendIntegration,
+  getIntegrationsToSetup,
+  installedIntegrations,
+  setupIntegration,
+} from '../../src/integration';
 import { setCurrentClient } from '../../src/sdk';
 import type { Integration } from '../../src/types/integration';
 import type { CoreOptions } from '../../src/types/options';
@@ -681,5 +687,172 @@ describe('addIntegration', () => {
     expect(integration2.afterAllSetup).toHaveBeenCalledTimes(0);
 
     expect(logs).toHaveBeenCalledWith('Integration skipped because it was already installed: test');
+  });
+});
+
+describe('extendIntegration', () => {
+  it('merges static (non-function) properties, with the extension taking precedence', () => {
+    const base = { name: 'Base', version: 1, baseOnly: 'a' };
+    const result = extendIntegration(base, { name: 'Extended', version: 2, extendedOnly: 'b' });
+
+    expect(result.name).toBe('Extended');
+    expect(result.version).toBe(2);
+    expect(result.baseOnly).toBe('a');
+    expect(result.extendedOnly).toBe('b');
+  });
+
+  it('returns a new object without mutating either input', () => {
+    const baseSetupOnce = vi.fn();
+    const extension = { setupOnce: vi.fn() };
+    const base = { name: 'Base', setupOnce: baseSetupOnce };
+
+    const result = extendIntegration(base, extension);
+
+    expect(result).not.toBe(base);
+    expect(base.setupOnce).toBe(baseSetupOnce);
+    expect(result.setupOnce).not.toBe(baseSetupOnce);
+    expect(result.setupOnce).not.toBe(extension.setupOnce);
+  });
+
+  it('wraps a method present on both so the base runs before the extension', () => {
+    const calls: string[] = [];
+    const base = {
+      name: 'Base',
+      setupOnce: () => {
+        calls.push('base');
+      },
+    };
+
+    const result = extendIntegration(base, {
+      setupOnce: () => {
+        calls.push('extended');
+      },
+    });
+
+    result.setupOnce();
+
+    expect(calls).toEqual(['base', 'extended']);
+  });
+
+  it('forwards arguments to both methods and returns the extension method’s value', () => {
+    const baseRun = vi.fn();
+    const extendedRun = vi.fn().mockReturnValue('extended-result');
+    const base = { name: 'Base', run: baseRun };
+
+    const result = extendIntegration(base, { run: extendedRun });
+
+    const returnValue = result.run('arg', 42);
+
+    expect(baseRun).toHaveBeenCalledWith('arg', 42);
+    expect(extendedRun).toHaveBeenCalledWith('arg', 42);
+    expect(returnValue).toBe('extended-result');
+  });
+
+  it('binds both methods to the merged integration so they see the merged properties', () => {
+    const seenThis: unknown[] = [];
+    const base = {
+      name: 'Base',
+      setupOnce(this: unknown) {
+        seenThis.push(this);
+      },
+    };
+
+    const result = extendIntegration(base, {
+      extra: 'value',
+      setupOnce(this: unknown) {
+        seenThis.push(this);
+      },
+    });
+
+    result.setupOnce();
+
+    const [baseThis, extendedThis] = seenThis;
+    expect(baseThis).toBe(result);
+    expect(extendedThis).toBe(result);
+    // The base method can reach extension-provided properties through `this`.
+    expect((baseThis as { extra?: string }).extra).toBe('value');
+  });
+
+  it('always runs the base before the extension even when the wrapped method is called detached', () => {
+    const calls: string[] = [];
+    const base = {
+      name: 'Base',
+      setupOnce: () => {
+        calls.push('base');
+      },
+    };
+
+    const result = extendIntegration(base, {
+      setupOnce: () => {
+        calls.push('extended');
+      },
+    });
+
+    const detached = result.setupOnce;
+    detached();
+
+    expect(calls).toEqual(['base', 'extended']);
+  });
+
+  it('uses the extension method as-is (not wrapped) when the base has no method of that name', () => {
+    const extendedSetupOnce = vi.fn();
+    const base = { name: 'Base' };
+
+    const result = extendIntegration(base, { setupOnce: extendedSetupOnce });
+
+    expect(result.setupOnce).toBe(extendedSetupOnce);
+
+    result.setupOnce();
+    expect(extendedSetupOnce).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves base-only methods untouched and callable', () => {
+    const baseRun = vi.fn();
+    const base = { name: 'Base', run: baseRun };
+
+    const result = extendIntegration(base, { setupOnce: vi.fn() });
+
+    // Not present on the extension, so it is the original reference, not a wrapper.
+    expect(result.run).toBe(baseRun);
+    result.run();
+    expect(baseRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets the extension overwrite a base method with a non-function value (no wrapping, base not called)', () => {
+    const baseHook = vi.fn();
+    const result = extendIntegration(
+      { name: 'Base', hook: baseHook } as unknown as Integration,
+      { hook: 'replaced' } as unknown as Partial<Integration>,
+    );
+
+    expect((result as unknown as { hook: unknown }).hook).toBe('replaced');
+    expect(baseHook).not.toHaveBeenCalled();
+  });
+
+  it('wraps every shared method independently', () => {
+    const order: string[] = [];
+    const base = {
+      name: 'Base',
+      setupOnce: () => {
+        order.push('base:setupOnce');
+      },
+      teardown: () => {
+        order.push('base:teardown');
+      },
+    };
+
+    const result = extendIntegration(base, {
+      setupOnce: () => {
+        order.push('ext:setupOnce');
+      },
+      teardown: () => {
+        order.push('ext:teardown');
+      },
+    });
+
+    result.setupOnce();
+    result.teardown();
+
+    expect(order).toEqual(['base:setupOnce', 'ext:setupOnce', 'base:teardown', 'ext:teardown']);
   });
 });

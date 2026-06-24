@@ -1,1 +1,1 @@
-export const INTEGRATION_NAME = 'VercelAI';
+export const INTEGRATION_NAME = 'VercelAI' as const;

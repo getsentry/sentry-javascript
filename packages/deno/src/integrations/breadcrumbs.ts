@@ -25,7 +25,7 @@ interface BreadcrumbsOptions {
   sentry: boolean;
 }
 
-const INTEGRATION_NAME = 'Breadcrumbs';
+const INTEGRATION_NAME = 'Breadcrumbs' as const;
 
 /**
  * Note: This `breadcrumbsIntegration` is almost the same as the one from @sentry/browser.

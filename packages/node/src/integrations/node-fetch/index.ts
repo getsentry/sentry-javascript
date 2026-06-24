@@ -74,7 +74,7 @@ const instrumentSentryNodeFetch = generateInstrumentOnce(
 
 const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   return {
-    name: 'NodeFetch',
+    name: 'NodeFetch' as const,
     setupOnce() {
       const instrumentSpans = _shouldInstrumentSpans(options, getClient<NodeClient>()?.getOptions());
 

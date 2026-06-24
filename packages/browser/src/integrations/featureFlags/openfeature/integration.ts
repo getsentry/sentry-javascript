@@ -24,7 +24,7 @@ import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureH
 
 export const openFeatureIntegration = defineIntegration(() => {
   return {
-    name: 'OpenFeature',
+    name: 'OpenFeature' as const,
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
       return _INTERNAL_copyFlagsFromScopeToEvent(event);

@@ -13,7 +13,7 @@ export const openFeatureIntegrationShim = defineIntegration((_options?: unknown)
   }
 
   return {
-    name: 'OpenFeature',
+    name: 'OpenFeature' as const,
   };
 });
 

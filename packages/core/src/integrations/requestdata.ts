@@ -28,7 +28,7 @@ type RequestDataIntegrationOptions = {
   include?: RequestDataIncludeOptions;
 };
 
-const INTEGRATION_NAME = 'RequestData';
+const INTEGRATION_NAME = 'RequestData' as const;
 
 const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) => {
   // Per spec, integration-level options override global dataCollection.
