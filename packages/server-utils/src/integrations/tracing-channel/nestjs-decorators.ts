@@ -10,11 +10,7 @@ import {
   startSpanManual,
   withActiveSpan,
 } from '@sentry/core';
-
-/**
- * A function of unknown signature.
- */
-export type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
+import type { AnyFn } from './nestjs-shared';
 
 const OP_MIDDLEWARE = 'middleware.nestjs';
 const ORIGIN_MIDDLEWARE = 'auto.middleware.nestjs';
@@ -221,7 +217,7 @@ export function patchInjectableTarget(target: InjectableTarget, seenContexts: We
         return startSpanManual(getMiddlewareSpanOptions(target), (span: Span) => {
           const nextProxy = getNextProxy(next as AnyFn, span, prevSpan);
           const rest = (argsUse as unknown[]).slice(3);
-          return originalUse.apply(thisArgUse, [req, res, nextProxy, rest]);
+          return originalUse.apply(thisArgUse, [req, res, nextProxy, ...rest]);
         });
       },
     });
