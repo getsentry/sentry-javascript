@@ -176,8 +176,6 @@ describe('bindTracingChannelToSpan', () => {
   });
 
   describe('auto lifecycle ending strategy', () => {
-    const MECHANISM = { mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false } };
-
     // Returns a channel whose span we can observe, plus spies for `span.end` and `captureException`.
     function setup(name: string): {
       channel: ReturnType<typeof bindTracingChannelToSpan>['channel'];
@@ -205,7 +203,7 @@ describe('bindTracingChannelToSpan', () => {
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
-    it('traceSync throw: ends the span once on `end`, sets error status, captures the exception', () => {
+    it('traceSync throw: ends the span once on `end`, sets error status, does not capture by default', () => {
       const { channel, span, endSpy, captureExceptionSpy } = setup('test:lifecycle:sync-throw');
       const error = new Error('sync-throw');
 
@@ -220,8 +218,7 @@ describe('bindTracingChannelToSpan', () => {
 
       expect(endSpy).toHaveBeenCalledTimes(1);
       expect(spanToJSON(span).status).toBe('sync-throw');
-      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(error, MECHANISM);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
     it('traceSync throw of a falsy value: still ends the span once on `end`', () => {
@@ -243,8 +240,7 @@ describe('bindTracingChannelToSpan', () => {
       // though the thrown value is falsy, the `error` key is present on the context object.
       expect(threw).toBe(true);
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(0, MECHANISM);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
     it('tracePromise resolve: ends the span once on `asyncEnd`, not on the early synchronous `end`', async () => {
@@ -271,7 +267,7 @@ describe('bindTracingChannelToSpan', () => {
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
-    it('tracePromise reject: ends the span once on `asyncEnd`, sets error status, captures the exception', async () => {
+    it('tracePromise reject: ends the span once on `asyncEnd`, sets error status, does not capture by default', async () => {
       const { channel, span, endSpy, captureExceptionSpy } = setup('test:lifecycle:promise-reject');
       const error = new Error('async-reject');
 
@@ -291,8 +287,7 @@ describe('bindTracingChannelToSpan', () => {
 
       expect(endSpy).toHaveBeenCalledTimes(1);
       expect(spanToJSON(span).status).toBe('async-reject');
-      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(error, MECHANISM);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
     it('tracePromise with a synchronous throw: ends the span once on `end` (no async events follow)', () => {
@@ -310,8 +305,7 @@ describe('bindTracingChannelToSpan', () => {
 
       expect(endSpy).toHaveBeenCalledTimes(1);
       expect(spanToJSON(span).status).toBe('promise-sync-throw');
-      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(error, MECHANISM);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
     it('traceCallback success: ends the span once on `asyncEnd`', async () => {
@@ -335,7 +329,7 @@ describe('bindTracingChannelToSpan', () => {
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
-    it('traceCallback error: ends the span once on `asyncEnd`, sets error status, captures the exception', async () => {
+    it('traceCallback error: ends the span once on `asyncEnd`, sets error status, does not capture by default', async () => {
       const { channel, span, endSpy, captureExceptionSpy } = setup('test:lifecycle:callback-error');
       const error = new Error('callback-error');
 
@@ -353,8 +347,7 @@ describe('bindTracingChannelToSpan', () => {
 
       expect(endSpy).toHaveBeenCalledTimes(1);
       expect(spanToJSON(span).status).toBe('callback-error');
-      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(error, MECHANISM);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
     it('traceCallback with a synchronous throw: ends the span once on `end` (no async events follow)', () => {
@@ -375,8 +368,7 @@ describe('bindTracingChannelToSpan', () => {
 
       expect(endSpy).toHaveBeenCalledTimes(1);
       expect(spanToJSON(span).status).toBe('callback-sync-throw');
-      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(error, MECHANISM);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -435,6 +427,67 @@ describe('bindTracingChannelToSpan', () => {
         mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false },
       });
       expect(spanToJSON(span).status).toBe('boom');
+    });
+
+    it('captures the exception on the synchronous error path when `captureError` is true', () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+
+      const span = startInactiveSpan({ name: 'channel-span' });
+      const error = new Error('sync-boom');
+      const { channel } = bindTracingChannelToSpan(
+        tracingChannel<{ operation: string }>('test:captureError:true-sync'),
+        () => span,
+        { captureError: true },
+      );
+
+      expect(() =>
+        channel.traceSync(
+          () => {
+            throw error;
+          },
+          { operation: 'read' },
+        ),
+      ).toThrow(error);
+
+      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+        mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false },
+      });
+      expect(spanToJSON(span).status).toBe('sync-boom');
+    });
+
+    it('captures the exception on the callback error path when `captureError` is true', async () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+
+      const span = startInactiveSpan({ name: 'channel-span' });
+      const error = new Error('callback-boom');
+      const { channel } = bindTracingChannelToSpan(
+        tracingChannel<{ operation: string }>('test:captureError:true-callback'),
+        () => span,
+        { captureError: true },
+      );
+
+      await new Promise<void>(done => {
+        channel.traceCallback(
+          (cb: (err: Error | null, result?: string) => void) => {
+            setTimeout(() => cb(error), 1);
+          },
+          0,
+          { operation: 'read' },
+          undefined,
+          () => done(),
+        );
+      });
+
+      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+        mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false },
+      });
+      expect(spanToJSON(span).status).toBe('callback-boom');
     });
 
     it('captures the exception with the hint returned by a `captureError` function, passing it the thrown error', async () => {

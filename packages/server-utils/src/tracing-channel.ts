@@ -27,9 +27,10 @@ export interface TracingChannelLifeCycleOptions<TData extends object = object> {
   beforeSpanEnd?: (span: Span, data: TracingChannelPayloadWithSpan<TData>) => void;
 
   /**
-   * Whether a thrown error is captured as a Sentry event. The span is always marked with error status regardless. Defaults to `true`.
+   * Whether a thrown error is captured as a Sentry event. The span is always marked with error status regardless. Defaults to `false`.
    * You can alternatively pass a function that sets the ExclusiveEventHintOrCaptureContext on the captured error.
-   * Set `false` for instrumentation that only annotates the span and lets the error be captured at the boundary that owns it (e.g. db spans).
+   * Set `true` for instrumentations that own the error boundary, (e.g: route handlers)
+   * For database drivers, it is not recommended to set this at all.
    */
   captureError?: boolean | ((e: unknown) => ExclusiveEventHintOrCaptureContext);
 }
@@ -98,7 +99,7 @@ export function bindTracingChannelToSpan<TData extends object>(
         return;
       }
 
-      if (opts?.captureError !== false) {
+      if (opts?.captureError) {
         captureException(data.error, getErrorHint(data.error));
       }
 
