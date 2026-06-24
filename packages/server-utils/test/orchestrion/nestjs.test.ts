@@ -5,6 +5,7 @@ import {
   _INTERNAL_setSpanForScope,
   Client,
   createTransport,
+  getActiveSpan,
   getCurrentScope,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
@@ -171,5 +172,146 @@ describe('nestjsChannelIntegration: app_creation', () => {
     expect(json.data['nestjs.version']).toBeUndefined();
     expect(json.data['nestjs.module']).toBeUndefined();
     expect(json.data['nestjs.type']).toBe('app_creation');
+  });
+});
+
+type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
+
+interface RouterCreateData {
+  arguments: unknown[];
+  moduleVersion?: string;
+  result?: unknown;
+  error?: unknown;
+}
+
+describe('nestjsChannelIntegration: request_context / request_handler', () => {
+  afterEach(() => {
+    setAsyncContextStrategy(undefined);
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+  });
+
+  // Drives `RouterExecutionContext.create` over the channel: the subscriber's
+  // `start` wraps the callback arg, its `end` replaces the returned handler
+  // (mutableResult). `makeHandler` stands in for the real `create` body. Returns
+  // the effective return (post-mutableResult, i.e. `data.result`) and the
+  // wrapped callback (`data.arguments[1]`).
+  function driveCreate(
+    instance: object,
+    callback: AnyFn,
+    moduleVersion: string | undefined,
+    makeHandler: (data: RouterCreateData) => AnyFn,
+  ): { effectiveHandler: AnyFn; wrappedCallback: AnyFn } {
+    const channel = tracingChannel<RouterCreateData>(CHANNELS.NESTJS_ROUTER_CONTEXT);
+    const data: RouterCreateData = { arguments: [instance, callback], moduleVersion };
+    channel.traceSync(() => makeHandler(data), data);
+    return { effectiveHandler: data.result as AnyFn, wrappedCallback: data.arguments[1] as AnyFn };
+  }
+
+  it('opens a request_context span (named Controller.method) with OTel-compatible attributes', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    class CatsController {}
+    const instance = new CatsController();
+    function getCats(): string {
+      return 'cats';
+    }
+
+    let contextSpanJson: ReturnType<typeof spanToJSON> | undefined;
+    const { effectiveHandler } = driveCreate(instance, getCats, '10.4.1', () => {
+      // The per-request handler `create` returns. Capture the active span here:
+      // when invoked it runs inside the request_context span.
+      return function perRequest(): unknown {
+        contextSpanJson = spanToJSON(getActiveSpan()!);
+        return 'ok';
+      };
+    });
+
+    effectiveHandler.call(undefined, {
+      method: 'GET',
+      originalUrl: '/cats?q=1',
+      url: '/cats?q=1',
+      route: { path: '/cats' },
+    });
+
+    expect(contextSpanJson).toBeDefined();
+    expect(contextSpanJson!.description).toBe('CatsController.getCats');
+    expect(contextSpanJson!.op).toBe('request_context.nestjs');
+    expect(contextSpanJson!.origin).toBe('auto.http.otel.nestjs');
+    expect(contextSpanJson!.data).toMatchObject({
+      'component': '@nestjs/core',
+      'nestjs.type': 'request_context',
+      'nestjs.controller': 'CatsController',
+      'nestjs.callback': 'getCats',
+      'nestjs.version': '10.4.1',
+      'http.route': '/cats',
+      'http.method': 'GET',
+      'http.url': '/cats?q=1',
+    });
+  });
+
+  it('wraps the callback arg into a request_handler span, preserving its name', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    class CatsController {}
+    const instance = new CatsController();
+    let handlerSpanJson: ReturnType<typeof spanToJSON> | undefined;
+    function getCats(): string {
+      handlerSpanJson = spanToJSON(getActiveSpan()!);
+      return 'cats';
+    }
+
+    const { wrappedCallback } = driveCreate(instance, getCats, '10.4.1', () => () => undefined);
+
+    // `create`'s callback arg was replaced with a wrapper that preserves `.name`.
+    expect(wrappedCallback).not.toBe(getCats);
+    expect(wrappedCallback.name).toBe('getCats');
+
+    wrappedCallback.call(instance);
+
+    expect(handlerSpanJson).toBeDefined();
+    expect(handlerSpanJson!.description).toBe('getCats');
+    expect(handlerSpanJson!.op).toBe('handler.nestjs');
+    expect(handlerSpanJson!.origin).toBe('auto.http.otel.nestjs');
+    expect(handlerSpanJson!.data).toMatchObject({
+      'component': '@nestjs/core',
+      'nestjs.type': 'handler',
+      'nestjs.callback': 'getCats',
+      'nestjs.version': '10.4.1',
+    });
+  });
+
+  it('nests the request_handler span under the request_context span', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    class CatsController {}
+    const instance = new CatsController();
+    let contextSpanId: string | undefined;
+    let handlerParentSpanId: string | undefined;
+    function getCats(): string {
+      handlerParentSpanId = spanToJSON(getActiveSpan()!).parent_span_id;
+      return 'cats';
+    }
+
+    // The per-request handler calls the (wrapped) callback, like the real one.
+    const { effectiveHandler } = driveCreate(instance, getCats, undefined, data => {
+      return function perRequest(this: unknown): unknown {
+        contextSpanId = getActiveSpan()!.spanContext().spanId;
+        return (data.arguments[1] as AnyFn).call(instance);
+      };
+    });
+
+    effectiveHandler.call(undefined, { method: 'GET', route: { path: '/cats' } });
+
+    expect(contextSpanId).toBeDefined();
+    expect(handlerParentSpanId).toBe(contextSpanId);
   });
 });

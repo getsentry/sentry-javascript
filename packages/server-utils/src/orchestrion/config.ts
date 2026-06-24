@@ -43,6 +43,19 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
     module: { name: '@nestjs/core', versionRange: '>=8.0.0 <12', filePath: 'nest-factory.js' },
     functionQuery: { className: 'NestFactoryStatic', methodName: 'create', kind: 'Async' },
   },
+  {
+    // `@nestjs/core/router/router-execution-context.js` exports
+    // `class RouterExecutionContext` with a synchronous `create(instance,
+    // callback, ...)` that RETURNS the per-request handler. The subscriber
+    // wraps the `callback` arg (-> one handler span) and, via
+    // `mutableResult: true`, replaces the returned handler
+    // (-> request_context span). So `kind: 'Sync'` + `mutableResult: true`.
+    // Mirrors vendored `@opentelemetry/instrumentation-nestjs-core`
+    // `RouterExecutionContext.create` wrap.
+    channelName: 'routerExecutionContextCreate',
+    module: { name: '@nestjs/core', versionRange: '>=8.0.0 <12', filePath: 'router/router-execution-context.js' },
+    functionQuery: { className: 'RouterExecutionContext', methodName: 'create', kind: 'Sync', mutableResult: true },
+  },
 ];
 
 /**
