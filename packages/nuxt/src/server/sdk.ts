@@ -15,7 +15,6 @@ import {
   init as initNode,
   type NodeOptions,
 } from '@sentry/node';
-import { isCjs } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { SentryNuxtServerOptions } from '../common/types';
 
@@ -25,7 +24,15 @@ import type { SentryNuxtServerOptions } from '../common/types';
  * @param options Configuration options for the SDK.
  */
 export function init(options: SentryNuxtServerOptions): Client | undefined {
-  const envFallback = !isCjs() && import.meta.dev ? DEV_ENVIRONMENT : DEFAULT_ENVIRONMENT;
+  let envFallback: string;
+  /*! rollup-include-cjs-only */
+  envFallback = DEFAULT_ENVIRONMENT;
+  /*! rollup-include-cjs-only-end */
+
+  /*! rollup-include-esm-only */
+  envFallback = DEV_ENVIRONMENT;
+  /*! rollup-include-esm-only-end */
+
   const sentryOptions = {
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
     defaultIntegrations: getNuxtDefaultIntegrations(options),

@@ -34,7 +34,6 @@ export { getSentryRelease, defaultStackParser } from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
 export { addOriginToSpan } from './utils/addOriginToSpan';
 export { initializeEsmLoader } from './sdk/esmLoader';
-export { isCjs } from './utils/detection';
 export { createMissingInstrumentationContext } from './utils/createMissingInstrumentationContext';
 export { makeNodeTransport, type NodeTransportOptions } from './transports';
 export type { HTTPModuleRequestIncomingMessage } from './transports/http-module';

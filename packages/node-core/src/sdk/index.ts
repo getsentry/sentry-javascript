@@ -38,7 +38,6 @@ import { consoleIntegration } from '../integrations/console';
 import { systemErrorIntegration } from '../integrations/systemError';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
-import { isCjs } from '../utils/detection';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
@@ -135,7 +134,12 @@ function _init(
 
   client.init();
 
-  debug.log(`SDK initialized from ${isCjs() ? 'CommonJS' : 'ESM'}`);
+  /*! rollup-include-cjs-only */
+  debug.log(`SDK initialized from CommonJS`);
+  /*! rollup-include-cjs-only-end */
+  /*! rollup-include-esm-only */
+  debug.log(`SDK initialized from ESM`);
+  /*! rollup-include-esm-only-end */
 
   client.startClientReportTracking();
 
