@@ -24,7 +24,7 @@ export interface TracingChannelBinding {
   asyncLocalStorage: unknown;
 
   /**
-   * Activates a span for the tracing channels nested invocations, the return value wi
+   * Activates a span for the tracing channels nested invocations, the return value must be the same type as the `asyncLocalStorage` inner value.
    */
   getStoreWithActiveSpan: (span: Span) => unknown;
 }
