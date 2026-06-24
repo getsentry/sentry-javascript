@@ -4,6 +4,8 @@ export {
   getCapturedScopesOnSpan,
   markSpanForOtelSourceInference,
   spanShouldInferOtelSource,
+  markSpanSourceAsExplicit,
+  spanSourceWasExplicitlySet,
 } from './utils';
 export { startIdleSpan, TRACING_DEFAULTS } from './idleSpan';
 export { SentrySpan } from './sentrySpan';

@@ -6,6 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanShouldInferOtelSource,
+  spanSourceWasExplicitlySet,
   spanToJSON,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
@@ -32,8 +33,13 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
   const kind = (span as SentrySpanWithOtelKind).kind ?? SpanKind.INTERNAL;
   const mayInferSource = spanShouldInferOtelSource(span);
   const hasCustomSpanName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME] !== undefined;
+  // We may only infer the source/name when the span is OTel-branded and user code hasn't already
+  // chosen them: either via `updateSpanName` (which sets `sentry.custom_span_name`) or by explicitly
+  // setting `sentry.source`. Without the explicit-source check we couldn't tell a user-set `custom`
+  // apart from the default `custom` stamped on every root span at span start, and would override it.
+  const canInferSource = mayInferSource && !hasCustomSpanName && !spanSourceWasExplicitlySet(span);
   const attributesForInference =
-    mayInferSource && !hasCustomSpanName && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom'
+    canInferSource && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom'
       ? { ...attributes, [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: undefined }
       : attributes;
   const inferred = inferSpanData(spanJSON.description || '<unknown>', attributesForInference, kind);
@@ -61,10 +67,7 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
     (options.finalizeStatus || inferred.source !== 'url') &&
     (spanJSON.parent_span_id === undefined || kind === SpanKind.SERVER);
 
-  if (
-    shouldApplyInferredSource &&
-    (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === undefined || (mayInferSource && !hasCustomSpanName))
-  ) {
+  if (shouldApplyInferredSource && (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === undefined || canInferSource)) {
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, inferred.source);
   }
 
@@ -83,7 +86,7 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
 
   if (
     inferred.description !== spanJSON.description &&
-    (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom' || (mayInferSource && !hasCustomSpanName))
+    (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom' || canInferSource)
   ) {
     span.updateName(inferred.description);
   }
