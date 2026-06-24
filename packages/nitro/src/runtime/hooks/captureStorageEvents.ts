@@ -6,7 +6,6 @@ import {
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_OK,
   startInactiveSpan,
 } from '@sentry/core';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
@@ -75,14 +74,14 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
     },
     {
       beforeSpanEnd(span, data) {
-        // Auto-capture + error status is handled by the binding; only enrich the success path.
+        // Error status is set by the binding; the error itself is captured at the request boundary,
+        // not here (cache ops aren't an error boundary). Only enrich the success path.
         if (!('error' in data)) {
           const result = (data as { result?: unknown }).result;
           if (CACHE_HIT_OPERATIONS.has(operation)) {
             const hit = operation === 'hasItem' ? Boolean(result) : isCacheHit(data.keys?.[0], result);
             span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, hit);
           }
-          span.setStatus({ code: SPAN_STATUS_OK });
         }
 
         void flushIfServerless();
