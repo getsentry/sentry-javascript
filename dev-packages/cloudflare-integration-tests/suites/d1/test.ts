@@ -21,7 +21,7 @@ it('instruments D1 prepare().all() automatically via env', async ({ signal }) =>
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect((envelope: Envelope) => {
-      if (envelopeItemType(envelope) !== 'transaction') return;
+      expect(envelopeItemType(envelope)).toBe('transaction');
       const d1Spans = findD1Spans(envelope);
       expect(d1Spans.length).toBeGreaterThanOrEqual(1);
 
@@ -100,7 +100,7 @@ it('instruments D1 exec() automatically via env', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect((envelope: Envelope) => {
-      if (envelopeItemType(envelope) !== 'transaction') return;
+      expect(envelopeItemType(envelope)).toBe('transaction');
       const d1Spans = findD1Spans(envelope);
 
       const execSpan = d1Spans.find(
@@ -137,7 +137,7 @@ it('does not double-instrument when instrumentD1WithSentry is used on top of env
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect((envelope: Envelope) => {
-      if (envelopeItemType(envelope) !== 'transaction') return;
+      expect(envelopeItemType(envelope)).toBe('transaction');
       const d1Spans = findD1Spans(envelope);
 
       const querySpans = d1Spans.filter(s => s.description === 'SELECT * FROM users WHERE id = ?');
@@ -195,7 +195,7 @@ it('instruments D1 batch() automatically via env', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect((envelope: Envelope) => {
-      if (envelopeItemType(envelope) !== 'transaction') return;
+      expect(envelopeItemType(envelope)).toBe('transaction');
       const d1Spans = findD1Spans(envelope);
 
       const batchSpan = d1Spans.find(s => s.description === 'D1 batch');
