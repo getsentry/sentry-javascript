@@ -19,13 +19,18 @@ Sentry.startSpanManual(
     name: 'Test Transaction',
   },
   span => {
-    const query = connection.query('SELECT 1 + 1 AS solution');
-    const query2 = connection.query('SELECT NOW()', ['1', '2']);
+    // Query without a callback returns a streamable `Query`. A failing query emits an `error` event
+    // (which sets the span status) followed by `end` (which ends the span).
+    const query = connection.query('SELECT * FROM does_not_exist');
+
+    // Swallow the error so it doesn't crash the process
+    query.on('error', () => {
+      // noop
+    });
 
     query.on('end', () => {
-      query2.on('end', () => {
-        span.end();
-      });
+      span.end();
+      connection.end();
     });
   },
 );
