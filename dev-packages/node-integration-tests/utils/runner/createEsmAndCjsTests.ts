@@ -84,18 +84,10 @@ export function createEsmTests(
   },
 ) {
   const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, options);
-
-  // Track the runners created by this invocation so we can tear down only their resources in
-  // `afterAll` — rather than clearing the global `CLEANUP_STEPS`, which would also kill child
-  // processes, docker containers and mock servers owned by sibling suites in the same worker.
   const createdRunners = new Set<ReturnType<typeof createRunner>>();
-  function trackRunner(runner: ReturnType<typeof createRunner>): ReturnType<typeof createRunner> {
-    createdRunners.add(runner);
-    return runner;
-  }
 
   callback(
-    () => trackRunner(createRunner(paths.esm.scenario).withFlags('--import', paths.esm.instrument)),
+    () => trackRunner(createdRunners, createRunner(paths.esm.scenario).withFlags('--import', paths.esm.instrument)),
     test,
     tmpDirPath,
   );
@@ -124,7 +116,7 @@ export function createCjsTests(
   const createdRunners = new Set<ReturnType<typeof createRunner>>();
 
   callback(
-    () => trackRunner(createdRunners, createRunner(paths.cjs.scenario).withFlags('--import', paths.cjs.instrument)),
+    () => trackRunner(createdRunners, createRunner(paths.cjs.scenario).withFlags('--require', paths.cjs.instrument)),
     test,
     tmpDirPath,
   );
