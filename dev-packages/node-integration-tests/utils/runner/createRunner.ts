@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type {
   ClientReport,
   Envelope,
@@ -15,13 +14,11 @@ import type {
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
-import { exec, execSync, spawn, spawnSync } from 'child_process';
+import { execSync, spawn, spawnSync } from 'child_process';
 import { existsSync } from 'fs';
-import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
-import { basename, join } from 'path';
-import { inspect, promisify } from 'util';
-import { afterAll, beforeAll, describe, test } from 'vitest';
-import type { DeepPartial } from './assertions';
+import { join } from 'path';
+import { inspect } from 'util';
+import type { DeepPartial } from './../assertions';
 import {
   assertEnvelopeHeader,
   assertSentryCheckIn,
@@ -34,70 +31,7 @@ import {
   assertSentrySpanContainer,
   assertSentryTransaction,
   assertSpanEnvelopeHeader,
-} from './assertions';
-
-const execPromise = promisify(exec);
-
-const NPM_INSTALL_MAX_RETRIES = 3;
-const NPM_INSTALL_RETRY_DELAY_MS = 2_000;
-
-async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
-  for (let attempt = 1; attempt <= NPM_INSTALL_MAX_RETRIES; attempt++) {
-    try {
-      const { stdout, stderr } = await execPromise('npm install --prefer-offline --silent --no-audit --no-fund', {
-        cwd,
-        encoding: 'utf8',
-      });
-
-      if (process.env.DEBUG) {
-        // eslint-disable-next-line no-console
-        console.log('[additionalDependencies via npm]', deps.join(' '));
-        // eslint-disable-next-line no-console
-        console.log('[npm stdout]', stdout);
-        // eslint-disable-next-line no-console
-        console.log('[npm stderr]', stderr);
-      }
-      return;
-    } catch (error) {
-      if (attempt < NPM_INSTALL_MAX_RETRIES) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `npm install attempt ${attempt}/${NPM_INSTALL_MAX_RETRIES} failed, retrying in ${NPM_INSTALL_RETRY_DELAY_MS}ms...`,
-        );
-        await new Promise(resolve => setTimeout(resolve, NPM_INSTALL_RETRY_DELAY_MS));
-      } else {
-        throw new Error(
-          `Failed to install additionalDependencies in tmp dir ${cwd} after ${NPM_INSTALL_MAX_RETRIES} attempts: ${error}`,
-        );
-      }
-    }
-  }
-}
-
-const CLEANUP_STEPS = new Set<VoidFunction>();
-
-export function cleanupChildProcesses(): void {
-  for (const step of CLEANUP_STEPS) {
-    step();
-  }
-  CLEANUP_STEPS.clear();
-}
-
-process.on('exit', cleanupChildProcesses);
-
-/** Promise only resolves when fn returns true */
-async function waitFor(fn: () => boolean, timeout = 10_000, message = 'Timed out waiting'): Promise<void> {
-  let remaining = timeout;
-  while (fn() === false) {
-    await new Promise<void>(resolve => setTimeout(resolve, 100));
-    remaining -= 100;
-    if (remaining < 0) {
-      throw new Error(message);
-    }
-  }
-}
-
-type VoidFunction = () => void;
+} from './../assertions';
 
 interface DockerOptions {
   /**
@@ -110,53 +44,7 @@ interface DockerOptions {
   setupCommand?: string;
 }
 
-/**
- * Runs `docker compose up -d --wait`, which blocks until every service's
- * healthcheck reports healthy. Each suite defines its healthcheck in its
- * own docker-compose.yml.
- *
- * Returns a function that can be called to docker compose down
- */
-async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
-  const cwd = join(...options.workingDirectory);
-  const close = (): void => {
-    spawnSync('docker', ['compose', 'down', '--volumes'], {
-      cwd,
-      stdio: process.env.DEBUG ? 'inherit' : undefined,
-    });
-  };
-
-  // ensure we're starting fresh
-  close();
-
-  const result = spawnSync('docker', ['compose', 'up', '-d', '--wait'], {
-    cwd,
-    stdio: process.env.DEBUG ? 'inherit' : 'pipe',
-  });
-
-  if (result.status !== 0) {
-    const stderr = result.stderr?.toString() ?? '';
-    const stdout = result.stdout?.toString() ?? '';
-    // Surface container logs to make healthcheck failures easier to diagnose in CI
-    const logs = spawnSync('docker', ['compose', 'logs'], { cwd }).stdout?.toString() ?? '';
-    close();
-    throw new Error(
-      `docker compose up --wait failed (exit ${result.status})\n${stderr}${stdout}\n--- container logs ---\n${logs}`,
-    );
-  }
-
-  if (options.setupCommand) {
-    try {
-      // Prepend local node_modules/.bin to PATH so additionalDependencies binaries take precedence
-      const env = { ...process.env, PATH: `${cwd}/node_modules/.bin:${process.env.PATH}` };
-      execSync(options.setupCommand, { cwd, stdio: 'inherit', env });
-    } catch (e) {
-      log('Error running docker setup command', e);
-    }
-  }
-
-  return close;
-}
+type VoidFunction = () => void;
 
 type ExpectedEvent = Partial<Event> | ((event: Event) => void);
 type ExpectedTransaction = Partial<TransactionEvent> | ((event: TransactionEvent) => void);
@@ -220,142 +108,13 @@ type StartResult = {
   ): Promise<T | undefined>;
 };
 
-export function createEsmAndCjsTests(
-  cwd: string,
-  scenarioPath: string,
-  instrumentPath: string,
-  callback: (
-    createTestRunner: () => ReturnType<typeof createRunner>,
-    testFn: typeof test | typeof test.fails,
-    mode: 'esm' | 'cjs',
-    cwd: string,
-  ) => void,
-  options?: {
-    failsOnCjs?: boolean;
-    failsOnEsm?: boolean;
-    /**
-     * `additionalDependencies` to install in a tmp dir for the esm and cjs tests
-     * This could be used to override packages that live in the parent package.json for the specific run of the test
-     * e.g. `{ ai: '^5.0.0' }` to test Vercel AI v5
-     */
-    additionalDependencies?: Record<string, string>;
-    /** Copy these files/dirs into the tmp dir. */
-    copyPaths?: string[];
-  },
-): void {
-  const mjsScenarioPath = join(cwd, scenarioPath);
-  const mjsInstrumentPath = join(cwd, instrumentPath);
+const CLEANUP_STEPS = new Set<VoidFunction>();
 
-  if (!mjsScenarioPath.endsWith('.mjs')) {
-    throw new Error(`Scenario path must end with .mjs: ${scenarioPath}`);
+export function cleanupChildProcesses(): void {
+  for (const step of CLEANUP_STEPS) {
+    step();
   }
-
-  if (!existsSync(mjsInstrumentPath)) {
-    throw new Error(`Instrument file not found: ${mjsInstrumentPath}`);
-  }
-
-  // Create a dedicated tmp directory that includes copied ESM & CJS scenario/instrument files.
-  // If additionalDependencies are provided, we also create a nested package.json and install them there.
-  const uniqueId = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-  const tmpDirPath = join(cwd, `tmp_${uniqueId}`);
-  const esmScenarioBasename = basename(scenarioPath);
-  const esmInstrumentBasename = basename(instrumentPath);
-  const esmScenarioPathForRun = join(tmpDirPath, esmScenarioBasename);
-  const esmInstrumentPathForRun = join(tmpDirPath, esmInstrumentBasename);
-  const cjsScenarioPath = join(tmpDirPath, esmScenarioBasename.replace('.mjs', '.cjs'));
-  const cjsInstrumentPath = join(tmpDirPath, esmInstrumentBasename.replace('.mjs', '.cjs'));
-
-  async function createTmpDir(): Promise<void> {
-    await mkdir(tmpDirPath);
-
-    // Copy ESM files as-is into tmp dir
-    await writeFile(esmScenarioPathForRun, await readFile(mjsScenarioPath, 'utf8'));
-    await writeFile(esmInstrumentPathForRun, await readFile(mjsInstrumentPath, 'utf8'));
-
-    // Pre-create CJS converted files inside tmp dir
-    await convertEsmFileToCjs(esmScenarioPathForRun, cjsScenarioPath);
-    await convertEsmFileToCjs(esmInstrumentPathForRun, cjsInstrumentPath);
-
-    // Copy any additional files/dirs into tmp dir
-    if (options?.copyPaths) {
-      for (const path of options.copyPaths) {
-        await cp(join(cwd, path), join(tmpDirPath, path), { recursive: true });
-      }
-    }
-
-    // Create a minimal package.json with requested dependencies (if any) and install them
-    const additionalDependencies = options?.additionalDependencies ?? {};
-    if (Object.keys(additionalDependencies).length > 0) {
-      const packageJson = {
-        name: 'tmp-integration-test',
-        private: true,
-        version: '0.0.0',
-        dependencies: additionalDependencies,
-      } as const;
-
-      await writeFile(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
-
-      const deps = Object.entries(additionalDependencies).map(([name, range]) => {
-        if (!range || typeof range !== 'string') {
-          throw new Error(`Invalid version range for "${name}": ${String(range)}`);
-        }
-        return `${name}@${range}`;
-      });
-
-      if (deps.length > 0) {
-        // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
-        await npmInstallWithRetry(tmpDirPath, deps);
-      }
-    }
-  }
-
-  describe('esm/cjs', () => {
-    const esmTestFn = options?.failsOnEsm ? test.fails : test;
-    describe('esm', () => {
-      callback(
-        () => createRunner(esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun),
-        esmTestFn,
-        'esm',
-        tmpDirPath,
-      );
-    });
-
-    const cjsTestFn = options?.failsOnCjs ? test.fails : test;
-    describe('cjs', () => {
-      callback(
-        () => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath),
-        cjsTestFn,
-        'cjs',
-        tmpDirPath,
-      );
-    });
-
-    // Create tmp directory and install additionalDependencies (with retries)
-    beforeAll(async () => {
-      await createTmpDir();
-    }, 120_000);
-
-    // Clean up the tmp directory after both esm and cjs suites have run
-    afterAll(async () => {
-      // First do cleanup!
-      cleanupChildProcesses();
-
-      try {
-        await rm(tmpDirPath, { recursive: true, force: true });
-      } catch {
-        if (process.env.DEBUG) {
-          // eslint-disable-next-line no-console
-          console.error(`Failed to remove tmp dir: ${tmpDirPath}`);
-        }
-      }
-    }, 30_000);
-  });
-}
-
-async function convertEsmFileToCjs(inputPath: string, outputPath: string): Promise<void> {
-  const cjsFileContent = await readFile(inputPath, 'utf8');
-  const cjsFileContentConverted = convertEsmToCjs(cjsFileContent);
-  return writeFile(outputPath, cjsFileContentConverted);
+  CLEANUP_STEPS.clear();
 }
 
 /** Creates a test runner */
@@ -382,7 +141,24 @@ export function createRunner(...paths: string[]) {
     flags.push('-r', 'ts-node/register');
   }
 
+  // Cleanup steps registered by this specific runner (child process, docker, mock server). They are
+  // also added to the global `CLEANUP_STEPS` so the `process.on('exit')` backstop still covers them,
+  // but tracking them per-runner lets `cleanup()` tear down only this runner's resources.
+  const runnerCleanupSteps = new Set<VoidFunction>();
+  function registerCleanupStep(step: VoidFunction): void {
+    runnerCleanupSteps.add(step);
+    CLEANUP_STEPS.add(step);
+  }
+
   return {
+    /** Run (and de-register) only the cleanup steps registered by this runner. */
+    cleanup: function (): void {
+      for (const step of runnerCleanupSteps) {
+        step();
+        CLEANUP_STEPS.delete(step);
+      }
+      runnerCleanupSteps.clear();
+    },
     expect: function (expected: Expected) {
       if (ensureNoErrorOutput) {
         throw new Error('You should not use `ensureNoErrorOutput` when using `expect`!');
@@ -582,13 +358,13 @@ export function createRunner(...paths: string[]) {
       startup
         .then(([dockerChild, [mockServerPort, mockServerClose]]) => {
           if (mockServerClose) {
-            CLEANUP_STEPS.add(() => {
+            registerCleanupStep(() => {
               mockServerClose();
             });
           }
 
           if (dockerChild) {
-            CLEANUP_STEPS.add(dockerChild);
+            registerCleanupStep(dockerChild);
           }
 
           const env = mockServerPort
@@ -625,7 +401,7 @@ export function createRunner(...paths: string[]) {
             complete(e);
           });
 
-          CLEANUP_STEPS.add(() => {
+          registerCleanupStep(() => {
             child?.kill();
           });
 
@@ -771,6 +547,66 @@ export function createRunner(...paths: string[]) {
   };
 }
 
+/**
+ * Runs `docker compose up -d --wait`, which blocks until every service's
+ * healthcheck reports healthy. Each suite defines its healthcheck in its
+ * own docker-compose.yml.
+ *
+ * Returns a function that can be called to docker compose down
+ */
+async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
+  const cwd = join(...options.workingDirectory);
+  const close = (): void => {
+    spawnSync('docker', ['compose', 'down', '--volumes'], {
+      cwd,
+      stdio: process.env.DEBUG ? 'inherit' : undefined,
+    });
+  };
+
+  // ensure we're starting fresh
+  close();
+
+  const result = spawnSync('docker', ['compose', 'up', '-d', '--wait'], {
+    cwd,
+    stdio: process.env.DEBUG ? 'inherit' : 'pipe',
+  });
+
+  if (result.status !== 0) {
+    const stderr = result.stderr?.toString() ?? '';
+    const stdout = result.stdout?.toString() ?? '';
+    // Surface container logs to make healthcheck failures easier to diagnose in CI
+    const logs = spawnSync('docker', ['compose', 'logs'], { cwd }).stdout?.toString() ?? '';
+    close();
+    throw new Error(
+      `docker compose up --wait failed (exit ${result.status})\n${stderr}${stdout}\n--- container logs ---\n${logs}`,
+    );
+  }
+
+  if (options.setupCommand) {
+    try {
+      // Prepend local node_modules/.bin to PATH so additionalDependencies binaries take precedence
+      const env = { ...process.env, PATH: `${cwd}/node_modules/.bin:${process.env.PATH}` };
+      execSync(options.setupCommand, { cwd, stdio: 'inherit', env });
+    } catch (e) {
+      log('Error running docker setup command', e);
+    }
+  }
+
+  return close;
+}
+
+/** Promise only resolves when fn returns true */
+async function waitFor(fn: () => boolean, timeout = 10_000, message = 'Timed out waiting'): Promise<void> {
+  let remaining = timeout;
+  while (fn() === false) {
+    await new Promise<void>(resolve => setTimeout(resolve, 100));
+    remaining -= 100;
+    if (remaining < 0) {
+      throw new Error(message);
+    }
+  }
+}
+
 function log(...args: unknown[]): void {
   // eslint-disable-next-line no-console
   console.log(...args.map(arg => normalize(arg)));
@@ -783,14 +619,14 @@ function log(...args: unknown[]): void {
  * same `@sentry/node` instance. Otherwise we fall back to `--require
  * auto-flush.cjs`.
  *
- * Node accepts both `--import foo` (two array elements) and `--import=foo`
- * (one element); we have to recognise both, otherwise tests using the
- * `=value` form (e.g. `withFlags('--import=@sentry/node/init')` in
- * `suites/no-code/test.ts`) silently get `auto-flush.cjs` and the flush
- * targets the wrong SDK instance.
+ * Node accepts both `--import foo` (two array elements, e.g. `withInstrument`
+ * or `withFlags('--import', foo)`) and `--import=foo` (one element, e.g.
+ * `withFlags('--import=@sentry/node/init')` in `suites/no-code/test.ts`); we
+ * have to recognise both, otherwise the missed form silently gets
+ * `auto-flush.cjs` and the flush targets the wrong SDK instance.
  */
 function buildAutoFlushFlags(existingFlags: readonly string[]): string[] {
-  const isEsm = existingFlags.some(flag => flag.startsWith('--import='));
+  const isEsm = existingFlags.some(flag => flag === '--import' || flag.startsWith('--import='));
   if (isEsm) {
     return ['--import', join(__dirname, 'auto-flush.mjs')];
   }
@@ -867,38 +703,4 @@ function expectSpanContainer(item: SerializedStreamedSpanContainer, expected: Ex
   } else {
     assertSentrySpanContainer(item, expected);
   }
-}
-
-/**
- * Converts ESM import statements to CommonJS require statements
- * @param content The content of an ESM file
- * @returns The content with require statements instead of imports
- */
-function convertEsmToCjs(content: string): string {
-  let newContent = content;
-
-  // Handle default imports: import x from 'y' -> const x = require('y')
-  newContent = newContent.replace(
-    // eslint-disable-next-line regexp/optimal-quantifier-concatenation, regexp/no-super-linear-backtracking
-    /import\s+([\w*{}\s,]+)\s+from\s+['"]([^'"]+)['"]/g,
-    (_, imports: string, module: string) => {
-      if (imports.includes('* as')) {
-        // Handle namespace imports: import * as x from 'y' -> const x = require('y')
-        return `const ${imports.replace('* as', '').trim()} = require('${module}')`;
-      } else if (imports.includes('{')) {
-        // Handle named imports: import {x, y} from 'z' -> const {x, y} = require('z')
-        return `const ${imports} = require('${module}')`;
-      } else {
-        // Handle default imports: import x from 'y' -> const x = require('y')
-        return `const ${imports} = require('${module}')`;
-      }
-    },
-  );
-
-  // Handle side-effect imports: import 'x' -> require('x')
-  newContent = newContent.replace(/import\s+['"]([^'"]+)['"]/g, (_, module) => {
-    return `require('${module}')`;
-  });
-
-  return newContent;
 }

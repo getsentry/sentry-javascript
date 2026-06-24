@@ -272,6 +272,42 @@ test('should create spans for fs operations that take target argument', async ()
   await runner.completed();
 });
 
+test('should create spans for fs.exists callback and promisified versions', async () => {
+  const runner = createRunner(__dirname, 'server.ts')
+    .expect({
+      transaction: {
+        transaction: 'GET /exists',
+        spans: expect.arrayContaining([
+          expect.objectContaining({
+            description: 'fs.exists',
+            op: 'file',
+            status: 'ok',
+            data: {
+              path_argument: expect.stringMatching('/fixtures/some-file.txt'),
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+            },
+          }),
+          expect.objectContaining({
+            description: 'fs.exists',
+            op: 'file',
+            status: 'ok',
+            data: {
+              path_argument: expect.stringMatching('/fixtures/some-file-promisify.txt'),
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+            },
+          }),
+        ]),
+      },
+    })
+    .start();
+
+  const result = await runner.makeRequest('get', '/exists');
+  expect(result).toEqual('done');
+  await runner.completed();
+});
+
 test('records file path but not error messages when only `recordFilePaths` is enabled', async () => {
   const runner = createRunner(__dirname, 'server-record-paths-only.ts')
     .expect({
