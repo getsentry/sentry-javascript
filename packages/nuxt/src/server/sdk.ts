@@ -30,7 +30,7 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
   /*! rollup-include-cjs-only-end */
 
   /*! rollup-include-esm-only */
-  envFallback = DEV_ENVIRONMENT;
+  envFallback = import.meta.dev ? DEV_ENVIRONMENT : DEFAULT_ENVIRONMENT;
   /*! rollup-include-esm-only-end */
 
   const sentryOptions = {
