@@ -14,7 +14,7 @@
 import { describe, expect, it } from 'vitest';
 import { getSqlQuerySummary } from '../../../src/utils/sql';
 
-describe('getSqlQuerySummary (OTel Java instrumentation)', () => {
+describe('getSqlQuerySummary', () => {
   describe('joins', () => {
     it.each([
       ['SELECT * FROM t1 CROSS JOIN t2 CROSS JOIN t3', 'SELECT t1 t2 t3'],
