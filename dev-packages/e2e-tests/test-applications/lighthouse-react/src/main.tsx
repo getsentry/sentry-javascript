@@ -6,7 +6,7 @@ const sentryInitStart = performance.now();
 
 performance.measure('sentry-sdk-pre-init-duration', {
   detail: { mode: import.meta.env.MODE ?? 'unknown_mode' },
-  start: performance.timeOrigin,
+  start: 0,
   end: sentryInitStart,
 });
 
@@ -91,7 +91,7 @@ if (import.meta.env.MODE === 'tracing-replay') {
     integrations: defaultIntegrations =>
       defaultIntegrations.filter(integration => integration.name !== 'BrowserApiErrors'),
   });
-} else if (import.meta.env.MODE === 'no-browser-breadcrumbs') {
+} else if (import.meta.env.MODE === 'no-breadcrumbs') {
   // Default integrations minus Breadcrumbs, which adds a lot of monkey patching to
   // DOM and Network APIs as well as event targets and listeners
   Sentry.init({
