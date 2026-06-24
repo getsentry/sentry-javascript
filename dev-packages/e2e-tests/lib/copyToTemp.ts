@@ -6,6 +6,7 @@ import { isAbsolute, join, resolve } from 'path';
 export async function copyToTemp(originalPath: string, tmpDirPath: string): Promise<void> {
   // copy files to tmp dir
   await cp(originalPath, tmpDirPath, { recursive: true });
+  await cp(join(__dirname, '../.npmrc'), join(tmpDirPath, '.npmrc'));
 
   fixPackageJson(tmpDirPath);
 }
