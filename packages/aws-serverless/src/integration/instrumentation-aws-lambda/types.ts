@@ -16,24 +16,12 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Context as OtelContext, Span } from '@opentelemetry/api';
+import type { Context as OtelContext } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type { Context } from 'aws-lambda';
 
-export type RequestHook = (span: Span, hookInfo: { event: any; context: Context }) => void;
-
-export type ResponseHook = (
-  span: Span,
-  hookInfo: {
-    err?: Error | string | null;
-    res?: any;
-  },
-) => void;
-
 export type EventContextExtractor = (event: any, context: Context) => OtelContext;
 export interface AwsLambdaInstrumentationConfig extends InstrumentationConfig {
-  requestHook?: RequestHook;
-  responseHook?: ResponseHook;
   eventContextExtractor?: EventContextExtractor;
   lambdaHandler?: string;
   lambdaStartTime?: number;

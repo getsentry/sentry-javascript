@@ -25,19 +25,10 @@ import type {
   Attributes,
   Context as OtelContext,
   MeterProvider,
-  Span,
   TextMapGetter,
   TracerProvider,
 } from '@opentelemetry/api';
-import {
-  context as otelContext,
-  diag,
-  propagation,
-  ROOT_CONTEXT,
-  SpanKind,
-  SpanStatusCode,
-  trace,
-} from '@opentelemetry/api';
+import { context as otelContext, diag, propagation, ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
@@ -46,6 +37,15 @@ import {
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 import { CLOUD_ACCOUNT_ID, FAAS_COLDSTART, URL_FULL } from '@sentry/conventions/attributes';
+import type { Span } from '@sentry/core';
+import {
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  withActiveSpan,
+} from '@sentry/core';
+import { captureException } from '@sentry/node';
 import type { APIGatewayProxyEventHeaders, Callback, Context, Handler, StreamifyHandler } from 'aws-lambda';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -53,7 +53,7 @@ import type { LambdaModule } from './internal-types';
 import { ATTR_FAAS_EXECUTION, ATTR_FAAS_ID } from './semconv';
 import type { AwsLambdaInstrumentationConfig, EventContextExtractor } from './types';
 import { wrapHandler } from '../../sdk';
-import { SDK_VERSION } from '@sentry/core';
+import { markEventUnhandled } from '../../utils';
 
 // OpenTelemetry package version was 0.54.0 at time of vendoring.
 const PACKAGE_VERSION = SDK_VERSION;
@@ -271,15 +271,14 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
         _onRequest();
         const parent = plugin._determineParent(event, context);
         const span = plugin._createSpanForRequest(event, context, requestIsColdStart, parent);
-        plugin._applyRequestHook(span, event, context);
 
-        return otelContext.with(trace.setSpan(parent, span), () => {
+        return withActiveSpan(span, () => {
           const maybePromise = safeExecuteInTheMiddle(
             () => original.apply(this, [event, responseStream, context]),
             error => {
               if (error != null) {
                 // Exception thrown synchronously before resolving promise.
-                plugin._applyResponseHook(span, error);
+                plugin._captureError(error);
                 plugin._endSpan(span, error, () => {});
               }
             },
@@ -302,9 +301,8 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
       const parent = plugin._determineParent(event, context);
 
       const span = plugin._createSpanForRequest(event, context, requestIsColdStart, parent);
-      plugin._applyRequestHook(span, event, context);
 
-      return otelContext.with(trace.setSpan(parent, span), () => {
+      return withActiveSpan(span, () => {
         // Lambda seems to pass a callback even if handler is of Promise form, so we wrap all the time before calling
         // the handler and see if the result is a Promise or not. In such a case, the callback is usually ignored. If
         // the handler happened to both call the callback and complete a returned Promise, whichever happens first will
@@ -315,7 +313,7 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
           error => {
             if (error != null) {
               // Exception thrown synchronously before resolving callback / promise.
-              plugin._applyResponseHook(span, error);
+              plugin._captureError(error);
               plugin._endSpan(span, error, () => {});
             }
           },
@@ -327,52 +325,45 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
   }
 
   private _createSpanForRequest(event: any, context: Context, requestIsColdStart: boolean, parent: OtelContext): Span {
-    const name = context.functionName;
-    return this.tracer.startSpan(
-      name,
-      {
-        kind: SpanKind.SERVER,
+    // `startInactiveSpan` parents off the active context, so create the span within the extracted
+    // parent context to preserve incoming trace propagation.
+    return otelContext.with(parent, () =>
+      startInactiveSpan({
+        name: context.functionName,
+        op: 'function.aws.lambda',
+        forceTransaction: true,
+        // SpanKind.SERVER = 1
+        kind: 1,
         attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws_lambda',
           [ATTR_FAAS_EXECUTION]: context.awsRequestId,
           [ATTR_FAAS_ID]: context.invokedFunctionArn,
           [CLOUD_ACCOUNT_ID]: AwsLambdaInstrumentation._extractAccountId(context.invokedFunctionArn),
           [FAAS_COLDSTART]: requestIsColdStart,
           ...AwsLambdaInstrumentation._extractOtherEventFields(event),
         },
-      },
-      parent,
+      }),
     );
   }
 
-  private _applyRequestHook(span: Span, event: any, context: Context): void {
-    const { requestHook } = this.getConfig();
-    if (requestHook) {
-      safeExecuteInTheMiddle(
-        () => requestHook(span, { event, context }),
-        e => {
-          if (e) diag.error('aws-lambda instrumentation: requestHook error', e);
-        },
-        true,
-      );
-    }
+  private _captureError(err: Error | string): void {
+    captureException(err, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.otel'));
   }
 
   private _handlePromiseResult(span: Span, maybePromise: Promise<{}> | undefined): Promise<{}> | undefined {
     if (typeof maybePromise?.then === 'function') {
       return maybePromise.then(
         value => {
-          this._applyResponseHook(span, null, value);
           return new Promise(resolve => this._endSpan(span, undefined, () => resolve(value)));
         },
         (err: Error | string) => {
-          this._applyResponseHook(span, err);
+          this._captureError(err);
           return new Promise((resolve, reject) => this._endSpan(span, err, () => reject(err)));
         },
       );
     }
 
-    // Handle synchronous return values by ending the span and applying response hook
-    this._applyResponseHook(span, null, maybePromise);
+    // Handle synchronous return values by ending the span
     this._endSpan(span, undefined, () => {});
     return maybePromise;
   }
@@ -451,7 +442,9 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     const plugin = this;
     return function wrappedCallback(this: never, err, res) {
       diag.debug('executing wrapped lookup callback function');
-      plugin._applyResponseHook(span, err, res);
+      if (err) {
+        plugin._captureError(err);
+      }
 
       plugin._endSpan(span, err, () => {
         diag.debug('executing original lookup callback function');
@@ -464,10 +457,6 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
    *
    */
   private _endSpan(span: Span, err: string | Error | null | undefined, callback: () => void) {
-    if (err) {
-      span.recordException(err);
-    }
-
     let errMessage;
     if (typeof err === 'string') {
       errMessage = err;
@@ -476,7 +465,7 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     }
     if (errMessage) {
       span.setStatus({
-        code: SpanStatusCode.ERROR,
+        code: SPAN_STATUS_ERROR,
         message: errMessage,
       });
     }
@@ -511,22 +500,6 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
         clearTimeout(timeoutId);
         callback();
       });
-  }
-
-  /**
-   *
-   */
-  private _applyResponseHook(span: Span, err?: Error | string | null, res?: any) {
-    const { responseHook } = this.getConfig();
-    if (responseHook) {
-      safeExecuteInTheMiddle(
-        () => responseHook(span, { err, res }),
-        e => {
-          if (e) diag.error('aws-lambda instrumentation: responseHook error', e);
-        },
-        true,
-      );
-    }
   }
 
   /**
