@@ -1,5 +1,11 @@
 import type { SqlStorage, SqlStorageCursor, SqlStorageValue } from '@cloudflare/workers-types';
-import { _INTERNAL_sanitizeSqlQuery, addBreadcrumb, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
+  addBreadcrumb,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startSpan,
+} from '@sentry/core';
 
 /**
  * Instruments the Durable Object SqlStorage `exec` method with Sentry spans.
@@ -19,16 +25,18 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
       return function (this: unknown, ...args: unknown[]) {
         const [query, ...bindings] = args as [string, ...unknown[]];
         const sanitizedQuery = _INTERNAL_sanitizeSqlQuery(query);
+        const querySummary = _INTERNAL_getSqlQuerySummary(sanitizedQuery);
 
         return startSpan(
           {
             op: 'db.query',
-            name: sanitizedQuery,
+            name: querySummary || sanitizedQuery,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
               'db.system.name': 'cloudflare-durable-object-sql',
               'db.operation.name': 'exec',
               'db.query.text': sanitizedQuery,
+              'db.query.summary': querySummary,
               'cloudflare.durable_object.query.bindings': bindings.length,
             },
           },

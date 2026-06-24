@@ -309,13 +309,14 @@ describe('instrumentDurableObjectStorage', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
-        name: 'SELECT ?',
+        name: 'SELECT',
         op: 'db.query',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
           'db.query.text': 'SELECT ?',
+          'db.query.summary': 'SELECT',
           'cloudflare.durable_object.query.bindings': 0,
         },
       },

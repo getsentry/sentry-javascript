@@ -18,12 +18,13 @@ describe('instrumentSqlStorage', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
         op: 'db.query',
-        name: 'SELECT * FROM users WHERE id = ?',
+        name: 'SELECT users',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
           'db.query.text': 'SELECT * FROM users WHERE id = ?',
+          'db.query.summary': 'SELECT users',
           'cloudflare.durable_object.query.bindings': 1,
         },
       },
@@ -41,12 +42,13 @@ describe('instrumentSqlStorage', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
         op: 'db.query',
-        name: 'SELECT * FROM users WHERE name = ? AND age > ?',
+        name: 'SELECT users',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
           'db.query.text': 'SELECT * FROM users WHERE name = ? AND age > ?',
+          'db.query.summary': 'SELECT users',
           'cloudflare.durable_object.query.bindings': 0,
         },
       },
@@ -73,12 +75,13 @@ describe('instrumentSqlStorage', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
         op: 'db.query',
-        name: 'INSERT INTO users (name, email) VALUES (?, ?)',
+        name: 'INSERT users',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
           'db.query.text': 'INSERT INTO users (name, email) VALUES (?, ?)',
+          'db.query.summary': 'INSERT users',
           'cloudflare.durable_object.query.bindings': 2,
         },
       },

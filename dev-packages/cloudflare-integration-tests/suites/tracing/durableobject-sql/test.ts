@@ -32,7 +32,7 @@ it('instruments SQL exec operations on Durable Object storage', async ({ signal 
       expect(sqlSpans).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            description: 'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)',
+            description: 'CREATE TABLE users',
             op: 'db.query',
             origin: 'auto.db.cloudflare.durable_object.sql',
             data: expect.objectContaining({
@@ -41,28 +41,31 @@ it('instruments SQL exec operations on Durable Object storage', async ({ signal 
               'db.system.name': 'cloudflare-durable-object-sql',
               'db.operation.name': 'exec',
               'db.query.text': 'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)',
+              'db.query.summary': 'CREATE TABLE users',
               'cloudflare.durable_object.query.bindings': 0,
             }),
           }),
           expect.objectContaining({
-            description: 'INSERT INTO users (name) VALUES (?)',
+            description: 'INSERT users',
             op: 'db.query',
             origin: 'auto.db.cloudflare.durable_object.sql',
             data: expect.objectContaining({
               'db.system.name': 'cloudflare-durable-object-sql',
               'db.operation.name': 'exec',
               'db.query.text': 'INSERT INTO users (name) VALUES (?)',
+              'db.query.summary': 'INSERT users',
               'cloudflare.durable_object.query.bindings': 1,
             }),
           }),
           expect.objectContaining({
-            description: 'SELECT * FROM users',
+            description: 'SELECT users',
             op: 'db.query',
             origin: 'auto.db.cloudflare.durable_object.sql',
             data: expect.objectContaining({
               'db.system.name': 'cloudflare-durable-object-sql',
               'db.operation.name': 'exec',
               'db.query.text': 'SELECT * FROM users',
+              'db.query.summary': 'SELECT users',
               'cloudflare.durable_object.query.bindings': 0,
             }),
           }),
