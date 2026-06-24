@@ -1,7 +1,7 @@
 import { cleanupChildProcesses } from './createRunner';
 
 export { createRunner } from './createRunner';
-export { createEsmAndCjsTests } from './createEsmAndCjsTests';
+export { createEsmAndCjsTests, createEsmTests, createCjsTests } from './createEsmAndCjsTests';
 export { cleanupChildProcesses };
 
 // Backup call to cleanup everything leftover on process exit

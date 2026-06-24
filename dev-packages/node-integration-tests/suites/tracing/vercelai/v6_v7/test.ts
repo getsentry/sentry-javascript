@@ -18,7 +18,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
 
 describe.each([
   ['6', { VERCEL_AI_VERSION: '6' }, '^6.0.0'],
@@ -33,127 +33,8 @@ describe.each([
   const nodeVersion = NODE_VERSION.major;
   const failsOnCjs = version === '7' && nodeVersion === 18;
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('creates ai spans when dataCollection.genAi has inputs and outputs disabled', async () => {
-        await createRunner()
-          .withEnv(env)
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(7);
-              const firstInvokeAgentSpan = container.items.find(
-                span =>
-                  span.name === 'invoke_agent' &&
-                  span.attributes?.['vercel.ai.operationId']?.value === 'ai.generateText' &&
-                  span.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] === undefined &&
-                  span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 10,
-              )!;
-              expect(firstInvokeAgentSpan).toBeDefined();
-              expect(firstInvokeAgentSpan.name).toBe('invoke_agent');
-              expect(firstInvokeAgentSpan.status).toBe('ok');
-              expect(firstInvokeAgentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.invoke_agent');
-              expect(firstInvokeAgentSpan.attributes?.['vercel.ai.operationId']?.value).toBe('ai.generateText');
-              expect(firstInvokeAgentSpan.attributes?.[GEN_AI_REQUEST_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
-              expect(firstInvokeAgentSpan.attributes?.[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
-              expect(firstInvokeAgentSpan.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(10);
-              expect(firstInvokeAgentSpan.attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]?.value).toBe(20);
-              expect(firstInvokeAgentSpan.attributes?.[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]?.value).toBe(30);
-              expect(firstInvokeAgentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeUndefined();
-
-              const firstGenerateContentSpan = container.items.find(
-                span =>
-                  span.name === 'generate_content mock-model-id' &&
-                  span.attributes?.['vercel.ai.operationId']?.value === 'ai.generateText.doGenerate' &&
-                  span.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] === undefined &&
-                  span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 10,
-              )!;
-              expect(firstGenerateContentSpan).toBeDefined();
-              expect(firstGenerateContentSpan.name).toBe('generate_content mock-model-id');
-              expect(firstGenerateContentSpan.status).toBe('ok');
-              expect(firstGenerateContentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.generate_content');
-              expect(firstGenerateContentSpan.attributes?.['vercel.ai.operationId']?.value).toBe(
-                'ai.generateText.doGenerate',
-              );
-              expect(firstGenerateContentSpan.attributes?.[GEN_AI_SYSTEM_ATTRIBUTE]?.value).toBe('mock-provider');
-              expect(firstGenerateContentSpan.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(10);
-              expect(firstGenerateContentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeUndefined();
-
-              const secondInvokeAgentSpan = container.items.find(
-                span =>
-                  span.name === 'invoke_agent' &&
-                  span.attributes?.['vercel.ai.operationId']?.value === 'ai.generateText' &&
-                  span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 91,
-              )!;
-
-              expect(secondInvokeAgentSpan).toBeDefined();
-              expect(secondInvokeAgentSpan.name).toBe('invoke_agent');
-              expect(secondInvokeAgentSpan.status).toBe('ok');
-              expect(secondInvokeAgentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.invoke_agent');
-              // On v6, vercel AI natively defaults to recording inputs and outputs by default when telemetry is enabled
-              // On v7, we do not have access to this, so this defaults to false in this case
-              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value).toEqual(
-                version === '6' ? '[{"role":"user","content":"Where is the second span?"}]' : undefined,
-              );
-              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value).toEqual(
-                version === '6'
-                  ? '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]'
-                  : undefined,
-              );
-
-              const secondGenerateContentSpan = container.items.find(
-                span =>
-                  span.name === 'generate_content mock-model-id' &&
-                  span.attributes?.['vercel.ai.operationId']?.value === 'ai.generateText.doGenerate' &&
-                  span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 91,
-              )!;
-              expect(secondGenerateContentSpan).toBeDefined();
-              expect(secondGenerateContentSpan.name).toBe('generate_content mock-model-id');
-              expect(secondGenerateContentSpan.status).toBe('ok');
-              expect(secondGenerateContentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.generate_content');
-
-              const toolInvokeAgentSpan = container.items.find(
-                span =>
-                  span.name === 'invoke_agent' && span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 15,
-              )!;
-              expect(toolInvokeAgentSpan).toBeDefined();
-              expect(toolInvokeAgentSpan.name).toBe('invoke_agent');
-              expect(toolInvokeAgentSpan.status).toBe('ok');
-
-              const toolGenerateContentSpan = container.items.find(
-                span =>
-                  span.name === 'generate_content mock-model-id' &&
-                  span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 15,
-              )!;
-              expect(toolGenerateContentSpan).toBeDefined();
-              expect(toolGenerateContentSpan.name).toBe('generate_content mock-model-id');
-              expect(toolGenerateContentSpan.status).toBe('ok');
-
-              const toolExecutionSpan = container.items.find(span => span.name === 'execute_tool getWeather')!;
-              expect(toolExecutionSpan).toBeDefined();
-              expect(toolExecutionSpan.name).toBe('execute_tool getWeather');
-              expect(toolExecutionSpan.status).toBe('ok');
-              expect(toolExecutionSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.execute_tool');
-              expect(toolExecutionSpan.attributes?.[GEN_AI_TOOL_NAME_ATTRIBUTE]?.value).toBe('getWeather');
-              expect(toolExecutionSpan.attributes?.[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]?.value).toBe('call-1');
-              expect(toolExecutionSpan.attributes?.[GEN_AI_TOOL_TYPE_ATTRIBUTE]?.value).toBe('function');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: {
-        ai: vercelAiVersion,
-      },
-      failsOnCjs,
-    },
-  );
-
+  // We only run this in ESM and CJS to verify full support
+  // Other suites we only run in ESM to simplify the test setup
   createEsmAndCjsTests(
     __dirname,
     'scenario.mjs',
@@ -276,7 +157,127 @@ describe.each([
     },
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
+    __dirname,
+    'scenario.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('creates ai spans when dataCollection.genAi has inputs and outputs disabled', async () => {
+        await createRunner()
+          .withEnv(env)
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              expect(container.items).toHaveLength(7);
+              const firstInvokeAgentSpan = container.items.find(
+                span =>
+                  span.name === 'invoke_agent' &&
+                  span.attributes?.['vercel.ai.operationId']?.value === 'ai.generateText' &&
+                  span.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] === undefined &&
+                  span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 10,
+              )!;
+              expect(firstInvokeAgentSpan).toBeDefined();
+              expect(firstInvokeAgentSpan.name).toBe('invoke_agent');
+              expect(firstInvokeAgentSpan.status).toBe('ok');
+              expect(firstInvokeAgentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.invoke_agent');
+              expect(firstInvokeAgentSpan.attributes?.['vercel.ai.operationId']?.value).toBe('ai.generateText');
+              expect(firstInvokeAgentSpan.attributes?.[GEN_AI_REQUEST_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
+              expect(firstInvokeAgentSpan.attributes?.[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
+              expect(firstInvokeAgentSpan.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(10);
+              expect(firstInvokeAgentSpan.attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]?.value).toBe(20);
+              expect(firstInvokeAgentSpan.attributes?.[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]?.value).toBe(30);
+              expect(firstInvokeAgentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeUndefined();
+
+              const firstGenerateContentSpan = container.items.find(
+                span =>
+                  span.name === 'generate_content mock-model-id' &&
+                  span.attributes?.['vercel.ai.operationId']?.value === 'ai.generateText.doGenerate' &&
+                  span.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] === undefined &&
+                  span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 10,
+              )!;
+              expect(firstGenerateContentSpan).toBeDefined();
+              expect(firstGenerateContentSpan.name).toBe('generate_content mock-model-id');
+              expect(firstGenerateContentSpan.status).toBe('ok');
+              expect(firstGenerateContentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(firstGenerateContentSpan.attributes?.['vercel.ai.operationId']?.value).toBe(
+                'ai.generateText.doGenerate',
+              );
+              expect(firstGenerateContentSpan.attributes?.[GEN_AI_SYSTEM_ATTRIBUTE]?.value).toBe('mock-provider');
+              expect(firstGenerateContentSpan.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(10);
+              expect(firstGenerateContentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeUndefined();
+
+              const secondInvokeAgentSpan = container.items.find(
+                span =>
+                  span.name === 'invoke_agent' &&
+                  span.attributes?.['vercel.ai.operationId']?.value === 'ai.generateText' &&
+                  span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 91,
+              )!;
+
+              expect(secondInvokeAgentSpan).toBeDefined();
+              expect(secondInvokeAgentSpan.name).toBe('invoke_agent');
+              expect(secondInvokeAgentSpan.status).toBe('ok');
+              expect(secondInvokeAgentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.invoke_agent');
+              // On v6, vercel AI natively defaults to recording inputs and outputs by default when telemetry is enabled
+              // On v7, we do not have access to this, so this defaults to false in this case
+              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value).toEqual(
+                version === '6' ? '[{"role":"user","content":"Where is the second span?"}]' : undefined,
+              );
+              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value).toEqual(
+                version === '6'
+                  ? '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]'
+                  : undefined,
+              );
+
+              const secondGenerateContentSpan = container.items.find(
+                span =>
+                  span.name === 'generate_content mock-model-id' &&
+                  span.attributes?.['vercel.ai.operationId']?.value === 'ai.generateText.doGenerate' &&
+                  span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 91,
+              )!;
+              expect(secondGenerateContentSpan).toBeDefined();
+              expect(secondGenerateContentSpan.name).toBe('generate_content mock-model-id');
+              expect(secondGenerateContentSpan.status).toBe('ok');
+              expect(secondGenerateContentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.generate_content');
+
+              const toolInvokeAgentSpan = container.items.find(
+                span =>
+                  span.name === 'invoke_agent' && span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 15,
+              )!;
+              expect(toolInvokeAgentSpan).toBeDefined();
+              expect(toolInvokeAgentSpan.name).toBe('invoke_agent');
+              expect(toolInvokeAgentSpan.status).toBe('ok');
+
+              const toolGenerateContentSpan = container.items.find(
+                span =>
+                  span.name === 'generate_content mock-model-id' &&
+                  span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 15,
+              )!;
+              expect(toolGenerateContentSpan).toBeDefined();
+              expect(toolGenerateContentSpan.name).toBe('generate_content mock-model-id');
+              expect(toolGenerateContentSpan.status).toBe('ok');
+
+              const toolExecutionSpan = container.items.find(span => span.name === 'execute_tool getWeather')!;
+              expect(toolExecutionSpan).toBeDefined();
+              expect(toolExecutionSpan.name).toBe('execute_tool getWeather');
+              expect(toolExecutionSpan.status).toBe('ok');
+              expect(toolExecutionSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.execute_tool');
+              expect(toolExecutionSpan.attributes?.[GEN_AI_TOOL_NAME_ATTRIBUTE]?.value).toBe('getWeather');
+              expect(toolExecutionSpan.attributes?.[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]?.value).toBe('call-1');
+              expect(toolExecutionSpan.attributes?.[GEN_AI_TOOL_TYPE_ATTRIBUTE]?.value).toBe('function');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
     __dirname,
     'scenario-error-in-tool.mjs',
     'instrument.mjs',
@@ -342,11 +343,10 @@ describe.each([
       additionalDependencies: {
         ai: vercelAiVersion,
       },
-      failsOnCjs,
     },
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario.mjs',
     'instrument.mjs',
@@ -382,11 +382,10 @@ describe.each([
       additionalDependencies: {
         ai: vercelAiVersion,
       },
-      failsOnCjs,
     },
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-tool-loop-agent.mjs',
     'instrument.mjs',
@@ -443,12 +442,10 @@ describe.each([
       additionalDependencies: {
         ai: vercelAiVersion,
       },
-      // Vercel AI v7 does not support CJS
-      failsOnCjs,
     },
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-concurrent.mjs',
     'instrument.mjs',
@@ -490,11 +487,10 @@ describe.each([
       additionalDependencies: {
         ai: vercelAiVersion,
       },
-      failsOnCjs,
     },
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-stream-text.mjs',
     'instrument.mjs',
@@ -527,11 +523,10 @@ describe.each([
       additionalDependencies: {
         ai: vercelAiVersion,
       },
-      failsOnCjs,
     },
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-rejected-model.mjs',
     'instrument.mjs',
@@ -565,7 +560,6 @@ describe.each([
       additionalDependencies: {
         ai: vercelAiVersion,
       },
-      failsOnCjs,
     },
   );
 });
