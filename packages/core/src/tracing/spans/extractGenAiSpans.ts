@@ -20,7 +20,7 @@ export function extractGenAiSpansFromEvent(event: Event, client: Client): SpanCo
     event.type !== 'transaction' ||
     !event.spans?.length ||
     !event.sdkProcessingMetadata?.hasGenAiSpans ||
-    !client.getOptions().streamGenAiSpans ||
+    client.getOptions().streamGenAiSpans === false ||
     hasSpanStreamingEnabled(client)
   ) {
     return undefined;
