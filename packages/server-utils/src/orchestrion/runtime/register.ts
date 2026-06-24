@@ -45,14 +45,13 @@ export function registerDiagnosticsChannelInjection(): void {
     (denoVersion[0] ?? 0) > 2 ||
     (denoVersion[0] === 2 && (denoVersion[1] ?? 0) >= 8);
 
-  // Prefer the builtin `require` if possible. This is present in CommonJS,
-  // including a bundler's CJS output, so no need to ever have to evaluate
-  // `import.meta.url` there.
-  //
-  // esbuild and friends rewrite `import.meta.url` to `{}` for CJS output,
-  // which would make `createRequire(undefined)` throw.
-  // Only use `import.meta.url` in true ESM, where there's no `require`
-  const nodeRequire = typeof require === 'function' ? require : createRequire(import.meta.url);
+  let nodeRequire: (specifier: string) => unknown;
+  /*! rollup-include-cjs-only */
+  nodeRequire = require;
+  /*! rollup-include-cjs-only-end */
+  /*! rollup-include-esm-only */
+  nodeRequire = createRequire(import.meta.url);
+  /*! rollup-include-esm-only-end */
 
   // `Module.registerHooks` / `Module.register` are newer than the @types/node
   // we build against, hence the cast.
@@ -84,10 +83,16 @@ export function registerDiagnosticsChannelInjection(): void {
       // `Module.register` + the `_compile` patch is Node 18.19–24.12 / 25.0
       // path. Bun/Deno are excluded: they don't support this combination and
       // must use the stable `registerHooks` path above (or none at all).
-      // Resolve the hook to an absolute file URL ourselves so
-      // `Module.register` needs no `parentURL`, so no need for
-      // `import.meta.url` polyfilling
-      mod.register(pathToFileURL(nodeRequire.resolve('@apm-js-collab/tracing-hooks/hook.mjs')).href, {
+      let parentURL: string;
+      /*! rollup-include-cjs-only */
+      parentURL = pathToFileURL(__filename).href;
+      /*! rollup-include-cjs-only-end */
+      /*! rollup-include-esm-only */
+      parentURL = import.meta.url;
+      /*! rollup-include-esm-only-end */
+
+      mod.register('@apm-js-collab/tracing-hooks/hook.mjs', {
+        parentURL,
         data: { instrumentations: SENTRY_INSTRUMENTATIONS },
       });
 
