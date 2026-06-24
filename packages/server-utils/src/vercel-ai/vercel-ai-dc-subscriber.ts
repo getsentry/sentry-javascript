@@ -67,9 +67,11 @@ const VERCEL_AI_OPERATION_ID_ATTRIBUTE = 'vercel.ai.operationId';
 const VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE = 'vercel.ai.model.provider';
 const VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE = 'vercel.ai.settings.maxRetries';
 
-// Tracks the top-level operationId per `callId` so a model-call span can name its `doGenerate`/
-// `doStream` operation the same way the OTel integration does. Cleared when the top-level span ends.
-const operationIdByCallId = new Map<string, string>();
+// Tracks the top-level operationId (and whether it streams) per `callId` so a model-call span can
+// name its `doGenerate`/`doStream` operation the same way the OTel integration does. `isStream` is
+// the authoritative event-type signal rather than a substring check on the (possibly custom)
+// operationId. Cleared when the top-level span ends.
+const operationIdByCallId = new Map<string, { operationId: string; isStream: boolean }>();
 
 // Per-operation map of tool name → description, harvested from a model-call /
 // top-level event's `tools` (keyed by the shared `callId`). The AI SDK's
@@ -339,7 +341,7 @@ function buildInvokeAgentSpan(
   const functionId = asString(event.functionId);
   const operationId = asString(event.operationId) ?? (isStream ? 'ai.streamText' : 'ai.generateText');
   if (callId) {
-    operationIdByCallId.set(callId, operationId);
+    operationIdByCallId.set(callId, { operationId, isStream });
   }
   return startGenAiSpan(GEN_AI_INVOKE_AGENT_SPAN_OP, functionId, {
     ...baseAttributes,
@@ -358,9 +360,9 @@ function buildModelCallSpan(
   callId: string | undefined,
   modelId: string | undefined,
 ): Span {
-  const parentOperationId = callId ? operationIdByCallId.get(callId) : undefined;
-  const operationId = parentOperationId
-    ? `${parentOperationId}.${parentOperationId.includes('stream') ? 'doStream' : 'doGenerate'}`
+  const parent = callId ? operationIdByCallId.get(callId) : undefined;
+  const operationId = parent
+    ? `${parent.operationId}.${parent.isStream ? 'doStream' : 'doGenerate'}`
     : 'ai.generateText.doGenerate';
   return startGenAiSpan(GEN_AI_GENERATE_CONTENT_OPERATION, modelId, {
     ...baseAttributes,

@@ -512,6 +512,7 @@ describe.each([
               )!;
               expect(generateContent).toBeDefined();
               expect(generateContent.parent_span_id).toBe(invokeAgent.span_id);
+              expect(generateContent.attributes?.['vercel.ai.operationId']?.value).toBe('ai.streamText.doStream');
             },
           })
           .start()
