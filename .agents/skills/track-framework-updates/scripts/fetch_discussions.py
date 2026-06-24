@@ -35,7 +35,14 @@ import sys
 from datetime import datetime
 from typing import Any
 
-from _common import cutoff, gh_api, gh_graphql, load_frameworks, parse_iso
+from _common import (
+    cutoff,
+    gh_api,
+    gh_graphql,
+    load_frameworks,
+    parse_iso,
+    sanitize_untrusted_text,
+)
 
 DISCUSSIONS_QUERY = """
 query($owner: String!, $repo: String!) {
@@ -75,7 +82,7 @@ def fetch_discussions(
         category = (node.get("category") or {}).get("name") or ""
         out.append(
             {
-                "title": node.get("title"),
+                "title": sanitize_untrusted_text(node.get("title") or ""),
                 "url": node.get("url"),
                 "category": category,
                 "updatedAt": node.get("updatedAt"),
@@ -105,7 +112,7 @@ def fetch_rfcs(rfcs_repo: str, since: datetime) -> list[dict[str, Any]]:
             continue
         out.append(
             {
-                "title": pr.get("title"),
+                "title": sanitize_untrusted_text(pr.get("title") or ""),
                 "url": pr.get("html_url"),
                 "state": pr.get("state"),
                 "updatedAt": pr.get("updated_at"),

@@ -32,7 +32,7 @@ import sys
 from datetime import datetime
 from typing import Any
 
-from _common import cutoff, gh_api, load_frameworks, parse_iso
+from _common import cutoff, gh_api, load_frameworks, parse_iso, sanitize_untrusted_text
 
 MAX_BODY_CHARS = 8000
 RELEASES_PER_PAGE = 100
@@ -52,7 +52,7 @@ def fetch_releases_for_repo(repo: str, since: datetime) -> list[dict[str, Any]]:
         published = parse_iso(rel.get("published_at"))
         if published is None or published < since:
             continue
-        body = rel.get("body") or ""
+        body = sanitize_untrusted_text(rel.get("body") or "")[:MAX_BODY_CHARS]
         recent.append(
             {
                 "tag": rel.get("tag_name"),
@@ -60,7 +60,7 @@ def fetch_releases_for_repo(repo: str, since: datetime) -> list[dict[str, Any]]:
                 "url": rel.get("html_url"),
                 "publishedAt": rel.get("published_at"),
                 "prerelease": bool(rel.get("prerelease")),
-                "body": body[:MAX_BODY_CHARS],
+                "body": body,
             }
         )
     recent.sort(key=lambda r: r.get("publishedAt") or "", reverse=True)
