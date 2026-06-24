@@ -183,10 +183,12 @@ export function descriptionForHttpMethod(
     data.url = url;
   }
   if (query) {
-    data['http.query'] = query;
+    // Strip the leading `?`/`#` (the `URL.search`/`URL.hash` prefix) so the attribute matches the
+    // canonical format the OTel SDK exporter emits (`getData` in `spanExporter.ts` slices these too).
+    data['http.query'] = query.slice(1);
   }
   if (fragment) {
-    data['http.fragment'] = fragment;
+    data['http.fragment'] = fragment.slice(1);
   }
 
   // If the span kind is neither client nor server, we use the original name
