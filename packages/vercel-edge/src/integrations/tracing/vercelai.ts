@@ -10,7 +10,6 @@
 
 import type { IntegrationFn } from '@sentry/core';
 import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
-import { vercelAiIntegration as serverUtilsVercelAiIntegration } from '@sentry/server-utils';
 
 const INTEGRATION_NAME = 'VercelAI';
 
@@ -23,10 +22,7 @@ interface VercelAiOptions {
 }
 
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
-  const inner = serverUtilsVercelAiIntegration(options);
-
   return {
-    ...inner,
     name: INTEGRATION_NAME,
     options,
     setup(client) {
@@ -60,5 +56,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
  *  model: openai('gpt-4-turbo'),
  *  experimental_telemetry: { isEnabled: true, recordInputs: true, recordOutputs: true },
  * });
+ *
+ * Note: This does not support ai v7, as this is tracing channel based which is not supported in edge.
  */
 export const vercelAIIntegration = defineIntegration(_vercelAIIntegration);
