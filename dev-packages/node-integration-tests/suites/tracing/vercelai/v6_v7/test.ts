@@ -38,7 +38,7 @@ describe.each([
     'scenario.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('creates ai related spans with genAI recording disabled', async () => {
+      test('creates ai spans when dataCollection.genAi has inputs and outputs disabled', async () => {
         await createRunner()
           .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
@@ -85,26 +85,30 @@ describe.each([
               const secondInvokeAgentSpan = container.items.find(
                 span =>
                   span.name === 'invoke_agent' &&
-                  span.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value ===
-                    '[{"role":"user","content":"Where is the second span?"}]',
+                  span.attributes?.['vercel.ai.operationId']?.value === 'ai.generateText' &&
+                  span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 91,
               )!;
+
               expect(secondInvokeAgentSpan).toBeDefined();
               expect(secondInvokeAgentSpan.name).toBe('invoke_agent');
               expect(secondInvokeAgentSpan.status).toBe('ok');
               expect(secondInvokeAgentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.invoke_agent');
-              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value).toBe(
-                '[{"role":"user","content":"Where is the second span?"}]',
-              )!;
-              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value).toBe(
-                '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
+              // On v6, vercel AI natively defaults to recording inputs and outputs by default when telemetry is enabled
+              // On v7, we do not have access to this, so this defaults to false in this case
+              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value).toEqual(
+                version === '6' ? '[{"role":"user","content":"Where is the second span?"}]' : undefined,
+              );
+              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value).toEqual(
+                version === '6'
+                  ? '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]'
+                  : undefined,
               );
 
               const secondGenerateContentSpan = container.items.find(
                 span =>
                   span.name === 'generate_content mock-model-id' &&
-                  (span.attributes?.[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value as string | undefined)?.includes(
-                    'Second span here!',
-                  ),
+                  span.attributes?.['vercel.ai.operationId']?.value === 'ai.generateText.doGenerate' &&
+                  span.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 91,
               )!;
               expect(secondGenerateContentSpan).toBeDefined();
               expect(secondGenerateContentSpan.name).toBe('generate_content mock-model-id');
@@ -155,7 +159,7 @@ describe.each([
     'scenario.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('creates ai related spans with genAI recording enabled', async () => {
+      test('creates ai spans for dataCollection defaults', async () => {
         await createRunner()
           .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
