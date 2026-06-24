@@ -4,10 +4,24 @@ import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { basename, join } from 'path';
 import { promisify } from 'util';
 import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
-import { createRunner } from './createRunner';
+import { CLEANUP_STEPS, createRunner } from './createRunner';
 
 const execPromise = promisify(exec);
 
+interface ScenarioPaths {
+  cjs: {
+    scenario: string;
+    instrument: string;
+  };
+  esm: {
+    scenario: string;
+    instrument: string;
+  };
+}
+
+/**
+ * Run one or multiple tests in ESM and CJS for a given scenario and instrument file.
+ */
 export function createEsmAndCjsTests(
   cwd: string,
   scenarioPath: string,
@@ -22,15 +36,155 @@ export function createEsmAndCjsTests(
     failsOnCjs?: boolean;
     failsOnEsm?: boolean;
     /**
-     * `additionalDependencies` to install in a tmp dir for the esm and cjs tests
-     * This could be used to override packages that live in the parent package.json for the specific run of the test
-     * e.g. `{ ai: '^5.0.0' }` to test Vercel AI v5
+     * `additionalDependencies` to install in the tmp dir.
      */
     additionalDependencies?: Record<string, string>;
     /** Copy these files/dirs into the tmp dir. */
     copyPaths?: string[];
   },
 ): void {
+  const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, options);
+
+  const esmTestFn = options?.failsOnEsm ? wrapTestApi(test.fails, 'esm - fails') : wrapTestApi(test, 'esm');
+  const cjsTestFn = options?.failsOnCjs ? wrapTestApi(test.fails, 'cjs - fails') : wrapTestApi(test, 'cjs');
+  const createdRunners = new Set<ReturnType<typeof createRunner>>();
+
+  callback(
+    () => trackRunner(createdRunners, createRunner(paths.esm.scenario).withFlags('--import', paths.esm.instrument)),
+    esmTestFn,
+    'esm',
+    tmpDirPath,
+  );
+
+  callback(
+    () => trackRunner(createdRunners, createRunner(paths.cjs.scenario).withFlags('--require', paths.cjs.instrument)),
+    cjsTestFn,
+    'cjs',
+    tmpDirPath,
+  );
+
+  setupAndCleanup(createTmpDir, createdRunners, tmpDirPath);
+}
+
+/**
+ * Run one or multiple tests in ESM only for a given scenario and instrument file.
+ */
+export function createEsmTests(
+  cwd: string,
+  scenarioPath: string,
+  instrumentPath: string,
+  callback: (createTestRunner: () => ReturnType<typeof createRunner>, testFn: typeof test, cwd: string) => void,
+  options?: {
+    /**
+     * `additionalDependencies` to install in the tmp dir.
+     */
+    additionalDependencies?: Record<string, string>;
+    /** Copy these files/dirs into the tmp dir. */
+    copyPaths?: string[];
+  },
+) {
+  const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, options);
+
+  // Track the runners created by this invocation so we can tear down only their resources in
+  // `afterAll` — rather than clearing the global `CLEANUP_STEPS`, which would also kill child
+  // processes, docker containers and mock servers owned by sibling suites in the same worker.
+  const createdRunners = new Set<ReturnType<typeof createRunner>>();
+  function trackRunner(runner: ReturnType<typeof createRunner>): ReturnType<typeof createRunner> {
+    createdRunners.add(runner);
+    return runner;
+  }
+
+  callback(
+    () => trackRunner(createRunner(paths.esm.scenario).withFlags('--import', paths.esm.instrument)),
+    test,
+    tmpDirPath,
+  );
+
+  setupAndCleanup(createTmpDir, createdRunners, tmpDirPath);
+}
+
+/**
+ * Run one or multiple tests in CJS only for a given scenario and instrument file.
+ */
+export function createCjsTests(
+  cwd: string,
+  scenarioPath: string,
+  instrumentPath: string,
+  callback: (createTestRunner: () => ReturnType<typeof createRunner>, testFn: typeof test, cwd: string) => void,
+  options?: {
+    /**
+     * `additionalDependencies` to install in the tmp dir.
+     */
+    additionalDependencies?: Record<string, string>;
+    /** Copy these files/dirs into the tmp dir. */
+    copyPaths?: string[];
+  },
+) {
+  const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, options);
+  const createdRunners = new Set<ReturnType<typeof createRunner>>();
+
+  callback(
+    () => trackRunner(createdRunners, createRunner(paths.cjs.scenario).withFlags('--import', paths.cjs.instrument)),
+    test,
+    tmpDirPath,
+  );
+
+  setupAndCleanup(createTmpDir, createdRunners, tmpDirPath);
+}
+
+function trackRunner(
+  createdRunners: Set<ReturnType<typeof createRunner>>,
+  runner: ReturnType<typeof createRunner>,
+): ReturnType<typeof createRunner> {
+  createdRunners.add(runner);
+  // Also add this to global cleanup steps in case something goes wrong here
+  // oxlint-disable-next-line typescript/unbound-method
+  CLEANUP_STEPS.add(runner.cleanup);
+  return runner;
+}
+
+/**
+ * Register beforeAll and afterAll hooks to create the tmp directory and cleanup after the tests have run.
+ */
+function setupAndCleanup(
+  createTmpDir: () => Promise<void>,
+  createdRunners: Set<ReturnType<typeof createRunner>>,
+  tmpDirPath: string,
+) {
+  // Create tmp directory and install additionalDependencies (with retries)
+  beforeAll(async () => {
+    await createTmpDir();
+  }, 120_000);
+
+  // Clean up the tmp directory after both esm and cjs suites have run
+  afterAll(async () => {
+    // First do cleanup — but only of the runners this invocation created!
+    for (const runner of createdRunners) {
+      runner.cleanup();
+      // Remove this from global cleanup steps
+      // oxlint-disable-next-line typescript/unbound-method
+      CLEANUP_STEPS.delete(runner.cleanup);
+    }
+    createdRunners.clear();
+
+    try {
+      await rm(tmpDirPath, { recursive: true, force: true });
+    } catch {
+      if (process.env.DEBUG) {
+        // eslint-disable-next-line no-console
+        console.error(`Failed to remove tmp dir: ${tmpDirPath}`);
+      }
+    }
+  }, 30_000);
+}
+
+/** Returns: tmpDir, createTmpDir(), scenarioPaths */
+function prepareTmpDir(
+  cwd: string,
+  scenarioPath: string,
+  instrumentPath: string,
+  options?: { additionalDependencies?: Record<string, string>; copyPaths?: string[] },
+): [string, () => Promise<void>, ScenarioPaths] {
   const mjsScenarioPath = join(cwd, scenarioPath);
   const mjsInstrumentPath = join(cwd, instrumentPath);
 
@@ -97,54 +251,18 @@ export function createEsmAndCjsTests(
     }
   }
 
-  const esmTestFn = options?.failsOnEsm ? wrapTestApi(test.fails, 'esm - fails') : wrapTestApi(test, 'esm');
-  const cjsTestFn = options?.failsOnCjs ? wrapTestApi(test.fails, 'cjs - fails') : wrapTestApi(test, 'cjs');
+  const paths: ScenarioPaths = {
+    cjs: {
+      scenario: cjsScenarioPath,
+      instrument: cjsInstrumentPath,
+    },
+    esm: {
+      scenario: esmScenarioPathForRun,
+      instrument: esmInstrumentPathForRun,
+    },
+  };
 
-  // Track the runners created by this invocation so we can tear down only their resources in
-  // `afterAll` — rather than clearing the global `CLEANUP_STEPS`, which would also kill child
-  // processes, docker containers and mock servers owned by sibling suites in the same worker.
-  const createdRunners = new Set<ReturnType<typeof createRunner>>();
-  function trackRunner(runner: ReturnType<typeof createRunner>): ReturnType<typeof createRunner> {
-    createdRunners.add(runner);
-    return runner;
-  }
-
-  callback(
-    () => trackRunner(createRunner(esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun)),
-    esmTestFn,
-    'esm',
-    tmpDirPath,
-  );
-
-  callback(
-    () => trackRunner(createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath)),
-    cjsTestFn,
-    'cjs',
-    tmpDirPath,
-  );
-
-  // Create tmp directory and install additionalDependencies (with retries)
-  beforeAll(async () => {
-    await createTmpDir();
-  }, 120_000);
-
-  // Clean up the tmp directory after both esm and cjs suites have run
-  afterAll(async () => {
-    // First do cleanup — but only of the runners this invocation created!
-    for (const runner of createdRunners) {
-      runner.cleanup();
-    }
-    createdRunners.clear();
-
-    try {
-      await rm(tmpDirPath, { recursive: true, force: true });
-    } catch {
-      if (process.env.DEBUG) {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to remove tmp dir: ${tmpDirPath}`);
-      }
-    }
-  }, 30_000);
+  return [tmpDirPath, createTmpDir, paths];
 }
 
 async function convertEsmFileToCjs(inputPath: string, outputPath: string): Promise<void> {
@@ -225,7 +343,10 @@ async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
 
 // Wrap the test API so it prepends the test name with the mode
 // Also wraps the nested fields `only`, `skip`, `each`, and `for`
-function wrapTestApi(api: TestAPI | typeof test.fails | typeof test.only | typeof test.skip, suffix: string) {
+function wrapTestApi(
+  api: TestAPI | typeof test.fails | typeof test.only | typeof test.skip,
+  suffix: string,
+): typeof api {
   return new Proxy(api, {
     apply: (target, thisArg, args: Parameters<typeof api>) => {
       if (typeof args[0] === 'string') {

@@ -22,6 +22,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { createEsmTests } from '../../../utils/runner/createEsmAndCjsTests';
 
 describe('LangChain integration', () => {
   afterAll(() => {
@@ -245,43 +246,36 @@ describe('LangChain integration', () => {
     },
   );
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-openai-before-langchain.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('demonstrates timing issue with duplicate spans (ESM only)', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(2);
-              const anthropicSpan = container.items.find(
-                span => span.attributes['sentry.origin'].value === 'auto.ai.anthropic',
-              );
-              expect(anthropicSpan).toBeDefined();
-              expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
+  createEsmTests(__dirname, 'scenario-openai-before-langchain.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('demonstrates timing issue with duplicate spans', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: { transaction: 'main' } })
+        .expect({
+          span: container => {
+            expect(container.items).toHaveLength(2);
+            const anthropicSpan = container.items.find(
+              span => span.attributes['sentry.origin'].value === 'auto.ai.anthropic',
+            );
+            expect(anthropicSpan).toBeDefined();
+            expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
 
-              // LangChain call is instrumented by LangChain.
-              const langchainSpan = container.items.find(
-                span => span.attributes['sentry.origin'].value === 'auto.ai.langchain',
-              );
-              expect(langchainSpan).toBeDefined();
-              expect(langchainSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
+            // LangChain call is instrumented by LangChain.
+            const langchainSpan = container.items.find(
+              span => span.attributes['sentry.origin'].value === 'auto.ai.langchain',
+            );
+            expect(langchainSpan).toBeDefined();
+            expect(langchainSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
 
-              // Third call (not present): Direct Anthropic call made AFTER LangChain import
-              // is NOT instrumented, which demonstrates the skip mechanism works for NEW
-              // clients. We should only have ONE Anthropic span (the first one), not two.
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    // This test fails on CJS because we use dynamic imports to simulate importing LangChain after the Anthropic client is created
-    { failsOnCjs: true },
-  );
+            // Third call (not present): Direct Anthropic call made AFTER LangChain import
+            // is NOT instrumented, which demonstrates the skip mechanism works for NEW
+            // clients. We should only have ONE Anthropic span (the first one), not two.
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 
   createEsmAndCjsTests(
     __dirname,
