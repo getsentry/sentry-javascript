@@ -37,6 +37,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
+import { SPAN_KIND } from '../../spanKind';
 import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
 
@@ -277,10 +278,9 @@ function buildServerSpanWrap(
       return startSpanManual(
         {
           name,
-          // SpanKind.SERVER = 1; pass this so the OTel sampler infers
-          // op='http.server' rather than 'http', which it does for
-          // SpanKind.INTERNAL = 0, the default
-          kind: 1,
+          // Pass SERVER so the OTel sampler infers op='http.server' rather than
+          // 'http', which it does for the INTERNAL default.
+          kind: SPAN_KIND.SERVER,
           attributes: {
             // Sentry-specific attributes
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',

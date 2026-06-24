@@ -10,11 +10,16 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { SpanAttributes } from '@sentry/core';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
+import {
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+} from '@sentry/core';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import type { Connection, FormatFunction, Query, QueryError, QueryOptions } from './mysql2-types';
 import { ATTR_DB_STATEMENT, ATTR_DB_SYSTEM, DB_SYSTEM_VALUE_MYSQL } from './semconv';
@@ -118,7 +123,7 @@ export class MySQL2Instrumentation extends InstrumentationBase<InstrumentationCo
 
         const span = startInactiveSpan({
           name: getSpanName(query),
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes,
         });
 

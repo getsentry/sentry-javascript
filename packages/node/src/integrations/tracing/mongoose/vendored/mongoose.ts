@@ -10,7 +10,6 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import {
   type InstrumentationConfig,
   InstrumentationBase,
@@ -22,6 +21,7 @@ import {
   getActiveSpan,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   startInactiveSpan,
   withActiveSpan,
 } from '@sentry/core';
@@ -306,7 +306,7 @@ export class MongooseInstrumentation extends InstrumentationBase<Instrumentation
 
     return startInactiveSpan({
       name: `mongoose.${modelName}.${operation}`,
-      kind: SpanKind.CLIENT,
+      kind: SPAN_KIND.CLIENT,
       attributes,
       parentSpan,
     });

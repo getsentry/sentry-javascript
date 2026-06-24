@@ -12,10 +12,16 @@
  *   enhancedDatabaseReporting, addSqlCommenterCommentToQueries)
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Span } from '@sentry/core';
-import { getActiveSpan, SDK_VERSION, SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import {
+  getActiveSpan,
+  SDK_VERSION,
+  SPAN_KIND,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  withActiveSpan,
+} from '@sentry/core';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import { SpanNames } from './enums/SpanNames';
 import type {
@@ -157,7 +163,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
 
         const span = startInactiveSpan({
           name: SpanNames.CONNECT,
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes: utils.getSemanticAttributesFromConnection(this),
         });
 
@@ -277,7 +283,7 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
 
         const span = startInactiveSpan({
           name: SpanNames.POOL_CONNECT,
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes: utils.getSemanticAttributesFromPoolConnection(this.options),
         });
 

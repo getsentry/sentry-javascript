@@ -11,7 +11,6 @@
 
 /* oxlint-disable typescript/no-deprecated */
 
-import { SpanKind } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Span, SpanAttributes } from '@sentry/core';
@@ -19,6 +18,7 @@ import {
   getActiveSpan,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startSpan,
 } from '@sentry/core';
@@ -143,7 +143,7 @@ export class KnexInstrumentation extends InstrumentationBase<InstrumentationConf
         return startSpan(
           {
             name: utils.getName(name, operation, table),
-            kind: SpanKind.CLIENT,
+            kind: SPAN_KIND.CLIENT,
             attributes,
             parentSpan,
             onlyIfParent: true,
