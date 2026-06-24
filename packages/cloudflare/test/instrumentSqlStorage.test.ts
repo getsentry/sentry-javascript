@@ -99,19 +99,6 @@ describe('instrumentSqlStorage', () => {
     expect(result).toBe(mockCursor);
   });
 
-  it('adds a breadcrumb with the sanitized query', () => {
-    const addBreadcrumbSpy = vi.spyOn(sentryCore, 'addBreadcrumb');
-    const mockSql = createMockSqlStorage();
-    const instrumented = instrumentSqlStorage(mockSql);
-
-    instrumented.exec('SELECT * FROM users');
-
-    expect(addBreadcrumbSpy).toHaveBeenCalledWith({
-      category: 'query',
-      message: 'SELECT * FROM users',
-    });
-  });
-
   it('does not instrument non-exec properties', () => {
     const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
     const mockSql = createMockSqlStorage();

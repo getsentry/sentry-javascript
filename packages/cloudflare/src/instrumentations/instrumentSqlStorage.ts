@@ -1,8 +1,7 @@
-import type { SqlStorage, SqlStorageCursor, SqlStorageValue } from '@cloudflare/workers-types';
+import type { SqlStorage } from '@cloudflare/workers-types';
 import {
   _INTERNAL_getSqlQuerySummary,
   _INTERNAL_sanitizeSqlQuery,
-  addBreadcrumb,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/core';
@@ -40,18 +39,7 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
               'cloudflare.durable_object.query.bindings': bindings.length,
             },
           },
-          () => {
-            const cursor: SqlStorageCursor<Record<string, SqlStorageValue>> = (
-              original as (...a: unknown[]) => SqlStorageCursor<Record<string, SqlStorageValue>>
-            ).apply(target, args);
-
-            addBreadcrumb({
-              category: 'query',
-              message: sanitizedQuery,
-            });
-
-            return cursor;
-          },
+          () => (original as (...a: unknown[]) => ReturnType<SqlStorage['exec']>).apply(target, args),
         );
       };
     },
