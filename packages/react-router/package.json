@@ -64,9 +64,9 @@
     "vite": "^6.4.3"
   },
   "peerDependencies": {
-    "@react-router/node": "7.x",
+    "@react-router/node": "7.x || ^8.x",
     "react": ">=18",
-    "react-router": "7.x"
+    "react-router": "7.x || ^8.x"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
