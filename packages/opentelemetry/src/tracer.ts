@@ -19,7 +19,7 @@ import {
 } from '@sentry/core';
 import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
 import { applyOtelSpanData, applyOtelSpanKind } from './applyOtelSpanData';
-import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY } from './constants';
+import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY, SENTRY_TRACE_STATE_DSC } from './constants';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 
 export class SentryTracer implements Tracer {
@@ -124,16 +124,21 @@ export class SentryTracer implements Tracer {
     options: Parameters<typeof _INTERNAL_startInactiveSpan>[0],
     parentSpan: OpenTelemetrySpan,
   ): Span {
-    const { spanId, traceId } = parentSpan.spanContext();
+    const { spanId, traceId, traceState } = parentSpan.spanContext();
     const dsc = getDynamicSamplingContextFromSpan(parentSpan as unknown as Span);
     const sampleRand = typeof dsc.sample_rand === 'string' ? Number(dsc.sample_rand) : undefined;
+
+    // Only freeze the DSC when the remote parent actually carried one (i.e. there was incoming
+    // baggage). Otherwise leave it unset so it is derived dynamically from the span — picking up the
+    // span's `transaction` name and the generated `sample_rand` — matching the OpenTelemetry SDK.
+    const hasIncomingDsc = !!traceState?.get(SENTRY_TRACE_STATE_DSC);
 
     return withScope(scope => {
       scope.setPropagationContext({
         traceId,
         parentSpanId: spanId,
         sampled: getSamplingDecision(parentSpan.spanContext()),
-        dsc,
+        dsc: hasIncomingDsc ? dsc : undefined,
         sampleRand:
           typeof sampleRand === 'number' && !Number.isNaN(sampleRand) ? sampleRand : _INTERNAL_safeMathRandom(),
       });
