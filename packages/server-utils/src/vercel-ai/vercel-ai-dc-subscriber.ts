@@ -29,6 +29,7 @@ import { GEN_AI_EXECUTE_TOOL_SPAN_OP, GEN_AI_INVOKE_AGENT_SPAN_OP } from '@sentr
 import type { Span } from '@sentry/core';
 import {
   captureException,
+  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   getClient,
@@ -37,6 +38,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   shouldEnableTruncation,
   SPAN_STATUS_ERROR,
+  spanToJSON,
   spanToTraceContext,
   startInactiveSpan,
   withScope,
@@ -421,7 +423,17 @@ export function enrichSpanOnEnd(
   // The channel exposes `providerMetadata` as an object (the OTel path parses it from a string);
   // both share `getProviderMetadataAttributes` so the emitted shape is identical.
   const providerMetadata = (result as { providerMetadata?: unknown }).providerMetadata;
-  span.setAttributes(getProviderMetadataAttributes(providerMetadata));
+  const providerAttributes = getProviderMetadataAttributes(providerMetadata);
+  // Don't overwrite a conversation id already set on span start (e.g. by `conversationIdIntegration`
+  // from a user-set scope value); the provider-derived id is only a fallback. Matches the OTel path.
+  if (
+    GEN_AI_CONVERSATION_ID_ATTRIBUTE in providerAttributes &&
+    spanToJSON(span).data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]
+  ) {
+    // oxlint-disable-next-line typescript/no-dynamic-delete
+    delete providerAttributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE];
+  }
+  span.setAttributes(providerAttributes);
 
   if (recordOutputs) {
     // `languageModelCall` exposes the response as a `content` parts array; top-level results expose
