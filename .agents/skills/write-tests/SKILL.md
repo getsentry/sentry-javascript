@@ -98,6 +98,29 @@ Each test makes exactly one behavioral claim. Multiple `expect` calls are fine w
 different facets of the _same_ outcome. But if you're checking two unrelated behaviors, those are
 two tests. No conditional logic, no branching, no try/catch — a test is a straight line.
 
+### Never silently pass — fail loudly
+
+Guard clauses that `return` early inside test callbacks silently satisfy the expectation without
+checking anything. If a callback receives unexpected input, that's a bug in the test setup — it
+should fail, not quietly pass.
+
+```typescript
+// Bad: silently satisfies the expectation if a non-transaction envelope arrives
+.expect((envelope: Envelope) => {
+  if (envelopeItemType(envelope) !== 'transaction') return;
+  // ... assertions that never run
+})
+
+// Good: hard-fails so you know the envelope type was wrong
+.expect((envelope: Envelope) => {
+  expect(envelopeItemType(envelope)).toBe('transaction');
+  // ... assertions always run
+})
+```
+
+The same applies to any test callback or predicate: if a condition must hold for the assertions to
+be meaningful, assert on it — don't skip past it.
+
 ### Assert behavior, not implementation
 
 If someone refactored the internals but the function still returned the correct result, would this
@@ -494,6 +517,7 @@ directly proves readiness.
 
 Before you're done, verify each test against these criteria:
 
+- [ ] No early `return` in test callbacks — use assertions to hard-fail on unexpected input
 - [ ] Catches a real potential bug — not just confirming the happy path works
 - [ ] Single, clear reason it could fail
 - [ ] Description reads as a behavior specification (no "should", no "works correctly")
