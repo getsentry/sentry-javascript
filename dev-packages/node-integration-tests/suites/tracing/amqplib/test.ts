@@ -29,39 +29,52 @@ describe('amqplib auto-instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
-    test('should be able to send and receive messages', { timeout: 60_000 }, async () => {
-      // The producer ('root span') and consumer ('queue1 process') transactions can
-      // arrive in any order, so we collect them and assert after both are received.
-      const receivedTransactions: TransactionEvent[] = [];
+  describe.each([
+    ['v1', 'docker-compose-v1.yml', { amqplib: '^1.0.0' }],
+    ['v2', 'docker-compose.yml', {}],
+  ])('%s', (version, dockerFile, additionalDependencies) => {
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('should be able to send and receive messages', { timeout: 60_000 }, async () => {
+          // The producer ('root span') and consumer ('queue1 process') transactions can
+          // arrive in any order, so we collect them and assert after both are received.
+          const receivedTransactions: TransactionEvent[] = [];
 
-      await createTestRunner()
-        .withDockerCompose({
-          workingDirectory: [__dirname],
-        })
-        .expect({
-          transaction: (transaction: TransactionEvent) => {
-            receivedTransactions.push(transaction);
-          },
-        })
-        .expect({
-          transaction: (transaction: TransactionEvent) => {
-            receivedTransactions.push(transaction);
+          await createTestRunner()
+            .withEnv({ AMQP_PORT: version === 'v1' ? '5673' : '5672' })
+            .withDockerCompose({
+              composeFile: dockerFile,
+              workingDirectory: [__dirname],
+            })
+            .expect({
+              transaction: (transaction: TransactionEvent) => {
+                receivedTransactions.push(transaction);
+              },
+            })
+            .expect({
+              transaction: (transaction: TransactionEvent) => {
+                receivedTransactions.push(transaction);
 
-            const producer = receivedTransactions.find(t => t.transaction === 'root span');
-            const consumer = receivedTransactions.find(t => t.transaction === 'queue1 process');
+                const producer = receivedTransactions.find(t => t.transaction === 'root span');
+                const consumer = receivedTransactions.find(t => t.transaction === 'queue1 process');
 
-            expect(producer).toBeDefined();
-            expect(consumer).toBeDefined();
+                expect(producer).toBeDefined();
+                expect(consumer).toBeDefined();
 
-            expect(producer!.spans?.length).toEqual(1);
-            expect(producer!.spans![0]).toMatchObject(EXPECTED_MESSAGE_SPAN_PRODUCER);
+                expect(producer!.spans?.length).toEqual(1);
+                expect(producer!.spans![0]).toMatchObject(EXPECTED_MESSAGE_SPAN_PRODUCER);
 
-            expect(consumer!.contexts?.trace).toMatchObject(EXPECTED_MESSAGE_SPAN_CONSUMER);
-          },
-        })
-        .start()
-        .completed();
-    });
+                expect(consumer!.contexts?.trace).toMatchObject(EXPECTED_MESSAGE_SPAN_CONSUMER);
+              },
+            })
+            .start()
+            .completed();
+        });
+      },
+      { additionalDependencies },
+    );
   });
 });
