@@ -254,7 +254,7 @@ export default async function run({ github, context, core }) {
 
     for (const reviewer of pendingReviewers) {
       const requestEvents = timeline
-        .filter(e => e.event === 'review_requested' && e.requested_reviewer?.login === reviewer.login)
+        .filter(e => e.event === 'review_requested')
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
       if (requestEvents.length === 0) {
