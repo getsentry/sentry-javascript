@@ -35,6 +35,9 @@ export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../i
 export type { PostgresJsChannelIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
 export { redisChannelIntegration } from '../integrations/tracing-channel/redis';
 export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/tracing-channel/redis';
+// Not part of `channelIntegrations` below: `Nest` isn't a `@sentry/node` default integration (it's added
+// by the standalone `@sentry/nestjs` SDK), so it's not swapped via the generic default-integration path.
+export { nestjsChannelIntegration } from '../integrations/tracing-channel/nestjs';
 
 // The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s
 // vendored OTel graphql instrumentation (re-exported from here so the two can't drift).
