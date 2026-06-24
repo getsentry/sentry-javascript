@@ -22,6 +22,8 @@ import { URL } from 'url';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
+  getClient,
+  hasSpanStreamingEnabled,
   isTracingSuppressed,
   LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
@@ -253,10 +255,18 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
     attributes[USER_AGENT_ORIGINAL] = userAgent;
   }
 
+  // Outside of span streaming, only record an `http.client` span when it has a parent. An orphan
+  // one (no local parent) is left to the server for the downstream sampling decision: `onlyIfParent`
+  // still creates a non-recording span so trace propagation headers are injected, but it isn't
+  // emitted as a standalone transaction. This rule also lives in `SentrySampler`, but that only runs
+  // when an OpenTelemetry SDK tracer provider is set up, so we enforce it here too, which covers
+  // SDKs that don't use an OpenTelemetry tracer provider at all.
+  const client = getClient();
   const span = startInactiveSpan({
     name: requestMethod === '_OTHER' ? 'HTTP' : requestMethod,
     kind: SPAN_KIND.CLIENT,
     attributes,
+    onlyIfParent: !client || !hasSpanStreamingEnabled(client),
   });
 
   // Execute the request hook if defined
