@@ -83,7 +83,13 @@ export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions
         }
 
         // Use an inactive span (not `startSpan`) so we can end the span before flushing on error.
-        const span = startInactiveSpan({ name: `firebase.function.${triggerType}`, op: 'http.request', attributes });
+        const span = startInactiveSpan({
+          name: `firebase.function.${triggerType}`,
+          op: 'http.request',
+          // SpanKind.SERVER = 1
+          kind: 1,
+          attributes,
+        });
 
         return withActiveSpan(span, async () => {
           try {

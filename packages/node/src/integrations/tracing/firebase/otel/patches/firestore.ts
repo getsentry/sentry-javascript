@@ -178,6 +178,8 @@ function startFirestoreSpan<AppModelType, DbModelType extends DocumentData, T>(
     {
       name: `${spanName} ${reference.path}`,
       op: 'db.query',
+      // SpanKind.CLIENT = 2
+      kind: 2,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.firebase.otel.firestore',
         [ATTR_DB_OPERATION_NAME]: spanName,
