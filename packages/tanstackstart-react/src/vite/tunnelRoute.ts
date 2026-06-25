@@ -178,12 +178,13 @@ export function makeTunnelRoutePlugin(options: TunnelRouteOptions, debug?: boole
       }
 
       return `import { createFileRoute } from '@tanstack/react-router';
+import { registerSentryServerTunnelRoute } from '@sentry/tanstackstart-react';
 
-// Server-only: drop the tunnel route's own transaction. SSR guard keeps it out of the client bundle.
+// Server-only: drop the tunnel route's own transaction. Registered synchronously at module evaluation
+// (before any request) so streamed spans are filtered from the first request. The SSR guard tree-shakes
+// it (and the import) out of the client bundle.
 if (import.meta.env.SSR) {
-  import('@sentry/tanstackstart-react').then(sentry => {
-    sentry.registerSentryServerTunnelRoute(${serializedTunnelRoute});
-  });
+  registerSentryServerTunnelRoute(${serializedTunnelRoute});
 }
 
 export const Route = createFileRoute(${serializedTunnelRoute})({

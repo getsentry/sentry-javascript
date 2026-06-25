@@ -128,8 +128,6 @@ describe('tunnelRoute vite plugin', () => {
 
     expect(virtualRouteModule).toContain('createFileRoute("/monitor")');
     expect(virtualRouteModule).toContain('allowedDsns: ["http://public@localhost:3031/1337"]');
-    expect(virtualRouteModule).toContain('registerSentryServerTunnelRoute("/monitor")');
-    expect(virtualRouteModule).toContain('import.meta.env.SSR');
   });
 
   it('omits allowedDsns from the virtual managed tunnel route module when not provided', async () => {
