@@ -30,7 +30,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
 
 /** Get the default integrations for the Node SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
-  const integrations: Integration[] = [
+  return [
     ...getDefaultIntegrationsWithoutPerformance(),
     // We only add performance integrations if tracing is enabled
     // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
@@ -38,24 +38,6 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     // But `transactionName` will not be set automatically
     ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
-
-  // When the app opted into diagnostics-channel injection (via
-  // `experimentalUseDiagnosticsChannelInjection()`) AND span recording is
-  // enabled, swap the channel-based integrations in place of OTel equivalents
-  // so the two don't both instrument the same library.
-  //
-  // Every channel-based integration we ship today is a 1:1 replacement for an
-  // OTel performance/tracing integration and produces nothing but spans (those
-  // only come from `getAutoPerformanceIntegrations()` above), so it's gated on
-  // span recording.
-  if (isDiagnosticsChannelInjectionEnabled() && hasSpansEnabled(options)) {
-    const diagnosticsChannelInjection = resolveDiagnosticsChannelInjection();
-    if (diagnosticsChannelInjection) {
-      const replaced = new Set(diagnosticsChannelInjection.replacedOtelIntegrationNames);
-      return [...integrations.filter(i => !replaced.has(i.name)), ...diagnosticsChannelInjection.integrations];
-    }
-  }
-  return integrations;
 }
 
 /**
@@ -90,10 +72,25 @@ function _init(
     diagnosticsChannelInjection.register();
   }
 
+  // Only use Node SDK defaults if none provided.
+  let defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(options);
+
+  // When opted into diagnostics-channel injection, swap the channel-based
+  // integrations in place of their OTel equivalents so the two don't both
+  // instrument the same library. Done here (rather than in
+  // `getDefaultIntegrations`) so it also covers framework SDKs (e.g.
+  // `@sentry/nestjs`) that pass their own `defaultIntegrations` array.
+  if (diagnosticsChannelInjection && Array.isArray(defaultIntegrations)) {
+    const replaced = new Set(diagnosticsChannelInjection.replacedOtelIntegrationNames);
+    defaultIntegrations = [
+      ...defaultIntegrations.filter(integration => !replaced.has(integration.name)),
+      ...diagnosticsChannelInjection.integrations,
+    ];
+  }
+
   const client = initNodeCore({
     ...options,
-    // Only use Node SDK defaults if none provided
-    defaultIntegrations: options.defaultIntegrations ?? getDefaultIntegrationsImpl(options),
+    defaultIntegrations,
   });
 
   // Add Node SDK specific OpenTelemetry setup
