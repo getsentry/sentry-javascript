@@ -30,16 +30,18 @@ PACKAGES_DIR = os.path.join(REPO_ROOT, "packages")
 
 EXCLUDED_PACKAGES: set[str] = {
     # Internal build/dev tooling — not user-facing SDK packages.
-    "@sentry-internal/eslint-config-sdk",
-    "@sentry-internal/eslint-plugin-sdk",
-    "@sentry-internal/typescript",
+    "@sentry/eslint-config-sdk",
+    "@sentry/eslint-plugin-sdk",
+    "@sentry/typescript",
     "@sentry-internal/integration-shims",
-    "@sentry-internal/server-utils",
-    # Internal sub-packages that are part of a larger feature, not standalone SDKs.
-    "@sentry-internal/browser-utils",
-    "@sentry-internal/feedback",
-    "@sentry-internal/replay",
-    "@sentry-internal/replay-canvas",
+    # Internal utils / build tooling — not framework integrations.
+    "@sentry/browser-utils",
+    "@sentry/server-utils",
+    "@sentry/bundler-plugins",
+    # UX products — not framework integrations.
+    "@sentry/feedback",
+    "@sentry/replay",
+    "@sentry/replay-canvas",
     "@sentry-internal/replay-worker",
     # Core packages — not tied to any upstream framework.
     "@sentry/core",
