@@ -17,7 +17,6 @@ function astQueryInstrumentation(config: {
   return config as unknown as InstrumentationConfig;
 }
 
-
 export const nestjsConfig = [
   {
     // `@nestjs/core/nest-factory.js` exports `class NestFactoryStatic` with an

@@ -5,6 +5,7 @@ import { ioredisChannelIntegration } from '../integrations/tracing-channel/iored
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
+import { nestjsChannelIntegration } from '../integrations/tracing-channel/nestjs';
 import { postgresChannelIntegration } from '../integrations/tracing-channel/postgres';
 import { postgresJsChannelIntegration } from '../integrations/tracing-channel/postgres-js';
 import { vercelAiChannelIntegration } from '../integrations/tracing-channel/vercel-ai';
@@ -23,14 +24,12 @@ export {
   postgresJsChannelIntegration,
   vercelAiChannelIntegration,
   expressChannelIntegration,
+  nestjsChannelIntegration,
 };
 export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/tracing-channel/ioredis';
 export type { PostgresJsChannelIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
 export { redisChannelIntegration } from '../integrations/tracing-channel/redis';
 export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/tracing-channel/redis';
-// Not part of `channelIntegrations` below: `Nest` isn't a `@sentry/node` default integration (it's added
-// by the standalone `@sentry/nestjs` SDK), so it's not swapped via the generic default-integration path.
-export { nestjsChannelIntegration } from '../integrations/tracing-channel/nestjs';
 
 /**
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
@@ -44,6 +43,14 @@ export { nestjsChannelIntegration } from '../integrations/tracing-channel/nestjs
  * NOTE: `ioredisChannelIntegration` and `redisChannelIntegration` are intentionally NOT here. They
  * only partially replace the composite OTel `Redis` integration and need the node SDK's redis cache
  * `responseHook` (which can't live in `server-utils`), so `@sentry/node` wires them up separately.
+ *
+ * NOTE: `ioredisChannelIntegration` is intentionally NOT here. It only partially replaces the
+ * composite OTel `Redis` integration and needs the node SDK's redis cache `responseHook` (which
+ * can't live in `server-utils`), so `@sentry/node` wires it up separately.
+ *
+ * `Nest` is included even though it isn't a `@sentry/node` default integration: the swap runs in the Node
+ * SDK's `_init` over the *final* `defaultIntegrations`, so it also replaces the OTel `Nest` that
+ * `@sentry/nestjs` prepends to its own defaults.
  */
 export const channelIntegrations = {
   postgresIntegration: postgresChannelIntegration,
@@ -56,4 +63,5 @@ export const channelIntegrations = {
   vercelAiIntegration: vercelAiChannelIntegration,
   hapiIntegration: hapiChannelIntegration,
   expressIntegration: expressChannelIntegration,
+  nestIntegration: nestjsChannelIntegration,
 } as const;
