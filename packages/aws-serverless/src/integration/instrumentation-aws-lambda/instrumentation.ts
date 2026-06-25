@@ -21,7 +21,7 @@
  * limitations under the License.
  */
 
-import type { Attributes, MeterProvider, TracerProvider } from '@opentelemetry/api';
+import type { Attributes, TracerProvider } from '@opentelemetry/api';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
@@ -67,7 +67,6 @@ type LambdaModule = Record<string, Handler>;
  */
 export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstrumentationConfig> {
   declare private _traceForceFlusher?: () => Promise<void>;
-  declare private _metricForceFlusher?: () => Promise<void>;
 
   constructor(config: AwsLambdaInstrumentationConfig = {}) {
     super(PACKAGE_NAME, PACKAGE_VERSION, config);
@@ -400,29 +399,6 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
   /**
    *
    */
-  override setMeterProvider(meterProvider: MeterProvider) {
-    super.setMeterProvider(meterProvider);
-    this._metricForceFlusher = this._metricForceFlush(meterProvider);
-  }
-
-  /**
-   *
-   */
-  private _metricForceFlush(meterProvider: MeterProvider) {
-    if (!meterProvider) return undefined;
-
-    const currentProvider: any = meterProvider;
-
-    if (typeof currentProvider.forceFlush === 'function') {
-      return currentProvider.forceFlush.bind(currentProvider);
-    }
-
-    return undefined;
-  }
-
-  /**
-   *
-   */
   private _wrapCallback(original: Callback, span: Span): Callback {
     const plugin = this;
     return function wrappedCallback(this: never, err, res) {
@@ -466,15 +442,6 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
           'Spans may not be exported for the lambda function because we are not force flushing before callback.',
         );
     }
-    if (this._metricForceFlusher) {
-      flushers.push(this._metricForceFlusher());
-    } else {
-      DEBUG_BUILD &&
-        debug.log(
-          'Metrics may not be exported for the lambda function because we are not force flushing before callback.',
-        );
-    }
-
     const FORCE_FLUSH_TIMEOUT_MS = 2000;
     let timeoutId: ReturnType<typeof setTimeout>;
     const timeoutPromise = new Promise<void>(resolve => {
