@@ -17,9 +17,8 @@ import {
   spanToJSON,
   startSpan,
 } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  _resetMongooseDiagnosticChannelsForTesting,
   MONGOOSE_DC_CHANNEL_AGGREGATE,
   MONGOOSE_DC_CHANNEL_CURSOR_NEXT,
   MONGOOSE_DC_CHANNEL_MODEL_BULK_WRITE,
@@ -131,18 +130,25 @@ const factory = tracingChannel as MongooseTracingChannelFactory;
 describe('subscribeMongooseDiagnosticChannels', () => {
   let captureExceptionSpy: ReturnType<typeof vi.spyOn>;
 
-  // `node:diagnostics_channel` channels are process-global. `_reset…` calls each binding's `unbind`,
-  // so we can subscribe and fully detach per test without handlers leaking across tests.
-  beforeEach(() => {
+  // The subscriber captures the async-context strategy's ALS when it binds, so the strategy must be
+  // installed before we subscribe — and both must stay fixed for the file. We do that once here,
+  // mirroring production where `setupOnce` subscribes a single time. Per-test we only reset the client
+  // and scopes (cleared in `afterEach`), so nothing leaks between tests.
+  beforeAll(() => {
     installTestAsyncContextStrategy();
-    initTestClient();
-    captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
     subscribeMongooseDiagnosticChannels(factory);
   });
 
-  afterEach(() => {
-    _resetMongooseDiagnosticChannelsForTesting();
+  afterAll(() => {
     setAsyncContextStrategy(undefined);
+  });
+
+  beforeEach(() => {
+    initTestClient();
+    captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+  });
+
+  afterEach(() => {
     getCurrentScope().clear();
     getCurrentScope().setClient(undefined);
     getGlobalScope().clear();

@@ -77,7 +77,6 @@ export interface MongooseTracingData {
 export type MongooseTracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
 
 let subscribed = false;
-let activeUnbinds: Array<() => void> = [];
 
 /**
  * Subscribe Sentry span handlers to mongoose's diagnostics-channel events
@@ -95,14 +94,12 @@ export function subscribeMongooseDiagnosticChannels(tracingChannel: MongooseTrac
   subscribed = true;
 
   try {
-    activeUnbinds.push(
-      setupChannel(tracingChannel, MONGOOSE_DC_CHANNEL_QUERY),
-      setupChannel(tracingChannel, MONGOOSE_DC_CHANNEL_AGGREGATE),
-      setupChannel(tracingChannel, MONGOOSE_DC_CHANNEL_MODEL_SAVE),
-      setupChannel(tracingChannel, MONGOOSE_DC_CHANNEL_MODEL_INSERT_MANY),
-      setupChannel(tracingChannel, MONGOOSE_DC_CHANNEL_MODEL_BULK_WRITE),
-      setupChannel(tracingChannel, MONGOOSE_DC_CHANNEL_CURSOR_NEXT),
-    );
+    setupChannel(tracingChannel, MONGOOSE_DC_CHANNEL_QUERY);
+    setupChannel(tracingChannel, MONGOOSE_DC_CHANNEL_AGGREGATE);
+    setupChannel(tracingChannel, MONGOOSE_DC_CHANNEL_MODEL_SAVE);
+    setupChannel(tracingChannel, MONGOOSE_DC_CHANNEL_MODEL_INSERT_MANY);
+    setupChannel(tracingChannel, MONGOOSE_DC_CHANNEL_MODEL_BULK_WRITE);
+    setupChannel(tracingChannel, MONGOOSE_DC_CHANNEL_CURSOR_NEXT);
   } catch {
     // The factory relies on `node:diagnostics_channel`, which isn't always
     // available. Fail closed; the SDK simply won't emit mongoose spans here.
@@ -110,34 +107,28 @@ export function subscribeMongooseDiagnosticChannels(tracingChannel: MongooseTrac
   }
 }
 
-function setupChannel(tracingChannel: MongooseTracingChannelFactory, channelName: string): () => void {
-  return bindTracingChannelToSpan(
-    tracingChannel<MongooseTracingData>(channelName),
-    data => {
-      const collection = data.collection;
-      const queryText = redactMongoQuery(data.args?.pipeline ?? data.args?.filter);
-      const batchSize = getBatchSize(data);
+function setupChannel(tracingChannel: MongooseTracingChannelFactory, channelName: string): void {
+  bindTracingChannelToSpan(tracingChannel<MongooseTracingData>(channelName), data => {
+    const collection = data.collection;
+    const queryText = redactMongoQuery(data.args?.pipeline ?? data.args?.filter);
+    const batchSize = getBatchSize(data);
 
-      return startInactiveSpan({
-        name: collection ? `mongoose.${collection}.${data.operation}` : `mongoose.${data.operation}`,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
-          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MONGODB,
-          [DB_OPERATION_NAME]: data.operation,
-          ...(collection != null ? { [DB_COLLECTION_NAME]: collection } : {}),
-          ...(data.database != null ? { [DB_NAMESPACE]: data.database } : {}),
-          ...(queryText != null ? { [DB_QUERY_TEXT]: queryText } : {}),
-          ...(batchSize != null ? { [DB_OPERATION_BATCH_SIZE]: batchSize } : {}),
-          ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
-          ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
-        },
-      });
-    },
-    // Query failures are surfaced to (and usually handled by) the caller; only annotate the
-    // span so we don't emit a duplicate error event for every failed query.
-    { captureError: false },
-  ).unbind;
+    return startInactiveSpan({
+      name: collection ? `mongoose.${collection}.${data.operation}` : `mongoose.${data.operation}`,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MONGODB,
+        [DB_OPERATION_NAME]: data.operation,
+        ...(collection != null ? { [DB_COLLECTION_NAME]: collection } : {}),
+        ...(data.database != null ? { [DB_NAMESPACE]: data.database } : {}),
+        ...(queryText != null ? { [DB_QUERY_TEXT]: queryText } : {}),
+        ...(batchSize != null ? { [DB_OPERATION_BATCH_SIZE]: batchSize } : {}),
+        ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
+        ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
+      },
+    });
+  });
 }
 
 /**
@@ -183,11 +174,4 @@ function redactValue(value: unknown, depth: number): unknown {
     return out;
   }
   return '?';
-}
-
-/** Test-only: detach all channel bindings and reset module-local subscribe state. */
-export function _resetMongooseDiagnosticChannelsForTesting(): void {
-  activeUnbinds.forEach(unbind => unbind());
-  activeUnbinds = [];
-  subscribed = false;
 }
