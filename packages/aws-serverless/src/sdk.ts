@@ -241,7 +241,7 @@ export function wrapHandler<TEvent, TResult>(
           });
         }
       } catch (e) {
-        // Errors should already captured in the instrumentation's `responseHook`,
+        // Errors should already be captured in the AwsLambda instrumentation's error handler,
         // we capture them here just to be safe. Double captures are deduplicated by the SDK.
         captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.handler'));
         throw e;
@@ -288,7 +288,7 @@ function wrapStreamingHandler<TEvent, TResult>(
 
         return await handler(event, responseStream, context);
       } catch (e) {
-        // Errors should already captured in the instrumentation's `responseHook`,
+        // Errors should already be captured in the AwsLambda instrumentation's error handler,
         // we capture them here just to be safe. Double captures are deduplicated by the SDK.
         captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.handler'));
         throw e;
