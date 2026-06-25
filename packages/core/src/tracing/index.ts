@@ -22,6 +22,7 @@ export {
   suppressTracing,
   isTracingSuppressed,
   startNewTrace,
+  spanIsIgnored,
   SUPPRESS_TRACING_KEY,
 } from './trace';
 export { bindScopeToEmitter } from './bindScopeToEmitter';
