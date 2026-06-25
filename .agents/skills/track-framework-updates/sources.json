@@ -230,7 +230,7 @@
         "discussions": true,
         "rfcsRepo": null
       },
-      "rss": ["https://bun.com/blog/rss"]
+      "rss": ["https://bun.sh/rss.xml"]
     },
     {
       "name": "Deno",
@@ -241,7 +241,7 @@
         "discussions": false,
         "rfcsRepo": null
       },
-      "rss": ["https://deno.com/blog/rss"]
+      "rss": ["https://deno.com/feed"]
     },
     {
       "name": "Cloudflare Workers",
