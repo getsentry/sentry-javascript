@@ -28,6 +28,11 @@ const _vercelAiIntegration = ((options: VercelAiOptions = {}) => {
   return {
     name: 'VercelAi',
     setupOnce() {
+      // Bail if this is not available
+      if (!dc.tracingChannel) {
+        return;
+      }
+
       // Subscribe to the `ai` SDK's native telemetry tracing channel (ai >= 7).
       // This is a no-op on versions that don't publish to the channel, so it is always safe to call.
       // The factory needs the Sentry OTel context manager, which `initOpenTelemetry()` registers after `setupOnce`, so defer a tick.
