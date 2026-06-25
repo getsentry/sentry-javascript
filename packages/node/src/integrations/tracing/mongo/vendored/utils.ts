@@ -8,11 +8,11 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
@@ -203,7 +203,7 @@ export function startMongoSpan(attributes: SpanAttributes): Span {
   return startInactiveSpan({
     // eslint-disable-next-line typescript/no-deprecated
     name: `mongodb.${attributes[ATTR_DB_OPERATION] || 'command'}`,
-    kind: SpanKind.CLIENT,
+    kind: SPAN_KIND.CLIENT,
     attributes,
   });
 }

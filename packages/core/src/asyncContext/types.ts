@@ -1,4 +1,5 @@
 import type { Scope } from '../scope';
+import type { Span } from '../types/span';
 import type { getTraceData } from '../utils/traceData';
 import type {
   continueTrace,
@@ -10,6 +11,23 @@ import type {
   withActiveSpan,
 } from './../tracing/trace';
 import type { getActiveSpan } from './../utils/spanUtils';
+
+/*
+ * @private Private API with no semver guarantees!
+ *
+ * A binding object used to enable context propagation for a tracing channel against a span
+ */
+export interface TracingChannelBinding {
+  /**
+   * The ALS instance that will be bound to the channel.
+   */
+  asyncLocalStorage: unknown;
+
+  /**
+   * Activates a span for the tracing channels nested invocations, the return value must be the same type as the `asyncLocalStorage` inner value.
+   */
+  getStoreWithActiveSpan: (span: Span) => unknown;
+}
 
 /**
  * @private Private API with no semver guarantees!
@@ -80,4 +98,7 @@ export interface AsyncContextStrategy {
 
   /** Start a new trace, ensuring all spans in the callback share the same traceId. */
   startNewTrace?: typeof startNewTrace;
+
+  /** Get the runtime store required to bind tracing channels to an active span. */
+  getTracingChannelBinding?: () => TracingChannelBinding | undefined;
 }

@@ -6,7 +6,7 @@ async function run() {
   await Promise.resolve();
 
   const { createClient } = await import('redis-5-tracing');
-  const redisClient = await createClient({ socket: { host: '127.0.0.1', port: 6379 } }).connect();
+  const redisClient = await createClient({ socket: { host: '127.0.0.1', port: 6381 } }).connect();
 
   await Sentry.startSpan(
     {

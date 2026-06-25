@@ -1,13 +1,14 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { IntegrationFn, Span } from '@sentry/core';
+import type { IntegrationFn, Scope, Span } from '@sentry/core';
 import {
+  bindScopeToEmitter,
   debug,
   defineIntegration,
-  getActiveSpan,
+  getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
-  withActiveSpan,
+  withScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -39,13 +40,10 @@ const ATTR_NET_PEER_PORT = 'net.peer.port';
  * `context` object. Documented here rather than imported because orchestrion's
  * runtime doesn't export it — see `node_modules/@apm-js-collab/code-transformer/lib/transforms.js`.
  *
- * `arguments` is the *live* args array the wrapper passes to the wrapped function:
- * orchestrion splices the user's callback out and inserts its own wrapper at
- * the same index before publishing `start`. We mutate that last entry again in
- * our `start` hook so the callback (and any nested `connection.query(...)`)
- * runs inside `withActiveSpan(parent, …)` — mysql v2 loses ALS state when it
- * dispatches callbacks from its socket handler, which would otherwise cause
- * nested queries to begin a fresh root trace.
+ * `arguments` is the *live* args array passed to the wrapped function: orchestrion
+ * splices the user's callback out and inserts its own wrapper at the same index
+ * before publishing `start`. The `start` hook re-wraps that entry to restore the
+ * caller's scope across mysql's async callback dispatch (see below).
  */
 interface MysqlQueryChannelContext {
   arguments: unknown[];
@@ -75,11 +73,13 @@ const _mysqlChannelIntegration = (() => {
       DEBUG_BUILD && debug.log(`[orchestrion:mysql] subscribing to channel "${CHANNELS.MYSQL_QUERY}"`);
       const queryCh = diagnosticsChannel.tracingChannel(CHANNELS.MYSQL_QUERY);
 
-      // Each `context` object is shared across start/end/asyncStart/asyncEnd/error
-      // for one call (orchestrion creates one per invocation). We key the span
-      // off the same identity. WeakMap so we don't leak if a path never reaches
-      // asyncEnd for some reason.
+      // Orchestrion creates one `context` object per call, shared across all
+      // lifecycle hooks. We key both maps off that identity; `WeakMap` so an
+      // unfinished path can't leak its entries.
       const spans = new WeakMap<object, Span>();
+      // The scope active when the query was issued, consumed in `end` to bind
+      // the streamed `Query` emitter's listeners to it.
+      const parentScopes = new WeakMap<object, Scope>();
 
       // `subscribe()` requires all five lifecycle hooks. The orchestrion
       // `wrapAuto` transform fires events in one of four orders depending on
@@ -94,18 +94,10 @@ const _mysqlChannelIntegration = (() => {
       //                                            (ctx.result is the Query
       //                                            emitter, no async events)
       //
-      // We end the span on `asyncEnd` for the two callback paths (so the span
-      // covers the full network round-trip + callback duration). For the
-      // sync-throw path, `end` finishes the span because `ctx.error` is set
-      // there. For the streamable no-callback path, `end` finishes by
-      // attaching `'end'`/`'error'` listeners to `ctx.result` (the returned
-      // `Query` emitter).
-      //
-      // The discriminator between "end fired before any error" and "end fired
-      // after a sync throw" is whether `ctx.error` is set when `end` runs —
-      // orchestrion populates it before publishing `error`. The discriminator
-      // between callback and no-callback is whether `ctx.result` is set — only
-      // the `wrapPromise` (no-callback) path stores it.
+      // Where the span closes depends on the path: `asyncEnd` for callbacks (so
+      // it spans the full round-trip + callback), or `end` for the sync-throw
+      // and streamable paths. The `end` hook tells those apart via `ctx.error`
+      // / `ctx.result` — see there.
       queryCh.subscribe({
         start(rawCtx) {
           const ctx = rawCtx as MysqlQueryChannelContext;
@@ -130,28 +122,26 @@ const _mysqlChannelIntegration = (() => {
           });
           spans.set(rawCtx, span);
 
-          // Restore the Sentry/OTel context across mysql's internal callback
-          // dispatch. The orchestrion transform has already spliced the user's
-          // callback out of `ctx.arguments` and put its own wrapper
-          // (`__apm$wrappedCb`) at the same index. mysql v2 drains callbacks
-          // from a socket data handler — by the time the response arrives, the
-          // AsyncLocalStorage store backing `getActiveSpan()` no longer
-          // reflects the caller's context. We re-wrap orchestrion's wrapper so
-          // the user's callback (and any nested `connection.query(...)` inside
-          // it) runs with the parent span active again.
-          //
-          // This must happen at `start` (we're synchronously inside the
-          // caller's `connection.query` call, so OTel context is still
-          // correct). `asyncStart`/`asyncEnd` fire from the same lost context
-          // as the callback itself, so they're too late.
-          const parentSpan = getActiveSpan();
-          if (parentSpan && ctx.arguments.length > 0) {
+          // Capture the scope while we're still synchronously inside the
+          // caller's `connection.query` call. mysql v2 drains callbacks and
+          // emits streamed-query events from its socket data handler, where the
+          // AsyncLocalStorage store backing the active span no longer reflects
+          // the caller's context — and `asyncStart`/`asyncEnd` fire from that
+          // same lost context, so capturing has to happen now.
+          const scope = getCurrentScope();
+          parentScopes.set(rawCtx, scope);
+
+          // Callback path: orchestrion has spliced the user's callback out of
+          // `ctx.arguments` and put its own wrapper (`__apm$wrappedCb`) at the
+          // same index. Re-wrap it so the callback — and any nested
+          // `connection.query(...)` — runs with the captured scope active.
+          if (ctx.arguments.length > 0) {
             const cbIdx = ctx.arguments.length - 1;
             const orchestrionWrappedCb = ctx.arguments[cbIdx];
             if (typeof orchestrionWrappedCb === 'function') {
               const wrapped = orchestrionWrappedCb as (...a: unknown[]) => unknown;
               ctx.arguments[cbIdx] = function (this: unknown, ...args: unknown[]): unknown {
-                return withActiveSpan(parentSpan, () => wrapped.apply(this, args));
+                return withScope(scope, () => wrapped.apply(this, args));
               };
             }
           }
@@ -173,16 +163,27 @@ const _mysqlChannelIntegration = (() => {
           // fires `asyncStart`/`asyncEnd`. The returned `Query` is an
           // `EventEmitter` that emits `'end'` on success and `'error'` on
           // failure — hook those to close the span.
-          // TODO: streaming spans aren't finished on `connection.destroy()` —
-          // mysql guarantees no further events/callbacks for a destroyed
-          // connection, so neither `'end'` nor `'error'` fires and the span
-          // never ends (it's dropped, never reported). Closing this gap needs
-          // connection-level lifecycle hooks, which the per-query channel
-          // context doesn't expose here. The `WeakMap` still prevents a leak.
+          // Note: a streamed span never finishes if the connection is destroyed
+          // mid-flight — mysql then emits neither `'end'` nor `'error'`, so the
+          // span is dropped (the `WeakMap` still prevents a leak). Closing this
+          // needs connection-level hooks the per-query context doesn't expose.
           const result = ctx.result;
           if (result && typeof result === 'object' && hasOnMethod(result)) {
             const span = spans.get(rawCtx);
             if (!span) return;
+
+            // Bind the captured scope to the streamed `Query` emitter: its
+            // `'end'`/`'error'`/`'fields'`/… events fire from mysql's socket
+            // handler with the caller's context lost, so without this a span
+            // started in a user's stream listener would begin a fresh root trace
+            // instead of nesting under the parent. `bindScopeToEmitter` patches
+            // `on`/`addListener`/… so listeners added after `query()` returns
+            // inherit the scope (like OTel's `context.bind`).
+            const parentScope = parentScopes.get(rawCtx);
+            if (parentScope) {
+              bindScopeToEmitter(result, parentScope);
+            }
+
             result.on('error', err => {
               span.setStatus({
                 code: SPAN_STATUS_ERROR,
@@ -224,6 +225,7 @@ const _mysqlChannelIntegration = (() => {
         if (!span) return;
         span.end();
         spans.delete(rawCtx);
+        parentScopes.delete(rawCtx);
       }
     },
   };

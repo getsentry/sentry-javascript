@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/node';
 import mysql from 'mysql';
 
 const connection = mysql.createConnection({
+  port: Number(process.env.MYSQL_PORT),
   user: 'root',
   password: 'docker',
 });
@@ -23,10 +24,7 @@ Sentry.startSpanManual(
 
     query.on('end', () => {
       query2.on('end', () => {
-        // Wait a bit to ensure the queries completed
-        setTimeout(() => {
-          span.end();
-        }, 500);
+        span.end();
       });
     });
   },

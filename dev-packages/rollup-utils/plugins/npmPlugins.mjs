@@ -120,20 +120,38 @@ export function makeDebugBuildStatementReplacePlugin() {
   return plugin;
 }
 
-export function makeProductionReplacePlugin() {
-  // Markers use the `/*! ... */` legal-comment syntax so esbuild preserves them through
-  // transpile. We still run as a `transform` (per-module) hook rather than `renderChunk`:
-  // the block typically uses imports declared at the module top, and stripping it before
-  // rollup analyses module-graph imports lets those now-unused imports be tree-shaken away.
-  // The plugin sort order in utils.mjs pins this before `esbuild`.
-  const pattern =
-    /\/\*! rollup-include-development-only \*\/[\s\S]*?\/\*! rollup-include-development-only-end \*\/\s*/g;
+// Markers use the `/*! ... */` legal-comment syntax so esbuild preserves them through
+// transpile. We still run as a `transform` (per-module) hook rather than `renderChunk`:
+// the block typically uses imports declared at the module top, and stripping it before
+// rollup analyses module-graph imports lets those now-unused imports be tree-shaken away.
+// The plugin sort order in utils.mjs pins this before `esbuild`.
+const REMOVE_DEV_BLOCK =
+  /\/\*! rollup-include-development-only \*\/[\s\S]*?\/\*! rollup-include-development-only-end \*\/\s*/g;
 
+export function makeProductionReplacePlugin() {
   return {
     name: 'remove-dev-mode-blocks',
     transform(code) {
       if (!code.includes('rollup-include-development-only')) return null;
-      return { code: code.replace(pattern, ''), map: null };
+      return { code: code.replace(REMOVE_DEV_BLOCK, ''), map: null };
+    },
+  };
+}
+
+const REMOVE_CJS_BLOCK = /\/\*! rollup-include-cjs-only \*\/[\s\S]*?\/\*! rollup-include-cjs-only-end \*\/\s*/g;
+const REMOVE_ESM_BLOCK = /\/\*! rollup-include-esm-only \*\/[\s\S]*?\/\*! rollup-include-esm-only-end \*\/\s*/g;
+const STRIP_CJS_MARKERS = /[ \t]*\/\*! rollup-include-cjs-only(?:-end)? \*\/[ \t]*\r?\n?/g;
+const STRIP_ESM_MARKERS = /[ \t]*\/\*! rollup-include-esm-only(?:-end)? \*\/[ \t]*\r?\n?/g;
+
+export function makeEsmCjsReplacePlugin(type) {
+  const removeBlock = type === 'esm' ? REMOVE_CJS_BLOCK : REMOVE_ESM_BLOCK;
+  const stripMarkers = type === 'esm' ? STRIP_ESM_MARKERS : STRIP_CJS_MARKERS;
+
+  return {
+    name: 'remove-esm-cjs-mode-blocks',
+    transform(code) {
+      if (!code.includes('rollup-include-')) return null;
+      return { code: code.replace(removeBlock, '').replace(stripMarkers, ''), map: null };
     },
   };
 }

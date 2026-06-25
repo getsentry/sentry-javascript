@@ -1,5 +1,5 @@
 import * as api from '@opentelemetry/api';
-import type { Scope, withActiveSpan as defaultWithActiveSpan } from '@sentry/core';
+import type { Scope, Span, withActiveSpan as defaultWithActiveSpan } from '@sentry/core';
 import { getDefaultCurrentScope, getDefaultIsolationScope, setAsyncContextStrategy } from '@sentry/core';
 import {
   SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY,
@@ -12,6 +12,14 @@ import { getContextFromScope, getScopesFromContext } from './utils/contextData';
 import { getActiveSpan } from './utils/getActiveSpan';
 import { getTraceData } from './utils/getTraceData';
 import { suppressTracing } from './utils/suppressTracing';
+
+interface ContextApi {
+  _getContextManager(): {
+    getAsyncLocalStorageLookup(): {
+      asyncLocalStorage: unknown;
+    };
+  };
+}
 
 /**
  * Sets the async context strategy to use follow the OTEL context under the hood.
@@ -108,5 +116,18 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     // The types here don't fully align, because our own `Span` type is narrower
     // than the OTEL one - but this is OK for here, as we now we'll only have OTEL spans passed around
     withActiveSpan: withActiveSpan as typeof defaultWithActiveSpan,
+    getTracingChannelBinding: () => {
+      try {
+        const contextManager = (api.context as unknown as ContextApi)._getContextManager();
+        const lookup = contextManager.getAsyncLocalStorageLookup();
+
+        return {
+          asyncLocalStorage: lookup.asyncLocalStorage,
+          getStoreWithActiveSpan: (span: Span) => api.trace.setSpan(api.context.active(), span as api.Span),
+        };
+      } catch {
+        return undefined;
+      }
+    },
   });
 }
