@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/nuxt';
-import { mysqlChannelIntegration } from '@sentry/server-utils/orchestrion';
 
 // Runtime hook that injects diagnostics-channel calls into externalized deps (e.g. `mysql`),
 // which OTel can't instrument under ESM/`--import`. Must run before `Sentry.init()`.
