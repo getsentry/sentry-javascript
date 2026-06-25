@@ -83,8 +83,6 @@ export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions
         }
 
         // Use an inactive span (not `startSpan`) so we can end the span before flushing on error.
-        // Firebase Functions are short-lived, so the finished transaction must be enqueued via
-        // `span.end()` before `flush` drains the queue, otherwise it may never be sent.
         const span = startInactiveSpan({ name: `firebase.function.${triggerType}`, op: 'http.request', attributes });
 
         return withActiveSpan(span, async () => {
