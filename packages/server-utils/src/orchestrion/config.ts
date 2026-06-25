@@ -32,6 +32,12 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
     // attach `'end'`/`'error'` listeners that finish the span.
     functionQuery: { expressionName: 'query', kind: 'Auto' },
   },
+  {
+    channelName: 'load',
+    // `>=2.1.0` only: the named `function memoizedFunction()` the selector targets exists from 2.1.0
+    module: { name: 'lru-memoizer', versionRange: '>=2.1.0 <4', filePath: 'lib/async.js' },
+    functionQuery: { functionName: 'memoizedFunction', kind: 'Callback' },
+  },
 ];
 
 /**

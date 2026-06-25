@@ -90,7 +90,12 @@ describe('lru-memoizer', () => {
             },
           };
 
-          await createTestRunner().withFlags(...flags).expect(expectation).expect(expectation).start().completed();
+          await createTestRunner()
+            .withFlags(...flags)
+            .expect(expectation)
+            .expect(expectation)
+            .start()
+            .completed();
         });
       });
     });
