@@ -1,7 +1,7 @@
 /**
  * Bundle the `lighthouse-react` test app for each mode (no-sentry, init-only,
  * errors-only, minimal-integrations, no-integrations, no-browser-api-errors,
- * no-breadcrumbs, tracing, tracing-lazy-import, tracing-replay) and POST the
+ * no-breadcrumbs, no-browser-session, tracing, tracing-lazy-import, tracing-replay) and POST the
  * tarballs to the Sentry Lighthouse lab (https://lighthouse.sentry.gg). The lab
  * runs Lighthouse asynchronously and ships results to Sentry on its own
  * schedule — this script exits as soon as the upload succeeds.
@@ -42,6 +42,7 @@ const MODES = [
   'no-integrations',
   'no-browser-api-errors',
   'no-breadcrumbs',
+  'no-browser-session',
   'tracing',
   'tracing-lazy-import',
   'tracing-replay',
