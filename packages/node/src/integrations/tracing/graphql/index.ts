@@ -1,7 +1,8 @@
 import { GraphQLInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, extendIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
+import { graphqlChannelIntegration } from '@sentry/server-utils';
 
 interface GraphqlOptions {
   /**
@@ -41,7 +42,9 @@ export const instrumentGraphql = generateInstrumentOnce(
 );
 
 const _graphqlIntegration = ((options: GraphqlOptions = {}) => {
-  return {
+  // The diagnostics_channel subscription (graphql >= 17) lives in server-utils so it is shared
+  // across server runtimes; we extend it here to also run the vendored OTel patcher for graphql < 17.
+  return extendIntegration(graphqlChannelIntegration(), {
     name: INTEGRATION_NAME,
     setupOnce() {
       // We set defaults here, too, because otherwise we'd update the instrumentation config
@@ -49,7 +52,7 @@ const _graphqlIntegration = ((options: GraphqlOptions = {}) => {
       // when being called the second time
       instrumentGraphql(getOptionsWithDefaults(options));
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**
