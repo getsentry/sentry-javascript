@@ -21,6 +21,7 @@
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
     "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
     "ioredis": "5.10.1",
+    "mysql": "^2.18.1",
     "nuxt": "^4.4.8",
     "vue": "^3.5.38",
     "vue-router": "^5.1.0"

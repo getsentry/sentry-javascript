@@ -10,7 +10,6 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       sentry: {
-        /// dsn: 'https://e88b32b2db8229c9b7b693337bd60a12@o447951.ingest.us.sentry.io/4507486945738752'
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
       },
     },

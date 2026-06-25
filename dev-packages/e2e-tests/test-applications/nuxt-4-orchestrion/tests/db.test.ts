@@ -2,8 +2,11 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Instruments ioredis automatically', async ({ baseURL }) => {
+  // This test works as well without orchestrion
   const transactionEventPromise = waitForTransaction('nuxt-4-orchestrion', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /api/db-ioredis';
+    return (
+      transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /api/db-ioredis'
+    );
   });
 
   await fetch(`${baseURL}/api/db-ioredis`);
@@ -50,9 +53,38 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
 
   const transactionEvent = await transactionEventPromise;
 
-  // TODO: currently only logging transaction
+  const spans = transactionEvent.spans || [];
 
-  // eslint-disable-next-line no-console
-  console.log('db-mysql transaction:', JSON.stringify(transactionEvent, null, 2));
+  expect(spans).toContainEqual(
+    expect.objectContaining({
+      op: 'db',
+      origin: 'auto.db.orchestrion.mysql',
+      description: 'SELECT 1 + 1 AS solution',
+      status: 'ok',
+      data: expect.objectContaining({
+        'db.system': 'mysql',
+        'db.statement': 'SELECT 1 + 1 AS solution',
+        'db.user': 'root',
+        'db.connection_string': expect.any(String),
+        'net.peer.name': expect.any(String),
+        'net.peer.port': 3306,
+      }),
+    }),
+  );
+  expect(spans).toContainEqual(
+    expect.objectContaining({
+      op: 'db',
+      origin: 'auto.db.orchestrion.mysql',
+      description: 'SELECT NOW()',
+      status: 'ok',
+      data: expect.objectContaining({
+        'db.system': 'mysql',
+        'db.statement': 'SELECT NOW()',
+        'db.user': 'root',
+        'db.connection_string': expect.any(String),
+        'net.peer.name': expect.any(String),
+        'net.peer.port': 3306,
+      }),
+    }),
+  );
 });
-
