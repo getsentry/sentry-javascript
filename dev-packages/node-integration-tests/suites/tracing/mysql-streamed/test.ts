@@ -1,7 +1,8 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses } from '../../../utils/runner';
+import { createCjsTests } from '../../../utils/runner/createEsmAndCjsTests';
 
 describe('mysql auto instrumentation (streamed)', () => {
   afterAll(() => {
@@ -119,44 +120,26 @@ describe('mysql auto instrumentation (streamed)', () => {
   };
 
   describe('with connection.connect()', () => {
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-withConnect.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
-        test('should auto-instrument `mysql` package when using connection.connect()', async () => {
-          await createTestRunner().expect({ span: assertMysqlSpans }).start().completed();
-        });
-      },
-      { failsOnEsm: true },
-    );
+    createCjsTests(__dirname, 'scenario-withConnect.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('should auto-instrument `mysql` package when using connection.connect()', async () => {
+        await createTestRunner().expect({ span: assertMysqlSpans }).start().completed();
+      });
+    });
   });
 
   describe('query without callback', () => {
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-withoutCallback.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
-        test('should auto-instrument `mysql` package when using query without callback', async () => {
-          await createTestRunner().expect({ span: assertMysqlSpans }).start().completed();
-        });
-      },
-      { failsOnEsm: true },
-    );
+    createCjsTests(__dirname, 'scenario-withoutCallback.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('should auto-instrument `mysql` package when using query without callback', async () => {
+        await createTestRunner().expect({ span: assertMysqlSpans }).start().completed();
+      });
+    });
   });
 
   describe('without connection.connect()', () => {
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-withoutConnect.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
-        test('should auto-instrument `mysql` package without connection.connect()', async () => {
-          await createTestRunner().expect({ span: assertMysqlSpans }).start().completed();
-        });
-      },
-      { failsOnEsm: true },
-    );
+    createCjsTests(__dirname, 'scenario-withoutConnect.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('should auto-instrument `mysql` package without connection.connect()', async () => {
+        await createTestRunner().expect({ span: assertMysqlSpans }).start().completed();
+      });
+    });
   });
 });

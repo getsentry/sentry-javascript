@@ -1,15 +1,39 @@
-import { afterAll, describe, expect } from 'vitest';
+import type { AddressInfo, Server } from 'node:net';
+import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { startMysqlTestServer } from './mysql-test-server';
 
 describe('mysql auto instrumentation', () => {
+  // A minimal in-process MySQL server (on a random free port) so the client's
+  // connection handshake succeeds. Without it, `createPool()` queries fail at
+  // connection acquisition — before `connection.query` runs — so the
+  // diagnostics-channel instrumentation (which hooks `connection.query`) never
+  // sees them. Queries still error (the server rejects them), so spans keep
+  // `status: internal_error` as the assertions expect. The port is passed to
+  // each scenario via the `MYSQL_PORT` env var.
+  let mysqlServer: Server;
+  let mysqlPort: number;
+  beforeAll(async () => {
+    mysqlServer = startMysqlTestServer();
+    await new Promise<void>(resolve => mysqlServer.once('listening', () => resolve()));
+    mysqlPort = (mysqlServer.address() as AddressInfo).port;
+  });
+
   afterAll(() => {
+    mysqlServer?.close();
     cleanupChildProcesses();
   });
 
   // Builds the expected transaction. When `origin` is given, the spans must also
   // carry that `sentry.origin`, which is how we assert that the
-  // diagnostics-channel instrumentation (not the OTel one) produced them.
-  function expectedTransaction(origin?: string): Record<string, unknown> {
+  // diagnostics-channel instrumentation (not the OTel one) produced them. A
+  // scenario can pass `override` to replace the default transaction expectation
+  // (e.g. the streamed-error scenario, which runs a different, failing query).
+  function expectedTransaction(
+    port: number,
+    origin: string | undefined,
+    override: Record<string, unknown> | undefined,
+  ): Record<string, unknown> {
     const span = (description: string): ReturnType<typeof expect.objectContaining> =>
       expect.objectContaining({
         description,
@@ -18,16 +42,16 @@ describe('mysql auto instrumentation', () => {
         data: expect.objectContaining({
           'db.system': 'mysql',
           'net.peer.name': 'localhost',
-          'net.peer.port': 3306,
+          'net.peer.port': port,
           'db.user': 'root',
         }),
-        // all db spans have an error status because we don't have an actual mysql DB server running for these tests
-        status: 'internal_error',
+        status: 'ok',
       });
 
     return {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([span('SELECT 1 + 1 AS solution'), span('SELECT NOW()')]),
+      ...(override ?? {}),
     };
   }
 
@@ -71,13 +95,31 @@ describe('mysql auto instrumentation', () => {
     ['scenario-withConnect.mjs', 'using connection.connect()'],
     ['scenario-withoutCallback.mjs', 'using query without callback'],
     ['scenario-withoutConnect.mjs', 'without connection.connect()'],
+    ['scenario-withPool.mjs', 'using createPool()'],
+    [
+      'scenario-streamError.mjs',
+      'streamed query error',
+      {
+        // The transaction itself succeeds (status `ok`); only the failing query's child span is errored.
+        spans: expect.arrayContaining([
+          expect.objectContaining({
+            description: 'SELECT * FROM does_not_exist',
+            op: 'db',
+            // A failing streamed query emits `error`, which marks the span as errored
+            status: 'internal_error',
+            data: expect.objectContaining({
+              'db.system': 'mysql',
+              'db.user': 'root',
+            }),
+          }),
+        ]),
+      },
+    ],
   ] as const;
 
   for (const { label, instrument, flags, origin, failsOnEsm } of CASES) {
     describe(label, () => {
-      const expected = expectedTransaction(origin);
-
-      for (const [scenario, description] of SCENARIOS) {
+      for (const [scenario, description, transactionOverride] of SCENARIOS) {
         createEsmAndCjsTests(
           __dirname,
           scenario,
@@ -85,8 +127,9 @@ describe('mysql auto instrumentation', () => {
           (createRunner, test) => {
             test(`should auto-instrument \`mysql\` package when ${description}`, async () => {
               await createRunner()
+                .withEnv({ MYSQL_PORT: String(mysqlPort) })
                 .withFlags(...flags)
-                .expect({ transaction: expected })
+                .expect({ transaction: expectedTransaction(mysqlPort, origin, transactionOverride) })
                 .start()
                 .completed();
             });
@@ -94,6 +137,42 @@ describe('mysql auto instrumentation', () => {
           { failsOnEsm },
         );
       }
+
+      createEsmAndCjsTests(
+        __dirname,
+        'scenario-streamContext.mjs',
+        instrument,
+        (createTestRunner, test) => {
+          test('should run streamed query listeners with the parent context active', async () => {
+            await createTestRunner()
+              .withFlags(...flags)
+              .withEnv({ MYSQL_PORT: String(mysqlPort) })
+              .expect({
+                transaction: (transaction): void => {
+                  const transactionSpanId = transaction.contexts?.trace?.span_id;
+                  const spans = transaction.spans ?? [];
+                  const mysqlSpan = spans.find(span => span.description === 'SELECT 1 + 1 AS solution');
+                  const listenerSpan = spans.find(span => span.description === 'listener-child');
+                  const innerSpan = spans.find(span => span.description === 'inner-span');
+
+                  expect(transactionSpanId).toBeDefined();
+                  expect(mysqlSpan).toBeDefined();
+                  expect(listenerSpan).toBeDefined();
+                  expect(innerSpan).toBeDefined();
+
+                  // The span created inside the stream `end` listener is parented to the transaction
+                  // (the context active when the query was issued), not to the query span.
+                  expect(listenerSpan?.parent_span_id).toBe(transactionSpanId);
+                  expect(listenerSpan?.parent_span_id).not.toBe(mysqlSpan?.span_id);
+                  expect(innerSpan?.parent_span_id).toBe(transactionSpanId);
+                },
+              })
+              .start()
+              .completed();
+          });
+        },
+        { failsOnEsm },
+      );
     });
   }
 });

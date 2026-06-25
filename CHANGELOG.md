@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(core): Enable `streamGenAiSpans` by default ([#21732](https://github.com/getsentry/sentry-javascript/pull/21732))**
+
+  The SDK now extracts all `gen_ai` spans out of a transaction and sends them as v2 envelope items by default. This prevents gen_ai spans from being dropped when the transaction payload exceeds size limits. Because they are no longer constrained by transaction size limits, AI message data is also no longer truncated by default. Set `enableTruncation: true` on the respective AI integration to re-enable truncation. To keep the previous behavior, set `streamGenAiSpans: false`.
+
+  Self-hosted Sentry users should opt out with `streamGenAiSpans: false`, since streamed gen_ai spans may not be ingested by their Sentry instance.
+
 ## 10.60.0
 
 ### Other Changes

@@ -92,6 +92,7 @@ describe('shouldEnableTruncation', () => {
     getCurrentScope().clear();
     getIsolationScope().clear();
     getGlobalScope().clear();
+    getCurrentScope().setClient(undefined);
   });
 
   afterEach(() => {
@@ -110,8 +111,13 @@ describe('shouldEnableTruncation', () => {
     expect(shouldEnableTruncation(undefined)).toBe(true);
   });
 
-  it('defaults to true with a default client (no streaming)', () => {
+  it('defaults to false with a default client (streamGenAiSpans is opt-out)', () => {
     setupClient();
+    expect(shouldEnableTruncation(undefined)).toBe(false);
+  });
+
+  it('defaults to true when streamGenAiSpans is explicitly disabled', () => {
+    setupClient({ streamGenAiSpans: false });
     expect(shouldEnableTruncation(undefined)).toBe(true);
   });
 

@@ -9,7 +9,6 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import type { TracerProvider } from '@opentelemetry/api';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Span, SpanAttributes } from '@sentry/core';
@@ -18,6 +17,7 @@ import {
   getActiveSpan,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
@@ -179,7 +179,7 @@ class RedisInstrumentationV2_V3 extends InstrumentationBase<RedisInstrumentation
         }
         const span = startInactiveSpan({
           name: `${RedisInstrumentationV2_V3.COMPONENT}-${cmd.command}`,
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes,
         });
         const originalCallback = arguments[0].callback;
@@ -414,7 +414,7 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
         const attributes = getClientAttributes(this.options);
         const span = startInactiveSpan({
           name: `${RedisInstrumentationV4_V5.COMPONENT}-connect`,
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes,
         });
         const res = withActiveSpan(span, () => original.apply(this));
@@ -448,7 +448,7 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
     }
     const span = startInactiveSpan({
       name: `${RedisInstrumentationV4_V5.COMPONENT}-${commandName}`,
-      kind: SpanKind.CLIENT,
+      kind: SPAN_KIND.CLIENT,
       attributes,
     });
     const res = withActiveSpan(span, () => origFunction.apply(origThis, origArguments));

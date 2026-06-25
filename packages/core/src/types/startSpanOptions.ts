@@ -1,4 +1,5 @@
 import type { Scope } from '../scope';
+import type { SpanKindValue } from '../spanKind';
 import type { SpanLink } from './link';
 import type { Span, SpanAttributes, SpanTimeInput } from './span';
 
@@ -40,7 +41,7 @@ export interface StartSpanOptions {
    * span kind on the underlying OTel span, which affects how the span is
    * displayed and sampled.
    */
-  kind?: 0 | 1 | 2 | 3 | 4;
+  kind?: SpanKindValue;
 
   /**
    * If provided, make the new span a child of this span.
