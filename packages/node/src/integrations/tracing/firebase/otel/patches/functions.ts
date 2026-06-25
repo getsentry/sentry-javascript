@@ -2,7 +2,14 @@ import type { InstrumentationBase } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleFile } from '../../../InstrumentationNodeModuleFile';
 import type { SpanAttributes } from '@sentry/core';
-import { captureException, flush, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import {
+  captureException,
+  flush,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  withActiveSpan,
+} from '@sentry/core';
 import type { FirebaseInstrumentation } from '../firebaseInstrumentation';
 import type { AvailableFirebaseFunctions, FirebaseFunctions, OverloadedParameters } from '../types';
 
@@ -75,16 +82,25 @@ export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions
           attributes['cloud.event_source'] = process.env.EVENTARC_CLOUD_EVENT_SOURCE;
         }
 
-        return startSpan({ name: `firebase.function.${triggerType}`, op: 'http.request', attributes }, async () => {
+        // Use an inactive span (not `startSpan`) so we can end the span before flushing on error.
+        // Firebase Functions are short-lived, so the finished transaction must be enqueued via
+        // `span.end()` before `flush` drains the queue, otherwise it may never be sent.
+        const span = startInactiveSpan({ name: `firebase.function.${triggerType}`, op: 'http.request', attributes });
+
+        return withActiveSpan(span, async () => {
           try {
-            return await handler.apply(this, handlerArgs);
+            const result = await handler.apply(this, handlerArgs);
+            span.end();
+            return result;
           } catch (error) {
+            span.setStatus({ code: SPAN_STATUS_ERROR });
             captureException(error, {
               mechanism: {
                 type: 'auto.firebase.otel.functions',
                 handled: false,
               },
             });
+            span.end();
             await flush(2000);
             throw error;
           }
