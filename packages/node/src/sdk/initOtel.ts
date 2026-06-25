@@ -1,7 +1,7 @@
 import { context, propagation, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { debug as coreDebug } from '@sentry/core';
+import { debug as coreDebug, hasSpanStreamingEnabled } from '@sentry/core';
 import {
   initializeEsmLoader,
   type NodeClient,
@@ -11,6 +11,7 @@ import {
 import {
   applyOtelSpanData,
   type AsyncLocalStorageLookup,
+  backfillStreamedSpanDataFromOtel,
   getSentryResource,
   type OpenTelemetryTracerProvider,
   SentryPropagator,
@@ -152,6 +153,13 @@ function setupSentryTracerProvider(
   client.on('spanEnd', span => {
     applyOtelSpanData(span, { finalizeStatus: true });
   });
+
+  if (hasSpanStreamingEnabled(client)) {
+    // Streamed spans skip the exporter, so per-span data inferred from OTel semantic conventions
+    // (notably `sentry.source` on child spans, which `applyOtelSpanData` only sets on segment roots)
+    // is backfilled here, reusing the exact inference the OTel SDK `SentrySpanProcessor` applies.
+    client.on('preprocessSpan', backfillStreamedSpanDataFromOtel);
+  }
 
   client.on('preprocessEvent', event => {
     if (event.type !== 'transaction') {
