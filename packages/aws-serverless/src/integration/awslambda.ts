@@ -1,46 +1,20 @@
 import type { IntegrationFn } from '@sentry/core';
-import {
-  defineIntegration,
-  getCurrentScope,
-  safeSetSpanJSONAttributes,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-} from '@sentry/core';
-import { captureException, generateInstrumentOnce } from '@sentry/node';
-import { eventContextExtractor, markEventUnhandled } from '../utils';
+import { defineIntegration, getCurrentScope, safeSetSpanJSONAttributes } from '@sentry/core';
+import { generateInstrumentOnce } from '@sentry/node';
 import { AwsLambdaInstrumentation } from './instrumentation-aws-lambda/instrumentation';
 
 interface AwsLambdaOptions {
+  // TODO(v11): Remove this option since it's no longer used.
   /**
-   * Disables the AWS context propagation and instead uses
-   * Sentry's context. Defaults to `true`, in order for
-   * Sentry trace propagation to take precedence, but can
-   * be disabled if you want AWS propagation to take take
-   * precedence.
+   * @deprecated This option no longer does anything and will be removed in a future major version.
+   * Sentry trace propagation always takes precedence.
    */
   disableAwsContextPropagation?: boolean;
 }
 
-export const instrumentAwsLambda = generateInstrumentOnce(
-  'AwsLambda',
-  AwsLambdaInstrumentation,
-  (options: AwsLambdaOptions) => {
-    return {
-      disableAwsContextPropagation: true,
-      ...options,
-      eventContextExtractor,
-      requestHook(span) {
-        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.otel.aws_lambda');
-        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'function.aws.lambda');
-      },
-      responseHook(_span, { err }) {
-        if (err) {
-          captureException(err, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.otel'));
-        }
-      },
-    };
-  },
-);
+export const instrumentAwsLambda = generateInstrumentOnce('AwsLambda', AwsLambdaInstrumentation, () => {
+  return {};
+});
 
 const AWS_LAMBDA_CONTEXT_FIELDS = [
   'aws_request_id',
