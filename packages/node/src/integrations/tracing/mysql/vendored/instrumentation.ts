@@ -200,6 +200,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
 
         const { host, port, database, user } = getConfig(connection.config);
         const portNumber = parseInt(String(port), 10);
+        /* eslint-disable @sentry/no-deprecated-attributes */
         const attributes: SpanAttributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
@@ -209,9 +210,11 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
           [ATTR_DB_STATEMENT]: getDbQueryText(query),
           [ATTR_NET_PEER_NAME]: host,
         };
+
         if (!isNaN(portNumber)) {
           attributes[ATTR_NET_PEER_PORT] = portNumber;
         }
+        /* eslint-enable @sentry/no-deprecated-attributes */
 
         const span = startInactiveSpan({
           name: getSpanName(query),
