@@ -141,6 +141,7 @@ function setupChannel(tracingChannel: MongooseTracingChannelFactory, channelName
 function getBatchSize(data: MongooseTracingData): number | undefined {
   const args = data.args;
   const batch = data.operation === 'insertMany' ? args?.docs : data.operation === 'bulkWrite' ? args?.ops : undefined;
+
   return Array.isArray(batch) && batch.length > 1 ? batch.length : undefined;
 }
 
@@ -159,6 +160,7 @@ function redactMongoQuery(value: unknown): string | undefined {
   try {
     const redacted = redactValue(value, 0);
     const text = JSON.stringify(redacted);
+
     // Skip empty/uninformative shapes (e.g. a `findOne()` with no filter).
     return text == null || text === '{}' || text === '[]' ? undefined : text;
   } catch {
@@ -180,7 +182,9 @@ function redactValue(value: unknown, depth: number): unknown {
     for (const key of Object.keys(value as Record<string, unknown>)) {
       out[key] = redactValue((value as Record<string, unknown>)[key], depth + 1);
     }
+
     return out;
   }
+
   return '?';
 }
