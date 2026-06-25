@@ -130,7 +130,6 @@ export interface GraphqlDiagnosticChannelsOptions {
 export type GraphqlTracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
 
 let subscribed = false;
-let activeUnbinds: Array<() => void> = [];
 
 /**
  * Subscribe Sentry span handlers to graphql's diagnostics-channel events
@@ -159,15 +158,13 @@ export function subscribeGraphqlDiagnosticChannels(
   const ignoreTrivialResolveSpans = options.ignoreTrivialResolveSpans !== false;
 
   try {
-    activeUnbinds.push(
-      setupParseChannel(tracingChannel),
-      setupValidateChannel(tracingChannel),
-      setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_EXECUTE, SPAN_NAME_EXECUTE),
-      setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_SUBSCRIBE, SPAN_NAME_SUBSCRIBE),
-    );
+    setupParseChannel(tracingChannel);
+    setupValidateChannel(tracingChannel);
+    setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_EXECUTE, SPAN_NAME_EXECUTE);
+    setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_SUBSCRIBE, SPAN_NAME_SUBSCRIBE);
 
     if (!ignoreResolveSpans) {
-      activeUnbinds.push(setupResolveChannel(tracingChannel, ignoreTrivialResolveSpans));
+      setupResolveChannel(tracingChannel, ignoreTrivialResolveSpans);
     }
   } catch {
     // The factory relies on `node:diagnostics_channel`, which isn't always
@@ -176,26 +173,24 @@ export function subscribeGraphqlDiagnosticChannels(
   }
 }
 
-function setupParseChannel(tracingChannel: GraphqlTracingChannelFactory): () => void {
-  return bindTracingChannelToSpan(
-    tracingChannel<GraphqlParseData>(GRAPHQL_DC_CHANNEL_PARSE),
-    () =>
-      startInactiveSpan({
-        name: SPAN_NAME_PARSE,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
-        },
-      }),
-    { captureError: false },
-  ).unbind;
+function setupParseChannel(tracingChannel: GraphqlTracingChannelFactory): void {
+  bindTracingChannelToSpan(tracingChannel<GraphqlParseData>(GRAPHQL_DC_CHANNEL_PARSE), () =>
+    startInactiveSpan({
+      name: SPAN_NAME_PARSE,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+      },
+    }),
+  );
 }
 
-function setupValidateChannel(tracingChannel: GraphqlTracingChannelFactory): () => void {
-  return bindTracingChannelToSpan(
+function setupValidateChannel(tracingChannel: GraphqlTracingChannelFactory): void {
+  bindTracingChannelToSpan(
     tracingChannel<GraphqlValidateData>(GRAPHQL_DC_CHANNEL_VALIDATE),
     data => {
       const document = redactGraphqlDocument(data.document);
+
       return startInactiveSpan({
         name: SPAN_NAME_VALIDATE,
         attributes: {
@@ -212,20 +207,20 @@ function setupValidateChannel(tracingChannel: GraphqlTracingChannelFactory): () 
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'invalid_argument' });
         }
       },
-      captureError: false,
     },
-  ).unbind;
+  );
 }
 
 function setupOperationChannel(
   tracingChannel: GraphqlTracingChannelFactory,
   channelName: string,
   fallbackName: string,
-): () => void {
-  return bindTracingChannelToSpan(
+): void {
+  bindTracingChannelToSpan(
     tracingChannel<GraphqlOperationData>(channelName),
     data => {
       const document = redactGraphqlDocument(data.document);
+
       return startInactiveSpan({
         name: getOperationSpanName(data, fallbackName),
         attributes: {
@@ -244,40 +239,30 @@ function setupOperationChannel(
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         }
       },
-      // Execution errors are surfaced to the caller in the result; only annotate the span so we
-      // don't emit a duplicate error event for every failed operation.
-      captureError: false,
     },
-  ).unbind;
+  );
 }
 
-function setupResolveChannel(
-  tracingChannel: GraphqlTracingChannelFactory,
-  ignoreTrivialResolveSpans: boolean,
-): () => void {
-  return bindTracingChannelToSpan(
-    tracingChannel<GraphqlResolveData>(GRAPHQL_DC_CHANNEL_RESOLVE),
-    data => {
-      // Returning `undefined` opts this field out: no span is created and the active context is left
-      // untouched, so the field still resolves under its parent span.
-      if (ignoreTrivialResolveSpans && data.isDefaultResolver) {
-        return undefined;
-      }
-      return startInactiveSpan({
-        name: `${SPAN_NAME_RESOLVE} ${data.fieldPath}`,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
-          [GRAPHQL_FIELD_NAME]: data.fieldName,
-          [GRAPHQL_FIELD_PATH]: data.fieldPath,
-          [GRAPHQL_FIELD_TYPE]: data.fieldType,
-          [GRAPHQL_PARENT_NAME]: data.parentType,
-        },
-      });
-    },
-    // Resolver errors also surface in the enclosing execution result; only annotate the span.
-    { captureError: false },
-  ).unbind;
+function setupResolveChannel(tracingChannel: GraphqlTracingChannelFactory, ignoreTrivialResolveSpans: boolean): void {
+  bindTracingChannelToSpan(tracingChannel<GraphqlResolveData>(GRAPHQL_DC_CHANNEL_RESOLVE), data => {
+    // Returning `undefined` opts this field out: no span is created and the active context is left
+    // untouched, so the field still resolves under its parent span.
+    if (ignoreTrivialResolveSpans && data.isDefaultResolver) {
+      return undefined;
+    }
+
+    return startInactiveSpan({
+      name: `${SPAN_NAME_RESOLVE} ${data.fieldPath}`,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+        [GRAPHQL_FIELD_NAME]: data.fieldName,
+        [GRAPHQL_FIELD_PATH]: data.fieldPath,
+        [GRAPHQL_FIELD_TYPE]: data.fieldType,
+        [GRAPHQL_PARENT_NAME]: data.parentType,
+      },
+    });
+  });
 }
 
 /**
@@ -292,14 +277,17 @@ function getOperationSpanName(data: GraphqlOperationData, fallbackName: string):
   if (operationType) {
     return operationType;
   }
+
   return fallbackName;
 }
 
 function hasResultErrors(result: unknown): boolean {
   if (result && typeof result === 'object' && 'errors' in result) {
     const errors = (result as { errors?: unknown }).errors;
+
     return Array.isArray(errors) && errors.length > 0;
   }
+
   return false;
 }
 
@@ -332,15 +320,9 @@ function redactGraphqlDocument(document: GraphqlDocumentNode | undefined): strin
       const replacement = kind === 'String' || kind === 'BlockString' ? '"*"' : '*';
       out = out.slice(0, start) + replacement + out.slice(end);
     }
+
     return out;
   } catch {
     return undefined;
   }
-}
-
-/** Test-only: detach all channel bindings and reset module-local subscribe state. */
-export function _resetGraphqlDiagnosticChannelsForTesting(): void {
-  activeUnbinds.forEach(unbind => unbind());
-  activeUnbinds = [];
-  subscribed = false;
 }

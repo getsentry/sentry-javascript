@@ -1,171 +1,38 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
-import { tracingChannel } from 'node:diagnostics_channel';
-import type { Scope, Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
+import { getCurrentScope, getGlobalScope, setAsyncContextStrategy, spanToJSON, startSpan } from '@sentry/core';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  _INTERNAL_setSpanForScope,
-  Client,
-  createTransport,
-  getActiveSpan,
-  getCurrentScope,
-  getDefaultCurrentScope,
-  getDefaultIsolationScope,
-  getGlobalScope,
-  initAndBind,
-  resolvedSyncPromise,
-  setAsyncContextStrategy,
-  spanToJSON,
-  startSpan,
-} from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  _resetGraphqlDiagnosticChannelsForTesting,
   GRAPHQL_DC_CHANNEL_EXECUTE,
   GRAPHQL_DC_CHANNEL_PARSE,
   GRAPHQL_DC_CHANNEL_RESOLVE,
   GRAPHQL_DC_CHANNEL_SUBSCRIBE,
   GRAPHQL_DC_CHANNEL_VALIDATE,
-  type GraphqlTracingChannelFactory,
   subscribeGraphqlDiagnosticChannels,
 } from '../../src/graphql/graphql-dc-subscriber';
-
-interface TestStore {
-  scope: Scope;
-  isolationScope: Scope;
-}
-
-class TestClient extends Client<any> {
-  public eventFromException(): PromiseLike<any> {
-    return resolvedSyncPromise({});
-  }
-  public eventFromMessage(): PromiseLike<any> {
-    return resolvedSyncPromise({});
-  }
-}
-
-function initTestClient(): void {
-  initAndBind(TestClient, {
-    dsn: 'https://username@domain/123',
-    integrations: [],
-    sendClientReports: false,
-    stackParser: () => [],
-    tracesSampleRate: 1,
-    transport: () => createTransport({ recordDroppedEvent: () => undefined }, () => resolvedSyncPromise({})),
-  });
-}
-
-function installTestAsyncContextStrategy(): void {
-  const asyncStorage = new AsyncLocalStorage<TestStore>();
-
-  function getScopes(): TestStore {
-    return (
-      asyncStorage.getStore() || {
-        scope: getDefaultCurrentScope(),
-        isolationScope: getDefaultIsolationScope(),
-      }
-    );
-  }
-
-  setAsyncContextStrategy({
-    withScope: callback => {
-      const scope = getScopes().scope.clone();
-      const isolationScope = getScopes().isolationScope;
-      return asyncStorage.run({ scope, isolationScope }, () => callback(scope));
-    },
-    withSetScope: (scope, callback) => {
-      const isolationScope = getScopes().isolationScope;
-      return asyncStorage.run({ scope, isolationScope }, () => callback(scope));
-    },
-    withIsolationScope: callback => {
-      const scope = getScopes().scope;
-      const isolationScope = getScopes().isolationScope.clone();
-      return asyncStorage.run({ scope, isolationScope }, () => callback(isolationScope));
-    },
-    withSetIsolationScope: (isolationScope, callback) => {
-      const scope = getScopes().scope;
-      return asyncStorage.run({ scope, isolationScope }, () => callback(isolationScope));
-    },
-    getCurrentScope: () => getScopes().scope,
-    getIsolationScope: () => getScopes().isolationScope,
-    getTracingChannelBinding: () => ({
-      asyncLocalStorage: asyncStorage,
-      getStoreWithActiveSpan: span => {
-        const scope = getScopes().scope.clone();
-        const isolationScope = getScopes().isolationScope;
-        _INTERNAL_setSpanForScope(scope, span);
-        return { scope, isolationScope };
-      },
-    }),
-  });
-}
-
-/**
- * Build a minimal parsed-document stand-in for the redactor. The redactor only walks the token
- * linked list and acts on literal-kind tokens, so the fake only needs the source body plus the
- * literal tokens (offsets are derived by searching the body). This mirrors the real graphql-js
- * `DocumentNode.loc` shape without depending on graphql at test time.
- */
-function makeDocument(body: string, literals: Array<{ text: string; kind: string }>): unknown {
-  let cursor = 0;
-  const startToken: any = { kind: '<SOF>', start: 0, end: 0, next: null };
-  let prev = startToken;
-  for (const { text, kind } of literals) {
-    const start = body.indexOf(text, cursor);
-    if (start < 0) {
-      throw new Error(`literal not found in body: ${text}`);
-    }
-    const end = start + text.length;
-    cursor = end;
-    const token = { kind, start, end, next: null };
-    prev.next = token;
-    prev = token;
-  }
-  return { loc: { source: { body }, startToken } };
-}
-
-/** Drives a channel's `tracePromise` and captures the span bound by the subscriber. */
-async function traceOperation(
-  channelName: string,
-  data: Record<string, unknown>,
-  outcome: { result?: unknown; error?: Error },
-): Promise<{ span: Span | undefined; childParentSpanId: string | undefined }> {
-  const channel = tracingChannel(channelName);
-  let span: Span | undefined;
-  let childParentSpanId: string | undefined;
-
-  const run = channel.tracePromise(async () => {
-    span = getActiveSpan();
-    startSpan({ name: 'child' }, child => {
-      childParentSpanId = spanToJSON(child).parent_span_id;
-    });
-    if (outcome.error) {
-      throw outcome.error;
-    }
-    return outcome.result;
-  }, data);
-
-  await run.catch(() => undefined);
-
-  return { span, childParentSpanId };
-}
-
-const factory = tracingChannel as GraphqlTracingChannelFactory;
+import { factory, initTestClient, installTestAsyncContextStrategy, makeDocument, traceOperation } from './helpers';
 
 describe('subscribeGraphqlDiagnosticChannels', () => {
   let captureExceptionSpy: ReturnType<typeof vi.spyOn>;
 
-  // `node:diagnostics_channel` channels are process-global. `_reset…` calls each binding's `unbind`,
-  // so we can subscribe and fully detach per test without handlers leaking across tests.
-  beforeEach(() => {
+  // The subscriber captures the async-context strategy's ALS when it binds, so the strategy must be
+  // installed before we subscribe — and both must stay fixed for the file. We do that once here,
+  // mirroring production where `setupOnce` subscribes a single time. Tests needing different options
+  // (resolve channel on/off) live in their own files, which Vitest isolates in separate processes.
+  beforeAll(() => {
     installTestAsyncContextStrategy();
-    initTestClient();
-    captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
     subscribeGraphqlDiagnosticChannels(factory);
   });
 
-  afterEach(() => {
-    _resetGraphqlDiagnosticChannelsForTesting();
+  afterAll(() => {
     setAsyncContextStrategy(undefined);
+  });
+
+  beforeEach(() => {
+    initTestClient();
+    captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+  });
+
+  afterEach(() => {
     getCurrentScope().clear();
     getCurrentScope().setClient(undefined);
     getGlobalScope().clear();
@@ -318,58 +185,20 @@ describe('subscribeGraphqlDiagnosticChannels', () => {
   });
 
   describe('resolve channel', () => {
-    const resolveData = {
-      fieldName: 'name',
-      parentType: 'User',
-      fieldType: 'String',
-      fieldPath: 'user.name',
-      isDefaultResolver: false,
-    };
-
     it('does not subscribe the resolve channel by default (ignoreResolveSpans defaults to true)', async () => {
-      // The beforeEach subscribed without options, so the resolve channel has no Sentry handler.
-      const { span } = await traceOperation(GRAPHQL_DC_CHANNEL_RESOLVE, resolveData, { result: 'a' });
-      expect(span).toBeUndefined();
-    });
-
-    it('creates a graphql.resolve span with field attributes when ignoreResolveSpans is false', async () => {
-      _resetGraphqlDiagnosticChannelsForTesting();
-      subscribeGraphqlDiagnosticChannels(factory, { ignoreResolveSpans: false });
-
-      const { span } = await traceOperation(GRAPHQL_DC_CHANNEL_RESOLVE, resolveData, { result: 'a' });
-
-      const json = spanToJSON(span!);
-      expect(json.description).toBe('graphql.resolve user.name');
-      expect(json.op).toBe('graphql');
-      expect(json.origin).toBe('auto.graphql.diagnostic_channel');
-      expect(json.data['graphql.field.name']).toBe('name');
-      expect(json.data['graphql.field.path']).toBe('user.name');
-      expect(json.data['graphql.field.type']).toBe('String');
-      expect(json.data['graphql.parent.name']).toBe('User');
-    });
-
-    it('skips the default property resolver while ignoreTrivialResolveSpans is true (default)', async () => {
-      _resetGraphqlDiagnosticChannelsForTesting();
-      subscribeGraphqlDiagnosticChannels(factory, { ignoreResolveSpans: false });
-
+      // We subscribed without options, so the resolve channel has no Sentry handler.
       const { span } = await traceOperation(
         GRAPHQL_DC_CHANNEL_RESOLVE,
-        { ...resolveData, isDefaultResolver: true },
+        {
+          fieldName: 'name',
+          parentType: 'User',
+          fieldType: 'String',
+          fieldPath: 'user.name',
+          isDefaultResolver: false,
+        },
         { result: 'a' },
       );
       expect(span).toBeUndefined();
-    });
-
-    it('emits a span for the default resolver when ignoreTrivialResolveSpans is false', async () => {
-      _resetGraphqlDiagnosticChannelsForTesting();
-      subscribeGraphqlDiagnosticChannels(factory, { ignoreResolveSpans: false, ignoreTrivialResolveSpans: false });
-
-      const { span } = await traceOperation(
-        GRAPHQL_DC_CHANNEL_RESOLVE,
-        { ...resolveData, isDefaultResolver: true },
-        { result: 'a' },
-      );
-      expect(spanToJSON(span!).description).toBe('graphql.resolve user.name');
     });
   });
 
