@@ -6,6 +6,7 @@ import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceCo
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
+  _INTERNAL_setDeferSegmentSpanCapture,
   applySdkMetadata,
   debug,
   SDK_VERSION,
@@ -57,6 +58,15 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     debug.log(`Initializing Sentry: process: ${process.pid}, thread: ${isMainThread ? 'main' : `worker-${threadId}`}.`);
 
     super(clientOptions);
+
+    // Defer this client's segment-span transaction capture (via a debounced timer) so child spans
+    // whose async instrumentation closes them after the root span — a diagnostics-channel `asyncEnd`
+    // callback in the same tick, or engine spans replayed on a later tick (e.g. prisma) — are still
+    // finished in time to be included instead of dropped. Enabled at the client level rather than by
+    // the SentryTracerProvider, so it applies whether or not an OpenTelemetry tracer provider is set
+    // up. It is a no-op on the BasicTracerProvider path, where transactions are assembled by the span
+    // exporter and never reach the native capture path.
+    _INTERNAL_setDeferSegmentSpanCapture(this, true);
 
     if (this.getOptions().enableLogs) {
       this._logOnExitFlushListener = () => {
