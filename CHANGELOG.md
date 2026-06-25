@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @hyunbinseo. Thank you for your contribution!
+
+## 10.61.0
+
 ### Important Changes
 
 - **feat(core): Enable `streamGenAiSpans` by default ([#21732](https://github.com/getsentry/sentry-javascript/pull/21732))**
@@ -11,6 +15,43 @@
   The SDK now extracts all `gen_ai` spans out of a transaction and sends them as v2 envelope items by default. This prevents gen_ai spans from being dropped when the transaction payload exceeds size limits. Because they are no longer constrained by transaction size limits, AI message data is also no longer truncated by default. Set `enableTruncation: true` on the respective AI integration to re-enable truncation. To keep the previous behavior, set `streamGenAiSpans: false`.
 
   Self-hosted Sentry users should opt out with `streamGenAiSpans: false`, since streamed gen_ai spans may not be ingested by their Sentry instance.
+
+### Other Changes
+
+- feat(cloudflare): Add batch, exec, and withSession D1 instrumentation ([#21292](https://github.com/getsentry/sentry-javascript/pull/21292))
+- feat(cloudflare): Instrument SQL API in sqlite durable objects ([#21656](https://github.com/getsentry/sentry-javascript/pull/21656))
+- feat(core): Add `db.query.summary` functionality ([#21670](https://github.com/getsentry/sentry-javascript/pull/21670))
+- feat(core): Add top-level `Sentry.setAttribute(s)` APIs ([#21705](https://github.com/getsentry/sentry-javascript/pull/21705))
+- fix(hono): Name transactions after the matched route handler ([#21700](https://github.com/getsentry/sentry-javascript/pull/21700))
+- fix(react-router): Bump peerDependencies for react-router 8 ([#21762](https://github.com/getsentry/sentry-javascript/pull/21762))
+- fix(replays): Record replay `trace_ids` with span streaming ([#21714](https://github.com/getsentry/sentry-javascript/pull/21714))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- build: add rollup plugin for compile-time ESM/CJS code branching ([#21715](https://github.com/getsentry/sentry-javascript/pull/21715))
+- chore: Fix version bump for bundler plugin fixtures ([#21707](https://github.com/getsentry/sentry-javascript/pull/21707))
+- chore(node-integration-tests): Improve node test runner naming ([#21685](https://github.com/getsentry/sentry-javascript/pull/21685))
+- docs: Update contributing guide for E2E tests ([#21763](https://github.com/getsentry/sentry-javascript/pull/21763))
+- feat: Adopt `bindTracingChannelToSpan` across runtimes ([#21642](https://github.com/getsentry/sentry-javascript/pull/21642))
+- feat: Remove Otel from `fsIntegration` ([#21654](https://github.com/getsentry/sentry-javascript/pull/21654))
+- feat(deps): Bump http-proxy-middleware from 2.0.9 to 2.0.10 ([#21709](https://github.com/getsentry/sentry-javascript/pull/21709))
+- feat(server-utils): Add tracingChannel-to-span binding ([#21641](https://github.com/getsentry/sentry-javascript/pull/21641))
+- fix(tests): Add dedicated route for Hono query_string tests ([#21731](https://github.com/getsentry/sentry-javascript/pull/21731))
+- ref: Export SPAN_KIND from core and drop OTel SpanKind imports ([#21668](https://github.com/getsentry/sentry-javascript/pull/21668))
+- test: Make bundler plugins tests work after release
+- test: Remove duplicated test ([#21699](https://github.com/getsentry/sentry-javascript/pull/21699))
+- test: retry npm install on network hiccups ([#21689](https://github.com/getsentry/sentry-javascript/pull/21689))
+- test(cloudflare): Increase node count for memory tests ([#21719](https://github.com/getsentry/sentry-javascript/pull/21719))
+- test(e2e): Add `sentry-sdk-init` measure and marks ([#21687](https://github.com/getsentry/sentry-javascript/pull/21687))
+- test(e2e): Add more lighthouse react e2e test SDK init modes ([#21711](https://github.com/getsentry/sentry-javascript/pull/21711))
+- test(node): Add esm/cjs specific test runner utils ([#21729](https://github.com/getsentry/sentry-javascript/pull/21729))
+- test(node): Increase cron integration test timeout to 60s ([#21704](https://github.com/getsentry/sentry-javascript/pull/21704))
+- test(node): Streamline amqplib tests ([#21723](https://github.com/getsentry/sentry-javascript/pull/21723))
+- test(node): Update mysql tests for better coverage and correctness ([#21684](https://github.com/getsentry/sentry-javascript/pull/21684))
+- test(node): Use different ports for redis tests ([#21727](https://github.com/getsentry/sentry-javascript/pull/21727))
+
+</details>
 
 ## 10.60.0
 

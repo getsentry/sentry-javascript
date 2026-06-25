@@ -1,5 +1,5 @@
 import type { Context } from '@opentelemetry/api';
-import { ROOT_CONTEXT, SpanKind, trace } from '@opentelemetry/api';
+import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import type { ReadableSpan, Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
 import type { Client, SpanAttributes, StreamedSpanJSON } from '@sentry/core';
 import {
@@ -14,6 +14,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
+  SPAN_KIND,
+  spanKindToName,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { SentrySpanExporter } from './spanExporter';
@@ -121,7 +123,7 @@ function backfillStreamedSpanDataFromOtel(spanJSON: StreamedSpanJSON, hint?: { s
     return;
   }
 
-  const kind = hint?.spanKind ?? SpanKind.INTERNAL;
+  const kind = hint?.spanKind ?? SPAN_KIND.INTERNAL;
   const { op, description, source, data } = inferSpanData(spanJSON.name, attributes as unknown as SpanAttributes, kind);
 
   spanJSON.name = description;
@@ -132,9 +134,9 @@ function backfillStreamedSpanDataFromOtel(spanJSON: StreamedSpanJSON, hint?: { s
     ...data,
   });
 
-  if (kind !== SpanKind.INTERNAL) {
+  if (kind !== SPAN_KIND.INTERNAL) {
     safeSetSpanJSONAttributes(spanJSON, {
-      'otel.kind': SpanKind[kind],
+      'otel.kind': spanKindToName(kind),
     });
   }
 }
