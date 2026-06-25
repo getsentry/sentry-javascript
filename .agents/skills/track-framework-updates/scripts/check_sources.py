@@ -47,19 +47,12 @@ EXCLUDED_PACKAGES: set[str] = {
     "@sentry/core",
     "@sentry/types",
     "@sentry/browser",
-    "@sentry/node",
     "@sentry/node-core",
     "@sentry/node-native",
     "@sentry/opentelemetry",
     "@sentry/profiling-node",
     "@sentry/wasm",
     "@sentry/vercel-edge",
-    # Platform SDKs without a single upstream framework repo to track.
-    "@sentry/bun",
-    "@sentry/deno",
-    "@sentry/cloudflare",
-    "@sentry/aws-serverless",
-    "@sentry/google-cloud-serverless",
 }
 
 

@@ -209,6 +209,72 @@
         "rfcsRepo": null
       },
       "rss": []
+    },
+    {
+      "name": "Node.js",
+      "sentryPackages": ["@sentry/node"],
+      "category": "platform",
+      "github": {
+        "repo": "nodejs/node",
+        "discussions": false,
+        "rfcsRepo": null
+      },
+      "rss": ["https://nodejs.org/en/feed/blog.xml"]
+    },
+    {
+      "name": "Bun",
+      "sentryPackages": ["@sentry/bun"],
+      "category": "platform",
+      "github": {
+        "repo": "oven-sh/bun",
+        "discussions": true,
+        "rfcsRepo": null
+      },
+      "rss": ["https://bun.com/blog/rss"]
+    },
+    {
+      "name": "Deno",
+      "sentryPackages": ["@sentry/deno"],
+      "category": "platform",
+      "github": {
+        "repo": "denoland/deno",
+        "discussions": false,
+        "rfcsRepo": null
+      },
+      "rss": ["https://deno.com/blog/rss"]
+    },
+    {
+      "name": "Cloudflare Workers",
+      "sentryPackages": ["@sentry/cloudflare"],
+      "category": "platform",
+      "github": {
+        "repo": "cloudflare/workerd",
+        "discussions": false,
+        "rfcsRepo": null
+      },
+      "rss": ["https://developers.cloudflare.com/changelog/rss/index.xml"]
+    },
+    {
+      "name": "AWS Lambda (Node.js)",
+      "sentryPackages": ["@sentry/aws-serverless"],
+      "category": "platform",
+      "github": {
+        "repo": "aws/aws-lambda-nodejs-runtime-interface-client",
+        "discussions": false,
+        "rfcsRepo": null
+      },
+      "rss": []
+    },
+    {
+      "name": "Google Cloud (Node.js)",
+      "sentryPackages": ["@sentry/google-cloud-serverless"],
+      "category": "platform",
+      "github": {
+        "repo": "googleapis/google-cloud-node",
+        "discussions": false,
+        "rfcsRepo": null
+      },
+      "rss": []
     }
   ]
 }
