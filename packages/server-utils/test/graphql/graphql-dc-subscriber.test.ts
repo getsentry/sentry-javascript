@@ -22,6 +22,7 @@ import {
   _resetGraphqlDiagnosticChannelsForTesting,
   GRAPHQL_DC_CHANNEL_EXECUTE,
   GRAPHQL_DC_CHANNEL_PARSE,
+  GRAPHQL_DC_CHANNEL_RESOLVE,
   GRAPHQL_DC_CHANNEL_SUBSCRIBE,
   GRAPHQL_DC_CHANNEL_VALIDATE,
   type GraphqlTracingChannelFactory,
@@ -313,6 +314,62 @@ describe('subscribeGraphqlDiagnosticChannels', () => {
       expect(json.description).toBe('subscription OnMsg');
       expect(json.op).toBe('graphql');
       expect(json.origin).toBe('auto.graphql.diagnostic_channel');
+    });
+  });
+
+  describe('resolve channel', () => {
+    const resolveData = {
+      fieldName: 'name',
+      parentType: 'User',
+      fieldType: 'String',
+      fieldPath: 'user.name',
+      isDefaultResolver: false,
+    };
+
+    it('does not subscribe the resolve channel by default (ignoreResolveSpans defaults to true)', async () => {
+      // The beforeEach subscribed without options, so the resolve channel has no Sentry handler.
+      const { span } = await traceOperation(GRAPHQL_DC_CHANNEL_RESOLVE, resolveData, { result: 'a' });
+      expect(span).toBeUndefined();
+    });
+
+    it('creates a graphql.resolve span with field attributes when ignoreResolveSpans is false', async () => {
+      _resetGraphqlDiagnosticChannelsForTesting();
+      subscribeGraphqlDiagnosticChannels(factory, { ignoreResolveSpans: false });
+
+      const { span } = await traceOperation(GRAPHQL_DC_CHANNEL_RESOLVE, resolveData, { result: 'a' });
+
+      const json = spanToJSON(span!);
+      expect(json.description).toBe('graphql.resolve user.name');
+      expect(json.op).toBe('graphql');
+      expect(json.origin).toBe('auto.graphql.diagnostic_channel');
+      expect(json.data['graphql.field.name']).toBe('name');
+      expect(json.data['graphql.field.path']).toBe('user.name');
+      expect(json.data['graphql.field.type']).toBe('String');
+      expect(json.data['graphql.parent.name']).toBe('User');
+    });
+
+    it('skips the default property resolver while ignoreTrivialResolveSpans is true (default)', async () => {
+      _resetGraphqlDiagnosticChannelsForTesting();
+      subscribeGraphqlDiagnosticChannels(factory, { ignoreResolveSpans: false });
+
+      const { span } = await traceOperation(
+        GRAPHQL_DC_CHANNEL_RESOLVE,
+        { ...resolveData, isDefaultResolver: true },
+        { result: 'a' },
+      );
+      expect(span).toBeUndefined();
+    });
+
+    it('emits a span for the default resolver when ignoreTrivialResolveSpans is false', async () => {
+      _resetGraphqlDiagnosticChannelsForTesting();
+      subscribeGraphqlDiagnosticChannels(factory, { ignoreResolveSpans: false, ignoreTrivialResolveSpans: false });
+
+      const { span } = await traceOperation(
+        GRAPHQL_DC_CHANNEL_RESOLVE,
+        { ...resolveData, isDefaultResolver: true },
+        { result: 'a' },
+      );
+      expect(spanToJSON(span!).description).toBe('graphql.resolve user.name');
     });
   });
 
