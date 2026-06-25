@@ -33,13 +33,5 @@
   "volta": {
     "extends": "../../package.json",
     "node": "22.20.0"
-  },
-  "sentryTest": {
-    "optionalVariants": [
-      {
-        "build-command": "pnpm test:build-canary",
-        "label": "nuxt-4-orchestrion (canary)"
-      }
-    ]
   }
 }
