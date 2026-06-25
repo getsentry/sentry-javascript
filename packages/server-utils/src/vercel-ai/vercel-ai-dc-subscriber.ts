@@ -214,9 +214,6 @@ export function subscribeVercelAiTracingChannel(
         enrichSpanOnEnd(span, data, options);
         clearOperationId(data);
       },
-      // AI operation errors are surfaced on the owning span's status; the SDK (and the boundary that
-      // awaited the call) owns capturing them. Tool errors are captured explicitly in `enrichSpanOnEnd`.
-      captureError: false,
     },
   );
 }
