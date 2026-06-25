@@ -100,6 +100,16 @@ if (import.meta.env.MODE === 'tracing-replay') {
     environment: 'qa',
     integrations: defaultIntegrations => defaultIntegrations.filter(integration => integration.name !== 'Breadcrumbs'),
   });
+} else if (import.meta.env.MODE === 'no-browser-session') {
+  // Default integrations minus Breadcrumbs, which adds a lot of monkey patching to
+  // DOM and Network APIs as well as event targets and listeners
+  Sentry.init({
+    dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
+    release: 'lighthouse-fixture',
+    environment: 'qa',
+    integrations: defaultIntegrations =>
+      defaultIntegrations.filter(integration => integration.name !== 'BrowserSession'),
+  });
 } else if (import.meta.env.MODE === 'init-only') {
   // enabled: false makes the SDK a guaranteed no-op (no transport allocation,
   // no DSN warning). We're measuring pure SDK-loading + tree-shaking cost.
