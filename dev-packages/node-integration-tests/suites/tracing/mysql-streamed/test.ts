@@ -52,6 +52,10 @@ describe('mysql auto instrumentation (streamed)', () => {
         type: 'string',
         value: 'db',
       },
+      'sentry.origin': {
+        type: 'string',
+        value: 'auto.db.otel.mysql',
+      },
       'sentry.release': {
         type: 'string',
         value: '1.0',
