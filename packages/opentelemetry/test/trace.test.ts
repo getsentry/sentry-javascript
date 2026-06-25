@@ -10,6 +10,7 @@ import {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
   getRootSpan,
+  isTracingSuppressed,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
@@ -2104,6 +2105,42 @@ describe('suppressTracing', () => {
     expect(spanIsSampled(span3)).toBe(false);
     expect(spanIsSampled(span4)).toBe(false);
     expect(spanIsSampled(span5)).toBe(true);
+  });
+});
+
+describe('isTracingSuppressed', () => {
+  beforeEach(() => {
+    mockSdkInit({ tracesSampleRate: 1 });
+  });
+
+  afterEach(async () => {
+    await cleanupOtel();
+  });
+
+  it('returns false when tracing is not suppressed', () => {
+    expect(isTracingSuppressed()).toBe(false);
+  });
+
+  it('returns true while inside suppressTracing', () => {
+    const suppressed = suppressTracing(() => isTracingSuppressed());
+    expect(suppressed).toBe(true);
+  });
+
+  it('returns false again after suppressTracing has finished', () => {
+    suppressTracing(() => {
+      expect(isTracingSuppressed()).toBe(true);
+    });
+
+    expect(isTracingSuppressed()).toBe(false);
+  });
+
+  it('stays suppressed across async boundaries within suppressTracing', async () => {
+    const suppressed = await suppressTracing(async () => {
+      await new Promise(resolve => setTimeout(resolve, 10));
+      return isTracingSuppressed();
+    });
+
+    expect(suppressed).toBe(true);
   });
 });
 
