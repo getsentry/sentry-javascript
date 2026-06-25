@@ -4,6 +4,7 @@ import { generateInstrumentOnce } from '@sentry/node';
 import { AwsLambdaInstrumentation } from './instrumentation-aws-lambda/instrumentation';
 
 interface AwsLambdaOptions {
+  // TODO(v11): Remove this option since it's no longer used.
   /**
    * @deprecated This option no longer does anything and will be removed in a future major version.
    * Sentry trace propagation always takes precedence.
