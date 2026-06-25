@@ -1,16 +1,4 @@
-import {
-  dsnToString,
-  escapeStringForRegex,
-  getActiveSpan,
-  getClient,
-  getRootSpan,
-  handleTunnelRequest,
-} from '@sentry/core';
-
-// Flags a tunnel-route transaction to be dropped via `ignoreSpans` (registered in `init`). Set in the
-// route handler, so it only covers the static lifecycle; streamed spans need the path-based matcher
-// from `registerSentryServerTunnelRoute`, which runs early enough for the sampler.
-export const TUNNEL_ROUTE_DROP_TRANSACTION_ATTRIBUTE = 'sentry.tanstackstart.drop_tunnel_transaction';
+import { dsnToString, escapeStringForRegex, getClient, handleTunnelRequest } from '@sentry/core';
 
 const registeredTunnelRoutePaths = new Set<string>();
 
@@ -72,14 +60,10 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions)
   return {
     handlers: {
       POST: async ({ request }) => {
-        const activeSpan = getActiveSpan();
-        if (activeSpan) {
-          getRootSpan(activeSpan).setAttribute(TUNNEL_ROUTE_DROP_TRANSACTION_ATTRIBUTE, true);
-        }
-
-        // Self-register the path so the streamed-span sampler drops subsequent requests. The first
-        // streamed request still leaks (this runs after its span was sampled); for managed routes the
-        // startup registration avoids even that.
+        // Self-register the path so the tunnel route's own transaction is dropped: at span-end for the
+        // static path, and at span-start for subsequent streamed requests. The first streamed request
+        // still leaks here (this runs after its span was sampled); managed routes avoid even that via
+        // the startup registration.
         registerSentryServerTunnelRoute(new URL(request.url).pathname);
 
         const allowedDsnsFromOptions = options.allowedDsns?.length ? options.allowedDsns : undefined;

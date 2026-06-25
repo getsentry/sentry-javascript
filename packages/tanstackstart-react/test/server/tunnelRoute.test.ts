@@ -2,8 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const handleTunnelRequestSpy = vi.fn();
 const getClientSpy = vi.fn();
-const getActiveSpanSpy = vi.fn();
-const getRootSpanSpy = vi.fn();
 
 vi.mock('@sentry/core', async importOriginal => {
   const original = await importOriginal();
@@ -11,13 +9,10 @@ vi.mock('@sentry/core', async importOriginal => {
     ...original,
     handleTunnelRequest: (...args: unknown[]) => handleTunnelRequestSpy(...args),
     getClient: (...args: unknown[]) => getClientSpy(...args),
-    getActiveSpan: (...args: unknown[]) => getActiveSpanSpy(...args),
-    getRootSpan: (...args: unknown[]) => getRootSpanSpy(...args),
   };
 });
 
-const { createSentryTunnelRoute, registerSentryServerTunnelRoute, TUNNEL_ROUTE_DROP_TRANSACTION_ATTRIBUTE } =
-  await import('../../src/server/tunnelRoute');
+const { createSentryTunnelRoute, registerSentryServerTunnelRoute } = await import('../../src/server/tunnelRoute');
 
 describe('createSentryTunnelRoute', () => {
   afterEach(() => {
@@ -84,24 +79,6 @@ describe('createSentryTunnelRoute', () => {
     expect(result).toBe(response);
   });
 
-  it('marks the active root span to be dropped so the tunnel request is not captured as a transaction', async () => {
-    const request = new Request('http://localhost:3000/monitoring', { method: 'POST', body: 'envelope' });
-    const response = new Response('ok', { status: 200 });
-
-    const setAttribute = vi.fn();
-    const activeSpan = {};
-    const rootSpan = { setAttribute };
-    getActiveSpanSpy.mockReturnValueOnce(activeSpan);
-    getRootSpanSpy.mockReturnValueOnce(rootSpan);
-    handleTunnelRequestSpy.mockResolvedValueOnce(response);
-
-    const route = createSentryTunnelRoute({ allowedDsns: ['https://public@o0.ingest.sentry.io/0'] });
-    await route.handlers.POST({ request });
-
-    expect(getRootSpanSpy).toHaveBeenCalledWith(activeSpan);
-    expect(setAttribute).toHaveBeenCalledWith(TUNNEL_ROUTE_DROP_TRANSACTION_ATTRIBUTE, true);
-  });
-
   it('self-registers the request path so the streamed-span sampler can drop it', async () => {
     const request = new Request('http://localhost:3000/handler-selfreg', { method: 'POST', body: 'envelope' });
     const options: { ignoreSpans?: unknown[] } = {};
@@ -115,20 +92,6 @@ describe('createSentryTunnelRoute', () => {
         !!(entry as { attributes?: { 'http.target'?: unknown } })?.attributes?.['http.target'],
     );
     expect(matcher?.attributes['http.target'].test('/handler-selfreg')).toBe(true);
-  });
-
-  it('does not throw when there is no active span', async () => {
-    const request = new Request('http://localhost:3000/monitoring', { method: 'POST', body: 'envelope' });
-    const response = new Response('ok', { status: 200 });
-
-    getActiveSpanSpy.mockReturnValueOnce(undefined);
-    handleTunnelRequestSpy.mockResolvedValueOnce(response);
-
-    const route = createSentryTunnelRoute({ allowedDsns: ['https://public@o0.ingest.sentry.io/0'] });
-    const result = await route.handlers.POST({ request });
-
-    expect(getRootSpanSpy).not.toHaveBeenCalled();
-    expect(result).toBe(response);
   });
 
   it('returns 500 when allowedDsns is omitted and no active server Sentry client DSN exists', async () => {
