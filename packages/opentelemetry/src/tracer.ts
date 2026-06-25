@@ -14,6 +14,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentryNonRecordingSpan,
   setCapturedScopesOnSpan,
+  spanIsIgnored,
   startNewTrace,
   withScope,
 } from '@sentry/core';
@@ -68,17 +69,27 @@ export class SentryTracer implements Tracer {
     ) as F;
 
     const span = this.startSpan(name, options, ctx);
-    let ctxWithSpan = trace.setSpan(ctx, span);
 
     // Run the span's callback under the isolation scope captured when the span was created, so scope state
     // used or set during the span (tags, breadcrumbs, captured errors) belongs to that span and stays
-    // isolated from other concurrent work. Without this it can land on a different isolation scope.
+    // isolated from other concurrent work. Without this it can land on a different isolation scope. This
+    // holds for ignored spans too, which run the callback without ever becoming the active span.
     const capturedIsolationScope = getCapturedScopesOnSpan(span as unknown as Span).isolationScope;
-    if (capturedIsolationScope) {
-      ctxWithSpan = ctxWithSpan.setValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY, capturedIsolationScope);
+    const withCapturedIsolationScope = (contextToFork: Context): Context =>
+      capturedIsolationScope
+        ? contextToFork.setValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY, capturedIsolationScope)
+        : contextToFork;
+
+    // Mirror core's `startSpan`: an ignored (`ignoreSpans`) span that has a parent must not become the
+    // active span. Otherwise its children would attach to it and, since it's non-recording, be dropped
+    // along with it (cascading the drop down the whole subtree). Leaving the parent active lets the
+    // children attach to it and get re-parented instead. An ignored root span has no parent and still
+    // becomes active, so its subtree is dropped as intended.
+    if (spanIsIgnored(span as unknown as Span) && trace.getSpan(ctx)) {
+      return context.with(withCapturedIsolationScope(ctx), () => callback(span)) as ReturnType<F>;
     }
 
-    return context.with(ctxWithSpan, () => {
+    return context.with(withCapturedIsolationScope(trace.setSpan(ctx, span)), () => {
       _INTERNAL_setSpanForScope(getCurrentScope(), span as unknown as Span);
       return callback(span) as ReturnType<F>;
     });
