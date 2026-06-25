@@ -36,6 +36,7 @@ import {
   debug,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
@@ -327,8 +328,7 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
       name: context.functionName,
       op: 'function.aws.lambda',
       forceTransaction: true,
-      // SpanKind.SERVER = 1
-      kind: 1,
+      kind: SPAN_KIND.SERVER,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws_lambda',
         [ATTR_FAAS_EXECUTION]: context.awsRequestId,
