@@ -150,6 +150,10 @@ function setupH3TracingChannels(): void {
 }
 
 function setupSrvxTracingChannels(): void {
+  if (!dc.tracingChannel) {
+    return;
+  }
+
   // Store the parent span per-request so middleware and fetch share the same parent.
   // WeakMap ensures per-request isolation in concurrent environments and automatic cleanup.
   const requestParentSpans = new WeakMap<Request, Span>();
