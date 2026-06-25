@@ -61,7 +61,9 @@ import type {
 // `http.request.method_original` is not part of `@sentry/conventions`, so we keep it inline.
 const ATTR_HTTP_REQUEST_METHOD_ORIGINAL = 'http.request.method_original';
 
-let _isInstrumented = false;
+// Keep ref to avoid https://github.com/nodejs/node/issues/42170 bug
+// We can replace this with _isInstrumented once we drop support for Node.js 18.18.0
+const _channelSubs: Array<unknown> = [];
 const spanFromReq = new WeakMap<UndiciRequest, Span>();
 // Caches trace-propagation decisions per URL so we don't recompute the `tracePropagationTargets` regexes per request.
 const propagationDecisionMap = new LRUMap<string, boolean>(100);
@@ -79,11 +81,9 @@ const propagationDecisionMap = new LRUMap<string, boolean>(100);
  */
 export function instrumentUndici(config: UndiciInstrumentationConfig = {}): void {
   // Avoid duplicate subscriptions
-  if (_isInstrumented) {
+  if (_channelSubs.length) {
     return;
   }
-
-  _isInstrumented = true;
 
   subscribeToChannel('undici:request:create', message => onRequestCreated(config, message as RequestMessage));
   subscribeToChannel('undici:client:sendHeaders', message =>
@@ -117,9 +117,9 @@ function subscribeToChannel(
   const useNewSubscribe = major > 18 || (major === 18 && minor >= 19);
 
   if (useNewSubscribe) {
-    diagch.subscribe?.(diagnosticChannel, onMessage);
+    _channelSubs.push(diagch.subscribe?.(diagnosticChannel, onMessage));
   } else {
-    diagch.channel(diagnosticChannel).subscribe(onMessage);
+    _channelSubs.push(diagch.channel(diagnosticChannel).subscribe(onMessage));
   }
 }
 
