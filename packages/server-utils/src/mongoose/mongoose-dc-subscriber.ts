@@ -90,7 +90,9 @@ let subscribed = false;
  * Idempotent: subsequent calls are a no-op.
  */
 export function subscribeMongooseDiagnosticChannels(tracingChannel: MongooseTracingChannelFactory): void {
-  if (subscribed) return;
+  if (subscribed) {
+    return;
+  }
   subscribed = true;
 
   try {
@@ -150,7 +152,10 @@ function getBatchSize(data: MongooseTracingData): number | undefined {
  * (rather than throwing) on anything it cannot serialize.
  */
 function redactMongoQuery(value: unknown): string | undefined {
-  if (value == null) return undefined;
+  if (value == null) {
+    return undefined;
+  }
+
   try {
     const redacted = redactValue(value, 0);
     const text = JSON.stringify(redacted);
@@ -162,10 +167,14 @@ function redactMongoQuery(value: unknown): string | undefined {
 }
 
 function redactValue(value: unknown, depth: number): unknown {
-  if (depth > MAX_REDACTION_DEPTH) return '?';
+  if (depth > MAX_REDACTION_DEPTH) {
+    return '?';
+  }
+
   if (Array.isArray(value)) {
     return value.map(item => redactValue(item, depth + 1));
   }
+
   if (value && typeof value === 'object') {
     const out: Record<string, unknown> = {};
     for (const key of Object.keys(value as Record<string, unknown>)) {
