@@ -189,6 +189,7 @@ const _mysqlChannelIntegration = (() => {
                 code: SPAN_STATUS_ERROR,
                 message: err instanceof Error ? err.message : 'unknown_error',
               });
+              setErrorAttributes(span, err);
               // Defensive: end the span here too in case `'end'` never fires
               // (e.g. abrupt socket destruction). `finishSpan` is idempotent —
               // `spans.delete` makes the subsequent `'end'` listener a no-op.
@@ -209,6 +210,7 @@ const _mysqlChannelIntegration = (() => {
             code: SPAN_STATUS_ERROR,
             message: ctx.error instanceof Error ? ctx.error.message : 'unknown_error',
           });
+          setErrorAttributes(span, ctx.error);
         },
 
         asyncStart() {
@@ -233,6 +235,15 @@ const _mysqlChannelIntegration = (() => {
 
 function hasOnMethod(obj: object): obj is { on: (event: string, listener: (arg?: unknown) => void) => unknown } {
   return 'on' in obj && typeof (obj as { on?: unknown }).on === 'function';
+}
+
+// The status message set via `setStatus` is discarded by the OTel->Sentry status mapping in mapStatus.ts (only canonical gRPC strings survive).
+// For a refused connection these resolve to e.g. `db.response.status_code: 'ECONNREFUSED'` and `error.type: 'AggregateError'`.
+// Mirrors the postgres.js integration.
+function setErrorAttributes(span: Span, error: unknown): void {
+  const err = error as { code?: string | number; name?: string } | undefined;
+  span.setAttribute('db.response.status_code', err?.code !== undefined ? String(err.code) : 'unknown');
+  span.setAttribute('error.type', err?.name ?? 'unknown');
 }
 
 function extractSql(firstArg: unknown): string | undefined {
