@@ -18,6 +18,7 @@ export const GRAPHQL_DC_CHANNEL_PARSE = 'graphql:parse';
 export const GRAPHQL_DC_CHANNEL_VALIDATE = 'graphql:validate';
 export const GRAPHQL_DC_CHANNEL_EXECUTE = 'graphql:execute';
 export const GRAPHQL_DC_CHANNEL_SUBSCRIBE = 'graphql:subscribe';
+export const GRAPHQL_DC_CHANNEL_RESOLVE = 'graphql:resolve';
 
 const ORIGIN = 'auto.graphql.diagnostic_channel';
 
@@ -25,6 +26,14 @@ const SPAN_NAME_PARSE = 'graphql.parse';
 const SPAN_NAME_VALIDATE = 'graphql.validate';
 const SPAN_NAME_EXECUTE = 'graphql.execute';
 const SPAN_NAME_SUBSCRIBE = 'graphql.subscribe';
+const SPAN_NAME_RESOLVE = 'graphql.resolve';
+
+// Field-level attributes for resolver spans. Not in `@sentry/conventions`; these match the keys the
+// vendored OTel instrumentation emits so there is no drift between the two paths.
+const GRAPHQL_FIELD_NAME = 'graphql.field.name';
+const GRAPHQL_FIELD_PATH = 'graphql.field.path';
+const GRAPHQL_FIELD_TYPE = 'graphql.field.type';
+const GRAPHQL_PARENT_NAME = 'graphql.parent.name';
 
 // graphql-js token kinds whose values may carry user data (literal arguments). We
 // replace them in the serialized document so raw inline values can never reach
@@ -78,6 +87,40 @@ export interface GraphqlOperationData {
 }
 
 /**
+ * Context published on the per-field `graphql:resolve` channel.
+ *
+ * A resolver throw or rejection publishes the `error` lifecycle event here; the same failure also
+ * surfaces in the enclosing execution result.
+ */
+export interface GraphqlResolveData {
+  fieldName: string;
+  parentType: string;
+  fieldType: string;
+  fieldPath: string;
+  /** Whether the field is handled by graphql's default property resolver (vs. a user resolver). */
+  isDefaultResolver: boolean;
+  alias?: string;
+  args?: unknown;
+  result?: unknown;
+  error?: unknown;
+}
+
+/** Options controlling which graphql channels the subscriber emits spans for. */
+export interface GraphqlDiagnosticChannelsOptions {
+  /**
+   * Do not create spans for resolvers. Resolver spans are per-field and can be very high volume.
+   * Defaults to `true`.
+   */
+  ignoreResolveSpans?: boolean;
+
+  /**
+   * When resolver spans are enabled, do not create them for graphql's default property resolver
+   * (fields without a user-defined resolver), which are rarely interesting. Defaults to `true`.
+   */
+  ignoreTrivialResolveSpans?: boolean;
+}
+
+/**
  * Platform-provided factory that creates a native tracing channel for the given name. The
  * subscriber binds the span and its lifecycle onto the channel via `bindTracingChannelToSpan`,
  * which propagates the active span through the runtime's async context.
@@ -96,16 +139,24 @@ let activeUnbinds: Array<() => void> = [];
  * On older graphql versions the channels are never published to, so the subscribers are inert —
  * there is no double-instrumentation against the vendored OTel patcher, which is gated to `< 17`.
  *
- * The per-field `graphql:resolve` channel is intentionally not subscribed: resolver spans are
- * extremely high-volume and the legacy OTel path also omits them by default (`ignoreResolveSpans`).
+ * The per-field `graphql:resolve` channel is only subscribed when `ignoreResolveSpans` is `false`:
+ * resolver spans are per-field and can be extremely high-volume, so they are off by default (matching
+ * the legacy OTel path). When enabled, `ignoreTrivialResolveSpans` (default `true`) additionally skips
+ * graphql's default property resolver.
  *
  * Idempotent: subsequent calls are a no-op.
  */
-export function subscribeGraphqlDiagnosticChannels(tracingChannel: GraphqlTracingChannelFactory): void {
+export function subscribeGraphqlDiagnosticChannels(
+  tracingChannel: GraphqlTracingChannelFactory,
+  options: GraphqlDiagnosticChannelsOptions = {},
+): void {
   if (subscribed) {
     return;
   }
   subscribed = true;
+
+  const ignoreResolveSpans = options.ignoreResolveSpans !== false;
+  const ignoreTrivialResolveSpans = options.ignoreTrivialResolveSpans !== false;
 
   try {
     activeUnbinds.push(
@@ -114,6 +165,10 @@ export function subscribeGraphqlDiagnosticChannels(tracingChannel: GraphqlTracin
       setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_EXECUTE, SPAN_NAME_EXECUTE),
       setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_SUBSCRIBE, SPAN_NAME_SUBSCRIBE),
     );
+
+    if (!ignoreResolveSpans) {
+      activeUnbinds.push(setupResolveChannel(tracingChannel, ignoreTrivialResolveSpans));
+    }
   } catch {
     // The factory relies on `node:diagnostics_channel`, which isn't always
     // available. Fail closed; the SDK simply won't emit graphql spans here.
@@ -193,6 +248,35 @@ function setupOperationChannel(
       // don't emit a duplicate error event for every failed operation.
       captureError: false,
     },
+  ).unbind;
+}
+
+function setupResolveChannel(
+  tracingChannel: GraphqlTracingChannelFactory,
+  ignoreTrivialResolveSpans: boolean,
+): () => void {
+  return bindTracingChannelToSpan(
+    tracingChannel<GraphqlResolveData>(GRAPHQL_DC_CHANNEL_RESOLVE),
+    data => {
+      // Returning `undefined` opts this field out: no span is created and the active context is left
+      // untouched, so the field still resolves under its parent span.
+      if (ignoreTrivialResolveSpans && data.isDefaultResolver) {
+        return undefined;
+      }
+      return startInactiveSpan({
+        name: `${SPAN_NAME_RESOLVE} ${data.fieldPath}`,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+          [GRAPHQL_FIELD_NAME]: data.fieldName,
+          [GRAPHQL_FIELD_PATH]: data.fieldPath,
+          [GRAPHQL_FIELD_TYPE]: data.fieldType,
+          [GRAPHQL_PARENT_NAME]: data.parentType,
+        },
+      });
+    },
+    // Resolver errors also surface in the enclosing execution result; only annotate the span.
+    { captureError: false },
   ).unbind;
 }
 

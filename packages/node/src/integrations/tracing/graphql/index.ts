@@ -44,7 +44,8 @@ export const instrumentGraphql = generateInstrumentOnce(
 const _graphqlIntegration = ((options: GraphqlOptions = {}) => {
   // The diagnostics_channel subscription (graphql >= 17) lives in server-utils so it is shared
   // across server runtimes; we extend it here to also run the vendored OTel patcher for graphql < 17.
-  return extendIntegration(graphqlChannelIntegration(), {
+  // Both paths read the same `ignoreResolveSpans` / `ignoreTrivialResolveSpans` options.
+  return extendIntegration(graphqlChannelIntegration(getOptionsWithDefaults(options)), {
     name: INTEGRATION_NAME,
     setupOnce() {
       // We set defaults here, too, because otherwise we'd update the instrumentation config
