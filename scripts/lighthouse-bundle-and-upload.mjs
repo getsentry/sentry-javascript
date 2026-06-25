@@ -1,11 +1,12 @@
 /**
  * Bundle the `lighthouse-react` test app for each mode (no-sentry, init-only,
- * errors-only, tracing, tracing-replay) and POST the tarballs to the Sentry
- * Lighthouse lab (https://lighthouse.sentry.gg). The lab runs Lighthouse
- * asynchronously and ships results to Sentry on its own schedule — this script
- * exits as soon as the upload succeeds.
+ * errors-only, no-integrations, no-browser-api-errors, tracing, tracing-replay)
+ * and POST the tarballs to the Sentry Lighthouse lab
+ * (https://lighthouse.sentry.gg). The lab runs Lighthouse asynchronously and
+ * ships results to Sentry on its own schedule — this script exits as soon as
+ * the upload succeeds.
  *
- * Single-app static matrix: 1 app × 5 modes = 5 cells.
+ * Single-app static matrix: 1 app × 7 modes = 7 cells.
  *
  * Zero runtime dependencies — uses Node 22 builtins (fetch, FormData, Blob) and
  * the system `tar`. Every external command is invoked via `execFileSync` with
@@ -33,7 +34,15 @@ const E2E_DIR = path.join(WORKSPACE, 'dev-packages/e2e-tests');
 
 const APP = 'lighthouse-react';
 const APP_DIR = 'lighthouse-react';
-const MODES = ['no-sentry', 'init-only', 'errors-only', 'tracing', 'tracing-replay'];
+const MODES = [
+  'no-sentry',
+  'init-only',
+  'errors-only',
+  'no-integrations',
+  'no-browser-api-errors',
+  'tracing',
+  'tracing-replay',
+];
 const STATIC_DIR = 'dist';
 
 async function run() {

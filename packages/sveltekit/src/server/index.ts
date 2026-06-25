@@ -98,6 +98,8 @@ export {
   setMeasurement,
   setTag,
   setTags,
+  setAttribute,
+  setAttributes,
   setupConnectErrorHandler,
   setupExpressErrorHandler,
   setupHapiErrorHandler,

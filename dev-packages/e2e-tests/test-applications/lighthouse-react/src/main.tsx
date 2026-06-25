@@ -2,6 +2,11 @@ import * as Sentry from '@sentry/react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
+const sentryInitStart = performance.now();
+performance.mark('sentry-sdk-init-start', {
+  detail: { mode: import.meta.env.MODE ?? 'unknown_mode' },
+});
+
 if (import.meta.env.MODE === 'tracing-replay') {
   Sentry.init({
     dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
@@ -28,11 +33,42 @@ if (import.meta.env.MODE === 'tracing-replay') {
     release: 'lighthouse-fixture',
     environment: 'qa',
   });
+} else if (import.meta.env.MODE === 'no-integrations') {
+  // DSN set but every integration disabled. Isolates the cost of the enabled
+  // client itself from the default instrumentation that wraps DOM/timer/network APIs.
+  Sentry.init({
+    dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
+    release: 'lighthouse-fixture',
+    environment: 'qa',
+    defaultIntegrations: false,
+    integrations: [],
+  });
+} else if (import.meta.env.MODE === 'no-browser-api-errors') {
+  // Default integrations minus BrowserApiErrors, which wraps addEventListener/
+  // removeEventListener on ~32 prototypes plus setTimeout/setInterval/rAF/XHR.
+  // Isolates that global monkey-patching cost from the rest of the defaults.
+  Sentry.init({
+    dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
+    release: 'lighthouse-fixture',
+    environment: 'qa',
+    integrations: defaultIntegrations =>
+      defaultIntegrations.filter(integration => integration.name !== 'BrowserApiErrors'),
+  });
 } else if (import.meta.env.MODE === 'init-only') {
   // enabled: false makes the SDK a guaranteed no-op (no transport allocation,
   // no DSN warning). We're measuring pure SDK-loading + tree-shaking cost.
   Sentry.init({ enabled: false });
 }
+
+performance.measure('sentry-sdk-init-duration', {
+  detail: { mode: import.meta.env.MODE ?? 'unknown_mode' },
+  start: sentryInitStart,
+  end: performance.now(),
+});
+performance.mark('sentry-sdk-init-end', {
+  detail: { mode: import.meta.env.MODE ?? 'unknown_mode' },
+});
+
 // 'no-sentry' mode: all branches above are statically dead, so Vite drops
 // the @sentry/react import entirely from the bundle.
 

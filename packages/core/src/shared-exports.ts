@@ -4,7 +4,7 @@
 /* eslint-disable max-lines */
 
 export type { ClientClass as SentryCoreCurrentScopes } from './sdk';
-export type { AsyncContextStrategy } from './asyncContext/types';
+export type { AsyncContextStrategy, TracingChannelBinding } from './asyncContext/types';
 export type { Carrier } from './carrier';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { IntegrationIndex } from './integration';
@@ -25,6 +25,8 @@ export {
   setExtras,
   setTag,
   setTags,
+  setAttribute,
+  setAttributes,
   setUser,
   setConversationId,
   isInitialized,
@@ -47,7 +49,11 @@ export {
   hasExternalPropagationContext,
 } from './currentScopes';
 export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
-export { setAsyncContextStrategy } from './asyncContext';
+export {
+  setAsyncContextStrategy,
+  getTracingChannelBinding as _INTERNAL_getTracingChannelBinding,
+  _INTERNAL_createTracingChannelBinding,
+} from './asyncContext';
 export { getGlobalSingleton, getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 export { Scope } from './scope';
@@ -124,6 +130,8 @@ export {
 } from './utils/request';
 export type { MaxRequestBodySize } from './utils/request';
 export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
+export { SPAN_KIND } from './spanKind';
+export type { SpanKindValue } from './spanKind';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
 // eslint-disable-next-line typescript/no-deprecated

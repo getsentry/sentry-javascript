@@ -23,6 +23,7 @@ import {
   getTraceData,
   LRUMap,
   shouldPropagateTraceForUrl,
+  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
@@ -52,9 +53,6 @@ import type {
   ResponseHeadersMessage,
 } from './internal-types';
 import type { UndiciInstrumentationConfig, UndiciRequest } from './types';
-
-// `SpanKind.CLIENT`, inlined to avoid importing from `@opentelemetry/api`.
-const SPAN_KIND_CLIENT = 2;
 
 /** Replaces OTel's `safeExecuteInTheMiddle`: run `fn`, route any error to `onError`, and swallow it. */
 function safeExecute<T>(fn: () => T, onError: (error: unknown) => void): T | undefined {
@@ -246,7 +244,7 @@ export class UndiciInstrumentation {
 
     const span = startInactiveSpan({
       name: requestMethod === '_OTHER' ? 'HTTP' : requestMethod,
-      kind: SPAN_KIND_CLIENT,
+      kind: SPAN_KIND.CLIENT,
       attributes,
     });
 

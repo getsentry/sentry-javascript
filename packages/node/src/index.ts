@@ -84,6 +84,8 @@ export {
   setExtras,
   setTag,
   setTags,
+  setAttribute,
+  setAttributes,
   setUser,
   setConversationId,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,

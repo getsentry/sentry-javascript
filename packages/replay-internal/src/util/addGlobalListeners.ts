@@ -1,6 +1,7 @@
 import type { DynamicSamplingContext } from '@sentry/core';
 import { addEventProcessor, getClient } from '@sentry/core';
 import { addClickKeypressInstrumentationHandler, addHistoryInstrumentationHandler } from '@sentry/browser-utils';
+import { handleAfterSegmentSpanEnd } from '../coreHandlers/handleAfterSegmentSpanEnd';
 import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
 import { handleBeforeSendEvent } from '../coreHandlers/handleBeforeSendEvent';
 import { handleBreadcrumbs } from '../coreHandlers/handleBreadcrumbs';
@@ -42,6 +43,8 @@ export function addGlobalListeners(replay: ReplayContainer): void {
         }
       }
     });
+
+    client.on('afterSegmentSpanEnd', handleAfterSegmentSpanEnd(replay));
 
     client.on('spanStart', span => {
       replay.lastActiveSpan = span;

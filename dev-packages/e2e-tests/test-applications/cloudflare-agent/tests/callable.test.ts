@@ -34,8 +34,17 @@ test('@callable() methods work correctly with Sentry instrumentDurableObjectWith
     },
     spans: expect.arrayContaining([
       expect.objectContaining({
-        op: 'db',
-        description: 'durable_object_storage_get',
+        op: 'db.query',
+        origin: 'auto.db.cloudflare.durable_object.sql',
+        description: expect.stringMatching(/^SELECT /),
+        data: expect.objectContaining({
+          'db.system.name': 'cloudflare-durable-object-sql',
+          'db.operation.name': 'exec',
+          'db.query.summary': expect.any(String),
+          'db.query.text': expect.any(String),
+          'sentry.op': 'db.query',
+          'sentry.origin': 'auto.db.cloudflare.durable_object.sql',
+        }),
       }),
     ]),
     start_timestamp: expect.any(Number),

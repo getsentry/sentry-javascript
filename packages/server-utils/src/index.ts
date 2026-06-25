@@ -18,8 +18,12 @@ export type {
   RedisCommandData,
   RedisConnectData,
   RedisDiagnosticChannelResponseHook,
-  RedisTracingChannel,
-  RedisTracingChannelContextWithSpan,
   RedisTracingChannelFactory,
-  RedisTracingChannelSubscribers,
 } from './redis/redis-dc-subscriber';
+export { bindTracingChannelToSpan } from './tracing-channel';
+export type {
+  SentryTracingChannel,
+  TracingChannelLifeCycleOptions,
+  TracingChannelBindingHandle,
+  TracingChannelPayloadWithSpan,
+} from './tracing-channel';

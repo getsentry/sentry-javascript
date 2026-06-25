@@ -1,6 +1,6 @@
 import { defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
-import { FsInstrumentation } from './vendored/instrumentation';
+import { enableFsInstrumentation } from './vendored/instrumentation';
+import type { FsInstrumentationConfig } from './vendored/types';
 
 const INTEGRATION_NAME = 'FileSystem';
 
@@ -13,36 +13,11 @@ const INTEGRATION_NAME = 'FileSystem';
  *
  * @param options Configuration for this integration.
  */
-export const fsIntegration = defineIntegration(
-  (
-    options: {
-      /**
-       * Setting this option to `true` will include any filepath arguments from your `fs` API calls as span attributes.
-       *
-       * Defaults to `false`.
-       */
-      recordFilePaths?: boolean;
-
-      /**
-       * Setting this option to `true` will include the error messages of failed `fs` API calls as a span attribute.
-       *
-       * Defaults to `false`.
-       */
-      recordErrorMessagesAsSpanAttributes?: boolean;
-    } = {},
-  ) => {
-    return {
-      name: INTEGRATION_NAME,
-      setupOnce() {
-        generateInstrumentOnce(
-          INTEGRATION_NAME,
-          () =>
-            new FsInstrumentation({
-              recordFilePaths: options.recordFilePaths,
-              recordErrorMessagesAsSpanAttributes: options.recordErrorMessagesAsSpanAttributes,
-            }),
-        )();
-      },
-    };
-  },
-);
+export const fsIntegration = defineIntegration((options: FsInstrumentationConfig = {}) => {
+  return {
+    name: INTEGRATION_NAME,
+    setupOnce() {
+      enableFsInstrumentation(options);
+    },
+  };
+});

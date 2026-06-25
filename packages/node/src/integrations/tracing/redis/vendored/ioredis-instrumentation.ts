@@ -9,13 +9,13 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
@@ -126,7 +126,7 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };
 
-        const span = startInactiveSpan({ name: cmd.name, kind: SpanKind.CLIENT, attributes });
+        const span = startInactiveSpan({ name: cmd.name, kind: SPAN_KIND.CLIENT, attributes });
 
         try {
           const result = original.apply(this, args);
@@ -167,7 +167,7 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };
 
-        const span = startInactiveSpan({ name: 'connect', kind: SpanKind.CLIENT, attributes });
+        const span = startInactiveSpan({ name: 'connect', kind: SPAN_KIND.CLIENT, attributes });
 
         try {
           const result = original.apply(this, args) as Promise<unknown> | undefined;
