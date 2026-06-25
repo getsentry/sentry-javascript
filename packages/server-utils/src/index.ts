@@ -27,3 +27,4 @@ export type {
   TracingChannelBindingHandle,
   TracingChannelPayloadWithSpan,
 } from './tracing-channel';
+export { vercelAiIntegration } from './vercel-ai';

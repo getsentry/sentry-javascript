@@ -50,7 +50,8 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/core": "10.61.0"
+    "@sentry/core": "10.61.0",
+    "@sentry/server-utils": "10.61.0"
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x"

@@ -29,7 +29,7 @@ describe('Vercel AI integration (V5)', () => {
     'scenario.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('creates ai related spans with genAI recording disabled', async () => {
+      test('creates ai spans when dataCollection.genAi has inputs and outputs disabled', async () => {
         await createRunner()
           .expect({ transaction: { transaction: 'main' } })
           .expect({
@@ -142,7 +142,7 @@ describe('Vercel AI integration (V5)', () => {
     'scenario.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('creates ai related spans with genAI recording enabled', async () => {
+      test('creates ai spans for dataCollection defaults', async () => {
         await createRunner()
           .expect({ transaction: { transaction: 'main' } })
           .expect({
@@ -315,44 +315,6 @@ describe('Vercel AI integration (V5)', () => {
 
         // Trace id should be the same for the transaction and error event
         expect(transactionEvent!.contexts!.trace!.trace_id).toBe(errorEvent!.contexts!.trace!.trace_id);
-      });
-    },
-    {
-      additionalDependencies: {
-        ai: '5.0.30',
-      },
-    },
-  );
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('creates ai related spans with v5', async () => {
-        await createRunner()
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(7);
-              const invokeAgentSpans = container.items.filter(
-                span => span.attributes['sentry.op'].value === 'gen_ai.invoke_agent',
-              );
-              expect(invokeAgentSpans).toHaveLength(3);
-
-              const generateContentSpans = container.items.filter(
-                span => span.attributes['sentry.op'].value === 'gen_ai.generate_content',
-              );
-              expect(generateContentSpans).toHaveLength(3);
-
-              const toolSpan = container.items.find(
-                span => span.attributes['sentry.op'].value === 'gen_ai.execute_tool',
-              );
-              expect(toolSpan).toBeDefined();
-            },
-          })
-          .start()
-          .completed();
       });
     },
     {
