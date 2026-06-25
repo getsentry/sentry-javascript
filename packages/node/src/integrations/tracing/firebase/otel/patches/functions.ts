@@ -6,6 +6,7 @@ import {
   captureException,
   flush,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
@@ -86,8 +87,7 @@ export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions
         const span = startInactiveSpan({
           name: `firebase.function.${triggerType}`,
           op: 'http.request',
-          // SpanKind.SERVER = 1
-          kind: 1,
+          kind: SPAN_KIND.SERVER,
           attributes,
         });
 

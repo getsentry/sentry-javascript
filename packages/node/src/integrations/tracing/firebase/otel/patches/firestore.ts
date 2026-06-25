@@ -10,7 +10,7 @@ import {
   ATTR_SERVER_PORT,
 } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_KIND, startSpan } from '@sentry/core';
 import type { FirebaseInstrumentation } from '../firebaseInstrumentation';
 import type {
   AddDocType,
@@ -178,8 +178,7 @@ function startFirestoreSpan<AppModelType, DbModelType extends DocumentData, T>(
     {
       name: `${spanName} ${reference.path}`,
       op: 'db.query',
-      // SpanKind.CLIENT = 2
-      kind: 2,
+      kind: SPAN_KIND.CLIENT,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.firebase.otel.firestore',
         [ATTR_DB_OPERATION_NAME]: spanName,
