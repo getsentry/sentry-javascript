@@ -528,31 +528,32 @@ describe.each([
       test.skipIf(version === '7' && nodeVersion === 18)(
         'creates streamText spans with the model call parented to invoke_agent',
         async () => {
-        await createRunner()
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              // Every emitted gen_ai span carries the version-appropriate origin.
-              container.items
-                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
-                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
-              const invokeAgent = container.items.find(
-                span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
-              )!;
-              expect(invokeAgent).toBeDefined();
-              expect(invokeAgent.attributes?.['vercel.ai.operationId']?.value).toBe('ai.streamText');
+          await createRunner()
+            .expect({ transaction: { transaction: 'main' } })
+            .expect({
+              span: container => {
+                // Every emitted gen_ai span carries the version-appropriate origin.
+                container.items
+                  .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                  .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
+                const invokeAgent = container.items.find(
+                  span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
+                )!;
+                expect(invokeAgent).toBeDefined();
+                expect(invokeAgent.attributes?.['vercel.ai.operationId']?.value).toBe('ai.streamText');
 
-              const generateContent = container.items.find(
-                span => span.attributes?.['sentry.op']?.value === 'gen_ai.generate_content',
-              )!;
-              expect(generateContent).toBeDefined();
-              expect(generateContent.parent_span_id).toBe(invokeAgent.span_id);
-              expect(generateContent.attributes?.['vercel.ai.operationId']?.value).toBe('ai.streamText.doStream');
-            },
-          })
-          .start()
-          .completed();
-      });
+                const generateContent = container.items.find(
+                  span => span.attributes?.['sentry.op']?.value === 'gen_ai.generate_content',
+                )!;
+                expect(generateContent).toBeDefined();
+                expect(generateContent.parent_span_id).toBe(invokeAgent.span_id);
+                expect(generateContent.attributes?.['vercel.ai.operationId']?.value).toBe('ai.streamText.doStream');
+              },
+            })
+            .start()
+            .completed();
+        },
+      );
     },
     {
       additionalDependencies: {
