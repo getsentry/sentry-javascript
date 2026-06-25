@@ -8,8 +8,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_KIND,
   SPAN_STATUS_ERROR,
-  startInactiveSpan,
-  withActiveSpan,
+  startSpanManual,
 } from '@sentry/core';
 import type { FirebaseInstrumentation } from '../firebaseInstrumentation';
 import type { AvailableFirebaseFunctions, FirebaseFunctions, OverloadedParameters } from '../types';
@@ -83,32 +82,33 @@ export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions
           attributes['cloud.event_source'] = process.env.EVENTARC_CLOUD_EVENT_SOURCE;
         }
 
-        // Use an inactive span (not `startSpan`) so we can end the span before flushing on error.
-        const span = startInactiveSpan({
-          name: `firebase.function.${triggerType}`,
-          op: 'http.request',
-          kind: SPAN_KIND.SERVER,
-          attributes,
-        });
-
-        return withActiveSpan(span, async () => {
-          try {
-            const result = await handler.apply(this, handlerArgs);
-            span.end();
-            return result;
-          } catch (error) {
-            span.setStatus({ code: SPAN_STATUS_ERROR });
-            captureException(error, {
-              mechanism: {
-                type: 'auto.firebase.otel.functions',
-                handled: false,
-              },
-            });
-            span.end();
-            await flush(2000);
-            throw error;
-          }
-        });
+        // `startSpanManual` to keep the span active but while still allowing us to end it before flushing on error.
+        return startSpanManual(
+          {
+            name: `firebase.function.${triggerType}`,
+            op: 'http.request',
+            kind: SPAN_KIND.SERVER,
+            attributes,
+          },
+          async span => {
+            try {
+              const result = await handler.apply(this, handlerArgs);
+              span.end();
+              return result;
+            } catch (error) {
+              span.setStatus({ code: SPAN_STATUS_ERROR });
+              captureException(error, {
+                mechanism: {
+                  type: 'auto.firebase.otel.functions',
+                  handled: false,
+                },
+              });
+              span.end();
+              await flush(2000);
+              throw error;
+            }
+          },
+        );
       };
 
       if (documentOrOptions) {
