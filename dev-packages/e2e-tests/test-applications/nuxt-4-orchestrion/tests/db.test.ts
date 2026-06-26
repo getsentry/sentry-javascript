@@ -23,6 +23,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
       op: 'db',
       origin: 'auto.db.otel.redis',
       description: 'set test-key [1 other arguments]',
+      status: 'ok',
       data: expect.objectContaining({
         'db.system': 'redis',
         'db.statement': 'set test-key [1 other arguments]',
@@ -34,6 +35,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
       op: 'db',
       origin: 'auto.db.otel.redis',
       description: 'get test-key',
+      status: 'ok',
       data: expect.objectContaining({
         'db.system': 'redis',
         'db.statement': 'get test-key',

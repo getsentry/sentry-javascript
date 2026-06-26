@@ -16,3 +16,16 @@ services:
       timeout: 3s
       retries: 30
       start_period: 10s
+
+  redis:
+    image: redis:7
+    restart: always
+    container_name: e2e-tests-nuxt-4-orchestrion-redis
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s

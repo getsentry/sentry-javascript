@@ -1,12 +1,13 @@
 import * as Sentry from '@sentry/nuxt';
 
-// Runtime hook that injects diagnostics-channel calls into externalized deps (e.g. `mysql`),
-// which OTel can't instrument under ESM/`--import`. Must run before `Sentry.init()`.
+// Opt into diagnostics-channel-based auto-instrumentation. This registers the
+// channel subscribers (e.g. for `mysql`) that turn the diagnostics-channel
+// events — injected at build time by the orchestrion Rollup plugin (see
+// `nuxt.config.ts`) — into Sentry spans. Must run before `Sentry.init()`.
 Sentry.experimentalUseDiagnosticsChannelInjection();
 
 Sentry.init({
-  debug: true,
-  dsn: 'https://NdLkDyrRj27C@teley.dev/0',
-  tracesSampleRate: 1.0, // Capture 100% of the transactions
+  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  tracesSampleRate: 1.0,
   tunnel: 'http://localhost:3031/', // proxy server
 });

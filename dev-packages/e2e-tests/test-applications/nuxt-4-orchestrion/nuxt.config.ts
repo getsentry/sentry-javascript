@@ -1,10 +1,7 @@
 import codeTransformerRollup from '@apm-js-collab/code-transformer-bundler-plugins/rollup';
 import { INSTRUMENTED_MODULE_NAMES, SENTRY_INSTRUMENTATIONS } from '@sentry/server-utils/orchestrion/config';
 
-// Marks the bundler path as active so the SDK's runtime diagnostics-channel hook
-// (installed by `experimentalUseDiagnosticsChannelInjection()`) no-ops and
-// `detectOrchestrionSetup()` reports `bundler=true`. Mirrors the marker that
-// `sentryOrchestrionPlugin()` (the Vite plugin) prepends to entry chunks.
+// Mirrors the marker that `sentryOrchestrionPlugin()` (the Vite plugin) prepends to entry chunks.
 const orchestrionBundlerMarker = {
   name: 'sentry-orchestrion-marker',
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,12 +20,12 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
-  modules: ['@sentry/nuxt/module'],
+  modules: ['@sentry/nuxt/module', './modules/sentry-server-init'],
 
   runtimeConfig: {
     public: {
       sentry: {
-        dsn: 'https://NdLkDyrRj27C@teley.dev/0',
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
       },
     },
   },
@@ -39,18 +36,9 @@ export default defineNuxtConfig({
     // routes. Force-bundle ONLY the instrumented deps (`mysql`) via
     // `externals.inline`; externalized deps are `require()`d from `node_modules`
     // at runtime and never pass through the transform.
-    //
-    // NOTE: do NOT use `nitro.noExternals` here — it's a boolean, so an array is
-    // truthy and bundles *every* dependency. That pulls `@sentry/node`'s OTel
-    // loader (`require-in-the-middle` → `require('debug')`) into the bundle,
-    // where unenv's ESM `debug` mock breaks CJS interop and crashes the server
-    // config with `TypeError: require$$0$1 is not a function`.
-
     externals: {
       inline: INSTRUMENTED_MODULE_NAMES,
     },
-
-    // noExternals: INSTRUMENTED_MODULE_NAMES,
     rollupConfig: {
       plugins: [
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
