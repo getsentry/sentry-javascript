@@ -195,7 +195,7 @@ export function defineIntegration<Fn extends IntegrationFn>(
  * });
  * ```
  */
-export function extendIntegration<Base extends Integration, Extended extends Partial<Integration>>(
+export function extendIntegration<Base extends Integration, Extended extends Record<string, unknown> & Partial<Integration>>(
   integration: Base,
   extendedIntegration: Extended,
 ): Omit<Base, keyof Extended> & Extended {
