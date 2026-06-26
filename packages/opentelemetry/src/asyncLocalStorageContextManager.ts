@@ -39,18 +39,29 @@ type PatchMap = Record<string, WeakMap<ListenerFn, ListenerFn>>;
 
 const ADD_LISTENER_METHODS = ['addListener', 'on', 'once', 'prependListener', 'prependOnceListener'] as const;
 
+let _asyncLocalStorage: AsyncLocalStorage<Context> | undefined;
+
+/** Get hold of the async local storage instance. */
+export function getAsyncLocalStorage(): AsyncLocalStorage<Context> {
+  if (!_asyncLocalStorage) {
+    _asyncLocalStorage = new AsyncLocalStorage<Context>();
+  }
+  return _asyncLocalStorage;
+}
+
 /**
  * OpenTelemetry-compatible context manager using Node.js `AsyncLocalStorage`.
  * Semantics match `@opentelemetry/context-async-hooks` (function `bind` + `EventEmitter` patching).
  */
 export class SentryAsyncLocalStorageContextManager implements ContextManager {
-  protected readonly _asyncLocalStorage = new AsyncLocalStorage<Context>();
+  protected readonly _asyncLocalStorage;
 
   private readonly _kOtListeners = Symbol('OtListeners');
   private _wrapped = false;
 
   public constructor() {
     setIsSetup('SentryContextManager');
+    this._asyncLocalStorage = getAsyncLocalStorage();
   }
 
   public active(): Context {

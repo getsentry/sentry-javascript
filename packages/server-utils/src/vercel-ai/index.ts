@@ -1,4 +1,4 @@
-import { defineIntegration, type IntegrationFn } from '@sentry/core';
+import { defineIntegration, waitForTracingChannelBinding, type IntegrationFn } from '@sentry/core';
 import { subscribeVercelAiTracingChannel } from './vercel-ai-dc-subscriber';
 import * as dc from 'node:diagnostics_channel';
 
@@ -35,9 +35,9 @@ const _vercelAiIntegration = ((options: VercelAiOptions = {}) => {
 
       // Subscribe to the `ai` SDK's native telemetry tracing channel (ai >= 7).
       // This is a no-op on versions that don't publish to the channel, so it is always safe to call.
-      // The factory needs the Sentry OTel context manager, which `initOpenTelemetry()` registers after `setupOnce`, so defer a tick.
-      // Options are passed in here rather than read back off the integration per event.
-      void Promise.resolve().then(() => subscribeVercelAiTracingChannel(dc.tracingChannel, options));
+      waitForTracingChannelBinding(() => {
+        subscribeVercelAiTracingChannel(dc.tracingChannel, options);
+      });
     },
   };
 }) satisfies IntegrationFn;

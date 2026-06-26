@@ -1,7 +1,7 @@
 import type { TracingChannel, TracingChannelSubscribers } from 'node:diagnostics_channel';
 import type { AsyncLocalStorage } from 'node:async_hooks';
 import type { ExclusiveEventHintOrCaptureContext, Span } from '@sentry/core';
-import { _INTERNAL_getTracingChannelBinding, debug, captureException, SPAN_STATUS_ERROR } from '@sentry/core';
+import { debug, captureException, SPAN_STATUS_ERROR, getAsyncContextStrategy, getMainCarrier } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 
 export type TracingChannelPayloadWithSpan<TData extends object> = TData & {
@@ -133,7 +133,7 @@ function bindSpanToChannelStore<TData extends object>(
   getSpan: (data: TracingChannelPayloadWithSpan<TData>) => Span | undefined,
 ): TracingChannelBindingHandle<TData> {
   // Grabs the tracing channel binding defined by the AsyncContext strategy implementation
-  const binding = _INTERNAL_getTracingChannelBinding();
+  const binding = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.();
 
   // If no binding, then either the implementer doesn't support tracing channels or there is no active strategy
   // Failure mode here means we would still access the channel and potentially subscribe to it, but parenting will be off.

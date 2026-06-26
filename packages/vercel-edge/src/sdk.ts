@@ -63,7 +63,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): Client | undefined {
-  setOpenTelemetryContextAsyncContextStrategy();
+  setOpenTelemetryContextAsyncContextStrategy(options);
 
   const scope = getCurrentScope();
   scope.update(options.initialScope);
