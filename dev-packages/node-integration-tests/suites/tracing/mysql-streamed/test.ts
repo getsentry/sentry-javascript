@@ -9,7 +9,7 @@ describe('mysql auto instrumentation (streamed)', () => {
     cleanupChildProcesses();
   });
 
-  const assertMysqlSpans = (container: SerializedStreamedSpanContainer): void => {
+  const assertMysqlSpans = (container: SerializedStreamedSpanContainer, override?: Record<string, unknown>): void => {
     const segmentSpan = container.items.find(item => item.is_segment);
     expect(segmentSpan?.name).toBe('Test Transaction');
 
@@ -116,6 +116,7 @@ describe('mysql auto instrumentation (streamed)', () => {
             type: 'string',
             value: 'SELECT NOW()',
           },
+          ...override?.attributes,
         },
         name: 'SELECT NOW()',
         ...COMMON_SPAN_PROPS,
@@ -126,7 +127,17 @@ describe('mysql auto instrumentation (streamed)', () => {
   describe('with connection.connect()', () => {
     createCjsTests(__dirname, 'scenario-withConnect.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('should auto-instrument `mysql` package when using connection.connect()', async () => {
-        await createTestRunner().expect({ span: assertMysqlSpans }).start().completed();
+        await createTestRunner()
+          .expect({
+            span: container =>
+              assertMysqlSpans(container, {
+                attributes: {
+                  'sentry.status.message': { type: 'string', value: 'Cannot enqueue Query after fatal error.' },
+                },
+              }),
+          })
+          .start()
+          .completed();
       });
     });
   });
@@ -142,7 +153,17 @@ describe('mysql auto instrumentation (streamed)', () => {
   describe('without connection.connect()', () => {
     createCjsTests(__dirname, 'scenario-withoutConnect.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('should auto-instrument `mysql` package without connection.connect()', async () => {
-        await createTestRunner().expect({ span: assertMysqlSpans }).start().completed();
+        await createTestRunner()
+          .expect({
+            span: container =>
+              assertMysqlSpans(container, {
+                attributes: {
+                  'sentry.status.message': { type: 'string', value: 'Cannot enqueue Query after fatal error.' },
+                },
+              }),
+          })
+          .start()
+          .completed();
       });
     });
   });
