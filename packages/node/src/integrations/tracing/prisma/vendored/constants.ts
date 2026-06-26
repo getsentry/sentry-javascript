@@ -7,7 +7,6 @@
  * - Upstream version: @prisma/instrumentation@7.8.0
  * - Replaced `import packageJson from '../package.json'` with hardcoded values
  */
-/* eslint-disable */
 
 import { SDK_VERSION } from '@sentry/core';
 

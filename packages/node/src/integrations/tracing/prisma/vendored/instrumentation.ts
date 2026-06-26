@@ -7,19 +7,15 @@
  * - Upstream version: @prisma/instrumentation@7.8.0
  * - Replaced `@prisma/instrumentation-contract` imports with local vendored equivalents
  * - Replaced `import { VERSION, NAME, MODULE_NAME } from './constants'` with local vendored constants
+ * - Dropped the unused `setTracerProvider`/`tracerProvider` plumbing; the tracing helper creates spans
+ *   through Sentry's span APIs, which resolve the active client themselves
  */
-/* eslint-disable */
 
-import { trace, TracerProvider } from '@opentelemetry/api';
-import {
-  InstrumentationBase,
-  InstrumentationConfig,
-  InstrumentationNodeModuleDefinition,
-} from '@opentelemetry/instrumentation';
-import { clearGlobalTracingHelper, getGlobalTracingHelper, setGlobalTracingHelper } from './global';
-
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { ActiveTracingHelper } from './active-tracing-helper';
 import { MODULE_NAME, NAME, SUPPORTED_MODULE_VERSIONS, VERSION } from './constants';
+import { clearGlobalTracingHelper, getGlobalTracingHelper, setGlobalTracingHelper } from './global';
 
 export interface PrismaInstrumentationConfig {
   ignoreSpanTypes?: (string | RegExp)[];
@@ -28,38 +24,31 @@ export interface PrismaInstrumentationConfig {
 type Config = PrismaInstrumentationConfig & InstrumentationConfig;
 
 export class PrismaInstrumentation extends InstrumentationBase {
-  private tracerProvider: TracerProvider | undefined;
-
-  constructor(config: Config = {}) {
+  public constructor(config: Config = {}) {
     super(NAME, VERSION, config);
   }
 
-  setTracerProvider(tracerProvider: TracerProvider): void {
-    this.tracerProvider = tracerProvider;
-  }
-
-  init() {
+  public init(): InstrumentationNodeModuleDefinition[] {
     const module = new InstrumentationNodeModuleDefinition(MODULE_NAME, SUPPORTED_MODULE_VERSIONS);
 
     return [module];
   }
 
-  enable() {
+  public enable(): void {
     const config = this._config as Config;
 
     setGlobalTracingHelper(
       new ActiveTracingHelper({
-        tracerProvider: this.tracerProvider ?? trace.getTracerProvider(),
         ignoreSpanTypes: config.ignoreSpanTypes ?? [],
       }),
     );
   }
 
-  disable() {
+  public disable(): void {
     clearGlobalTracingHelper();
   }
 
-  isEnabled() {
+  public isEnabled(): boolean {
     return getGlobalTracingHelper() !== undefined;
   }
 }

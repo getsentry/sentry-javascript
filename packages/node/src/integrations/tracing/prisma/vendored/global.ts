@@ -7,7 +7,6 @@
  * - Upstream version: @prisma/instrumentation-contract@7.8.0
  * - Replaced `import packageJson from '../package.json'` with hardcoded major version
  */
-/* eslint-disable */
 
 import type { PrismaInstrumentationGlobalValue, TracingHelper } from './types';
 
@@ -44,6 +43,6 @@ export function setGlobalTracingHelper(helper: TracingHelper): void {
 }
 
 export function clearGlobalTracingHelper(): void {
-  delete globalThisWithPrismaInstrumentation[GLOBAL_VERSIONED_INSTRUMENTATION_KEY];
-  delete globalThisWithPrismaInstrumentation[GLOBAL_INSTRUMENTATION_KEY];
+  globalThisWithPrismaInstrumentation[GLOBAL_VERSIONED_INSTRUMENTATION_KEY] = undefined;
+  globalThisWithPrismaInstrumentation[GLOBAL_INSTRUMENTATION_KEY] = undefined;
 }

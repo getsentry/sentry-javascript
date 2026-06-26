@@ -58,6 +58,10 @@ conditionalTest({ min: 20 })('Prisma ORM v7 Tests', () => {
               expect(dbQuerySpan?.op).toBe('db');
               expect(dbQuerySpan?.description).toBe(dbQuerySpan?.data?.['db.query.text']);
               expect(dbQuerySpan?.description).not.toBe('prisma:client:db_query');
+
+              // The db query span name must always be rewritten to the SQL text; the raw client span
+              // name should never leak through.
+              expect(spans.find(span => span.description === 'prisma:client:db_query')).toBeUndefined();
             },
           })
           .start()

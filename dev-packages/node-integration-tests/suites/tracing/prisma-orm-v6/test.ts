@@ -92,6 +92,10 @@ describe('Prisma ORM v6 Tests', () => {
                 },
                 description: 'DELETE FROM "public"."User" WHERE "public"."User"."email"::text LIKE $1',
               });
+
+              // The db query span name must always be rewritten to the SQL text; the raw engine span
+              // name should never leak through.
+              expect(spans.find(span => span.description === 'prisma:engine:db_query')).toBeUndefined();
             },
           })
           .start()
