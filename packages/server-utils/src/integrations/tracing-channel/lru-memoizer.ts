@@ -1,6 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration, getActiveSpan, withActiveSpan } from '@sentry/core';
+import { debug, defineIntegration, getCurrentScope, withScope } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 
@@ -25,26 +25,26 @@ const _lruMemoizerChannelIntegration = (() => {
       const lruMemoizerCh = diagnosticsChannel.tracingChannel(CHANNELS.LRU_MEMOIZER_LOAD);
 
       lruMemoizerCh.subscribe({
-        // lru-memoizer queues the callback and fires it later via setImmediate, from a
-        // different async context. Rebind it to the caller's active span (still correct
-        // here, synchronously inside the memoized call) so nested spans parent correctly.
-        // This is the channel equivalent of the OTel version's `context.bind(context.active(), cb)`.
-        // orchestrion (kind: 'Callback') has already spliced its own wrapper into the last
-        // arg by the time `start` fires, and only publishes `start` when that arg is a function.
         start(rawCtx) {
           const ctx = rawCtx as LruMemoizerChannelContext;
-          const parentSpan = getActiveSpan();
-          if (!parentSpan || ctx.arguments.length === 0) {
+          if (ctx.arguments.length === 0) {
             return;
           }
+
+          // Capture the scope while we're still synchronously inside the memoized call.
+          // lru-memoizer queues the callback and fires it later via setImmediate, where the
+          // active scope no longer reflects the caller's context.
+          const scope = getCurrentScope();
           const cbIdx = ctx.arguments.length - 1;
           const orchestrionWrappedCb = ctx.arguments[cbIdx];
+
           if (typeof orchestrionWrappedCb !== 'function') {
             return;
           }
+
           const wrapped = orchestrionWrappedCb as (...a: unknown[]) => unknown;
           ctx.arguments[cbIdx] = function (this: unknown, ...args: unknown[]): unknown {
-            return withActiveSpan(parentSpan, () => wrapped.apply(this, args));
+            return withScope(scope, () => wrapped.apply(this, args));
           };
         },
         end() {},
@@ -59,7 +59,7 @@ const _lruMemoizerChannelIntegration = (() => {
 /**
  * EXPERIMENTAL — orchestrion-driven lru-memoizer integration. Subscribes to
  * `orchestrion:lru-memoizer:load` (injected into `lru-memoizer/lib/async.js`'s
- * `memoizedFunction`). Creates no spans; only rebinds the memoized callback to the
- * caller's active span. Requires the orchestrion runtime hook or bundler plugin.
+ * `memoizedFunction`). Creates no spans; only re-runs the memoized callback with the
+ * caller's scope. Requires the orchestrion runtime hook or bundler plugin.
  */
 export const lruMemoizerChannelIntegration = defineIntegration(_lruMemoizerChannelIntegration);
