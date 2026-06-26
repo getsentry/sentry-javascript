@@ -2,7 +2,7 @@ import { defineIntegration, type IntegrationFn } from '@sentry/core';
 import * as dc from 'node:diagnostics_channel';
 import { subscribeMongooseDiagnosticChannels } from './mongoose-dc-subscriber';
 
-const _mongooseChannelIntegration = (() => {
+const _mongooseIntegration = (() => {
   return {
     name: 'Mongoose',
     setupOnce() {
@@ -28,4 +28,4 @@ const _mongooseChannelIntegration = (() => {
  * On older mongoose versions the channels are never published to, so this integration is inert and
  * the IITM-based patcher (gated to `< 9.7.0`) handles instrumentation instead.
  */
-export const mongooseChannelIntegration = defineIntegration(_mongooseChannelIntegration);
+export const mongooseIntegration = defineIntegration(_mongooseIntegration);

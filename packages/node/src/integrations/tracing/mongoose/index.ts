@@ -2,7 +2,7 @@ import { MongooseInstrumentation } from './vendored/mongoose';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
-import { mongooseChannelIntegration } from '@sentry/server-utils';
+import { mongooseIntegration as mongooseChannelIntegration } from '@sentry/server-utils';
 
 const INTEGRATION_NAME = 'Mongoose' as const;
 
