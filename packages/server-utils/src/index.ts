@@ -4,7 +4,7 @@
  * @module
  */
 
-export { graphqlChannelIntegration } from './graphql';
+export { graphqlIntegration } from './graphql';
 export { mongooseIntegration } from './mongoose';
 export { mysql2Integration } from './mysql2';
 export { redisIntegration, type RedisDiagnosticChannelsOptions } from './redis';

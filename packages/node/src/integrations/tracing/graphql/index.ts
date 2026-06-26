@@ -2,7 +2,7 @@ import { GraphQLInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
-import { graphqlChannelIntegration } from '@sentry/server-utils';
+import { graphqlIntegration as graphqlChannelIntegration } from '@sentry/server-utils';
 
 interface GraphqlOptions {
   /**
