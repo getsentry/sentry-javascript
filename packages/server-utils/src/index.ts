@@ -5,6 +5,7 @@
  */
 
 export { mongooseIntegration } from './mongoose';
+export { mysql2Integration } from './mysql2';
 export { redisIntegration, type RedisDiagnosticChannelsOptions } from './redis';
 export type { RedisDiagnosticChannelResponseHook } from './redis/redis-dc-subscriber';
 export { defaultDbStatementSerializer } from './redis/redis-statement-serializer';
