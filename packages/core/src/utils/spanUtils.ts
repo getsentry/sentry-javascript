@@ -1,3 +1,4 @@
+// oxlint-disable max-lines
 import { getAsyncContextStrategy } from '../asyncContext';
 import type { RawAttributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
