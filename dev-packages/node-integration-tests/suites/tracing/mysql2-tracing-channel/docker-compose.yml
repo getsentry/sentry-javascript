@@ -4,7 +4,7 @@ services:
     restart: always
     container_name: integration-tests-mysql2-dc
     ports:
-      - '3307:3306'
+      - '3308:3306'
     environment:
       MYSQL_ROOT_PASSWORD: password
     healthcheck:

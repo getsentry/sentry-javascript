@@ -23,7 +23,7 @@ conditionalTest({ min: 20 })('mysql2 tracing channel Test', () => {
         'db.operation.name': 'SELECT',
         'db.query.text': queryText,
         'server.address': 'localhost',
-        'server.port': 3307,
+        'server.port': 3308,
       }),
     });
 

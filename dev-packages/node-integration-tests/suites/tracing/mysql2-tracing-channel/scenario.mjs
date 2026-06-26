@@ -10,7 +10,7 @@ async function run() {
     user: 'root',
     password: 'password',
     host: 'localhost',
-    port: 3307,
+    port: 3308,
   });
 
   await Sentry.startSpan(
