@@ -97,7 +97,8 @@ export interface UndiciInstrumentationConfig<RequestType = UndiciRequest, Respon
 export interface NodeFetchOptions extends UndiciInstrumentationConfig {
   /**
    * Whether breadcrumbs should be recorded for requests.
-   * Defaults to true
+   *
+   * @default `true`
    */
   breadcrumbs?: boolean;
 
@@ -111,11 +112,8 @@ export interface NodeFetchOptions extends UndiciInstrumentationConfig {
   spans?: boolean;
 
   /**
-   * Whether to inject trace propagation headers (sentry-trace, baggage, traceparent) into outgoing fetch requests.
-   *
-   * When set to `false`, Sentry will not inject any trace propagation headers, but will still create breadcrumbs
-   * (if `breadcrumbs` is enabled). This is useful when `skipOpenTelemetrySetup: true` is configured and you want
-   * to avoid duplicate trace headers being injected by both Sentry and OpenTelemetry's UndiciInstrumentation.
+   * This option only has an effect when `spans` is set to false. When spans are enabled, you cannot disable trace propagation here.
+   * Instead, configure `tracePropagationTargets` in the client options.
    *
    * @default `true`
    */
