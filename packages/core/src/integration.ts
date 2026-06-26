@@ -175,10 +175,11 @@ export function defineIntegration<Fn extends IntegrationFn>(
 
 // When  extending an integration, we allow other properties to be passed-through
 type IntegrationWithOtherProperties = Record<string, unknown> & Integration;
-type ExtendedIntegration<
-  Base extends IntegrationWithOtherProperties,
-  Extended extends Partial<IntegrationWithOtherProperties>,
-> = Omit<Base, keyof Extended> & Extended;
+type ExtendedIntegration<Base extends Integration, Extended extends Partial<IntegrationWithOtherProperties>> = Omit<
+  Base,
+  keyof Extended
+> &
+  Extended;
 
 /**
  * Wrap a parent integration with an extended integration.
@@ -202,10 +203,10 @@ type ExtendedIntegration<
  * });
  * ```
  */
-export function extendIntegration<
-  Base extends IntegrationWithOtherProperties,
-  Extended extends Partial<IntegrationWithOtherProperties>,
->(integration: Base, extendedIntegration: Extended): ExtendedIntegration<Base, Extended> {
+export function extendIntegration<Base extends Integration, Extended extends Partial<IntegrationWithOtherProperties>>(
+  integration: Base,
+  extendedIntegration: Extended,
+): ExtendedIntegration<Base, Extended> {
   // The extension overrides the base for any shared key (object spread + the wrapping below), so the
   // result type drops the overridden base keys rather than intersecting them — `Base & Extended` would
   // wrongly intersect shared keys (e.g. a re-typed property collapses to `never`).
