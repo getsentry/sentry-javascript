@@ -27,6 +27,7 @@
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.5.0",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
