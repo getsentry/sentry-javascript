@@ -37,6 +37,7 @@ describe('GraphQL/Apollo Tests', () => {
           await createTestRunner()
             .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
             .expect({ transaction: EXPECTED_TRANSACTION })
+            .unordered()
             .start()
             .completed();
         });
@@ -72,6 +73,7 @@ describe('GraphQL/Apollo Tests', () => {
           await createTestRunner()
             .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
             .expect({ transaction: EXPECTED_TRANSACTION })
+            .unordered()
             .start()
             .completed();
         });
@@ -107,6 +109,7 @@ describe('GraphQL/Apollo Tests', () => {
           await createTestRunner()
             .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
             .expect({ transaction: EXPECTED_TRANSACTION })
+            .unordered()
             .start()
             .completed();
         });
@@ -142,6 +145,7 @@ describe('GraphQL/Apollo Tests', () => {
           await createTestRunner()
             .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
             .expect({ transaction: EXPECTED_TRANSACTION })
+            .unordered()
             .start()
             .completed();
         });
