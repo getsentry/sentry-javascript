@@ -370,6 +370,84 @@ describe('bindTracingChannelToSpan', () => {
       expect(spanToJSON(span).status).toBe('callback-sync-throw');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
+
+    describe('error status and attributes', () => {
+      it('derives the type from `name` and the status message from `message` for an Error instance', () => {
+        const { channel, span } = setup('test:lifecycle:error-attrs-error');
+
+        expect(() =>
+          channel.traceSync(
+            () => {
+              throw new TypeError('bad input');
+            },
+            { operation: 'read' },
+          ),
+        ).toThrow('bad input');
+
+        const { status, data } = spanToJSON(span);
+        expect(status).toBe('bad input');
+        expect(data['error.type']).toBe('TypeError');
+        expect(data['sentry.status.message']).toBe('bad input');
+      });
+
+      it('stringifies a thrown primitive and marks the type unknown', () => {
+        const { channel, span } = setup('test:lifecycle:error-attrs-string');
+
+        expect(() =>
+          channel.traceSync(
+            () => {
+              throw 'plain failure';
+            },
+            { operation: 'read' },
+          ),
+        ).toThrow('plain failure');
+
+        const { status, data } = spanToJSON(span);
+        expect(status).toBe('plain failure');
+        expect(data['error.type']).toBe('unknown');
+        expect(data['sentry.status.message']).toBe('plain failure');
+      });
+
+      it('falls back to unknown_error for an error-like object without `name` or `message`', () => {
+        const { channel, span } = setup('test:lifecycle:error-attrs-bare');
+
+        expect(() =>
+          channel.traceSync(
+            () => {
+              throw { code: 500 };
+            },
+            { operation: 'read' },
+          ),
+        ).toThrow();
+
+        const { status, data } = spanToJSON(span);
+        expect(status).toBe('unknown_error');
+        expect(data['error.type']).toBe('unknown');
+        expect(data['sentry.status.message']).toBe('unknown_error');
+      });
+
+      it('falls back to unknown_error when a falsy value is thrown', () => {
+        const { channel, span } = setup('test:lifecycle:error-attrs-falsy');
+
+        let threw = false;
+        try {
+          channel.traceSync(
+            () => {
+              throw 0;
+            },
+            { operation: 'read' },
+          );
+        } catch {
+          threw = true;
+        }
+
+        expect(threw).toBe(true);
+        const { status, data } = spanToJSON(span);
+        expect(status).toBe('unknown_error');
+        expect(data['error.type']).toBe('unknown');
+        expect(data['sentry.status.message']).toBe('unknown_error');
+      });
+    });
   });
 
   describe('captureError', () => {
