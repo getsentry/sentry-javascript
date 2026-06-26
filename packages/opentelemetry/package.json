@@ -66,7 +66,7 @@
   "devDependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/core": "^2.6.1",
-    "@opentelemetry/sdk-trace-base": "^2.6.1"
+    "@opentelemetry/sdk-trace-base": "^2.8.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
