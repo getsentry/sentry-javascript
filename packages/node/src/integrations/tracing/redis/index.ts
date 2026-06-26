@@ -8,7 +8,7 @@ import {
   spanToJSON,
   truncate,
 } from '@sentry/core';
-import { tracingChannel } from 'node:diagnostics_channel';
+import * as dc from 'node:diagnostics_channel';
 import { subscribeRedisDiagnosticChannels, type RedisTracingChannelFactory } from '@sentry/server-utils';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import type { IORedisCommandArgs } from '../../../utils/redisCache';
@@ -126,9 +126,12 @@ export const instrumentRedis = Object.assign(
     // OTel context via `bindStore`, which needs the Sentry OTel context manager to
     // be registered — `initOpenTelemetry()` does that after integration `setupOnce`,
     // so defer to the next tick.
-    void Promise.resolve().then(() =>
-      subscribeRedisDiagnosticChannels(tracingChannel as RedisTracingChannelFactory, cacheResponseHook),
-    );
+    // Check this here to ensure this does not fail at runtime for Node <= 18.18.0
+    if (dc.tracingChannel) {
+      void Promise.resolve().then(() =>
+        subscribeRedisDiagnosticChannels(dc.tracingChannel as RedisTracingChannelFactory, cacheResponseHook),
+      );
+    }
 
     // todo: implement them gradually
     // new LegacyRedisInstrumentation({}),

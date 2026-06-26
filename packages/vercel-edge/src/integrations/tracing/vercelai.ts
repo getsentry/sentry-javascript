@@ -56,5 +56,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
  *  model: openai('gpt-4-turbo'),
  *  experimental_telemetry: { isEnabled: true, recordInputs: true, recordOutputs: true },
  * });
+ *
+ * Note: This does not support ai v7, as this is tracing channel based which is not supported in edge.
  */
 export const vercelAIIntegration = defineIntegration(_vercelAIIntegration);

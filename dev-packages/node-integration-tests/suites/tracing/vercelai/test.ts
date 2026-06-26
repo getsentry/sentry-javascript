@@ -29,7 +29,7 @@ describe('Vercel AI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates ai related spans with genAI recording disabled', async () => {
+    test('creates ai spans when dataCollection.genAi has inputs and outputs disabled', async () => {
       await createRunner()
         .expect({ transaction: { transaction: 'main' } })
         .expect({
@@ -142,7 +142,7 @@ describe('Vercel AI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates ai related spans with genAI recording enabled', async () => {
+    test('creates ai spans for dataCollection defaults', async () => {
       await createRunner()
         .expect({ transaction: { transaction: 'main' } })
         .expect({

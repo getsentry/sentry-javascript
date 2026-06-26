@@ -1,7 +1,5 @@
 import * as net from 'node:net';
-import type { Span, Tracer } from '@opentelemetry/api';
-import { context, diag, SpanKind, trace } from '@opentelemetry/api';
-import { InstrumentationNodeModuleDefinition, isWrapped, safeExecuteInTheMiddle } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleFile } from '../../../InstrumentationNodeModuleFile';
 import {
   ATTR_DB_COLLECTION_NAME,
@@ -12,6 +10,7 @@ import {
   ATTR_SERVER_PORT,
 } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_KIND, startSpan } from '@sentry/core';
 import type { FirebaseInstrumentation } from '../firebaseInstrumentation';
 import type {
   AddDocType,
@@ -20,10 +19,8 @@ import type {
   DocumentData,
   DocumentReference,
   FirebaseApp,
-  FirebaseInstrumentationConfig,
   FirebaseOptions,
   FirestoreSettings,
-  FirestoreSpanCreationHook,
   GetDocsType,
   PartialWithFieldValue,
   QuerySnapshot,
@@ -41,43 +38,20 @@ type ShimmerUnwrap = (target: any, name: string) => void;
 
 /**
  *
- * @param tracer - Opentelemetry Tracer
  * @param firestoreSupportedVersions - supported version of firebase/firestore
  * @param wrap - reference to native instrumentation wrap function
  * @param unwrap - reference to native instrumentation wrap function
  */
 export function patchFirestore(
-  tracer: Tracer,
   firestoreSupportedVersions: string[],
   wrap: ShimmerWrap,
   unwrap: ShimmerUnwrap,
-  config: FirebaseInstrumentationConfig,
 ): InstrumentationNodeModuleDefinition {
-  const defaultFirestoreSpanCreationHook: FirestoreSpanCreationHook = () => {};
-
-  let firestoreSpanCreationHook: FirestoreSpanCreationHook = defaultFirestoreSpanCreationHook;
-  const configFirestoreSpanCreationHook = config.firestoreSpanCreationHook;
-
-  if (typeof configFirestoreSpanCreationHook === 'function') {
-    firestoreSpanCreationHook = (span: Span) => {
-      safeExecuteInTheMiddle(
-        () => configFirestoreSpanCreationHook(span),
-        error => {
-          if (!error) {
-            return;
-          }
-          diag.error(error?.message);
-        },
-        true,
-      );
-    };
-  }
-
   const moduleFirestoreCJS = new InstrumentationNodeModuleDefinition(
     '@firebase/firestore',
     firestoreSupportedVersions,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (moduleExports: any) => wrapMethods(moduleExports, wrap, unwrap, tracer, firestoreSpanCreationHook),
+    (moduleExports: any) => wrapMethods(moduleExports, wrap, unwrap),
   );
   const files: string[] = [
     '@firebase/firestore/dist/lite/index.node.cjs.js',
@@ -91,7 +65,7 @@ export function patchFirestore(
       new InstrumentationNodeModuleFile(
         file,
         firestoreSupportedVersions,
-        moduleExports => wrapMethods(moduleExports, wrap, unwrap, tracer, firestoreSpanCreationHook),
+        moduleExports => wrapMethods(moduleExports, wrap, unwrap),
         moduleExports => unwrapMethods(moduleExports, unwrap),
       ),
     );
@@ -105,16 +79,14 @@ function wrapMethods(
   moduleExports: any,
   wrap: ShimmerWrap,
   unwrap: ShimmerUnwrap,
-  tracer: Tracer,
-  firestoreSpanCreationHook: FirestoreSpanCreationHook,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
   unwrapMethods(moduleExports, unwrap);
 
-  wrap(moduleExports, 'addDoc', patchAddDoc(tracer, firestoreSpanCreationHook));
-  wrap(moduleExports, 'getDocs', patchGetDocs(tracer, firestoreSpanCreationHook));
-  wrap(moduleExports, 'setDoc', patchSetDoc(tracer, firestoreSpanCreationHook));
-  wrap(moduleExports, 'deleteDoc', patchDeleteDoc(tracer, firestoreSpanCreationHook));
+  wrap(moduleExports, 'addDoc', patchAddDoc());
+  wrap(moduleExports, 'getDocs', patchGetDocs());
+  wrap(moduleExports, 'setDoc', patchSetDoc());
+  wrap(moduleExports, 'deleteDoc', patchDeleteDoc());
 
   return moduleExports;
 }
@@ -134,10 +106,7 @@ function unwrapMethods(
   return moduleExports;
 }
 
-function patchAddDoc<AppModelType, DbModelType extends DocumentData>(
-  tracer: Tracer,
-  firestoreSpanCreationHook: FirestoreSpanCreationHook,
-): (
+function patchAddDoc<AppModelType, DbModelType extends DocumentData>(): (
   original: AddDocType<AppModelType, DbModelType>,
 ) => (
   this: FirebaseInstrumentation,
@@ -149,36 +118,22 @@ function patchAddDoc<AppModelType, DbModelType extends DocumentData>(
       reference: CollectionReference<AppModelType, DbModelType>,
       data: WithFieldValue<AppModelType>,
     ): Promise<DocumentReference<AppModelType, DbModelType>> {
-      const span = startDBSpan(tracer, 'addDoc', reference);
-      firestoreSpanCreationHook(span);
-      return executeContextWithSpan<Promise<DocumentReference<AppModelType, DbModelType>>>(span, () => {
-        return original(reference, data);
-      });
+      return startFirestoreSpan('addDoc', reference, () => original(reference, data));
     };
   };
 }
 
-function patchDeleteDoc<AppModelType, DbModelType extends DocumentData>(
-  tracer: Tracer,
-  firestoreSpanCreationHook: FirestoreSpanCreationHook,
-): (
+function patchDeleteDoc<AppModelType, DbModelType extends DocumentData>(): (
   original: DeleteDocType<AppModelType, DbModelType>,
 ) => (this: FirebaseInstrumentation, reference: DocumentReference<AppModelType, DbModelType>) => Promise<void> {
   return function deleteDoc(original: DeleteDocType<AppModelType, DbModelType>) {
     return function (reference: DocumentReference<AppModelType, DbModelType>): Promise<void> {
-      const span = startDBSpan(tracer, 'deleteDoc', reference.parent || reference);
-      firestoreSpanCreationHook(span);
-      return executeContextWithSpan<Promise<void>>(span, () => {
-        return original(reference);
-      });
+      return startFirestoreSpan('deleteDoc', reference.parent || reference, () => original(reference));
     };
   };
 }
 
-function patchGetDocs<AppModelType, DbModelType extends DocumentData>(
-  tracer: Tracer,
-  firestoreSpanCreationHook: FirestoreSpanCreationHook,
-): (
+function patchGetDocs<AppModelType, DbModelType extends DocumentData>(): (
   original: GetDocsType<AppModelType, DbModelType>,
 ) => (
   this: FirebaseInstrumentation,
@@ -188,19 +143,12 @@ function patchGetDocs<AppModelType, DbModelType extends DocumentData>(
     return function (
       reference: CollectionReference<AppModelType, DbModelType>,
     ): Promise<QuerySnapshot<AppModelType, DbModelType>> {
-      const span = startDBSpan(tracer, 'getDocs', reference);
-      firestoreSpanCreationHook(span);
-      return executeContextWithSpan<Promise<QuerySnapshot<AppModelType, DbModelType>>>(span, () => {
-        return original(reference);
-      });
+      return startFirestoreSpan('getDocs', reference, () => original(reference));
     };
   };
 }
 
-function patchSetDoc<AppModelType, DbModelType extends DocumentData>(
-  tracer: Tracer,
-  firestoreSpanCreationHook: FirestoreSpanCreationHook,
-): (
+function patchSetDoc<AppModelType, DbModelType extends DocumentData>(): (
   original: SetDocType<AppModelType, DbModelType>,
 ) => (
   this: FirebaseInstrumentation,
@@ -214,48 +162,36 @@ function patchSetDoc<AppModelType, DbModelType extends DocumentData>(
       data: WithFieldValue<AppModelType> & PartialWithFieldValue<AppModelType>,
       options?: SetOptions,
     ): Promise<void> {
-      const span = startDBSpan(tracer, 'setDoc', reference.parent || reference);
-      firestoreSpanCreationHook(span);
-
-      return executeContextWithSpan<Promise<void>>(span, () => {
+      return startFirestoreSpan('setDoc', reference.parent || reference, () => {
         return typeof options !== 'undefined' ? original(reference, data, options) : original(reference, data);
       });
     };
   };
 }
 
-function executeContextWithSpan<T>(span: Span, callback: () => T): T {
-  return context.with(trace.setSpan(context.active(), span), () => {
-    return safeExecuteInTheMiddle(
-      (): T => {
-        return callback();
-      },
-      err => {
-        if (err) {
-          span.recordException(err);
-        }
-        span.end();
-      },
-      true,
-    );
-  });
-}
-
-function startDBSpan<AppModelType, DbModelType extends DocumentData>(
-  tracer: Tracer,
+function startFirestoreSpan<AppModelType, DbModelType extends DocumentData, T>(
   spanName: string,
   reference: CollectionReference<AppModelType, DbModelType> | DocumentReference<AppModelType, DbModelType>,
-): Span {
-  const span = tracer.startSpan(`${spanName} ${reference.path}`, { kind: SpanKind.CLIENT });
-  addAttributes(span, reference);
-  span.setAttribute(ATTR_DB_OPERATION_NAME, spanName);
-  return span;
+  callback: () => T,
+): T {
+  return startSpan(
+    {
+      name: `${spanName} ${reference.path}`,
+      op: 'db.query',
+      kind: SPAN_KIND.CLIENT,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.firebase.otel.firestore',
+        [ATTR_DB_OPERATION_NAME]: spanName,
+        ...buildAttributes(reference),
+      },
+    },
+    callback,
+  );
 }
 
 /**
  * Gets the server address and port attributes from the Firestore settings.
  * It's best effort to extract the address and port from the settings, especially for IPv6.
- * @param span - The span to set attributes on.
  * @param settings - The Firestore settings containing host information.
  */
 export function getPortAndAddress(settings: FirestoreSettings): {
@@ -303,10 +239,9 @@ export function getPortAndAddress(settings: FirestoreSettings): {
   };
 }
 
-function addAttributes<AppModelType, DbModelType extends DocumentData>(
-  span: Span,
+function buildAttributes<AppModelType, DbModelType extends DocumentData>(
   reference: CollectionReference<AppModelType, DbModelType> | DocumentReference<AppModelType, DbModelType>,
-): void {
+): SpanAttributes {
   const firestoreApp: FirebaseApp = reference.firestore.app;
   const firestoreOptions: FirebaseOptions = firestoreApp.options;
   const json: { settings?: FirestoreSettings } = reference.firestore.toJSON() || {};
@@ -332,5 +267,5 @@ function addAttributes<AppModelType, DbModelType extends DocumentData>(
     attributes[ATTR_SERVER_PORT] = port;
   }
 
-  span.setAttributes(attributes);
+  return attributes;
 }

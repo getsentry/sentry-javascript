@@ -4,6 +4,36 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.62.0
+
+### Important Changes
+
+- **feat(server-runtimes): Add v7 support for `vercelAiIntegration` ([#21613](https://github.com/getsentry/sentry-javascript/pull/21613))**
+
+  The `vercelAiIntegration` now supports v7 of the `ai` package. Note that v7 is not yet supported on Cloudflare.
+
+### Other Changes
+
+- fix(node): Avoid failing at runtime if tracingChannel is not available ([#21783](https://github.com/getsentry/sentry-javascript/pull/21783))
+- fix(sveltekit): Avoid capturing preloaded 400 errors on client ([#21784](https://github.com/getsentry/sentry-javascript/pull/21784))
+
+Work in this release was contributed by @hyunbinseo. Thank you for your contribution!
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore(github): Update tracked packages ([#21789](https://github.com/getsentry/sentry-javascript/pull/21789))
+- feat(core): Add spanKindToName helper for reverse span-kind lookup ([#21780](https://github.com/getsentry/sentry-javascript/pull/21780))
+- ref(aws-serverless): Streamline AwsLambda instrumentation ([#21758](https://github.com/getsentry/sentry-javascript/pull/21758))
+- ref(node): Fix server-utils name for VercelAI integration ([#21809](https://github.com/getsentry/sentry-javascript/pull/21809))
+- ref(node): Streamline amqplib instrumentation ([#21753](https://github.com/getsentry/sentry-javascript/pull/21753))
+- ref(node): Streamline Firebase instrumentation ([#21748](https://github.com/getsentry/sentry-javascript/pull/21748))
+- test: Pin webpack to 5.107.0 ([#21781](https://github.com/getsentry/sentry-javascript/pull/21781))
+- test(e2e): Add `no-browser-session` lighthouse e2e test mode ([#21787](https://github.com/getsentry/sentry-javascript/pull/21787))
+- test(e2e): Add more test modes, pre-init and element timing ([#21760](https://github.com/getsentry/sentry-javascript/pull/21760))
+
+</details>
+
 ## 10.61.0
 
 ### Important Changes

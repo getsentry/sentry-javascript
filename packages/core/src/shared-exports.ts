@@ -130,7 +130,7 @@ export {
 } from './utils/request';
 export type { MaxRequestBodySize } from './utils/request';
 export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
-export { SPAN_KIND } from './spanKind';
+export { SPAN_KIND, spanKindToName } from './spanKind';
 export type { SpanKindValue } from './spanKind';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
@@ -170,7 +170,12 @@ export {
 export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
-export { addVercelAiProcessors } from './tracing/vercel-ai';
+export { addVercelAiProcessors, getProviderMetadataAttributes } from './tracing/vercel-ai';
+export { getTruncatedJsonString, shouldEnableTruncation } from './tracing/ai/utils';
+export {
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
+} from './tracing/ai/gen-ai-attributes';
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
 export { instrumentOpenAiClient } from './tracing/openai';
