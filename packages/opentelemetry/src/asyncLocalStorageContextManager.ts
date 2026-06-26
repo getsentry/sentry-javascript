@@ -25,11 +25,11 @@ import type { Context, ContextManager } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { EventEmitter } from 'node:events';
+import type { AsyncLocalStorageLookup } from './contextManager';
+import { SENTRY_SCOPES_CONTEXT_KEY } from './constants';
 import { buildContextWithSentryScopes } from './utils/buildContextWithSentryScopes';
 import { setIsSetup } from './utils/setupCheck';
 import { getAsyncContextStrategy, getMainCarrier } from '@sentry/core';
-import type { AsyncLocalStorageLookup } from './contextManager';
-import { SENTRY_SCOPES_CONTEXT_KEY } from './constants';
 
 type ListenerFn = (...args: unknown[]) => unknown;
 
