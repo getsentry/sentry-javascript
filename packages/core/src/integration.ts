@@ -173,6 +173,13 @@ export function defineIntegration<Fn extends IntegrationFn>(
   return fn;
 }
 
+// When  extending an integration, we allow other properties to be passed-through
+type IntegrationWithOtherProperties = Record<string, unknown> & Integration;
+type ExtendedIntegration<
+  Base extends IntegrationWithOtherProperties,
+  Extended extends Partial<IntegrationWithOtherProperties>,
+> = Omit<Base, keyof Extended> & Extended;
+
 /**
  * Wrap a parent integration with an extended integration.
  * Any passed integration function will call the parent integration function first, if it exists.
@@ -195,17 +202,17 @@ export function defineIntegration<Fn extends IntegrationFn>(
  * });
  * ```
  */
-export function extendIntegration<Base extends Integration, Extended extends Record<string, unknown> & Partial<Integration>>(
-  integration: Base,
-  extendedIntegration: Extended,
-): Omit<Base, keyof Extended> & Extended {
+export function extendIntegration<
+  Base extends IntegrationWithOtherProperties,
+  Extended extends Partial<IntegrationWithOtherProperties>,
+>(integration: Base, extendedIntegration: Extended): ExtendedIntegration<Base, Extended> {
   // The extension overrides the base for any shared key (object spread + the wrapping below), so the
   // result type drops the overridden base keys rather than intersecting them — `Base & Extended` would
   // wrongly intersect shared keys (e.g. a re-typed property collapses to `never`).
   const wrappedIntegration = {
     ...integration,
     ...extendedIntegration,
-  } as Omit<Base, keyof Extended> & Extended;
+  } as ExtendedIntegration<Base, Extended>;
 
   // Make sure that functions that are extended also call the base functions, if defined
   // oxlint-disable-next-line guard-for-in
@@ -213,16 +220,19 @@ export function extendIntegration<Base extends Integration, Extended extends Rec
     const baseValue = integration[key as keyof Base];
     const extendedValue = extendedIntegration[key];
 
+    type ValueType = typeof extendedValue;
+
     if (typeof baseValue === 'function' && typeof extendedValue === 'function') {
-      const baseBound = baseValue.bind(wrappedIntegration) as typeof baseValue;
-      const extendedBound = extendedValue.bind(wrappedIntegration) as typeof extendedValue;
+      const wrappedFunction = new Proxy(baseValue, {
+        apply: (target, thisArg, args) => {
+          Reflect.apply(target, thisArg, args);
+          return Reflect.apply(extendedValue, thisArg, args);
+        },
+      }) as ValueType;
 
-      const wrappedFunction = function (this: unknown, ...args: unknown[]): unknown {
-        baseBound(...args);
-        return extendedBound(...args);
-      } as (Omit<Base, keyof Extended> & Extended)[Extract<keyof Extended, string>];
-
-      wrappedIntegration[key] = wrappedFunction;
+      // We know this is OK, but typescript does not properly narrow/infer types here
+      // so instead of casting the wrappedFunction to some complicated type, we just make clear that we simply overwrite this
+      (wrappedIntegration as Record<string, unknown>)[key] = wrappedFunction;
     }
   }
 
