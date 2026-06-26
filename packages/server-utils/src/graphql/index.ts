@@ -2,7 +2,7 @@ import { defineIntegration, type IntegrationFn } from '@sentry/core';
 import * as dc from 'node:diagnostics_channel';
 import { type GraphqlDiagnosticChannelsOptions, subscribeGraphqlDiagnosticChannels } from './graphql-dc-subscriber';
 
-const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) => {
+const _graphqlIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) => {
   return {
     name: 'Graphql',
     setupOnce() {
@@ -28,4 +28,4 @@ const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions =
  * On older graphql versions the channels are never published to, so this integration is inert and
  * the vendored OTel instrumentation (gated to `< 17`) handles instrumentation instead.
  */
-export const graphqlChannelIntegration = defineIntegration(_graphqlChannelIntegration);
+export const graphqlIntegration = defineIntegration(_graphqlIntegration);

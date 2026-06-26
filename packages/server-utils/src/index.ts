@@ -4,7 +4,7 @@
  * @module
  */
 
-export { graphqlChannelIntegration } from './graphql';
+export { graphqlIntegration } from './graphql';
 export {
   IOREDIS_DC_CHANNEL_COMMAND,
   IOREDIS_DC_CHANNEL_CONNECT,
