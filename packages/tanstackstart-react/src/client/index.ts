@@ -55,3 +55,10 @@ export function createSentryTunnelRoute(_options: CreateSentryTunnelRouteOptions
     },
   };
 }
+
+/**
+ * No-op stub for client-side builds.
+ * The actual implementation is server-only, but this stub is needed so the managed tunnel route module
+ * can statically import it (the call is server-guarded and tree-shaken from the client bundle).
+ */
+export function registerSentryServerTunnelRoute(_path: string): void {}
