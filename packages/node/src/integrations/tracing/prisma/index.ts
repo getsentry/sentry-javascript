@@ -1,5 +1,6 @@
 import type { Link, Tracer } from '@opentelemetry/api';
 import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
+import type { Instrumentation } from '@opentelemetry/instrumentation';
 import type { IdGenerator } from '@opentelemetry/sdk-trace-base';
 import { consoleSandbox, defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
