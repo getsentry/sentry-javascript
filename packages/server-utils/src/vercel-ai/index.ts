@@ -26,7 +26,7 @@ type VercelAiOptions = {
 
 const _vercelAiIntegration = ((options: VercelAiOptions = {}) => {
   return {
-    name: 'VercelAi',
+    name: 'VercelAI' as const,
     setupOnce() {
       // Bail if this is not available
       if (!dc.tracingChannel) {
