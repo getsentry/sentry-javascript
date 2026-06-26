@@ -25,10 +25,11 @@ import type { Context, ContextManager } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { EventEmitter } from 'node:events';
-import { SENTRY_SCOPES_CONTEXT_KEY } from './constants';
-import type { AsyncLocalStorageLookup } from './contextManager';
 import { buildContextWithSentryScopes } from './utils/buildContextWithSentryScopes';
 import { setIsSetup } from './utils/setupCheck';
+import { getAsyncContextStrategy, getMainCarrier } from '@sentry/core';
+import type { AsyncLocalStorageLookup } from './contextManager';
+import { SENTRY_SCOPES_CONTEXT_KEY } from './constants';
 
 type ListenerFn = (...args: unknown[]) => unknown;
 
@@ -39,29 +40,23 @@ type PatchMap = Record<string, WeakMap<ListenerFn, ListenerFn>>;
 
 const ADD_LISTENER_METHODS = ['addListener', 'on', 'once', 'prependListener', 'prependOnceListener'] as const;
 
-let _asyncLocalStorage: AsyncLocalStorage<Context> | undefined;
-
-/** Get hold of the async local storage instance. */
-export function getAsyncLocalStorage(): AsyncLocalStorage<Context> {
-  if (!_asyncLocalStorage) {
-    _asyncLocalStorage = new AsyncLocalStorage<Context>();
-  }
-  return _asyncLocalStorage;
-}
-
 /**
  * OpenTelemetry-compatible context manager using Node.js `AsyncLocalStorage`.
  * Semantics match `@opentelemetry/context-async-hooks` (function `bind` + `EventEmitter` patching).
  */
 export class SentryAsyncLocalStorageContextManager implements ContextManager {
-  protected readonly _asyncLocalStorage;
+  protected readonly _asyncLocalStorage: AsyncLocalStorage<Context>;
 
   private readonly _kOtListeners = Symbol('OtListeners');
   private _wrapped = false;
 
   public constructor() {
     setIsSetup('SentryContextManager');
-    this._asyncLocalStorage = getAsyncLocalStorage();
+    // Pick the instance from the async context strategy
+    // this should normally always be there, but if it is not for whatever reason, we fall back to a new instance
+    this._asyncLocalStorage =
+      (getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()
+        ?.asyncLocalStorage as AsyncLocalStorage<Context>) ?? new AsyncLocalStorage<Context>();
   }
 
   public active(): Context {
