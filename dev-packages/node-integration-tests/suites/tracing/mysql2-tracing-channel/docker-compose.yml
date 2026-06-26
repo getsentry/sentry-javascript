@@ -1,0 +1,15 @@
+services:
+  db:
+    image: mysql:8
+    restart: always
+    container_name: integration-tests-mysql2-dc
+    ports:
+      - '3307:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -ppassword']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s

@@ -29,7 +29,10 @@ import { getConnectionAttributes, getConnectionPrototypeToInstrument, getQueryTe
 const PACKAGE_NAME = '@sentry/instrumentation-mysql2';
 const ORIGIN = 'auto.db.otel.mysql2';
 
-const supportedVersions = ['>=1.4.2 <4'];
+// mysql2 >= 3.20.0 publishes via diagnostics_channel and is instrumented by
+// `subscribeMysql2DiagnosticChannels` instead, so this IITM patcher must not
+// overlap it — otherwise every query would emit two mysql2 spans.
+const supportedVersions = ['>=1.4.2 <3.20.0'];
 
 // The raw imported `mysql2` module exposes the `format` helper used to render
 // parameterized queries. Typed shallowly since it is only read internally.
