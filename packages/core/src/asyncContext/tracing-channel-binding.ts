@@ -1,6 +1,7 @@
 import { getMainCarrier } from '../carrier';
 import type { Scope } from '../scope';
 import { _setSpanForScope } from '../utils/spanOnScope';
+import { safeUnref } from '../utils/timer';
 import { getAsyncContextStrategy } from './index';
 import type { TracingChannelBinding } from './types';
 
@@ -24,9 +25,12 @@ export function waitForTracingChannelBinding(callback: () => void, retries = 1):
   // This happens when users use a custom OTEL setup
   // In this case, we wait for a tick and try again afterwards
   // If it still fails, we bail and do nothing
-  setTimeout(() => {
-    waitForTracingChannelBinding(callback, retries - 1);
-  }, 1);
+  // `safeUnref` so this retry timer never keeps the process alive on its own (Node server runtimes).
+  safeUnref(
+    setTimeout(() => {
+      waitForTracingChannelBinding(callback, retries - 1);
+    }, 1),
+  );
 }
 
 /**
