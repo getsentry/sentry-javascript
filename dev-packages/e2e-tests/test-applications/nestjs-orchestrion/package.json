@@ -1,0 +1,40 @@
+{
+  "name": "nestjs-orchestrion",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "start:prod": "node dist/main",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test": "playwright test",
+    "test:build": "pnpm install",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/event-emitter": "^2.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/schedule": "^4.1.0",
+    "@sentry/nestjs": "file:../../packed/sentry-nestjs-packed.tgz",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^18.19.1",
+    "typescript": "~5.5.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "// skip": "Keep out of CI until @apm-js-collab/code-transformer (mutableResult + astQuery) is published. See README.md.",
+    "skip": true
+  }
+}
