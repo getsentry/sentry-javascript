@@ -12,7 +12,7 @@ import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../../debug-build';
 import type { Request, RequestEvent, Server } from './types';
 
-const INTEGRATION_NAME = 'Hapi';
+const INTEGRATION_NAME = 'Hapi' as const;
 
 export const instrumentHapi = generateInstrumentOnce(INTEGRATION_NAME, () => new HapiInstrumentation());
 

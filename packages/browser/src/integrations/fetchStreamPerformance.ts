@@ -33,7 +33,7 @@ const STREAMING_CONTENT_TYPES = ['text/event-stream', 'application/x-ndjson', 'a
  */
 export const fetchStreamPerformanceIntegration = defineIntegration(() => {
   return {
-    name: 'FetchStreamPerformance',
+    name: 'FetchStreamPerformance' as const,
 
     setup() {
       // End the stream span when the response body finishes resolving

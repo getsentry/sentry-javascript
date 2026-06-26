@@ -6,7 +6,7 @@ import { ScreenshotEditorFactory } from './components/ScreenshotEditor';
 
 export const feedbackScreenshotIntegration = ((): FeedbackScreenshotIntegration => {
   return {
-    name: 'FeedbackScreenshot',
+    name: 'FeedbackScreenshot' as const,
     setupOnce() {},
     createInput: ({ h, hooks, dialog, options }) => {
       const outputBuffer = DOCUMENT.createElement('canvas');

@@ -19,7 +19,7 @@ interface Options {
   captureWorkerErrors?: boolean;
 }
 
-const INTEGRATION_NAME = 'ChildProcess';
+const INTEGRATION_NAME = 'ChildProcess' as const;
 
 /**
  * Capture breadcrumbs and events for child processes and worker threads.

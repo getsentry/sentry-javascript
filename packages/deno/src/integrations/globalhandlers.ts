@@ -5,7 +5,7 @@ type GlobalHandlersIntegrationsOptionKeys = 'error' | 'unhandledrejection';
 
 type GlobalHandlersIntegrations = Record<GlobalHandlersIntegrationsOptionKeys, boolean>;
 
-const INTEGRATION_NAME = 'GlobalHandlers';
+const INTEGRATION_NAME = 'GlobalHandlers' as const;
 let isExiting = false;
 
 const _globalHandlersIntegration = ((options?: GlobalHandlersIntegrations) => {

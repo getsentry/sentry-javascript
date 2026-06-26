@@ -22,7 +22,7 @@ interface CaptureConsoleOptions {
   handled?: boolean;
 }
 
-const INTEGRATION_NAME = 'CaptureConsole';
+const INTEGRATION_NAME = 'CaptureConsole' as const;
 
 const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
   const levels = options.levels || CONSOLE_LEVELS;

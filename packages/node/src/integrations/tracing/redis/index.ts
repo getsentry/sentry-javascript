@@ -41,7 +41,7 @@ interface RedisOptions {
   maxCacheKeyLength?: number;
 }
 
-const INTEGRATION_NAME = 'Redis';
+const INTEGRATION_NAME = 'Redis' as const;
 
 /* Only exported for testing purposes */
 export let _redisOptions: RedisOptions = {};

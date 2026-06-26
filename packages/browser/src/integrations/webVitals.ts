@@ -10,7 +10,7 @@ import {
   trackLcpAsSpan,
 } from '@sentry/browser-utils';
 
-export const WEB_VITALS_INTEGRATION_NAME = 'WebVitals';
+export const WEB_VITALS_INTEGRATION_NAME = 'WebVitals' as const;
 
 export type WebVitalName = 'cls' | 'inp' | 'lcp';
 

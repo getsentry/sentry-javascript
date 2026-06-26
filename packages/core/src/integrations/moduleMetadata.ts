@@ -14,7 +14,7 @@ import { forEachEnvelopeItem } from '../utils/envelope';
  */
 export const moduleMetadataIntegration = defineIntegration(() => {
   return {
-    name: 'ModuleMetadata',
+    name: 'ModuleMetadata' as const,
     setup(client) {
       // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
       client.on('beforeEnvelope', envelope => {

@@ -6,7 +6,7 @@ import type { IntegrationFn } from '../types/integration';
 import type { Span } from '../types/span';
 import { spanToJSON } from '../utils/spanUtils';
 
-const INTEGRATION_NAME = 'ConversationId';
+const INTEGRATION_NAME = 'ConversationId' as const;
 
 const _conversationIdIntegration = (() => {
   return {

@@ -28,7 +28,7 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
   const lifecycle = options.lifecycle ?? 'route';
 
   return {
-    name: 'BrowserSession',
+    name: 'BrowserSession' as const,
     setupOnce() {
       if (typeof WINDOW.document === 'undefined') {
         DEBUG_BUILD &&

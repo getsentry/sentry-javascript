@@ -652,7 +652,7 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
   }
 
   return {
-    name: 'ProfilingIntegration',
+    name: 'ProfilingIntegration' as const,
     _profiler: new ContinuousProfiler(),
     setup(client: NodeClient) {
       DEBUG_BUILD && debug.log('[Profiling] Profiling integration setup.');

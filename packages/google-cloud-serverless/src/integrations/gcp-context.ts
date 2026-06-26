@@ -15,7 +15,7 @@ const GCP_CONTEXT_ATTRIBUTE_MAP: Record<string, string> = {
 
 const _gcpContextIntegration = (() => {
   return {
-    name: 'GcpContext',
+    name: 'GcpContext' as const,
     processSegmentSpan(span) {
       const gcpContext = getCurrentScope().getScopeData().contexts['gcp.function.context'];
       if (!gcpContext) {

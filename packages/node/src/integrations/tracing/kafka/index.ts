@@ -3,7 +3,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 
-const INTEGRATION_NAME = 'Kafka';
+const INTEGRATION_NAME = 'Kafka' as const;
 
 export const instrumentKafka = generateInstrumentOnce(INTEGRATION_NAME, () => new KafkaJsInstrumentation());
 

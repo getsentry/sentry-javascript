@@ -18,7 +18,7 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/core';
 
-const INTEGRATION_NAME = 'WinterCGFetch';
+const INTEGRATION_NAME = 'WinterCGFetch' as const;
 
 const HAS_CLIENT_MAP = new WeakMap<Client, boolean>();
 

@@ -16,7 +16,7 @@ interface RequestFunction extends CallableFunction {
   (reqOpts: RequestOptions, callback: ResponseCallback): void;
 }
 
-const INTEGRATION_NAME = 'GoogleCloudHttp';
+const INTEGRATION_NAME = 'GoogleCloudHttp' as const;
 
 const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 

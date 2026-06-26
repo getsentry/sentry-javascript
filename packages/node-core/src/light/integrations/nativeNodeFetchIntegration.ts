@@ -9,7 +9,7 @@ import {
   getAbsoluteUrl,
 } from '../../utils/outgoingFetchRequest';
 
-const INTEGRATION_NAME = 'NodeFetch';
+const INTEGRATION_NAME = 'NodeFetch' as const;
 
 export interface NativeNodeFetchIntegrationOptions {
   /**

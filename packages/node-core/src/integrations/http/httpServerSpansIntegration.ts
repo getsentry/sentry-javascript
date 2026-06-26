@@ -37,7 +37,7 @@ import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { addStartSpanCallback } from './httpServerIntegration';
 
-const INTEGRATION_NAME = 'Http.ServerSpans';
+const INTEGRATION_NAME = 'Http.ServerSpans' as const;
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -266,7 +266,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 export const httpServerSpansIntegration = _httpServerSpansIntegration as (
   options?: HttpServerSpansIntegrationOptions,
 ) => Integration & {
-  name: 'HttpServerSpans';
+  name: 'Http.ServerSpans';
   setup: (client: NodeClient) => void;
   processEvent: (event: Event) => Event | null;
 };
