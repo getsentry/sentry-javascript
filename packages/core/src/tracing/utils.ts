@@ -18,6 +18,12 @@ const OTEL_SOURCE_INFERENCE_SPAN_FIELD = Symbol.for('sentry.otelSourceInference'
 // apart from the default `custom` that `_startRootSpan` stamps on every root span.
 const OTEL_SOURCE_EXPLICITLY_SET_SPAN_FIELD = Symbol.for('sentry.otelSourceExplicitlySet');
 
+// Brand marking a span created by the `SentryTracerProvider` (i.e. via the OTel tracer) rather than
+// directly through the core span API. Such a span is handed to OTel instrumentations as an OTel span,
+// so it must become immutable after `end()` like a real OTel SDK span (see `SentrySpan.end()`). Spans
+// created directly through core (e.g. the browser SDK) are not branded and stay mutable.
+const TRACER_PROVIDER_SPAN_FIELD = Symbol.for('sentry.tracerProviderSpan');
+
 type SpanWithScopes = Span & {
   [SCOPE_ON_START_SPAN_FIELD]?: Scope;
   [ISOLATION_SCOPE_ON_START_SPAN_FIELD]?: MaybeWeakRef<Scope>;
@@ -26,6 +32,10 @@ type SpanWithScopes = Span & {
 type SpanWithOtelSourceInference = Span & {
   [OTEL_SOURCE_INFERENCE_SPAN_FIELD]?: boolean;
   [OTEL_SOURCE_EXPLICITLY_SET_SPAN_FIELD]?: boolean;
+};
+
+type SpanWithTracerProviderBrand = Span & {
+  [TRACER_PROVIDER_SPAN_FIELD]?: boolean;
 };
 
 /** Store the scope & isolation scope for a span, which can the be used when it is finished. */
@@ -78,4 +88,18 @@ export function markSpanSourceAsExplicit(span: Span): void {
 /** Whether user code explicitly set `sentry.source` on a span (see {@link markSpanSourceAsExplicit}). */
 export function spanSourceWasExplicitlySet(span: Span): boolean {
   return (span as SpanWithOtelSourceInference)[OTEL_SOURCE_EXPLICITLY_SET_SPAN_FIELD] === true;
+}
+
+/**
+ * Mark a span as created by the `SentryTracerProvider` (via the OTel tracer). Set by `SentryTracer`
+ * on every span it creates; read by `SentrySpan.end()` to seal the span against further writes once
+ * it has ended, mirroring OTel SDK spans (which are immutable after `end()`).
+ */
+export function markSpanAsTracerProviderSpan(span: Span): void {
+  addNonEnumerableProperty(span, TRACER_PROVIDER_SPAN_FIELD, true);
+}
+
+/** Whether a span was created by the `SentryTracerProvider` (see {@link markSpanAsTracerProviderSpan}). */
+export function spanIsTracerProviderSpan(span: Span): boolean {
+  return (span as SpanWithTracerProviderBrand)[TRACER_PROVIDER_SPAN_FIELD] === true;
 }
