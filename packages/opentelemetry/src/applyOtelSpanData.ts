@@ -84,7 +84,13 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
     applyOtelSpanStatus(span, attributes, spanJSON.status);
   }
 
+  // Only re-infer the name for spans branded for OTel source inference (those the provider created
+  // without an explicit Sentry source). A span created with an explicit source — e.g. a Sentry
+  // instrumentation calling `startSpan({ name, attributes: { 'sentry.source': 'url' } })` like the Bun
+  // server integration — already has a deliberate name and must be left alone. Renaming it would also
+  // stamp `source: 'custom'` (via `updateName`), which then leaks the URL into the DSC transaction name.
   if (
+    mayInferSource &&
     inferred.description !== spanJSON.description &&
     (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom' || canInferSource)
   ) {
