@@ -3,5 +3,5 @@ export interface GrowthBook {
   getFeatureValue(this: GrowthBook, featureKey: string, defaultValue: unknown, ...rest: unknown[]): unknown;
 }
 
-// We only depend on the surface we wrap; constructor args are irrelevant here.
-export type GrowthBookClass = new (...args: unknown[]) => GrowthBook;
+// We only depend on the surface we wrap, so accept any class whose prototype matches.
+export type GrowthBookClass = { prototype: GrowthBook };
