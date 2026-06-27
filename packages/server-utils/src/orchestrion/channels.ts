@@ -14,6 +14,9 @@
 export const CHANNELS = {
   MYSQL_QUERY: 'orchestrion:mysql:query',
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',
+  PG_QUERY: 'orchestrion:pg:query',
+  PG_CONNECT: 'orchestrion:pg:connect',
+  PGPOOL_CONNECT: 'orchestrion:pg-pool:connect',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

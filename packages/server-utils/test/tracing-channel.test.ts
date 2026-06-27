@@ -481,7 +481,7 @@ describe('bindTracingChannelToSpan', () => {
         expect(data['error.type']).toBe('unknown');
       });
 
-      it('falls back to unknown_error for an error-like object without `name` or `message`', () => {
+      it('falls back to internal_error for an error-like object without `name` or `message`', () => {
         const { channel, span } = setup('test:lifecycle:error-attrs-bare');
 
         expect(() =>
@@ -493,12 +493,13 @@ describe('bindTracingChannelToSpan', () => {
           ),
         ).toThrow();
 
+        // No usable message → no status message set → `getStatusMessage` defaults to `internal_error`.
         const { status, data } = spanToJSON(span);
-        expect(status).toBe('unknown_error');
+        expect(status).toBe('internal_error');
         expect(data['error.type']).toBe('unknown');
       });
 
-      it('falls back to unknown_error when a falsy value is thrown', () => {
+      it('falls back to internal_error when a falsy value is thrown', () => {
         const { channel, span } = setup('test:lifecycle:error-attrs-falsy');
 
         let threw = false;
@@ -515,7 +516,7 @@ describe('bindTracingChannelToSpan', () => {
 
         expect(threw).toBe(true);
         const { status, data } = spanToJSON(span);
-        expect(status).toBe('unknown_error');
+        expect(status).toBe('internal_error');
         expect(data['error.type']).toBe('unknown');
       });
     });

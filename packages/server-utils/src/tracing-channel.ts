@@ -259,7 +259,7 @@ function endBoundSpan<TData extends object>(
 }
 
 type ErrorInfo = {
-  message: string;
+  message: string | undefined;
   attributes: Record<string, string>;
 };
 
@@ -270,7 +270,9 @@ function getErrorInfo(error: unknown): ErrorInfo {
   const isObject = !!error && typeof error === 'object';
   const raw = isObject ? ('message' in error ? error.message : undefined) : error;
 
-  const message = raw ? String(raw) : 'unknown_error';
+  // Leave the status message unset if not set (e.g. an `AggregateError` from
+  // ECONNREFUSED, whose `.message` is empty). Otherwise cast to string.
+  const message = raw ? String(raw) : undefined;
   const type = isObject && 'name' in error ? String(error.name) : 'unknown';
 
   return {
