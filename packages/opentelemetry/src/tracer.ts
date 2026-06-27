@@ -10,6 +10,7 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
+  markSpanAsTracerProviderSpan,
   markSpanForOtelSourceInference,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentryNonRecordingSpan,
@@ -34,6 +35,11 @@ export class SentryTracer implements Tracer {
     }
 
     const span = this._startSentrySpan(name, options, parentSpan, ctx !== undefined);
+
+    // Mark the span as provider-created so it becomes immutable after `end()` like an OTel SDK span
+    // (see `SentrySpan.end()`). Spans created directly through the core API (e.g. the browser SDK)
+    // are not marked and keep their mutable behavior.
+    markSpanAsTracerProviderSpan(span);
 
     applyOtelSpanKind(span, options.kind);
     if (options.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === undefined) {

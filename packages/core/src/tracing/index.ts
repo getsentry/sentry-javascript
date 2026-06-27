@@ -6,6 +6,8 @@ export {
   spanShouldInferOtelSource,
   markSpanSourceAsExplicit,
   spanSourceWasExplicitlySet,
+  markSpanAsTracerProviderSpan,
+  spanIsTracerProviderSpan,
 } from './utils';
 export { startIdleSpan, TRACING_DEFAULTS } from './idleSpan';
 export { SentrySpan } from './sentrySpan';
