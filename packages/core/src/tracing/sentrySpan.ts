@@ -62,6 +62,11 @@ const MAX_SPAN_COUNT = 1000;
 // that close after it. Every other setup keeps its synchronous capture.
 const DEFERRED_SEGMENT_SPAN_CAPTURES = new WeakMap<Client, (capture: () => void) => void>();
 
+// Spans already included in a captured transaction. Used so a child that ends after its root segment
+// was captured can be emitted as its own orphan transaction (see `_onSpanEnded`) without any span ever
+// being sent in more than one transaction.
+const CAPTURED_SPANS = new WeakSet<Span>();
+
 /**
  * Opt a client into (or out of) deferring its segment-span transaction capture.
  * Set by the SDK client during setup (e.g. the Node SDK); see {@link DEFERRED_SEGMENT_SPAN_CAPTURES}.
@@ -398,9 +403,24 @@ export class SentrySpan implements Span {
     // A segment span is basically the root span of a local span tree.
     // So for now, this is either what we previously refer to as the root span,
     // or a standalone span.
-    const isSegmentSpan = this._isStandaloneSpan || this === getRootSpan(this);
+    const rootSpan = getRootSpan(this);
+    const isSegmentSpan = this._isStandaloneSpan || this === rootSpan;
 
-    if (!isSegmentSpan) {
+    // A child span that ends after its root segment's transaction was already captured can no longer be
+    // part of it. Mirror the OpenTelemetry span exporter, which emits such a late child as its own
+    // (orphan) transaction in the same trace instead of dropping it. Only for clients that defer the
+    // segment capture (the SentryTracerProvider, the no-exporter native-assembly path); other setups
+    // keep the synchronous drop. `CAPTURED_SPANS` is only populated during a non-streaming capture, so
+    // this stays inert under span streaming (where late children stream individually).
+    const isOrphanSegment =
+      !isSegmentSpan &&
+      !!client &&
+      !!DEFERRED_SEGMENT_SPAN_CAPTURES.get(client) &&
+      !isBrowser() &&
+      !CAPTURED_SPANS.has(this) &&
+      CAPTURED_SPANS.has(rootSpan);
+
+    if (!isSegmentSpan && !isOrphanSegment) {
       return;
     }
 
@@ -433,7 +453,7 @@ export class SentrySpan implements Span {
     const deferCapture = client && DEFERRED_SEGMENT_SPAN_CAPTURES.get(client);
     if (client && deferCapture && !isBrowser()) {
       deferCapture(() => {
-        const transactionEvent = this._convertSpanToTransaction();
+        const transactionEvent = this._convertSpanToTransaction({ orphanedFromSentParent: isOrphanSegment });
         if (transactionEvent) {
           // Capture through the client resolved when the span ended, not the scope: a capture that
           // fires on a later tick must reach the client active at span end and never whatever client
@@ -453,7 +473,7 @@ export class SentrySpan implements Span {
   /**
    * Finish the transaction & prepare the event to send to Sentry.
    */
-  private _convertSpanToTransaction(): TransactionEvent | undefined {
+  private _convertSpanToTransaction(options: { orphanedFromSentParent?: boolean } = {}): TransactionEvent | undefined {
     // We can only convert finished spans
     if (!isFullFinishedSpan(spanToJSON(this))) {
       return undefined;
@@ -472,10 +492,22 @@ export class SentrySpan implements Span {
       return undefined;
     }
 
-    // The transaction span itself as well as any potential standalone spans should be filtered out
-    const finishedSpans = getSpanDescendants(this).filter(span => span !== this && !isStandaloneSpan(span));
-
-    const spans = finishedSpans.map(span => spanToJSON(span)).filter(isFullFinishedSpan);
+    // Skip the transaction span itself, standalone spans, and spans already sent in another transaction.
+    // Marking everything we send as captured lets a child that ends later be emitted as its own orphan
+    // transaction (see `_onSpanEnded`) instead of being dropped or sent twice.
+    CAPTURED_SPANS.add(this);
+    const spans: SpanJSON[] = [];
+    for (const descendant of getSpanDescendants(this)) {
+      if (descendant === this || isStandaloneSpan(descendant) || CAPTURED_SPANS.has(descendant)) {
+        continue;
+      }
+      const spanJSON = spanToJSON(descendant);
+      if (!isFullFinishedSpan(spanJSON)) {
+        continue;
+      }
+      CAPTURED_SPANS.add(descendant);
+      spans.push(spanJSON);
+    }
 
     const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
@@ -518,6 +550,12 @@ export class SentrySpan implements Span {
         },
       }),
     };
+
+    // Mirror the OpenTelemetry span exporter: tag a transaction whose parent span was already sent (an
+    // orphan emitted from `_onSpanEnded`) so it can be distinguished downstream.
+    if (options.orphanedFromSentParent && transaction.contexts?.trace?.data) {
+      transaction.contexts.trace.data['sentry.parent_span_already_sent'] = true;
+    }
 
     const measurements = timedEventsToMeasurements(this._events);
     const hasMeasurements = measurements && Object.keys(measurements).length;
