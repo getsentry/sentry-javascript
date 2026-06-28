@@ -1,0 +1,25 @@
+{
+  "name": "bun-mysql",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "docker compose up -d --wait && bun run dist/app.js",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
+    "test:build": "pnpm install && bun run build.ts",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
+    "mysql": "2.18.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "bun-types": "^1.2.9"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

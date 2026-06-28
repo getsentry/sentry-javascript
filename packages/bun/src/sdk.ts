@@ -22,12 +22,49 @@ import {
   onUnhandledRejectionIntegration,
   processSessionIntegration,
 } from '@sentry/node';
+import { channelIntegrations, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 
+/**
+ * The orchestrion channel-subscriber integrations, listening on the diagnostics
+ * channels that `@sentry/bun/plugin` injects at build time.
+ */
+function getChannelIntegrations(): Integration[] {
+  return Object.values(channelIntegrations).map(integrationFactory => integrationFactory());
+}
+
+/**
+ * The performance integrations for bun: the OTel auto-performance set, but with
+ * the orchestrion diagnostics-channel subscribers swapped in for their OTel
+ * equivalents *only* when the orchestrion channels were actually injected (i.e.
+ * the app was built with `@sentry/bun/plugin`). Without that, the channels
+ * never fire — and the OTel versions rely on a runtime require-hook bun doesn't
+ * support — so leave the auto-performance set alone.
+ */
+function getPerformanceIntegrations(options: Options): Integration[] {
+  if (!hasSpansEnabled(options)) {
+    return [];
+  }
+
+  const autoPerformanceIntegrations = getAutoPerformanceIntegrations();
+  if (!isOrchestrionInjected()) {
+    return autoPerformanceIntegrations;
+  }
+
+  const channelIntegrationInstances = getChannelIntegrations();
+  // The OTel integrations these channel subscribers replace, keyed by the name they share with them.
+  const replacedOtelIntegrationNames = new Set(channelIntegrationInstances.map(integration => integration.name));
+
+  return [
+    ...autoPerformanceIntegrations.filter(integration => !replacedOtelIntegrationNames.has(integration.name)),
+    ...channelIntegrationInstances,
+  ];
+}
+
 /** Get the default integrations for the Bun SDK. */
-export function getDefaultIntegrations(_options: Options): Integration[] {
+export function getDefaultIntegrations(options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
     // Common
@@ -51,7 +88,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     processSessionIntegration(),
     // Bun Specific
     bunServerIntegration(),
-    ...(hasSpansEnabled(_options) ? getAutoPerformanceIntegrations() : []),
+    ...getPerformanceIntegrations(options),
   ];
 }
 
