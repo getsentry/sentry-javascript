@@ -122,7 +122,9 @@ export class ActiveTracingHelper implements TracingHelper {
       return endSpan(span, () => callback(span, context));
     }
 
-    return _context.with(context, () => startSpanManual(spanOptions, span => endSpan(span, () => callback(span, context))));
+    return _context.with(context, () =>
+      startSpanManual(spanOptions, span => endSpan(span, () => callback(span, context))),
+    );
   }
 }
 
