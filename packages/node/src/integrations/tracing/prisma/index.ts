@@ -104,7 +104,7 @@ class SentryPrismaInteropInstrumentation extends PrismaInstrumentation {
 
         try {
           engineSpanEvent.spans.forEach(engineSpan => {
-            const kind = engineSpanKindToOTELSpanKind(engineSpan.kind);
+            const kind = engineSpan.kind === 'client' ? SpanKind.CLIENT : SpanKind.INTERNAL;
 
             const parentSpanId = engineSpan.parent_span_id;
             const spanId = engineSpan.span_id;
@@ -156,16 +156,6 @@ class SentryPrismaInteropInstrumentation extends PrismaInstrumentation {
         }
       };
     }
-  }
-}
-
-function engineSpanKindToOTELSpanKind(engineSpanKind: V5EngineSpanKind): SpanKind {
-  switch (engineSpanKind) {
-    case 'client':
-      return SpanKind.CLIENT;
-    case 'internal':
-    default: // Other span kinds aren't currently supported
-      return SpanKind.INTERNAL;
   }
 }
 

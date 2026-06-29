@@ -23,7 +23,7 @@ import {
   startInactiveSpan,
   startSpanManual,
 } from '@sentry/core';
-import type { EngineSpan, EngineSpanKind, ExtendedSpanOptions, SpanCallback, TracingHelper } from './types';
+import type { EngineSpan, ExtendedSpanOptions, SpanCallback, TracingHelper } from './types';
 
 const showAllTraces = process.env.PRISMA_SHOW_ALL_TRACES === 'true';
 
@@ -34,16 +34,6 @@ const PRISMA_ORIGIN = 'auto.db.otel.prisma';
 type Options = {
   ignoreSpanTypes: (string | RegExp)[];
 };
-
-function engineSpanKindToSentrySpanKind(engineSpanKind: EngineSpanKind): SpanKindValue {
-  switch (engineSpanKind) {
-    case 'client':
-      return SPAN_KIND.CLIENT;
-    case 'internal':
-    default:
-      return SPAN_KIND.INTERNAL;
-  }
-}
 
 /**
  * Folds the former `index.ts` `spanStart` hook into span creation: tags the Sentry origin and
@@ -156,7 +146,7 @@ function dispatchEngineSpan(
     {
       name: buildSpanName(engineSpan.name, attributes),
       attributes,
-      kind: engineSpanKindToSentrySpanKind(engineSpan.kind),
+      kind: engineSpan.kind === 'client' ? SPAN_KIND.CLIENT : SPAN_KIND.INTERNAL,
       startTime: engineSpan.startTime,
     },
     span => {
