@@ -9,6 +9,8 @@ import { browserSessionIntegration } from '../../src/integrations/browsersession
 
 const scopeHolder = vi.hoisted(() => ({ current: undefined as unknown as FakeIsolationScope }));
 
+const historyHandlers = vi.hoisted(() => ({ current: [] as Array<(data: { from?: string; to?: string }) => void> }));
+
 vi.mock('@sentry/core/browser', async importActual => {
   const actual = (await importActual()) as typeof SentryCore;
   return {
@@ -18,6 +20,22 @@ vi.mock('@sentry/core/browser', async importActual => {
     getIsolationScope: () => scopeHolder.current,
   };
 });
+
+// Capture the registered history handler so navigation can be driven deterministically,
+// while keeping the real `whenIdleOrHidden` (the tests drive its timers/events directly).
+vi.mock('@sentry/browser-utils', async importActual => {
+  const actual = (await importActual()) as typeof import('@sentry/browser-utils');
+  return {
+    ...actual,
+    addHistoryInstrumentationHandler: (handler: (data: { from?: string; to?: string }) => void) => {
+      historyHandlers.current.push(handler);
+    },
+  };
+});
+
+function navigate(from: string, to: string): void {
+  historyHandlers.current.forEach(handler => handler({ from, to }));
+}
 
 interface FakeIsolationScope {
   getUser: () => User | undefined;
@@ -62,6 +80,7 @@ describe('browserSessionIntegration', () => {
     delete (globalThis as { requestIdleCallback?: unknown }).requestIdleCallback;
     setVisibilityState('visible');
     scopeHolder.current = createFakeIsolationScope();
+    historyHandlers.current = [];
   });
 
   afterEach(() => {
@@ -123,6 +142,35 @@ describe('browserSessionIntegration', () => {
 
     // User set after the initial session was sent: emits a dedicated update envelope.
     scopeHolder.current.setUser({ id: '1337' });
+    expect(SentryCore.captureSession).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not re-send the navigation session when navigation happens before the deferred initial capture', () => {
+    // Default lifecycle is 'route', which also registers the navigation handler.
+    setupBrowserSession();
+
+    // The initial capture is deferred, so nothing is sent synchronously.
+    expect(SentryCore.captureSession).not.toHaveBeenCalled();
+
+    // User navigates before the browser goes idle: a new session is started and sent.
+    navigate('/initial', '/next');
+    expect(SentryCore.startSession).toHaveBeenCalledTimes(2);
+    expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
+
+    // The deferred idle callback now fires. Since the navigation already sent the current
+    // session, the deferred capture must not re-send it.
+    vi.runAllTimers();
+    expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('still captures a session on navigation that happens after the initial capture', () => {
+    setupBrowserSession();
+
+    vi.runAllTimers();
+    expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
+
+    navigate('/initial', '/next');
+    expect(SentryCore.startSession).toHaveBeenCalledTimes(2);
     expect(SentryCore.captureSession).toHaveBeenCalledTimes(2);
   });
 

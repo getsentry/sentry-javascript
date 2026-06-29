@@ -49,8 +49,13 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
       // (page-view-like) sessions.
       let initialSessionSent = false;
       whenIdleOrHidden(() => {
-        captureSession();
-        initialSessionSent = true;
+        // A navigation (in `'route'` lifecycle) may start and send a new session before this
+        // deferred callback fires. In that case the current session was already sent, so
+        // re-capturing here would send it a second time - guard against that.
+        if (!initialSessionSent) {
+          captureSession();
+          initialSessionSent = true;
+        }
       });
 
       // User data can be set at any time, for example async after Sentry.init has run and the initial session
@@ -87,6 +92,9 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
           if (from !== to) {
             startSession({ ignoreDuration: true });
             captureSession();
+            // A session has now been sent, so the deferred initial capture (if still pending)
+            // must not re-send this navigation session.
+            initialSessionSent = true;
           }
         });
       }
