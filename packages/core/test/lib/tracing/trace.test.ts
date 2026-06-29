@@ -803,6 +803,20 @@ describe('startSpan', () => {
         inheritOrSampleWith: expect.any(Function),
       });
     });
+
+    it('passes normalizedRequest from the isolation scope to the sampling context', () => {
+      const options = getDefaultTestClientOptions({ tracesSampler });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const normalizedRequest = { url: '/test?query=123', method: 'GET', query_string: 'query=123' };
+      getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
+
+      startSpan({ name: 'outer' }, () => {});
+
+      expect(tracesSampler).toHaveBeenLastCalledWith(expect.objectContaining({ normalizedRequest }));
+    });
   });
 
   it('includes the scope at the time the span was started when finished', async () => {
