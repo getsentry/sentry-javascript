@@ -1,5 +1,5 @@
 import { captureSession, debug, defineIntegration, getIsolationScope, startSession } from '@sentry/core/browser';
-import { addHistoryInstrumentationHandler } from '@sentry/browser-utils';
+import { addHistoryInstrumentationHandler, whenIdleOrHidden } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
@@ -41,7 +41,17 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
       // Automatically captured sessions are akin to page views, and thus we
       // discard their duration.
       startSession({ ignoreDuration: true });
-      captureSession();
+
+      // Sending the session envelope synchronously in `init()` runs the full send
+      // pipeline during page load, competing with critical resources for the network and
+      // adding overhead that measurably hurts LCP. We defer the initial send until the
+      // browser is idle; `whenIdleOrHidden` flushes it on page-hide so we don't lose short
+      // (page-view-like) sessions.
+      let initialSessionSent = false;
+      whenIdleOrHidden(() => {
+        captureSession();
+        initialSessionSent = true;
+      });
 
       // User data can be set at any time, for example async after Sentry.init has run and the initial session
       // envelope was already sent, but still on the initial page.
@@ -58,9 +68,15 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
         const maybeNewUser = scope.getUser();
         // sessions only care about user id and ip address, so we only need to capture the session if the user has changed
         if (previousUser?.id !== maybeNewUser?.id || previousUser?.ip_address !== maybeNewUser?.ip_address) {
-          // the scope class already writes the user to its session, so we only need to capture the session here
-          captureSession();
           previousUser = maybeNewUser;
+          // Only emit a dedicated update envelope for user data that arrives _after_ the
+          // deferred initial session was sent. User data set during page load is already
+          // reflected in that session (the scope writes it onto the session), so capturing
+          // here would send a redundant envelope - and do so during page load, which is
+          // exactly the overhead we're deferring away from.
+          if (initialSessionSent) {
+            captureSession();
+          }
         }
       });
 
