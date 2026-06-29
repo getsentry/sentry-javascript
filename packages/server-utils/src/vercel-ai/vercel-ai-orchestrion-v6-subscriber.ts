@@ -322,6 +322,15 @@ function patchModelMethod(
       }
     };
 
+    // Both the synchronous throw and the async rejection of the model call must end the span with an
+    // error status (an `async` `doGenerate`/`doStream` that throws rejects rather than throwing here).
+    const failSpan = (error: unknown): never => {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: error instanceof Error ? error.message : 'unknown_error' });
+      span.end();
+      clearStreamCallId();
+      throw error;
+    };
+
     try {
       const result = Promise.resolve(original.apply(this, args));
       // `doStream` resolves to `{ stream, ... }` before the stream is consumed; we end here (start/end
@@ -332,12 +341,9 @@ function patchModelMethod(
         span.end();
         clearStreamCallId();
         return value;
-      });
+      }, failSpan);
     } catch (error) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: error instanceof Error ? error.message : 'unknown_error' });
-      span.end();
-      clearStreamCallId();
-      throw error;
+      return failSpan(error);
     }
   };
 }
