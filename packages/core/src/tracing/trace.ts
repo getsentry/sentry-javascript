@@ -499,6 +499,7 @@ function _startRootSpan(
           name,
           parentSampled: finalParentSampled,
           attributes: finalAttributes,
+          normalizedRequest: isolationScope.getScopeData().sdkProcessingMetadata.normalizedRequest,
           parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
         },
         currentPropagationContext.sampleRand,
