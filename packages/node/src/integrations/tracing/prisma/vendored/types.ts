@@ -9,9 +9,10 @@
  *   `EngineTraceEvent`, and `LogLevel` types)
  */
 
-import type { Context, Span, SpanOptions } from '@opentelemetry/api';
+import type { SpanOptions } from '@opentelemetry/api';
+import type { Span } from '@sentry/core';
 
-export type SpanCallback<R> = (span?: Span, context?: Context) => R;
+export type SpanCallback<R> = (span?: Span, parentSpan?: Span) => R;
 
 export interface ExtendedSpanOptions extends SpanOptions {
   /** The name of the span */
@@ -20,8 +21,8 @@ export interface ExtendedSpanOptions extends SpanOptions {
   internal?: boolean;
   /** Whether it propagates context (?=true) */
   active?: boolean;
-  /** The context to append the span to */
-  context?: Context;
+  /** The parent span to attach the new span to */
+  context?: Span;
 }
 
 export type EngineSpanId = string;
@@ -43,9 +44,9 @@ export type EngineSpan = {
 
 export interface TracingHelper {
   isEnabled(): boolean;
-  getTraceParent(context?: Context): string;
+  getTraceParent(span?: Span): string;
   dispatchEngineSpans(spans: EngineSpan[]): void;
-  getActiveContext(): Context | undefined;
+  getActiveContext(): Span | undefined;
   runInChildSpan<R>(nameOrOptions: string | ExtendedSpanOptions, callback: SpanCallback<R>): R;
 }
 

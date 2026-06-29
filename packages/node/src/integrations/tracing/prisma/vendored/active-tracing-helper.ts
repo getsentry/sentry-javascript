@@ -11,8 +11,6 @@
  *   `db.system` for older Prisma versions
  */
 
-import type { Context } from '@opentelemetry/api';
-import { context as _context, trace } from '@opentelemetry/api';
 import type { Span, SpanAttributes, SpanKindValue, SpanLink } from '@sentry/core';
 import {
   getActiveSpan,
@@ -72,8 +70,8 @@ export class ActiveTracingHelper implements TracingHelper {
     return true;
   }
 
-  public getTraceParent(context?: Context): string {
-    const spanContext = context ? trace.getSpanContext(context) : getActiveSpan()?.spanContext();
+  public getTraceParent(span?: Span): string {
+    const spanContext = (span ?? getActiveSpan())?.spanContext();
     if (spanContext) {
       return `00-${spanContext.traceId}-${spanContext.spanId}-0${spanContext.traceFlags}`;
     }
@@ -89,8 +87,8 @@ export class ActiveTracingHelper implements TracingHelper {
     }
   }
 
-  public getActiveContext(): Context | undefined {
-    return _context.active();
+  public getActiveContext(): Span | undefined {
+    return getActiveSpan();
   }
 
   public runInChildSpan<R>(nameOrOptions: string | ExtendedSpanOptions, callback: SpanCallback<R>): R {
@@ -106,7 +104,7 @@ export class ActiveTracingHelper implements TracingHelper {
       return callback();
     }
 
-    const context = options.context ?? _context.active();
+    const parentSpan = options.context ?? getActiveSpan();
 
     const attributes = buildSpanAttributes(name, options.attributes as Record<string, unknown> | undefined);
     const spanOptions = {
@@ -115,16 +113,15 @@ export class ActiveTracingHelper implements TracingHelper {
       kind: options.kind as SpanKindValue | undefined,
       links: options.links as SpanLink[] | undefined,
       startTime: options.startTime,
+      parentSpan,
     };
 
     if (options.active === false) {
-      const span = _context.with(context, () => startInactiveSpan(spanOptions));
-      return endSpan(span, () => callback(span, context));
+      const span = startInactiveSpan(spanOptions);
+      return endSpan(span, () => callback(span, parentSpan));
     }
 
-    return _context.with(context, () =>
-      startSpanManual(spanOptions, span => endSpan(span, () => callback(span, context))),
-    );
+    return startSpanManual(spanOptions, span => endSpan(span, () => callback(span, parentSpan)));
   }
 }
 
