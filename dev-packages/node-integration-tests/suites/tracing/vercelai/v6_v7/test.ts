@@ -528,6 +528,57 @@ describe.each([
 
   createEsmTests(
     __dirname,
+    'scenario-concurrent-stream.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      // A single model instance shared by two concurrent `streamText` calls carries only one
+      // captured-parent slot, so both model calls must still land under their own `invoke_agent` — not
+      // collapse onto whichever operation resolved the shared model last.
+      test.skipIf(version === '7' && nodeVersion === 18)(
+        'parents concurrent streamText calls that share one model instance correctly',
+        async () => {
+          await createRunner()
+            .withEnv(env)
+            .expect({ transaction: { transaction: 'main' } })
+            .expect({
+              span: container => {
+                const invokeAgents = container.items.filter(
+                  span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
+                );
+                const generateContents = container.items.filter(
+                  span => span.attributes?.['sentry.op']?.value === 'gen_ai.generate_content',
+                );
+
+                // Two concurrent operations -> two invoke_agent + two generate_content spans.
+                expect(invokeAgents).toHaveLength(2);
+                expect(generateContents).toHaveLength(2);
+
+                const agentSpanIds = new Set(invokeAgents.map(span => span.span_id));
+
+                // Each model call lands under an invoke_agent span...
+                for (const span of generateContents) {
+                  expect(agentSpanIds.has(span.parent_span_id!)).toBe(true);
+                }
+                // ...a distinct one each (no cross-attribution despite the shared model instance)...
+                expect(new Set(generateContents.map(span => span.parent_span_id)).size).toBe(2);
+                // ...and both operations sit under the same `main` parent.
+                expect(new Set(invokeAgents.map(span => span.parent_span_id)).size).toBe(1);
+              },
+            })
+            .start()
+            .completed();
+        },
+      );
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
     'scenario-stream-text.mjs',
     'instrument.mjs',
     (createRunner, test) => {

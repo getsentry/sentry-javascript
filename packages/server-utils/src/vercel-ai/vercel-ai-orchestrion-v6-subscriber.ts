@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Span } from '@sentry/core';
-import { debug, getActiveSpan, SPAN_STATUS_ERROR, withActiveSpan } from '@sentry/core';
+import { debug, SPAN_STATUS_ERROR, withActiveSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '../tracing-channel';
@@ -58,10 +58,9 @@ interface ResolvedModel {
 }
 
 const PATCHED = Symbol('SentryVercelAiModelPatched');
-const PARENT = Symbol('SentryVercelAiModelParent');
 
-/** A resolved model with our patch bookkeeping (idempotency flag + captured parent span). */
-type PatchableModel = ResolvedModel & { [PATCHED]?: boolean; [PARENT]?: Span };
+/** A resolved model with our patch bookkeeping (idempotency flag). */
+type PatchableModel = ResolvedModel & { [PATCHED]?: boolean };
 
 // Per-operation correlation id. No Date/random (unavailable / non-deterministic) — a counter is enough.
 let callIdCounter = 0;
@@ -80,8 +79,11 @@ const callIdBySpan = new WeakMap<Span, string>();
 // Carries the enclosing operation span down to the patched `doGenerate`/`doStream`, where the active
 // span is the `ai` SDK's own (ignored) model-call span rather than our operation span. It's bound onto
 // the operation channel via `bindStore` (see `bindOperation`), so it's scoped per traced operation and
-// propagates across the awaits inside it — which is what lets concurrent operations sharing a single
-// model instance each resolve their own parent (the `[PARENT]` slot on the shared model cannot).
+// propagates across the awaits inside it. This holds for `streamText` too: `ai` initiates the model
+// stream synchronously inside `streamText` (within this bound context), so the later `doStream` — even
+// though it runs after the operation's span has already ended — still restores this store and reads ITS
+// operation's span. That per-operation scoping is the sole parent-resolution mechanism, and it is what
+// keeps concurrent operations sharing a single model instance from cross-attributing their model calls.
 const operationParentStore = new AsyncLocalStorage<Span | undefined>();
 
 let subscribed = false;
@@ -206,7 +208,7 @@ function bindOperation(
           message.result = message.type === 'executeTool' ? { output: data.result } : data.result;
           enrichSpanOnEnd(span, message, options);
         }
-        // A `streamText` model call runs lazily, after this (synchronously-returning) operation's span has
+        // A `streamText` model call runs after this (synchronously-returning) operation's span has
         // already ended, so its `callId` entry must outlive the operation — it's cleared once the model
         // call settles (see `patchModelMethod`). Every other operation can clear here.
         if (message.type !== 'streamText') {
@@ -235,15 +237,9 @@ function subscribeResolveLanguageModel(
         return;
       }
       const model = ctx.result as PatchableModel;
-      // `resolveLanguageModel` runs synchronously inside the operation body, where the operation span is
-      // the active span. `generateText`/`embed` recover that parent from `operationParentStore` at model
-      // call time, but `streamText` runs its model call lazily — after the operation's async context (and
-      // thus `operationParentStore`) has unwound — so stash the operation span on the model as its
-      // fallback parent here.
-      const active = getActiveSpan();
-      if (active && operationSpans.has(active)) {
-        model[PARENT] = active;
-      }
+      // Patch the model's `doGenerate`/`doStream` once. The model call recovers its parent from
+      // `operationParentStore` at call time (set per-operation by `bindOperation`), which propagates into
+      // the model call for `streamText` too, so there is nothing to capture on the model here.
       if (!model[PATCHED]) {
         model[PATCHED] = true;
         patchModelMethod(model, 'doGenerate', options);
@@ -266,28 +262,20 @@ function subscribeResolveLanguageModel(
 }
 
 /**
- * Pick the invoke_agent span a model call should hang under.
+ * Pick the invoke_agent span a model call should hang under: the operation span bound onto
+ * `operationParentStore` for the enclosing operation.
  *
- * Prefer the active span when it is an operation span: for `generateText`/`embed` the model call is
- * awaited inside the operation body, so the async context still carries the right operation span — and
- * crucially this disambiguates concurrent calls that share one model instance (where the captured
- * `model[PARENT]` would be whichever operation resolved the model last). Fall back to the captured
- * parent for `streamText`, whose model call runs after the operation returned and the bound context has
- * unwound. Returns `undefined` when neither is an operation span — e.g. telemetry was disabled for the
- * enclosing call — so the model call is skipped too.
+ * This covers `generateText`/`embed` (whose model call is awaited inside the operation body) and
+ * `streamText` alike — `ai` initiates the stream synchronously within the operation's bound context, so
+ * `doStream` restores the same per-operation store even though it runs after the operation's span has
+ * ended. Being per-operation, the store disambiguates concurrent calls that share one model instance (a
+ * single mutable slot on the shared model could not — it would hold whichever operation resolved the
+ * model last). Returns `undefined` when the store doesn't carry an operation span — e.g. telemetry was
+ * disabled for the enclosing call — so the model call is skipped too.
  */
-function resolveModelCallParent(model: PatchableModel): Span | undefined {
-  // The model call is awaited inside the operation body (`generateText`/`embed`), so the operation span
-  // bound onto `operationParentStore` for that operation is still in scope — and is per-operation, so it
-  // stays correct even when concurrent operations share one model instance.
+function resolveModelCallParent(): Span | undefined {
   const fromContext = operationParentStore.getStore();
-  if (fromContext && operationSpans.has(fromContext)) {
-    return fromContext;
-  }
-  // Fallback for `streamText`, whose `doStream` runs after the operation's async context has unwound:
-  // the parent captured on the model at resolve time.
-  const captured = model[PARENT];
-  return captured && operationSpans.has(captured) ? captured : undefined;
+  return fromContext && operationSpans.has(fromContext) ? fromContext : undefined;
 }
 
 function patchModelMethod(
@@ -300,7 +288,7 @@ function patchModelMethod(
     return;
   }
   model[method] = function (this: unknown, ...args: unknown[]): Promise<unknown> {
-    const parent = resolveModelCallParent(model);
+    const parent = resolveModelCallParent();
     // No enclosing operation span (e.g. telemetry disabled for the call) → don't open a model-call span.
     if (!parent) {
       return Promise.resolve(original.apply(this, args));
@@ -327,7 +315,7 @@ function patchModelMethod(
     }
 
     // `streamText` ends its operation span synchronously, so its `callId` entry was deliberately left in
-    // place for this (lazy) model call; drop it now that we've used it.
+    // place for this later model call; drop it now that we've used it.
     const clearStreamCallId = (): void => {
       if (method === 'doStream' && callId) {
         clearOperationCallId(callId);
