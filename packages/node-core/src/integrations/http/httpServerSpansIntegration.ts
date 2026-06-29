@@ -2,7 +2,7 @@ import { errorMonitor } from 'node:events';
 import type { IncomingHttpHeaders } from 'node:http';
 import { context, SpanKind, trace } from '@opentelemetry/api';
 import type { RPCMetadata } from '@opentelemetry/core';
-import { getRPCMetadata, isTracingSuppressed, RPCType, setRPCMetadata } from '@opentelemetry/core';
+import { getRPCMetadata, RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
   HTTP_RESPONSE_STATUS_CODE,
   HTTP_ROUTE,
@@ -32,6 +32,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
+  isTracingSuppressed,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -306,7 +307,7 @@ function shouldIgnoreSpansForIncomingRequest(
     ignoreIncomingRequests?: (urlPath: string, request: HttpIncomingMessage) => boolean;
   },
 ): boolean {
-  if (isTracingSuppressed(context.active())) {
+  if (isTracingSuppressed()) {
     return true;
   }
 

@@ -1,8 +1,6 @@
-import { context } from '@opentelemetry/api';
-import { isTracingSuppressed } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
-import { LRUMap, SDK_VERSION } from '@sentry/core';
+import { LRUMap, SDK_VERSION, isTracingSuppressed } from '@sentry/core';
 import * as diagch from 'diagnostics_channel';
 import { NODE_MAJOR, NODE_MINOR } from '../../nodeVersion';
 import {
@@ -184,7 +182,7 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
    * Check if the given outgoing request should be ignored.
    */
   private _shouldIgnoreOutgoingRequest(request: UndiciRequest): boolean {
-    if (isTracingSuppressed(context.active())) {
+    if (isTracingSuppressed()) {
       return true;
     }
 

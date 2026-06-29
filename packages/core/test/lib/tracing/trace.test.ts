@@ -19,11 +19,13 @@ import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import {
   continueTrace,
   getDynamicSamplingContextFromSpan,
+  isTracingSuppressed,
   registerSpanErrorInstrumentation,
   SentrySpan,
   startInactiveSpan,
   startSpan,
   startSpanManual,
+  SUPPRESS_TRACING_KEY,
   suppressTracing,
   withActiveSpan,
 } from '../../../src/tracing';
@@ -2558,6 +2560,60 @@ describe('suppressTracing', () => {
     expect(spanIsSampled(span3)).toBe(false);
     expect(spanIsSampled(span4)).toBe(false);
     expect(spanIsSampled(span5)).toBe(true);
+  });
+});
+
+describe('isTracingSuppressed', () => {
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+
+    setAsyncContextStrategy(undefined);
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns false when tracing is not suppressed', () => {
+    expect(isTracingSuppressed()).toBe(false);
+  });
+
+  it('returns true while inside suppressTracing', () => {
+    const suppressed = suppressTracing(() => isTracingSuppressed());
+    expect(suppressed).toBe(true);
+  });
+
+  it('returns false again after suppressTracing has finished', () => {
+    suppressTracing(() => {
+      expect(isTracingSuppressed()).toBe(true);
+    });
+
+    expect(isTracingSuppressed()).toBe(false);
+  });
+
+  it('only suppresses tracing within the active scope', () => {
+    withScope(() => {
+      const suppressed = suppressTracing(() => isTracingSuppressed());
+      expect(suppressed).toBe(true);
+    });
+
+    // Outside of the suppressed scope, tracing is no longer suppressed
+    expect(isTracingSuppressed()).toBe(false);
+  });
+
+  it('respects a scope passed in explicitly', () => {
+    const scope = getCurrentScope().clone();
+    scope.setSDKProcessingMetadata({ [SUPPRESS_TRACING_KEY]: true });
+
+    expect(isTracingSuppressed(scope)).toBe(true);
+    expect(isTracingSuppressed()).toBe(false);
   });
 });
 

@@ -17,6 +17,7 @@ export {
   continueTrace,
   withActiveSpan,
   suppressTracing,
+  isTracingSuppressed,
   startNewTrace,
   SUPPRESS_TRACING_KEY,
 } from './trace';

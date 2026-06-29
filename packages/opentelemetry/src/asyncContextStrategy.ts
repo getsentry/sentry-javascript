@@ -11,7 +11,7 @@ import type { CurrentScopes } from './types';
 import { getContextFromScope, getScopesFromContext } from './utils/contextData';
 import { getActiveSpan } from './utils/getActiveSpan';
 import { getTraceData } from './utils/getTraceData';
-import { suppressTracing } from './utils/suppressTracing';
+import { suppressTracing, isTracingSuppressed } from './utils/suppressTracing';
 
 interface ContextApi {
   _getContextManager(): {
@@ -110,6 +110,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     startInactiveSpan,
     getActiveSpan,
     suppressTracing,
+    isTracingSuppressed,
     getTraceData,
     continueTrace,
     startNewTrace,
