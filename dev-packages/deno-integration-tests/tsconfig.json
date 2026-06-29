@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["./lib.deno.d.ts", "suites/**/*"],
+  "include": ["suites/**/*"],
   "compilerOptions": {
     "lib": ["esnext"],
     "target": "esnext"
