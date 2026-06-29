@@ -1,5 +1,5 @@
 import type { Integration, IntegrationFn } from '@sentry/core';
-import { defineIntegration, getClient } from '@sentry/core';
+import { defineIntegration, extendIntegration, getClient } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import type { FastifyInstance, FastifyMinimal, FastifyReply, FastifyRequest } from './types';
 import { FastifyInstrumentationV3 } from './v3/instrumentation';
@@ -111,13 +111,11 @@ function getFastifyIntegration(): FastifyIntegration | undefined {
 const _fastifyIntegration = ((options: Partial<FastifyIntegrationOptions>) => {
   const parentIntegration = serverUtilsFastifyIntegration(options) as FastifyIntegration;
 
-  return {
-    ...parentIntegration,
+  return extendIntegration(parentIntegration, {
     setupOnce() {
       instrumentFastifyV3();
-      parentIntegration.setupOnce?.();
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**
