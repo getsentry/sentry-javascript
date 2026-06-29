@@ -119,10 +119,10 @@ export class ActiveTracingHelper implements TracingHelper {
 
     if (options.active === false) {
       const span = _context.with(context, () => startInactiveSpan(spanOptions));
-      return endSpan(span, callback(span, context));
+      return endSpan(span, () => callback(span, context));
     }
 
-    return _context.with(context, () => startSpanManual(spanOptions, span => endSpan(span, callback(span, context))));
+    return _context.with(context, () => startSpanManual(spanOptions, span => endSpan(span, () => callback(span, context))));
   }
 }
 
@@ -176,7 +176,15 @@ function dispatchEngineSpan(
   );
 }
 
-function endSpan<T>(span: Span, result: T): T {
+function endSpan<T>(span: Span, run: () => T): T {
+  let result: T;
+  try {
+    result = run();
+  } catch (reason) {
+    span.end();
+    throw reason;
+  }
+
   if (isPromiseLike(result)) {
     return result.then(
       value => {
