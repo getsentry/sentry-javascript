@@ -300,6 +300,13 @@ function setNotFoundHandlerPatched(this: any, hooks: any, handler?: any): void {
     });
   }
 
+  // Fastify allows `setNotFoundHandler(opts)` without a handler, falling back to its built-in 404
+  // handler. Forward the (already-wrapped) hooks unchanged so that fallback still applies.
+  if (handler == null) {
+    setNotFoundHandlerOriginal.call(this, hooks);
+    return;
+  }
+
   setNotFoundHandlerOriginal.call(
     this,
     hooks,
