@@ -21,8 +21,6 @@ export interface ExtendedSpanOptions extends SpanOptions {
   internal?: boolean;
   /** Whether it propagates context (?=true) */
   active?: boolean;
-  /** The parent span to attach the new span to */
-  context?: Span;
 }
 
 export type EngineSpanId = string;
