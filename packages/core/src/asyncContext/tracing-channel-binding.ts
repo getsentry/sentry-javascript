@@ -43,7 +43,7 @@ export function waitForTracingChannelBinding(callback: () => void, retries = 1):
  * `{ scope, isolationScope }` pair.
  */
 export function _INTERNAL_createTracingChannelBinding(
-  asyncLocalStorage: unknown,
+  asyncLocalStorage: NonNullable<unknown>,
   getScopes: () => { scope: Scope; isolationScope: Scope },
 ): TracingChannelBinding {
   return {
