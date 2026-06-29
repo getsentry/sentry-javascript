@@ -12,6 +12,7 @@ const DEFAULT_REPLAY_EVENT = {
   replay_id: expect.stringMatching(/\w{32}/),
   replay_start_timestamp: expect.any(Number),
   segment_id: 0,
+  segment_names: [],
   replay_type: 'session',
   event_id: expect.stringMatching(/\w{32}/),
   environment: 'production',
