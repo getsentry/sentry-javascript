@@ -7,8 +7,8 @@
  * - Upstream version: @prisma/instrumentation@7.8.0
  * - Replaced `@prisma/instrumentation-contract` imports with local vendored equivalents
  * - Replaced `import { VERSION, NAME, MODULE_NAME } from './constants'` with local vendored constants
- * - Dropped the unused `setTracerProvider`/`tracerProvider` plumbing; the tracing helper creates spans
- *   through Sentry's span APIs, which resolve the active client themselves
+ * - Removed the unused `setTracerProvider`/`tracerProvider` members; spans are created through Sentry's
+ *   span APIs, which resolve the active client themselves
  */
 
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
