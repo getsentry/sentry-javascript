@@ -67,6 +67,31 @@ const kSetNotFoundOriginal = Symbol('sentry fastify setNotFoundHandler original'
 type AnyFn = (...args: any[]) => any;
 
 /**
+ * Read the matched route URL off a request. Fastify >=4 exposes it on `request.routeOptions.url`,
+ * while v3 only has the (since-removed-in-v5) `request.routerPath`.
+ */
+function getRequestRouteUrl(request: any): string | undefined {
+  return request.routeOptions?.url ?? request.routerPath;
+}
+
+/**
+ * Read the per-route config off a request. Fastify >=4 exposes it on `request.routeOptions.config`,
+ * while v3 uses `request.routeConfig`. Used to honor the `{ config: { otel: false } }` opt-out.
+ */
+function getRequestRouteConfig(request: any): { otel?: boolean } | undefined {
+  return request.routeOptions?.config ?? request.routeConfig;
+}
+
+/**
+ * Detect whether one of a wrapped handler's arguments is the Fastify request. We can't rely on a
+ * single property since the route metadata moved from `routerPath` (v3) to `routeOptions` (>=4),
+ * so we accept either shape.
+ */
+function isFastifyRequest(arg: any): boolean {
+  return !!arg && typeof arg === 'object' && !!arg.method && !!arg.url && (!!arg.routeOptions || 'routerPath' in arg);
+}
+
+/**
  * The Fastify plugin that wires up the request/hook/handler spans. It is registered on every Fastify
  * instance via the `fastify.initialization` diagnostics channel.
  */
@@ -146,7 +171,7 @@ function appendRouteHook(existing: AnyFn | AnyFn[] | undefined, hook: AnyFn): An
 }
 
 function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: () => void): void {
-  if (request.routeOptions.config?.otel === false) {
+  if (getRequestRouteConfig(request)?.otel === false) {
     return hookDone();
   }
 
@@ -157,7 +182,7 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
     [URL_PATH]: request.url,
   };
 
-  const route = request.routeOptions.url as string | undefined;
+  const route = getRequestRouteUrl(request);
   if (route != null) {
     attributes[HTTP_ROUTE] = route;
 
@@ -288,7 +313,7 @@ function setNotFoundHandlerPatched(this: any, hooks: any, handler?: any): void {
 
 function getRequestFromArgs(args: any[]): any | null {
   for (const arg of args) {
-    if (arg?.routeOptions && arg.url && arg.method) {
+    if (isFastifyRequest(arg)) {
       return arg;
     }
   }
@@ -299,7 +324,7 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
   return function handlerWrapped(this: any, ...args: any[]) {
     const request = getRequestFromArgs(args);
 
-    if (request === null || request.routeOptions.config?.otel === false) {
+    if (request === null || getRequestRouteConfig(request)?.otel === false) {
       return handler.call(this, ...args);
     }
 
@@ -340,7 +365,7 @@ function stripFastifyPrefix(hookName = ''): string {
 
 function instrumentOnRequest(fastify: FastifyInstance): void {
   fastify.addHook('onRequest', async (request: FastifyRequest, _reply) => {
-    const routeName = request.routeOptions?.url;
+    const routeName = getRequestRouteUrl(request);
     const method = request.method || 'GET';
 
     getIsolationScope().setTransactionName(`${method} ${routeName}`);

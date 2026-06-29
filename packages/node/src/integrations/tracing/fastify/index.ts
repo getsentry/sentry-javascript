@@ -11,7 +11,7 @@ import {
 
 interface FastifyIntegration extends Integration {
   getShouldHandleError: () => (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
-  // This will be removed in the next major version.
+  // todo(v11): Remove this
   setShouldHandleError: (
     shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean,
   ) => void;
