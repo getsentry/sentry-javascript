@@ -322,32 +322,23 @@ function patchModelMethod(
       }
     };
 
-    let result: Promise<unknown>;
     try {
-      result = Promise.resolve(original.apply(this, args));
+      const result = Promise.resolve(original.apply(this, args));
+      // `doStream` resolves to `{ stream, ... }` before the stream is consumed; we end here (start/end
+      // bracket the call) to match the channel timing.
+      return result.then(value => {
+        message.result = value;
+        enrichSpanOnEnd(span, message, options);
+        span.end();
+        clearStreamCallId();
+        return value;
+      });
     } catch (error) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: error instanceof Error ? error.message : 'unknown_error' });
       span.end();
       clearStreamCallId();
       throw error;
     }
-    // `doStream` resolves to `{ stream, ... }` before the stream is consumed; we end here (start/end
-    // bracket the call) to match the channel timing.
-    return result.then(
-      value => {
-        message.result = value;
-        enrichSpanOnEnd(span, message, options);
-        span.end();
-        clearStreamCallId();
-        return value;
-      },
-      error => {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: error instanceof Error ? error.message : 'unknown_error' });
-        span.end();
-        clearStreamCallId();
-        throw error;
-      },
-    );
   };
 }
 
@@ -356,7 +347,7 @@ function buildTextMessage(type: 'generateText' | 'streamText'): MessageBuilder {
     type,
     event: {
       callId: nextCallId(),
-      operationId: type === 'streamText' ? 'ai.streamText' : 'ai.generateText',
+      operationId: `ai.${type}`,
       functionId: asString(telemetry.functionId),
       ...modelFields(options.model),
       maxRetries: options.maxRetries,
