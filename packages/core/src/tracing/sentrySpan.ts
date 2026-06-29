@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import type { Client } from '../client';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { createSpanEnvelope } from '../envelope';
@@ -26,7 +27,9 @@ import type {
 } from '../types/span';
 import type { SpanStatus } from '../types/spanStatus';
 import type { TimedEvent } from '../types/timedEvent';
+import { debounce } from '../utils/debounce';
 import { debug } from '../utils/debug-logger';
+import { isBrowser } from '../utils/isBrowser';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
   addStatusMessageAttribute,
@@ -50,6 +53,58 @@ import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { getCapturedScopesOnSpan, markSpanSourceAsExplicit, spanShouldInferOtelSource } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
+
+// Clients whose segment-span transaction capture should be deferred (rather than run synchronously on
+// span end), mapped to the function that queues a deferred capture. Tracked per client rather than as
+// a process-wide flag so pending captures and their timer cannot leak across `Sentry.init()` calls —
+// a client that never opts in is simply absent. Enabled per client by SDKs that assemble transactions
+// from the live span tree on root-span end (e.g. the Node SDK), which would otherwise drop children
+// that close after it. Every other setup keeps its synchronous capture.
+const DEFERRED_SEGMENT_SPAN_CAPTURES = new WeakMap<Client, (capture: () => void) => void>();
+
+/**
+ * Opt a client into (or out of) deferring its segment-span transaction capture.
+ * Set by the SDK client during setup (e.g. the Node SDK); see {@link DEFERRED_SEGMENT_SPAN_CAPTURES}.
+ *
+ * The transaction is otherwise assembled from the live span tree the instant a root span ends, which
+ * drops children whose async instrumentation closes them later (a diagnostics-channel `asyncEnd`
+ * callback in the same tick, or engine spans replayed on a later tick). A debounced timer — the same
+ * one the OpenTelemetry span exporter uses — delays the snapshot just enough for those later span ends
+ * to land first. Pending captures are drained synchronously on the client's `flush` hook so
+ * `Sentry.flush()` / `client.close()` cannot resolve before they run.
+ */
+export function _INTERNAL_setDeferSegmentSpanCapture(client: Client, defer: boolean): void {
+  if (!defer) {
+    DEFERRED_SEGMENT_SPAN_CAPTURES.delete(client);
+    return;
+  }
+
+  if (DEFERRED_SEGMENT_SPAN_CAPTURES.has(client)) {
+    return;
+  }
+
+  const pendingCaptures = new Set<() => void>();
+  const debouncedDrain = debounce(
+    () => {
+      const captures = [...pendingCaptures];
+      pendingCaptures.clear();
+      for (const capture of captures) {
+        capture();
+      }
+    },
+    1,
+    { maxWait: 100 },
+  );
+
+  client.on('flush', () => {
+    debouncedDrain.flush();
+  });
+
+  DEFERRED_SEGMENT_SPAN_CAPTURES.set(client, capture => {
+    pendingCaptures.add(capture);
+    debouncedDrain();
+  });
+}
 
 /**
  * Span contains all data about a span
@@ -367,10 +422,31 @@ export class SentrySpan implements Span {
       return;
     }
 
-    const transactionEvent = this._convertSpanToTransaction();
-    if (transactionEvent) {
-      const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
-      scope.captureEvent(transactionEvent);
+    const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
+
+    // The transaction is assembled synchronously from the live span tree the instant the root span
+    // ends, dropping children whose async instrumentation closes them after it (a diagnostics-channel
+    // `asyncEnd` callback in the same tick, or engine spans replayed on a later tick). Clients that
+    // opted in defer the snapshot via a debounced timer so those later span ends land first; every
+    // other setup keeps its synchronous capture. Never deferred in the browser, where there is no such
+    // pattern and a deferred capture could be lost on page unload.
+    const deferCapture = client && DEFERRED_SEGMENT_SPAN_CAPTURES.get(client);
+    if (client && deferCapture && !isBrowser()) {
+      deferCapture(() => {
+        const transactionEvent = this._convertSpanToTransaction();
+        if (transactionEvent) {
+          // Capture through the client resolved when the span ended, not the scope: a capture that
+          // fires on a later tick must reach the client active at span end and never whatever client
+          // is current when the timer fires (e.g. a different client after re-init), and the scope's
+          // client reference can be reassigned. Only the snapshot is deferred, so late children land.
+          client.captureEvent(transactionEvent, undefined, scope);
+        }
+      });
+    } else {
+      const transactionEvent = this._convertSpanToTransaction();
+      if (transactionEvent) {
+        scope.captureEvent(transactionEvent);
+      }
     }
   }
 
