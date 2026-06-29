@@ -34,7 +34,7 @@ import type { FastifyInstance, FastifyRequest } from './types';
 import { DEBUG_BUILD } from '../../../debug-build';
 
 const PACKAGE_NAME = '@sentry/instrumentation-fastify';
-const SUPPORTED_VERSIONS = '>=4.0.0 <6';
+const SUPPORTED_VERSIONS = '>=3.21.0 <6';
 
 const ORIGIN = 'auto.http.otel.fastify';
 const HOOK_OP = 'hook.fastify';
@@ -350,7 +350,7 @@ function instrumentOnRequest(fastify: FastifyInstance): void {
 let _isInstrumented = false;
 
 /**
- * Set up the Fastify (v4/v5) instrumentation by subscribing to the `fastify.initialization`
+ * Set up the Fastify (>= 3.21.0 < 6) instrumentation by subscribing to the `fastify.initialization`
  * diagnostics channel and registering the span-creating plugin on every Fastify instance.
  *
  * Idempotent and exposes an `id` so it can participate in the OpenTelemetry preload list.

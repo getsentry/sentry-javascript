@@ -2,7 +2,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import type { FastifyIntegration, FastifyReply, FastifyRequest } from './types';
 
-import { instrumentFastify } from './instrumentation-v5';
+import { instrumentFastify as _instrumentFastify } from './instrumentation';
 import { defaultShouldHandleError, INTEGRATION_NAME } from './utils';
 import { subscribeToFastifyErrorChannel, handleFastifyError as _handleFastifyError } from './errors';
 
@@ -50,7 +50,7 @@ const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationO
       _shouldHandleError = shouldHandleError || defaultShouldHandleError;
 
       subscribeToFastifyErrorChannel();
-      instrumentFastify();
+      _instrumentFastify();
     },
     getShouldHandleError() {
       return _shouldHandleError;
@@ -83,7 +83,7 @@ export const fastifyIntegration = defineIntegration((options: Partial<FastifyInt
 /**
  * @deprecated This export is deprecated and will not longer be exposed in the next major version.
  */
-export const instrumentFastifyV5 = instrumentFastify;
+export const instrumentFastify = _instrumentFastify;
 
 /**
  * @deprecated This export is deprecated and will not longer be exposed in the next major version.

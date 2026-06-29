@@ -5,7 +5,7 @@ import type { FastifyInstance, FastifyMinimal, FastifyReply, FastifyRequest } fr
 import { FastifyInstrumentationV3 } from './v3/instrumentation';
 import {
   fastifyIntegration as serverUtilsFastifyIntegration,
-  instrumentFastifyV5,
+  instrumentFastify,
   handleFastifyError,
 } from '@sentry/server-utils';
 
@@ -18,7 +18,7 @@ interface FastifyIntegration extends Integration {
 }
 
 // oxlint-disable-next-line typescript/no-deprecated
-export { instrumentFastifyV5 as instrumentFastify };
+export { instrumentFastify };
 
 /**
  * Options for the Fastify integration.

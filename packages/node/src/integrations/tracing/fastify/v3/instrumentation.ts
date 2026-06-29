@@ -32,6 +32,7 @@ import type { Span } from '@sentry/core';
 import {
   getClient,
   getIsolationScope,
+  SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
@@ -50,8 +51,6 @@ import type { PluginFastifyReply } from './internal-types';
 import type { FastifyInstrumentationConfig } from './types';
 import { endSpan, safeExecuteInTheMiddleMaybePromise, startSpan } from './utils';
 /** @knipignore */
-
-const PACKAGE_VERSION = '0.1.0';
 
 const PACKAGE_NAME = '@sentry/instrumentation-fastify-v3';
 const ANONYMOUS_NAME = 'anonymous';
@@ -77,12 +76,12 @@ const hooksNamesToWrap = new Set([
  */
 export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrumentationConfig> {
   public constructor(config: FastifyInstrumentationConfig = {}) {
-    super(PACKAGE_NAME, PACKAGE_VERSION, config);
+    super(PACKAGE_NAME, SDK_VERSION, config);
   }
 
   public init(): InstrumentationNodeModuleDefinition[] {
     return [
-      new InstrumentationNodeModuleDefinition('fastify', ['>=3.0.0 <4'], moduleExports => {
+      new InstrumentationNodeModuleDefinition('fastify', ['>=3.0.0 <3.21.0'], moduleExports => {
         return this._patchConstructor(moduleExports);
       }),
     ];

@@ -34,5 +34,5 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   handleFastifyError,
   // oxlint-disable-next-line typescript/no-deprecated
-  instrumentFastifyV5,
+  instrumentFastify,
 } from './integrations/tracing-channel/fastify';
