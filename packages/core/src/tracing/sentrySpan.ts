@@ -68,22 +68,18 @@ const DEFERRED_SEGMENT_SPAN_CAPTURES = new WeakMap<Client, (capture: () => void)
 const CAPTURED_SPANS = new WeakSet<Span>();
 
 /**
- * Opt a client into (or out of) deferring its segment-span transaction capture.
- * Set by the SDK client during setup (e.g. the Node SDK); see {@link DEFERRED_SEGMENT_SPAN_CAPTURES}.
+ * Defer a client's segment-span transaction capture. Set once by the SDK during setup (e.g. the Node
+ * SDK); see {@link DEFERRED_SEGMENT_SPAN_CAPTURES}. Idempotent, and deferral stays on for the client's
+ * lifetime (there is no opt-out: deferral is a set-once-at-setup property, never toggled mid-session).
  *
  * The transaction is otherwise assembled from the live span tree the instant a root span ends, which
  * drops children whose async instrumentation closes them later (a diagnostics-channel `asyncEnd`
- * callback in the same tick, or engine spans replayed on a later tick). A debounced timer — the same
- * one the OpenTelemetry span exporter uses — delays the snapshot just enough for those later span ends
- * to land first. Pending captures are drained synchronously on the client's `flush` hook so
+ * callback in the same tick, or engine spans replayed on a later tick). A debounced timer (the same one
+ * the OpenTelemetry span exporter uses) delays the snapshot just enough for those later span ends to
+ * land first. Pending captures are drained synchronously on the client's `flush` hook so
  * `Sentry.flush()` / `client.close()` cannot resolve before they run.
  */
-export function _INTERNAL_setDeferSegmentSpanCapture(client: Client, defer: boolean): void {
-  if (!defer) {
-    DEFERRED_SEGMENT_SPAN_CAPTURES.delete(client);
-    return;
-  }
-
+export function _INTERNAL_setDeferSegmentSpanCapture(client: Client): void {
   if (DEFERRED_SEGMENT_SPAN_CAPTURES.has(client)) {
     return;
   }
