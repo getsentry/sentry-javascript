@@ -1,9 +1,11 @@
 import {
   mysqlChannelIntegration,
   lruMemoizerChannelIntegration,
+  ioredisChannelIntegration,
   detectOrchestrionSetup,
 } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
+import { cacheResponseHook } from '../integrations/tracing/redis';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
 import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInjection';
 
@@ -42,7 +44,14 @@ import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInject
 export function experimentalUseDiagnosticsChannelInjection(): void {
   setDiagnosticsChannelInjectionLoader(
     (): DiagnosticsChannelInjection => ({
-      integrations: [mysqlChannelIntegration(), lruMemoizerChannelIntegration()],
+      integrations: [
+        mysqlChannelIntegration(),
+        lruMemoizerChannelIntegration(),
+        ioredisChannelIntegration({ responseHook: cacheResponseHook }),
+      ],
+      // 'Redis' is omitted on purpose: it's a composite integration (node-redis +
+      // ioredis + the >=5.11.0 diagnostics_channel subscriber) that must stay in
+      // the set. Its ioredis monkey-patch is gated off in `redisIntegration`.
       replacedOtelIntegrationNames: ['Mysql', 'LruMemoizer'],
       register: registerDiagnosticsChannelInjection,
       detect: detectOrchestrionSetup,

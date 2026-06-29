@@ -12,6 +12,7 @@ import {
 import * as dc from 'node:diagnostics_channel';
 import { subscribeRedisDiagnosticChannels, type RedisTracingChannelFactory } from '@sentry/server-utils';
 import { generateInstrumentOnce } from '@sentry/node-core';
+import { isDiagnosticsChannelInjectionEnabled } from '../../../sdk/diagnosticsChannelInjection';
 import type { IORedisCommandArgs } from '../../../utils/redisCache';
 import {
   calculateCacheItemSize,
@@ -120,7 +121,11 @@ const instrumentRedisModule = generateInstrumentOnce(`${INTEGRATION_NAME}.Redis`
  */
 export const instrumentRedis = Object.assign(
   (): void => {
-    instrumentIORedis();
+    // When diagnostics-channel injection is opted in, orchestrion owns ioredis
+    // `<5.11.0`, so skip the OTel ioredis monkey-patch to avoid double instrumentation.
+    if (!isDiagnosticsChannelInjectionEnabled()) {
+      instrumentIORedis();
+    }
     instrumentRedisModule();
     // node-redis >= 5.12.0 and ioredis >= 5.11.0 publish via diagnostics_channel.
     // `bindTracingChannelToSpan` (inside the subscriber) makes the span the active
