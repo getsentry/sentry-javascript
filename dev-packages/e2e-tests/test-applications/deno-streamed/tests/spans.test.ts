@@ -3,6 +3,10 @@ import { waitForStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 
 const SEGMENT_SPAN = {
   attributes: {
+    [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+      type: 'string',
+      value: 'stream',
+    },
     'app.start_time': {
       type: 'string',
       value: expect.any(String),
@@ -170,6 +174,10 @@ test('Sends streamed spans (http.server and manual with Sentry.startSpan)', asyn
   expect(spans).toEqual([
     {
       attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+          type: 'string',
+          value: 'stream',
+        },
         'sentry.environment': {
           type: 'string',
           value: 'qa',
@@ -238,6 +246,10 @@ test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) 
 
   expect(sentrySpan).toEqual({
     attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+        type: 'string',
+        value: 'stream',
+      },
       'sentry.environment': {
         type: 'string',
         value: 'qa',
@@ -275,6 +287,10 @@ test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) 
 
   expect(otelSpan).toEqual({
     attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+        type: 'string',
+        value: 'stream',
+      },
       'sentry.environment': {
         type: 'string',
         value: 'qa',

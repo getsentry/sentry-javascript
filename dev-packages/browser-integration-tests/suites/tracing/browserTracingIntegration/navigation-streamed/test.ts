@@ -7,6 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -71,6 +72,10 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
 
   expect(navigationSpan).toEqual({
     attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+        type: 'string',
+        value: 'stream',
+      },
       'culture.calendar': {
         type: 'string',
         value: expect.any(String),

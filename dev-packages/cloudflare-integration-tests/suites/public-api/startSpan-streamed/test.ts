@@ -12,6 +12,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
@@ -77,6 +78,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       expect(childSpan).toBeDefined();
       expect(childSpan).toEqual({
         attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
             type: 'string',
             value: 'test-child',
@@ -103,6 +105,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       expect(inactiveSpan).toBeDefined();
       expect(inactiveSpan).toEqual({
         attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
@@ -138,6 +141,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       expect(manualSpan).toBeDefined();
       expect(manualSpan).toEqual({
         attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
@@ -158,6 +162,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
 
       expect(parentTestSpan).toEqual({
         attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
@@ -179,6 +184,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
 
       expect(segmentSpan).toEqual({
         attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {

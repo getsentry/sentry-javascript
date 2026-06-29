@@ -12,6 +12,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
+  SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -100,6 +101,10 @@ sentryTest(
             type: 'string',
             value: 'production',
           },
+          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
+          },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,
@@ -135,6 +140,10 @@ sentryTest(
           [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
             type: 'string',
             value: 'production',
+          },
+          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
           },
         },
         end_timestamp: expect.any(Number),
@@ -175,6 +184,10 @@ sentryTest(
           [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: {
             type: 'string',
             value: 'Connection Refused',
+          },
+          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
           },
         },
         end_timestamp: expect.any(Number),
@@ -251,6 +264,10 @@ sentryTest(
           [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
             type: 'string',
             value: 'production',
+          },
+          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
           },
         },
         end_timestamp: expect.any(Number),
