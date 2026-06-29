@@ -12,11 +12,12 @@
  */
 
 import type { Span } from '@opentelemetry/api';
-import { context, SpanKind, SpanStatusCode } from '@opentelemetry/api';
+import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Scope, SpanAttributes } from '@sentry/core';
 import {
+  bindScopeToEmitter,
   getCurrentScope,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -224,13 +225,12 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
 
         const cbIndex = Array.from(arguments).findIndex(arg => typeof arg === 'function');
 
-        const parentContext = context.active();
         const scope = getCurrentScope();
         if (cbIndex === -1) {
           const streamableQuery: mysqlTypes.Query = withActiveSpan(span, () => {
             return originalQuery.apply(connection, arguments);
           });
-          context.bind(parentContext, streamableQuery);
+          bindScopeToEmitter(streamableQuery, scope);
 
           return streamableQuery
             .on('error', (err: unknown) => {
