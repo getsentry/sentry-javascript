@@ -17,12 +17,15 @@ const dom = new JSDOM(undefined, { url: 'https://example.com/' });
 Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
 Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
 Object.defineProperty(global, 'addEventListener', { value: () => undefined, writable: true });
+Object.defineProperty(global, 'removeEventListener', { value: () => undefined, writable: true });
 
 const originalGlobalDocument = WINDOW.document;
 const originalGlobalLocation = WINDOW.location;
 const originalNavigator = WINDOW.navigator;
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const originalGlobalAddEventListener = WINDOW.addEventListener;
+// eslint-disable-next-line @typescript-eslint/unbound-method
+const originalGlobalRemoveEventListener = WINDOW.removeEventListener;
 
 afterAll(() => {
   // Clean up JSDom
@@ -30,6 +33,7 @@ afterAll(() => {
   Object.defineProperty(WINDOW, 'location', { value: originalGlobalLocation });
   Object.defineProperty(WINDOW, 'navigator', { value: originalNavigator, writable: true, configurable: true });
   Object.defineProperty(WINDOW, 'addEventListener', { value: originalGlobalAddEventListener });
+  Object.defineProperty(WINDOW, 'removeEventListener', { value: originalGlobalRemoveEventListener });
 });
 
 function findIntegrationByName(integrations: Integration[] = [], name: string): Integration | undefined {
