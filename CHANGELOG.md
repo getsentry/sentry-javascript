@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- feat(cloudflare): Instrument Cloudflare Workers AI binding ([#20839](https://github.com/getsentry/sentry-javascript/issues/20839))
+
+  You can now instrument the Cloudflare Workers AI binding (`env.AI`) by wrapping it with `Sentry.instrumentWorkersAiClient`:
+
+  ```javascript
+  const ai = Sentry.instrumentWorkersAiClient(env.AI);
+  const result = await ai.run('@cf/meta/llama-3.1-8b-instruct', { prompt: 'Hello' });
+  ```
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 ## 10.63.0

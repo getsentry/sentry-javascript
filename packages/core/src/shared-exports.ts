@@ -198,6 +198,9 @@ export type { LangChainOptions, LangChainIntegration } from './tracing/langchain
 export { instrumentStateGraphCompile, instrumentCreateReactAgent, instrumentLangGraph } from './tracing/langgraph';
 export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
+export { instrumentWorkersAiClient } from './tracing/workers-ai';
+export { WORKERS_AI_INTEGRATION_NAME } from './tracing/workers-ai/constants';
+export type { WorkersAiClient, WorkersAiOptions } from './tracing/workers-ai/types';
 // eslint-disable-next-line typescript/no-deprecated
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';
 export type {
