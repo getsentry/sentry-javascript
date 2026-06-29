@@ -345,8 +345,7 @@ export function getSimpleStatus(status: SpanStatus | undefined): 'ok' | 'error' 
  * Returns the span's attributes with the SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE attribute added
  * if the span has an error status message worth preserving.
  *
- * An explicitly set attribute is never overwritten, and the original attributes
- * reference is returned untouched when there is no message to add.
+ * An explicitly set attribute is never overwritten.
  */
 export function addStatusMessageAttribute(
   attributes: SpanAttributes,
