@@ -34,8 +34,8 @@ sentryTest('logs debug messages correctly', async ({ getLocalTestUrl, page }) =>
           'Sentry Logger [log]: Integration installed: Dedupe',
           'Sentry Logger [log]: Integration installed: HttpContext',
           'Sentry Logger [log]: Integration installed: CultureContext',
-          'Sentry Logger [warn]: Discarded session because of missing or non-string release',
           'Sentry Logger [log]: Integration installed: BrowserSession',
+          'Sentry Logger [warn]: Discarded session because of missing or non-string release',
           'test log',
         ]
       : ['[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.', 'test log'],
