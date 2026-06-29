@@ -16,7 +16,7 @@ const _lruMemoizerChannelIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 — no-op instead of throwing (#21783).
+      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
       if (!diagnosticsChannel.tracingChannel) {
         return;
       }
