@@ -160,7 +160,7 @@ function setupSentryTracerProvider(
   // time to be included instead of dropped. Scoped to the SentryTracerProvider path, which assembles
   // transactions synchronously from the native span tree (the BasicTracerProvider path defers this to
   // the span exporter, which already buffers and debounces).
-  _INTERNAL_setDeferSegmentSpanCapture(client, true);
+  _INTERNAL_setDeferSegmentSpanCapture(client);
 
   if (hasSpanStreamingEnabled(client)) {
     // Streamed spans skip the exporter, so per-span data inferred from OTel semantic conventions
