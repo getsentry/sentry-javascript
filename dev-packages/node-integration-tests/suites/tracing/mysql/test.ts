@@ -40,6 +40,7 @@ describe('mysql auto instrumentation', () => {
         op: 'db',
         ...(origin ? { origin } : {}),
         data: expect.objectContaining({
+          ...(origin ? { 'sentry.origin': origin } : {}),
           'db.system': 'mysql',
           'net.peer.name': 'localhost',
           'net.peer.port': port,
