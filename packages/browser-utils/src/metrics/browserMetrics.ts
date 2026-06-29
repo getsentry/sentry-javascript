@@ -774,6 +774,8 @@ export function _addResourceSpans(
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
 
+  attributes['url.full'] = resourceUrl;
+
   _setResourceRequestAttributes(entry, attributes, [
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
     ['responseStatus', 'http.response.status_code'],
