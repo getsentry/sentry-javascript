@@ -10,7 +10,7 @@
     "isolatedModules": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": true,
+    "strict": true
   },
   "include": ["src/**/*"]
 }

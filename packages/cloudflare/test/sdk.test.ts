@@ -1,9 +1,9 @@
 import * as SentryCore from '@sentry/core';
 import type { Integration } from '@sentry/core';
 import { getClient } from '@sentry/core';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { CloudflareClient } from '../src/client';
-import { init } from '../src/sdk';
+import { getDefaultIntegrations, init } from '../src/sdk';
 import { resetSdk } from './testUtils';
 import { spanStreamingIntegration } from '../src/';
 
@@ -58,5 +58,31 @@ describe('init', () => {
 
     expect(integrations?.length).toBe(1);
     expect((integrations?.[0] as MarkedIntegration)?._custom).toBe(true);
+  });
+});
+
+describe('getDefaultIntegrations', () => {
+  afterEach(() => {
+    delete globalThis.__SENTRY_ORCHESTRION__;
+  });
+
+  test('does not add orchestrion channel integrations when injection did not happen', () => {
+    delete globalThis.__SENTRY_ORCHESTRION__;
+
+    const names = getDefaultIntegrations({}).map(i => i.name);
+
+    expect(names).not.toContain('Mysql');
+    expect(names).not.toContain('Postgres');
+    expect(names).not.toContain('LruMemoizer');
+  });
+
+  test('adds orchestrion channel integrations when the bundler marker is set', () => {
+    globalThis.__SENTRY_ORCHESTRION__ = { bundler: true };
+
+    const names = getDefaultIntegrations({}).map(i => i.name);
+
+    expect(names).toContain('Mysql');
+    expect(names).toContain('Postgres');
+    expect(names).toContain('LruMemoizer');
   });
 });

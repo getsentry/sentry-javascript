@@ -14,10 +14,10 @@ import {
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
 import { makeFlushLock } from './flush';
+import { channelIntegrations, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import { httpServerIntegration } from './integrations/httpServer';
 import { fetchIntegration } from './integrations/fetch';
 import { honoIntegration } from './integrations/hono';
-import { cloudflareMysqlIntegration } from './integrations/mysql';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
@@ -45,7 +45,11 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     httpServerIntegration(),
     requestDataIntegration(cookiesEnabled ? undefined : { include: { cookies: false } }),
     consoleIntegration(),
-    cloudflareMysqlIntegration(),
+    // The orchestrion diagnostics-channel subscribers (mysql, pg, …). The
+    // `@sentry/cloudflare/vite` plugin injects the channels at build time and
+    // sets the orchestrion bundler marker; without it the channels never fire,
+    // so only add the subscribers when injection actually happened.
+    ...(isOrchestrionInjected() ? Object.values(channelIntegrations).map(factory => factory()) : []),
   ];
 }
 

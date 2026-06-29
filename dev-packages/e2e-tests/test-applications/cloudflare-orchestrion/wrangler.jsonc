@@ -3,5 +3,5 @@
   "name": "cloudflare-orchestrion",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-29",
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
 }
