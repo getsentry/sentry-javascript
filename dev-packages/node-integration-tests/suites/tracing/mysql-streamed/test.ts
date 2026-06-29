@@ -3,6 +3,7 @@ import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses } from '../../../utils/runner';
 import { createCjsTests } from '../../../utils/runner/createEsmAndCjsTests';
+import { NODE_VERSION } from '@sentry/node';
 
 describe('mysql auto instrumentation (streamed)', () => {
   afterAll(() => {
@@ -18,6 +19,8 @@ describe('mysql auto instrumentation (streamed)', () => {
     );
 
     expect(dbSpans.length).toBe(2);
+
+    const isNode18 = NODE_VERSION.major === 18;
 
     const COMMON_ATTRIBUTES = {
       'db.connection_string': {
@@ -84,6 +87,9 @@ describe('mysql auto instrumentation (streamed)', () => {
         type: 'string',
         value: 'task',
       },
+      ...(isNode18 && {
+        'sentry.status.message': { type: 'string', value: expect.stringMatching(/^connect ECONNREFUSED/) },
+      }),
     };
 
     const COMMON_SPAN_PROPS = {
