@@ -19976,6 +19976,11 @@ jsonc-parser@3.2.0, jsonc-parser@^3.0.0:
   resolved "https://registry.yarnpkg.com/jsonc-parser/-/jsonc-parser-3.2.0.tgz#31ff3f4c2b9793f89c67212627c51c6394f88e76"
   integrity sha512-gfFQZrcTc8CnKXp6Y4/CBT3fTc0OVuDofpre4aEeEpSBPV5X5v4+Vmx+8snU7RLPrNHPKSgLxGo9YuQzz20o+w==
 
+jsonc-parser@^3.2.0:
+  version "3.3.1"
+  resolved "https://registry.yarnpkg.com/jsonc-parser/-/jsonc-parser-3.3.1.tgz#f2a524b4f7fd11e3d791e559977ad60b98b798b4"
+  integrity sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==
+
 jsondiffpatch@0.6.0:
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/jsondiffpatch/-/jsondiffpatch-0.6.0.tgz#daa6a25bedf0830974c81545568d5f671c82551f"
@@ -27365,6 +27370,11 @@ smol-toml@1.6.1:
   version "1.6.1"
   resolved "https://registry.yarnpkg.com/smol-toml/-/smol-toml-1.6.1.tgz#4fceb5f7c4b86c2544024ef686e12ff0983465be"
   integrity sha512-dWUG8F5sIIARXih1DTaQAX4SsiTXhInKf1buxdY9DIg4ZYPZK5nGM1VRIYmEbDbsHt7USo99xSLFu5Q1IqTmsg==
+
+smol-toml@^1.5.2:
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/smol-toml/-/smol-toml-1.7.0.tgz#ed1b259ce7e05907df1abe758971bd0a0ef2c0dd"
+  integrity sha512-aqVvWoyO21L23mb+drl4RmMXbf6N7FdHjAhTRA9ZBL7apWBgfWC16KjrASI+1p9GAroljyMHj6fK67i0UiTNvQ==
 
 snake-case@^3.0.3:
   version "3.0.4"

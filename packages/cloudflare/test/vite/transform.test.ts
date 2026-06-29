@@ -1,0 +1,206 @@
+import { parse } from 'acorn';
+import { describe, expect, it } from 'vitest';
+import { applyAutoInstrumentTransforms, type TransformContext } from '../../src/vite/transform';
+
+function parseJS(code: string) {
+  return parse(code, { ecmaVersion: 'latest', sourceType: 'module' }) as unknown as { body: any[] };
+}
+
+function transform(code: string, ctx: TransformContext) {
+  return applyAutoInstrumentTransforms(code, parseJS(code), ctx);
+}
+
+// ---------------------------------------------------------------------------
+// Default export wrapping
+// ---------------------------------------------------------------------------
+
+describe('default export wrapping', () => {
+  const ctx: TransformContext = { doClassNames: new Set(), optionsFn: '(env) => ({})' };
+
+  it('wraps an object-literal default export', () => {
+    const code = [
+      'const handler = {',
+      '  fetch() { return new Response("ok"); }',
+      '};',
+      'export default handler;',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result).toBeDefined();
+    expect(result.code).toContain("import * as __SENTRY__ from '@sentry/cloudflare'");
+    expect(result.code).toContain('const __SENTRY_DEFAULT_EXPORT__ = handler');
+    expect(result.code).toContain('__SENTRY__.withSentry((env) => ({}), __SENTRY_DEFAULT_EXPORT__)');
+    expect(result.code).not.toContain('export default handler');
+    expect(result.map).toBeDefined();
+  });
+
+  it('wraps an inline object default export', () => {
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = transform(code, ctx)!;
+    expect(result).toBeDefined();
+    expect(result.code).toContain('const __SENTRY_DEFAULT_EXPORT__ =');
+    expect(result.code).toContain('__SENTRY__.withSentry(');
+  });
+
+  it('wraps a class default export', () => {
+    const code = [
+      'class Worker {',
+      '  fetch(request) { return new Response("ok"); }',
+      '}',
+      'export default Worker;',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result).toBeDefined();
+    expect(result.code).toContain('__SENTRY__.withSentry(');
+  });
+
+  it('uses custom options callback', () => {
+    const custom: TransformContext = {
+      doClassNames: new Set(),
+      optionsFn: '(env) => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1.0 })',
+    };
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = transform(code, custom)!;
+    expect(result.code).toContain('dsn: env.SENTRY_DSN');
+    expect(result.code).toContain('tracesSampleRate: 1.0');
+  });
+
+  it('skips when already wrapped with withSentry', () => {
+    const code = [
+      "import { withSentry } from '@sentry/cloudflare';",
+      'export default withSentry((env) => ({}), { fetch() {} });',
+    ].join('\n');
+    expect(transform(code, ctx)).toBeUndefined();
+  });
+
+  it('skips when already wrapped with Sentry.withSentry', () => {
+    const code = [
+      "import * as Sentry from '@sentry/cloudflare';",
+      'export default Sentry.withSentry((env) => ({}), { fetch() {} });',
+    ].join('\n');
+    expect(transform(code, ctx)).toBeUndefined();
+  });
+
+  it('generates a source map', () => {
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = transform(code, ctx)!;
+    expect(result.map).toBeDefined();
+    expect(result.map.mappings).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Durable Object class wrapping
+// ---------------------------------------------------------------------------
+
+describe('Durable Object class wrapping', () => {
+  const ctx: TransformContext = {
+    doClassNames: new Set(['MyDurableObject']),
+    optionsFn: '(env) => ({})',
+  };
+
+  it('wraps an exported DO class', () => {
+    const code = [
+      'class DurableObject {}',
+      'export class MyDurableObject extends DurableObject {',
+      '  fetch(request) { return new Response("DO ok"); }',
+      '}',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result).toBeDefined();
+
+    expect(result.code).toContain('class __SENTRY_ORIGINAL_MyDurableObject__');
+    expect(result.code).not.toContain('export class MyDurableObject');
+    expect(result.code).toContain('__SENTRY__.instrumentDurableObjectWithSentry(');
+    expect(result.code).toContain('export const MyDurableObject =');
+    expect(result.code).toContain('__SENTRY_ORIGINAL_MyDurableObject__');
+  });
+
+  it('wraps multiple DO classes', () => {
+    const multi: TransformContext = {
+      doClassNames: new Set(['DOA', 'DOB']),
+      optionsFn: '(env) => ({})',
+    };
+
+    const code = [
+      'class DurableObject {}',
+      'export class DOA extends DurableObject {}',
+      'export class DOB extends DurableObject {}',
+    ].join('\n');
+
+    const result = transform(code, multi)!;
+    expect(result).toBeDefined();
+    expect(result.code).toContain('export const DOA =');
+    expect(result.code).toContain('export const DOB =');
+    expect(result.code).toContain('class __SENTRY_ORIGINAL_DOA__');
+    expect(result.code).toContain('class __SENTRY_ORIGINAL_DOB__');
+  });
+
+  it('ignores classes not listed in wrangler config', () => {
+    const code = ['class DurableObject {}', 'export class SomeOtherClass extends DurableObject {}'].join('\n');
+
+    expect(transform(code, ctx)).toBeUndefined();
+  });
+
+  it('ignores non-class named exports', () => {
+    const code = 'export const MyDurableObject = 42;';
+    expect(transform(code, ctx)).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Combined transforms (DO + default export)
+// ---------------------------------------------------------------------------
+
+describe('combined transforms', () => {
+  const ctx: TransformContext = {
+    doClassNames: new Set(['MyDO']),
+    optionsFn: '(env) => ({ dsn: env.SENTRY_DSN })',
+  };
+
+  it('wraps both DO class and default export', () => {
+    const code = [
+      'class DurableObject {}',
+      'export class MyDO extends DurableObject {',
+      '  fetch(r) { return new Response("do"); }',
+      '}',
+      'export default {',
+      '  fetch(r) { return new Response("main"); }',
+      '};',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result).toBeDefined();
+
+    // DO wrapped
+    expect(result.code).toContain('class __SENTRY_ORIGINAL_MyDO__');
+    expect(result.code).toContain('export const MyDO = __SENTRY__.instrumentDurableObjectWithSentry(');
+
+    // Default export wrapped
+    expect(result.code).toContain('const __SENTRY_DEFAULT_EXPORT__ =');
+    expect(result.code).toContain('export default __SENTRY__.withSentry(');
+
+    // Single import
+    const importCount = (result.code.match(/import \* as __SENTRY__/g) ?? []).length;
+    expect(importCount).toBe(1);
+  });
+
+  it('wraps DO but skips already-wrapped default export', () => {
+    const code = [
+      'class DurableObject {}',
+      'export class MyDO extends DurableObject {}',
+      "import { withSentry } from '@sentry/cloudflare';",
+      'export default withSentry((env) => ({}), { fetch() {} });',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result).toBeDefined();
+    // DO still wrapped
+    expect(result.code).toContain('export const MyDO =');
+    // Default not double-wrapped
+    expect(result.code).not.toContain('__SENTRY_DEFAULT_EXPORT__');
+  });
+});

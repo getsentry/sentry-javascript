@@ -117,6 +117,7 @@ export {
 } from '@sentry/core';
 
 export { withSentry } from './withSentry';
+export { defineCloudflareOptions } from './defineCloudflareOptions';
 export { instrumentDurableObjectWithSentry } from './durableobject';
 export { sentryPagesPlugin } from './pages-plugin';
 
@@ -130,6 +131,7 @@ export { fetchIntegration } from './integrations/fetch';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
 // eslint-disable-next-line typescript/no-deprecated
 export { honoIntegration } from './integrations/hono';
+export { cloudflareMysqlIntegration } from './integrations/mysql';
 
 // eslint-disable-next-line typescript/no-deprecated
 export { instrumentD1WithSentry } from './instrumentations/worker/instrumentD1';

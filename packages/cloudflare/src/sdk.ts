@@ -17,6 +17,7 @@ import { makeFlushLock } from './flush';
 import { httpServerIntegration } from './integrations/httpServer';
 import { fetchIntegration } from './integrations/fetch';
 import { honoIntegration } from './integrations/hono';
+import { cloudflareMysqlIntegration } from './integrations/mysql';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
@@ -44,6 +45,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     httpServerIntegration(),
     requestDataIntegration(cookiesEnabled ? undefined : { include: { cookies: false } }),
     consoleIntegration(),
+    cloudflareMysqlIntegration(),
   ];
 }
 
