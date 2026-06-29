@@ -114,7 +114,7 @@ function _init(
     initializeEsmLoader();
   }
 
-  setOpenTelemetryContextAsyncContextStrategy();
+  setOpenTelemetryContextAsyncContextStrategy(options);
 
   const scope = getCurrentScope();
   scope.update(options.initialScope);

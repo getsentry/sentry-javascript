@@ -63,7 +63,9 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): Client | undefined {
-  setOpenTelemetryContextAsyncContextStrategy();
+  // We force skipOpenTelemetrySetup: true here, because this triggers the custom lookup for the AsyncLocalStorage instance
+  // Since we use a custom Context Manager here (because AsyncLocalStorage is looked up differently than in Node), we need to do this
+  setOpenTelemetryContextAsyncContextStrategy({ skipOpenTelemetrySetup: true });
 
   const scope = getCurrentScope();
   scope.update(options.initialScope);

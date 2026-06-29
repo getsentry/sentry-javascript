@@ -25,10 +25,11 @@ import type { Context, ContextManager } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { EventEmitter } from 'node:events';
-import { SENTRY_SCOPES_CONTEXT_KEY } from './constants';
 import type { AsyncLocalStorageLookup } from './contextManager';
+import { SENTRY_SCOPES_CONTEXT_KEY } from './constants';
 import { buildContextWithSentryScopes } from './utils/buildContextWithSentryScopes';
 import { setIsSetup } from './utils/setupCheck';
+import { getAsyncContextStrategy, getMainCarrier } from '@sentry/core';
 
 type ListenerFn = (...args: unknown[]) => unknown;
 
@@ -44,13 +45,18 @@ const ADD_LISTENER_METHODS = ['addListener', 'on', 'once', 'prependListener', 'p
  * Semantics match `@opentelemetry/context-async-hooks` (function `bind` + `EventEmitter` patching).
  */
 export class SentryAsyncLocalStorageContextManager implements ContextManager {
-  protected readonly _asyncLocalStorage = new AsyncLocalStorage<Context>();
+  protected readonly _asyncLocalStorage: AsyncLocalStorage<Context>;
 
   private readonly _kOtListeners = Symbol('OtListeners');
   private _wrapped = false;
 
   public constructor() {
     setIsSetup('SentryContextManager');
+    // Pick the instance from the async context strategy
+    // this should normally always be there, but if it is not for whatever reason, we fall back to a new instance
+    this._asyncLocalStorage =
+      (getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()
+        ?.asyncLocalStorage as AsyncLocalStorage<Context>) ?? new AsyncLocalStorage<Context>();
   }
 
   public active(): Context {
