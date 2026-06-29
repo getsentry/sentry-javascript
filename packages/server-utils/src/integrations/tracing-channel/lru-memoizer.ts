@@ -6,7 +6,7 @@ import { CHANNELS } from '../../orchestrion/channels';
 
 // Same name as the OTel integration by design — when enabled, the OTel
 // 'LruMemoizer' integration is omitted from the default set.
-const INTEGRATION_NAME = 'LruMemoizer';
+const INTEGRATION_NAME = 'LruMemoizer' as const;
 
 interface LruMemoizerChannelContext {
   arguments: unknown[];
