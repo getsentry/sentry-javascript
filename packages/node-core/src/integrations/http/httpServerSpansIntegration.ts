@@ -178,10 +178,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           applyCustomAttributesOnSpan?.(span, request, response);
           onSpanCreated?.(span, request, response);
 
-          const rpcMetadata: RPCMetadata = {
-            type: RPCType.HTTP,
-            span,
-          };
+          const rpcMetadata: RPCMetadata = { type: RPCType.HTTP, span };
 
           return context.with(setRPCMetadata(trace.setSpan(context.active(), span), rpcMetadata), () => {
             context.bind(context.active(), request);
