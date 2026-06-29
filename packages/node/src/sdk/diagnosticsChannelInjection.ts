@@ -14,7 +14,7 @@ import type { Integration } from '@sentry/core';
  */
 export interface DiagnosticsChannelInjection {
   /** Channel-based integrations to register, replacing their OTel equivalents. */
-  integrations: Integration[];
+  integrations: Integration[] | readonly Integration[];
   /** OTel integration names these replace; filtered out of the default set. */
   replacedOtelIntegrationNames: string[];
   /** Installs the module hooks that inject the diagnostics channels. */
