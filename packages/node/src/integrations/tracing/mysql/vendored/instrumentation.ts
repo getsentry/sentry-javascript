@@ -12,7 +12,6 @@
  */
 
 import type { Span } from '@opentelemetry/api';
-import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Scope, SpanAttributes } from '@sentry/core';
@@ -21,6 +20,8 @@ import {
   getCurrentScope,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
+  SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
   withScope,
@@ -219,7 +220,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
 
         const span = startInactiveSpan({
           name: getSpanName(query),
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes,
         });
 
@@ -235,7 +236,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
           return streamableQuery
             .on('error', (err: unknown) => {
               span.setStatus({
-                code: SpanStatusCode.ERROR,
+                code: SPAN_STATUS_ERROR,
                 message: (err as mysqlTypes.MysqlError).message,
               });
             })
@@ -258,7 +259,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
       return function (err: mysqlTypes.MysqlError | null, _results?: unknown, _fields?: mysqlTypes.FieldInfo[]) {
         if (err) {
           span.setStatus({
-            code: SpanStatusCode.ERROR,
+            code: SPAN_STATUS_ERROR,
             message: err.message,
           });
         }
