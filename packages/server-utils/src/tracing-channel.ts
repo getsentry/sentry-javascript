@@ -3,7 +3,7 @@ import type { AsyncLocalStorage } from 'node:async_hooks';
 import type { ExclusiveEventHintOrCaptureContext, Span } from '@sentry/core';
 import { debug, captureException, SPAN_STATUS_ERROR, getAsyncContextStrategy, getMainCarrier } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
-import { ERROR_TYPE, SENTRY_STATUS_MESSAGE } from '@sentry/conventions/attributes';
+import { ERROR_TYPE } from '@sentry/conventions/attributes';
 
 export type TracingChannelPayloadWithSpan<TData extends object> = TData & {
   _sentrySpan?: Span;
@@ -208,7 +208,6 @@ function getErrorInfo(error: unknown): ErrorInfo {
     message,
     attributes: {
       [ERROR_TYPE]: type,
-      [SENTRY_STATUS_MESSAGE]: message,
     },
   };
 }

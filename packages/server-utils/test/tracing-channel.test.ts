@@ -387,7 +387,6 @@ describe('bindTracingChannelToSpan', () => {
         const { status, data } = spanToJSON(span);
         expect(status).toBe('bad input');
         expect(data['error.type']).toBe('TypeError');
-        expect(data['sentry.status.message']).toBe('bad input');
       });
 
       it('stringifies a thrown primitive and marks the type unknown', () => {
@@ -405,7 +404,6 @@ describe('bindTracingChannelToSpan', () => {
         const { status, data } = spanToJSON(span);
         expect(status).toBe('plain failure');
         expect(data['error.type']).toBe('unknown');
-        expect(data['sentry.status.message']).toBe('plain failure');
       });
 
       it('falls back to unknown_error for an error-like object without `name` or `message`', () => {
@@ -423,7 +421,6 @@ describe('bindTracingChannelToSpan', () => {
         const { status, data } = spanToJSON(span);
         expect(status).toBe('unknown_error');
         expect(data['error.type']).toBe('unknown');
-        expect(data['sentry.status.message']).toBe('unknown_error');
       });
 
       it('falls back to unknown_error when a falsy value is thrown', () => {
@@ -445,7 +442,6 @@ describe('bindTracingChannelToSpan', () => {
         const { status, data } = spanToJSON(span);
         expect(status).toBe('unknown_error');
         expect(data['error.type']).toBe('unknown');
-        expect(data['sentry.status.message']).toBe('unknown_error');
       });
     });
   });
