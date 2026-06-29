@@ -13,6 +13,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE,
   SEMANTIC_ATTRIBUTE_USER_EMAIL,
   SEMANTIC_ATTRIBUTE_USER_ID,
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
@@ -67,6 +68,10 @@ describe('captureSpan', () => {
         status: 'ok',
         is_segment: true,
         attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
+          },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
             type: 'string',
             value: 'http.client',
@@ -204,6 +209,10 @@ describe('captureSpan', () => {
           value: 'staging',
           type: 'string',
         },
+        [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+          value: 'stream',
+          type: 'string',
+        },
         [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: {
           value: 'sentry.javascript.node',
           type: 'string',
@@ -300,6 +309,10 @@ describe('captureSpan', () => {
           value: 'production',
           type: 'string',
         },
+        [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+          value: 'stream',
+          type: 'string',
+        },
       },
       _segmentSpan: span,
     });
@@ -344,6 +357,7 @@ describe('captureSpan', () => {
       status: 'ok',
       is_segment: true,
       attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.client' },
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },

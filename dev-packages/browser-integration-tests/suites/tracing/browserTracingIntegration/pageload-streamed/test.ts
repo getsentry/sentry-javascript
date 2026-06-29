@@ -11,6 +11,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -64,6 +65,10 @@ sentryTest(
 
     expect(pageloadSpan).toEqual({
       attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+          type: 'string',
+          value: 'stream',
+        },
         'culture.calendar': {
           type: 'string',
           value: expect.any(String),

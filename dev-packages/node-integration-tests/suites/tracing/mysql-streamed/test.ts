@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE } from '@sentry/core';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses } from '../../../utils/runner';
@@ -90,6 +90,10 @@ describe('mysql auto instrumentation (streamed)', () => {
       ...(isNode18 && {
         'sentry.status.message': { type: 'string', value: expect.stringMatching(/^connect ECONNREFUSED/) },
       }),
+      [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+        type: 'string',
+        value: 'stream',
+      },
     };
 
     const COMMON_SPAN_PROPS = {
