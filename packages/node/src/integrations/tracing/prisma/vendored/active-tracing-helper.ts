@@ -6,11 +6,9 @@
  * - Vendored from: https://github.com/prisma/prisma/tree/b6feea5565ec577545a79547d24273ccdd11b4c7/packages/instrumentation
  * - Upstream version: @prisma/instrumentation@7.8.0
  * - Replaced `@prisma/instrumentation-contract` imports with local vendored types
- * - Span creation was migrated from the OTel tracer to Sentry's span APIs (`startSpanManual` /
- *   `startInactiveSpan`)
- * - The former `index.ts` `spanStart` hook is folded into span creation: the Sentry origin, the
- *   `db_query` -> query-text span rename, and the `db.system` backfill for older Prisma versions are
- *   applied where the spans are started instead of via a client hook
+ * - Span creation uses Sentry's span APIs (`startSpanManual` / `startInactiveSpan`) instead of the OTel tracer
+ * - Span creation sets the Sentry origin, renames `db_query` spans to their SQL text, and backfills
+ *   `db.system` for older Prisma versions
  */
 
 import type { Context } from '@opentelemetry/api';
@@ -36,8 +34,7 @@ type Options = {
 };
 
 /**
- * Folds the former `index.ts` `spanStart` hook into span creation: tags the Sentry origin and
- * backfills `db.system` for older Prisma versions that emit `prisma:engine:db_query` without it.
+ * Older Prisma versions emit `prisma:engine:db_query` spans without a `db.system`, so it's backfilled here.
  */
 function buildSpanAttributes(name: string, attributes: Record<string, unknown> | undefined): SpanAttributes {
   const merged: SpanAttributes = {
@@ -53,9 +50,8 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
 }
 
 /**
- * Uses the query text as the span name for db query spans (e.g. `SELECT * FROM "User"`), matching the
- * behavior the SDK previously applied via the `spanStart` hook. v5/v6 emit `prisma:engine:db_query`;
- * v7 inlined the engine and emits `prisma:client:db_query`.
+ * Db query spans are named after their SQL text (e.g. `SELECT * FROM "User"`) rather than the generic
+ * engine name. v5/v6 emit `prisma:engine:db_query`; v7 inlined the engine and emits `prisma:client:db_query`.
  */
 function buildSpanName(name: string, attributes: SpanAttributes): string {
   const queryText = attributes['db.query.text'];

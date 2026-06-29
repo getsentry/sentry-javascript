@@ -190,10 +190,9 @@ export const prismaIntegration = defineIntegration((options?: PrismaOptions) => 
         return;
       }
 
-      // The v6/v7 tracing helper folds origin, the db_query span rename, and the db.system backfill
-      // directly into span creation (see vendored/active-tracing-helper.ts). This hook backstops the
-      // Prisma v5 engine spans created via the `createEngineSpan` compatibility path above, which
-      // bypass the helper. The guards below are idempotent, so it's a no-op for helper-created spans.
+      // Prisma v5 engine spans are created via the `createEngineSpan` path above, which bypasses the
+      // tracing helper, so this hook applies origin, the db_query rename, and the db.system backfill to
+      // them. v6/v7 spans already get these from the helper; the guards are idempotent, so it's a no-op there.
       client.on('spanStart', span => {
         const spanJSON = spanToJSON(span);
         if (spanJSON.description?.startsWith('prisma:')) {
