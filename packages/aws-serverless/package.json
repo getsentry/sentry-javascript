@@ -68,7 +68,7 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/instrumentation": "^0.214.0",
-    "@sentry/conventions": "^0.12.0",
+    "@sentry/conventions": "^0.15.1",
     "@sentry/core": "10.63.0",
     "@sentry/node": "10.63.0",
     "@sentry/node-core": "10.63.0",
