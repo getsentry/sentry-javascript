@@ -2,6 +2,8 @@ import { SpanKind } from '@opentelemetry/api';
 import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
 import {
   addNonEnumerableProperty,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -81,7 +83,8 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
 
   if (options.finalizeStatus) {
     applyOtelCompatibilityAttributes(span, attributes);
-    applyOtelSpanStatus(span, attributes, spanJSON.status);
+    const client = getClient();
+    applyOtelSpanStatus(span, attributes, spanJSON.status, !!client && hasSpanStreamingEnabled(client));
   }
 
   // Only re-infer the name for spans branded for OTel source inference (those the provider created
@@ -103,13 +106,23 @@ export function applyOtelSpanKind(span: Span, kind: SpanKind | undefined): void 
   addNonEnumerableProperty(span as SentrySpanWithOtelKind, 'kind', kind ?? SpanKind.INTERNAL);
 }
 
-function applyOtelSpanStatus(span: Span, attributes: SpanAttributes, status: string | undefined): void {
+function applyOtelSpanStatus(
+  span: Span,
+  attributes: SpanAttributes,
+  status: string | undefined,
+  spanStreamingEnabled: boolean,
+): void {
   if (status === undefined) {
     span.setStatus(inferStatusFromAttributes(attributes) || { code: SPAN_STATUS_OK });
     return;
   }
 
-  if (status !== 'ok' && !isStatusErrorMessageValid(status)) {
+  // Normalize a non-canonical error message to `internal_error` for the (non-streamed) transaction
+  // `status` field, matching the OTel SDK exporter's `mapStatus`. Skip this under span streaming: the
+  // streamed serializer preserves the raw message as `sentry.status.message` by reading the live span
+  // status, and the OTel SDK path keeps it too because `mapStatus` maps at export without mutating the
+  // span. Overwriting it here would replace that message with `internal_error`.
+  if (!spanStreamingEnabled && status !== 'ok' && !isStatusErrorMessageValid(status)) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   }
 }
