@@ -75,10 +75,6 @@ const _mysqlChannelIntegration = (() => {
 
       DEBUG_BUILD && debug.log(`[orchestrion:mysql] subscribing to channel "${CHANNELS.MYSQL_QUERY}"`);
 
-      // `bindTracingChannelToSpan` uses `bindStore`, which needs the async-context binding registered
-      // after integration `setupOnce` — defer until it's available (matches the other channel subscribers).
-      // The helper opens the span on `start`, restores the caller's context for callback-style queries on
-      // `asyncStart`, sets error status, and ends the span on `asyncEnd` (callback) / `end` (sync throw).
       waitForTracingChannelBinding(() => {
         bindTracingChannelToSpan(
           diagnosticsChannel.tracingChannel<MysqlQueryChannelContext>(CHANNELS.MYSQL_QUERY),
@@ -111,12 +107,8 @@ const _mysqlChannelIntegration = (() => {
           {
             // mysql's no-callback `query(sql)` returns a streamable `Query` emitter: the channel publishes
             // `end` synchronously (carrying the emitter as `result`), but the query isn't done until the
-            // emitter emits `'end'`/`'error'`. Defer ending to those events for that path; the callback and
-            // sync-throw paths carry no emitter, so the helper ends the span as usual.
-            // Note: a streamed span never finishes if the connection is destroyed mid-flight — mysql then
-            // emits neither `'end'` nor `'error'`, so the span is dropped (it leaks no memory; the emitter
-            // and its closed-over span are collected together). Closing this needs connection-level hooks
-            // the per-query context doesn't expose.
+            // emitter emits `'end'`/`'error'`.
+            // Defer ending to those events for that path.
             deferSpanEnd(span, data) {
               const result = data.result;
               if (!result || typeof result !== 'object' || !hasOnMethod(result)) {
