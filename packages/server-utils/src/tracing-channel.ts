@@ -181,8 +181,8 @@ function bindSpanToChannelStore<TData extends object>(
   });
 
   // Restore the caller's context for the async continuation. Only callback-style channels `runStores`
-  // `asyncStart` (so the callback runs inside this store); promise channels `publish` it, leaving this
-  // inert — their continuation already inherits the caller's context natively.
+  // `asyncStart` (so the callback runs inside this store). promise channels `publish` it, leaving this
+  // inert, their continuation already inherits the caller's context natively.
   channel.asyncStart.bindStore(asyncLocalStorage, (data: TracingChannelPayloadWithSpan<TData>) => {
     return (data._sentryCallerStore ?? asyncLocalStorage.getStore()) as TData;
   });
