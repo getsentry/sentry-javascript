@@ -1,3 +1,4 @@
+import { SENTRY_SPAN_SOURCE } from '@sentry/conventions/attributes';
 import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
@@ -138,7 +139,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
 
   // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
   // TODO(v11): Only read `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` again, once we renamed it to `sentry.span.source`
-  const source = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] ?? rootSpanAttributes['sentry.span.source'];
+  const source = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] ?? rootSpanAttributes[SENTRY_SPAN_SOURCE];
 
   // after JSON conversion, txn.name becomes jsonSpan.description
   const name = rootSpanJson.description;
