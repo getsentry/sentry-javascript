@@ -6,12 +6,7 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-// TODO(provider): The SentryTracerProvider assembles transactions synchronously when the root span
-// ends (it has no SpanExporter buffer/debounce), so the engine spans `@prisma/instrumentation`
-// replays asynchronously on a later tick land too late and are dropped. These pass on the OTel SDK
-// (`BasicTracerProvider`) path, whose exporter debounces. Re-enable once the general "complete
-// span-tree capture without a SpanExporter" follow-up lands.
-describe.skip('Prisma ORM v6 Tests', () => {
+describe('Prisma ORM v6 Tests', () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario.mjs',
