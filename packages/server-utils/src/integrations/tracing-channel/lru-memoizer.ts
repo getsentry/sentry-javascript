@@ -24,11 +24,10 @@ const _lruMemoizerChannelIntegration = (() => {
 
       DEBUG_BUILD && debug.log(`[orchestrion:lru-memoizer] subscribing to channel "${CHANNELS.LRU_MEMOIZER_LOAD}"`);
 
-      // We only want the helper's caller-context restore for the
-      // callback lru-memoizer fires from a detached `setImmediate`. Defer until the bindStore binding exists.
       waitForTracingChannelBinding(() => {
         bindTracingChannelToSpan(
           diagnosticsChannel.tracingChannel<LruMemoizerLoadContext>(CHANNELS.LRU_MEMOIZER_LOAD),
+          // We only want the helper's caller-context restore for the callback lru-memoizer fires from a detached `setImmediate`.
           () => undefined,
         );
       });
