@@ -1,5 +1,5 @@
 {
-  "name": "nextjs-16-cacheComponents",
+  "name": "nextjs-16-streaming-cacheComponents",
   "version": "0.1.0",
   "private": true,
   "scripts": {
