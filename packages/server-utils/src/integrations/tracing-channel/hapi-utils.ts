@@ -212,6 +212,8 @@ function wrapExtMethods<T extends PatchableExtMethod | PatchableExtMethod[]>(
       const metadata = getExtMetadata(extPoint, pluginName, method.name);
       return startMetadataSpan(metadata, () => method.apply(undefined, params));
     };
+    // Mark the wrapper too (not just the original)
+    newHandler[handlerPatched] = true;
     return newHandler as T;
   }
   return method;

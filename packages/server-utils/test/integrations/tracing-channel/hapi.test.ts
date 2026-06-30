@@ -299,6 +299,30 @@ describe('hapiChannelIntegration', () => {
     expect(span.data['server.ext.type']).toBe('onPreHandler');
   });
 
+  it('is idempotent: publishing ext start twice wraps the method only once', () => {
+    const collected = collectSpans();
+
+    let called = 0;
+    const extEvent = {
+      type: 'onPreHandler',
+      method: function (): string {
+        called++;
+        return 'ext-result';
+      },
+    };
+    const args: unknown[] = [extEvent];
+
+    publishExt(args);
+    publishExt(args);
+
+    startSpan({ name: 'GET /', op: 'http.server' }, () => {
+      (extEvent.method as () => unknown)();
+    });
+
+    expect(called).toBe(1);
+    expect(collected.filter(s => s.op === 'server.ext.hapi')).toHaveLength(1);
+  });
+
   it('wraps an ext method given as a tuple and creates a server.ext span', () => {
     const collected = collectSpans();
 
