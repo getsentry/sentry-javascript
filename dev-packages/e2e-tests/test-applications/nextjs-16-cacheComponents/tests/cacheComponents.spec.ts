@@ -84,8 +84,7 @@ test('Should generate metadata async', async ({ page }) => {
 test('Metatag injection produces exactly one pageload trace with cache components', async ({ page }) => {
   const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
     return (
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.transaction === 'GET /pageload-tracing'
+      transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /pageload-tracing'
     );
   });
 

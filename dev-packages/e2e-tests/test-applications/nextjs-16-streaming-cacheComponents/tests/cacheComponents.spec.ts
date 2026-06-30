@@ -65,7 +65,7 @@ test('Should generate metadata async', async ({ page }) => {
   await expect(page).toHaveTitle('Product: 1');
 });
 
-test('Metatag injection produces exactly one pageload trace with cache components', async ({ page }) => {
+test('Prerendered shell does not stitch the pageload onto a stale trace', async ({ page }) => {
   const serverSpanPromise = waitForStreamedSpan('nextjs-16-streaming-cacheComponents', span => {
     return span.name === 'GET /pageload-tracing' && getSpanOp(span) === 'http.server' && span.is_segment;
   });
@@ -80,11 +80,14 @@ test('Metatag injection produces exactly one pageload trace with cache component
 
   const [serverSpan, pageloadSpan] = await Promise.all([serverSpanPromise, pageloadSpanPromise]);
 
-  // Server and client pageload spans must share the same trace via metatag injection
+  // Under Cache Components the can be prerendered and rendered in a context detached from the
+  // runtime server request, so a `sentry-trace` meta tag would carry a stale/unrelated trace. The
+  // SDK therefore does not enable the trace meta tags, and the browser pageload starts a fresh trace
+  // instead of stitching onto a trace that doesn't match the server request.
   expect(pageloadSpan.trace_id).toBeTruthy();
-  expect(serverSpan.trace_id).toBe(pageloadSpan.trace_id);
+  expect(serverSpan.trace_id).not.toBe(pageloadSpan.trace_id);
 
-  // Exactly one set of trace meta tags — no duplicates that would cause multiple pageloads
-  expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(1);
-  expect(await page.locator('meta[name="baggage"]').count()).toBe(1);
+  // No trace meta tags should be injected when Cache Components is enabled.
+  expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
+  expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
 });
