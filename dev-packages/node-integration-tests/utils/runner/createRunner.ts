@@ -563,10 +563,22 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   // ensure we're starting fresh
   close();
 
-  const result = spawnSync('docker', ['compose', 'up', '-d', '--wait'], {
-    cwd,
-    stdio: process.env.DEBUG ? 'inherit' : 'pipe',
-  });
+  const composeUp = (): ReturnType<typeof spawnSync> =>
+    spawnSync('docker', ['compose', 'up', '-d', '--wait'], {
+      cwd,
+      stdio: process.env.DEBUG ? 'inherit' : 'pipe',
+    });
+
+  // `docker compose up` occasionally fails on CI with transient daemon races
+  // (e.g. "failed to set up container networking: network <x>_default not
+  // found" right after the network was created). A clean teardown plus retry
+  // clears these, while genuine healthcheck failures stay red on every attempt.
+  const maxAttempts = 3;
+  let result = composeUp();
+  for (let attempt = 1; attempt < maxAttempts && result.status !== 0; attempt++) {
+    close();
+    result = composeUp();
+  }
 
   if (result.status !== 0) {
     const stderr = result.stderr?.toString() ?? '';
