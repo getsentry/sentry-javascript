@@ -1,7 +1,7 @@
 import type { Client, IntegrationFn, MaxRequestBodySize } from '@sentry/core';
 import { captureBodyFromWinterCGRequest, defineIntegration, getIsolationScope } from '@sentry/core';
 
-const INTEGRATION_NAME = 'HttpServer';
+const INTEGRATION_NAME = 'HttpServer' as const;
 
 export interface HttpServerIntegrationOptions {
   /**

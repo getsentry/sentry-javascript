@@ -1,4 +1,4 @@
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import {
   flushIfServerless,
   getActiveSpan,
@@ -80,12 +80,12 @@ export function wrapSentryHandleRequest(
       // Don't override origin when instrumentation API is used (preserve instrumentation_api origin)
       if (isInstrumentationApiUsed()) {
         rootSpan.setAttributes({
-          [ATTR_HTTP_ROUTE]: routeName,
+          [HTTP_ROUTE]: routeName,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         });
       } else {
         rootSpan.setAttributes({
-          [ATTR_HTTP_ROUTE]: routeName,
+          [HTTP_ROUTE]: routeName,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
         });

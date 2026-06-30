@@ -166,7 +166,7 @@ describe('extractExceptionKeysForMessage()', () => {
   });
 });
 
-/* eslint-disable deprecation/deprecation */
+/* eslint-disable typescript/no-deprecated */
 describe('dropUndefinedKeys()', () => {
   test('simple case', () => {
     expect(
@@ -312,7 +312,7 @@ describe('dropUndefinedKeys()', () => {
     expect(droppedChicken.lays[0] === droppedChicken).toBe(true);
   });
 });
-/* eslint-enable deprecation/deprecation */
+/* eslint-enable typescript/no-deprecated */
 
 describe('objectify()', () => {
   describe('stringifies nullish values', () => {

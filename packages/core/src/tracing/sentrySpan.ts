@@ -29,9 +29,10 @@ import type { TimedEvent } from '../types/timedEvent';
 import { debug } from '../utils/debug-logger';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
+  addStatusMessageAttribute,
   convertSpanLinksForEnvelope,
   getRootSpan,
-  getSimpleStatusMessage,
+  getSimpleStatus,
   getSpanDescendants,
   getStatusMessage,
   getStreamedSpanLinks,
@@ -46,7 +47,7 @@ import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
-import { getCapturedScopesOnSpan } from './utils';
+import { getCapturedScopesOnSpan, spanShouldInferOtelSource } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
 
@@ -200,7 +201,14 @@ export class SentrySpan implements Span {
    */
   public updateName(name: string): this {
     this._name = name;
-    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+    // Renaming a span marks its name as explicitly chosen, so we stamp `custom`.
+    // The exception is spans created by SentryTraceProvider: those are branded for
+    // OTel-style source inference at span end (mirroring OTel SDK spans, which have
+    // no Sentry source concept), so instrumentations renaming them must not pin
+    // `custom` — applyOtelSpanData infers the correct source (e.g. 'route', 'task').
+    if (!spanShouldInferOtelSource(this)) {
+      this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+    }
     return this;
   }
 
@@ -264,8 +272,8 @@ export class SentrySpan implements Span {
       // just in case _endTime is not set, we use the start time (i.e. duration 0)
       end_timestamp: this._endTime ?? this._startTime,
       is_segment: this._isStandaloneSpan || this === getRootSpan(this),
-      status: getSimpleStatusMessage(this._status),
-      attributes: this._attributes,
+      status: getSimpleStatus(this._status),
+      attributes: addStatusMessageAttribute(this._attributes, this._status),
       links: getStreamedSpanLinks(this._links),
     };
   }

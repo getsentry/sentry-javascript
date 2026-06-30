@@ -17,7 +17,7 @@ import { AttributeNames } from './constants';
 import { HonoInstrumentation } from './instrumentation';
 import type { Context, MiddlewareHandler, MiddlewareHandlerInterface, Next } from './types';
 
-const INTEGRATION_NAME = 'Hono';
+const INTEGRATION_NAME = 'Hono' as const;
 
 function addHonoSpanAttributes(span: Span): void {
   const attributes = spanToJSON(span).data;

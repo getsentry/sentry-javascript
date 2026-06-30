@@ -20,6 +20,7 @@ import {
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { conditionalTest } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
+import { createEsmTests } from '../../../../utils/runner/createEsmAndCjsTests';
 
 // LangChain v1 requires Node.js 20+ (dropped Node 18 support)
 // See: https://docs.langchain.com/oss/javascript/migrate/langgraph-v1#dropped-node-18-support
@@ -216,7 +217,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario-message-truncation.mjs',
-    'instrument-with-pii.mjs',
+    'instrument-with-truncation.mjs',
     (createRunner, test) => {
       test('truncates messages when they exceed byte limit', async () => {
         await createRunner()
@@ -273,12 +274,12 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
     },
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-openai-before-langchain.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('demonstrates timing issue with duplicate spans (ESM only)', async () => {
+      test('demonstrates timing issue with duplicate spans', async () => {
         await createRunner()
           .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
@@ -306,7 +307,6 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
       });
     },
     {
-      failsOnCjs: true,
       additionalDependencies: {
         langchain: '^1.0.0',
         '@langchain/core': '^1.0.0',

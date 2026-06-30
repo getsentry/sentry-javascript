@@ -1,17 +1,6 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-mysql2
@@ -21,11 +10,16 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { SpanAttributes } from '@sentry/core';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
+import {
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+} from '@sentry/core';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import type { Connection, FormatFunction, Query, QueryError, QueryOptions } from './mysql2-types';
 import { ATTR_DB_STATEMENT, ATTR_DB_SYSTEM, DB_SYSTEM_VALUE_MYSQL } from './semconv';
@@ -129,7 +123,7 @@ export class MySQL2Instrumentation extends InstrumentationBase<InstrumentationCo
 
         const span = startInactiveSpan({
           name: getSpanName(query),
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes,
         });
 

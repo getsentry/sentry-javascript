@@ -12,16 +12,20 @@ export {
   startTrackingInteractions,
   startTrackingLongTasks,
   startTrackingLongAnimationFrames,
+  // eslint-disable-next-line typescript/no-deprecated
   startTrackingWebVitals,
   startTrackingINP,
   registerInpInteractionListener,
 } from './metrics/browserMetrics';
 
+// eslint-disable-next-line typescript/no-deprecated
 export { elementTimingIntegration, startTrackingElementTiming } from './metrics/elementTiming';
 
 export { extractNetworkProtocol } from './metrics/utils';
 
 export { trackClsAsSpan, trackInpAsSpan, trackLcpAsSpan } from './metrics/webVitalSpans';
+
+export { whenIdleOrHidden } from './metrics/web-vitals/lib/whenIdleOrHidden';
 
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';
 

@@ -4,12 +4,7 @@ import { isSpanContextValid, SpanKind, trace } from '@opentelemetry/api';
 import { TraceState } from './utils/TraceState';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
-import {
-  ATTR_HTTP_REQUEST_METHOD,
-  ATTR_URL_FULL,
-  SEMATTRS_HTTP_METHOD,
-  SEMATTRS_HTTP_URL,
-} from '@opentelemetry/semantic-conventions';
+import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
 import type { Client, SpanAttributes } from '@sentry/core';
 import {
   _INTERNAL_safeMathRandom,
@@ -70,9 +65,9 @@ export class SentrySampler implements Sampler {
       return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
-    // `ATTR_HTTP_REQUEST_METHOD` is the new attribute, but we still support the old one, `SEMATTRS_HTTP_METHOD`, for now.
-    // eslint-disable-next-line deprecation/deprecation
-    const maybeSpanHttpMethod = spanAttributes[SEMATTRS_HTTP_METHOD] || spanAttributes[ATTR_HTTP_REQUEST_METHOD];
+    // `HTTP_REQUEST_METHOD` is the new attribute, but we still support the old one, `HTTP_METHOD`, for now.
+    // eslint-disable-next-line typescript/no-deprecated
+    const maybeSpanHttpMethod = spanAttributes[HTTP_METHOD] || spanAttributes[HTTP_REQUEST_METHOD];
 
     // If we have a http.client span that has no local parent, we never want to sample it
     // but we want to leave downstream sampling decisions up to the server.
@@ -331,9 +326,9 @@ function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): Tr
   let traceState = parentContext?.traceState || new TraceState();
 
   // We always keep the URL on the trace state, so we can access it in the propagator
-  // `ATTR_URL_FULL` is the new attribute, but we still support the old one, `ATTR_HTTP_URL`, for now.
-  // eslint-disable-next-line deprecation/deprecation
-  const url = spanAttributes[SEMATTRS_HTTP_URL] || spanAttributes[ATTR_URL_FULL];
+  // `URL_FULL` is the new attribute, but we still support the old one, `HTTP_URL`, for now.
+  // eslint-disable-next-line typescript/no-deprecated
+  const url = spanAttributes[HTTP_URL] || spanAttributes[URL_FULL];
   if (url && typeof url === 'string') {
     traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);
   }

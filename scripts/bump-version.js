@@ -5,6 +5,35 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 }
 
+function updateWorkspaceDeps(pkgPath, workspaceNames, newVersion, { bumpVersion } = {}) {
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+
+  if (bumpVersion) {
+    pkg.version = newVersion;
+  }
+
+  for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
+    if (!pkg[depType]) continue;
+
+    for (const [dep, ver] of Object.entries(pkg[depType])) {
+      if (workspaceNames.has(dep) && !ver.startsWith('workspace:')) {
+        pkg[depType][dep] = newVersion;
+      }
+    }
+  }
+
+  if (pkg.pnpm?.overrides) {
+    for (const [dep, value] of Object.entries(pkg.pnpm.overrides)) {
+      if (!workspaceNames.has(dep)) continue;
+
+      pkg.pnpm.overrides[dep] = value.replace(/(?<=sentry-[\w-]+-)\d+\.\d+\.\d+(-[\w.]+)?(?=\.tgz$)/, newVersion);
+    }
+  }
+
+  fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+  return pkg;
+}
+
 /**
  * Bumps the version of all workspace packages and their internal dependencies.
  * This replicates the behavior of:
@@ -29,39 +58,38 @@ function bumpVersions(rootDir, newVersion) {
   // Read all workspace package.json files upfront.
   // This ensures we fail early if any workspace is unreadable,
   // before writing any changes (no partial updates).
-  const workspacePackages = [];
   const workspaceNames = new Set();
+  const workspacePkgPaths = [];
   for (const workspace of workspaces) {
     const pkgPath = path.join(rootDir, workspace, 'package.json');
     const pkg = readJson(pkgPath);
     workspaceNames.add(pkg.name);
-    workspacePackages.push({ pkgPath, pkg });
+    workspacePkgPaths.push(pkgPath);
   }
 
   // Apply version bumps
-  for (const { pkgPath, pkg } of workspacePackages) {
-    pkg.version = newVersion;
-
-    // Update internal workspace dependency versions (exact, no ^)
-    // This covers dependencies, devDependencies, and peerDependencies
-    for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
-      if (!pkg[depType]) {
-        continue;
-      }
-
-      for (const [dep, ver] of Object.entries(pkg[depType])) {
-        // Update all workspace dependencies to the new exact version,
-        // matching lerna's --force-publish --exact behavior
-        if (workspaceNames.has(dep) && !ver.startsWith('workspace:')) {
-          pkg[depType][dep] = newVersion;
-        }
-      }
-    }
-
-    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+  for (const pkgPath of workspacePkgPaths) {
+    updateWorkspaceDeps(pkgPath, workspaceNames, newVersion, { bumpVersion: true });
   }
 
-  return workspacePackages.length;
+  // Update bundler-plugin integration test fixtures.
+  // These are standalone pnpm projects (not workspaces) that reference local tarballs
+  // with version-stamped filenames, so they need explicit patching.
+  const fixturesDir = path.join(rootDir, 'dev-packages', 'bundler-plugin-integration-tests', 'fixtures');
+
+  if (fs.existsSync(fixturesDir)) {
+    for (const entry of fs.readdirSync(fixturesDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+
+      const fixturePkgPath = path.join(fixturesDir, entry.name, 'package.json');
+
+      if (!fs.existsSync(fixturePkgPath)) continue;
+
+      updateWorkspaceDeps(fixturePkgPath, workspaceNames, newVersion);
+    }
+  }
+
+  return workspacePkgPaths.length;
 }
 
 // CLI entry point

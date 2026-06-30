@@ -1,8 +1,8 @@
-/* eslint-disable deprecation/deprecation */
+/* eslint-disable typescript/no-deprecated */
 import type { Span } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
+import { HTTP_METHOD, HTTP_URL } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getRequestSpanData } from '../../src/utils/getRequestSpanData';
 import { setupOtel } from '../helpers/initOtel';
@@ -35,8 +35,8 @@ describe('getRequestSpanData', () => {
   it('works with http span', () => {
     const span = createSpan('test-span');
     span.setAttributes({
-      [SEMATTRS_HTTP_URL]: 'http://example.com?foo=bar#baz',
-      [SEMATTRS_HTTP_METHOD]: 'GET',
+      [HTTP_URL]: 'http://example.com?foo=bar#baz',
+      [HTTP_METHOD]: 'GET',
     });
 
     const data = getRequestSpanData(span);
@@ -52,7 +52,7 @@ describe('getRequestSpanData', () => {
   it('works without method', () => {
     const span = createSpan('test-span');
     span.setAttributes({
-      [SEMATTRS_HTTP_URL]: 'http://example.com',
+      [HTTP_URL]: 'http://example.com',
     });
 
     const data = getRequestSpanData(span);
@@ -66,8 +66,8 @@ describe('getRequestSpanData', () => {
   it('works with incorrect URL', () => {
     const span = createSpan('test-span');
     span.setAttributes({
-      [SEMATTRS_HTTP_URL]: 'malformed-url-here',
-      [SEMATTRS_HTTP_METHOD]: 'GET',
+      [HTTP_URL]: 'malformed-url-here',
+      [HTTP_METHOD]: 'GET',
     });
 
     const data = getRequestSpanData(span);

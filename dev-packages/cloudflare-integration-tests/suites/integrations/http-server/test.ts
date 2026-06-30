@@ -5,16 +5,20 @@ import { createRunner } from '../../../runner';
 it('Captures JSON request body', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(
-      eventEnvelope({
-        level: 'info',
-        message: 'POST JSON request',
-        request: {
-          headers: expect.any(Object),
-          method: 'POST',
-          url: expect.stringContaining('/post-json'),
-          data: '{"username":"test","action":"login"}',
+      eventEnvelope(
+        {
+          level: 'info',
+          message: 'POST JSON request',
+          request: {
+            headers: expect.any(Object),
+            method: 'POST',
+            url: expect.stringContaining('/post-json'),
+            data: '{"username":"test","action":"login"}',
+          },
         },
-      }),
+        // Raw URL span (source `url`), so the TwP DSC omits the span name.
+        { includeTransaction: false },
+      ),
     )
     .start(signal);
 
@@ -29,16 +33,20 @@ it('Captures JSON request body', async ({ signal }) => {
 it('Captures form-urlencoded request body', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(
-      eventEnvelope({
-        level: 'info',
-        message: 'POST form request',
-        request: {
-          headers: expect.any(Object),
-          method: 'POST',
-          url: expect.stringContaining('/post-form'),
-          data: 'username=test&password=secret',
+      eventEnvelope(
+        {
+          level: 'info',
+          message: 'POST form request',
+          request: {
+            headers: expect.any(Object),
+            method: 'POST',
+            url: expect.stringContaining('/post-form'),
+            data: 'username=test&password=secret',
+          },
         },
-      }),
+        // Raw URL span (source `url`), so the TwP DSC omits the span name.
+        { includeTransaction: false },
+      ),
     )
     .start(signal);
 
@@ -53,16 +61,20 @@ it('Captures form-urlencoded request body', async ({ signal }) => {
 it('Captures plain text request body', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(
-      eventEnvelope({
-        level: 'info',
-        message: 'POST text request',
-        request: {
-          headers: expect.any(Object),
-          method: 'POST',
-          url: expect.stringContaining('/post-text'),
-          data: 'This is plain text content',
+      eventEnvelope(
+        {
+          level: 'info',
+          message: 'POST text request',
+          request: {
+            headers: expect.any(Object),
+            method: 'POST',
+            url: expect.stringContaining('/post-text'),
+            data: 'This is plain text content',
+          },
         },
-      }),
+        // Raw URL span (source `url`), so the TwP DSC omits the span name.
+        { includeTransaction: false },
+      ),
     )
     .start(signal);
 
@@ -77,15 +89,19 @@ it('Captures plain text request body', async ({ signal }) => {
 it('Does not capture body for POST without content', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(
-      eventEnvelope({
-        level: 'info',
-        message: 'POST no body request',
-        request: {
-          headers: expect.any(Object),
-          method: 'POST',
-          url: expect.stringContaining('/post-no-body'),
+      eventEnvelope(
+        {
+          level: 'info',
+          message: 'POST no body request',
+          request: {
+            headers: expect.any(Object),
+            method: 'POST',
+            url: expect.stringContaining('/post-no-body'),
+          },
         },
-      }),
+        // Raw URL span (source `url`), so the TwP DSC omits the span name.
+        { includeTransaction: false },
+      ),
     )
     .start(signal);
 

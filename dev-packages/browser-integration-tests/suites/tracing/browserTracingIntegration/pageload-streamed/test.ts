@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import {
   SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
@@ -158,6 +159,10 @@ sentryTest(
         'sentry.span.source': {
           type: 'string',
           value: 'url',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          type: 'string',
+          value: 'production',
         },
       },
       end_timestamp: expect.any(Number),

@@ -14,7 +14,7 @@
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@sentry/profiling-node": "file:../../packed/sentry-profiling-node-packed.tgz",
     "@types/node": "^18.19.1",
-    "esbuild": "0.25.0",
+    "esbuild": "0.28.1",
     "typescript": "^5.7.3"
   },
   "volta": {

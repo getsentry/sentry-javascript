@@ -25,7 +25,7 @@ import { registerThread, threadPoll } from '@sentry/node-native-stacktrace';
 import type { ThreadBlockedIntegrationOptions, WorkerStartData } from './common';
 import { POLL_RATIO } from './common';
 
-const INTEGRATION_NAME = 'ThreadBlocked';
+const INTEGRATION_NAME = 'ThreadBlocked' as const;
 const DEFAULT_THRESHOLD_MS = 1_000;
 
 function log(message: string, ...args: unknown[]): void {

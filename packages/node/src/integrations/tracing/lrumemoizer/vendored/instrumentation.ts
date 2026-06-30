@@ -1,26 +1,14 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-lru-memoizer
  * - Upstream version: @opentelemetry/instrumentation-lru-memoizer@0.62.0
  */
 
-import { context } from '@opentelemetry/api';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { SDK_VERSION } from '@sentry/core';
+import { getCurrentScope, SDK_VERSION, withScope } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-lru-memoizer';
 
@@ -48,8 +36,13 @@ export class LruMemoizerInstrumentation extends InstrumentationBase {
             return function (this: unknown, ...memoizerArgs: unknown[]): unknown {
               // last argument is the callback
               const origCallback = memoizerArgs.pop();
+              const scope = getCurrentScope();
               const callbackWithContext =
-                typeof origCallback === 'function' ? context.bind(context.active(), origCallback) : origCallback;
+                typeof origCallback === 'function'
+                  ? function (this: unknown, ...callbackArgs: unknown[]): unknown {
+                      return withScope(scope, () => (origCallback as Memoizer).apply(this, callbackArgs));
+                    }
+                  : origCallback;
               return origMemoizer.apply(this, [...memoizerArgs, callbackWithContext]);
             };
           };

@@ -1,0 +1,26 @@
+{
+  "name": "node-express-orchestrion-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --import ./src/instrument.mjs ./src/app.mjs",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
+    "test:build": "pnpm install",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "express": "^5.1.0",
+    "mysql": "2.18.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

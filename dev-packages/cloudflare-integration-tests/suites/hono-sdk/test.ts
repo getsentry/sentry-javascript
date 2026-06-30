@@ -39,7 +39,7 @@ it('Hono app captures parametrized errors (Hono SDK)', async ({ signal }) => {
             },
           ],
         },
-        { includeSampleRand: true, sdk: 'hono' },
+        { includeSamplingFields: true, includeSampleRand: true, sdk: 'hono' },
       ),
     )
 

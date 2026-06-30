@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "@sentry/deno": "npm:@sentry/deno",
+    "mysql": "npm:mysql@2.18.1"
+  },
+  "nodeModulesDir": "manual"
+}

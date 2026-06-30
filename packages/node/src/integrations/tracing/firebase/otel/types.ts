@@ -1,5 +1,3 @@
-import type { Span } from '@opentelemetry/api';
-import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Inlined types from 'firebase/app'
@@ -82,28 +80,6 @@ export interface FirestoreSettings {
   experimentalForceLongPolling?: boolean;
   experimentalAutoDetectLongPolling?: boolean;
   useFetchStreams?: boolean;
-}
-
-/**
- * Firebase Auto Instrumentation
- */
-export interface FirebaseInstrumentationConfig extends InstrumentationConfig {
-  firestoreSpanCreationHook?: FirestoreSpanCreationHook;
-  functions?: FunctionsConfig;
-}
-
-export interface FunctionsConfig {
-  requestHook?: RequestHook;
-  responseHook?: ResponseHook;
-  errorHook?: ErrorHook;
-}
-
-export type RequestHook = (span: Span) => void;
-export type ResponseHook = (span: Span, error?: unknown) => void;
-export type ErrorHook = (span: Span, error?: unknown) => Promise<void> | void;
-
-export interface FirestoreSpanCreationHook {
-  (span: Span): void;
 }
 
 // Function types (addDoc, getDocs, setDoc, deleteDoc) are defined below as types

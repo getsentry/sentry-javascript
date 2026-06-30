@@ -8,7 +8,7 @@ const DEFAULT_EVENT_TARGET =
     ',',
   );
 
-const INTEGRATION_NAME = 'BrowserApiErrors';
+const INTEGRATION_NAME = 'BrowserApiErrors' as const;
 
 type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress' | 'onreadystatechange';
 

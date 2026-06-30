@@ -3,7 +3,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 
-const INTEGRATION_NAME = 'LruMemoizer';
+const INTEGRATION_NAME = 'LruMemoizer' as const;
 
 export const instrumentLruMemoizer = generateInstrumentOnce(INTEGRATION_NAME, () => new LruMemoizerInstrumentation());
 

@@ -1,15 +1,15 @@
-import {
-  ATTR_SERVICE_NAME,
-  ATTR_SERVICE_VERSION,
-  ATTR_TELEMETRY_SDK_LANGUAGE,
-  ATTR_TELEMETRY_SDK_NAME,
-  ATTR_TELEMETRY_SDK_VERSION,
-  SEMRESATTRS_SERVICE_NAMESPACE,
-} from '@opentelemetry/semantic-conventions';
+import { SERVICE_NAME, SERVICE_VERSION } from '@sentry/conventions/attributes';
 import { SDK_VERSION } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getSentryResource } from '../src/resource';
 import { SDK_INFO } from '@opentelemetry/core';
+
+// These resource attributes are not (yet) part of `@sentry/conventions`, so we inline the
+// stable OTel attribute keys here as plain strings (mirroring `src/resource.ts`).
+const ATTR_TELEMETRY_SDK_LANGUAGE = 'telemetry.sdk.language';
+const ATTR_TELEMETRY_SDK_NAME = 'telemetry.sdk.name';
+const ATTR_TELEMETRY_SDK_VERSION = 'telemetry.sdk.version';
+const SEMRESATTRS_SERVICE_NAMESPACE = 'service.namespace';
 
 describe('getSentryResource', () => {
   const originalEnv = process.env;
@@ -28,19 +28,19 @@ describe('getSentryResource', () => {
 
   it('uses serviceNameFallback when no env vars are set', () => {
     const resource = getSentryResource('node');
-    expect(resource.attributes[ATTR_SERVICE_NAME]).toBe('node');
+    expect(resource.attributes[SERVICE_NAME]).toBe('node');
   });
 
   it('uses OTEL_SERVICE_NAME over the fallback', () => {
     process.env['OTEL_SERVICE_NAME'] = 'my-service';
     const resource = getSentryResource('node');
-    expect(resource.attributes[ATTR_SERVICE_NAME]).toBe('my-service');
+    expect(resource.attributes[SERVICE_NAME]).toBe('my-service');
   });
 
   it('ignores empty OTEL_SERVICE_NAME and falls back to serviceNameFallback', () => {
     process.env['OTEL_SERVICE_NAME'] = '';
     const resource = getSentryResource('node');
-    expect(resource.attributes[ATTR_SERVICE_NAME]).toBe('node');
+    expect(resource.attributes[SERVICE_NAME]).toBe('node');
   });
 
   it('includes OTEL_RESOURCE_ATTRIBUTES key=value pairs', () => {
@@ -53,20 +53,20 @@ describe('getSentryResource', () => {
   it('OTEL_RESOURCE_ATTRIBUTES can override service.name (but OTEL_SERVICE_NAME takes precedence over it)', () => {
     process.env['OTEL_RESOURCE_ATTRIBUTES'] = 'service.name=from-attrs';
     const resource = getSentryResource('node');
-    expect(resource.attributes[ATTR_SERVICE_NAME]).toBe('from-attrs');
+    expect(resource.attributes[SERVICE_NAME]).toBe('from-attrs');
   });
 
   it('OTEL_SERVICE_NAME takes precedence over service.name from OTEL_RESOURCE_ATTRIBUTES', () => {
     process.env['OTEL_RESOURCE_ATTRIBUTES'] = 'service.name=from-attrs';
     process.env['OTEL_SERVICE_NAME'] = 'from-service-name';
     const resource = getSentryResource('node');
-    expect(resource.attributes[ATTR_SERVICE_NAME]).toBe('from-service-name');
+    expect(resource.attributes[SERVICE_NAME]).toBe('from-service-name');
   });
 
   it('OTEL_RESOURCE_ATTRIBUTES can override service.namespace', () => {
     process.env['OTEL_RESOURCE_ATTRIBUTES'] = 'service.namespace=my-namespace';
     const resource = getSentryResource('node');
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     expect(resource.attributes[SEMRESATTRS_SERVICE_NAMESPACE]).toBe('my-namespace');
   });
 
@@ -83,7 +83,7 @@ describe('getSentryResource', () => {
   it('Sentry SDK telemetry attrs cannot be overridden by OTEL_SERVICE_NAME (service.version)', () => {
     process.env['OTEL_RESOURCE_ATTRIBUTES'] = 'service.version=0.0.0';
     const resource = getSentryResource('node');
-    expect(resource.attributes[ATTR_SERVICE_VERSION]).toBe(SDK_VERSION);
+    expect(resource.attributes[SERVICE_VERSION]).toBe(SDK_VERSION);
   });
 
   it('always includes Sentry SDK telemetry attributes', () => {
@@ -91,12 +91,12 @@ describe('getSentryResource', () => {
     expect(resource.attributes[ATTR_TELEMETRY_SDK_LANGUAGE]).toBeDefined();
     expect(resource.attributes[ATTR_TELEMETRY_SDK_NAME]).toBeDefined();
     expect(resource.attributes[ATTR_TELEMETRY_SDK_VERSION]).toBeDefined();
-    expect(resource.attributes[ATTR_SERVICE_VERSION]).toBe(SDK_VERSION);
+    expect(resource.attributes[SERVICE_VERSION]).toBe(SDK_VERSION);
   });
 
   it('always sets service.namespace to sentry by default', () => {
     const resource = getSentryResource('node');
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     expect(resource.attributes[SEMRESATTRS_SERVICE_NAMESPACE]).toBe('sentry');
   });
 

@@ -23,7 +23,11 @@ export function getRequestOptions(request: HttpClientRequest): HttpRequestOption
 }
 
 export function getRequestUrl(requestOptions: HttpRequestOptions): string {
-  return String(getRequestUrlObject(requestOptions));
+  try {
+    return String(getRequestUrlObject(requestOptions));
+  } catch {
+    return '';
+  }
 }
 
 export function getRequestUrlObject(requestOptions: HttpRequestOptions): URL {
@@ -37,7 +41,10 @@ export function getRequestUrlObject(requestOptions: HttpRequestOptions): URL {
       ? ''
       : `:${requestOptions.port}`;
   const path = requestOptions.path ? requestOptions.path : '/';
-  return new URL(path, `${protocol}//${hostname}${port}`);
+  const base = `${protocol}//${hostname}${port}`;
+  // A path starting with `//` (valid for e.g. S3 object keys) would otherwise be parsed as a
+  // protocol-relative reference, discarding the request's origin, so we resolve it against the origin.
+  return new URL(path.startsWith('//') ? `${base}${path}` : path, base);
 }
 
 /**

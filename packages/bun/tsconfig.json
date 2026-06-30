@@ -5,6 +5,8 @@
 
   "compilerOptions": {
     // package-specific options
-    "types": ["bun-types"]
+    "types": ["bun-types"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
   }
 }

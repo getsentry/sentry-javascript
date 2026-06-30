@@ -347,7 +347,7 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario-message-truncation.mjs',
-    'instrument-with-pii.mjs',
+    'instrument-with-truncation.mjs',
     (createRunner, test) => {
       test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
         await createRunner()

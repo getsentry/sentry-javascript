@@ -8,7 +8,7 @@ import { PrismaInstrumentation } from './vendored/instrumentation';
 import type { PrismaV5TracingHelper } from './vendored/v5-tracing-helper';
 import type { PrismaV6TracingHelper } from './vendored/v6-tracing-helper';
 
-const INTEGRATION_NAME = 'Prisma';
+const INTEGRATION_NAME = 'Prisma' as const;
 
 type CompatibilityLayerTraceHelper = PrismaV5TracingHelper & PrismaV6TracingHelper;
 

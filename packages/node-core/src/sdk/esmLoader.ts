@@ -19,7 +19,6 @@ export function initializeEsmLoader(): void {
 
     try {
       const { addHookMessagePort } = createAddHookMessageChannel();
-      // @ts-expect-error register is available in these versions
       moduleModule.register('import-in-the-middle/hook.mjs', import.meta.url, {
         data: { addHookMessagePort, include: [] },
         transferList: [addHookMessagePort],

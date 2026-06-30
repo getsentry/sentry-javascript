@@ -57,7 +57,7 @@ interface BreadcrumbsOptions {
 /** maxStringLength gets capped to prevent 100 breadcrumbs exceeding 1MB event payload size */
 const MAX_ALLOWED_STRING_LENGTH = 1024;
 
-const INTEGRATION_NAME = 'Breadcrumbs';
+const INTEGRATION_NAME = 'Breadcrumbs' as const;
 
 const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
   const _options = {

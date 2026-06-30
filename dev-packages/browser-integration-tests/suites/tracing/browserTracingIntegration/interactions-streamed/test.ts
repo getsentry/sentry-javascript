@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import {
   SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -101,6 +102,10 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: 'url',
       },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+        type: 'string',
+        value: 'production',
+      },
     },
     end_timestamp: expect.any(Number),
     is_segment: true,
@@ -140,6 +145,10 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
       [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: {
         type: 'string',
         value: '/index.html',
+      },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+        type: 'string',
+        value: 'production',
       },
     },
     end_timestamp: expect.any(Number),

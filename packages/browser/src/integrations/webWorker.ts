@@ -5,7 +5,7 @@ import { eventFromUnknownInput } from '../eventbuilder';
 import { WINDOW } from '../helpers';
 import { _eventFromRejectionWithPrimitive, _getUnhandledRejectionError } from './globalhandlers';
 
-export const INTEGRATION_NAME = 'WebWorker';
+export const INTEGRATION_NAME = 'WebWorker' as const;
 
 interface WebWorkerMessage {
   _sentryMessage: boolean;

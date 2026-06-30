@@ -89,7 +89,7 @@ interface FastifyHandlerOptions {
   shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
 }
 
-const INTEGRATION_NAME = 'Fastify';
+const INTEGRATION_NAME = 'Fastify' as const;
 
 export const instrumentFastifyV3 = generateInstrumentOnce(
   `${INTEGRATION_NAME}.v3`,

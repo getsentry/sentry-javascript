@@ -48,7 +48,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
       ...unstableSentryVitePluginOptions?.sourcemaps,
       ...sentryConfig.sourcemaps,
       ...sourceMapsUploadOptions,
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
       disable: sourceMapsUploadOptions?.enabled === false ? true : sentryConfig.sourcemaps?.disable,
     },
     release: {

@@ -81,7 +81,7 @@ test('Should generate metadata async', async ({ page }) => {
   await expect(page).toHaveTitle('Product: 1');
 });
 
-test('Metatag injection produces exactly one pageload trace with cache components', async ({ page }) => {
+test('Prerendered shell does not stitch the pageload onto a stale trace', async ({ page }) => {
   const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /pageload-tracing'
@@ -101,11 +101,21 @@ test('Metatag injection produces exactly one pageload trace with cache component
   const serverTraceId = serverTx.contexts?.trace?.trace_id;
   const pageloadTraceId = pageloadTx.contexts?.trace?.trace_id;
 
-  // Server and client pageload must share the same trace via metatag injection
+  // Under Cache Components the shell is prerendered and rendered in a context detached from the
+  // runtime server request, so a `sentry-trace` meta tag would carry a stale/unrelated trace. The
+  // SDK therefore does not enable the trace meta tags, and the browser pageload starts a fresh trace
+  // instead of stitching onto a trace that doesn't match the server request.
   expect(pageloadTraceId).toBeTruthy();
-  expect(serverTraceId).toBe(pageloadTraceId);
+  expect(serverTraceId).not.toBe(pageloadTraceId);
 
-  // Exactly one set of trace meta tags — no duplicates that would cause multiple pageloads
-  expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(1);
-  expect(await page.locator('meta[name="baggage"]').count()).toBe(1);
+  // No trace meta tags should be injected when Cache Components is enabled.
+  expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
+  expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
+});
+
+test('Should prerender a page that captures an exception in generateMetadata', async ({ page }) => {
+  await page.goto('/capture-metadata');
+
+  await expect(page).toHaveTitle('capture-metadata');
+  await expect(page.locator('h1')).toHaveText('capture-metadata');
 });

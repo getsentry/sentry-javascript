@@ -2,6 +2,8 @@ import { KoaInstrumentation } from '../../../src/integrations/tracing/koa/vendor
 import { INSTRUMENTED } from '@sentry/node-core';
 import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import { instrumentKoa, koaIntegration } from '../../../src/integrations/tracing/koa';
+import { isLayerIgnored } from '../../../src/integrations/tracing/koa/vendored/utils';
+import { KoaLayerType, type KoaInstrumentationConfig } from '../../../src/integrations/tracing/koa/vendored/types';
 
 vi.mock('../../../src/integrations/tracing/koa/vendored/instrumentation');
 
@@ -27,7 +29,6 @@ describe('Koa', () => {
     expect(KoaInstrumentation).toHaveBeenCalledTimes(1);
     expect(KoaInstrumentation).toHaveBeenCalledWith({
       ignoreLayersType: undefined,
-      requestHook: expect.any(Function),
     });
   });
 
@@ -37,7 +38,6 @@ describe('Koa', () => {
     expect(KoaInstrumentation).toHaveBeenCalledTimes(1);
     expect(KoaInstrumentation).toHaveBeenCalledWith({
       ignoreLayersType: ['middleware'],
-      requestHook: expect.any(Function),
     });
   });
 
@@ -47,7 +47,6 @@ describe('Koa', () => {
     expect(KoaInstrumentation).toHaveBeenCalledTimes(1);
     expect(KoaInstrumentation).toHaveBeenCalledWith({
       ignoreLayersType: ['middleware', 'router'],
-      requestHook: expect.any(Function),
     });
   });
 
@@ -57,7 +56,6 @@ describe('Koa', () => {
     expect(KoaInstrumentation).toHaveBeenCalledTimes(1);
     expect(KoaInstrumentation).toHaveBeenCalledWith({
       ignoreLayersType: undefined,
-      requestHook: expect.any(Function),
     });
   });
 
@@ -67,7 +65,6 @@ describe('Koa', () => {
     expect(KoaInstrumentation).toHaveBeenCalledTimes(1);
     expect(KoaInstrumentation).toHaveBeenCalledWith({
       ignoreLayersType: ['middleware'],
-      requestHook: expect.any(Function),
     });
   });
 
@@ -77,7 +74,20 @@ describe('Koa', () => {
     expect(KoaInstrumentation).toHaveBeenCalledTimes(1);
     expect(KoaInstrumentation).toHaveBeenCalledWith({
       ignoreLayersType: ['router', 'middleware'],
-      requestHook: expect.any(Function),
     });
+  });
+});
+
+describe('isLayerIgnored', () => {
+  it('does not fail with invalid config', () => {
+    expect(isLayerIgnored(KoaLayerType.MIDDLEWARE)).toBe(false);
+    expect(isLayerIgnored(KoaLayerType.MIDDLEWARE, {} as KoaInstrumentationConfig)).toBe(false);
+    expect(isLayerIgnored(KoaLayerType.MIDDLEWARE, { ignoreLayersType: {} } as KoaInstrumentationConfig)).toBe(false);
+    expect(isLayerIgnored(KoaLayerType.ROUTER, { ignoreLayersType: {} } as KoaInstrumentationConfig)).toBe(false);
+  });
+
+  it('ignores based on type', () => {
+    expect(isLayerIgnored(KoaLayerType.MIDDLEWARE, { ignoreLayersType: [KoaLayerType.MIDDLEWARE] })).toBe(true);
+    expect(isLayerIgnored(KoaLayerType.ROUTER, { ignoreLayersType: [KoaLayerType.MIDDLEWARE] })).toBe(false);
   });
 });

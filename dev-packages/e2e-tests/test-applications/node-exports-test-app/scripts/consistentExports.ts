@@ -21,6 +21,10 @@ const NODE_EXPORTS_IGNORE = [
   'SentryContextManager',
   'validateOpenTelemetrySetup',
   'preloadOpenTelemetry',
+  // Experimental, Node-runtime-only opt-in (diagnostics-channel injection); it
+  // registers Node module hooks and is not surfaced through the framework /
+  // serverless SDKs.
+  'experimentalUseDiagnosticsChannelInjection',
   // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
   '_INTERNAL_normalizeCollectionInterval',
 ];

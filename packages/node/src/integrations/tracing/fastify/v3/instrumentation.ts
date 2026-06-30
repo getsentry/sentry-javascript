@@ -265,7 +265,7 @@ export class FastifyInstrumentationV3 extends InstrumentationBase<FastifyInstrum
       const spanAttributes: Attributes = {
         [AttributeNames.PLUGIN_NAME]: this.pluginName,
         [AttributeNames.FASTIFY_TYPE]: FastifyTypes.REQUEST_HANDLER,
-        // eslint-disable-next-line deprecation/deprecation
+        // eslint-disable-next-line typescript/no-deprecated
         [SEMATTRS_HTTP_ROUTE]: anyRequest.routeOptions
           ? anyRequest.routeOptions.url // since fastify@4.10.0
           : request.routerPath,

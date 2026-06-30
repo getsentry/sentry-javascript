@@ -3,7 +3,12 @@
 
   "include": ["src/**/*"],
 
-  "compilerOptions": {
-    "lib": ["ES2020"]
-  }
+  "compilerOptions": {},
+  // The orchestrion runtime hook is a hand-written `.mjs` file that self-references
+  // `@sentry/server-utils/orchestrion/config`. If tsc picks it up, it
+  // follows that subpath export back to `build/types/orchestrion/config.d.ts`,
+  // treats the .d.ts as an input, and then collides with the .d.ts it wants to
+  // emit from `src/orchestrion/config.ts`. Excluding it keeps tsc focused on the
+  // .ts sources — rollup copies the file through to `build/orchestrion/` unchanged.
+  "exclude": ["src/orchestrion/runtime/**/*.mjs", "src/orchestrion/runtime/**/*.cjs"]
 }

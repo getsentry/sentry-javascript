@@ -1,6 +1,6 @@
 import type { InstrumentedMethodRegistry } from '../ai/utils';
 
-export const ANTHROPIC_AI_INTEGRATION_NAME = 'Anthropic_AI';
+export const ANTHROPIC_AI_INTEGRATION_NAME = 'Anthropic_AI' as const;
 
 // https://docs.anthropic.com/en/api/messages
 // https://docs.anthropic.com/en/api/models-list

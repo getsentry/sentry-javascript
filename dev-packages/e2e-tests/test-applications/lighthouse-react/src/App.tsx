@@ -27,7 +27,7 @@ export default function App() {
       </header>
 
       <section className="hero">
-        <img src="/logo.svg" alt="Lighthouse logo" width={120} height={120} />
+        <img src="/logo.svg" alt="Lighthouse logo" width={120} height={120} elementtiming="logo-svg" />
         <h1>Lighthouse Fixture</h1>
         <p>
           This app exists to measure JavaScript bundle size and runtime cost across three Sentry instrumentation

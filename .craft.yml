@@ -149,6 +149,9 @@ targets:
   ## 7. Other Packages
   ## 7.1
   - name: npm
+    id: '@sentry/bundler-plugins'
+    includeNames: /^sentry-bundler-plugins-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/typescript'
     includeNames: /^sentry-typescript-\d.*\.tgz$/
   - name: npm

@@ -1,32 +1,41 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-amqplib
  * - Upstream version: @opentelemetry/instrumentation-amqplib@0.65.0
  * - Some types vendored from @types/amqplib with simplifications
+ * - Span creation extracted here and migrated to the @sentry/core API; origin folded into span creation
+ * - Cross-service trace propagation uses Sentry's `getTraceData` instead of the OTel propagator
+ * - Dropped the env-gated stable-semconv dual emission; only the (default) old semantic conventions are emitted
+ * - Replaced the OTel context-key confirm-channel marker with a synchronous flag on the channel instance
  */
-/* eslint-disable */
 
-import { Context, createContextKey, diag, Span, Attributes, AttributeValue } from '@opentelemetry/api';
-import { SemconvStability } from '@opentelemetry/instrumentation';
-import { ATTR_SERVER_ADDRESS, ATTR_SERVER_PORT } from '@opentelemetry/semantic-conventions';
-import { ATTR_MESSAGING_SYSTEM, ATTR_NET_PEER_NAME, ATTR_NET_PEER_PORT } from './semconv';
-import { ATTR_MESSAGING_PROTOCOL, ATTR_MESSAGING_PROTOCOL_VERSION, ATTR_MESSAGING_URL } from './semconv-obsolete';
-import type { Connection, Channel, ConfirmChannel, Options } from './amqplib-types';
+import { SpanKind } from '@opentelemetry/api';
+import type { Span, SpanAttributes } from '@sentry/core';
+import { getTraceData, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import type { Channel, ConfirmChannel, Connection, Options } from './amqplib-types';
+import {
+  ATTR_MESSAGING_CONVERSATION_ID,
+  ATTR_MESSAGING_DESTINATION,
+  ATTR_MESSAGING_DESTINATION_KIND,
+  ATTR_MESSAGING_OPERATION,
+  ATTR_MESSAGING_PROTOCOL,
+  ATTR_MESSAGING_PROTOCOL_VERSION,
+  ATTR_MESSAGING_RABBITMQ_ROUTING_KEY,
+  ATTR_MESSAGING_SYSTEM,
+  ATTR_MESSAGING_URL,
+  ATTR_NET_PEER_NAME,
+  ATTR_NET_PEER_PORT,
+  MESSAGING_DESTINATION_KIND_VALUE_TOPIC,
+  MESSAGING_OPERATION_VALUE_PROCESS,
+  OLD_ATTR_MESSAGING_MESSAGE_ID,
+} from './semconv';
 import type { ConsumeMessage, Message } from './types';
+
+const PUBLISHER_ORIGIN = 'auto.amqplib.otel.publisher';
+const CONSUMER_ORIGIN = 'auto.amqplib.otel.consumer';
 
 export const MESSAGE_STORED_SPAN: unique symbol = Symbol('opentelemetry.amqplib.message.stored-span');
 export const CHANNEL_SPANS_NOT_ENDED: unique symbol = Symbol('opentelemetry.amqplib.channel.spans-not-ended');
@@ -34,12 +43,14 @@ export const CHANNEL_CONSUME_TIMEOUT_TIMER: unique symbol = Symbol(
   'opentelemetry.amqplib.channel.consumer-timeout-timer',
 );
 export const CONNECTION_ATTRIBUTES: unique symbol = Symbol('opentelemetry.amqplib.connection.attributes');
+export const CHANNEL_IS_CONFIRM_PUBLISHING: unique symbol = Symbol('sentry.amqplib.channel.is-confirm-publishing');
 
 export type InstrumentationConnection = Connection & {
-  [CONNECTION_ATTRIBUTES]?: Attributes;
+  [CONNECTION_ATTRIBUTES]?: SpanAttributes;
 };
 export type InstrumentationPublishChannel = (Channel | ConfirmChannel) & {
   connection: InstrumentationConnection;
+  [CHANNEL_IS_CONFIRM_PUBLISHING]?: boolean;
 };
 export type InstrumentationConsumeChannel = Channel & {
   connection: InstrumentationConnection;
@@ -56,9 +67,7 @@ export type InstrumentationConsumeMessage = ConsumeMessage & {
   [MESSAGE_STORED_SPAN]?: Span;
 };
 
-const IS_CONFIRM_CHANNEL_CONTEXT_KEY: symbol = createContextKey('opentelemetry.amqplib.channel.is-confirm-channel');
-
-export const normalizeExchange = (exchangeName: string) => (exchangeName !== '' ? exchangeName : '<default>');
+export const normalizeExchange = (exchangeName: string): string => (exchangeName !== '' ? exchangeName : '<default>');
 
 const censorPassword = (url: string): string => {
   return url.replace(/:[^:@/]*@/, ':***@');
@@ -66,43 +75,27 @@ const censorPassword = (url: string): string => {
 
 const getPort = (portFromUrl: number | undefined, resolvedProtocol: string): number => {
   // we are using the resolved protocol which is upper case
-  // this code mimic the behavior of the amqplib which is used to set connection params
+  // this code mimics the behavior of amqplib which is used to set connection params
   return portFromUrl || (resolvedProtocol === 'AMQP' ? 5672 : 5671);
 };
 
 const getProtocol = (protocolFromUrl: string | undefined): string => {
   const resolvedProtocol = protocolFromUrl || 'amqp';
-  // the substring removed the ':' part of the protocol ('amqp:' -> 'amqp')
+  // the substring removes the ':' part of the protocol ('amqp:' -> 'amqp')
   const noEndingColon = resolvedProtocol.endsWith(':')
     ? resolvedProtocol.substring(0, resolvedProtocol.length - 1)
     : resolvedProtocol;
-  // upper cases to match spec
+  // upper case to match spec
   return noEndingColon.toUpperCase();
 };
 
 const getHostname = (hostnameFromUrl: string | undefined): string => {
-  // if user supplies empty hostname, it gets forwarded to 'net' package which default it to localhost.
+  // if user supplies empty hostname, it gets forwarded to 'net' package which defaults it to localhost.
   // https://nodejs.org/docs/latest-v12.x/api/net.html#net_socket_connect_options_connectlistener
   return hostnameFromUrl || 'localhost';
 };
 
-const extractConnectionAttributeOrLog = (
-  url: string | Options.Connect,
-  attributeKey: string,
-  attributeValue: AttributeValue,
-  nameForLog: string,
-): Attributes => {
-  if (attributeValue) {
-    return { [attributeKey]: attributeValue };
-  } else {
-    diag.error(`amqplib instrumentation: could not extract connection attribute ${nameForLog} from user supplied url`, {
-      url,
-    });
-    return {};
-  }
-};
-
-export const getConnectionAttributesFromServer = (conn: Connection): Attributes => {
+export const getConnectionAttributesFromServer = (conn: Connection): SpanAttributes => {
   const product = conn.serverProperties.product?.toLowerCase?.();
   if (product) {
     return {
@@ -113,90 +106,100 @@ export const getConnectionAttributesFromServer = (conn: Connection): Attributes 
   }
 };
 
-export const getConnectionAttributesFromUrl = (
-  url: string | Options.Connect,
-  netSemconvStability: SemconvStability,
-): Attributes => {
-  const attributes: Attributes = {
+export const getConnectionAttributesFromUrl = (url: string | Options.Connect): SpanAttributes => {
+  const attributes: SpanAttributes = {
     [ATTR_MESSAGING_PROTOCOL_VERSION]: '0.9.1', // this is the only protocol supported by the instrumented library
   };
 
-  url = url || 'amqp://localhost';
-  if (typeof url === 'object') {
-    const connectOptions = url as Options.Connect;
+  const resolvedUrl = url || 'amqp://localhost';
+  if (typeof resolvedUrl === 'object') {
+    const connectOptions = resolvedUrl;
 
     const protocol = getProtocol(connectOptions?.protocol);
-    Object.assign(attributes, {
-      ...extractConnectionAttributeOrLog(url, ATTR_MESSAGING_PROTOCOL, protocol, 'protocol'),
-    });
-
-    const hostname = getHostname(connectOptions?.hostname);
-    if (netSemconvStability & SemconvStability.OLD) {
-      Object.assign(attributes, {
-        ...extractConnectionAttributeOrLog(url, ATTR_NET_PEER_NAME, hostname, 'hostname'),
-      });
-    }
-    if (netSemconvStability & SemconvStability.STABLE) {
-      Object.assign(attributes, {
-        ...extractConnectionAttributeOrLog(url, ATTR_SERVER_ADDRESS, hostname, 'hostname'),
-      });
-    }
-
-    const port = getPort(connectOptions.port, protocol);
-    if (netSemconvStability & SemconvStability.OLD) {
-      Object.assign(attributes, extractConnectionAttributeOrLog(url, ATTR_NET_PEER_PORT, port, 'port'));
-    }
-    if (netSemconvStability & SemconvStability.STABLE) {
-      Object.assign(attributes, extractConnectionAttributeOrLog(url, ATTR_SERVER_PORT, port, 'port'));
-    }
+    attributes[ATTR_MESSAGING_PROTOCOL] = protocol;
+    attributes[ATTR_NET_PEER_NAME] = getHostname(connectOptions?.hostname);
+    attributes[ATTR_NET_PEER_PORT] = getPort(connectOptions.port, protocol);
   } else {
-    const censoredUrl = censorPassword(url);
+    const censoredUrl = censorPassword(resolvedUrl);
     attributes[ATTR_MESSAGING_URL] = censoredUrl;
     try {
       const urlParts = new URL(censoredUrl);
 
       const protocol = getProtocol(urlParts.protocol);
-      Object.assign(attributes, {
-        ...extractConnectionAttributeOrLog(censoredUrl, ATTR_MESSAGING_PROTOCOL, protocol, 'protocol'),
-      });
-
-      const hostname = getHostname(urlParts.hostname);
-      if (netSemconvStability & SemconvStability.OLD) {
-        Object.assign(attributes, {
-          ...extractConnectionAttributeOrLog(censoredUrl, ATTR_NET_PEER_NAME, hostname, 'hostname'),
-        });
-      }
-      if (netSemconvStability & SemconvStability.STABLE) {
-        Object.assign(attributes, {
-          ...extractConnectionAttributeOrLog(censoredUrl, ATTR_SERVER_ADDRESS, hostname, 'hostname'),
-        });
-      }
-
-      const port = getPort(urlParts.port ? parseInt(urlParts.port) : undefined, protocol);
-      if (netSemconvStability & SemconvStability.OLD) {
-        Object.assign(attributes, extractConnectionAttributeOrLog(censoredUrl, ATTR_NET_PEER_PORT, port, 'port'));
-      }
-      if (netSemconvStability & SemconvStability.STABLE) {
-        Object.assign(attributes, extractConnectionAttributeOrLog(censoredUrl, ATTR_SERVER_PORT, port, 'port'));
-      }
-    } catch (err) {
-      diag.error('amqplib instrumentation: error while extracting connection details from connection url', {
-        censoredUrl,
-        err,
-      });
+      attributes[ATTR_MESSAGING_PROTOCOL] = protocol;
+      attributes[ATTR_NET_PEER_NAME] = getHostname(urlParts.hostname);
+      attributes[ATTR_NET_PEER_PORT] = getPort(urlParts.port ? parseInt(urlParts.port) : undefined, protocol);
+    } catch {
+      // best-effort: a malformed url simply yields fewer connection attributes
     }
   }
   return attributes;
 };
 
-export const markConfirmChannelTracing = (context: Context) => {
-  return context.setValue(IS_CONFIRM_CHANNEL_CONTEXT_KEY, true);
-};
+/** Reads a propagation header value off an amqplib message as a string. */
+export function getHeaderAsString(headers: Record<string, unknown> | undefined, key: string): string | undefined {
+  const value = headers?.[key];
+  if (value == null) {
+    return undefined;
+  }
+  return Array.isArray(value) ? String(value[0]) : String(value);
+}
 
-export const unmarkConfirmChannelTracing = (context: Context) => {
-  return context.deleteValue(IS_CONFIRM_CHANNEL_CONTEXT_KEY);
-};
+/** Starts an inactive producer span and propagates its trace into the publish `options.headers`. */
+export function startPublishSpan(
+  exchange: string,
+  routingKey: string,
+  channel: InstrumentationPublishChannel,
+  options?: Options.Publish,
+): { span: Span; modifiedOptions: Options.Publish } {
+  const normalizedExchange = normalizeExchange(exchange);
 
-export const isConfirmChannelTracing = (context: Context) => {
-  return context.getValue(IS_CONFIRM_CHANNEL_CONTEXT_KEY) === true;
-};
+  const span = startInactiveSpan({
+    name: `publish ${normalizedExchange}`,
+    kind: SpanKind.PRODUCER,
+    attributes: {
+      ...channel.connection[CONNECTION_ATTRIBUTES],
+      [ATTR_MESSAGING_DESTINATION]: exchange,
+      [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_DESTINATION_KIND_VALUE_TOPIC,
+      [ATTR_MESSAGING_RABBITMQ_ROUTING_KEY]: routingKey,
+      [OLD_ATTR_MESSAGING_MESSAGE_ID]: options?.messageId,
+      [ATTR_MESSAGING_CONVERSATION_ID]: options?.correlationId,
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: PUBLISHER_ORIGIN,
+    },
+  });
+
+  const modifiedOptions = options ?? {};
+  modifiedOptions.headers = modifiedOptions.headers ?? {};
+
+  const traceData = getTraceData({ span });
+  if (traceData['sentry-trace']) {
+    modifiedOptions.headers['sentry-trace'] = traceData['sentry-trace'];
+  }
+  if (traceData.baggage) {
+    modifiedOptions.headers['baggage'] = traceData.baggage;
+  }
+
+  return { span, modifiedOptions };
+}
+
+/** Starts an inactive consumer (process) span carrying the amqplib messaging attributes. */
+export function startConsumeSpan(
+  queue: string,
+  msg: InstrumentationConsumeMessage,
+  channel: InstrumentationConsumeChannel,
+): Span {
+  return startInactiveSpan({
+    name: `${queue} process`,
+    kind: SpanKind.CONSUMER,
+    attributes: {
+      ...channel?.connection?.[CONNECTION_ATTRIBUTES],
+      [ATTR_MESSAGING_DESTINATION]: msg.fields?.exchange,
+      [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_DESTINATION_KIND_VALUE_TOPIC,
+      [ATTR_MESSAGING_RABBITMQ_ROUTING_KEY]: msg.fields?.routingKey,
+      [ATTR_MESSAGING_OPERATION]: MESSAGING_OPERATION_VALUE_PROCESS,
+      [OLD_ATTR_MESSAGING_MESSAGE_ID]: msg?.properties.messageId,
+      [ATTR_MESSAGING_CONVERSATION_ID]: msg?.properties.correlationId,
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: CONSUMER_ORIGIN,
+    },
+  });
+}

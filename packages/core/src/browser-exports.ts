@@ -6,7 +6,7 @@
 export {
   getComponentName,
   getLocationHref,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   htmlTreeAsString,
 } from './utils/browser';
 export { supportsDOMError, supportsHistory, supportsNativeFetch, supportsReportingObserver } from './utils/supports';

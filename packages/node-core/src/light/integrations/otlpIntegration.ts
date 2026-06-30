@@ -20,7 +20,7 @@ interface OtlpIntegrationOptions {
   collectorUrl?: string;
 }
 
-const INTEGRATION_NAME = 'OtlpIntegration';
+const INTEGRATION_NAME = 'OtlpIntegration' as const;
 
 const _otlpIntegration = ((userOptions: OtlpIntegrationOptions = {}) => {
   const options = {

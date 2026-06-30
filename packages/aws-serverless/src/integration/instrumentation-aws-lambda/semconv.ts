@@ -22,8 +22,15 @@
  */
 
 /**
- * A boolean that is true if the serverless function is executed for the first time (aka cold-start).
+ * The execution ID of the current function execution.
  *
- * @experimental This attribute is experimental and is subject to breaking changes in minor releases of `@opentelemetry/semantic-conventions`.
+ * @deprecated Removed from the stable semantic conventions; not present in `@sentry/conventions`, so vendored here.
  */
-export const ATTR_FAAS_COLDSTART = 'faas.coldstart';
+export const ATTR_FAAS_EXECUTION = 'faas.execution';
+
+/**
+ * The unique ID of the single function that this runtime instance executes.
+ *
+ * @deprecated Removed from the stable semantic conventions; not present in `@sentry/conventions`, so vendored here.
+ */
+export const ATTR_FAAS_ID = 'faas.id';

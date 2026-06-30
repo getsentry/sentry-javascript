@@ -7,7 +7,7 @@ import { GLOBAL_OBJ } from '../utils/worldwide';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
 
-const INTEGRATION_NAME = 'RewriteFrames';
+const INTEGRATION_NAME = 'RewriteFrames' as const;
 
 interface RewriteFramesOptions {
   /**

@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import {
   SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
@@ -10,6 +11,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -94,6 +96,10 @@ sentryTest(
             type: 'string',
             value: 'test-span',
           },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+            type: 'string',
+            value: 'production',
+          },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,
@@ -125,6 +131,10 @@ sentryTest(
           [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: {
             type: 'string',
             value: 'test-span',
+          },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+            type: 'string',
+            value: 'production',
           },
         },
         end_timestamp: expect.any(Number),
@@ -158,6 +168,14 @@ sentryTest(
             type: 'string',
             value: 'test-span',
           },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+            type: 'string',
+            value: 'production',
+          },
+          [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: {
+            type: 'string',
+            value: 'Connection Refused',
+          },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,
@@ -165,7 +183,7 @@ sentryTest(
         parent_span_id: segmentSpanId,
         span_id: expect.stringMatching(/^[\da-f]{16}$/),
         start_timestamp: expect.any(Number),
-        status: 'ok',
+        status: 'error',
         trace_id: traceId,
       },
       {
@@ -229,6 +247,10 @@ sentryTest(
           'sentry.span.source': {
             type: 'string',
             value: 'custom',
+          },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+            type: 'string',
+            value: 'production',
           },
         },
         end_timestamp: expect.any(Number),

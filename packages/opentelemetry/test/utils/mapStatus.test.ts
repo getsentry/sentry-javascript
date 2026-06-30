@@ -1,8 +1,8 @@
-/* eslint-disable deprecation/deprecation */
+/* eslint-disable typescript/no-deprecated */
 import type { Span } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { SEMATTRS_HTTP_STATUS_CODE, SEMATTRS_RPC_GRPC_STATUS_CODE } from '@opentelemetry/semantic-conventions';
+import { HTTP_STATUS_CODE, RPC_GRPC_STATUS_CODE } from '@sentry/conventions/attributes';
 import type { SpanStatus } from '@sentry/core';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -70,22 +70,22 @@ describe('mapStatus', () => {
     span.setStatus({ code: 0 }); // UNSET
 
     if (httpCode) {
-      span.setAttribute(SEMATTRS_HTTP_STATUS_CODE, httpCode);
+      span.setAttribute(HTTP_STATUS_CODE, httpCode);
     }
 
     if (grpcCode) {
-      span.setAttribute(SEMATTRS_RPC_GRPC_STATUS_CODE, grpcCode);
+      span.setAttribute(RPC_GRPC_STATUS_CODE, grpcCode);
     }
 
     const actual = mapStatus(span);
     expect(actual).toEqual(expected);
   });
 
-  it('works with string SEMATTRS_HTTP_STATUS_CODE', () => {
+  it('works with string HTTP_STATUS_CODE', () => {
     const span = createSpan('test-span');
 
     span.setStatus({ code: 0 }); // UNSET
-    span.setAttribute(SEMATTRS_HTTP_STATUS_CODE, '400');
+    span.setAttribute(HTTP_STATUS_CODE, '400');
 
     const actual = mapStatus(span);
     expect(actual).toEqual({ code: SPAN_STATUS_ERROR, message: 'invalid_argument' });
@@ -117,7 +117,7 @@ describe('mapStatus', () => {
 
   it('infers error status form attributes when span already has error status without message', () => {
     const span = createSpan('test-span');
-    span.setAttribute(SEMATTRS_HTTP_STATUS_CODE, 500);
+    span.setAttribute(HTTP_STATUS_CODE, 500);
     span.setStatus({ code: 2 }); // ERROR
     expect(mapStatus(span)).toEqual({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   });

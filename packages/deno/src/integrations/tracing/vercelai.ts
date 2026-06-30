@@ -3,9 +3,8 @@
  */
 
 import type { IntegrationFn } from '@sentry/core';
-import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
-
-const INTEGRATION_NAME = 'VercelAI';
+import { addVercelAiProcessors, defineIntegration, extendIntegration } from '@sentry/core';
+import { vercelAiIntegration as serverUtilsVercelAiIntegration } from '@sentry/server-utils';
 
 interface VercelAiOptions {
   /**
@@ -16,13 +15,14 @@ interface VercelAiOptions {
 }
 
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
-  return {
-    name: INTEGRATION_NAME,
+  const inner = serverUtilsVercelAiIntegration(options);
+
+  return extendIntegration(inner, {
     options,
     setup(client) {
       addVercelAiProcessors(client);
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**

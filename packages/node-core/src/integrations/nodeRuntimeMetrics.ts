@@ -1,7 +1,7 @@
 import { monitorEventLoopDelay, performance } from 'perf_hooks';
 import { _INTERNAL_safeDateNow, _INTERNAL_safeUnref, defineIntegration, metrics } from '@sentry/core';
 
-const INTEGRATION_NAME = 'NodeRuntimeMetrics';
+const INTEGRATION_NAME = 'NodeRuntimeMetrics' as const;
 const DEFAULT_INTERVAL_MS = 30_000;
 const MIN_COLLECTION_INTERVAL_MS = 1_000;
 const EVENT_LOOP_DELAY_RESOLUTION_MS = 10;

@@ -1,6 +1,7 @@
 import type { Client, IntegrationFn } from '@sentry/core';
-import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
+import { addVercelAiProcessors, defineIntegration, extendIntegration } from '@sentry/core';
 import { generateInstrumentOnce, type modulesIntegration } from '@sentry/node-core';
+import { vercelAiIntegration as serverUtilsVercelAiIntegration } from '@sentry/server-utils';
 import { INTEGRATION_NAME } from './constants';
 import { SentryVercelAiInstrumentation } from './instrumentation';
 import type { VercelAiOptions } from './types';
@@ -19,8 +20,9 @@ function shouldForceIntegration(client: Client): boolean {
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
   let instrumentation: undefined | SentryVercelAiInstrumentation;
 
-  return {
-    name: INTEGRATION_NAME,
+  const parentIntegration = serverUtilsVercelAiIntegration(options);
+
+  return extendIntegration(parentIntegration, {
     options,
     setupOnce() {
       instrumentation = instrumentVercelAi();
@@ -36,12 +38,11 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
         instrumentation?.callWhenPatched(() => addVercelAiProcessors(client));
       }
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**
  * Adds Sentry tracing instrumentation for the [ai](https://www.npmjs.com/package/ai) library.
- * This integration is not enabled by default, you need to manually add it.
  *
  * For more information, see the [`ai` documentation](https://sdk.vercel.ai/docs/ai-sdk-core/telemetry).
  *

@@ -65,66 +65,60 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "none"', 
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario.mjs',
-    'instrument-none.mjs',
-    (createRunner, test) => {
-      test('does not capture any request bodies with "none" setting', async () => {
-        const runner = createRunner()
-          .expect({
-            transaction: {
-              transaction: 'POST /test-body-size',
-              request: expect.not.objectContaining({
-                data: expect.any(String),
-              }),
-            },
-          })
-          .start();
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-none.mjs', (createRunner, test) => {
+    test('does not capture any request bodies with "none" setting', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            transaction: 'POST /test-body-size',
+            request: expect.not.objectContaining({
+              data: expect.any(String),
+            }),
+          },
+        })
+        .start();
 
-        await runner.makeRequest('post', '/test-body-size', {
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify(generatePayload(500)),
-        });
-
-        await runner.completed();
+      await runner.makeRequest('post', '/test-body-size', {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(generatePayload(500)),
       });
 
-      test('does not capture any request bodies with "none" setting and "ignoreIncomingRequestBody"', async () => {
-        const runner = createRunner()
-          .expect({
-            transaction: {
-              transaction: 'POST /test-body-size',
-              request: expect.not.objectContaining({
-                data: expect.any(String),
-              }),
-            },
-          })
-          .expect({
-            transaction: {
-              transaction: 'POST /ignore-request-body',
-              request: expect.not.objectContaining({
-                data: expect.any(String),
-              }),
-            },
-          })
-          .start();
+      await runner.completed();
+    });
 
-        await runner.makeRequest('post', '/test-body-size', {
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify(generatePayload(500)),
-        });
+    test('does not capture any request bodies with "none" setting and "ignoreIncomingRequestBody"', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            transaction: 'POST /test-body-size',
+            request: expect.not.objectContaining({
+              data: expect.any(String),
+            }),
+          },
+        })
+        .expect({
+          transaction: {
+            transaction: 'POST /ignore-request-body',
+            request: expect.not.objectContaining({
+              data: expect.any(String),
+            }),
+          },
+        })
+        .start();
 
-        await runner.makeRequest('post', '/ignore-request-body', {
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify(generatePayload(500)),
-        });
-
-        await runner.completed();
+      await runner.makeRequest('post', '/test-body-size', {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(generatePayload(500)),
       });
-    },
-    { failsOnEsm: false },
-  );
+
+      await runner.makeRequest('post', '/ignore-request-body', {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(generatePayload(500)),
+      });
+
+      await runner.completed();
+    });
+  });
 });
 
 describe('express with httpIntegration and maxIncomingRequestBodySize: "always"', () => {
@@ -132,53 +126,47 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "always"'
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario.mjs',
-    'instrument-always.mjs',
-    (createRunner, test) => {
-      test('captures maximum allowed request body length with "always" setting', async () => {
-        const runner = createRunner()
-          .expect({
-            transaction: {
-              transaction: 'POST /test-body-size',
-              request: {
-                data: JSON.stringify(generatePayload(MAX_GENERAL)),
-              },
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-always.mjs', (createRunner, test) => {
+    test('captures maximum allowed request body length with "always" setting', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            transaction: 'POST /test-body-size',
+            request: {
+              data: JSON.stringify(generatePayload(MAX_GENERAL)),
             },
-          })
-          .start();
+          },
+        })
+        .start();
 
-        await runner.makeRequest('post', '/test-body-size', {
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify(generatePayload(MAX_GENERAL)),
-        });
-
-        await runner.completed();
+      await runner.makeRequest('post', '/test-body-size', {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(generatePayload(MAX_GENERAL)),
       });
 
-      test('captures large request bodies with "always" setting but respects maximum size limit', async () => {
-        const runner = createRunner()
-          .expect({
-            transaction: {
-              transaction: 'POST /test-body-size',
-              request: {
-                data: generatePayloadString(MAX_GENERAL, true),
-              },
+      await runner.completed();
+    });
+
+    test('captures large request bodies with "always" setting but respects maximum size limit', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            transaction: 'POST /test-body-size',
+            request: {
+              data: generatePayloadString(MAX_GENERAL, true),
             },
-          })
-          .start();
+          },
+        })
+        .start();
 
-        await runner.makeRequest('post', '/test-body-size', {
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify(generatePayload(MAX_GENERAL + 1)),
-        });
-
-        await runner.completed();
+      await runner.makeRequest('post', '/test-body-size', {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(generatePayload(MAX_GENERAL + 1)),
       });
-    },
-    { failsOnEsm: false },
-  );
+
+      await runner.completed();
+    });
+  });
 });
 
 describe('express with httpIntegration and maxIncomingRequestBodySize: "small"', () => {
@@ -186,74 +174,68 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "small"',
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario.mjs',
-    'instrument-small.mjs',
-    (createRunner, test) => {
-      test('keeps small request bodies with "small" setting', async () => {
-        const runner = createRunner()
-          .expect({
-            transaction: {
-              transaction: 'POST /test-body-size',
-              request: {
-                data: JSON.stringify(generatePayload(MAX_SMALL)),
-              },
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-small.mjs', (createRunner, test) => {
+    test('keeps small request bodies with "small" setting', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            transaction: 'POST /test-body-size',
+            request: {
+              data: JSON.stringify(generatePayload(MAX_SMALL)),
             },
-          })
-          .start();
+          },
+        })
+        .start();
 
-        await runner.makeRequest('post', '/test-body-size', {
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify(generatePayload(MAX_SMALL)),
-        });
-
-        await runner.completed();
+      await runner.makeRequest('post', '/test-body-size', {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(generatePayload(MAX_SMALL)),
       });
 
-      test('truncates too large request bodies with "small" setting', async () => {
-        const runner = createRunner()
-          .expect({
-            transaction: {
-              transaction: 'POST /test-body-size',
-              request: {
-                data: generatePayloadString(MAX_SMALL, true),
-              },
+      await runner.completed();
+    });
+
+    test('truncates too large request bodies with "small" setting', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            transaction: 'POST /test-body-size',
+            request: {
+              data: generatePayloadString(MAX_SMALL, true),
             },
-          })
-          .start();
+          },
+        })
+        .start();
 
-        await runner.makeRequest('post', '/test-body-size', {
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify(generatePayload(MAX_SMALL + 1)),
-        });
-
-        await runner.completed();
+      await runner.makeRequest('post', '/test-body-size', {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(generatePayload(MAX_SMALL + 1)),
       });
 
-      test('truncates too large non-ASCII request bodies with "small" setting', async () => {
-        const runner = createRunner()
-          .expect({
-            transaction: {
-              transaction: 'POST /test-body-size',
-              request: {
-                // 250 emojis, each 4 bytes in UTF-8 (resulting in 1000 bytes --> MAX_SMALL)
-                data: generateEmojiPayloadString(250, true),
-              },
+      await runner.completed();
+    });
+
+    test('truncates too large non-ASCII request bodies with "small" setting', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            transaction: 'POST /test-body-size',
+            request: {
+              // 250 emojis, each 4 bytes in UTF-8 (resulting in 1000 bytes --> MAX_SMALL)
+              data: generateEmojiPayloadString(250, true),
             },
-          })
-          .start();
+          },
+        })
+        .start();
 
-        await runner.makeRequest('post', '/test-body-size', {
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify(generateEmojiPayload(MAX_SMALL + 1)),
-        });
-
-        await runner.completed();
+      await runner.makeRequest('post', '/test-body-size', {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(generateEmojiPayload(MAX_SMALL + 1)),
       });
-    },
-    { failsOnEsm: false },
-  );
+
+      await runner.completed();
+    });
+  });
 });
 
 describe('express with httpIntegration and maxIncomingRequestBodySize: "medium"', () => {
@@ -261,51 +243,45 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "medium"'
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario.mjs',
-    'instrument-medium.mjs',
-    (createRunner, test) => {
-      test('keeps medium request bodies with "medium" setting', async () => {
-        const runner = createRunner()
-          .expect({
-            transaction: {
-              transaction: 'POST /test-body-size',
-              request: {
-                data: JSON.stringify(generatePayload(MAX_MEDIUM)),
-              },
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-medium.mjs', (createRunner, test) => {
+    test('keeps medium request bodies with "medium" setting', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            transaction: 'POST /test-body-size',
+            request: {
+              data: JSON.stringify(generatePayload(MAX_MEDIUM)),
             },
-          })
-          .start();
+          },
+        })
+        .start();
 
-        await runner.makeRequest('post', '/test-body-size', {
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify(generatePayload(MAX_MEDIUM)),
-        });
-
-        await runner.completed();
+      await runner.makeRequest('post', '/test-body-size', {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(generatePayload(MAX_MEDIUM)),
       });
 
-      test('truncates large request bodies with "medium" setting', async () => {
-        const runner = createRunner()
-          .expect({
-            transaction: {
-              transaction: 'POST /test-body-size',
-              request: {
-                data: generatePayloadString(MAX_MEDIUM, true),
-              },
+      await runner.completed();
+    });
+
+    test('truncates large request bodies with "medium" setting', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            transaction: 'POST /test-body-size',
+            request: {
+              data: generatePayloadString(MAX_MEDIUM, true),
             },
-          })
-          .start();
+          },
+        })
+        .start();
 
-        await runner.makeRequest('post', '/test-body-size', {
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify(generatePayload(MAX_MEDIUM + 1)),
-        });
-
-        await runner.completed();
+      await runner.makeRequest('post', '/test-body-size', {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(generatePayload(MAX_MEDIUM + 1)),
       });
-    },
-    { failsOnEsm: false },
-  );
+
+      await runner.completed();
+    });
+  });
 });

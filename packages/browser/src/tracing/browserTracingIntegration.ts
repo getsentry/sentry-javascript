@@ -390,6 +390,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     markBackgroundSpan,
     traceFetch,
     traceXHR,
+    // eslint-disable-next-line typescript/no-deprecated
     trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
@@ -489,14 +490,16 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     function emitFinish(): void {
       if (optionalWindowDocument && ['interactive', 'complete'].includes(optionalWindowDocument.readyState)) {
         client.emit('idleSpanEnableAutoFinish', idleSpan);
+        // Once the finish signal has been emitted, the listener is no longer needed. Removing it here (rather than
+        // relying on `{ once: true }`) also covers the common case where the document is already loaded when the span
+        // starts, so the listener never fires and would otherwise leak together with the `idleSpan` it closes over.
+        optionalWindowDocument.removeEventListener('readystatechange', emitFinish);
       }
     }
 
     // Enable auto finish of the pageload span if users are not explicitly ending it
     if (isPageloadSpan && !enableReportPageLoaded && optionalWindowDocument) {
-      optionalWindowDocument.addEventListener('readystatechange', () => {
-        emitFinish();
-      });
+      optionalWindowDocument.addEventListener('readystatechange', emitFinish);
 
       emitFinish();
     }

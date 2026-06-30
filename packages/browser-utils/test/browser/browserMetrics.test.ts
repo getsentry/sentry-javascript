@@ -471,6 +471,7 @@ describe('_addResourceSpans', () => {
           ['url.scheme']: 'https',
           ['server.address']: 'example.com',
           ['url.same_origin']: true,
+          ['url.full']: resourceEntryName,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '1.1',
           'http.request.connect_start': expect.any(Number),
@@ -489,6 +490,47 @@ describe('_addResourceSpans', () => {
         },
       }),
     );
+  });
+
+  it('sets url.full to the absolute resource URL with query and fragment while keeping the description origin-relative', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entry = mockPerformanceResourceTiming({
+      initiatorType: 'script',
+      nextHopProtocol: 'http/1.1',
+    });
+
+    _addResourceSpans(span, entry, 'https://example.com/assets/app.js?v=42#main', 100, 23, 345);
+
+    expect(spans).toHaveLength(1);
+    const json = spanToJSON(spans[0]!);
+    expect(json.description).toBe('/assets/app.js?v=42#main');
+    expect(json.data['url.full']).toBe('https://example.com/assets/app.js?v=42#main');
+  });
+
+  it('sets url.full to the full cross-origin URL', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entry = mockPerformanceResourceTiming({
+      initiatorType: 'img',
+      nextHopProtocol: 'http/1.1',
+    });
+
+    _addResourceSpans(span, entry, 'https://cdn.example.org/static/logo.png', 100, 23, 345);
+
+    expect(spans).toHaveLength(1);
+    const json = spanToJSON(spans[0]!);
+    expect(json.description).toBe('https://cdn.example.org/static/logo.png');
+    expect(json.data['url.full']).toBe('https://cdn.example.org/static/logo.png');
+    expect(json.data['url.same_origin']).toBe(false);
   });
 
   it('creates a variety of resource spans', () => {
@@ -611,6 +653,7 @@ describe('_addResourceSpans', () => {
           ['url.scheme']: 'https',
           ['server.address']: 'example.com',
           ['url.same_origin']: true,
+          ['url.full']: resourceEntryName,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '2',
         }),
@@ -644,6 +687,7 @@ describe('_addResourceSpans', () => {
           'server.address': 'example.com',
           'url.same_origin': true,
           'url.scheme': 'https',
+          'url.full': resourceEntryName,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '3',
         }),
@@ -696,6 +740,7 @@ describe('_addResourceSpans', () => {
           'server.address': 'example.com',
           'url.same_origin': true,
           'url.scheme': 'https',
+          'url.full': resourceEntryName,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '3',
           'http.request.connect_start': expect.any(Number),

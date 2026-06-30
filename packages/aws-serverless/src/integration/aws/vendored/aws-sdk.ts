@@ -1,17 +1,6 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-aws-sdk
@@ -19,24 +8,17 @@
  * - Backported the `@smithy/core` >= 3.24.0 support from upstream 0.74.0
  *   (https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3530)
  */
-/* eslint-disable */
 
 import { Span, SpanKind, context, trace, diag, SpanStatusCode } from '@opentelemetry/api';
-import { AttributeNames } from './enums';
+import { AWS_REQUEST_EXTENDED_ID, AWS_REQUEST_ID, CLOUD_REGION } from './enums';
 import { ServicesExtensions } from './services';
-import {
-  AwsSdkInstrumentationConfig,
-  AwsSdkRequestHookInformation,
-  NormalizedRequest,
-  NormalizedResponse,
-} from './types';
+import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from './types';
 import {
   InstrumentationBase,
   InstrumentationModuleDefinition,
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
   isWrapped,
-  safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 import type {
   MiddlewareStack,
@@ -53,8 +35,8 @@ import {
 } from './utils';
 import { propwrap } from './propwrap';
 import { RequestMetadata } from './services/ServiceExtension';
-import { ATTR_HTTP_STATUS_CODE } from './semconv';
-import { SDK_VERSION, timestampInSeconds } from '@sentry/core';
+import { HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-aws-sdk';
 
@@ -167,32 +149,15 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
   private _startAwsV3Span(normalizedRequest: NormalizedRequest, metadata: RequestMetadata): Span {
     const name = metadata.spanName ?? `${normalizedRequest.serviceName}.${normalizedRequest.commandName}`;
-    const newSpan = this.tracer.startSpan(name, {
+    return startInactiveSpan({
+      name,
       kind: metadata.spanKind ?? SpanKind.CLIENT,
       attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws',
         ...extractAttributesFromNormalizedRequest(normalizedRequest),
         ...metadata.spanAttributes,
       },
     });
-
-    return newSpan;
-  }
-
-  private _callUserPreRequestHook(span: Span, request: NormalizedRequest, moduleVersion: string | undefined) {
-    const { preRequestHook } = this.getConfig();
-    if (preRequestHook) {
-      const requestInfo: AwsSdkRequestHookInformation = {
-        moduleVersion,
-        request,
-      };
-      safeExecuteInTheMiddle(
-        () => preRequestHook(span, requestInfo),
-        (e: Error | undefined) => {
-          if (e) diag.error(`${AwsInstrumentation.component} instrumentation: preRequestHook error`, e);
-        },
-        true,
-      );
-    }
   }
 
   private _getV3ConstructStackPatch(
@@ -224,7 +189,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
   private patchV3MiddlewareStack(moduleVersion: string | undefined, middlewareStackToPatch: MiddlewareStack<any, any>) {
     if (!isWrapped(middlewareStackToPatch.resolve)) {
-      this._wrap(middlewareStackToPatch, 'resolve', this._getV3MiddlewareStackResolvePatch.bind(this, moduleVersion));
+      this._wrap(middlewareStackToPatch, 'resolve', this._getV3MiddlewareStackResolvePatch.bind(this));
     }
 
     // 'clone' and 'concat' functions are internally calling 'constructStack' which is in same
@@ -250,7 +215,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
   }
 
   private _getV3MiddlewareStackResolvePatch(
-    moduleVersion: string | undefined,
     original: (_handler: any, context: HandlerExecutionContext) => AwsV3MiddlewareHandler<any, any>,
   ) {
     const self = this;
@@ -283,7 +247,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
           self.getConfig(),
           self._diag,
         );
-        const startTime = timestampInSeconds();
         const span = self._startAwsV3Span(normalizedRequest, requestMetadata);
         const activeContextWithSpan = trace.setSpan(context.active(), span);
 
@@ -291,7 +254,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
           Promise.resolve(regionPromise)
             .then(resolvedRegion => {
               normalizedRequest.region = resolvedRegion;
-              span.setAttribute(AttributeNames.CLOUD_REGION, resolvedRegion);
+              span.setAttribute(CLOUD_REGION, resolvedRegion);
             })
             .catch(e => {
               // there is nothing much we can do in this case.
@@ -302,7 +265,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
               );
             })
             .finally(() => {
-              self._callUserPreRequestHook(span, normalizedRequest, moduleVersion);
               const resultPromise = context.with(activeContextWithSpan, () => {
                 self.servicesExtensions.requestPostSpanHook(normalizedRequest);
                 return origHandler.call(this, command);
@@ -311,17 +273,18 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                 .then((response: any) => {
                   const requestId = response.output?.$metadata?.requestId;
                   if (requestId) {
-                    span.setAttribute(AttributeNames.AWS_REQUEST_ID, requestId);
+                    span.setAttribute(AWS_REQUEST_ID, requestId);
                   }
 
                   const httpStatusCode = response.output?.$metadata?.httpStatusCode;
                   if (httpStatusCode) {
-                    span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
+                    // oxlint-disable-next-line typescript/no-deprecated
+                    span.setAttribute(HTTP_STATUS_CODE, httpStatusCode);
                   }
 
                   const extendedRequestId = response.output?.$metadata?.extendedRequestId;
                   if (extendedRequestId) {
-                    span.setAttribute(AttributeNames.AWS_REQUEST_EXTENDED_ID, extendedRequestId);
+                    span.setAttribute(AWS_REQUEST_EXTENDED_ID, extendedRequestId);
                   }
 
                   const normalizedResponse: NormalizedResponse = {
@@ -329,13 +292,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                     request: normalizedRequest,
                     requestId: requestId,
                   };
-                  const override = self.servicesExtensions.responseHook(
-                    normalizedResponse,
-                    span,
-                    self.tracer,
-                    self.getConfig(),
-                    startTime,
-                  );
+                  const override = self.servicesExtensions.responseHook(normalizedResponse, span);
                   if (override) {
                     response.output = override;
                     normalizedResponse.data = override;
@@ -345,24 +302,24 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                 .catch((err: any) => {
                   const requestId = err?.RequestId;
                   if (requestId) {
-                    span.setAttribute(AttributeNames.AWS_REQUEST_ID, requestId);
+                    span.setAttribute(AWS_REQUEST_ID, requestId);
                   }
 
                   const httpStatusCode = err?.$metadata?.httpStatusCode;
                   if (httpStatusCode) {
-                    span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
+                    // oxlint-disable-next-line typescript/no-deprecated
+                    span.setAttribute(HTTP_STATUS_CODE, httpStatusCode);
                   }
 
                   const extendedRequestId = err?.extendedRequestId;
                   if (extendedRequestId) {
-                    span.setAttribute(AttributeNames.AWS_REQUEST_EXTENDED_ID, extendedRequestId);
+                    span.setAttribute(AWS_REQUEST_EXTENDED_ID, extendedRequestId);
                   }
 
                   span.setStatus({
                     code: SpanStatusCode.ERROR,
                     message: err.message,
                   });
-                  span.recordException(err);
                   throw err;
                 })
                 .finally(() => {

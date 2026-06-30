@@ -51,12 +51,17 @@ export function handleErrorWithSentry(handleError?: HandleClientError): HandleCl
 function is4xxError(input: SafeHandleServerErrorInput): boolean {
   const { status } = input;
 
-  // Pre-SvelteKit 2.x, the status is not available,
-  // so we don't know if this is a 4xx error
-  if (!status) {
-    return false;
+  if (status && status >= 400 && status < 500) {
+    return true;
   }
 
-  // SvelteKit 2.0 offers a reliable way to check for a Not Found error:
-  return status >= 400 && status < 500;
+  // SvelteKit __data.json requests return HTTP 200 with errors embedded in JSON,
+  // so get_status() may resolve to 500 for a deserialized plain error object.
+  // Fall back to checking input.error.status directly.
+  const errorStatus =
+    typeof input.error === 'object' && input.error !== null
+      ? (input.error as Record<string, unknown>)['status']
+      : undefined;
+
+  return typeof errorStatus === 'number' && errorStatus >= 400 && errorStatus < 500;
 }

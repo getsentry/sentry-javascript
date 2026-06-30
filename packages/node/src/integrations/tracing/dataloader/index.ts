@@ -3,7 +3,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 
-const INTEGRATION_NAME = 'Dataloader';
+const INTEGRATION_NAME = 'Dataloader' as const;
 
 export const instrumentDataloader = generateInstrumentOnce(INTEGRATION_NAME, () => new DataloaderInstrumentation());
 

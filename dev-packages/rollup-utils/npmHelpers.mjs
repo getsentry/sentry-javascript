@@ -15,6 +15,7 @@ import { defineConfig } from 'rollup';
 import {
   makeDebugBuildStatementReplacePlugin,
   makeEsbuildPlugin,
+  makeEsmCjsReplacePlugin,
   makeNodeResolvePlugin,
   makeProductionReplacePlugin,
   makeRrwebBuildPlugin,
@@ -129,40 +130,36 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 
   if (emitCjs) {
     if (splitDevProd) {
-      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') } });
+      variantSpecificConfigs.push({
+        output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') },
+        plugins: [makeEsmCjsReplacePlugin('cjs')],
+      });
       variantSpecificConfigs.push({
         output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/prod') },
-        plugins: [makeProductionReplacePlugin()],
+        plugins: [makeProductionReplacePlugin(), makeEsmCjsReplacePlugin('cjs')],
       });
     } else {
-      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } });
+      variantSpecificConfigs.push({
+        output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') },
+        plugins: [makeEsmCjsReplacePlugin('cjs')],
+      });
     }
   }
 
   if (emitEsm) {
     if (splitDevProd) {
       variantSpecificConfigs.push({
-        output: {
-          format: 'esm',
-          dir: path.join(baseConfig.output.dir, 'esm/dev'),
-          plugins: [makePackageNodeEsm()],
-        },
+        output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm/dev') },
+        plugins: [makePackageNodeEsm(), makeEsmCjsReplacePlugin('esm')],
       });
       variantSpecificConfigs.push({
-        output: {
-          format: 'esm',
-          dir: path.join(baseConfig.output.dir, 'esm/prod'),
-          plugins: [makePackageNodeEsm()],
-        },
-        plugins: [makeProductionReplacePlugin()],
+        output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm/prod') },
+        plugins: [makePackageNodeEsm(), makeProductionReplacePlugin(), makeEsmCjsReplacePlugin('esm')],
       });
     } else {
       variantSpecificConfigs.push({
-        output: {
-          format: 'esm',
-          dir: path.join(baseConfig.output.dir, 'esm'),
-          plugins: [makePackageNodeEsm()],
-        },
+        output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm') },
+        plugins: [makePackageNodeEsm(), makeEsmCjsReplacePlugin('esm')],
       });
     }
   }
@@ -179,10 +176,23 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 /**
  * This creates a loader file at the target location as part of the rollup build.
  * This loader script can then be used in combination with various Node.js flags (like --import=...) to monkeypatch 3rd party modules.
+ *
+ * @param {string} outputFolder Build output folder.
+ * @param {'otel' | 'sentry-node'} hookVariant Which hook template to use.
+ * @param {{ injectDiagnosticsChannel?: boolean }} [options] When `injectDiagnosticsChannel`
+ *   is set (only valid for the `'otel'` variant), the generated `import-hook.mjs`
+ *   additionally imports `@sentry/server-utils/orchestrion/import-hook`, which
+ *   registers the diagnostics-channel injection. Used by `@sentry/node` so that
+ *   `node --import @sentry/node/import` injects the channels unconditionally.
  */
-export function makeOtelLoaders(outputFolder, hookVariant) {
+export function makeOtelLoaders(outputFolder, hookVariant, options = {}) {
   if (hookVariant !== 'otel' && hookVariant !== 'sentry-node') {
     throw new Error('hookVariant is neither "otel" nor "sentry-node". Pick one.');
+  }
+
+  const { injectDiagnosticsChannel = false } = options;
+  if (injectDiagnosticsChannel && hookVariant !== 'otel') {
+    throw new Error('injectDiagnosticsChannel is only supported with the "otel" hookVariant.');
   }
 
   const expectedRegisterLoaderLocation = `${outputFolder}/import-hook.mjs`;
@@ -229,7 +239,11 @@ export function makeOtelLoaders(outputFolder, hookVariant) {
       input: path.join(
         __dirname,
         'code',
-        hookVariant === 'otel' ? 'otelEsmImportHookTemplate.js' : 'sentryNodeEsmImportHookTemplate.js',
+        hookVariant === 'otel'
+          ? injectDiagnosticsChannel
+            ? 'otelEsmImportHookWithDiagnosticsChannelTemplate.js'
+            : 'otelEsmImportHookTemplate.js'
+          : 'sentryNodeEsmImportHookTemplate.js',
       ),
       external: /.*/,
       output: {

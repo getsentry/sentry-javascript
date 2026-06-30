@@ -13,6 +13,7 @@ import { DEBUG_BUILD } from '../debug-build';
  * @returns The effective setting for RPC trace propagation
  */
 export function getEffectiveRpcPropagation(options: CloudflareOptions): boolean {
+  // eslint-disable-next-line typescript/no-deprecated
   const { enableRpcTracePropagation, instrumentPrototypeMethods } = options;
 
   // If the new option is explicitly set, use it

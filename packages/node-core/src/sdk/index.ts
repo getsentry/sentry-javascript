@@ -13,7 +13,6 @@ import {
   linkedErrorsIntegration,
   propagationContextFromHeaders,
   requestDataIntegration,
-  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
@@ -51,7 +50,7 @@ export function getDefaultIntegrations(): Integration[] {
   return [
     // Common
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
@@ -114,7 +113,7 @@ function _init(
     initializeEsmLoader();
   }
 
-  setOpenTelemetryContextAsyncContextStrategy();
+  setOpenTelemetryContextAsyncContextStrategy(options);
 
   const scope = getCurrentScope();
   scope.update(options.initialScope);
@@ -217,10 +216,6 @@ function getClientOptions(
     defaultIntegrations,
     integrations,
   });
-
-  if (mergedOptions.traceLifecycle === 'stream' && !resolvedIntegrations.some(i => i.name === 'SpanStreaming')) {
-    resolvedIntegrations.push(spanStreamingIntegration());
-  }
 
   return {
     ...mergedOptions,

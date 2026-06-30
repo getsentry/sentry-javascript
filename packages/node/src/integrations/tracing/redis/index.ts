@@ -1,5 +1,4 @@
-import type { Span } from '@opentelemetry/api';
-import type { IntegrationFn } from '@sentry/core';
+import type { IntegrationFn, Span } from '@sentry/core';
 import {
   defineIntegration,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
@@ -8,10 +7,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   truncate,
+  waitForTracingChannelBinding,
 } from '@sentry/core';
-import { subscribeRedisDiagnosticChannels } from '@sentry/server-utils';
+import * as dc from 'node:diagnostics_channel';
+import { subscribeRedisDiagnosticChannels, type RedisTracingChannelFactory } from '@sentry/server-utils';
 import { generateInstrumentOnce } from '@sentry/node-core';
-import { tracingChannel as otelTracingChannel } from '@sentry/opentelemetry/tracing-channel';
 import type { IORedisCommandArgs } from '../../../utils/redisCache';
 import {
   calculateCacheItemSize,
@@ -42,7 +42,7 @@ interface RedisOptions {
   maxCacheKeyLength?: number;
 }
 
-const INTEGRATION_NAME = 'Redis';
+const INTEGRATION_NAME = 'Redis' as const;
 
 /* Only exported for testing purposes */
 export let _redisOptions: RedisOptions = {};
@@ -123,11 +123,16 @@ export const instrumentRedis = Object.assign(
     instrumentIORedis();
     instrumentRedisModule();
     // node-redis >= 5.12.0 and ioredis >= 5.11.0 publish via diagnostics_channel.
-    // We pass `@sentry/opentelemetry/tracing-channel` as the factory so the span
-    // becomes the active OTel context via `bindStore`. That factory needs the
-    // Sentry OTel context manager to be registered, which `initOpenTelemetry()`
-    // does after integration `setupOnce`, so defer to the next tick.
-    void Promise.resolve().then(() => subscribeRedisDiagnosticChannels(otelTracingChannel, cacheResponseHook));
+    // `bindTracingChannelToSpan` (inside the subscriber) makes the span the active
+    // OTel context via `bindStore`, which needs the Sentry OTel context manager to
+    // be registered — `initOpenTelemetry()` does that after integration `setupOnce`,
+    // so defer to the next tick.
+    // Check this here to ensure this does not fail at runtime for Node <= 18.18.0
+    if (dc.tracingChannel) {
+      waitForTracingChannelBinding(() => {
+        subscribeRedisDiagnosticChannels(dc.tracingChannel as RedisTracingChannelFactory, cacheResponseHook);
+      });
+    }
 
     // todo: implement them gradually
     // new LegacyRedisInstrumentation({}),
