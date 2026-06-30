@@ -5,7 +5,7 @@ import {
   detectOrchestrionSetup,
 } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
-import { cacheResponseHook } from '../integrations/tracing/redis';
+import { cacheResponseHook } from '../integrations/tracing/redis/cache';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
 import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInjection';
 
