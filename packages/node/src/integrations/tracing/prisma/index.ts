@@ -1,8 +1,13 @@
-import type { Link, Tracer } from '@opentelemetry/api';
-import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import type { Instrumentation } from '@opentelemetry/instrumentation';
-import type { IdGenerator } from '@opentelemetry/sdk-trace-base';
-import { consoleSandbox, defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import {
+  defineIntegration,
+  LRUMap,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
+  spanToJSON,
+  startInactiveSpan,
+} from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import { PrismaInstrumentation } from './vendored/instrumentation';
 import type { PrismaV5TracingHelper } from './vendored/v5-tracing-helper';
@@ -49,9 +54,56 @@ function getPrismaTracingHelper(): unknown | undefined {
   return prismaTracingHelper;
 }
 
-type TracerWithIdGenerator = Tracer & {
-  _idGenerator?: IdGenerator;
-};
+// Prisma v5 dispatches engine spans one at a time and out of order (a child can arrive before its
+// parent), detached from any active span, with the parent referenced only by id — either a client
+// span (by its real Sentry span id, which Prisma learned via `getTraceParent`) or a sibling engine
+// span (by the engine's own id). The OTel SDK exporter coped with this by buffering every span of a
+// trace and regrouping by `parent_span_id` at flush. The SentryTracerProvider has no such buffer (it
+// assembles the transaction from the live `_children` tree), so the regrouping is reproduced here:
+// `prismaSpanRegistry` maps each span id to its created Sentry span, and an engine span whose parent
+// is not registered yet waits in `pendingEngineSpans` until a later batch registers it.
+const MAX_TRACKED_PRISMA_SPANS = 1000;
+const prismaSpanRegistry = new LRUMap<string, Span>(MAX_TRACKED_PRISMA_SPANS);
+const pendingEngineSpans: V5EngineSpan[] = [];
+
+/** Register a span so v5 engine spans can later resolve it as a parent by the id Prisma reports it under. */
+function registerPrismaSpan(id: string, span: Span): void {
+  prismaSpanRegistry.set(id, span);
+}
+
+/**
+ * Create every pending v5 engine span whose parent is now registered, repeating until no further span
+ * resolves (so a child queued before its parent is created once the parent arrives in a later batch).
+ * Each span is created under its resolved parent and registered by its engine id so its own children
+ * can find it; origin, the `db_query` rename, `otel.kind` and `op` are backfilled by the
+ * `spanStart`/`spanEnd` hooks, exactly as for v6/v7 engine spans.
+ */
+function createResolvedEngineSpans(): void {
+  let createdSpan = true;
+  while (createdSpan) {
+    createdSpan = false;
+    for (let i = pendingEngineSpans.length - 1; i >= 0; i--) {
+      const engineSpan = pendingEngineSpans[i]!;
+      const parentSpan = prismaSpanRegistry.get(engineSpan.parent_span_id);
+      if (!parentSpan) {
+        continue;
+      }
+
+      const span = startInactiveSpan({
+        name: engineSpan.name,
+        attributes: engineSpan.attributes,
+        kind: engineSpan.kind === 'client' ? SPAN_KIND.CLIENT : SPAN_KIND.INTERNAL,
+        startTime: engineSpan.start_time,
+        parentSpan,
+      });
+      registerPrismaSpan(engineSpan.span_id, span);
+      span.end(engineSpan.end_time);
+
+      pendingEngineSpans.splice(i, 1);
+      createdSpan = true;
+    }
+  }
+}
 
 interface PrismaOptions {
   /**
@@ -73,87 +125,23 @@ class SentryPrismaInteropInstrumentation extends PrismaInstrumentation {
     super.enable();
 
     // The PrismaIntegration (super class) defines a global variable `global["PRISMA_INSTRUMENTATION"]` when `enable()` is called. This global variable holds a "TracingHelper" which Prisma uses internally to create tracing data. It's their way of not depending on OTEL with their main package. The sucky thing is, prisma broke the interface of the tracing helper with the v6 major update. This means that if you use Prisma 5 with the v6 instrumentation (or vice versa) Prisma just blows up, because tries to call methods on the helper that no longer exist.
-    // Because we actually want to use the v6 instrumentation and not blow up in Prisma 5 user's faces, what we're doing here is backfilling the v5 method (`createEngineSpan`) with a noop so that no longer crashes when it attempts to call that function.
+    // Because we actually want to use the v6 instrumentation and not blow up in Prisma 5 user's faces, what we're doing here is backfilling the v5-only method (`createEngineSpan`) so it routes through the v6/v7 helper instead of crashing.
     const prismaTracingHelper = getPrismaTracingHelper();
 
     if (isPrismaV6TracingHelper(prismaTracingHelper)) {
-      // Inspired & adjusted from https://github.com/prisma/prisma/tree/5.22.0/packages/instrumentation
+      // Queue this batch and create every engine span whose parent is now known. The previous approach
+      // minted spans with the engine's exact ids by hijacking the OTel SDK tracer's private
+      // `_idGenerator`, which doesn't exist on the SentryTracerProvider's tracer — so under the
+      // provider every engine span was dropped. See `createResolvedEngineSpans` for the parent-by-id
+      // resolution that replaces it.
       (prismaTracingHelper as CompatibilityLayerTraceHelper).createEngineSpan = (
         engineSpanEvent: V5EngineSpanEvent,
       ) => {
-        const tracer = trace.getTracer('prismaV5Compatibility') as TracerWithIdGenerator;
-
-        // Prisma v5 relies on being able to create spans with a specific span & trace ID
-        // this is no longer possible in OTEL v2, there is no public API to do this anymore
-        // So in order to kind of hack this possibility, we rely on the internal `_idGenerator` property
-        // This is used to generate the random IDs, and we overwrite this temporarily to generate static IDs
-        // This is flawed and may not work, e.g. if the code is bundled and the private property is renamed
-        // in such cases, these spans will not be captured and some Prisma spans will be missing
-        const initialIdGenerator = tracer._idGenerator;
-
-        if (!initialIdGenerator) {
-          consoleSandbox(() => {
-            // eslint-disable-next-line no-console
-            console.warn(
-              '[Sentry] Could not find _idGenerator on tracer, skipping Prisma v5 compatibility - some Prisma spans may be missing!',
-            );
-          });
-
-          return;
+        pendingEngineSpans.push(...engineSpanEvent.spans);
+        if (pendingEngineSpans.length > MAX_TRACKED_PRISMA_SPANS) {
+          pendingEngineSpans.splice(0, pendingEngineSpans.length - MAX_TRACKED_PRISMA_SPANS);
         }
-
-        try {
-          engineSpanEvent.spans.forEach(engineSpan => {
-            const kind = engineSpan.kind === 'client' ? SpanKind.CLIENT : SpanKind.INTERNAL;
-
-            const parentSpanId = engineSpan.parent_span_id;
-            const spanId = engineSpan.span_id;
-            const traceId = engineSpan.trace_id;
-
-            const links: Link[] | undefined = engineSpan.links?.map(link => {
-              return {
-                context: {
-                  traceId: link.trace_id,
-                  spanId: link.span_id,
-                  traceFlags: TraceFlags.SAMPLED,
-                },
-              };
-            });
-
-            const ctx = trace.setSpanContext(context.active(), {
-              traceId,
-              spanId: parentSpanId,
-              traceFlags: TraceFlags.SAMPLED,
-            });
-
-            context.with(ctx, () => {
-              const temporaryIdGenerator: IdGenerator = {
-                generateTraceId: () => {
-                  return traceId;
-                },
-                generateSpanId: () => {
-                  return spanId;
-                },
-              };
-
-              tracer._idGenerator = temporaryIdGenerator;
-
-              const span = tracer.startSpan(engineSpan.name, {
-                kind,
-                links,
-                startTime: engineSpan.start_time,
-                attributes: engineSpan.attributes,
-              });
-
-              span.end(engineSpan.end_time);
-
-              tracer._idGenerator = initialIdGenerator;
-            });
-          });
-        } finally {
-          // Ensure we always restore this at the end, even if something errors
-          tracer._idGenerator = initialIdGenerator;
-        }
+        createResolvedEngineSpans();
       };
     }
   }
@@ -197,6 +185,9 @@ export const prismaIntegration = defineIntegration((options?: PrismaOptions) => 
         const spanJSON = spanToJSON(span);
         if (spanJSON.description?.startsWith('prisma:')) {
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.prisma');
+          // Register the span so v5 engine spans (dispatched later, detached) can resolve it as a
+          // parent by the id Prisma reported it under (the span's own id; see `createResolvedEngineSpans`).
+          registerPrismaSpan(span.spanContext().spanId, span);
         }
 
         // Make sure we use the query text as the span name, for ex. SELECT * FROM "User" WHERE "id" = $1.
