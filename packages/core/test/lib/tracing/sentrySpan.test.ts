@@ -193,6 +193,23 @@ describe('SentrySpan', () => {
       expect(json.start_timestamp).toBe(999);
       expect(json.links).toHaveLength(1);
     });
+
+    it('seals a tracer-provider span that ended via the constructor endTimestamp', () => {
+      // `_endTime` is set in the constructor, so `end()` early-returns before reaching the seal at the
+      // bottom of its body. The span must still be sealed once `end()` is invoked.
+      const span = new SentrySpan({
+        name: 'original',
+        startTimestamp: 1,
+        endTimestamp: 2,
+        attributes: { key: 'before' },
+      });
+      markSpanAsTracerProviderSpan(span);
+
+      span.end();
+
+      span.setAttribute('key', 'after');
+      expect(spanToJSON(span).data?.['key']).toBe('before');
+    });
   });
 
   describe('end', () => {
