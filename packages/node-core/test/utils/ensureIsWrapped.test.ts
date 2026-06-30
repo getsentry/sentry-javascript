@@ -28,7 +28,7 @@ describe('ensureIsWrapped', () => {
 
     expect(spyWarn).toHaveBeenCalledTimes(1);
     expect(spyWarn).toHaveBeenCalledWith(
-      '[Sentry] express is not instrumented. This is likely because you required/imported express before calling `Sentry.init()`.',
+      '[Sentry] express is not instrumented. Please make sure to initialize Sentry in a separate file that you `--import` when running node, see: https://docs.sentry.io/platforms/javascript/guides/express/install/esm/.',
     );
   });
 
