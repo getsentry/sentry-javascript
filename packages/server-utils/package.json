@@ -99,7 +99,7 @@
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8 && node scripts/inject-ts38-shims.mjs",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "run-p build:transpile:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

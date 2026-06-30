@@ -3,6 +3,7 @@ import type { AsyncLocalStorage } from 'node:async_hooks';
 import type { ExclusiveEventHintOrCaptureContext, Span } from '@sentry/core';
 import { debug, captureException, SPAN_STATUS_ERROR, getAsyncContextStrategy, getMainCarrier } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
+import { ERROR_TYPE } from '@sentry/conventions/attributes';
 
 export type TracingChannelPayloadWithSpan<TData extends object> = TData & {
   _sentrySpan?: Span;
@@ -103,7 +104,9 @@ export function bindTracingChannelToSpan<TData extends object>(
         captureException(data.error, getErrorHint(data.error));
       }
 
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: getErrorMessage(data.error) });
+      const { message, attributes } = getErrorInfo(data.error);
+      span.setStatus({ code: SPAN_STATUS_ERROR, message });
+      span.setAttributes(attributes);
     },
     asyncEnd(data) {
       endBoundSpan(data, beforeSpanEnd);
@@ -186,10 +189,25 @@ function endBoundSpan<TData extends object>(
   span.end();
 }
 
-/** Best-effort short message for a span status: an error-like's `message`, otherwise its string form. */
-function getErrorMessage(error: unknown): string {
-  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-    return error.message;
-  }
-  return String(error);
+type ErrorInfo = {
+  message: string;
+  attributes: Record<string, string>;
+};
+
+/**
+ * Best-effort message and attribute extraction for thrown/rejected values.
+ */
+function getErrorInfo(error: unknown): ErrorInfo {
+  const isObject = !!error && typeof error === 'object';
+  const raw = isObject ? ('message' in error ? error.message : undefined) : error;
+
+  const message = raw ? String(raw) : 'unknown_error';
+  const type = isObject && 'name' in error ? String(error.name) : 'unknown';
+
+  return {
+    message,
+    attributes: {
+      [ERROR_TYPE]: type,
+    },
+  };
 }

@@ -42,19 +42,18 @@ import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInject
  * @experimental May change or be removed in any release.
  */
 export function experimentalUseDiagnosticsChannelInjection(): void {
-  setDiagnosticsChannelInjectionLoader(
-    (): DiagnosticsChannelInjection => ({
-      integrations: [
-        mysqlChannelIntegration(),
-        lruMemoizerChannelIntegration(),
-        ioredisChannelIntegration({ responseHook: cacheResponseHook }),
-      ],
-      // 'Redis' is omitted on purpose: it's a composite integration (node-redis +
-      // ioredis + the >=5.11.0 diagnostics_channel subscriber) that must stay in
-      // the set. Its ioredis monkey-patch is gated off in `redisIntegration`.
-      replacedOtelIntegrationNames: ['Mysql', 'LruMemoizer'],
+  setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
+    // These channel integrations 1:1 replace the OTel integration of the same name.
+    const replacements = [mysqlChannelIntegration(), lruMemoizerChannelIntegration()] as const;
+
+    return {
+      // ioredis only supersedes the ioredis monkey-patch inside the composite OTel
+      // `Redis` integration (gated off in `redisIntegration`), so it's added here
+      // but kept out of `replacedOtelIntegrationNames` — `Redis` must stay.
+      integrations: [...replacements, ioredisChannelIntegration({ responseHook: cacheResponseHook })],
+      replacedOtelIntegrationNames: replacements.map(i => i.name),
       register: registerDiagnosticsChannelInjection,
       detect: detectOrchestrionSetup,
-    }),
-  );
+    };
+  });
 }
