@@ -119,9 +119,7 @@ export function bindTracingChannelToSpan<TData extends object>(
     span.setAttributes(attributes);
   };
 
-  // The `end` handed to `deferSpanEnd`: the caller owns *when*, this owns *how* (error annotation,
-  // `beforeSpanEnd`, the actual end). Idempotent so a deferred source firing both `'error'` and
-  // `'end'` doesn't double-annotate.
+  // Creates an end fn for deferred handlers to use, ensures consistent span end behavior
   const makeDeferredEnd = (span: Span, data: TracingChannelPayloadWithSpan<TData>) => {
     let ended = false;
 
@@ -129,13 +127,13 @@ export function bindTracingChannelToSpan<TData extends object>(
       if (ended) {
         return;
       }
-      ended = true;
 
+      ended = true;
       if (error !== undefined) {
         annotateSpanError(span, error);
       }
-      beforeSpanEnd?.(span, data);
-      span.end();
+
+      endBoundSpan(data, beforeSpanEnd);
     };
   };
 
