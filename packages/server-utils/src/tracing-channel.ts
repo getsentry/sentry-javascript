@@ -42,6 +42,15 @@ export interface TracingChannelLifeCycleOptions<TData extends object = object> {
    * For database drivers, it is not recommended to set this at all.
    */
   captureError?: boolean | ((e: unknown) => ExclusiveEventHintOrCaptureContext);
+
+  /**
+   * Take ownership of ending the span for a given payload: return `true` to stop the helper from
+   * ending it (on `end` or `asyncEnd`), making the caller responsible for calling `span.end()`.
+   * Use it for results that settle out-of-band of the channel lifecycle — e.g. a streamed
+   * `EventEmitter` whose completion is signalled by its own `'end'`/`'error'` events, not by the
+   * channel. Return `false` (the default) to let the helper end the span as usual.
+   */
+  deferSpanEnd?: (span: Span, data: TracingChannelPayloadWithSpan<TData>) => boolean;
 }
 
 /** Returned by {@link bindTracingChannelToSpan}: the bound channel plus a teardown handle. */
@@ -77,6 +86,7 @@ export function bindTracingChannelToSpan<TData extends object>(
   const handle = bindSpanToChannelStore(channel, getSpan);
 
   const beforeSpanEnd = opts?.beforeSpanEnd;
+  const deferSpanEnd = opts?.deferSpanEnd;
   const getErrorHint = (e: unknown): ExclusiveEventHintOrCaptureContext => {
     if (typeof opts?.captureError === 'function') {
       return opts.captureError(e);
@@ -97,6 +107,10 @@ export function bindTracingChannelToSpan<TData extends object>(
       // The operation settled synchronously (returned or threw)
       // Presence checks because caller can return `undefined` result or throw a falsy value.
       if ('error' in data || 'result' in data) {
+        const span = data._sentrySpan;
+        if (span && deferSpanEnd?.(span, data)) {
+          return;
+        }
         endBoundSpan(data, beforeSpanEnd);
       }
     },
@@ -117,6 +131,10 @@ export function bindTracingChannelToSpan<TData extends object>(
       span.setAttributes(attributes);
     },
     asyncEnd(data) {
+      const span = data._sentrySpan;
+      if (span && deferSpanEnd?.(span, data)) {
+        return;
+      }
       endBoundSpan(data, beforeSpanEnd);
     },
   };
