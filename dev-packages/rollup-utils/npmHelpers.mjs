@@ -73,6 +73,8 @@ export function makeBaseNPMConfig(options = {}) {
         preset: 'es2015',
       },
 
+      hoistTransitiveImports: false,
+
       // don't add `"use strict"` to the top of cjs files
       strict: false,
 
@@ -99,7 +101,7 @@ export function makeBaseNPMConfig(options = {}) {
           return false;
         }
 
-        return true;
+        return false;
       },
     },
 
