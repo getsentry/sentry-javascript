@@ -104,7 +104,7 @@ class SentryPrismaInteropInstrumentation extends PrismaInstrumentation {
 
         try {
           engineSpanEvent.spans.forEach(engineSpan => {
-            const kind = engineSpanKindToOTELSpanKind(engineSpan.kind);
+            const kind = engineSpan.kind === 'client' ? SpanKind.CLIENT : SpanKind.INTERNAL;
 
             const parentSpanId = engineSpan.parent_span_id;
             const spanId = engineSpan.span_id;
@@ -159,16 +159,6 @@ class SentryPrismaInteropInstrumentation extends PrismaInstrumentation {
   }
 }
 
-function engineSpanKindToOTELSpanKind(engineSpanKind: V5EngineSpanKind): SpanKind {
-  switch (engineSpanKind) {
-    case 'client':
-      return SpanKind.CLIENT;
-    case 'internal':
-    default: // Other span kinds aren't currently supported
-      return SpanKind.INTERNAL;
-  }
-}
-
 export const instrumentPrisma = generateInstrumentOnce<PrismaOptions>(INTEGRATION_NAME, options => {
   return new SentryPrismaInteropInstrumentation(options);
 });
@@ -177,26 +167,8 @@ export const instrumentPrisma = generateInstrumentOnce<PrismaOptions>(INTEGRATIO
  * Adds Sentry tracing instrumentation for the [prisma](https://www.npmjs.com/package/prisma) library.
  * For more information, see the [`prismaIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/).
  *
- * NOTE: By default, this integration works with Prisma version 6.
- * To get performance instrumentation for other Prisma versions,
- * 1. Install the `@prisma/instrumentation` package with the desired version.
- * 1. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the `prismaInstrumentation` option of this integration:
- *
- *    ```js
- *    import { PrismaInstrumentation } from '@prisma/instrumentation'
- *
- *    Sentry.init({
- *      integrations: [
- *        prismaIntegration({
- *          // Override the default instrumentation that Sentry uses
- *          prismaInstrumentation: new PrismaInstrumentation()
- *        })
- *      ]
- *    })
- *    ```
- *
- *    The passed instrumentation instance will override the default instrumentation instance the integration would use, while the `prismaIntegration` will still ensure data compatibility for the various Prisma versions.
- * 1. Depending on your Prisma version (prior to version 6), add `previewFeatures = ["tracing"]` to the client generator block of your Prisma schema:
+ * NOTE: This integration works out of the box with Prisma v6, and v7.
+ * On Prisma versions prior to v6, add `previewFeatures = ["tracing"]` to the client generator block of your Prisma schema:
  *
  *    ```
  *    generator client {
@@ -218,6 +190,9 @@ export const prismaIntegration = defineIntegration((options?: PrismaOptions) => 
         return;
       }
 
+      // Prisma v5 engine spans are created via the `createEngineSpan` path above, which bypasses the
+      // tracing helper, so this hook applies origin, the db_query rename, and the db.system backfill to
+      // them. v6/v7 spans already get these from the helper; the guards are idempotent, so it's a no-op there.
       client.on('spanStart', span => {
         const spanJSON = spanToJSON(span);
         if (spanJSON.description?.startsWith('prisma:')) {
