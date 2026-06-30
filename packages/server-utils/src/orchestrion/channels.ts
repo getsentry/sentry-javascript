@@ -14,6 +14,8 @@
 export const CHANNELS = {
   MYSQL_QUERY: 'orchestrion:mysql:query',
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',
+  HAPI_ROUTE: 'orchestrion:@hapi/hapi:route',
+  HAPI_EXT: 'orchestrion:@hapi/hapi:ext',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
