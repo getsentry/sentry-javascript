@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import type { Span } from '@sentry/core';
+import type { StreamedSpanJSON } from '@sentry/core';
 import { getClient } from '@sentry/core';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { ReplayContainer } from '../../../src/replay';
@@ -10,7 +10,7 @@ import { resetSdkMock } from '../../mocks/resetSdkMock';
 
 let replay: ReplayContainer;
 
-describe('Integration | coreHandlers | handleAfterSegmentSpanEnd', () => {
+describe('Integration | coreHandlers | handleProcessSegmentSpan', () => {
   beforeAll(() => {
     vi.useFakeTimers();
   });
@@ -19,7 +19,7 @@ describe('Integration | coreHandlers | handleAfterSegmentSpanEnd', () => {
     replay.stop();
   });
 
-  it('records traceIds from afterSegmentSpanEnd', async () => {
+  it('records traceIds and segment names from processSegmentSpan', async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {
         stickySession: false,
@@ -32,18 +32,31 @@ describe('Integration | coreHandlers | handleAfterSegmentSpanEnd', () => {
 
     const client = getClient()!;
 
-    client.emit('afterSegmentSpanEnd', {
-      spanContext: () => ({ traceId: 'trace-stream-1', spanId: 'span1', traceFlags: 1 }),
-    } as unknown as Span);
+    client.emit('processSegmentSpan', {
+      trace_id: 'trace-stream-1',
+      span_id: 'span1',
+      name: 'GET /api/users',
+      is_segment: true,
+      start_timestamp: 0,
+      end_timestamp: 1,
+      status: 'ok',
+    } as StreamedSpanJSON);
 
-    client.emit('afterSegmentSpanEnd', {
-      spanContext: () => ({ traceId: 'trace-stream-2', spanId: 'span2', traceFlags: 1 }),
-    } as unknown as Span);
+    client.emit('processSegmentSpan', {
+      trace_id: 'trace-stream-2',
+      span_id: 'span2',
+      name: 'POST /api/items',
+      is_segment: true,
+      start_timestamp: 0,
+      end_timestamp: 1,
+      status: 'ok',
+    } as StreamedSpanJSON);
 
     expect(Array.from(replay.getContext().traceIds)).toEqual(['trace-stream-1', 'trace-stream-2']);
+    expect(Array.from(replay.getContext().segmentNames)).toEqual(['GET /api/users', 'POST /api/items']);
   });
 
-  it('limits traceIds from afterSegmentSpanEnd to max. 100', async () => {
+  it('limits traceIds from processSegmentSpan to max. 100', async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {
         stickySession: false,
@@ -57,9 +70,15 @@ describe('Integration | coreHandlers | handleAfterSegmentSpanEnd', () => {
     const client = getClient()!;
 
     for (let i = 0; i < 150; i++) {
-      client.emit('afterSegmentSpanEnd', {
-        spanContext: () => ({ traceId: `tr-${i}`, spanId: `sp-${i}`, traceFlags: 1 }),
-      } as unknown as Span);
+      client.emit('processSegmentSpan', {
+        trace_id: `tr-${i}`,
+        span_id: `sp-${i}`,
+        name: `segment-${i}`,
+        is_segment: true,
+        start_timestamp: 0,
+        end_timestamp: 1,
+        status: 'ok',
+      } as StreamedSpanJSON);
     }
 
     expect(replay.getContext().traceIds.size).toBe(100);
@@ -70,7 +89,7 @@ describe('Integration | coreHandlers | handleAfterSegmentSpanEnd', () => {
     );
   });
 
-  it('does not record traceIds from afterSegmentSpanEnd when replay is disabled', async () => {
+  it('does not record traceIds from processSegmentSpan when replay is disabled', async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {
         stickySession: false,
@@ -85,14 +104,20 @@ describe('Integration | coreHandlers | handleAfterSegmentSpanEnd', () => {
 
     replay['_isEnabled'] = false;
 
-    client.emit('afterSegmentSpanEnd', {
-      spanContext: () => ({ traceId: 'trace-stream-1', spanId: 'span1', traceFlags: 1 }),
-    } as unknown as Span);
+    client.emit('processSegmentSpan', {
+      trace_id: 'trace-stream-1',
+      span_id: 'span1',
+      name: 'GET /api/users',
+      is_segment: true,
+      start_timestamp: 0,
+      end_timestamp: 1,
+      status: 'ok',
+    } as StreamedSpanJSON);
 
     expect(Array.from(replay.getContext().traceIds)).toEqual([]);
   });
 
-  it('does not record traceIds for unsampled spans', async () => {
+  it('does not record segment spans with empty names', async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {
         stickySession: false,
@@ -105,10 +130,17 @@ describe('Integration | coreHandlers | handleAfterSegmentSpanEnd', () => {
 
     const client = getClient()!;
 
-    client.emit('afterSegmentSpanEnd', {
-      spanContext: () => ({ traceId: 'trace-unsampled', spanId: 'span1', traceFlags: 0 }),
-    } as unknown as Span);
+    client.emit('processSegmentSpan', {
+      trace_id: 'trace-stream-1',
+      span_id: 'span1',
+      name: '',
+      is_segment: true,
+      start_timestamp: 0,
+      end_timestamp: 1,
+      status: 'ok',
+    } as StreamedSpanJSON);
 
     expect(Array.from(replay.getContext().traceIds)).toEqual([]);
+    expect(Array.from(replay.getContext().segmentNames)).toEqual([]);
   });
 });

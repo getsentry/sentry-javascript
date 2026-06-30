@@ -26,7 +26,7 @@ export async function sendReplayRequest({
     },
   });
 
-  const { urls, errorIds, traceIds, initialTimestamp } = eventContext;
+  const { urls, errorIds, traceIds, segmentNames, initialTimestamp } = eventContext;
 
   const client = getClient();
   const scope = getCurrentScope();
@@ -43,6 +43,7 @@ export async function sendReplayRequest({
     timestamp: timestamp / 1000,
     error_ids: errorIds,
     trace_ids: traceIds,
+    segment_names: segmentNames,
     urls,
     replay_id: replayId,
     segment_id,
