@@ -6,6 +6,7 @@ import {
   getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
+  waitForTracingChannelBinding,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -85,54 +86,59 @@ const _ioredisChannelIntegration = ((options: IORedisChannelIntegrationOptions =
         CHANNELS.IOREDIS_CONNECT,
       );
 
-      bindTracingChannelToSpan(
-        commandChannel,
-        data => {
-          // ioredis' `requireParentSpan` default: only create a span under an active span.
-          if (!getActiveSpan()) {
-            return undefined;
-          }
-          const command = data.arguments?.[0] as RedisCommand | undefined;
-          if (!command || typeof command !== 'object') {
-            return undefined;
-          }
-          const { host, port } = getConnectionOptions(data.self);
-          const statement = defaultDbStatementSerializer(command.name, command.args ?? []);
-          return startInactiveSpan({
-            name: statement,
-            op: 'db',
-            attributes: { ...connectionAttributes(host, port), [ATTR_DB_STATEMENT]: statement },
-          });
-        },
-        {
-          captureError: false,
-          beforeSpanEnd(span, data) {
-            if ('error' in data || !responseHook) {
-              return;
+      // `bindTracingChannelToSpan` uses `bindStore`, which needs the async-context
+      // binding that `initOpenTelemetry()` registers after integration `setupOnce` —
+      // defer until it's available (matches the native redis diagnostics-channel subscriber).
+      waitForTracingChannelBinding(() => {
+        bindTracingChannelToSpan(
+          commandChannel,
+          data => {
+            // ioredis' `requireParentSpan` default: only create a span under an active span.
+            if (!getActiveSpan()) {
+              return undefined;
             }
             const command = data.arguments?.[0] as RedisCommand | undefined;
-            if (command) {
-              runResponseHook(responseHook, span, command, data.result);
+            if (!command || typeof command !== 'object') {
+              return undefined;
             }
+            const { host, port } = getConnectionOptions(data.self);
+            const statement = defaultDbStatementSerializer(command.name, command.args ?? []);
+            return startInactiveSpan({
+              name: statement,
+              op: 'db',
+              attributes: { ...connectionAttributes(host, port), [ATTR_DB_STATEMENT]: statement },
+            });
           },
-        },
-      );
+          {
+            captureError: false,
+            beforeSpanEnd(span, data) {
+              if ('error' in data || !responseHook) {
+                return;
+              }
+              const command = data.arguments?.[0] as RedisCommand | undefined;
+              if (command) {
+                runResponseHook(responseHook, span, command, data.result);
+              }
+            },
+          },
+        );
 
-      bindTracingChannelToSpan(
-        connectChannel,
-        data => {
-          if (!getActiveSpan()) {
-            return undefined;
-          }
-          const { host, port } = getConnectionOptions(data.self);
-          return startInactiveSpan({
-            name: 'connect',
-            op: 'db',
-            attributes: { ...connectionAttributes(host, port), [ATTR_DB_STATEMENT]: 'connect' },
-          });
-        },
-        { captureError: false },
-      );
+        bindTracingChannelToSpan(
+          connectChannel,
+          data => {
+            if (!getActiveSpan()) {
+              return undefined;
+            }
+            const { host, port } = getConnectionOptions(data.self);
+            return startInactiveSpan({
+              name: 'connect',
+              op: 'db',
+              attributes: { ...connectionAttributes(host, port), [ATTR_DB_STATEMENT]: 'connect' },
+            });
+          },
+          { captureError: false },
+        );
+      });
     },
   };
 }) satisfies IntegrationFn;

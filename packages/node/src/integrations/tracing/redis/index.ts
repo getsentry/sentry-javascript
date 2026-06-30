@@ -123,7 +123,9 @@ export const instrumentRedis = Object.assign(
   (): void => {
     // When diagnostics-channel injection is opted in, orchestrion owns ioredis
     // `<5.11.0`, so skip the OTel ioredis monkey-patch to avoid double instrumentation.
-    if (!isDiagnosticsChannelInjectionEnabled()) {
+    // On Node without `tracingChannel` (<18.19) orchestrion can't run, so keep the
+    // OTel patch there — otherwise ioredis `<5.11.0` would not be traced at all.
+    if (!isDiagnosticsChannelInjectionEnabled() || !dc.tracingChannel) {
       instrumentIORedis();
     }
     instrumentRedisModule();
