@@ -6,7 +6,15 @@ import { DEBUG_BUILD } from './debug-build';
 import { ERROR_TYPE } from '@sentry/conventions/attributes';
 
 export type TracingChannelPayloadWithSpan<TData extends object> = TData & {
+  /**
+   * The current active span for the traced call.
+   */
   _sentrySpan?: Span;
+
+  /**
+   * The context's active store value, used to restore the context for asyncStart continuations for callback-based tracing.
+   */
+  _sentryCallerStore?: unknown;
 };
 
 /*
@@ -158,21 +166,33 @@ function bindSpanToChannelStore<TData extends object>(
   // 3. Read: inside the op, Sentry's scope machinery calls getScopes() → asyncStorage.getStore() on that same ALS, so getCurrentScope/getIsolationScope/getActiveSpan resolve to the scope carrying our span.
   // 4. Nest: any child span started in the traced op parents to that active span.
   channel.start.bindStore(asyncLocalStorage, (data: TracingChannelPayloadWithSpan<TData>) => {
+    // Stash the caller's store before we swap in the span store, so `asyncStart` can restore it for
+    // callback-style channels (see `_sentryCallerStore`).
+    data._sentryCallerStore = asyncLocalStorage.getStore();
+
     const span = getSpan(data);
     if (!span) {
       // Leave the active context untouched so nested operations keep parenting to the enclosing span.
-      return asyncLocalStorage.getStore() as TData;
+      return data._sentryCallerStore as TData;
     }
     data._sentrySpan = span;
 
     return binding.getStoreWithActiveSpan(span) as TData;
   });
 
+  // Restore the caller's context for the async continuation. Only callback-style channels `runStores`
+  // `asyncStart` (so the callback runs inside this store). promise channels `publish` it, leaving this
+  // inert, their continuation already inherits the caller's context natively.
+  channel.asyncStart.bindStore(asyncLocalStorage, (data: TracingChannelPayloadWithSpan<TData>) => {
+    return data._sentryCallerStore as TData;
+  });
+
   return {
     channel,
     unbind: () => {
-      // Removes the store
+      // Removes the stores
       channel.start.unbindStore(asyncLocalStorage);
+      channel.asyncStart.unbindStore(asyncLocalStorage);
     },
   };
 }

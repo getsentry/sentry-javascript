@@ -175,6 +175,81 @@ describe('bindTracingChannelToSpan', () => {
     expect(childParentSpanId).toBe(parent.spanContext().spanId);
   });
 
+  it('restores the caller context in a callback dispatched from a detached context (asyncStart rebind)', async () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+
+    let channelSpanId: string | undefined;
+    const { channel } = bindTracingChannelToSpan(
+      tracingChannel<{ operation: string }>('test:asyncStart:caller-context'),
+      () => {
+        const span = startInactiveSpan({ name: 'channel-span' });
+        channelSpanId = span.spanContext().spanId;
+        return span;
+      },
+    );
+
+    let enclosingSpanId: string | undefined;
+    let childParentSpanId: string | undefined;
+
+    await new Promise<void>(done => {
+      startSpan({ forceTransaction: true, name: 'enclosing-span' }, enclosing => {
+        enclosingSpanId = enclosing.spanContext().spanId;
+        channel.traceCallback(
+          (cb: (err: Error | null, result?: string) => void) => {
+            // Fire the callback after the enclosing scope has exited, so it runs in a detached
+            // async context — the asyncStart rebind is the only thing that can restore the caller's.
+            setTimeout(() => cb(null, 'ok'), 1);
+          },
+          0,
+          { operation: 'read' },
+          undefined,
+          () => {
+            startSpan({ name: 'child-span' }, child => {
+              childParentSpanId = spanToJSON(child).parent_span_id;
+            });
+            done();
+          },
+        );
+      });
+    });
+
+    // A span started inside the callback parents to the caller (the enclosing span), not to the
+    // channel span — matching how a promise's `.then` continuation behaves.
+    expect(childParentSpanId).toBe(enclosingSpanId);
+    expect(childParentSpanId).not.toBe(channelSpanId);
+  });
+
+  it('does not leak an unrelated active store into the callback when the caller had none', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+
+    const { channel } = bindTracingChannelToSpan(tracingChannel<{ operation: string }>('test:asyncStart:no-leak'), () =>
+      startInactiveSpan({ name: 'channel-span' }),
+    );
+
+    // Caller issues the op with no active context, so the caller store is captured as `undefined`.
+    const ctx = { operation: 'read' };
+    channel.start.runStores(ctx, () => undefined);
+
+    let otherRequestSpanId: string | undefined;
+    let childParentSpanId: string | undefined;
+
+    // The callback fires later, dispatched from *another* request's active context.
+    startSpan({ forceTransaction: true, name: 'other-request' }, other => {
+      otherRequestSpanId = other.spanContext().spanId;
+      channel.asyncStart.runStores(ctx, () => {
+        startSpan({ name: 'child-span' }, child => {
+          childParentSpanId = spanToJSON(child).parent_span_id;
+        });
+      });
+    });
+
+    // The caller had no context, so the callback must restore to none — not adopt the other request's.
+    expect(childParentSpanId).toBeUndefined();
+    expect(childParentSpanId).not.toBe(otherRequestSpanId);
+  });
+
   describe('auto lifecycle ending strategy', () => {
     // Returns a channel whose span we can observe, plus spies for `span.end` and `captureException`.
     function setup(name: string): {
