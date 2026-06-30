@@ -6,7 +6,6 @@ import {
   defineIntegration,
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -18,16 +17,9 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 // When enabled, OTel 'Mysql' integration is omitted from the default set.
 const INTEGRATION_NAME = 'Mysql' as const;
 
-// OpenTelemetry "OLD" db/net semantic-conventions. We inline them rather than
-// importing `@opentelemetry/semantic-conventions` to keep this integration's
-// dependency surface free of OTel — orchestrion's whole point is to step away
-// from the OTel auto-instrumentation stack.
-//
-// We emit the OLD conventions to match `@opentelemetry/instrumentation-mysql`'s
-// default (it only emits the stable `db.system.name` / `db.query.text` set when
-// `OTEL_SEMCONV_STABILITY_OPT_IN=database` is opted into) and the rest of the
-// Sentry JS SDK, whose `inferDbSpanData` processor renames spans based on
-// `db.statement`.
+// OTel "OLD" db/net semantic-conventions, inlined to keep this integration free of OTel deps. Matches
+// `@opentelemetry/instrumentation-mysql`'s default and the SDK's `inferDbSpanData` (which renames spans
+// off `db.statement`).
 const ATTR_DB_SYSTEM = 'db.system';
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const ATTR_DB_NAME = 'db.name';
@@ -84,9 +76,8 @@ const _mysqlChannelIntegration = (() => {
             const portNumber = typeof port === 'string' ? parseInt(port, 10) : port;
             const portIsNumber = typeof portNumber === 'number' && !isNaN(portNumber);
 
-            // Capture the caller's scope while still synchronously inside `connection.query`, for the
-            // streamed-query path: mysql emits the `Query` emitter's events from its socket data handler,
-            // where the caller's context is lost. `deferSpanEnd` replays this scope onto that emitter.
+            // For the streamed path: mysql emits the `Query` emitter's events from its socket data
+            // handler with the caller's context lost. `deferSpanEnd` replays this scope onto the emitter.
             data._sentryCallerScope = getCurrentScope();
 
             return startInactiveSpan({
@@ -105,32 +96,22 @@ const _mysqlChannelIntegration = (() => {
             });
           },
           {
-            // mysql's no-callback `query(sql)` returns a streamable `Query` emitter: the channel publishes
-            // `end` synchronously (carrying the emitter as `result`), but the query isn't done until the
-            // emitter emits `'end'`/`'error'`.
-            // Defer ending to those events for that path.
-            deferSpanEnd(span, data) {
+            // No-callback `query(sql)` returns a streamable `Query` emitter as `result`; it settles on the
+            // emitter's `'end'`/`'error'`, not the channel, so defer ending to those.
+            deferSpanEnd({ data, end }) {
               const result = data.result;
               if (!result || typeof result !== 'object' || !hasOnMethod(result)) {
                 return false;
               }
 
-              // Replay the caller's scope onto the emitter so listeners the user attaches after `query()`
-              // returns (and any spans they start) nest under the caller, not a fresh root trace.
+              // Replay the caller's scope so user listeners on the emitter nest under it, not a new trace.
               const callerScope = data._sentryCallerScope;
               if (callerScope) {
                 bindScopeToEmitter(result, callerScope);
               }
 
-              result.on('error', err => {
-                span.setStatus({
-                  code: SPAN_STATUS_ERROR,
-                  message: err instanceof Error ? err.message : 'unknown_error',
-                });
-                // `span.end()` is idempotent, so a following `'end'` is a no-op.
-                span.end();
-              });
-              result.on('end', () => span.end());
+              result.on('error', err => end(err));
+              result.on('end', () => end());
 
               return true;
             },

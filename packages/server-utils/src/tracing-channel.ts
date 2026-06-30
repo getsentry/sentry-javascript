@@ -44,13 +44,20 @@ export interface TracingChannelLifeCycleOptions<TData extends object = object> {
   captureError?: boolean | ((e: unknown) => ExclusiveEventHintOrCaptureContext);
 
   /**
-   * Take ownership of ending the span for a given payload: return `true` to stop the helper from
-   * ending it (on `end` or `asyncEnd`), making the caller responsible for calling `span.end()`.
-   * Use it for results that settle out-of-band of the channel lifecycle — e.g. a streamed
-   * `EventEmitter` whose completion is signalled by its own `'end'`/`'error'` events, not by the
-   * channel. Return `false` (the default) to let the helper end the span as usual.
+   * Take ownership of *when* the span ends: return `true` and the helper won't end it on
+   * `end`/`asyncEnd`. For results that settle out-of-band — e.g. a streamed `EventEmitter` that
+   * completes via its own `'end'`/`'error'` events.
+   *
+   * Call `end` when it settles — `end()` on success, `end(error)` on failure. `end` owns *how* the span
+   * ends (error status/attributes, `captureError`, `beforeSpanEnd`) and is idempotent. Default `false`
+   * lets the helper end the span as usual.
    */
-  deferSpanEnd?: (span: Span, data: TracingChannelPayloadWithSpan<TData>) => boolean;
+  deferSpanEnd?: (args: {
+    span: Span;
+    data: TracingChannelPayloadWithSpan<TData>;
+    /** Ends the span: `end()` on success, `end(error)` on failure. Idempotent. */
+    end: (error?: unknown) => void;
+  }) => boolean;
 }
 
 /** Returned by {@link bindTracingChannelToSpan}: the bound channel plus a teardown handle. */
@@ -100,6 +107,38 @@ export function bindTracingChannelToSpan<TData extends object>(
     };
   };
 
+  // Apply Sentry error status + attributes (and capture, if configured) to a span. Shared by the
+  // channel `error` lifecycle and the deferred `end` util so the two can't drift.
+  const annotateSpanError = (span: Span, error: unknown): void => {
+    if (opts?.captureError) {
+      captureException(error, getErrorHint(error));
+    }
+
+    const { message, attributes } = getErrorInfo(error);
+    span.setStatus({ code: SPAN_STATUS_ERROR, message });
+    span.setAttributes(attributes);
+  };
+
+  // The `end` handed to `deferSpanEnd`: the caller owns *when*, this owns *how* (error annotation,
+  // `beforeSpanEnd`, the actual end). Idempotent so a deferred source firing both `'error'` and
+  // `'end'` doesn't double-annotate.
+  const makeDeferredEnd = (span: Span, data: TracingChannelPayloadWithSpan<TData>) => {
+    let ended = false;
+
+    return (error?: unknown): void => {
+      if (ended) {
+        return;
+      }
+      ended = true;
+
+      if (error !== undefined) {
+        annotateSpanError(span, error);
+      }
+      beforeSpanEnd?.(span, data);
+      span.end();
+    };
+  };
+
   const subscribers: Partial<TracingChannelSubscribers<TracingChannelPayloadWithSpan<TData>>> = {
     start: NOOP,
     asyncStart: NOOP,
@@ -108,7 +147,7 @@ export function bindTracingChannelToSpan<TData extends object>(
       // Presence checks because caller can return `undefined` result or throw a falsy value.
       if ('error' in data || 'result' in data) {
         const span = data._sentrySpan;
-        if (span && deferSpanEnd?.(span, data)) {
+        if (span && deferSpanEnd?.({ span, data, end: makeDeferredEnd(span, data) })) {
           return;
         }
         endBoundSpan(data, beforeSpanEnd);
@@ -122,17 +161,11 @@ export function bindTracingChannelToSpan<TData extends object>(
         return;
       }
 
-      if (opts?.captureError) {
-        captureException(data.error, getErrorHint(data.error));
-      }
-
-      const { message, attributes } = getErrorInfo(data.error);
-      span.setStatus({ code: SPAN_STATUS_ERROR, message });
-      span.setAttributes(attributes);
+      annotateSpanError(span, data.error);
     },
     asyncEnd(data) {
       const span = data._sentrySpan;
-      if (span && deferSpanEnd?.(span, data)) {
+      if (span && deferSpanEnd?.({ span, data, end: makeDeferredEnd(span, data) })) {
         return;
       }
       endBoundSpan(data, beforeSpanEnd);
