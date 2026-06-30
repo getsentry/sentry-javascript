@@ -137,11 +137,24 @@ test('Instruments MySQL via Orchestrion', async ({ baseURL }) => {
   expect(transactionEvent.contexts?.trace?.data?.['http.status_code']).toEqual(200);
 
   const spans = transactionEvent.spans || [];
+
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
       origin: 'auto.db.orchestrion.mysql',
       description: 'SELECT 1 + 1 AS solution',
+      status: 'internal_error',
+      data: expect.objectContaining({
+        'db.system': 'mysql',
+        'db.statement': 'SELECT 1 + 1 AS solution',
+        'db.user': 'root',
+        'db.connection_string': expect.any(String),
+        'net.peer.name': expect.any(String),
+        'net.peer.port': 3306,
+        // Test error codes - we deliberately don't start a Docker container so there's no DB connection
+        'db.response.status_code': 'ECONNREFUSED',
+        'error.type': 'AggregateError',
+      }),
     }),
   );
   expect(spans).toContainEqual(
@@ -149,6 +162,18 @@ test('Instruments MySQL via Orchestrion', async ({ baseURL }) => {
       op: 'db',
       origin: 'auto.db.orchestrion.mysql',
       description: 'SELECT NOW()',
+      status: 'internal_error',
+      data: expect.objectContaining({
+        'db.system': 'mysql',
+        'db.statement': 'SELECT NOW()',
+        'db.user': 'root',
+        'db.connection_string': expect.any(String),
+        'net.peer.name': expect.any(String),
+        'net.peer.port': 3306,
+        // Test expected error codes (see comment above)
+        'db.response.status_code': 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR',
+        'error.type': 'Error',
+      }),
     }),
   );
 });
