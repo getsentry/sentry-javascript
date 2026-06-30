@@ -185,6 +185,8 @@ export function descriptionForHttpMethod(
   if (query) {
     // Strip the leading `?`/`#` (the `URL.search`/`URL.hash` prefix) so the attribute matches the
     // canonical format the OTel SDK exporter emits (`getData` in `spanExporter.ts` slices these too).
+    // TODO(v11): emit `url.query`/`url.fragment` (OTel-standard, no leading `?`/`#`) and drop
+    // this stripping + `http.query`/`http.fragment`; `http.query` is specced to keep the leading `?`.
     data['http.query'] = query.slice(1);
   }
   if (fragment) {
