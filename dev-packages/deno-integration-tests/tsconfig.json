@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["suites/**/*"],
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "target": "esnext"
+  }
+}
