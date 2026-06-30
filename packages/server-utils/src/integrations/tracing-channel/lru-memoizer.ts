@@ -1,14 +1,15 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration, getCurrentScope, withScope } from '@sentry/core';
+import { debug, defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
+import { bindTracingChannelToSpan } from '../../tracing-channel';
 
 // Same name as the OTel integration by design — when enabled, the OTel
 // 'LruMemoizer' integration is omitted from the default set.
 const INTEGRATION_NAME = 'LruMemoizer' as const;
 
-interface LruMemoizerChannelContext {
+interface LruMemoizerLoadContext {
   arguments: unknown[];
 }
 
@@ -22,35 +23,19 @@ const _lruMemoizerChannelIntegration = (() => {
       }
 
       DEBUG_BUILD && debug.log(`[orchestrion:lru-memoizer] subscribing to channel "${CHANNELS.LRU_MEMOIZER_LOAD}"`);
-      const lruMemoizerCh = diagnosticsChannel.tracingChannel(CHANNELS.LRU_MEMOIZER_LOAD);
 
-      lruMemoizerCh.subscribe({
-        start(rawCtx) {
-          const ctx = rawCtx as LruMemoizerChannelContext;
-          if (ctx.arguments.length === 0) {
-            return;
-          }
-
-          // Capture the scope while we're still synchronously inside the memoized call.
-          // lru-memoizer queues the callback and fires it later via setImmediate, where the
-          // active scope no longer reflects the caller's context.
-          const scope = getCurrentScope();
-          const cbIdx = ctx.arguments.length - 1;
-          const orchestrionWrappedCb = ctx.arguments[cbIdx];
-
-          if (typeof orchestrionWrappedCb !== 'function') {
-            return;
-          }
-
-          const wrapped = orchestrionWrappedCb as (...a: unknown[]) => unknown;
-          ctx.arguments[cbIdx] = function (this: unknown, ...args: unknown[]): unknown {
-            return withScope(scope, () => wrapped.apply(this, args));
-          };
-        },
-        end() {},
-        asyncStart() {},
-        asyncEnd() {},
-        error() {},
+      // lru-memoizer creates no span: it queues the load callback and fires it later via
+      // `setImmediate`, from a detached context where the caller's scope is no longer active.
+      // Returning `undefined` from `getSpan` opts out of span creation entirely — the helper's
+      // `asyncStart` rebind still restores the caller's context for that callback, which is all this
+      // instrumentation needs (keeping memoized work parented to the caller). `bindTracingChannelToSpan`
+      // uses `bindStore`, which needs the async-context binding `initOpenTelemetry()` registers after
+      // integration `setupOnce`, so defer until it's available (matches the other channel subscribers).
+      waitForTracingChannelBinding(() => {
+        bindTracingChannelToSpan(
+          diagnosticsChannel.tracingChannel<LruMemoizerLoadContext>(CHANNELS.LRU_MEMOIZER_LOAD),
+          () => undefined,
+        );
       });
     },
   };
