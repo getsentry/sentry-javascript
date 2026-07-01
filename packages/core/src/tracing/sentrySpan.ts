@@ -364,9 +364,11 @@ export class SentrySpan implements Span {
     // Non-segment children aren't captured on their own. A registered strategy may re-emit a late child
     // as its own orphan transaction; without one, it's dropped.
     if (!isSegmentSpan) {
-      getSegmentSpanCaptureStrategy()?.onChildSpanEnded(this, rootSpan, options =>
-        this._convertSpanToTransaction(options),
-      );
+      const strategy = getSegmentSpanCaptureStrategy();
+      if (strategy) {
+        const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
+        strategy.onChildSpanEnded(this, rootSpan, options => this._convertSpanToTransaction(options), scope);
+      }
       return;
     }
 
@@ -378,13 +380,13 @@ export class SentrySpan implements Span {
 
     // A registered strategy defers the snapshot so children closing just after the segment still land
     // (and late ones can orphan); without one, assemble synchronously from the live tree.
+    const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
     const strategy = getSegmentSpanCaptureStrategy();
     if (strategy) {
-      strategy.onSegmentSpanEnded(options => this._convertSpanToTransaction(options));
+      strategy.onSegmentSpanEnded(options => this._convertSpanToTransaction(options), scope);
     } else {
       const transactionEvent = this._convertSpanToTransaction();
       if (transactionEvent) {
-        const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
         scope.captureEvent(transactionEvent);
       }
     }

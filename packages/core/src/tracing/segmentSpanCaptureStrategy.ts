@@ -1,4 +1,5 @@
 import { getMainCarrier, getSentryCarrier } from '../carrier';
+import type { Scope } from '../scope';
 import type { TransactionEvent } from '../types/event';
 import type { Span } from '../types/span';
 
@@ -21,10 +22,10 @@ export type SegmentSpanConverter = (options?: SegmentSpanCaptureConvertOptions) 
  * behind this seam tree-shakes the deferral machinery out of SDKs that never register one (e.g. browser).
  */
 export interface SegmentSpanCaptureStrategy {
-  /** Assemble and capture a segment (root or standalone-root) span's transaction. */
-  onSegmentSpanEnded(convert: SegmentSpanConverter): void;
+  /** Assemble and capture a segment (root or standalone-root) span's transaction through its captured scope. */
+  onSegmentSpanEnded(convert: SegmentSpanConverter, scope: Scope): void;
   /** Consider a child that ended after its segment for emission as its own orphan transaction. */
-  onChildSpanEnded(span: Span, rootSpan: Span, convert: SegmentSpanConverter): void;
+  onChildSpanEnded(span: Span, rootSpan: Span, convert: SegmentSpanConverter, scope: Scope): void;
 }
 
 /**
