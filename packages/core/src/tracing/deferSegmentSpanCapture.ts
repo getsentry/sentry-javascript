@@ -1,5 +1,5 @@
 import type { Client } from '../client';
-import { getClient } from '../currentScopes';
+import type { Scope } from '../scope';
 import type { Span } from '../types/span';
 import { debounce } from '../utils/debounce';
 import { getSegmentSpanCaptureStrategy, setSegmentSpanCaptureStrategy } from './segmentSpanCaptureStrategy';
@@ -15,8 +15,9 @@ const markSpanCaptured = (span: Span): void => {
 
 // One debounced queue per client, drained on the client's `flush`/`close`. Mirrors the OpenTelemetry
 // span exporter, which holds one such buffer per instance, and the debounce window matches it. The
-// capturing client is bound when the span ends (not re-resolved at drain time), so a deferred capture
-// lands on the client that created the span even if a different client became current in the meantime.
+// capturing client is resolved from the span's captured scope and bound when the span ends, not
+// re-resolved at drain time, so a deferred transaction lands on the client that created the span even if
+// the current client (or the captured scope's own client) is reassigned before the debounce fires.
 const CLIENT_QUEUES = new WeakMap<Client, (capture: () => void) => void>();
 
 /**
@@ -64,11 +65,11 @@ export function _INTERNAL_setDeferSegmentSpanCapture(client: Client): void {
 }
 
 const deferredSegmentSpanCaptureStrategy = {
-  onSegmentSpanEnded(convert: SegmentSpanConverter): void {
-    const client = getClient();
+  onSegmentSpanEnded(convert: SegmentSpanConverter, scope: Scope): void {
+    const client = scope.getClient();
     const enqueue = client && CLIENT_QUEUES.get(client);
     if (!enqueue) {
-      // The current client didn't enable deferral: capture synchronously.
+      // The capturing client didn't enable deferral: capture synchronously.
       const transactionEvent = convert();
       if (transactionEvent) {
         client?.captureEvent(transactionEvent);
@@ -84,28 +85,32 @@ const deferredSegmentSpanCaptureStrategy = {
     });
   },
 
-  onChildSpanEnded(span: Span, rootSpan: Span, convert: SegmentSpanConverter): void {
+  onChildSpanEnded(span: Span, rootSpan: Span, convert: SegmentSpanConverter, scope: Scope): void {
     // Only a late child of an already-captured segment is an orphan. Inert under span streaming, where
     // `CAPTURED_SPANS` is never populated.
     if (CAPTURED_SPANS.has(span) || !CAPTURED_SPANS.has(rootSpan)) {
       return;
     }
 
-    const client = getClient();
+    const client = scope.getClient();
     const enqueue = client && CLIENT_QUEUES.get(client);
-    if (!enqueue) {
-      return;
-    }
 
-    enqueue(() => {
+    const captureOrphan = (): void => {
       const transactionEvent = convert({ isSpanAlreadyCaptured, onSpanCaptured: markSpanCaptured });
       if (transactionEvent?.contexts?.trace?.data) {
         // Tag orphans so they're distinguishable downstream (mirrors the OTel span exporter).
         transactionEvent.contexts.trace.data['sentry.parent_span_already_sent'] = true;
       }
       if (transactionEvent) {
-        client.captureEvent(transactionEvent);
+        client?.captureEvent(transactionEvent);
       }
-    });
+    };
+
+    // Defer when the capturing client batches; otherwise emit now so the orphan isn't dropped.
+    if (enqueue) {
+      enqueue(captureOrphan);
+    } else {
+      captureOrphan();
+    }
   },
 };
