@@ -8,10 +8,12 @@ import {
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
@@ -40,7 +42,7 @@ describe('OpenAI integration (orchestrion)', () => {
             const chatSpans = container.items.filter(
               span => span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.chat',
             );
-            expect(chatSpans).toHaveLength(3);
+            expect(chatSpans).toHaveLength(6);
 
             const chatSpan = container.items.find(
               span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-mock123',
@@ -84,7 +86,10 @@ describe('OpenAI integration (orchestrion)', () => {
             expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeUndefined();
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeUndefined();
 
-            const errorSpan = container.items.find(span => span.name === 'chat error-model');
+            const errorSpan = container.items.find(
+              span =>
+                span.name === 'chat error-model' && span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
+            );
             expect(errorSpan).toBeDefined();
             // `bindTracingChannelToSpan` sets the error status message to the OpenAI error's message,
             // so the serialized status is that message rather than the literal 'error' — just assert
@@ -139,6 +144,69 @@ describe('OpenAI integration (orchestrion)', () => {
               type: 'integer',
               value: 13,
             });
+
+            const streamingChatSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-stream-123',
+            );
+            expect(streamingChatSpan).toBeDefined();
+            expect(streamingChatSpan!.status).toBe('ok');
+            expect(streamingChatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: ORCHESTRION_ORIGIN,
+            });
+            expect(streamingChatSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
+              type: 'boolean',
+              value: true,
+            });
+            expect(streamingChatSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '["stop"]',
+            });
+            expect(streamingChatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 12,
+            });
+            expect(streamingChatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 18,
+            });
+            expect(streamingChatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 30,
+            });
+
+            const streamingResponsesSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_stream_456',
+            );
+            expect(streamingResponsesSpan).toBeDefined();
+            expect(streamingResponsesSpan!.status).toBe('ok');
+            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
+              type: 'boolean',
+              value: true,
+            });
+            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '["in_progress","completed"]',
+            });
+            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 6,
+            });
+            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 10,
+            });
+            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 16,
+            });
+
+            const streamingErrorSpan = container.items.find(
+              span =>
+                span.name === 'chat error-model' && span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
+            );
+            expect(streamingErrorSpan).toBeDefined();
+            expect(streamingErrorSpan!.status).not.toBe('ok');
           },
         })
         .start()
@@ -198,6 +266,24 @@ describe('OpenAI integration (orchestrion)', () => {
               expect(responsesSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toEqual({
                 type: 'string',
                 value: 'Response to: Translate this to French: Hello',
+              });
+
+              const streamingChatSpan = container.items.find(
+                span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-stream-123',
+              );
+              expect(streamingChatSpan).toBeDefined();
+              expect(streamingChatSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toEqual({
+                type: 'string',
+                value: 'Hello from OpenAI streaming!',
+              });
+
+              const streamingResponsesSpan = container.items.find(
+                span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_stream_456',
+              );
+              expect(streamingResponsesSpan).toBeDefined();
+              expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toEqual({
+                type: 'string',
+                value: 'Streaming response to: Test streaming responses APITest streaming responses API',
               });
             },
           })

@@ -186,6 +186,7 @@ export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanCon
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
 export { instrumentOpenAiClient, extractRequestAttributes, addRequestAttributes } from './tracing/openai';
 export { addResponseAttributes, extractRequestParameters } from './tracing/openai/utils';
+export { instrumentStream } from './tracing/openai/streaming';
 export { OPENAI_INTEGRATION_NAME } from './tracing/openai/constants';
 export { instrumentAnthropicAiClient } from './tracing/anthropic-ai';
 export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants';
