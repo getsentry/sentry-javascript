@@ -15,6 +15,7 @@ export {
   SentryNodeFetchInstrumentation,
   type SentryNodeFetchInstrumentationOptions,
 } from './integrations/node-fetch/SentryNodeFetchInstrumentation';
+export { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from './utils/outgoingFetchRequest';
 
 export { SentryContextManager } from './otel/contextManager';
 export { setupOpenTelemetryLogger } from './otel/logger';
