@@ -14,7 +14,7 @@ interface GrowthBookLike {
   getFeatureValue(this: GrowthBookLike, featureKey: string, defaultValue: unknown, ...rest: unknown[]): unknown;
 }
 
-export type GrowthBookClassLike = new (...args: unknown[]) => GrowthBookLike;
+export type GrowthBookClassLike = { prototype: GrowthBookLike };
 
 /**
  * Sentry integration for capturing feature flag evaluations from GrowthBook.
@@ -40,7 +40,7 @@ export const growthbookIntegration: IntegrationFn = defineIntegration(
       name: 'GrowthBook' as const,
 
       setupOnce() {
-        const proto = growthbookClass.prototype as GrowthBookLike;
+        const proto = growthbookClass.prototype;
 
         // Type guard and wrap isOn
         if (typeof proto.isOn === 'function') {
