@@ -10,14 +10,12 @@ import {
 } from './segmentSpanCaptureStrategy';
 import { getCapturedScopesOnSpan } from './utils';
 
-// Spans already sent in a transaction, so a child ending after its segment can be emitted as its own
-// orphan transaction instead of being dropped or sent twice.
-const CAPTURED_SPANS = new WeakSet<Span>();
+// Spans already sent in a transaction, mapped to the client that sent them. A child ending after its
+// segment can then be emitted as its own orphan transaction (instead of dropped or sent twice), routed
+// to the same client that sent the segment rather than whatever client is current when the child ends.
+const CAPTURED_SPAN_CLIENTS = new WeakMap<Span, Client>();
 
-const isSpanAlreadyCaptured = (span: Span): boolean => CAPTURED_SPANS.has(span);
-const markSpanCaptured = (span: Span): void => {
-  CAPTURED_SPANS.add(span);
-};
+const isSpanAlreadyCaptured = (span: Span): boolean => CAPTURED_SPAN_CLIENTS.has(span);
 
 // Per-client so each client's flush/close drains only its own captures: one client's flush must not
 // snapshot another's transaction early. Mirrors the per-client log/metric buffers.
@@ -56,7 +54,10 @@ const deferredSegmentSpanCaptureStrategy = {
     }
 
     queue.enqueue(() => {
-      const transactionEvent = convert({ isSpanAlreadyCaptured, onSpanCaptured: markSpanCaptured });
+      const transactionEvent = convert({
+        isSpanAlreadyCaptured,
+        onSpanCaptured: span => CAPTURED_SPAN_CLIENTS.set(span, client),
+      });
       if (transactionEvent) {
         // Capture via the client active at span end (passing its scope for context), so a later-tick
         // capture reaches that client even if the current client changed since (e.g. after re-init).
@@ -65,17 +66,23 @@ const deferredSegmentSpanCaptureStrategy = {
     });
   },
 
-  onChildSpanEnded(span: Span, rootSpan: Span, client: Client, convert: SegmentSpanConverter): void {
-    const queue = CLIENT_QUEUES.get(client);
+  onChildSpanEnded(span: Span, rootSpan: Span, convert: SegmentSpanConverter): void {
+    // Route the orphan to the client that sent its segment, not the current one — which may have
+    // changed since (e.g. after re-init) — so it lands with its segment and survives a client swap.
+    const client = CAPTURED_SPAN_CLIENTS.get(rootSpan);
+    const queue = client && CLIENT_QUEUES.get(client);
     // Only a late child of an already-captured segment is an orphan. Inert under span streaming, where
-    // `CAPTURED_SPANS` is never populated.
-    if (!queue || CAPTURED_SPANS.has(span) || !CAPTURED_SPANS.has(rootSpan)) {
+    // no client is recorded.
+    if (!client || !queue || CAPTURED_SPAN_CLIENTS.has(span)) {
       return;
     }
 
     const scope = getCapturedScopesOnSpan(span).scope || getCurrentScope();
     queue.enqueue(() => {
-      const transactionEvent = convert({ isSpanAlreadyCaptured, onSpanCaptured: markSpanCaptured });
+      const transactionEvent = convert({
+        isSpanAlreadyCaptured,
+        onSpanCaptured: capturedSpan => CAPTURED_SPAN_CLIENTS.set(capturedSpan, client),
+      });
       if (transactionEvent?.contexts?.trace?.data) {
         // Tag orphans so they're distinguishable downstream (mirrors the OTel span exporter).
         transactionEvent.contexts.trace.data['sentry.parent_span_already_sent'] = true;

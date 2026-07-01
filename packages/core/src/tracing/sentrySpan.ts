@@ -364,11 +364,9 @@ export class SentrySpan implements Span {
     // Non-segment children aren't captured on their own. A registered strategy may re-emit a late child
     // as its own orphan transaction; without one, it's dropped.
     if (!isSegmentSpan) {
-      if (client) {
-        getSegmentSpanCaptureStrategy()?.onChildSpanEnded(this, rootSpan, client, options =>
-          this._convertSpanToTransaction(options),
-        );
-      }
+      getSegmentSpanCaptureStrategy()?.onChildSpanEnded(this, rootSpan, options =>
+        this._convertSpanToTransaction(options),
+      );
       return;
     }
 
