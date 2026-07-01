@@ -1,133 +1,100 @@
-import { instrumentAnthropicAiClient } from '@sentry/core';
+import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
+import express from 'express';
 
-// Generator for default fallback
-function createMockDefaultFallbackStream() {
-  async function* generator() {
-    yield {
-      type: 'content_block_start',
-      index: 0,
-    };
-    yield {
-      type: 'content_block_delta',
-      index: 0,
-      delta: { text: 'This stream will work fine.' },
-    };
-    yield {
-      type: 'content_block_stop',
-      index: 0,
-    };
-  }
-  return generator();
-}
+function startMockAnthropicServer() {
+  const app = express();
+  app.use(express.json());
 
-// Generator that errors midway through streaming
-function createMockMidwayErrorStream() {
-  async function* generator() {
-    // First yield some initial data to start the stream
-    yield {
-      type: 'content_block_start',
-      message: {
-        id: 'msg_error_stream_1',
-        type: 'message',
-        role: 'assistant',
-        model: 'claude-3-haiku-20240307',
-        content: [],
-        usage: { input_tokens: 5 },
-      },
-    };
+  app.post('/anthropic/v1/messages', (req, res) => {
+    const model = req.body.model;
 
-    // Yield one chunk of content
-    yield { type: 'content_block_delta', delta: { text: 'This stream will ' } };
-
-    // Then throw an error
-    await new Promise(resolve => setTimeout(resolve, 5));
-    throw new Error('Stream interrupted');
-  }
-
-  return generator();
-}
-
-class MockAnthropic {
-  constructor(config) {
-    this.apiKey = config.apiKey;
-
-    this.messages = {
-      create: this._messagesCreate.bind(this),
-      stream: this._messagesStream.bind(this),
-    };
-  }
-
-  // client.messages.create with stream: true
-  async _messagesCreate(params) {
-    await new Promise(resolve => setTimeout(resolve, 5));
-
-    // Error on initialization for 'error-stream-init' model
-    if (params.model === 'error-stream-init') {
-      if (params?.stream === true) {
-        throw new Error('Failed to initialize stream');
-      }
+    // Fail before any streaming begins.
+    if (model === 'error-stream-init') {
+      res
+        .status(400)
+        .set('x-request-id', 'mock-stream-init-error')
+        .send({ type: 'error', error: { type: 'invalid_request_error', message: 'Failed to initialize stream' } });
+      return;
     }
 
-    // Error midway for 'error-stream-midway' model
-    if (params.model === 'error-stream-midway') {
-      if (params?.stream === true) {
-        return createMockMidwayErrorStream();
-      }
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    });
+
+    // Start a valid stream, then drop the connection mid-message (no message_stop).
+    if (model === 'error-stream-midway') {
+      const events = [
+        {
+          type: 'message_start',
+          message: {
+            id: 'msg_error_stream_1',
+            type: 'message',
+            role: 'assistant',
+            model,
+            content: [],
+            usage: { input_tokens: 5 },
+          },
+        },
+        { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
+        { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'This stream will ' } },
+      ];
+      events.forEach((event, index) => {
+        setTimeout(() => {
+          res.write(`event: ${event.type}\n`);
+          res.write(`data: ${JSON.stringify(event)}\n\n`);
+        }, index * 10);
+      });
+      // Drop the connection only after the last event has been received and parsed, so the streamed
+      // text is captured before the stream errors out.
+      setTimeout(() => res.destroy(), events.length * 10 + 50);
+      return;
     }
 
-    // Default fallback
-    return {
-      id: 'msg_mock123',
-      type: 'message',
-      model: params.model,
-      role: 'assistant',
-      content: [{ type: 'text', text: 'Non-stream response' }],
-      usage: { input_tokens: 5, output_tokens: 7 },
-    };
-  }
+    res.end();
+  });
 
-  // client.messages.stream
-  async _messagesStream(params) {
-    await new Promise(resolve => setTimeout(resolve, 5));
-
-    // Error on initialization for 'error-stream-init' model
-    if (params.model === 'error-stream-init') {
-      throw new Error('Failed to initialize stream');
-    }
-
-    // Error midway for 'error-stream-midway' model
-    if (params.model === 'error-stream-midway') {
-      return createMockMidwayErrorStream();
-    }
-
-    // Default fallback
-    return createMockDefaultFallbackStream();
-  }
+  return new Promise(resolve => {
+    const server = app.listen(0, () => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
+  const server = await startMockAnthropicServer();
+
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    const mockClient = new MockAnthropic({ apiKey: 'mock-api-key' });
-    const client = instrumentAnthropicAiClient(mockClient);
+    const client = new Anthropic({
+      apiKey: 'mock-api-key',
+      baseURL: `http://localhost:${server.address().port}/anthropic`,
+    });
 
     // 1) Error on stream initialization with messages.create
     try {
-      await client.messages.create({
+      const stream = await client.messages.create({
         model: 'error-stream-init',
         messages: [{ role: 'user', content: 'This will fail immediately' }],
         stream: true,
       });
+      for await (const _ of stream) {
+        void _;
+      }
     } catch {
       // Error expected
     }
 
     // 2) Error on stream initialization with messages.stream
     try {
-      await client.messages.stream({
+      const stream = client.messages.stream({
         model: 'error-stream-init',
         messages: [{ role: 'user', content: 'This will also fail immediately' }],
       });
+      for await (const _ of stream) {
+        void _;
+      }
     } catch {
       // Error expected
     }
@@ -139,7 +106,6 @@ async function run() {
         messages: [{ role: 'user', content: 'This will fail midway' }],
         stream: true,
       });
-
       for await (const _ of stream) {
         void _;
       }
@@ -149,11 +115,10 @@ async function run() {
 
     // 4) Error midway through streaming with messages.stream
     try {
-      const stream = await client.messages.stream({
+      const stream = client.messages.stream({
         model: 'error-stream-midway',
         messages: [{ role: 'user', content: 'This will also fail midway' }],
       });
-
       for await (const _ of stream) {
         void _;
       }
@@ -161,6 +126,10 @@ async function run() {
       // Error expected
     }
   });
+
+  await Sentry.flush(2000);
+
+  server.close();
 }
 
 run();
