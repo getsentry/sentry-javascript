@@ -190,7 +190,7 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
 
   // When spans are disabled we do not create a span, but we still inject trace propagation headers
   // directly (unless disabled via `tracePropagation`).
-  if (config.spans === false) {
+  if (config.spans) {
     if (config.tracePropagation !== false && !ignoreForBreadcrumbs) {
       addTracePropagationHeadersToFetchRequest(request, propagationDecisionMap);
     }
