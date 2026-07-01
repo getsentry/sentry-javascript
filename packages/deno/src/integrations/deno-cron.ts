@@ -7,7 +7,7 @@ type CronFn = () => void | Promise<void>;
 // Parameters<typeof Deno.cron> doesn't work well with the overloads 🤔
 type CronParams = [string, string | Deno.CronSchedule, CronFn | CronOptions, CronFn | CronOptions | undefined];
 
-const INTEGRATION_NAME = 'DenoCron';
+const INTEGRATION_NAME = 'DenoCron' as const;
 
 const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 

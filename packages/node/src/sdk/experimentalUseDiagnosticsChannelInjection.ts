@@ -1,4 +1,8 @@
-import { mysqlChannelIntegration, detectOrchestrionSetup } from '@sentry/server-utils/orchestrion';
+import {
+  mysqlChannelIntegration,
+  lruMemoizerChannelIntegration,
+  detectOrchestrionSetup,
+} from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
 import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInjection';
@@ -36,12 +40,15 @@ import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInject
  * @experimental May change or be removed in any release.
  */
 export function experimentalUseDiagnosticsChannelInjection(): void {
-  setDiagnosticsChannelInjectionLoader(
-    (): DiagnosticsChannelInjection => ({
-      integrations: [mysqlChannelIntegration()],
-      replacedOtelIntegrationNames: ['Mysql'],
+  setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
+    const integrations = [mysqlChannelIntegration(), lruMemoizerChannelIntegration()] as const;
+    const replacedOtelIntegrationNames = integrations.map(i => i.name);
+
+    return {
+      integrations,
+      replacedOtelIntegrationNames,
       register: registerDiagnosticsChannelInjection,
       detect: detectOrchestrionSetup,
-    }),
-  );
+    };
+  });
 }

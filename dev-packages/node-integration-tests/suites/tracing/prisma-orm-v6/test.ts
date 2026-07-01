@@ -25,6 +25,22 @@ describe('Prisma ORM v6 Tests', () => {
               const spans = transaction.spans || [];
               expect(spans.length).toBeGreaterThanOrEqual(5);
 
+              // Each operation span is a direct child of the transaction; the db query span is a child of the engine query span.
+              const rootSpanId = transaction.contexts?.trace?.span_id;
+
+              const operationSpans = spans.filter(s => s.description === 'prisma:client:operation');
+              expect(operationSpans.length).toBeGreaterThanOrEqual(1);
+              operationSpans.forEach(operation => {
+                expect(operation.parent_span_id).toBe(rootSpanId);
+              });
+
+              const dbQuerySpan = spans.find(
+                s => s.data?.['sentry.origin'] === 'auto.db.otel.prisma' && s.data?.['db.query.text'],
+              );
+              expect(dbQuerySpan).toBeDefined();
+              const dbQueryParent = spans.find(s => s.span_id === dbQuerySpan?.parent_span_id);
+              expect(dbQueryParent?.description).toBe('prisma:engine:query');
+
               function expectPrismaSpanToIncludeSpanWith(span: Partial<SpanJSON>) {
                 expect(spans).toContainEqual(
                   expect.objectContaining({
@@ -92,6 +108,10 @@ describe('Prisma ORM v6 Tests', () => {
                 },
                 description: 'DELETE FROM "public"."User" WHERE "public"."User"."email"::text LIKE $1',
               });
+
+              // The db query span name must always be rewritten to the SQL text; the raw engine span
+              // name should never leak through.
+              expect(spans.find(span => span.description === 'prisma:engine:db_query')).toBeUndefined();
             },
           })
           .start()

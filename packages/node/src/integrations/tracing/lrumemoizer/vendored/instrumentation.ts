@@ -7,9 +7,8 @@
  * - Upstream version: @opentelemetry/instrumentation-lru-memoizer@0.62.0
  */
 
-import { context } from '@opentelemetry/api';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { SDK_VERSION } from '@sentry/core';
+import { getCurrentScope, SDK_VERSION, withScope } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-lru-memoizer';
 
@@ -37,8 +36,13 @@ export class LruMemoizerInstrumentation extends InstrumentationBase {
             return function (this: unknown, ...memoizerArgs: unknown[]): unknown {
               // last argument is the callback
               const origCallback = memoizerArgs.pop();
+              const scope = getCurrentScope();
               const callbackWithContext =
-                typeof origCallback === 'function' ? context.bind(context.active(), origCallback) : origCallback;
+                typeof origCallback === 'function'
+                  ? function (this: unknown, ...callbackArgs: unknown[]): unknown {
+                      return withScope(scope, () => (origCallback as Memoizer).apply(this, callbackArgs));
+                    }
+                  : origCallback;
               return origMemoizer.apply(this, [...memoizerArgs, callbackWithContext]);
             };
           };

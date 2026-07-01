@@ -49,11 +49,11 @@ export {
   hasExternalPropagationContext,
 } from './currentScopes';
 export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
+export { setAsyncContextStrategy, getAsyncContextStrategy } from './asyncContext';
 export {
-  setAsyncContextStrategy,
-  getTracingChannelBinding as _INTERNAL_getTracingChannelBinding,
+  waitForTracingChannelBinding,
   _INTERNAL_createTracingChannelBinding,
-} from './asyncContext';
+} from './asyncContext/tracing-channel-binding';
 export { getGlobalSingleton, getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 export { Scope } from './scope';
@@ -65,7 +65,13 @@ export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from './transports/multiplexed';
-export { getIntegrationsToSetup, addIntegration, defineIntegration, installedIntegrations } from './integration';
+export {
+  getIntegrationsToSetup,
+  addIntegration,
+  defineIntegration,
+  extendIntegration,
+  installedIntegrations,
+} from './integration';
 export {
   _INTERNAL_skipAiProviderWrapping,
   _INTERNAL_shouldSkipAiProviderWrapping,

@@ -21,7 +21,7 @@ interface ZodErrorsOptions {
 }
 
 const DEFAULT_LIMIT = 10;
-const INTEGRATION_NAME = 'ZodErrors';
+const INTEGRATION_NAME = 'ZodErrors' as const;
 
 /**
  * Simplified ZodIssue type definition

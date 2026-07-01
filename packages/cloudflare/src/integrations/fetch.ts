@@ -18,7 +18,7 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/core';
 
-const INTEGRATION_NAME = 'Fetch';
+const INTEGRATION_NAME = 'Fetch' as const;
 
 const HAS_CLIENT_MAP = new WeakMap<Client, boolean>();
 

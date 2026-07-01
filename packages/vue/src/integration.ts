@@ -18,7 +18,7 @@ const DEFAULT_CONFIG: VueOptions = {
   },
 };
 
-const INTEGRATION_NAME = 'Vue';
+const INTEGRATION_NAME = 'Vue' as const;
 
 export type VueIntegrationOptions = Partial<VueOptions>;
 

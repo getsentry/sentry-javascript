@@ -3,7 +3,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 
-const INTEGRATION_NAME = 'Knex';
+const INTEGRATION_NAME = 'Knex' as const;
 
 export const instrumentKnex = generateInstrumentOnce(INTEGRATION_NAME, () => new KnexInstrumentation());
 

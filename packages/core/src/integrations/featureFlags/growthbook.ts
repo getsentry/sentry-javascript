@@ -37,7 +37,7 @@ export type GrowthBookClassLike = new (...args: unknown[]) => GrowthBookLike;
 export const growthbookIntegration: IntegrationFn = defineIntegration(
   ({ growthbookClass }: { growthbookClass: GrowthBookClassLike }) => {
     return {
-      name: 'GrowthBook',
+      name: 'GrowthBook' as const,
 
       setupOnce() {
         const proto = growthbookClass.prototype as GrowthBookLike;

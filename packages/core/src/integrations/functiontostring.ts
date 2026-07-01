@@ -7,7 +7,7 @@ import { getOriginalFunction } from '../utils/object';
 
 let originalFunctionToString: () => void;
 
-const INTEGRATION_NAME = 'FunctionToString';
+const INTEGRATION_NAME = 'FunctionToString' as const;
 
 const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 

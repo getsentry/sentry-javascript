@@ -11,7 +11,7 @@
 import type { IntegrationFn } from '@sentry/core';
 import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
 
-const INTEGRATION_NAME = 'VercelAI';
+const INTEGRATION_NAME = 'VercelAI' as const;
 
 interface VercelAiOptions {
   /**

@@ -2,7 +2,7 @@ import { errorMonitor } from 'node:events';
 import type { IncomingHttpHeaders } from 'node:http';
 import { context, SpanKind, trace } from '@opentelemetry/api';
 import type { RPCMetadata } from '@opentelemetry/core';
-import { getRPCMetadata, isTracingSuppressed, RPCType, setRPCMetadata } from '@opentelemetry/core';
+import { getRPCMetadata, RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
   HTTP_RESPONSE_STATUS_CODE,
   HTTP_ROUTE,
@@ -32,12 +32,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
+  isTracingSuppressed,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { addStartSpanCallback } from './httpServerIntegration';
 
-const INTEGRATION_NAME = 'Http.ServerSpans';
+const INTEGRATION_NAME = 'Http.ServerSpans' as const;
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -266,7 +267,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 export const httpServerSpansIntegration = _httpServerSpansIntegration as (
   options?: HttpServerSpansIntegrationOptions,
 ) => Integration & {
-  name: 'HttpServerSpans';
+  name: 'Http.ServerSpans';
   setup: (client: NodeClient) => void;
   processEvent: (event: Event) => Event | null;
 };
@@ -306,7 +307,7 @@ function shouldIgnoreSpansForIncomingRequest(
     ignoreIncomingRequests?: (urlPath: string, request: HttpIncomingMessage) => boolean;
   },
 ): boolean {
-  if (isTracingSuppressed(context.active())) {
+  if (isTracingSuppressed()) {
     return true;
   }
 

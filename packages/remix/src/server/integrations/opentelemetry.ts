@@ -16,7 +16,7 @@ const instrumentRemix = generateInstrumentOnce(INTEGRATION_NAME, (options?: Remi
 
 const _remixIntegration = (() => {
   return {
-    name: 'Remix',
+    name: 'Remix' as const,
     setupOnce() {
       const client = getClient();
       const options = client?.getOptions() as RemixOptions | undefined;

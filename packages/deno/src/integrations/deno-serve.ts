@@ -4,7 +4,7 @@ import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 import type { RequestHandlerWrapperOptions } from '../wrap-deno-request-handler';
 import { wrapDenoRequestHandler } from '../wrap-deno-request-handler';
 
-const INTEGRATION_NAME = 'DenoServe';
+const INTEGRATION_NAME = 'DenoServe' as const;
 
 export type ServeParams =
   // [(Request) => Response]

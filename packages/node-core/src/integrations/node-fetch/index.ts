@@ -36,7 +36,7 @@ const instrumentSentryNodeFetch = generateInstrumentOnce(
 
 const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   return {
-    name: 'NodeFetch',
+    name: 'NodeFetch' as const,
     setupOnce() {
       instrumentSentryNodeFetch(options);
     },

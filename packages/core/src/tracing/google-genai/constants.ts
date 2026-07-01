@@ -1,6 +1,6 @@
 import type { InstrumentedMethodRegistry } from '../ai/utils';
 
-export const GOOGLE_GENAI_INTEGRATION_NAME = 'Google_GenAI';
+export const GOOGLE_GENAI_INTEGRATION_NAME = 'Google_GenAI' as const;
 
 // https://ai.google.dev/api/rest/v1/models/generateContent
 // https://ai.google.dev/api/rest/v1/chats/sendMessage

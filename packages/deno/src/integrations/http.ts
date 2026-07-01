@@ -18,7 +18,7 @@ import {
   HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
 } from '../denoVersion';
 
-const INTEGRATION_NAME = 'DenoHttp';
+const INTEGRATION_NAME = 'DenoHttp' as const;
 
 export interface DenoHttpIntegrationOptions {
   /**

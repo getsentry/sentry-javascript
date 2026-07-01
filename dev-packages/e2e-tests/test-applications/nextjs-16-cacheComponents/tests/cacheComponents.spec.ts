@@ -81,6 +81,38 @@ test('Should generate metadata async', async ({ page }) => {
   await expect(page).toHaveTitle('Product: 1');
 });
 
+test('Prerendered shell does not stitch the pageload onto a stale trace', async ({ page }) => {
+  const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
+    return (
+      transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /pageload-tracing'
+    );
+  });
+
+  const pageloadTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/pageload-tracing';
+  });
+
+  await page.goto('/pageload-tracing');
+
+  await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
+
+  const [serverTx, pageloadTx] = await Promise.all([serverTxPromise, pageloadTxPromise]);
+
+  const serverTraceId = serverTx.contexts?.trace?.trace_id;
+  const pageloadTraceId = pageloadTx.contexts?.trace?.trace_id;
+
+  // Under Cache Components the shell is prerendered and rendered in a context detached from the
+  // runtime server request, so a `sentry-trace` meta tag would carry a stale/unrelated trace. The
+  // SDK therefore does not enable the trace meta tags, and the browser pageload starts a fresh trace
+  // instead of stitching onto a trace that doesn't match the server request.
+  expect(pageloadTraceId).toBeTruthy();
+  expect(serverTraceId).not.toBe(pageloadTraceId);
+
+  // No trace meta tags should be injected when Cache Components is enabled.
+  expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
+  expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
+});
+
 test('Should prerender a page that captures an exception in generateMetadata', async ({ page }) => {
   await page.goto('/capture-metadata');
 

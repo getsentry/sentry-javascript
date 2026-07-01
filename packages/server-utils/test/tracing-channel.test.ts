@@ -175,6 +175,81 @@ describe('bindTracingChannelToSpan', () => {
     expect(childParentSpanId).toBe(parent.spanContext().spanId);
   });
 
+  it('restores the caller context in a callback dispatched from a detached context (asyncStart rebind)', async () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+
+    let channelSpanId: string | undefined;
+    const { channel } = bindTracingChannelToSpan(
+      tracingChannel<{ operation: string }>('test:asyncStart:caller-context'),
+      () => {
+        const span = startInactiveSpan({ name: 'channel-span' });
+        channelSpanId = span.spanContext().spanId;
+        return span;
+      },
+    );
+
+    let enclosingSpanId: string | undefined;
+    let childParentSpanId: string | undefined;
+
+    await new Promise<void>(done => {
+      startSpan({ forceTransaction: true, name: 'enclosing-span' }, enclosing => {
+        enclosingSpanId = enclosing.spanContext().spanId;
+        channel.traceCallback(
+          (cb: (err: Error | null, result?: string) => void) => {
+            // Fire the callback after the enclosing scope has exited, so it runs in a detached
+            // async context — the asyncStart rebind is the only thing that can restore the caller's.
+            setTimeout(() => cb(null, 'ok'), 1);
+          },
+          0,
+          { operation: 'read' },
+          undefined,
+          () => {
+            startSpan({ name: 'child-span' }, child => {
+              childParentSpanId = spanToJSON(child).parent_span_id;
+            });
+            done();
+          },
+        );
+      });
+    });
+
+    // A span started inside the callback parents to the caller (the enclosing span), not to the
+    // channel span — matching how a promise's `.then` continuation behaves.
+    expect(childParentSpanId).toBe(enclosingSpanId);
+    expect(childParentSpanId).not.toBe(channelSpanId);
+  });
+
+  it('does not leak an unrelated active store into the callback when the caller had none', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+
+    const { channel } = bindTracingChannelToSpan(tracingChannel<{ operation: string }>('test:asyncStart:no-leak'), () =>
+      startInactiveSpan({ name: 'channel-span' }),
+    );
+
+    // Caller issues the op with no active context, so the caller store is captured as `undefined`.
+    const ctx = { operation: 'read' };
+    channel.start.runStores(ctx, () => undefined);
+
+    let otherRequestSpanId: string | undefined;
+    let childParentSpanId: string | undefined;
+
+    // The callback fires later, dispatched from *another* request's active context.
+    startSpan({ forceTransaction: true, name: 'other-request' }, other => {
+      otherRequestSpanId = other.spanContext().spanId;
+      channel.asyncStart.runStores(ctx, () => {
+        startSpan({ name: 'child-span' }, child => {
+          childParentSpanId = spanToJSON(child).parent_span_id;
+        });
+      });
+    });
+
+    // The caller had no context, so the callback must restore to none — not adopt the other request's.
+    expect(childParentSpanId).toBeUndefined();
+    expect(childParentSpanId).not.toBe(otherRequestSpanId);
+  });
+
   describe('auto lifecycle ending strategy', () => {
     // Returns a channel whose span we can observe, plus spies for `span.end` and `captureException`.
     function setup(name: string): {
@@ -369,6 +444,80 @@ describe('bindTracingChannelToSpan', () => {
       expect(endSpy).toHaveBeenCalledTimes(1);
       expect(spanToJSON(span).status).toBe('callback-sync-throw');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
+
+    describe('error status and attributes', () => {
+      it('derives the type from `name` and the status message from `message` for an Error instance', () => {
+        const { channel, span } = setup('test:lifecycle:error-attrs-error');
+
+        expect(() =>
+          channel.traceSync(
+            () => {
+              throw new TypeError('bad input');
+            },
+            { operation: 'read' },
+          ),
+        ).toThrow('bad input');
+
+        const { status, data } = spanToJSON(span);
+        expect(status).toBe('bad input');
+        expect(data['error.type']).toBe('TypeError');
+      });
+
+      it('stringifies a thrown primitive and marks the type unknown', () => {
+        const { channel, span } = setup('test:lifecycle:error-attrs-string');
+
+        expect(() =>
+          channel.traceSync(
+            () => {
+              throw 'plain failure';
+            },
+            { operation: 'read' },
+          ),
+        ).toThrow('plain failure');
+
+        const { status, data } = spanToJSON(span);
+        expect(status).toBe('plain failure');
+        expect(data['error.type']).toBe('unknown');
+      });
+
+      it('falls back to unknown_error for an error-like object without `name` or `message`', () => {
+        const { channel, span } = setup('test:lifecycle:error-attrs-bare');
+
+        expect(() =>
+          channel.traceSync(
+            () => {
+              throw { code: 500 };
+            },
+            { operation: 'read' },
+          ),
+        ).toThrow();
+
+        const { status, data } = spanToJSON(span);
+        expect(status).toBe('unknown_error');
+        expect(data['error.type']).toBe('unknown');
+      });
+
+      it('falls back to unknown_error when a falsy value is thrown', () => {
+        const { channel, span } = setup('test:lifecycle:error-attrs-falsy');
+
+        let threw = false;
+        try {
+          channel.traceSync(
+            () => {
+              throw 0;
+            },
+            { operation: 'read' },
+          );
+        } catch {
+          threw = true;
+        }
+
+        expect(threw).toBe(true);
+        const { status, data } = spanToJSON(span);
+        expect(status).toBe('unknown_error');
+        expect(data['error.type']).toBe('unknown');
+      });
     });
   });
 
@@ -631,6 +780,72 @@ describe('bindTracingChannelToSpan', () => {
 
       expect(sawError).toBe(error);
       expect(spanToJSON(span).timestamp).toBeDefined();
+    });
+  });
+
+  describe('deferSpanEnd', () => {
+    // Drives a deferred span: `getSpan` opens it, `deferSpanEnd` returns true and captures the `end`
+    // util so the test can settle the span out-of-band, mimicking a streamed emitter.
+    function setupDeferred(
+      name: string,
+      opts?: { captureError?: boolean },
+    ): { span: Span; endSpy: ReturnType<typeof vi.spyOn>; end: (error?: unknown) => void } {
+      installTestAsyncContextStrategy();
+      initTestClient();
+      const span = startInactiveSpan({ name: 'channel-span' });
+      const endSpy = vi.spyOn(span, 'end');
+      let captured: (error?: unknown) => void = () => undefined;
+      const { channel } = bindTracingChannelToSpan(tracingChannel<{ operation: string }>(name), () => span, {
+        captureError: opts?.captureError,
+        deferSpanEnd({ end }) {
+          captured = end;
+          return true;
+        },
+      });
+
+      channel.traceSync(() => 'stream', { operation: 'read' });
+
+      return { span, endSpy, end: (error?: unknown) => captured(error) };
+    }
+
+    it('does not end the span while deferred', () => {
+      const { span, endSpy } = setupDeferred('test:defer:open');
+      expect(endSpy).not.toHaveBeenCalled();
+      expect(spanToJSON(span).timestamp).toBeUndefined();
+    });
+
+    it('`end()` ends the span once with no error status', () => {
+      const { span, endSpy, end } = setupDeferred('test:defer:ok');
+      end();
+      expect(endSpy).toHaveBeenCalledTimes(1);
+      expect(spanToJSON(span).timestamp).toBeDefined();
+      expect(spanToJSON(span).status).toBeUndefined();
+    });
+
+    it('`end(error)` sets error status and the `error.type` attribute, then ends', () => {
+      const { span, endSpy, end } = setupDeferred('test:defer:error');
+      end(new TypeError('stream blew up'));
+      expect(spanToJSON(span).status).toBe('stream blew up');
+      expect(spanToJSON(span).data['error.type']).toBe('TypeError');
+      expect(endSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('is idempotent: a trailing settle is a no-op', () => {
+      const { endSpy, end } = setupDeferred('test:defer:idempotent');
+      end(new Error('boom'));
+      end();
+      expect(endSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('captures the error via `end(error)` when `captureError` is set', () => {
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+      const { end } = setupDeferred('test:defer:capture', { captureError: true });
+      const error = new Error('captured-stream');
+      end(error);
+      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+        mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false },
+      });
     });
   });
 

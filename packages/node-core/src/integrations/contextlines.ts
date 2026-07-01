@@ -7,7 +7,7 @@ import { DEBUG_BUILD } from '../debug-build';
 const LRU_FILE_CONTENTS_CACHE = new LRUMap<string, Record<number, string>>(10);
 const LRU_FILE_CONTENTS_FS_READ_FAILED = new LRUMap<string, 1>(20);
 const DEFAULT_LINES_OF_CONTEXT = 7;
-const INTEGRATION_NAME = 'ContextLines';
+const INTEGRATION_NAME = 'ContextLines' as const;
 // Determines the upper bound of lineno/colno that we will attempt to read. Large colno values are likely to be
 // minified code while large lineno values are likely to be bundled code.
 // Exported for testing purposes.

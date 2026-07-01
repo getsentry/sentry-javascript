@@ -7,6 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   truncate,
+  waitForTracingChannelBinding,
 } from '@sentry/core';
 import * as dc from 'node:diagnostics_channel';
 import { subscribeRedisDiagnosticChannels, type RedisTracingChannelFactory } from '@sentry/server-utils';
@@ -41,7 +42,7 @@ interface RedisOptions {
   maxCacheKeyLength?: number;
 }
 
-const INTEGRATION_NAME = 'Redis';
+const INTEGRATION_NAME = 'Redis' as const;
 
 /* Only exported for testing purposes */
 export let _redisOptions: RedisOptions = {};
@@ -128,9 +129,9 @@ export const instrumentRedis = Object.assign(
     // so defer to the next tick.
     // Check this here to ensure this does not fail at runtime for Node <= 18.18.0
     if (dc.tracingChannel) {
-      void Promise.resolve().then(() =>
-        subscribeRedisDiagnosticChannels(dc.tracingChannel as RedisTracingChannelFactory, cacheResponseHook),
-      );
+      waitForTracingChannelBinding(() => {
+        subscribeRedisDiagnosticChannels(dc.tracingChannel as RedisTracingChannelFactory, cacheResponseHook);
+      });
     }
 
     // todo: implement them gradually

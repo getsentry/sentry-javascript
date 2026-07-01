@@ -2,7 +2,7 @@
   "name": "workflow-worker",
   "main": "index.ts",
   "compatibility_date": "2025-06-17",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_als"],
   "workflows": [
     {
       "name": "my-workflow",

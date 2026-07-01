@@ -3,13 +3,14 @@ import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses } from '../../../utils/runner';
 import { createCjsTests } from '../../../utils/runner/createEsmAndCjsTests';
+import { NODE_VERSION } from '@sentry/node';
 
 describe('mysql auto instrumentation (streamed)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  const assertMysqlSpans = (container: SerializedStreamedSpanContainer): void => {
+  const assertMysqlSpans = (container: SerializedStreamedSpanContainer, override?: Record<string, unknown>): void => {
     const segmentSpan = container.items.find(item => item.is_segment);
     expect(segmentSpan?.name).toBe('Test Transaction');
 
@@ -18,6 +19,8 @@ describe('mysql auto instrumentation (streamed)', () => {
     );
 
     expect(dbSpans.length).toBe(2);
+
+    const isNode18 = NODE_VERSION.major === 18;
 
     const COMMON_ATTRIBUTES = {
       'db.connection_string': {
@@ -52,6 +55,10 @@ describe('mysql auto instrumentation (streamed)', () => {
         type: 'string',
         value: 'db',
       },
+      'sentry.origin': {
+        type: 'string',
+        value: 'auto.db.otel.mysql',
+      },
       'sentry.release': {
         type: 'string',
         value: '1.0',
@@ -80,6 +87,9 @@ describe('mysql auto instrumentation (streamed)', () => {
         type: 'string',
         value: 'task',
       },
+      ...(isNode18 && {
+        'sentry.status.message': { type: 'string', value: expect.stringMatching(/^connect ECONNREFUSED/) },
+      }),
     };
 
     const COMMON_SPAN_PROPS = {
@@ -112,6 +122,7 @@ describe('mysql auto instrumentation (streamed)', () => {
             type: 'string',
             value: 'SELECT NOW()',
           },
+          ...override?.attributes,
         },
         name: 'SELECT NOW()',
         ...COMMON_SPAN_PROPS,
@@ -122,7 +133,17 @@ describe('mysql auto instrumentation (streamed)', () => {
   describe('with connection.connect()', () => {
     createCjsTests(__dirname, 'scenario-withConnect.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('should auto-instrument `mysql` package when using connection.connect()', async () => {
-        await createTestRunner().expect({ span: assertMysqlSpans }).start().completed();
+        await createTestRunner()
+          .expect({
+            span: container =>
+              assertMysqlSpans(container, {
+                attributes: {
+                  'sentry.status.message': { type: 'string', value: 'Cannot enqueue Query after fatal error.' },
+                },
+              }),
+          })
+          .start()
+          .completed();
       });
     });
   });
@@ -138,7 +159,17 @@ describe('mysql auto instrumentation (streamed)', () => {
   describe('without connection.connect()', () => {
     createCjsTests(__dirname, 'scenario-withoutConnect.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('should auto-instrument `mysql` package without connection.connect()', async () => {
-        await createTestRunner().expect({ span: assertMysqlSpans }).start().completed();
+        await createTestRunner()
+          .expect({
+            span: container =>
+              assertMysqlSpans(container, {
+                attributes: {
+                  'sentry.status.message': { type: 'string', value: 'Cannot enqueue Query after fatal error.' },
+                },
+              }),
+          })
+          .start()
+          .completed();
       });
     });
   });

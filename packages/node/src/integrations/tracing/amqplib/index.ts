@@ -3,7 +3,7 @@ import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import { AmqplibInstrumentation } from './vendored/instrumentation';
 
-const INTEGRATION_NAME = 'Amqplib';
+const INTEGRATION_NAME = 'Amqplib' as const;
 
 export const instrumentAmqplib = generateInstrumentOnce(INTEGRATION_NAME, () => new AmqplibInstrumentation());
 

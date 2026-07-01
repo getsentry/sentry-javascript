@@ -41,6 +41,7 @@ export type NextConfigObject = {
         fallback?: NextRewrite[];
       }
   >;
+  cacheComponents?: boolean;
   // Next.js experimental options
   experimental?: {
     instrumentationHook?: boolean;

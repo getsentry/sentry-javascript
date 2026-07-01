@@ -8,7 +8,7 @@ import type { Integration, IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 
-const INTEGRATION_NAME = 'DenoRedis';
+const INTEGRATION_NAME = 'DenoRedis' as const;
 
 export interface DenoRedisIntegrationOptions {
   /**

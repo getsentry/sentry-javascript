@@ -1,6 +1,6 @@
 import type { InstrumentedMethodRegistry } from '../ai/utils';
 
-export const OPENAI_INTEGRATION_NAME = 'OpenAI';
+export const OPENAI_INTEGRATION_NAME = 'OpenAI' as const;
 
 // https://platform.openai.com/docs/quickstart?api-mode=responses
 // https://platform.openai.com/docs/quickstart?api-mode=chat

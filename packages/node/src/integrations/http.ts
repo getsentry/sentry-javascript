@@ -20,7 +20,7 @@ import {
   SentryHttpInstrumentation,
 } from '@sentry/node-core';
 
-const INTEGRATION_NAME = 'Http';
+const INTEGRATION_NAME = 'Http' as const;
 
 // TODO(v11): Consolidate all the various HTTP integration options into one,
 // and deprecate the duplicated and aliased options.

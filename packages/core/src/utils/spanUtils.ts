@@ -1,3 +1,4 @@
+// oxlint-disable max-lines
 import { getAsyncContextStrategy } from '../asyncContext';
 import type { RawAttributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
@@ -8,6 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
@@ -228,8 +230,8 @@ export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
       start_timestamp: spanTimeInputToSeconds(startTime),
       end_timestamp: spanTimeInputToSeconds(endTime),
       is_segment: span === INTERNAL_getSegmentSpan(span),
-      status: getSimpleStatusMessage(status),
-      attributes,
+      status: getSimpleStatus(status),
+      attributes: addStatusMessageAttribute(attributes, status),
       links: getStreamedSpanLinks(links),
     };
   }
@@ -330,13 +332,30 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
 /**
  * Convert the various statuses to the simple ones expected by Sentry for streamed spans ('ok' is default).
  */
-export function getSimpleStatusMessage(status: SpanStatus | undefined): 'ok' | 'error' {
+export function getSimpleStatus(status: SpanStatus | undefined): 'ok' | 'error' {
   return !status ||
     status.code === SPAN_STATUS_OK ||
     status.code === SPAN_STATUS_UNSET ||
     status.message === 'cancelled'
     ? 'ok'
     : 'error';
+}
+
+/**
+ * Returns the span's attributes with the SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE attribute added
+ * if the span has an error status message worth preserving.
+ *
+ * An explicitly set attribute is never overwritten.
+ */
+export function addStatusMessageAttribute(
+  attributes: SpanAttributes,
+  status: SpanStatus | undefined,
+): RawAttributes<Record<string, unknown>> {
+  const statusMessage = getSimpleStatus(status) === 'error' ? status?.message : undefined;
+  return {
+    ...(statusMessage && { [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: statusMessage }),
+    ...attributes,
+  };
 }
 
 const CHILD_SPANS_FIELD = '_sentryChildSpans';

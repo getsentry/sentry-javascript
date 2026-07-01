@@ -453,6 +453,9 @@ function getData(span: ReadableSpan): Record<string, unknown> {
     data.url = requestData.url;
   }
 
+  // TODO(v11): emit `url.query`/`url.fragment` (OTel-standard, no leading `?`/`#`) and drop
+  // this stripping + the `http.query`/`http.fragment` attributes. `http.query` is actually specced to
+  // keep the leading `?`, so stripping diverges from our own conventions; `url.query` sidesteps it.
   if (requestData['http.query']) {
     data['http.query'] = requestData['http.query'].slice(1);
   }

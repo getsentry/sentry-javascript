@@ -221,7 +221,7 @@ class AsyncSession implements DebugSession {
   }
 }
 
-const INTEGRATION_NAME = 'LocalVariables';
+const INTEGRATION_NAME = 'LocalVariables' as const;
 
 /**
  * Adds local variables to exception frames

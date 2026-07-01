@@ -26,7 +26,7 @@ interface ProcessWithCurrentValues extends NodeJS.Process {
   availableMemory?(): number;
 }
 
-const INTEGRATION_NAME = 'Context';
+const INTEGRATION_NAME = 'Context' as const;
 
 interface DeviceContextOptions {
   cpu?: boolean;
