@@ -1,0 +1,4 @@
+generated/
+.wrangler/
+*.db
+*.db-journal

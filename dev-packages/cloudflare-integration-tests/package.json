@@ -14,6 +14,8 @@
   },
   "dependencies": {
     "@langchain/langgraph": "^1.0.1",
+    "@prisma/adapter-d1": "6.15.0",
+    "@prisma/client": "6.15.0",
     "@sentry/cloudflare": "10.63.0",
     "@sentry/hono": "10.63.0",
     "hono": "^4.12.25"
@@ -22,6 +24,7 @@
     "@cloudflare/workers-types": "^4.20260426.0",
     "@sentry-internal/test-utils": "10.63.0",
     "eslint-plugin-regexp": "^3.1.0",
+    "prisma": "6.15.0",
     "vitest": "^3.2.6",
     "wrangler": "4.86.0"
   },
