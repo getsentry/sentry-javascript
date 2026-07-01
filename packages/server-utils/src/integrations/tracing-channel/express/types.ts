@@ -38,3 +38,11 @@ export interface HandleChannelContext {
   arguments?: unknown[];
   _sentryCleanup?: () => void;
 }
+
+type IgnoreMatcher = string | RegExp | ((name: string) => boolean);
+export interface ExpressIntegrationOptions {
+  /** Ignore specific based on their name */
+  ignoreLayers?: IgnoreMatcher[];
+  /** Ignore specific layers based on their type */
+  ignoreLayersType?: ExpressLayerType[];
+}
