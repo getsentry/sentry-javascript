@@ -1,4 +1,4 @@
-import { defineIntegration, type IntegrationFn } from '@sentry/core';
+import { defineIntegration, type IntegrationFn, waitForTracingChannelBinding } from '@sentry/core';
 import * as dc from 'node:diagnostics_channel';
 import { subscribeMongooseDiagnosticChannels } from './mongoose-dc-subscriber';
 
@@ -13,10 +13,9 @@ const _mongooseIntegration = (() => {
 
       // Subscribe to mongoose's native tracing channels (mongoose >= 9.7).
       // This is a no-op on versions that don't publish to the channels, so it is always safe to call.
-      // `bindTracingChannelToSpan` (inside the subscriber) makes the span the active context via
-      // `bindStore`, which needs the Sentry OTel context manager — `initOpenTelemetry()` registers
-      // that after `setupOnce`, so defer a tick.
-      void Promise.resolve().then(() => subscribeMongooseDiagnosticChannels(dc.tracingChannel));
+      waitForTracingChannelBinding(() => {
+        subscribeMongooseDiagnosticChannels(dc.tracingChannel);
+      });
     },
   };
 }) satisfies IntegrationFn;
