@@ -71,15 +71,14 @@ const _openaiChannelIntegration = ((options: OpenAiOptions = {}) => {
 }) satisfies IntegrationFn;
 
 /**
- * Build the span for a `chat.completions.create` call, reusing the same core attribute helpers as the
- * proxy-based instrumentation. Streaming (`stream: true`) is out of scope for now: its span must live
- * until the returned stream is fully consumed, which `bindTracingChannelToSpan`'s end-on-asyncEnd
- * lifecycle can't express — returning `undefined` opts the payload out so no (mis-timed) span is opened.
+ * Build the span for a `chat.completions.create` call.
+ * Returning `undefined` opts the payload out so no span is opened.
  */
 function createChatSpan(data: OpenAiChatChannelContext, options: OpenAiOptions): Span | undefined {
   const args = data.arguments ?? [];
   const params = args[0] as Record<string, unknown> | undefined;
 
+  // streaming is not supported yet
   if (params?.stream === true) {
     return undefined;
   }

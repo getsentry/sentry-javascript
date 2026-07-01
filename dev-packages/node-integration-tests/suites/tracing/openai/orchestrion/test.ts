@@ -2,6 +2,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
@@ -10,6 +11,7 @@ import {
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
@@ -25,77 +27,77 @@ describe('OpenAI integration (orchestrion)', () => {
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(
-    __dirname,
-    '../scenario-chat.mjs',
-    'instrument-orchestrion.mjs',
-    (createRunner, test) => {
-      test('creates openai chat spans via the diagnostics-channel path', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              const chatSpan = container.items.find(
-                span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-mock123',
-              );
-              expect(chatSpan).toBeDefined();
-              expect(chatSpan!.name).toBe('chat gpt-3.5-turbo');
-              expect(chatSpan!.status).toBe('ok');
-              expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: ORCHESTRION_ORIGIN,
-              });
-              expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.chat',
-              });
-              expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-              expect(chatSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
-              expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
-                type: 'string',
-                value: 'gpt-3.5-turbo',
-              });
-              expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]).toEqual({
-                type: 'double',
-                value: 0.7,
-              });
-              expect(chatSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
-                type: 'string',
-                value: 'gpt-3.5-turbo',
-              });
-              expect(chatSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
-                type: 'string',
-                value: '["stop"]',
-              });
-              expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 10 });
-              expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 15,
-              });
-              expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 25 });
-              // Recording disabled: no inputs/outputs captured.
-              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeUndefined();
-              expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeUndefined();
+  createEsmAndCjsTests(__dirname, '../scenario-chat.mjs', 'instrument-orchestrion.mjs', (createRunner, test) => {
+    test('creates openai chat spans via the diagnostics-channel path', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: { transaction: 'main' } })
+        .expect({
+          span: container => {
+            const chatSpans = container.items.filter(
+              span => span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.chat',
+            );
+            expect(chatSpans).toHaveLength(2);
 
-              const errorSpan = container.items.find(span => span.name === 'chat error-model');
-              expect(errorSpan).toBeDefined();
-              // `bindTracingChannelToSpan` sets the error status message to the OpenAI error's message,
-              // so the serialized status is that message rather than the literal 'error' — just assert
-              // the span was marked as errored.
-              expect(errorSpan!.status).toBeDefined();
-              expect(errorSpan!.status).not.toBe('ok');
-              expect(errorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: ORCHESTRION_ORIGIN,
-              });
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
+            const chatSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-mock123',
+            );
+            expect(chatSpan).toBeDefined();
+            expect(chatSpan!.name).toBe('chat gpt-3.5-turbo');
+            expect(chatSpan!.status).toBe('ok');
+            expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: ORCHESTRION_ORIGIN,
+            });
+            expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
+            expect(chatSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-3.5-turbo',
+            });
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]).toEqual({
+              type: 'double',
+              value: 0.7,
+            });
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-3.5-turbo',
+            });
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '["stop"]',
+            });
+            expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 10 });
+            expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 15,
+            });
+            expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 25 });
+            // Recording disabled: no inputs/outputs captured.
+            expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeUndefined();
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeUndefined();
+
+            const errorSpan = container.items.find(span => span.name === 'chat error-model');
+            expect(errorSpan).toBeDefined();
+            // `bindTracingChannelToSpan` sets the error status message to the OpenAI error's message,
+            // so the serialized status is that message rather than the literal 'error' — just assert
+            // the span was marked as errored.
+            expect(errorSpan!.status).toBeDefined();
+            expect(errorSpan!.status).not.toBe('ok');
+            expect(errorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: ORCHESTRION_ORIGIN,
+            });
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 
   createEsmAndCjsTests(
     __dirname,
@@ -116,10 +118,23 @@ describe('OpenAI integration (orchestrion)', () => {
                 type: 'string',
                 value: ORCHESTRION_ORIGIN,
               });
-              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value).toContain(
-                'What is the capital of France?',
-              );
-              expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]?.value).toContain('Hello from OpenAI mock!');
+              // System message is lifted out of `input_messages` into `system_instructions`.
+              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
+                type: 'integer',
+                value: 1,
+              });
+              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+                type: 'string',
+                value: '[{"role":"user","content":"What is the capital of France?"}]',
+              });
+              expect(chatSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]).toEqual({
+                type: 'string',
+                value: JSON.stringify([{ type: 'text', content: 'You are a helpful assistant.' }]),
+              });
+              expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toEqual({
+                type: 'string',
+                value: '["Hello from OpenAI mock!"]',
+              });
             },
           })
           .start()
