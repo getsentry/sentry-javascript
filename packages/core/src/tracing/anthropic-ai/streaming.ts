@@ -72,11 +72,14 @@ function isErrorEvent(event: AnthropicAiStreamingEvent, span: Span): boolean {
  */
 
 function handleMessageMetadata(event: AnthropicAiStreamingEvent, state: StreamingState): void {
-  // The token counts shown in the usage field of the message_delta event are cumulative.
+  // Cumulative token counts and the final stop reason both arrive on the message_delta event.
   // @see https://docs.anthropic.com/en/docs/build-with-claude/streaming#event-types
-  if (event.type === 'message_delta' && event.usage) {
-    if ('output_tokens' in event.usage && typeof event.usage.output_tokens === 'number') {
+  if (event.type === 'message_delta') {
+    if (event.usage && typeof event.usage.output_tokens === 'number') {
       state.completionTokens = event.usage.output_tokens;
+    }
+    if (event.delta?.stop_reason) {
+      state.finishReasons.push(event.delta.stop_reason);
     }
   }
 
@@ -85,7 +88,6 @@ function handleMessageMetadata(event: AnthropicAiStreamingEvent, state: Streamin
 
     if (message.id) state.responseId = message.id;
     if (message.model) state.responseModel = message.model;
-    if (message.stop_reason) state.finishReasons.push(message.stop_reason);
 
     if (message.usage) {
       if (typeof message.usage.input_tokens === 'number') state.promptTokens = message.usage.input_tokens;
