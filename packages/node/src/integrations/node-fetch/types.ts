@@ -104,8 +104,7 @@ export interface NodeFetchOptions extends UndiciInstrumentationConfig {
 
   /**
    * If set to false, do not emit any spans.
-   * This will ensure that the default UndiciInstrumentation from OpenTelemetry is not setup,
-   * only the Sentry-specific instrumentation for breadcrumbs & trace propagation is applied.
+   * Breadcrumbs and trace propagation for outgoing fetch requests are still applied.
    *
    * If `skipOpenTelemetrySetup: true` is configured, this defaults to `false`, otherwise it defaults to `true`.
    */

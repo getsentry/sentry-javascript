@@ -1,4 +1,4 @@
-import type { LRUMap, SanitizedRequestData } from '@sentry/core';
+import type { LRUMap, SanitizedRequestData, Span } from '@sentry/core';
 import {
   addBreadcrumb,
   getBreadcrumbLogLevelFromHttpStatusCode,
@@ -8,6 +8,7 @@ import {
   parseUrl,
   shouldPropagateTraceForUrl,
   mergeBaggageHeaders,
+  withActiveSpan,
 } from '@sentry/core';
 import type { UndiciRequest, UndiciResponse } from '../integrations/node-fetch/types';
 import { debug } from '@sentry/core';
@@ -19,11 +20,18 @@ const W3C_TRACEPARENT_HEADER = 'traceparent';
  *
  * Checks if the request URL matches trace propagation targets,
  * then injects sentry-trace, traceparent, and baggage headers.
+ *
+ * When a `span` is passed (the outgoing `http.client` span), its trace data is propagated so downstream
+ * services are parented to that span. Without a span, the active scope's trace data is used.
+ *
+ * Existing trace headers (e.g. set manually by the user via `getTraceData()`) always take precedence and
+ * are de-duplicated rather than overwritten, so we never emit two `sentry-trace`/`baggage` entries.
  */
 // eslint-disable-next-line complexity
 export function addTracePropagationHeadersToFetchRequest(
   request: UndiciRequest,
   propagationDecisionMap: LRUMap<string, boolean>,
+  span?: Span,
 ): void {
   const url = getAbsoluteUrl(request.origin, request.path);
 
@@ -32,9 +40,17 @@ export function addTracePropagationHeadersToFetchRequest(
   // Which we do not have in this case
   // The propagator _may_ overwrite this, but this should be fine as it is the same data
   const { tracePropagationTargets, propagateTraceparent } = getClient()?.getOptions() || {};
-  const addedHeaders = shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)
-    ? getTraceData({ propagateTraceparent })
-    : undefined;
+
+  if (!shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)) {
+    return;
+  }
+
+  // When a span is provided, make it active so the propagated headers reference it (and not the parent
+  // span). Passing `{ span }` to `getTraceData()` is not enough: for an inactive span it resolves to the
+  // span's captured scope, whose active span is still the parent.
+  const addedHeaders = span
+    ? withActiveSpan(span, () => getTraceData({ propagateTraceparent }))
+    : getTraceData({ propagateTraceparent });
 
   if (!addedHeaders) {
     return;
