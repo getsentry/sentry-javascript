@@ -14,6 +14,10 @@
 export const CHANNELS = {
   MYSQL_QUERY: 'orchestrion:mysql:query',
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',
+  // Scoped package → the transform's `orchestrion:${module.name}:${channelName}` keeps the scope.
+  ANTHROPIC_CHAT: 'orchestrion:@anthropic-ai/sdk:chat',
+  ANTHROPIC_MODELS: 'orchestrion:@anthropic-ai/sdk:models',
+  ANTHROPIC_MESSAGES_STREAM: 'orchestrion:@anthropic-ai/sdk:messages-stream',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

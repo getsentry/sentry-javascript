@@ -38,6 +38,41 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
     module: { name: 'lru-memoizer', versionRange: '>=2.1.0 <4', filePath: 'lib/async.js' },
     functionQuery: { functionName: 'memoizedFunction', kind: 'Callback' },
   },
+  // Anthropic chat operations all share the `chat` channel. `create`/`countTokens` return a thenable
+  // `APIPromise` with no callback arg, so `kind: 'Auto'` resolves to `wrapPromise`. The SDK ships dual
+  // CJS/ESM and the matcher compares `filePath` exactly, hence one entry per built file.
+  ...(['resources/messages/messages.js', 'resources/messages/messages.mjs'].flatMap(filePath =>
+    (['create', 'countTokens'] as const).map(methodName => ({
+      channelName: 'chat',
+      module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
+      functionQuery: { className: 'Messages', methodName, kind: 'Auto' as const },
+    })),
+  ) satisfies InstrumentationConfig[]),
+  ...(['resources/completions.js', 'resources/completions.mjs'].map(filePath => ({
+    channelName: 'chat',
+    module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
+    functionQuery: { className: 'Completions', methodName: 'create', kind: 'Auto' as const },
+  })) satisfies InstrumentationConfig[]),
+  ...(['resources/beta/messages/messages.js', 'resources/beta/messages/messages.mjs'].map(filePath => ({
+    channelName: 'chat',
+    module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
+    functionQuery: { className: 'Messages', methodName: 'create', kind: 'Auto' as const },
+  })) satisfies InstrumentationConfig[]),
+  // `models.retrieve(modelID, params, options)` — string first arg, no callback, returns an `APIPromise`.
+  ...(['resources/models.js', 'resources/models.mjs'].map(filePath => ({
+    channelName: 'models',
+    module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
+    functionQuery: { className: 'Models', methodName: 'retrieve', kind: 'Auto' as const },
+  })) satisfies InstrumentationConfig[]),
+  // `messages.stream()` returns a synchronous `MessageStream` emitter (not a promise). `kind: 'Sync'`
+  // publishes `end` synchronously in a `finally` after storing the emitter on `ctx.result`; the subscriber
+  // attaches `'message'`/`'error'` listeners to finish the span. `kind: 'Auto'` would route this to the
+  // promise wrapper, whose non-thenable branch returns without ever publishing `end`, so the span never ends.
+  ...(['resources/messages/messages.js', 'resources/messages/messages.mjs'].map(filePath => ({
+    channelName: 'messages-stream',
+    module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
+    functionQuery: { className: 'Messages', methodName: 'stream', kind: 'Sync' as const },
+  })) satisfies InstrumentationConfig[]),
 ];
 
 /**

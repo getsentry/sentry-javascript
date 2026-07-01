@@ -177,16 +177,23 @@ export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { addVercelAiProcessors, getProviderMetadataAttributes } from './tracing/vercel-ai';
-export { getTruncatedJsonString, shouldEnableTruncation } from './tracing/ai/utils';
+export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptions } from './tracing/ai/utils';
 export {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from './tracing/ai/gen-ai-attributes';
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
 export { instrumentOpenAiClient } from './tracing/openai';
 export { OPENAI_INTEGRATION_NAME } from './tracing/openai/constants';
-export { instrumentAnthropicAiClient } from './tracing/anthropic-ai';
+export {
+  instrumentAnthropicAiClient,
+  extractRequestAttributes as extractAnthropicRequestAttributes,
+  addPrivateRequestAttributes as addAnthropicRequestAttributes,
+  addResponseAttributes as addAnthropicResponseAttributes,
+} from './tracing/anthropic-ai';
+export { instrumentAsyncIterableStream, instrumentMessageStream } from './tracing/anthropic-ai/streaming';
 export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants';
 export { instrumentGoogleGenAIClient } from './tracing/google-genai';
 export { GOOGLE_GENAI_INTEGRATION_NAME } from './tracing/google-genai/constants';
