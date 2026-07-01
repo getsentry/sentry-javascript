@@ -248,6 +248,32 @@ export function createRunner(...paths: string[]) {
         child?.kill();
       }
 
+      /**
+       * Print everything the child process wrote to stdout/stderr. Called when a test fails or
+       * times out so the captured output is visible in CI logs. Skipped when `DEBUG` is set, since
+       * that already streams the same lines live as they arrive.
+       */
+      function dumpCapturedLogs(): void {
+        // When in debug mode, this is already printed anyhow
+        if (process.env.DEBUG) {
+          return;
+        }
+
+        // eslint-disable-next-line no-console
+        console.log(`\n--- Captured child process output for ${testPath} ---`);
+        if (logs.length === 0) {
+          // eslint-disable-next-line no-console
+          console.log('(no output captured)');
+        } else {
+          for (const line of logs) {
+            // eslint-disable-next-line no-console
+            console.log(line);
+          }
+        }
+        // eslint-disable-next-line no-console
+        console.log('--- End of captured child process output ---\n');
+      }
+
       /** Called after each expect callback to check if we're complete */
       function expectCallbackCalled(): void {
         envelopeCount++;
@@ -472,9 +498,18 @@ export function createRunner(...paths: string[]) {
 
       return {
         completed: async function (): Promise<void> {
-          await waitFor(() => isComplete, 120_000, 'Timed out waiting for test to complete');
+          try {
+            await waitFor(() => isComplete, 120_000, 'Timed out waiting for test to complete');
+          } catch (e) {
+            // On timeout, dump the captured child output (same info `DEBUG=1` would have streamed live)
+            // so CI failures are diagnosable without re-running locally with DEBUG enabled.
+            dumpCapturedLogs();
+            throw e;
+          }
 
           if (completeError) {
+            // Same rationale as the timeout branch: surface what the child actually logged before failing.
+            dumpCapturedLogs();
             throw completeError;
           }
         },
