@@ -20,7 +20,7 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/core": "latest || *",
     "nitro": "^3.0.260522-beta",
-    "rolldown": "latest",
+    "rolldown": "1.1.3",
     "vite": "latest"
   },
   "volta": {
