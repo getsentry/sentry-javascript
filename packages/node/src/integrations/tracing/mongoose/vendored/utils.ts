@@ -9,8 +9,6 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-/* oxlint-disable typescript/no-deprecated */
-
 import { DB_NAME, DB_USER, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { SPAN_STATUS_ERROR } from '@sentry/core';
@@ -19,10 +17,14 @@ import { ATTR_DB_MONGODB_COLLECTION } from './semconv';
 
 export function getAttributesFromCollection(collection: Collection): SpanAttributes {
   return {
+    // oxlint-disable-next-line typescript/no-deprecated
     [ATTR_DB_MONGODB_COLLECTION]: collection.name,
+    // oxlint-disable-next-line typescript/no-deprecated
     [DB_NAME]: collection.conn.name,
     [DB_USER]: collection.conn.user,
+    // oxlint-disable-next-line typescript/no-deprecated
     [NET_PEER_NAME]: collection.conn.host,
+    // oxlint-disable-next-line typescript/no-deprecated
     [NET_PEER_PORT]: collection.conn.port,
   };
 }

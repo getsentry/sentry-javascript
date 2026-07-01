@@ -9,8 +9,6 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-/* oxlint-disable typescript/no-deprecated */
-
 import type { TracerProvider } from '@opentelemetry/api';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Span, SpanAttributes } from '@sentry/core';
@@ -117,8 +115,11 @@ function removeCredentialsFromDBConnectionStringAttribute(url: string | undefine
 
 function getClientAttributes(options: any): SpanAttributes {
   return {
+    // oxlint-disable-next-line typescript/no-deprecated
     [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
+    // oxlint-disable-next-line typescript/no-deprecated
     [NET_PEER_NAME]: options?.socket?.host,
+    // oxlint-disable-next-line typescript/no-deprecated
     [NET_PEER_PORT]: options?.socket?.port,
     [ATTR_DB_CONNECTION_STRING]: removeCredentialsFromDBConnectionStringAttribute(options?.url),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
@@ -162,12 +163,16 @@ class RedisInstrumentationV2_V3 extends InstrumentationBase<RedisInstrumentation
           return original.apply(this, arguments);
         }
         const attributes: SpanAttributes = {
+          // oxlint-disable-next-line typescript/no-deprecated
           [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
+          // oxlint-disable-next-line typescript/no-deprecated
           [DB_STATEMENT]: defaultDbStatementSerializer(cmd.command, cmd.args),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };
         if (this.connection_options) {
+          // oxlint-disable-next-line typescript/no-deprecated
           attributes[NET_PEER_NAME] = this.connection_options.host;
+          // oxlint-disable-next-line typescript/no-deprecated
           attributes[NET_PEER_PORT] = this.connection_options.port;
         }
         if (this.address) {
@@ -440,6 +445,7 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
     const attributes = getClientAttributes(clientOptions);
     const dbStatement = defaultDbStatementSerializer(commandName, commandArgs);
     if (dbStatement != null) {
+      // oxlint-disable-next-line typescript/no-deprecated
       attributes[DB_STATEMENT] = dbStatement;
     }
     const span = startInactiveSpan({

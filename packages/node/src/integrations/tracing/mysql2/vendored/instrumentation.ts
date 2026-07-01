@@ -10,8 +10,6 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-/* oxlint-disable typescript/no-deprecated */
-
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import { DB_STATEMENT, DB_SYSTEM } from '@sentry/conventions/attributes';
@@ -119,7 +117,9 @@ export class MySQL2Instrumentation extends InstrumentationBase<InstrumentationCo
 
         const attributes: SpanAttributes = {
           ...getConnectionAttributes(this.config),
+          // oxlint-disable-next-line typescript/no-deprecated
           [DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
+          // oxlint-disable-next-line typescript/no-deprecated
           [DB_STATEMENT]: getQueryText(query, format, values),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };

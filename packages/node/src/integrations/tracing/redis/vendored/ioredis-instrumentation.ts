@@ -9,8 +9,6 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-/* oxlint-disable typescript/no-deprecated */
-
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
@@ -114,10 +112,14 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
 
         const { host, port } = this.options;
         const attributes: SpanAttributes = {
+          // oxlint-disable-next-line typescript/no-deprecated
           [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
+          // oxlint-disable-next-line typescript/no-deprecated
           [DB_STATEMENT]: defaultDbStatementSerializer(cmd.name, cmd.args),
           [ATTR_DB_CONNECTION_STRING]: `redis://${host}:${port}`,
+          // oxlint-disable-next-line typescript/no-deprecated
           [NET_PEER_NAME]: host,
+          // oxlint-disable-next-line typescript/no-deprecated
           [NET_PEER_PORT]: port,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };
@@ -155,10 +157,14 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
 
         const { host, port } = this.options;
         const attributes: SpanAttributes = {
+          // oxlint-disable-next-line typescript/no-deprecated
           [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
+          // oxlint-disable-next-line typescript/no-deprecated
           [DB_STATEMENT]: 'connect',
           [ATTR_DB_CONNECTION_STRING]: `redis://${host}:${port}`,
+          // oxlint-disable-next-line typescript/no-deprecated
           [NET_PEER_NAME]: host,
+          // oxlint-disable-next-line typescript/no-deprecated
           [NET_PEER_PORT]: port,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };

@@ -12,8 +12,6 @@
  * - Replaced the OTel context-key confirm-channel marker with a synchronous flag on the channel instance
  */
 
-/* oxlint-disable typescript/no-deprecated */
-
 import { SpanKind } from '@opentelemetry/api';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { getTraceData, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
@@ -117,7 +115,9 @@ export const getConnectionAttributesFromUrl = (url: string | Options.Connect): S
 
     const protocol = getProtocol(connectOptions?.protocol);
     attributes[ATTR_MESSAGING_PROTOCOL] = protocol;
+    // oxlint-disable-next-line typescript/no-deprecated
     attributes[NET_PEER_NAME] = getHostname(connectOptions?.hostname);
+    // oxlint-disable-next-line typescript/no-deprecated
     attributes[NET_PEER_PORT] = getPort(connectOptions.port, protocol);
   } else {
     const censoredUrl = censorPassword(resolvedUrl);
@@ -127,7 +127,9 @@ export const getConnectionAttributesFromUrl = (url: string | Options.Connect): S
 
       const protocol = getProtocol(urlParts.protocol);
       attributes[ATTR_MESSAGING_PROTOCOL] = protocol;
+      // oxlint-disable-next-line typescript/no-deprecated
       attributes[NET_PEER_NAME] = getHostname(urlParts.hostname);
+      // oxlint-disable-next-line typescript/no-deprecated
       attributes[NET_PEER_PORT] = getPort(urlParts.port ? parseInt(urlParts.port) : undefined, protocol);
     } catch {
       // best-effort: a malformed url simply yields fewer connection attributes

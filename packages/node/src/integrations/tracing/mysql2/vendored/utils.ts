@@ -9,8 +9,6 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-/* oxlint-disable typescript/no-deprecated */
-
 import { DB_NAME, DB_USER, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
 import type { FormatFunction } from './mysql2-types';
@@ -38,13 +36,16 @@ export function getConnectionAttributes(config: Config): SpanAttributes {
 
   const attrs: SpanAttributes = {
     [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, port, database),
+    // oxlint-disable-next-line typescript/no-deprecated
     [DB_NAME]: database,
     [DB_USER]: user,
+    // oxlint-disable-next-line typescript/no-deprecated
     [NET_PEER_NAME]: host,
   };
 
   const portNumber = parseInt(port, 10);
   if (!isNaN(portNumber)) {
+    // oxlint-disable-next-line typescript/no-deprecated
     attrs[NET_PEER_PORT] = portNumber;
   }
 
