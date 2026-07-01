@@ -1,139 +1,70 @@
-import { instrumentAnthropicAiClient } from '@sentry/core';
+import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
+import express from 'express';
 
-function createMockStreamEvents(model = 'claude-3-haiku-20240307') {
-  async function* generator() {
-    // Provide message metadata early so the span can capture id/model/usage input tokens
-    yield {
-      type: 'content_block_start',
-      message: {
-        id: 'msg_stream_1',
-        type: 'message',
-        role: 'assistant',
-        model,
-        content: [],
-        stop_reason: 'end_turn',
-        stop_sequence: null,
-        usage: {
-          input_tokens: 10,
+function startMockAnthropicServer() {
+  const app = express();
+  app.use(express.json());
+
+  app.post('/anthropic/v1/messages', (req, res) => {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    });
+
+    const model = req.body.model;
+    const events = [
+      {
+        type: 'message_start',
+        message: {
+          id: 'msg_stream_1',
+          type: 'message',
+          role: 'assistant',
+          model,
+          content: [],
+          usage: { input_tokens: 10 },
         },
       },
-    };
-
-    // Streamed text chunks
-    yield { type: 'content_block_delta', delta: { text: 'Hello ' } };
-    yield { type: 'content_block_delta', delta: { text: 'from ' } };
-    yield { type: 'content_block_delta', delta: { text: 'stream!' } };
-
-    // Final usage totals for output tokens
-    yield { type: 'message_delta', usage: { output_tokens: 15 } };
-  }
-
-  return generator();
-}
-
-// Mimics Anthropic SDK's MessageStream class
-class MockMessageStream {
-  constructor(model) {
-    this._model = model;
-    this._eventHandlers = {};
-  }
-
-  on(event, handler) {
-    if (!this._eventHandlers[event]) {
-      this._eventHandlers[event] = [];
-    }
-    this._eventHandlers[event].push(handler);
-
-    // Start processing events asynchronously (don't await)
-    if (event === 'streamEvent' && !this._processing) {
-      this._processing = true;
-      this._processEvents();
-    }
-
-    return this;
-  }
-
-  async _processEvents() {
-    try {
-      const generator = createMockStreamEvents(this._model);
-      for await (const event of generator) {
-        if (this._eventHandlers['streamEvent']) {
-          for (const handler of this._eventHandlers['streamEvent']) {
-            handler(event);
-          }
-        }
-      }
-
-      // Emit 'message' event when done
-      if (this._eventHandlers['message']) {
-        for (const handler of this._eventHandlers['message']) {
-          handler();
-        }
-      }
-    } catch (error) {
-      if (this._eventHandlers['error']) {
-        for (const handler of this._eventHandlers['error']) {
-          handler(error);
-        }
-      }
-    }
-  }
-
-  async *[Symbol.asyncIterator]() {
-    const generator = createMockStreamEvents(this._model);
-    for await (const event of generator) {
-      yield event;
-    }
-  }
-}
-
-class MockAnthropic {
-  constructor(config) {
-    this.apiKey = config.apiKey;
-
-    this.messages = {
-      create: this._messagesCreate.bind(this),
-      stream: this._messagesStream.bind(this),
-    };
-  }
-
-  async _messagesCreate(params) {
-    await new Promise(resolve => setTimeout(resolve, 5));
-    if (params?.stream === true) {
-      return createMockStreamEvents(params.model);
-    }
-    // Fallback non-streaming behavior (not used in this scenario)
-    return {
-      id: 'msg_mock123',
-      type: 'message',
-      model: params.model,
-      role: 'assistant',
-      content: [
-        {
-          type: 'text',
-          text: 'Hello from Anthropic mock!',
-        },
-      ],
-      stop_reason: 'end_turn',
-      stop_sequence: null,
-      usage: {
-        input_tokens: 10,
-        output_tokens: 15,
+      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
+      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Hello ' } },
+      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'from ' } },
+      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'stream!' } },
+      { type: 'content_block_stop', index: 0 },
+      {
+        type: 'message_delta',
+        delta: { stop_reason: 'end_turn', stop_sequence: null },
+        usage: { output_tokens: 15 },
       },
-    };
-  }
+      { type: 'message_stop' },
+    ];
 
-  // This should return synchronously (like the real Anthropic SDK)
-  _messagesStream(params) {
-    return new MockMessageStream(params?.model);
-  }
+    events.forEach((event, index) => {
+      setTimeout(() => {
+        res.write(`event: ${event.type}\n`);
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+        if (index === events.length - 1) {
+          res.end();
+        }
+      }, index * 10);
+    });
+  });
+
+  return new Promise(resolve => {
+    const server = app.listen(0, () => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
+  const server = await startMockAnthropicServer();
+
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    const mockClient = new MockAnthropic({ apiKey: 'mock-api-key' });
-    const client = instrumentAnthropicAiClient(mockClient);
+    const client = new Anthropic({
+      apiKey: 'mock-api-key',
+      baseURL: `http://localhost:${server.address().port}/anthropic`,
+    });
 
     // 1) Streaming via stream: true param on messages.create
     const stream1 = await client.messages.create({
@@ -168,6 +99,10 @@ async function run() {
       void _;
     }
   });
+
+  await Sentry.flush(2000);
+
+  server.close();
 }
 
 run();
