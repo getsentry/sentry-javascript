@@ -1,7 +1,7 @@
 import { context, propagation, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { _INTERNAL_setDeferSegmentSpanCapture, debug as coreDebug, hasSpanStreamingEnabled } from '@sentry/core';
+import { debug as coreDebug, hasSpanStreamingEnabled } from '@sentry/core';
 import {
   initializeEsmLoader,
   type NodeClient,
@@ -153,14 +153,6 @@ function setupSentryTracerProvider(
   client.on('spanEnd', span => {
     applyOtelSpanData(span, { finalizeStatus: true });
   });
-
-  // Defer this client's segment-span transaction capture (via a debounced timer) so child spans whose
-  // async instrumentation closes them after the root span — a diagnostics-channel `asyncEnd` callback
-  // in the same tick, or engine spans replayed on a later tick (e.g. prisma) — are still finished in
-  // time to be included instead of dropped. Scoped to the SentryTracerProvider path, which assembles
-  // transactions synchronously from the native span tree (the BasicTracerProvider path defers this to
-  // the span exporter, which already buffers and debounces).
-  _INTERNAL_setDeferSegmentSpanCapture(client);
 
   if (hasSpanStreamingEnabled(client)) {
     // Streamed spans skip the exporter, so per-span data inferred from OTel semantic conventions
