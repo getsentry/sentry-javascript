@@ -120,6 +120,24 @@ describe('express tracing', () => {
         await runner.completed();
       });
 
+      test('keeps the parameter in a route mounted under a parameterized sub-router path', async () => {
+        const runner = createRunner()
+          .withEnv(env)
+          .expect({
+            transaction: {
+              // The `:version` parameter must be preserved — using the concrete value
+              // (`/test/version/v1/user`) would explode route cardinality.
+              transaction: 'GET /test/version/:version/user',
+              transaction_info: {
+                source: 'route',
+              },
+            },
+          })
+          .start();
+        runner.makeRequest('get', '/test/version/v1/user');
+        await runner.completed();
+      });
+
       test('handles root page correctly', async () => {
         const runner = createRunner()
           .withEnv(env)
