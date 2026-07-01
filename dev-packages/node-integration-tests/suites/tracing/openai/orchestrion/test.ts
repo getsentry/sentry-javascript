@@ -4,6 +4,8 @@ import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
+  GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
@@ -203,4 +205,74 @@ describe('OpenAI integration (orchestrion)', () => {
       });
     },
   );
+
+  createEsmAndCjsTests(__dirname, '../scenario-embeddings.mjs', 'instrument-orchestrion.mjs', (createRunner, test) => {
+    test('creates openai embeddings spans via the diagnostics-channel path', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: { transaction: 'main' } })
+        .expect({
+          span: container => {
+            const embeddingsSpans = container.items.filter(
+              span => span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.embeddings',
+            );
+            expect(embeddingsSpans).toHaveLength(3);
+
+            const singleEmbeddingSpan = container.items.find(
+              span => span.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]?.value === 1536,
+            );
+            expect(singleEmbeddingSpan).toBeDefined();
+            expect(singleEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
+            expect(singleEmbeddingSpan!.status).toBe('ok');
+            expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: ORCHESTRION_ORIGIN,
+            });
+            expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.embeddings',
+            });
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'embeddings',
+            });
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'text-embedding-3-small',
+            });
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'float',
+            });
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'text-embedding-3-small',
+            });
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 10,
+            });
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 10,
+            });
+
+            const errorSpan = container.items.find(span => span.name === 'embeddings error-model');
+            expect(errorSpan).toBeDefined();
+            expect(errorSpan!.status).toBeDefined();
+            expect(errorSpan!.status).not.toBe('ok');
+            expect(errorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: ORCHESTRION_ORIGIN,
+            });
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

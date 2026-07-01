@@ -52,6 +52,12 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
     module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
     functionQuery: { className: 'Responses', methodName: 'create', kind: 'Auto' as const },
   })) satisfies InstrumentationConfig[]),
+  // OpenAI embeddings API — same `create(body, options)` shape as chat completions.
+  ...(['resources/embeddings.js', 'resources/embeddings.mjs'].map(filePath => ({
+    channelName: 'embeddings',
+    module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
+    functionQuery: { className: 'Embeddings', methodName: 'create', kind: 'Auto' as const },
+  })) satisfies InstrumentationConfig[]),
 ];
 
 /**

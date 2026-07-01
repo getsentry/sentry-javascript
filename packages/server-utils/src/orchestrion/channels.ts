@@ -16,6 +16,7 @@ export const CHANNELS = {
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',
   OPENAI_CHAT: 'orchestrion:openai:chat',
   OPENAI_RESPONSES: 'orchestrion:openai:responses',
+  OPENAI_EMBEDDINGS: 'orchestrion:openai:embeddings',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

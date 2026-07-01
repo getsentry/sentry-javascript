@@ -28,6 +28,7 @@ const ORIGIN = 'auto.ai.orchestrion.openai';
 const INSTRUMENTED_CHANNELS = [
   { channel: CHANNELS.OPENAI_CHAT, operation: 'chat' },
   { channel: CHANNELS.OPENAI_RESPONSES, operation: 'chat' },
+  { channel: CHANNELS.OPENAI_EMBEDDINGS, operation: 'embeddings' },
 ] as const;
 
 /**
