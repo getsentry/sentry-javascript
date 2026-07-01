@@ -117,6 +117,9 @@ function popLayerPathForLayer(data: HandleChannelContext): void {
   if (!data._sentryStoredLayer) {
     return;
   }
+  // Clear the marker first so a layer that (incorrectly) calls `next` more than
+  // once can't pop again and take a parent's entry off the stack with it.
+  data._sentryStoredLayer = false;
   const req = data.arguments?.[0] as ExpressRequest | undefined;
   if (req) {
     popLayerPath(req);
@@ -207,6 +210,13 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   }
 
   // Honor `ignoreLayers`/`ignoreLayersType`: skip the span for matching layers.
+  // We intentionally do NOT pop the pushed path here (unlike OTel Express, which
+  // pops on ignore): the path is still popped on `asyncStart` when the layer
+  // calls `next`, so a following sibling isn't polluted, while an ignored
+  // *router* keeps its mount prefix on the stack for the sub-stack it dispatches
+  // — so routes under an ignored router stay correct. The only entries that
+  // never pop come from layers that end the response without `next()`, and those
+  // sit on a per-request store that is discarded when the request ends.
   if (isLayerIgnored(name, type, options)) {
     return undefined;
   }
