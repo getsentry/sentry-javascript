@@ -1,4 +1,4 @@
-import { defineIntegration, type IntegrationFn } from '@sentry/core';
+import { defineIntegration, type IntegrationFn, waitForTracingChannelBinding } from '@sentry/core';
 import * as dc from 'node:diagnostics_channel';
 import { type GraphqlDiagnosticChannelsOptions, subscribeGraphqlDiagnosticChannels } from './graphql-dc-subscriber';
 
@@ -13,10 +13,9 @@ const _graphqlIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) =>
 
       // Subscribe to graphql's native tracing channels (graphql >= 17).
       // This is a no-op on versions that don't publish to the channels, so it is always safe to call.
-      // `bindTracingChannelToSpan` (inside the subscriber) makes the span the active context via
-      // `bindStore`, which needs the Sentry OTel context manager — `initOpenTelemetry()` registers
-      // that after `setupOnce`, so defer a tick.
-      void Promise.resolve().then(() => subscribeGraphqlDiagnosticChannels(dc.tracingChannel, options));
+      waitForTracingChannelBinding(() => {
+        subscribeGraphqlDiagnosticChannels(dc.tracingChannel, options);
+      });
     },
   };
 }) satisfies IntegrationFn;
