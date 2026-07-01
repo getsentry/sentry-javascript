@@ -5,11 +5,13 @@ import type { TransactionEvent } from '../types/event';
 import type { Span } from '../types/span';
 
 /**
- * Optional hooks a deferring strategy passes when converting: skip spans already sent, record the ones
- * it sends (for orphan tracking). The synchronous default passes neither.
+ * Callbacks the deferred-capture strategy hands to `_convertSpanToTransaction` when assembling a
+ * transaction. The synchronous (browser) path calls the converter with no options, so neither runs.
  */
 export interface SegmentSpanCaptureConvertOptions {
+  /** Skip a descendant already sent in an earlier transaction, so it isn't sent twice. */
   isSpanAlreadyCaptured?: (span: Span) => boolean;
+  /** Record each span included here, so a child that ends after the snapshot can be emitted as an orphan. */
   onSpanCaptured?: (span: Span) => void;
 }
 
