@@ -13,15 +13,14 @@ import { EventEmitter } from 'events';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import {
-  DB_SYSTEM_VALUE_MSSQL,
-  ATTR_DB_NAME,
-  ATTR_DB_SQL_TABLE,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
-  ATTR_DB_USER,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-} from './semconv';
+  DB_NAME,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_USER,
+  NET_PEER_NAME,
+  NET_PEER_PORT,
+} from '@sentry/conventions/attributes';
+import { DB_SYSTEM_VALUE_MSSQL, ATTR_DB_SQL_TABLE } from './semconv';
 import type * as tedious from './tedious-types';
 import { getSpanName, once } from './utils';
 import type { SpanAttributes } from '@sentry/core';
@@ -140,20 +139,20 @@ export class TediousInstrumentation extends InstrumentationBase<InstrumentationC
         const attributes: SpanAttributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.otel.tedious',
           // eslint-disable-next-line typescript/no-deprecated
-          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MSSQL,
+          [DB_SYSTEM]: DB_SYSTEM_VALUE_MSSQL,
           // eslint-disable-next-line typescript/no-deprecated
-          [ATTR_DB_NAME]: databaseName,
+          [DB_NAME]: databaseName,
           // >=4 uses `authentication` object; older versions just userName and password pair
           // eslint-disable-next-line typescript/no-deprecated
-          [ATTR_DB_USER]: this.config?.userName ?? this.config?.authentication?.options?.userName,
+          [DB_USER]: this.config?.userName ?? this.config?.authentication?.options?.userName,
           // eslint-disable-next-line typescript/no-deprecated
-          [ATTR_DB_STATEMENT]: sql,
+          [DB_STATEMENT]: sql,
           // eslint-disable-next-line typescript/no-deprecated
           [ATTR_DB_SQL_TABLE]: request.table,
           // eslint-disable-next-line typescript/no-deprecated
-          [ATTR_NET_PEER_NAME]: this.config?.server,
+          [NET_PEER_NAME]: this.config?.server,
           // eslint-disable-next-line typescript/no-deprecated
-          [ATTR_NET_PEER_PORT]: this.config?.options?.port,
+          [NET_PEER_PORT]: this.config?.options?.port,
         };
         const span = startInactiveSpan({
           name: getSpanName(operation, databaseName, sql, request.table),

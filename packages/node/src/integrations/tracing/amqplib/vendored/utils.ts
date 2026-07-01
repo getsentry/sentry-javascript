@@ -15,6 +15,7 @@
 import { SpanKind } from '@opentelemetry/api';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { getTraceData, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { MESSAGING_SYSTEM, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
 import type { Channel, ConfirmChannel, Connection, Options } from './amqplib-types';
 import {
   ATTR_MESSAGING_CONVERSATION_ID,
@@ -24,10 +25,7 @@ import {
   ATTR_MESSAGING_PROTOCOL,
   ATTR_MESSAGING_PROTOCOL_VERSION,
   ATTR_MESSAGING_RABBITMQ_ROUTING_KEY,
-  ATTR_MESSAGING_SYSTEM,
   ATTR_MESSAGING_URL,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
   MESSAGING_DESTINATION_KIND_VALUE_TOPIC,
   MESSAGING_OPERATION_VALUE_PROCESS,
   OLD_ATTR_MESSAGING_MESSAGE_ID,
@@ -99,7 +97,7 @@ export const getConnectionAttributesFromServer = (conn: Connection): SpanAttribu
   const product = conn.serverProperties.product?.toLowerCase?.();
   if (product) {
     return {
-      [ATTR_MESSAGING_SYSTEM]: product,
+      [MESSAGING_SYSTEM]: product,
     };
   } else {
     return {};
@@ -117,8 +115,10 @@ export const getConnectionAttributesFromUrl = (url: string | Options.Connect): S
 
     const protocol = getProtocol(connectOptions?.protocol);
     attributes[ATTR_MESSAGING_PROTOCOL] = protocol;
-    attributes[ATTR_NET_PEER_NAME] = getHostname(connectOptions?.hostname);
-    attributes[ATTR_NET_PEER_PORT] = getPort(connectOptions.port, protocol);
+    // oxlint-disable-next-line typescript/no-deprecated
+    attributes[NET_PEER_NAME] = getHostname(connectOptions?.hostname);
+    // oxlint-disable-next-line typescript/no-deprecated
+    attributes[NET_PEER_PORT] = getPort(connectOptions.port, protocol);
   } else {
     const censoredUrl = censorPassword(resolvedUrl);
     attributes[ATTR_MESSAGING_URL] = censoredUrl;
@@ -127,8 +127,10 @@ export const getConnectionAttributesFromUrl = (url: string | Options.Connect): S
 
       const protocol = getProtocol(urlParts.protocol);
       attributes[ATTR_MESSAGING_PROTOCOL] = protocol;
-      attributes[ATTR_NET_PEER_NAME] = getHostname(urlParts.hostname);
-      attributes[ATTR_NET_PEER_PORT] = getPort(urlParts.port ? parseInt(urlParts.port) : undefined, protocol);
+      // oxlint-disable-next-line typescript/no-deprecated
+      attributes[NET_PEER_NAME] = getHostname(urlParts.hostname);
+      // oxlint-disable-next-line typescript/no-deprecated
+      attributes[NET_PEER_PORT] = getPort(urlParts.port ? parseInt(urlParts.port) : undefined, protocol);
     } catch {
       // best-effort: a malformed url simply yields fewer connection attributes
     }

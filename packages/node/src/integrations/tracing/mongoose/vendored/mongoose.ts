@@ -16,6 +16,7 @@ import {
   type InstrumentationModuleDefinition,
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
+import { DB_OPERATION, DB_SYSTEM } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
@@ -26,7 +27,6 @@ import {
   withActiveSpan,
 } from '@sentry/core';
 import type * as mongoose from './mongoose-types';
-import { ATTR_DB_OPERATION, ATTR_DB_SYSTEM } from './semconv';
 import { getAttributesFromCollection, handleCallbackResponse, handlePromiseResponse } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-mongoose';
@@ -297,10 +297,10 @@ export class MongooseInstrumentation extends InstrumentationBase<Instrumentation
   private _startSpan(collection: mongoose.Collection, modelName: string, operation: string, parentSpan?: Span): Span {
     const attributes: SpanAttributes = {
       ...getAttributesFromCollection(collection),
-      // eslint-disable-next-line typescript/no-deprecated
-      [ATTR_DB_OPERATION]: operation,
-      // eslint-disable-next-line typescript/no-deprecated
-      [ATTR_DB_SYSTEM]: 'mongoose', // keep for backwards compatibility
+      // oxlint-disable-next-line typescript/no-deprecated
+      [DB_OPERATION]: operation,
+      // oxlint-disable-next-line typescript/no-deprecated
+      [DB_SYSTEM]: 'mongoose', // keep for backwards compatibility
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     };
 
