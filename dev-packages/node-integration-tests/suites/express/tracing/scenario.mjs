@@ -64,6 +64,15 @@ userRouter.get('/:id', (_req, res) => {
 });
 app.use('/test/router/user', userRouter);
 
+// A sub-router mounted under a *parameterized* path. The transaction name /
+// `http.route` should keep the parameter (`:version`) rather than the concrete
+// value, otherwise route cardinality explodes.
+const versionedRouter = express.Router({ mergeParams: true });
+versionedRouter.get('/user', (_req, res) => {
+  res.send({ response: 'response versioned' });
+});
+app.use('/test/version/:version', versionedRouter);
+
 Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);
