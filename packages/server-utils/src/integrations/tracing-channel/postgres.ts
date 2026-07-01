@@ -180,8 +180,8 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; op: string; at
     attributes: {
       ...getConnectionAttributes(params),
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-      ...(queryConfig?.text ? { [ATTR_DB_STATEMENT]: queryConfig.text } : {}),
-      ...(typeof queryConfig?.name === 'string' ? { [ATTR_PG_PLAN]: queryConfig.name } : {}),
+      [ATTR_DB_STATEMENT]: queryConfig?.text || undefined,
+      [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
     },
   };
 }
@@ -220,10 +220,10 @@ function getConnectionAttributes(params: PgConnectionParams): SpanAttributes {
   return {
     [ATTR_DB_SYSTEM]: DB_SYSTEM_POSTGRESQL,
     [ATTR_DB_CONNECTION_STRING]: getConnectionString(params),
-    ...(params.database ? { [ATTR_DB_NAME]: params.database } : {}),
-    ...(params.user ? { [ATTR_DB_USER]: params.user } : {}),
-    ...(params.host ? { [ATTR_NET_PEER_NAME]: params.host } : {}),
-    ...(Number.isInteger(params.port) ? { [ATTR_NET_PEER_PORT]: params.port } : {}),
+    [ATTR_DB_NAME]: params.database,
+    [ATTR_DB_USER]: params.user,
+    [ATTR_NET_PEER_NAME]: params.host,
+    [ATTR_NET_PEER_PORT]: Number.isInteger(params.port) ? params.port : undefined,
   };
 }
 
@@ -236,17 +236,21 @@ function getPoolConnectionAttributes(opts: PgPoolOptions): SpanAttributes {
   }
   const database = url?.pathname.slice(1) || opts.database;
   const host = url?.hostname || opts.host;
-  const port = url ? Number(url.port) || undefined : Number.isInteger(opts.port) ? opts.port : undefined;
+  // Mirror OTel's `getSemanticAttributesFromPoolConnection`: prefer the URL's
+  // port, but fall back to an explicit `opts.port` when the connection string
+  // omits it (`Number('')` / `Number(undefined)` -> falsy).
+  const port = Number(url?.port) || (Number.isInteger(opts.port) ? opts.port : undefined);
   const user = url?.username || opts.user;
   return {
     [ATTR_DB_SYSTEM]: DB_SYSTEM_POSTGRESQL,
     [ATTR_DB_CONNECTION_STRING]: getConnectionString(opts),
-    ...(opts.idleTimeoutMillis !== undefined ? { [ATTR_PG_IDLE_TIMEOUT]: opts.idleTimeoutMillis } : {}),
-    ...(opts.max !== undefined ? { [ATTR_PG_MAX_CLIENT]: opts.max } : {}),
-    ...(database ? { [ATTR_DB_NAME]: database } : {}),
-    ...(host ? { [ATTR_NET_PEER_NAME]: host } : {}),
-    ...(port !== undefined ? { [ATTR_NET_PEER_PORT]: port } : {}),
-    ...(user ? { [ATTR_DB_USER]: user } : {}),
+    [ATTR_PG_IDLE_TIMEOUT]: opts.idleTimeoutMillis,
+    [ATTR_PG_MAX_CLIENT]: opts.max,
+    [ATTR_DB_NAME]: database,
+    [ATTR_NET_PEER_PORT]: port,
+    // these two come from a url parse and slice, can be ''
+    [ATTR_NET_PEER_NAME]: host || undefined,
+    [ATTR_DB_USER]: user || undefined,
   };
 }
 
