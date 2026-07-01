@@ -49,7 +49,7 @@
     "@opentelemetry/instrumentation": "^0.214.0",
     "@sentry/browser": "10.62.0",
     "@sentry/cli": "^2.58.6",
-    "@sentry/conventions": "^0.14.0",
+    "@sentry/conventions": "^0.15.1",
     "@sentry/core": "10.62.0",
     "@sentry/node": "10.62.0",
     "@sentry/react": "10.62.0",
