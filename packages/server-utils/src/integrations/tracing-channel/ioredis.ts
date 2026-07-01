@@ -1,4 +1,9 @@
+/* eslint-disable @typescript-eslint/no-deprecated -- we intentionally emit the OLD db/net semconv
+   to match `@opentelemetry/instrumentation-ioredis` (and Sentry's `inferDbSpanData`, which keys off
+   `db.statement`). TODO(v11): switch to the non-deprecated `db.system.name`/`db.query.text`/
+   `server.address`/`server.port` conventions and drop this disable. */
 import * as diagnosticsChannel from 'node:diagnostics_channel';
+import { DB_STATEMENT, DB_SYSTEM, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   debug,
@@ -19,11 +24,9 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 const INTEGRATION_NAME = 'IORedis' as const;
 
 const ORIGIN = 'auto.db.orchestrion.redis';
-const ATTR_DB_SYSTEM = 'db.system';
-const ATTR_DB_STATEMENT = 'db.statement';
+
+// todo(v11): Let's drop this as this is already covered with host and port
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
-const ATTR_NET_PEER_NAME = 'net.peer.name';
-const ATTR_NET_PEER_PORT = 'net.peer.port';
 
 /** Mirrors `@opentelemetry/instrumentation-ioredis`' response hook. Not called for failed commands. */
 export type IORedisResponseHook = (span: Span, command: string, args: Array<string | Buffer>, result: unknown) => void;
@@ -57,10 +60,10 @@ function getConnectionOptions(self: RedisClientLike | undefined): { host?: strin
 
 function connectionAttributes(host: string | undefined, port: number | undefined): Record<string, unknown> {
   return {
-    [ATTR_DB_SYSTEM]: 'redis',
+    [DB_SYSTEM]: 'redis',
     [ATTR_DB_CONNECTION_STRING]: `redis://${host}:${port}`,
-    [ATTR_NET_PEER_NAME]: host,
-    [ATTR_NET_PEER_PORT]: port,
+    [NET_PEER_NAME]: host,
+    [NET_PEER_PORT]: port,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
   };
 }
@@ -106,7 +109,7 @@ const _ioredisChannelIntegration = ((options: IORedisChannelIntegrationOptions =
             return startInactiveSpan({
               name: statement,
               op: 'db',
-              attributes: { ...connectionAttributes(host, port), [ATTR_DB_STATEMENT]: statement },
+              attributes: { ...connectionAttributes(host, port), [DB_STATEMENT]: statement },
             });
           },
           {
@@ -133,7 +136,7 @@ const _ioredisChannelIntegration = ((options: IORedisChannelIntegrationOptions =
             return startInactiveSpan({
               name: 'connect',
               op: 'db',
-              attributes: { ...connectionAttributes(host, port), [ATTR_DB_STATEMENT]: 'connect' },
+              attributes: { ...connectionAttributes(host, port), [DB_STATEMENT]: 'connect' },
             });
           },
           { captureError: false },
