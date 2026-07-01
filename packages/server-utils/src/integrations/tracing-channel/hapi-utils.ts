@@ -26,13 +26,9 @@ import type {
   ServerRoute,
   ServerRouteOptions,
 } from './hapi-types';
+// eslint-disable-next-line typescript/no-deprecated -- TODO(v11): Replace deprecated attributes
+import { HTTP_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { AttributeNames, handlerPatched, HapiLayerType, HapiLifecycleMethodNames } from './hapi-types';
-
-// Inlined OTel semantic-convention string constants — orchestrion's whole point
-// is to step away from the OTel auto-instrumentation stack, so we don't import
-// `@opentelemetry/semantic-conventions`. Values match the vendored instrumentation.
-const ATTR_HTTP_ROUTE = 'http.route';
-const ATTR_HTTP_METHOD = 'http.method';
 
 type SpanAttributes = Record<string, string | undefined>;
 
@@ -60,7 +56,7 @@ function setHttpServerSpanRouteAttribute(route: string): void {
   if (spanToJSON(rootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'http.server') {
     return;
   }
-  rootSpan.setAttribute(ATTR_HTTP_ROUTE, route);
+  rootSpan.setAttribute(HTTP_ROUTE, route);
 }
 
 const isLifecycleExtType = (variableToCheck: unknown): variableToCheck is ServerRequestExtType => {
@@ -90,8 +86,9 @@ const isPatchableExtMethod = (
 /** Build the span name and attributes for a Hapi route. */
 export const getRouteMetadata = (route: ServerRoute, pluginName?: string): SpanMetadata => {
   const attributes: SpanAttributes = {
-    [ATTR_HTTP_ROUTE]: route.path,
-    [ATTR_HTTP_METHOD]: route.method,
+    [HTTP_ROUTE]: route.path,
+    // eslint-disable-next-line typescript/no-deprecated -- TODO(v11): Replace deprecated attributes
+    [HTTP_METHOD]: route.method,
   };
 
   let name;
