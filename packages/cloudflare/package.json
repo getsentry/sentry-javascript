@@ -36,6 +36,16 @@
         "types": "./build/types/request.d.ts",
         "default": "./build/cjs/request.js"
       }
+    },
+    "./nodejs_compat": {
+      "import": {
+        "types": "./build/types/nodejs_compat/index.d.ts",
+        "default": "./build/esm/nodejs_compat/index.js"
+      },
+      "require": {
+        "types": "./build/types/nodejs_compat/index.d.ts",
+        "default": "./build/cjs/nodejs_compat/index.js"
+      }
     }
   },
   "typesVersions": {
