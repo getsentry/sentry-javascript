@@ -340,17 +340,22 @@ describe('postgres auto instrumentation', () => {
       ]),
     };
 
-    createEsmAndCjsTests(__dirname, 'scenario-native.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('should auto-instrument `pg-native` package', { timeout: 90_000 }, async () => {
-        await createTestRunner()
-          .withDockerCompose({
-            workingDirectory: [__dirname],
-            setupCommand: 'yarn',
-          })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
-      });
-    });
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-native.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('should auto-instrument `pg-native` package', { timeout: 120_000 }, async () => {
+          await createTestRunner()
+            .withDockerCompose({
+              workingDirectory: [__dirname],
+            })
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
+        });
+      },
+      { additionalDependencies: { 'pg-native': '3.7.0', pg: '8.20.0' } },
+    );
   });
 });
