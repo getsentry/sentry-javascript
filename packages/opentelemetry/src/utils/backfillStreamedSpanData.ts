@@ -20,10 +20,7 @@ import { inferSpanData } from './parseSpanDescription';
  * on the same attributes, so re-running it here is a no-op for already-inferred fields.
  */
 export function backfillStreamedSpanDataFromOtel(spanJSON: StreamedSpanJSON, hint?: { spanKind?: number }): void {
-  const attributes = spanJSON.attributes;
-  if (!attributes) {
-    return;
-  }
+  const attributes = spanJSON.attributes ?? {};
 
   const kind = hint?.spanKind ?? SPAN_KIND.INTERNAL;
   const { op, description, source, data } = inferSpanData(spanJSON.name, attributes as unknown as SpanAttributes, kind);
