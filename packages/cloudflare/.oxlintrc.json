@@ -14,7 +14,24 @@
     {
       "files": ["**/src/**"],
       "rules": {
-        "sdk/no-class-field-initializers": "off"
+        "sdk/no-class-field-initializers": "off",
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@sentry/node",
+                "message": "Do not import from `@sentry/node` in the Cloudflare SDK. It relies on Node.js APIs that are only available when the `nodejs_compat` flag is set. The only allowed importers are files in `src/nodejs_compat/`, which are exposed via the `@sentry/cloudflare/nodejs_compat/*` entry points."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/src/nodejs_compat/**"],
+      "rules": {
+        "no-restricted-imports": "off"
       }
     }
   ]
