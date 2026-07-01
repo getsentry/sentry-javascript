@@ -4,7 +4,10 @@ import pg from 'pg';
 const { native } = pg;
 const { Client } = native;
 
-const client = new Client({ port: 5494, user: 'test', password: 'test', database: 'tests' });
+// `pg-native` uses libpq, which resolves `localhost` to IPv6 (`::1`) first and does not
+// fall back to IPv4. Docker Desktop only forwards the mapped port over IPv4, so we connect
+// to the IPv4 loopback explicitly to avoid an `ECONNREFUSED` on `::1`.
+const client = new Client({ host: '127.0.0.1', port: 5494, user: 'test', password: 'test', database: 'tests' });
 
 async function run() {
   await Sentry.startSpan(
