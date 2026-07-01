@@ -46,6 +46,12 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
     module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
     functionQuery: { className: 'Completions', methodName: 'create', kind: 'Auto' as const },
   })) satisfies InstrumentationConfig[]),
+  // OpenAI responses API — same `create(body, options)` shape as chat completions.
+  ...(['resources/responses/responses.js', 'resources/responses/responses.mjs'].map(filePath => ({
+    channelName: 'responses',
+    module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
+    functionQuery: { className: 'Responses', methodName: 'create', kind: 'Auto' as const },
+  })) satisfies InstrumentationConfig[]),
 ];
 
 /**

@@ -37,7 +37,7 @@ describe('OpenAI integration (orchestrion)', () => {
             const chatSpans = container.items.filter(
               span => span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.chat',
             );
-            expect(chatSpans).toHaveLength(2);
+            expect(chatSpans).toHaveLength(3);
 
             const chatSpan = container.items.find(
               span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-mock123',
@@ -92,6 +92,50 @@ describe('OpenAI integration (orchestrion)', () => {
               type: 'string',
               value: ORCHESTRION_ORIGIN,
             });
+
+            const responsesSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_mock456',
+            );
+            expect(responsesSpan).toBeDefined();
+            expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
+            expect(responsesSpan!.status).toBe('ok');
+            expect(responsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: ORCHESTRION_ORIGIN,
+            });
+            expect(responsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(responsesSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(responsesSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
+            expect(responsesSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-3.5-turbo',
+            });
+            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-3.5-turbo',
+            });
+            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '["completed"]',
+            });
+            expect(responsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 5,
+            });
+            expect(responsesSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 8,
+            });
+            expect(responsesSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 13,
+            });
           },
         })
         .start()
@@ -134,6 +178,23 @@ describe('OpenAI integration (orchestrion)', () => {
               expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toEqual({
                 type: 'string',
                 value: '["Hello from OpenAI mock!"]',
+              });
+
+              const responsesSpan = container.items.find(
+                span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_mock456',
+              );
+              expect(responsesSpan).toBeDefined();
+              expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
+                type: 'integer',
+                value: 1,
+              });
+              expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+                type: 'string',
+                value: 'Translate this to French: Hello',
+              });
+              expect(responsesSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toEqual({
+                type: 'string',
+                value: 'Response to: Translate this to French: Hello',
               });
             },
           })
