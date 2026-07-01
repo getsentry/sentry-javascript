@@ -17,6 +17,9 @@ export const CHANNELS = {
   PG_QUERY: 'orchestrion:pg:query',
   PG_CONNECT: 'orchestrion:pg:connect',
   PGPOOL_CONNECT: 'orchestrion:pg-pool:connect',
+  ANTHROPIC_CHAT: 'orchestrion:@anthropic-ai/sdk:chat',
+  ANTHROPIC_MODELS: 'orchestrion:@anthropic-ai/sdk:models',
+  ANTHROPIC_MESSAGES_STREAM: 'orchestrion:@anthropic-ai/sdk:messages-stream',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
