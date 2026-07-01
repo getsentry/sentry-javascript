@@ -29,8 +29,7 @@ describe('Prisma ORM v5 Tests', () => {
               expect(operationSpans.length).toBeGreaterThanOrEqual(1);
 
               // The db-query spans are materialized from the raw engine event; assert they nest inside the
-              // transaction (their parent is another span in it) rather than dangling as orphans — a flat
-              // `toContainEqual` check below would pass for an orphaned span too.
+              // transaction (their parent is another span in it) rather than dangling as orphans.
               const dbSpans = spans.filter(s => s.op === 'db');
               expect(dbSpans.length).toBeGreaterThanOrEqual(1);
               dbSpans.forEach(dbSpan => {
