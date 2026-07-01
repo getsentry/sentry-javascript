@@ -10,6 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/core';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
@@ -53,6 +54,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
         expect(childSpan).toBeDefined();
         expect(childSpan).toEqual({
           attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
               type: 'string',
               value: 'test-child',
@@ -80,6 +82,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
         expect(inactiveSpan).toBeDefined();
         expect(inactiveSpan).toEqual({
           attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
@@ -116,6 +119,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
         expect(manualSpan).toBeDefined();
         expect(manualSpan).toEqual({
           attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
@@ -136,6 +140,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
         });
 
         const expectedAttributes: Record<string, unknown> = {
+          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },

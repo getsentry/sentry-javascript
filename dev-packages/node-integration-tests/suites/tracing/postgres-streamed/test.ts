@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE } from '@sentry/core';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { conditionalTest } from '../../../utils';
@@ -68,6 +68,10 @@ const COMMON_DB_ATTRIBUTES = {
   'sentry.span.source': {
     type: 'string',
     value: 'task',
+  },
+  [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+    type: 'string',
+    value: 'stream',
   },
 };
 

@@ -65,6 +65,12 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
 /** The list of integrations enabled in the Sentry SDK (e.g., ["InboundFilters", "BrowserTracing"]) */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS = 'sentry.sdk.integrations';
 
+/**
+ * Indicates the trace lifecycle mode with which a span was sent by the SDK.
+ * Either "stream" (streamed span) or "static" (transaction-sent span).
+ */
+export const SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE = 'sentry.trace_lifecycle';
+
 /** The user ID */
 export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';
 /** The user email */
