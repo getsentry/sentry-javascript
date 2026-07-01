@@ -31,7 +31,7 @@ import {
   startInactiveSpan,
   stripDataUrlContent,
 } from '@sentry/core';
-import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '@sentry/node-core';
+import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '../../utils/outgoingFetchRequest';
 import {
   HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
