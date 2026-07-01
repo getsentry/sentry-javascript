@@ -167,7 +167,7 @@ export function startExecuteSpan(
   }
 
   const operation = getOperation(document as DocumentNode, operationName);
-  const span = createExecuteSpan(operation, document);
+  const span = createExecuteSpan(operation, document, operationName);
 
   // The resolver proxies read the execute span (and their own bookkeeping) off this symbol.
   contextValue[GRAPHQL_DATA_SYMBOL] = { source: document, span, fields: {} };
@@ -176,7 +176,11 @@ export function startExecuteSpan(
   return span;
 }
 
-function createExecuteSpan(operation: DefinitionNode | undefined, document: DocumentNode | undefined): Span {
+function createExecuteSpan(
+  operation: DefinitionNode | undefined,
+  document: DocumentNode | undefined,
+  executeOperationName: Maybe<string>,
+): Span {
   const span = startInactiveSpan({
     name: SpanNames.EXECUTE,
     attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN },
@@ -198,8 +202,11 @@ function createExecuteSpan(operation: DefinitionNode | undefined, document: Docu
       span.updateName(operationType);
     }
   } else {
-    const operationName = document ? OPERATION_NOT_SUPPORTED.replace('$operationName$', ' ') : OPERATION_NOT_SUPPORTED;
-    span.setAttribute(GRAPHQL_OPERATION_NAME, operationName);
+    // No operation definition resolved. Mirror the OTel instrumentation: fold the caller-supplied
+    // `operationName` into the placeholder (always replacing it, so the raw `$operationName$` template
+    // never leaks into the attribute).
+    const placeholder = executeOperationName ? ` "${executeOperationName}" ` : ' ';
+    span.setAttribute(GRAPHQL_OPERATION_NAME, OPERATION_NOT_SUPPORTED.replace('$operationName$', placeholder));
   }
 
   if (document?.loc) {

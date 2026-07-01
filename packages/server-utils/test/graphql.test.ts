@@ -141,6 +141,12 @@ function tracedExecuteRejecting(args: graphql.ExecutionArgs, error: Error): Prom
   return tracingChannel(CHANNELS.GRAPHQL_EXECUTE).tracePromise(() => Promise.reject(error), ctx);
 }
 
+// Drive the execute channel with a stub op for cases the real `graphql.execute` would reject (e.g. a
+// document with no operation definition, or no document at all).
+function tracedExecuteStub(args: Partial<graphql.ExecutionArgs>): void {
+  tracingChannel(CHANNELS.GRAPHQL_EXECUTE).traceSync(() => ({ data: {} }), { arguments: [args], self: graphql } as any);
+}
+
 describe('graphqlChannelIntegration', () => {
   let spans: Span[];
 
@@ -279,6 +285,30 @@ describe('graphqlChannelIntegration', () => {
     // A thrown/rejected error annotates the span status with the error message (via the channel's
     // `error` handler), unlike a result carrying `errors` which uses a bare error status.
     expect(spanToJSON(findSpan('query')!).status).toBe('execute failed');
+  });
+
+  it('folds operationName into the span attribute when no operation definition resolves', () => {
+    const schema = buildSchema();
+    // A fragment-only document has no operation definition, so `getOperation` returns undefined.
+    const document = tracedParse('fragment Frag on Query { hello }');
+
+    tracedExecuteStub({ schema, document, operationName: 'Foo' });
+
+    const span = findSpan('graphql.execute');
+    expect(span).toBeDefined();
+    expect(spanToJSON(span!).data['graphql.operation.name']).toBe('Operation "Foo" not supported');
+  });
+
+  it('never leaks the $operationName$ placeholder when there is no document', () => {
+    const schema = buildSchema();
+
+    tracedExecuteStub({ schema });
+
+    const span = findSpan('graphql.execute');
+    expect(span).toBeDefined();
+    const name = spanToJSON(span!).data['graphql.operation.name'];
+    expect(name).not.toContain('$operationName$');
+    expect(name).toBe('Operation not supported');
   });
 
   it('does not re-wrap resolvers for a nested execute reusing the same contextValue', async () => {

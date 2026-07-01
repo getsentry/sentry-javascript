@@ -18,7 +18,7 @@ import type { GraphqlResolvedConfig } from './types';
 // When enabled, the OTel 'Graphql' integration is omitted from the default set.
 const INTEGRATION_NAME = 'Graphql' as const;
 
-interface GraphqlOptions {
+export interface GraphqlChannelIntegrationOptions {
   /**
    * Do not create spans for resolvers.
    *
@@ -56,7 +56,7 @@ interface GraphqlChannelContext {
   error?: unknown;
 }
 
-function getOptionsWithDefaults(options: GraphqlOptions): GraphqlResolvedConfig {
+function getOptionsWithDefaults(options: GraphqlChannelIntegrationOptions): GraphqlResolvedConfig {
   return {
     ignoreResolveSpans: options.ignoreResolveSpans ?? true,
     ignoreTrivialResolveSpans: options.ignoreTrivialResolveSpans ?? true,
@@ -81,7 +81,7 @@ function safe<T>(fn: () => T): T | undefined {
   }
 }
 
-const _graphqlChannelIntegration = ((options: GraphqlOptions = {}) => {
+const _graphqlChannelIntegration = ((options: GraphqlChannelIntegrationOptions = {}) => {
   const config = getOptionsWithDefaults(options);
   const getConfig = (): GraphqlResolvedConfig => config;
 
