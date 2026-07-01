@@ -1,19 +1,10 @@
-import {
-  mysqlChannelIntegration,
-  lruMemoizerChannelIntegration,
-  detectOrchestrionSetup,
-  postgresChannelIntegration,
-} from '@sentry/server-utils/orchestrion';
+import { channelIntegrations, detectOrchestrionSetup } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
 import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInjection';
 
-export function diagnosticsChannelInjectionIntegrations() {
-  return {
-    postgresIntegration: postgresChannelIntegration,
-    mysqlIntegration: mysqlChannelIntegration,
-    lruMemoizerIntegration: lruMemoizerChannelIntegration,
-  };
+export function diagnosticsChannelInjectionIntegrations(): typeof channelIntegrations {
+  return channelIntegrations;
 }
 
 /**
@@ -50,11 +41,7 @@ export function diagnosticsChannelInjectionIntegrations() {
  */
 export function experimentalUseDiagnosticsChannelInjection(): void {
   setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
-    const integrations = [
-      mysqlChannelIntegration(),
-      lruMemoizerChannelIntegration(),
-      postgresChannelIntegration(),
-    ] as const;
+    const integrations = Object.values(channelIntegrations).map(createIntegration => createIntegration());
     const replacedOtelIntegrationNames = integrations.map(i => i.name);
 
     return {
