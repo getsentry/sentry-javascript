@@ -909,7 +909,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       # The fixtures install the locally-packed `@sentry/bundler-plugins` tarball with pnpm.
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 9.15.9
       - name: Set up Node
@@ -1024,7 +1024,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 9.15.9
       - name: Set up Node
@@ -1162,7 +1162,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 9.15.9
       - name: Set up Node
