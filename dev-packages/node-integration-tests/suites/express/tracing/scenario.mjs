@@ -51,6 +51,19 @@ app.post('/test-post-ignore-body', function (req, res) {
   res.send({ status: 'ok', body: req.body });
 });
 
+// A mounted sub-router, so we get a `router`-type layer wrapping a
+// `request_handler` layer — used to assert the router span encloses the route
+// handler span it dispatches.
+const userRouter = express.Router();
+userRouter.get('/:id', (_req, res) => {
+  // Delay the response so the difference between the two instrumentations'
+  // router-span durations is unambiguous: the orchestrion router span stays
+  // open until the response finishes (~this delay), while the OTel one ends
+  // immediately (~0ms).
+  setTimeout(() => res.send({ response: 'response user' }), 100);
+});
+app.use('/test/router/user', userRouter);
+
 Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);
