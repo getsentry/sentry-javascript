@@ -122,12 +122,12 @@ function setupChannel(tracingChannel: MongooseTracingChannelFactory, channelName
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
         [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MONGODB,
         [DB_OPERATION_NAME]: data.operation,
-        ...(collection != null ? { [DB_COLLECTION_NAME]: collection } : {}),
-        ...(data.database != null ? { [DB_NAMESPACE]: data.database } : {}),
-        ...(queryText != null ? { [DB_QUERY_TEXT]: queryText } : {}),
-        ...(batchSize != null ? { [DB_OPERATION_BATCH_SIZE]: batchSize } : {}),
-        ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
-        ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
+        [DB_COLLECTION_NAME]: collection ?? undefined,
+        [DB_NAMESPACE]: data.database ?? undefined,
+        [DB_QUERY_TEXT]: queryText ?? undefined,
+        [DB_OPERATION_BATCH_SIZE]: batchSize ?? undefined,
+        [SERVER_ADDRESS]: data.serverAddress ?? undefined,
+        [SERVER_PORT]: data.serverPort ?? undefined,
       },
     });
   });
