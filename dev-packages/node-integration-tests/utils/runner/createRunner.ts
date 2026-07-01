@@ -15,6 +15,7 @@ import type {
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
 import { execSync, spawn, spawnSync } from 'child_process';
+import { createHash } from 'crypto';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { inspect } from 'util';
@@ -601,8 +602,20 @@ export function createRunner(...paths: string[]) {
  */
 async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   const cwd = join(...options.workingDirectory);
+
+  // Docker Compose derives the project name from the compose file's directory
+  // basename by default. Several suites live in directories that share a
+  // basename (e.g. `tracing/mysql2` and `tracing/knex/mysql2`), so they collide
+  // on the same project + network when running in parallel: one suite's
+  // teardown removes the shared `<name>_default` network while a sibling is
+  // still starting, producing "network <name>_default not found". Deriving a
+  // unique, stable project name from the full working directory isolates every
+  // suite from each other.
+  const projectName = `sentry-it-${createHash('sha1').update(cwd).digest('hex').slice(0, 12)}`;
+  const composeArgs = (...args: string[]): string[] => ['compose', '-p', projectName, ...args];
+
   const close = (): void => {
-    spawnSync('docker', ['compose', 'down', '--volumes'], {
+    spawnSync('docker', composeArgs('down', '--volumes'), {
       cwd,
       stdio: process.env.DEBUG ? 'inherit' : undefined,
     });
@@ -612,7 +625,7 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   close();
 
   const composeUp = (): ReturnType<typeof spawnSync> =>
-    spawnSync('docker', ['compose', 'up', '-d', '--wait'], {
+    spawnSync('docker', composeArgs('up', '-d', '--wait'), {
       cwd,
       stdio: process.env.DEBUG ? 'inherit' : 'pipe',
     });
@@ -632,7 +645,7 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     const stderr = result.stderr?.toString() ?? '';
     const stdout = result.stdout?.toString() ?? '';
     // Surface container logs to make healthcheck failures easier to diagnose in CI
-    const logs = spawnSync('docker', ['compose', 'logs'], { cwd }).stdout?.toString() ?? '';
+    const logs = spawnSync('docker', composeArgs('logs'), { cwd }).stdout?.toString() ?? '';
     close();
     throw new Error(
       `docker compose up --wait failed (exit ${result.status})\n${stderr}${stdout}\n--- container logs ---\n${logs}`,
