@@ -177,14 +177,15 @@ export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { addVercelAiProcessors, getProviderMetadataAttributes } from './tracing/vercel-ai';
-export { getTruncatedJsonString, shouldEnableTruncation } from './tracing/ai/utils';
+export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptions } from './tracing/ai/utils';
 export {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from './tracing/ai/gen-ai-attributes';
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
-export { instrumentOpenAiClient } from './tracing/openai';
+export { instrumentOpenAiClient, extractRequestAttributes, addRequestAttributes } from './tracing/openai';
+export { addResponseAttributes, extractRequestParameters } from './tracing/openai/utils';
 export { OPENAI_INTEGRATION_NAME } from './tracing/openai/constants';
 export { instrumentAnthropicAiClient } from './tracing/anthropic-ai';
 export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants';
