@@ -3,8 +3,10 @@ import { afterAll, beforeAll, expect } from 'vitest';
 import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-// Pins mongoose 9 (top of our supported `>=5.9.7 <10` range) so the latest major is exercised
-// against a real mongoose. mongoose 9 requires Node >=20.19, so this suite is skipped on older Node.
+// Pins the highest mongoose 9 below 9.7, the top of the IITM patcher's `>=5.9.7 <9.7.0` range, so the
+// monkey-patch path is exercised against a real mongoose 9. mongoose >= 9.7 publishes via
+// diagnostics_channel and is covered by the `mongoose-tracing-channel` suite instead.
+// mongoose 9 requires Node >=20.19, so this suite is skipped on older Node.
 conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
   let mongoServer: MongoMemoryServer;
 
@@ -55,6 +57,6 @@ conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
         await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     },
-    { additionalDependencies: { mongoose: '^9' } },
+    { additionalDependencies: { mongoose: '>=9 <9.7' } },
   );
 });

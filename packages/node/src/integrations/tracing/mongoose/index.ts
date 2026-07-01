@@ -1,19 +1,22 @@
 import { MongooseInstrumentation } from './vendored/mongoose';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, extendIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
+import { mongooseIntegration as mongooseChannelIntegration } from '@sentry/server-utils';
 
 const INTEGRATION_NAME = 'Mongoose' as const;
 
 export const instrumentMongoose = generateInstrumentOnce(INTEGRATION_NAME, () => new MongooseInstrumentation());
 
 const _mongooseIntegration = (() => {
-  return {
+  // The diagnostics_channel subscription (mongoose >= 9.7) lives in server-utils so it is shared
+  // across server runtimes; we extend it here to also run the IITM-based patcher for mongoose < 9.7.
+  return extendIntegration(mongooseChannelIntegration(), {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentMongoose();
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**
