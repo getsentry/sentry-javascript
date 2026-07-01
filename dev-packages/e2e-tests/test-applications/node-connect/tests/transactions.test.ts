@@ -54,41 +54,44 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     origin: 'auto.http.otel.http',
   });
 
+  const manualSpanExpectation = {
+    data: {
+      'sentry.origin': 'manual',
+    },
+    description: 'test-span',
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    origin: 'manual',
+  };
+
+  const connectSpanExpectation = {
+    data: {
+      'sentry.origin': 'auto.http.otel.connect',
+      'sentry.op': 'request_handler.connect',
+      'http.route': '/test-transaction',
+      'connect.type': 'request_handler',
+      'connect.name': '/test-transaction',
+    },
+    op: 'request_handler.connect',
+    description: '/test-transaction',
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    origin: 'auto.http.otel.connect',
+  };
+
   expect(transactionEvent).toEqual(
     expect.objectContaining({
-      spans: [
-        {
-          data: {
-            'sentry.origin': 'manual',
-          },
-          description: 'test-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          origin: 'manual',
-        },
-        {
-          data: {
-            'sentry.origin': 'auto.http.otel.connect',
-            'sentry.op': 'request_handler.connect',
-            'http.route': '/test-transaction',
-            'connect.type': 'request_handler',
-            'connect.name': '/test-transaction',
-          },
-          op: 'request_handler.connect',
-          description: '/test-transaction',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          origin: 'auto.http.otel.connect',
-        },
-      ],
+      // The SentryTracerProvider serializes native child spans in start/tree order, so the
+      // Connect handler span appears before the manual span created inside it.
+      spans: [connectSpanExpectation, manualSpanExpectation],
       transaction: 'GET /test-transaction',
       type: 'transaction',
       transaction_info: {

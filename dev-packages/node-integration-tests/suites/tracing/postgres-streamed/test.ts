@@ -73,12 +73,14 @@ const COMMON_DB_ATTRIBUTES = {
 
 /**
  * Builds the expected strict shape of a streamed postgres db span.
- * The `pg.connect` span has neither a `db.statement` nor a `sentry.origin`,
- * whereas query spans carry both.
  *
- * `host` defaults to `localhost`, but the `pg-native` scenarios connect to the
- * IPv4 loopback (`127.0.0.1`) explicitly, so the reported peer name and
- * connection string reflect that.
+ * Query spans carry a `db.statement` and the `auto.db.otel.postgres` origin. The `pg.connect` span
+ * has no `db.statement`, and since the pg instrumentation sets no origin on it, it carries the
+ * default `manual` origin (written as an attribute on the streamed-span path; the non-streamed/SDK
+ * path omits the `manual` default).
+ *
+ * `host` defaults to `localhost`, but the `pg-native` scenarios connect to the IPv4 loopback
+ * (`127.0.0.1`) explicitly, so the reported peer name and connection string reflect that.
  */
 function expectedDbSpan({
   name,
@@ -109,6 +111,11 @@ function expectedDbSpan({
     attributes['sentry.origin'] = {
       type: 'string',
       value: 'auto.db.otel.postgres',
+    };
+  } else {
+    attributes['sentry.origin'] = {
+      type: 'string',
+      value: 'manual',
     };
   }
 

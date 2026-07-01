@@ -41,7 +41,14 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           Sentry.startSpan({ name: 'outer' }, span => {
-            expect(getCapturedScopesOnSpan(span).scope).toBe(tracingEnabled ? scope2 : undefined);
+            // The SentryTracerProvider captures a snapshot (clone) of the active scope at span
+            // start — for both sampled and non-recording spans — rather than the live instance, so
+            // assert the captured scope's data instead of instance identity.
+            expect(getCapturedScopesOnSpan(span).scope?.getScopeData().tags).toEqual({
+              tag1: 'val1',
+              tag2: 'val2',
+              tag3: 'val3',
+            });
 
             spanId = span.spanContext().spanId;
             traceId = span.spanContext().traceId;

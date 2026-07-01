@@ -22,6 +22,9 @@ import { URL } from 'url';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
+  getClient,
+  getSpanStatusFromHttpCode,
+  hasSpanStreamingEnabled,
   isTracingSuppressed,
   LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
@@ -253,10 +256,18 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
     attributes[USER_AGENT_ORIGINAL] = userAgent;
   }
 
+  // Outside of span streaming, only record an `http.client` span when it has a parent. An orphan
+  // one (no local parent) is left to the server for the downstream sampling decision: `onlyIfParent`
+  // still creates a non-recording span so trace propagation headers are injected, but it isn't
+  // emitted as a standalone transaction. This rule also lives in `SentrySampler`, but that only runs
+  // when an OpenTelemetry SDK tracer provider is set up, so we enforce it here too, which covers
+  // SDKs that don't use an OpenTelemetry tracer provider at all.
+  const client = getClient();
   const span = startInactiveSpan({
     name: requestMethod === '_OTHER' ? 'HTTP' : requestMethod,
     kind: SPAN_KIND.CLIENT,
     attributes,
+    onlyIfParent: !client || !hasSpanStreamingEnabled(client),
   });
 
   // Execute the request hook if defined
@@ -359,10 +370,13 @@ function onResponseHeaders(config: NodeFetchOptions, { request, response }: Resp
 
   span.setAttributes(spanAttributes);
 
-  // The Sentry pipeline infers `ok` / `not_found` / etc. from `http.response.status_code` when the
-  // status is left unset, so we only need to flag erroneous responses explicitly.
+  // Resolve the HTTP status code to a Sentry span status here (like the raw http client/server
+  // instrumentation does) instead of setting a bare error and deferring to downstream inference.
+  // The SentryTracerProvider's status finalization reads the already-stringified span status, which
+  // can no longer be inferred back to `not_found` etc. the way the OpenTelemetry SDK exporter's
+  // `mapStatus` does from the raw `{ code, message }`.
   if (response.statusCode >= 400) {
-    span.setStatus({ code: SPAN_STATUS_ERROR });
+    span.setStatus(getSpanStatusFromHttpCode(response.statusCode));
   }
 }
 
