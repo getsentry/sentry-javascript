@@ -10,7 +10,7 @@ describe('express tracing', () => {
   describe.each([
     ['otel', {}],
     ['orchestrion', { USE_ORCHESTRION: 'true' }],
-  ])('%s', (_name, env: Record<string, string>) => {
+  ])('%s', (name, env: Record<string, string>) => {
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
       test('should create and send transactions for Express routes and spans for middlewares.', async () => {
         const runner = createRunner()
@@ -81,6 +81,42 @@ describe('express tracing', () => {
           })
           .start();
         runner.makeRequest('get', '/test/regex');
+        await runner.completed();
+      });
+
+      test('nests a sub-router route handler span under the router span', async () => {
+        const runner = createRunner()
+          .withEnv(env)
+          .expect({
+            transaction: transaction => {
+              expect(transaction.transaction).toBe('GET /test/router/user/:id');
+
+              const spans = transaction.spans || [];
+              const routerSpan = spans.find(span => span.data?.['express.type'] === 'router');
+              const handlerSpan = spans.find(span => span.data?.['express.type'] === 'request_handler');
+
+              expect(routerSpan).toBeDefined();
+              expect(handlerSpan).toBeDefined();
+
+              // The route handler nests under the router span in both instrumentations.
+              expect(handlerSpan?.parent_span_id).toBe(routerSpan?.span_id);
+
+              // The handler delays its response by ~100ms (see scenario).
+              const routerDurationMs = ((routerSpan?.timestamp ?? 0) - (routerSpan?.start_timestamp ?? 0)) * 1000;
+
+              if (name === 'orchestrion') {
+                // The orchestrion router span stays open until the response finishes, so
+                // it spans the whole sub-stack it dispatched (~the 100ms handler delay).
+                expect(routerDurationMs).toBeGreaterThan(50);
+              } else {
+                // The OTel integration ends router spans immediately, so the router span
+                // is a ~0ms marker regardless of how long its sub-stack runs.
+                expect(routerDurationMs).toBeLessThan(50);
+              }
+            },
+          })
+          .start();
+        runner.makeRequest('get', '/test/router/user/42');
         await runner.completed();
       });
 
