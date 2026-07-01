@@ -17,6 +17,7 @@ export const CHANNELS = {
   OPENAI_CHAT: 'orchestrion:openai:chat',
   OPENAI_RESPONSES: 'orchestrion:openai:responses',
   OPENAI_EMBEDDINGS: 'orchestrion:openai:embeddings',
+  OPENAI_CONVERSATIONS: 'orchestrion:openai:conversations',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
