@@ -1,0 +1,25 @@
+{
+  "name": "node-bullmq",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/app.mjs",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test": "playwright test",
+    "test:build": "pnpm install",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "bullmq": "^5.0.0",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
