@@ -106,5 +106,8 @@
   "sideEffects": false,
   "devDependencies": {
     "zod": "^3.24.1"
+  },
+  "dependencies": {
+    "@sentry/conventions": "^0.15.1"
   }
 }
