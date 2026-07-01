@@ -1,6 +1,4 @@
 import { getMainCarrier, getSentryCarrier } from '../carrier';
-import type { Client } from '../client';
-import type { Scope } from '../scope';
 import type { TransactionEvent } from '../types/event';
 import type { Span } from '../types/span';
 
@@ -24,7 +22,7 @@ export type SegmentSpanConverter = (options?: SegmentSpanCaptureConvertOptions) 
  */
 export interface SegmentSpanCaptureStrategy {
   /** Assemble and capture a segment (root or standalone-root) span's transaction. */
-  onSegmentSpanEnded(scope: Scope, client: Client, convert: SegmentSpanConverter): void;
+  onSegmentSpanEnded(convert: SegmentSpanConverter): void;
   /** Consider a child that ended after its segment for emission as its own orphan transaction. */
   onChildSpanEnded(span: Span, rootSpan: Span, convert: SegmentSpanConverter): void;
 }

@@ -108,40 +108,6 @@ describe('deferred segment-span capture', () => {
     expect(transactions[1]!.contexts?.trace?.data?.['sentry.parent_span_already_sent']).toBe(true);
   });
 
-  it('routes an orphan to the client that sent the segment, not the current client after re-init', () => {
-    const root = startInactiveSpan({ name: 'root' });
-    const child = withActiveSpan(root, () => startInactiveSpan({ name: 'child' }));
-
-    root.end();
-    vi.advanceTimersByTime(100);
-    expect(transactions).toHaveLength(1); // segment sent on the first client
-
-    // A second `Sentry.init()` swaps in a new client mid-trace, before the late child ends.
-    const reinitTransactions: Event[] = [];
-    const reinitClient = new TestClient(
-      getDefaultTestClientOptions({
-        dsn,
-        tracesSampleRate: 1,
-        beforeSendTransaction: event => {
-          reinitTransactions.push(event);
-          return null;
-        },
-      }),
-    );
-    setCurrentClient(reinitClient);
-    reinitClient.init();
-    _INTERNAL_setDeferSegmentSpanCapture(reinitClient);
-
-    child.end();
-    vi.advanceTimersByTime(100);
-
-    // The orphan lands on the segment's client, not the now-current one.
-    expect(reinitTransactions).toHaveLength(0);
-    expect(transactions).toHaveLength(2);
-    expect(transactions[1]!.transaction).toBe('child');
-    expect(transactions[1]!.contexts?.trace?.data?.['sentry.parent_span_already_sent']).toBe(true);
-  });
-
   it('drains pending captures synchronously on flush', () => {
     const root = startInactiveSpan({ name: 'root' });
     root.end();

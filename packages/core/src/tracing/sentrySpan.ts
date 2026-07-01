@@ -376,16 +376,15 @@ export class SentrySpan implements Span {
       return;
     }
 
-    const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
-
     // A registered strategy defers the snapshot so children closing just after the segment still land
     // (and late ones can orphan); without one, assemble synchronously from the live tree.
-    const strategy = client && getSegmentSpanCaptureStrategy();
+    const strategy = getSegmentSpanCaptureStrategy();
     if (strategy) {
-      strategy.onSegmentSpanEnded(scope, client, options => this._convertSpanToTransaction(options));
+      strategy.onSegmentSpanEnded(options => this._convertSpanToTransaction(options));
     } else {
       const transactionEvent = this._convertSpanToTransaction();
       if (transactionEvent) {
+        const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
         scope.captureEvent(transactionEvent);
       }
     }
