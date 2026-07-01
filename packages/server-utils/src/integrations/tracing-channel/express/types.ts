@@ -19,6 +19,7 @@ export interface ExpressLayer {
 export interface ExpressRequest {
   method?: string;
   baseUrl?: string;
+  originalUrl?: string;
 }
 export interface ExpressResponse {
   once(event: string, listener: () => void): unknown;
@@ -32,11 +33,25 @@ export interface ExpressResponse {
  *
  * `_sentryCleanup` is ours: a teardown for the `res.on('finish')` listener we
  * register, invoked from `beforeSpanEnd` when the span ends via `next()`.
+ * `_sentryStoredLayer` marks that this invocation pushed a layer path (so the
+ * matching pop on `asyncStart` stays symmetric).
  */
 export interface HandleChannelContext {
   self?: ExpressLayer;
   arguments?: unknown[];
   _sentryCleanup?: () => void;
+  _sentryStoredLayer?: boolean;
+}
+
+/**
+ * The context orchestrion attaches to the `route`/`use` registration channels:
+ * `self` is the router the method was invoked on (its freshly-pushed layer is
+ * the last entry in `stack`) and `arguments` are the registration args (the
+ * first of which is the path pattern).
+ */
+export interface RegistrationChannelContext {
+  self?: { stack?: ExpressLayer[] };
+  arguments?: unknown[];
 }
 
 type IgnoreMatcher = string | RegExp | ((name: string) => boolean);
