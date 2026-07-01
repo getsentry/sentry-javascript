@@ -9,8 +9,7 @@
  */
 
 import type { Attributes } from '@opentelemetry/api';
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
-import { ATTR_HTTP_METHOD } from './semconv';
+import { HTTP_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type * as Hapi from './hapi-types';
 import {
   HapiLayerType,
@@ -63,9 +62,9 @@ export const getRouteMetadata = (
   name: string;
 } => {
   const attributes: Attributes = {
-    [ATTR_HTTP_ROUTE]: route.path,
+    [HTTP_ROUTE]: route.path,
     // eslint-disable-next-line typescript/no-deprecated
-    [ATTR_HTTP_METHOD]: route.method,
+    [HTTP_METHOD]: route.method,
   };
 
   let name;

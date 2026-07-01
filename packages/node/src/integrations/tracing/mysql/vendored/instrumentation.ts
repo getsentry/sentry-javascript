@@ -26,17 +26,16 @@ import {
   withActiveSpan,
   withScope,
 } from '@sentry/core';
-import type * as mysqlTypes from './mysql-types';
 import {
-  ATTR_DB_CONNECTION_STRING,
-  ATTR_DB_NAME,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
-  ATTR_DB_USER,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-  DB_SYSTEM_VALUE_MYSQL,
-} from './semconv';
+  DB_NAME,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_USER,
+  NET_PEER_NAME,
+  NET_PEER_PORT,
+} from '@sentry/conventions/attributes';
+import type * as mysqlTypes from './mysql-types';
+import { ATTR_DB_CONNECTION_STRING, DB_SYSTEM_VALUE_MYSQL } from './semconv';
 import { getConfig, getDbQueryText, getJDBCString, getSpanName } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-mysql';
@@ -205,16 +204,16 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
         /* eslint-disable @sentry/no-deprecated-attributes */
         const attributes: SpanAttributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
+          [DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
           [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, port, database),
-          [ATTR_DB_NAME]: database,
-          [ATTR_DB_USER]: user,
-          [ATTR_DB_STATEMENT]: getDbQueryText(query),
-          [ATTR_NET_PEER_NAME]: host,
+          [DB_NAME]: database,
+          [DB_USER]: user,
+          [DB_STATEMENT]: getDbQueryText(query),
+          [NET_PEER_NAME]: host,
         };
 
         if (!isNaN(portNumber)) {
-          attributes[ATTR_NET_PEER_PORT] = portNumber;
+          attributes[NET_PEER_PORT] = portNumber;
         }
         /* eslint-enable @sentry/no-deprecated-attributes */
 

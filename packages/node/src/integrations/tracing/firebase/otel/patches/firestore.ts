@@ -2,13 +2,13 @@ import * as net from 'node:net';
 import { InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleFile } from '../../../InstrumentationNodeModuleFile';
 import {
-  ATTR_DB_COLLECTION_NAME,
-  ATTR_DB_NAMESPACE,
-  ATTR_DB_OPERATION_NAME,
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_SERVER_ADDRESS,
-  ATTR_SERVER_PORT,
-} from '@opentelemetry/semantic-conventions';
+  DB_COLLECTION_NAME,
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_KIND, startSpan } from '@sentry/core';
 import type { FirebaseInstrumentation } from '../firebaseInstrumentation';
@@ -181,7 +181,7 @@ function startFirestoreSpan<AppModelType, DbModelType extends DocumentData, T>(
       kind: SPAN_KIND.CLIENT,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.firebase.otel.firestore',
-        [ATTR_DB_OPERATION_NAME]: spanName,
+        [DB_OPERATION_NAME]: spanName,
         ...buildAttributes(reference),
       },
     },
@@ -248,9 +248,9 @@ function buildAttributes<AppModelType, DbModelType extends DocumentData>(
   const settings: FirestoreSettings = json.settings || {};
 
   const attributes: SpanAttributes = {
-    [ATTR_DB_COLLECTION_NAME]: reference.path,
-    [ATTR_DB_NAMESPACE]: firestoreApp.name,
-    [ATTR_DB_SYSTEM_NAME]: 'firebase.firestore',
+    [DB_COLLECTION_NAME]: reference.path,
+    [DB_NAMESPACE]: firestoreApp.name,
+    [DB_SYSTEM_NAME]: 'firebase.firestore',
     'firebase.firestore.type': reference.type,
     'firebase.firestore.options.projectId': firestoreOptions.projectId,
     'firebase.firestore.options.appId': firestoreOptions.appId,
@@ -261,10 +261,10 @@ function buildAttributes<AppModelType, DbModelType extends DocumentData>(
   const { address, port } = getPortAndAddress(settings);
 
   if (address) {
-    attributes[ATTR_SERVER_ADDRESS] = address;
+    attributes[SERVER_ADDRESS] = address;
   }
   if (port) {
-    attributes[ATTR_SERVER_PORT] = port;
+    attributes[SERVER_PORT] = port;
   }
 
   return attributes;

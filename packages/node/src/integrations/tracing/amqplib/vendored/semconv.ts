@@ -11,17 +11,8 @@
  *   copies are intentionally the chosen output and we don't want to flag every usage site.
  */
 
-/** The messaging system as identified by the client instrumentation, e.g. `rabbitmq`. */
-export const ATTR_MESSAGING_SYSTEM = 'messaging.system' as const;
-
 /** A string identifying the kind of message consumption. */
 export const ATTR_MESSAGING_OPERATION = 'messaging.operation' as const;
-
-/** Host name of the message broker. */
-export const ATTR_NET_PEER_NAME = 'net.peer.name' as const;
-
-/** Port of the message broker. */
-export const ATTR_NET_PEER_PORT = 'net.peer.port' as const;
 
 /** The message destination name (the exchange for amqplib). */
 export const ATTR_MESSAGING_DESTINATION = 'messaging.destination' as const;
