@@ -20,6 +20,13 @@ export const CHANNELS = {
   // Express v5 delegates routing to the standalone `router` package, where the
   // equivalent method is `Layer.prototype.handleRequest`.
   ROUTER_HANDLE: 'orchestrion:router:handle',
+  // Layer *registration* (`Router.prototype.route`/`.use`), used to capture each
+  // layer's registered path pattern so the matched route can be reconstructed
+  // with its parameters intact (`req.baseUrl` only exposes the resolved prefix).
+  EXPRESS_ROUTE: 'orchestrion:express:route',
+  EXPRESS_USE: 'orchestrion:express:use',
+  ROUTER_ROUTE: 'orchestrion:router:route',
+  ROUTER_USE: 'orchestrion:router:use',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

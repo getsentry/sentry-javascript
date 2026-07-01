@@ -16,6 +16,15 @@ import {
 import { DEBUG_BUILD } from '../../../debug-build';
 import { CHANNELS } from '../../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../../tracing-channel';
+import {
+  getActualMatchedRoute,
+  getConstructedRoute,
+  getLayerPath,
+  getLayerRegisteredPath,
+  popLayerPath,
+  pushLayerPath,
+  setLayerRegisteredPath,
+} from './route';
 import type {
   ExpressIntegrationOptions,
   ExpressLayer,
@@ -23,6 +32,7 @@ import type {
   ExpressRequest,
   ExpressResponse,
   HandleChannelContext,
+  RegistrationChannelContext,
 } from './types';
 
 const ORIGIN = 'auto.http.express';
@@ -32,6 +42,8 @@ const ORIGIN = 'auto.http.express';
 // Express integration so the emitted spans are identical across both code paths.
 const ATTR_EXPRESS_NAME = 'express.name';
 const ATTR_EXPRESS_TYPE = 'express.type';
+
+const NOOP = (): void => {};
 
 let _isInstrumented = false;
 
@@ -44,18 +56,70 @@ export function instrumentExpress(
   }
   _isInstrumented = true;
 
+  // Record each layer's registered path *pattern* as it is registered, so the
+  // matched route can be reconstructed with its parameters intact at request
+  // time. Only the `end` event matters (the layer is on the router's stack by
+  // then); the others are required by the subscriber type, so no-op them.
+  for (const channelName of [
+    CHANNELS.EXPRESS_ROUTE,
+    CHANNELS.EXPRESS_USE,
+    CHANNELS.ROUTER_ROUTE,
+    CHANNELS.ROUTER_USE,
+  ]) {
+    tracingChannel<RegistrationChannelContext>(channelName).subscribe({
+      start: NOOP,
+      asyncStart: NOOP,
+      asyncEnd: NOOP,
+      error: NOOP,
+      end: captureRegisteredLayerPath,
+    });
+  }
+
   for (const channelName of [CHANNELS.EXPRESS_HANDLE, CHANNELS.ROUTER_HANDLE]) {
     DEBUG_BUILD && debug.log(`[orchestrion:express] subscribing to channel "${channelName}"`);
 
-    bindTracingChannelToSpan(
-      tracingChannel<HandleChannelContext>(channelName),
-      data => getSpanForLayer(data, options),
-      {
-        beforeSpanEnd(_span, data) {
-          data._sentryCleanup?.();
-        },
+    const channel = tracingChannel<HandleChannelContext>(channelName);
+
+    bindTracingChannelToSpan(channel, data => getSpanForLayer(data, options), {
+      beforeSpanEnd(_span, data) {
+        data._sentryCleanup?.();
       },
-    );
+    });
+
+    // Pop the layer path when the layer hands off via `next`. `asyncStart` fires
+    // when `next` is called and *before* the downstream layer runs, so the
+    // per-request path chain reflects only the current chain when each layer
+    // reconstructs its route. Only `asyncStart` is relevant here.
+    channel.subscribe({
+      start: NOOP,
+      asyncEnd: NOOP,
+      end: NOOP,
+      error: NOOP,
+      asyncStart: popLayerPathForLayer,
+    });
+  }
+}
+
+/** Record the freshly-registered layer's path pattern from a `route`/`use` call. */
+function captureRegisteredLayerPath(data: RegistrationChannelContext): void {
+  const stack = data.self?.stack;
+  if (!Array.isArray(stack)) {
+    return;
+  }
+  const layer = stack[stack.length - 1];
+  if (layer) {
+    setLayerRegisteredPath(layer, getLayerPath(data.arguments ?? []));
+  }
+}
+
+/** Pop the path a layer pushed once it hands control onward via `next`. */
+function popLayerPathForLayer(data: HandleChannelContext): void {
+  if (!data._sentryStoredLayer) {
+    return;
+  }
+  const req = data.arguments?.[0] as ExpressRequest | undefined;
+  if (req) {
+    popLayerPath(req);
   }
 }
 
@@ -98,11 +162,26 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   }
 
   const type = getLayerType(layer);
-  const route = type === 'request_handler' ? getRequestHandlerRoute(layer, req) : undefined;
+
+  // Push this layer's registered path onto the request's chain so a
+  // `request_handler` can reconstruct the full route with parameters intact
+  // (`req.baseUrl` only exposes the *resolved* mount prefix). The matching pop
+  // happens on `asyncStart` when the layer hands off via `next`.
+  const registeredPath = getLayerRegisteredPath(layer);
+  if (registeredPath != null) {
+    pushLayerPath(req, registeredPath);
+    data._sentryStoredLayer = true;
+  }
+
+  // `constructedRoute` (the full registered pattern) names the span/transaction;
+  // `matchedRoute` (validated against the request URL) is the `http.route`.
+  const constructedRoute = type === 'request_handler' ? getConstructedRoute(req) : undefined;
+  const matchedRoute =
+    type === 'request_handler' && constructedRoute != null ? getActualMatchedRoute(req, constructedRoute) : undefined;
 
   const name =
     type === 'request_handler'
-      ? (route ?? 'request handler')
+      ? constructedRoute || 'request handler'
       : type === 'router'
         ? (layer.path ?? '/')
         : (layer.name ?? '<anonymous>');
@@ -110,15 +189,15 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   // Propagate the route to the root `http.server` span *before* the ignore
   // check, so the transaction is still named even when the layer's own span is
   // ignored — matches the OTel Express integration's `onRouteResolved` timing.
-  if (type === 'request_handler' && route) {
-    setHttpServerSpanRoute(route);
+  if (matchedRoute) {
+    setHttpServerSpanRoute(matchedRoute);
   }
 
-  if (type === 'request_handler' && route) {
+  if (type === 'request_handler' && constructedRoute) {
     const isolationScope = getIsolationScope();
     if (isolationScope !== getDefaultIsolationScope()) {
       const method = typeof req.method === 'string' ? req.method.toUpperCase() : 'GET';
-      isolationScope.setTransactionName(`${method} ${route}`);
+      isolationScope.setTransactionName(`${method} ${constructedRoute}`);
     } else {
       DEBUG_BUILD &&
         debug.warn(
@@ -139,7 +218,7 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.express`,
       [ATTR_EXPRESS_NAME]: name,
       [ATTR_EXPRESS_TYPE]: type,
-      ...(route ? { [HTTP_ROUTE]: route } : {}),
+      ...(matchedRoute ? { [HTTP_ROUTE]: matchedRoute } : {}),
     },
   });
 
@@ -167,37 +246,6 @@ function getLayerType(layer: ExpressLayer): ExpressLayerType {
     return 'request_handler';
   }
   return 'middleware';
-}
-
-/**
- * The full matched route for a route-dispatch layer, e.g. `/users/:id`. The
- * layer's `route.path` holds the registered path and `req.baseUrl` the mount
- * prefix of the enclosing router, so their concatenation is the route.
- *
- * `route.path` isn't always a string: RegExp routes (`app.get(/\/x/, …)`) and
- * arrays of paths (`app.get(['/a', /b/], …)`) are stringified the same way as
- * `@sentry/core`'s Express integration — RegExps via `String()`, arrays joined
- * with `,` — so the transaction name matches (e.g. `GET /\/test\/regex/`).
- */
-function getRequestHandlerRoute(layer: ExpressLayer, req: ExpressRequest): string | undefined {
-  const rawPath = layer.route?.path;
-  const routePath = Array.isArray(rawPath)
-    ? rawPath.map(segment => extractRoutePathSegment(segment) ?? '').join(',')
-    : extractRoutePathSegment(rawPath);
-  if (routePath == null) {
-    return undefined;
-  }
-  const baseUrl = typeof req.baseUrl === 'string' ? req.baseUrl : '';
-  return `${baseUrl}${routePath}`;
-}
-
-/** Stringify a single route path segment (string as-is, RegExp/number via `String()`). */
-function extractRoutePathSegment(segment: unknown): string | undefined {
-  return typeof segment === 'string'
-    ? segment
-    : segment instanceof RegExp || typeof segment === 'number'
-      ? String(segment)
-      : undefined;
 }
 
 /**

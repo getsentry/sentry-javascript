@@ -61,6 +61,36 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
     module: { name: 'router', versionRange: '>=2.0.0 <3', filePath: 'lib/layer.js' },
     functionQuery: { expressionName: 'handleRequest', kind: 'Callback' },
   },
+  // Layer *registration* methods. `Router.prototype.route`/`.use` are called
+  // once per registered route/middleware (including internally by `app.get`/
+  // `app.use`), so subscribing here lets us record each layer's registered path
+  // *pattern* — which the handler path (`req.baseUrl`) can't recover for
+  // parameterized mounts. `Sync`: these return synchronously and, unlike a
+  // handler, `use`'s trailing function argument is a registration payload, not a
+  // callback — so `Callback` would misclassify it and never fire `end`.
+  //
+  // Express v4 ships its own router in `express/lib/router/index.js`.
+  {
+    channelName: 'route',
+    module: { name: 'express', versionRange: '>=4.0.0 <5', filePath: 'lib/router/index.js' },
+    functionQuery: { expressionName: 'route', kind: 'Sync' },
+  },
+  {
+    channelName: 'use',
+    module: { name: 'express', versionRange: '>=4.0.0 <5', filePath: 'lib/router/index.js' },
+    functionQuery: { expressionName: 'use', kind: 'Sync' },
+  },
+  // Express v5 delegates routing to the standalone `router` package.
+  {
+    channelName: 'route',
+    module: { name: 'router', versionRange: '>=2.0.0 <3', filePath: 'index.js' },
+    functionQuery: { expressionName: 'route', kind: 'Sync' },
+  },
+  {
+    channelName: 'use',
+    module: { name: 'router', versionRange: '>=2.0.0 <3', filePath: 'index.js' },
+    functionQuery: { expressionName: 'use', kind: 'Sync' },
+  },
 ];
 
 /**
