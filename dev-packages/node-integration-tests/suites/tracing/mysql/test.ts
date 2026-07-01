@@ -191,7 +191,6 @@ describe('mysql auto instrumentation', () => {
 
       expect(dbSpans.length).toBe(2);
 
-      const isNode18 = NODE_VERSION.major === 18;
 
       const COMMON_ATTRIBUTES = {
         'db.connection_string': {
@@ -258,9 +257,6 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: 'task',
         },
-        ...(isNode18 && {
-          'sentry.status.message': { type: 'string', value: expect.stringMatching(/^connect ECONNREFUSED/) },
-        }),
       };
 
       const COMMON_SPAN_PROPS = {
