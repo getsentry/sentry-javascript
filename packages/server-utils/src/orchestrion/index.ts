@@ -5,6 +5,7 @@ import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
 import { postgresChannelIntegration } from '../integrations/tracing-channel/postgres';
 import { vercelAiChannelIntegration } from '../integrations/tracing-channel/vercel-ai';
+import { expressChannelIntegration } from '../integrations/tracing-channel/express';
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 export {
@@ -15,6 +16,7 @@ export {
   openaiChannelIntegration,
   postgresChannelIntegration,
   vercelAiChannelIntegration,
+  expressChannelIntegration,
 };
 export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/tracing-channel/ioredis';
 
@@ -38,4 +40,5 @@ export const channelIntegrations = {
   openaiIntegration: openaiChannelIntegration,
   anthropicIntegration: anthropicChannelIntegration,
   vercelAiIntegration: vercelAiChannelIntegration,
+  expressIntegration: expressChannelIntegration,
 } as const;

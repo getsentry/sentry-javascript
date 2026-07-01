@@ -1,6 +1,5 @@
 import {
   channelIntegrations,
-  ioredisChannelIntegration,
   detectOrchestrionSetup,
 } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
