@@ -11,6 +11,19 @@ import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
  * `channelName` here is the unprefixed suffix; the actual diagnostics_channel
  * name is `orchestrion:${module.name}:${channelName}` (see `channels.ts`).
  */
+/**
+ * `ai` ships a single bundled entry per module system, so each instrumented
+ * function needs one config entry per file (the app loads whichever matches its
+ * module system). This expands a single target into both.
+ */
+function vercelAiV6Entries(channelName: string, functionName: string, kind: 'Async' | 'Sync'): InstrumentationConfig[] {
+  return ['dist/index.js', 'dist/index.mjs'].map(filePath => ({
+    channelName,
+    module: { name: 'ai', versionRange: '>=6.0.0 <7.0.0', filePath },
+    functionQuery: { functionName, kind },
+  }));
+}
+
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   {
     channelName: 'query',
@@ -38,6 +51,19 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
     module: { name: 'lru-memoizer', versionRange: '>=2.1.0 <4', filePath: 'lib/async.js' },
     functionQuery: { functionName: 'memoizedFunction', kind: 'Callback' },
   },
+  // Vercel AI v6: mirror the v7 native `ai:telemetry` channel by injecting
+  // channels into the top-level entry points. `resolveLanguageModel` is wrapped
+  // not to span it, but so the subscriber can monkey-patch `doGenerate`/
+  // `doStream` on the returned model (the only way to span the model call,
+  // which is an inline call with no injectable definition in `ai`).
+  // `streamText` returns its result synchronously (streaming is lazy), so it's
+  // `Sync`; the subscriber binds the span via `bindTracingChannelToSpan`, which
+  // ends it when the (synchronous) call returns.
+  ...vercelAiV6Entries('generateText', 'generateText', 'Async'),
+  ...vercelAiV6Entries('streamText', 'streamText', 'Sync'),
+  ...vercelAiV6Entries('embed', 'embed', 'Async'),
+  ...vercelAiV6Entries('executeToolCall', 'executeToolCall', 'Async'),
+  ...vercelAiV6Entries('resolveLanguageModel', 'resolveLanguageModel', 'Sync'),
 ];
 
 /**
