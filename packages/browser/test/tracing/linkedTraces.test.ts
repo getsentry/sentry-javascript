@@ -1,6 +1,5 @@
 import type { PropagationContext, Span } from '@sentry/core/browser';
 import {
-  addChildSpanToSpan,
   debug,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SentrySpan,
@@ -22,51 +21,27 @@ import {
 } from '../../src/tracing/linkedTraces';
 
 describe('linkTraces', () => {
-  describe('adds a previous trace span link on span start', () => {
+  describe('adds a previous trace span link on root span creation', () => {
     // @ts-expect-error - mock contains only necessary API
     const client = new BrowserClient({ transport: () => {}, integrations: [], stackParser: () => [] });
 
-    let spanStartCb: (span: Span) => void;
+    let segmentSpanCreatedCb: (span: Span) => void;
 
     // @ts-expect-error - this is fine for testing
     const clientOnSpy = vi.spyOn(client, 'on').mockImplementation((event, cb) => {
       // @ts-expect-error - this is fine for testing
-      if (event === 'spanStart') {
-        spanStartCb = cb;
+      if (event === 'segmentSpanCreated') {
+        segmentSpanCreatedCb = cb;
       }
     });
 
-    it('registers a spanStart handler', () => {
-      expect(clientOnSpy).toHaveBeenCalledWith('spanStart', expect.any(Function));
+    it('registers a segmentSpanCreated handler', () => {
+      expect(clientOnSpy).toHaveBeenCalledWith('segmentSpanCreated', expect.any(Function));
       expect(clientOnSpy).toHaveBeenCalledOnce();
     });
 
     beforeEach(() => {
       linkTraces(client, { linkPreviousTrace: 'in-memory', consistentTraceSampling: false });
-    });
-
-    it("doesn't add a link if the passed span is not the root span", () => {
-      const rootSpan = new SentrySpan({
-        name: 'test',
-        parentSpanId: undefined,
-        sampled: true,
-        spanId: '123',
-        traceId: '456',
-      });
-
-      const childSpan = new SentrySpan({
-        name: 'test',
-        parentSpanId: '123',
-        spanId: '456',
-        traceId: '789',
-        sampled: true,
-      });
-
-      addChildSpanToSpan(rootSpan, childSpan);
-
-      spanStartCb(childSpan);
-
-      expect(spanToJSON(childSpan).links).toBeUndefined();
     });
 
     it('adds a link from the first trace root span to the second trace root span', () => {
@@ -78,7 +53,7 @@ describe('linkTraces', () => {
         traceId: '456',
       });
 
-      spanStartCb(rootSpanTrace1);
+      segmentSpanCreatedCb(rootSpanTrace1);
 
       expect(spanToJSON(rootSpanTrace1).links).toBeUndefined();
 
@@ -90,7 +65,7 @@ describe('linkTraces', () => {
         traceId: 'def',
       });
 
-      spanStartCb(rootSpanTrace2);
+      segmentSpanCreatedCb(rootSpanTrace2);
 
       expect(spanToJSON(rootSpanTrace2).links).toEqual([
         {
@@ -113,7 +88,7 @@ describe('linkTraces', () => {
         traceId: 'def',
       });
 
-      spanStartCb(rootSpanTrace1);
+      segmentSpanCreatedCb(rootSpanTrace1);
 
       expect(spanToJSON(rootSpanTrace1).links).toBeUndefined();
 
@@ -125,7 +100,7 @@ describe('linkTraces', () => {
         traceId: 'def',
       });
 
-      spanStartCb(rootSpan2Trace);
+      segmentSpanCreatedCb(rootSpan2Trace);
 
       expect(spanToJSON(rootSpan2Trace).links).toBeUndefined();
     });
@@ -142,7 +117,7 @@ describe('linkTraces', () => {
     });
 
     it('registers a beforeSampling handler', () => {
-      expect(clientOnSpy).toHaveBeenCalledWith('spanStart', expect.any(Function));
+      expect(clientOnSpy).toHaveBeenCalledWith('segmentSpanCreated', expect.any(Function));
       expect(clientOnSpy).toHaveBeenCalledWith('beforeSampling', expect.any(Function));
       expect(clientOnSpy).toHaveBeenCalledTimes(2);
     });
