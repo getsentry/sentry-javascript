@@ -2,6 +2,7 @@ import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
 import type { Client } from './client';
 import type { Scope } from './scope';
+import type { SegmentSpanCaptureStrategy } from './tracing/segmentSpanCaptureStrategy';
 import type { SerializedLog } from './types/log';
 import type { SerializedMetric } from './types/metric';
 import { SDK_VERSION } from './utils/version';
@@ -38,6 +39,9 @@ export interface SentryCarrier {
    * This is used to store metrics that are sent to Sentry.
    */
   clientToMetricBufferMap?: WeakMap<Client, Array<SerializedMetric>>;
+
+  /** Strategy for assembling segment spans into transactions; set by SDKs that defer capture. */
+  segmentSpanCaptureStrategy?: SegmentSpanCaptureStrategy;
 
   /** Overwrites TextEncoder used in `@sentry/core`, need for `react-native@0.73` and older */
   encodePolyfill?: (input: string) => Uint8Array;

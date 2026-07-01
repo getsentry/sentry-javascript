@@ -2,7 +2,7 @@ import { describe, expect, it, test, vi } from 'vitest';
 import { getCurrentScope } from '../../../src/currentScopes';
 import { setCurrentClient } from '../../../src/sdk';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../../../src/semanticAttributes';
-import { _INTERNAL_setDeferSegmentSpanCapture, SentrySpan } from '../../../src/tracing/sentrySpan';
+import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import { markSpanForOtelSourceInference, spanSourceWasExplicitlySet } from '../../../src/tracing/utils';
 import type { SpanJSON } from '../../../src/types/span';
@@ -129,18 +129,6 @@ describe('SentrySpan', () => {
       expect(serialized).toHaveProperty('parent_span_id', 'b');
       expect(serialized).toHaveProperty('span_id', 'd');
       expect(serialized).toHaveProperty('trace_id', 'c');
-    });
-  });
-
-  describe('_INTERNAL_setDeferSegmentSpanCapture', () => {
-    it('registers the flush listener once and is idempotent on repeated enable', () => {
-      const client = new TestClient(getDefaultTestClientOptions());
-      const onSpy = vi.spyOn(client, 'on');
-
-      _INTERNAL_setDeferSegmentSpanCapture(client);
-      _INTERNAL_setDeferSegmentSpanCapture(client);
-
-      expect(onSpy.mock.calls.filter(([hook]) => hook === 'flush')).toHaveLength(1);
     });
   });
 

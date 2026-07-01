@@ -1,5 +1,4 @@
 /* eslint-disable max-lines */
-import type { Client } from '../client';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { createSpanEnvelope } from '../envelope';
@@ -27,9 +26,7 @@ import type {
 } from '../types/span';
 import type { SpanStatus } from '../types/spanStatus';
 import type { TimedEvent } from '../types/timedEvent';
-import { debounce } from '../utils/debounce';
 import { debug } from '../utils/debug-logger';
-import { isBrowser } from '../utils/isBrowser';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
   addStatusMessageAttribute,
@@ -49,63 +46,11 @@ import { timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
+import { getSegmentSpanCaptureStrategy, type SegmentSpanCaptureConvertOptions } from './segmentSpanCaptureStrategy';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { getCapturedScopesOnSpan, markSpanSourceAsExplicit, spanShouldInferOtelSource } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
-
-// Clients whose segment-span transaction capture should be deferred (rather than run synchronously on
-// span end), mapped to the function that queues a deferred capture. Tracked per client rather than as
-// a process-wide flag so pending captures and their timer cannot leak across `Sentry.init()` calls —
-// a client that never opts in is simply absent. Enabled per client by SDKs that assemble transactions
-// from the live span tree on root-span end (e.g. the Node SDK), which would otherwise drop children
-// that close after it. Every other setup keeps its synchronous capture.
-const DEFERRED_SEGMENT_SPAN_CAPTURES = new WeakMap<Client, (capture: () => void) => void>();
-
-// Spans already included in a captured transaction. Used so a child that ends after its root segment
-// was captured can be emitted as its own orphan transaction (see `_onSpanEnded`) without any span ever
-// being sent in more than one transaction.
-const CAPTURED_SPANS = new WeakSet<Span>();
-
-/**
- * Defer a client's segment-span transaction capture. Set once by the SDK during setup (e.g. the Node
- * SDK); see {@link DEFERRED_SEGMENT_SPAN_CAPTURES}. Idempotent, and deferral stays on for the client's
- * lifetime (there is no opt-out: deferral is a set-once-at-setup property, never toggled mid-session).
- *
- * The transaction is otherwise assembled from the live span tree the instant a root span ends, which
- * drops children whose async instrumentation closes them later (a diagnostics-channel `asyncEnd`
- * callback in the same tick, or engine spans replayed on a later tick). A debounced timer (the same one
- * the OpenTelemetry span exporter uses) delays the snapshot just enough for those later span ends to
- * land first. Pending captures are drained synchronously on the client's `flush` hook so
- * `Sentry.flush()` / `client.close()` cannot resolve before they run.
- */
-export function _INTERNAL_setDeferSegmentSpanCapture(client: Client): void {
-  if (DEFERRED_SEGMENT_SPAN_CAPTURES.has(client)) {
-    return;
-  }
-
-  const pendingCaptures = new Set<() => void>();
-  const debouncedDrain = debounce(
-    () => {
-      const captures = [...pendingCaptures];
-      pendingCaptures.clear();
-      for (const capture of captures) {
-        capture();
-      }
-    },
-    1,
-    { maxWait: 100 },
-  );
-
-  client.on('flush', () => {
-    debouncedDrain.flush();
-  });
-
-  DEFERRED_SEGMENT_SPAN_CAPTURES.set(client, capture => {
-    pendingCaptures.add(capture);
-    debouncedDrain();
-  });
-}
 
 /**
  * Span contains all data about a span
@@ -402,24 +347,6 @@ export class SentrySpan implements Span {
     const rootSpan = getRootSpan(this);
     const isSegmentSpan = this._isStandaloneSpan || this === rootSpan;
 
-    // A child span that ends after its root segment's transaction was already captured can no longer be
-    // part of it. Mirror the OpenTelemetry span exporter, which emits such a late child as its own
-    // (orphan) transaction in the same trace instead of dropping it. Only for clients that defer the
-    // segment capture (the SentryTracerProvider, the no-exporter native-assembly path); other setups
-    // keep the synchronous drop. `CAPTURED_SPANS` is only populated during a non-streaming capture, so
-    // this stays inert under span streaming (where late children stream individually).
-    const isOrphanSegment =
-      !isSegmentSpan &&
-      !!client &&
-      !!DEFERRED_SEGMENT_SPAN_CAPTURES.get(client) &&
-      !isBrowser() &&
-      !CAPTURED_SPANS.has(this) &&
-      CAPTURED_SPANS.has(rootSpan);
-
-    if (!isSegmentSpan && !isOrphanSegment) {
-      return;
-    }
-
     // if this is a standalone span, we send it immediately
     if (this._isStandaloneSpan) {
       if (this._sampled) {
@@ -432,7 +359,20 @@ export class SentrySpan implements Span {
         }
       }
       return;
-    } else if (client && hasSpanStreamingEnabled(client)) {
+    }
+
+    // Non-segment children aren't captured on their own. A registered strategy may re-emit a late child
+    // as its own orphan transaction; without one, it's dropped.
+    if (!isSegmentSpan) {
+      if (client) {
+        getSegmentSpanCaptureStrategy()?.onChildSpanEnded(this, rootSpan, client, options =>
+          this._convertSpanToTransaction(options),
+        );
+      }
+      return;
+    }
+
+    if (client && hasSpanStreamingEnabled(client)) {
       // TODO (spans): Remove standalone span custom logic in favor of sending simple v2 web vital spans
       client.emit('afterSegmentSpanEnd', this);
       return;
@@ -440,24 +380,11 @@ export class SentrySpan implements Span {
 
     const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
 
-    // The transaction is assembled synchronously from the live span tree the instant the root span
-    // ends, dropping children whose async instrumentation closes them after it (a diagnostics-channel
-    // `asyncEnd` callback in the same tick, or engine spans replayed on a later tick). Clients that
-    // opted in defer the snapshot via a debounced timer so those later span ends land first; every
-    // other setup keeps its synchronous capture. Never deferred in the browser, where there is no such
-    // pattern and a deferred capture could be lost on page unload.
-    const deferCapture = client && DEFERRED_SEGMENT_SPAN_CAPTURES.get(client);
-    if (client && deferCapture && !isBrowser()) {
-      deferCapture(() => {
-        const transactionEvent = this._convertSpanToTransaction({ orphanedFromSentParent: isOrphanSegment });
-        if (transactionEvent) {
-          // Capture through the client resolved when the span ended, not the scope: a capture that
-          // fires on a later tick must reach the client active at span end and never whatever client
-          // is current when the timer fires (e.g. a different client after re-init), and the scope's
-          // client reference can be reassigned. Only the snapshot is deferred, so late children land.
-          client.captureEvent(transactionEvent, undefined, scope);
-        }
-      });
+    // A registered strategy defers the snapshot so children closing just after the segment still land
+    // (and late ones can orphan); without one, assemble synchronously from the live tree.
+    const strategy = client && getSegmentSpanCaptureStrategy();
+    if (strategy) {
+      strategy.onSegmentSpanEnded(scope, client, options => this._convertSpanToTransaction(options));
     } else {
       const transactionEvent = this._convertSpanToTransaction();
       if (transactionEvent) {
@@ -469,7 +396,7 @@ export class SentrySpan implements Span {
   /**
    * Finish the transaction & prepare the event to send to Sentry.
    */
-  private _convertSpanToTransaction(options: { orphanedFromSentParent?: boolean } = {}): TransactionEvent | undefined {
+  private _convertSpanToTransaction(options: SegmentSpanCaptureConvertOptions = {}): TransactionEvent | undefined {
     // We can only convert finished spans
     if (!isFullFinishedSpan(spanToJSON(this))) {
       return undefined;
@@ -488,20 +415,19 @@ export class SentrySpan implements Span {
       return undefined;
     }
 
-    // Skip the transaction span itself, standalone spans, and spans already sent in another transaction.
-    // Marking everything we send as captured lets a child that ends later be emitted as its own orphan
-    // transaction (see `_onSpanEnded`) instead of being dropped or sent twice.
-    CAPTURED_SPANS.add(this);
+    // Skip the span itself, standalone spans, and (when a strategy tracks it) spans already sent. The
+    // synchronous default passes no hooks, so this bookkeeping stays out of SDKs that don't defer.
+    options.onSpanCaptured?.(this);
     const spans: SpanJSON[] = [];
     for (const descendant of getSpanDescendants(this)) {
-      if (descendant === this || isStandaloneSpan(descendant) || CAPTURED_SPANS.has(descendant)) {
+      if (descendant === this || isStandaloneSpan(descendant) || options.isSpanAlreadyCaptured?.(descendant)) {
         continue;
       }
       const spanJSON = spanToJSON(descendant);
       if (!isFullFinishedSpan(spanJSON)) {
         continue;
       }
-      CAPTURED_SPANS.add(descendant);
+      options.onSpanCaptured?.(descendant);
       spans.push(spanJSON);
     }
 
@@ -546,12 +472,6 @@ export class SentrySpan implements Span {
         },
       }),
     };
-
-    // Mirror the OpenTelemetry span exporter: tag a transaction whose parent span was already sent (an
-    // orphan emitted from `_onSpanEnded`) so it can be distinguished downstream.
-    if (options.orphanedFromSentParent && transaction.contexts?.trace?.data) {
-      transaction.contexts.trace.data['sentry.parent_span_already_sent'] = true;
-    }
 
     const measurements = timedEventsToMeasurements(this._events);
     const hasMeasurements = measurements && Object.keys(measurements).length;

@@ -10,7 +10,8 @@ export {
   spanIsTracerProviderSpan,
 } from './utils';
 export { startIdleSpan, TRACING_DEFAULTS } from './idleSpan';
-export { SentrySpan, _INTERNAL_setDeferSegmentSpanCapture } from './sentrySpan';
+export { SentrySpan } from './sentrySpan';
+export { _INTERNAL_setDeferSegmentSpanCapture } from './deferSegmentSpanCapture';
 export { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 export { setHttpStatus, getSpanStatusFromHttpCode } from './spanstatus';
 export { SPAN_STATUS_ERROR, SPAN_STATUS_OK, SPAN_STATUS_UNSET } from './spanstatus';
