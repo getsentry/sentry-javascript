@@ -299,7 +299,7 @@ export interface OpenTelemetrySdkTraceBaseSpan extends Span {
  * Sadly, due to circular dependency checks we cannot actually import the Span class here and check for instanceof.
  * :( So instead we approximate this by checking if it has the `getSpanJSON` method.
  */
-function spanIsSentrySpan(span: Span): span is SentrySpan {
+export function spanIsSentrySpan(span: Span): span is SentrySpan {
   return typeof (span as SentrySpan).getSpanJSON === 'function';
 }
 

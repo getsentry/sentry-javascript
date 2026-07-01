@@ -4,6 +4,10 @@ export {
   getCapturedScopesOnSpan,
   markSpanForOtelSourceInference,
   spanShouldInferOtelSource,
+  markSpanSourceAsExplicit,
+  spanSourceWasExplicitlySet,
+  markSpanAsTracerProviderSpan,
+  spanIsTracerProviderSpan,
 } from './utils';
 export { startIdleSpan, TRACING_DEFAULTS } from './idleSpan';
 export { SentrySpan } from './sentrySpan';
@@ -13,12 +17,14 @@ export { SPAN_STATUS_ERROR, SPAN_STATUS_OK, SPAN_STATUS_UNSET } from './spanstat
 export {
   startSpan,
   startInactiveSpan,
+  _INTERNAL_startInactiveSpan,
   startSpanManual,
   continueTrace,
   withActiveSpan,
   suppressTracing,
   isTracingSuppressed,
   startNewTrace,
+  spanIsIgnored,
   SUPPRESS_TRACING_KEY,
 } from './trace';
 export { bindScopeToEmitter } from './bindScopeToEmitter';

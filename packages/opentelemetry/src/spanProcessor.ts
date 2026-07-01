@@ -1,7 +1,7 @@
 import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import type { ReadableSpan, Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
-import type { Client, SpanAttributes, StreamedSpanJSON } from '@sentry/core';
+import type { Client } from '@sentry/core';
 import {
   addChildSpanToSpan,
   getClient,
@@ -10,17 +10,12 @@ import {
   hasSpanStreamingEnabled,
   logSpanEnd,
   logSpanStart,
-  safeSetSpanJSONAttributes,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
-  SPAN_KIND,
-  spanKindToName,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { SentrySpanExporter } from './spanExporter';
+import { backfillStreamedSpanDataFromOtel } from './utils/backfillStreamedSpanData';
 import { getScopesFromContext } from './utils/contextData';
-import { inferSpanData } from './utils/parseSpanDescription';
 import { setIsSetup } from './utils/setupCheck';
 /**
  * Converts OpenTelemetry Spans to Sentry Spans and sends them to Sentry via
@@ -109,34 +104,5 @@ export class SentrySpanProcessor implements SpanProcessorInterface {
     } else {
       this._exporter.export(span);
     }
-  }
-}
-
-/**
- * Backfill op, source, name and data on a streamed span JSON from OTel semantic conventions.
- * Mirrors the inference the {@link SentrySpanExporter} applies to non-streamed spans via `getSpanData`.
- * Explicitly set attributes are preserved via `safeSetSpanJSONAttributes`.
- */
-function backfillStreamedSpanDataFromOtel(spanJSON: StreamedSpanJSON, hint?: { spanKind?: number }): void {
-  const attributes = spanJSON.attributes;
-  if (!attributes) {
-    return;
-  }
-
-  const kind = hint?.spanKind ?? SPAN_KIND.INTERNAL;
-  const { op, description, source, data } = inferSpanData(spanJSON.name, attributes as unknown as SpanAttributes, kind);
-
-  spanJSON.name = description;
-
-  safeSetSpanJSONAttributes(spanJSON, {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-    ...data,
-  });
-
-  if (kind !== SPAN_KIND.INTERNAL) {
-    safeSetSpanJSONAttributes(spanJSON, {
-      'otel.kind': spanKindToName(kind),
-    });
   }
 }

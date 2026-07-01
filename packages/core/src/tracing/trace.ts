@@ -82,7 +82,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
       // Ignored root spans still need to be set on scope so that `getActiveSpan()` returns them
       // and descendants are also non-recording. Ignored child spans don't need this because
       // the parent span is already on scope.
-      if (!_isIgnoredSpan(activeSpan) || !parentSpan) {
+      if (!spanIsIgnored(activeSpan) || !parentSpan) {
         _setSpanForScope(scope, activeSpan);
       }
 
@@ -144,7 +144,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
       // We don't set ignored child spans onto the scope because there likely is an active,
       // unignored span on the scope already.
-      if (!_isIgnoredSpan(activeSpan) || !parentSpan) {
+      if (!spanIsIgnored(activeSpan) || !parentSpan) {
         _setSpanForScope(scope, activeSpan);
       }
 
@@ -181,6 +181,20 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
     return acs.startInactiveSpan(options);
   }
 
+  return _startInactiveSpanImpl(options);
+}
+
+/**
+ * Internal version of startInactiveSpan that bypasses the ACS check.
+ * Used by SentryTracerProvider to create spans without triggering recursion
+ * through ACS overrides.
+ * @hidden
+ */
+export function _INTERNAL_startInactiveSpan(options: StartSpanOptions): Span {
+  return _startInactiveSpanImpl(options);
+}
+
+function _startInactiveSpanImpl(options: StartSpanOptions): Span {
   const spanArguments = parseSentrySpanArguments(options);
   const { forceTransaction, parentSpan: customParentSpan } = options;
 
@@ -651,6 +665,11 @@ function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: Se
   );
 }
 
-function _isIgnoredSpan(span: Span): span is SentryNonRecordingSpan {
+/**
+ * Whether a span is an ignored (`ignoreSpans`) placeholder. Such a span must not be set as the active
+ * span when it has a parent, so its children attach to that parent and get re-parented rather than
+ * dropped with it. Shared with the OTel-based provider so both span pipelines apply the same rule.
+ */
+export function spanIsIgnored(span: Span): span is SentryNonRecordingSpan {
   return spanIsNonRecordingSpan(span) && span.dropReason === 'ignored';
 }

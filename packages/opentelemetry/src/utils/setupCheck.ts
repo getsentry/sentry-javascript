@@ -1,4 +1,9 @@
-type OpenTelemetryElement = 'SentrySpanProcessor' | 'SentryContextManager' | 'SentryPropagator' | 'SentrySampler';
+type OpenTelemetryElement =
+  | 'SentrySpanProcessor'
+  | 'SentryContextManager'
+  | 'SentryPropagator'
+  | 'SentrySampler'
+  | 'SentryTracerProvider';
 
 const setupElements = new Set<OpenTelemetryElement>();
 
