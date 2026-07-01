@@ -4,6 +4,7 @@
  * @module
  */
 
+export { mysql2Integration } from './mysql2';
 export {
   IOREDIS_DC_CHANNEL_COMMAND,
   IOREDIS_DC_CHANNEL_CONNECT,
