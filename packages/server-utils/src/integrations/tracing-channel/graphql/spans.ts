@@ -247,21 +247,22 @@ export function finalizeExecuteSpan(span: Span, result: unknown, config: Graphql
   const existingOperations = rootSpanAttributes[SENTRY_GRAPHQL_OPERATION] || [];
   const newOperation = operationName ? `${operationType} ${operationName}` : `${operationType}`;
 
-  if (Array.isArray(existingOperations)) {
-    (existingOperations as string[]).push(newOperation);
-    rootSpan.setAttribute(SENTRY_GRAPHQL_OPERATION, existingOperations);
-  } else if (typeof existingOperations === 'string') {
-    rootSpan.setAttribute(SENTRY_GRAPHQL_OPERATION, [existingOperations, newOperation]);
-  } else {
-    rootSpan.setAttribute(SENTRY_GRAPHQL_OPERATION, newOperation);
-  }
+  // Accumulate every operation seen on the root span, then derive BOTH the attribute and the renamed
+  // suffix from the same value — otherwise a pre-existing string attribute would be merged into an
+  // array but the name would still be formatted from the stale string, omitting the current operation.
+  const operations: SpanAttributeValue = Array.isArray(existingOperations)
+    ? [...(existingOperations as string[]), newOperation]
+    : typeof existingOperations === 'string'
+      ? [existingOperations, newOperation]
+      : newOperation;
+  rootSpan.setAttribute(SENTRY_GRAPHQL_OPERATION, operations);
 
   if (!spanToJSON(rootSpan).data['original-description']) {
     rootSpan.setAttribute('original-description', spanToJSON(rootSpan).description);
   }
   // Important for e.g. @sentry/aws-serverless because this would otherwise overwrite the name again.
   rootSpan.updateName(
-    `${spanToJSON(rootSpan).data['original-description']} (${getGraphqlOperationNamesFromAttribute(existingOperations)})`,
+    `${spanToJSON(rootSpan).data['original-description']} (${getGraphqlOperationNamesFromAttribute(operations)})`,
   );
 }
 

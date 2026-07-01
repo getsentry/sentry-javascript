@@ -257,6 +257,22 @@ describe('graphqlChannelIntegration', () => {
     expect(spanToJSON(rootSpan!).description).toBe('GET /graphql (query GetHello)');
   });
 
+  it('includes the current operation when the root span already has a string operation attribute', async () => {
+    const schema = buildSchema();
+    const document = tracedParse('query GetHello { hello }');
+
+    let rootSpan: Span | undefined;
+    await startSpan({ name: 'GET /graphql', forceTransaction: true }, async span => {
+      rootSpan = span;
+      // Seed the attribute as a plain string (not an array) to exercise the string-merge branch.
+      span.setAttribute('sentry.graphql.operation', 'query Existing');
+      await tracedExecute({ schema, document });
+    });
+
+    // Both operations must appear — the bug dropped the current one when merging a string attribute.
+    expect(spanToJSON(rootSpan!).description).toBe('GET /graphql (query Existing, query GetHello)');
+  });
+
   it('reads the operation from positional execute args (v14/v15 signature)', async () => {
     const schema = buildSchema();
     const document = tracedParse('query GetHello { hello }');
