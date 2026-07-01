@@ -9,6 +9,7 @@ import { googleGenAiChannels } from './config/google-genai';
 import { vercelAiChannels } from './config/vercel-ai';
 import { hapiChannels } from './config/hapi';
 import { redisChannels } from './config/redis';
+import { expressChannels } from './config/express';
 
 /**
  * Fully-qualified `diagnostics_channel` names that orchestrion publishes to.
@@ -35,6 +36,7 @@ export const CHANNELS = {
   ...vercelAiChannels,
   ...hapiChannels,
   ...redisChannels,
+  ...expressChannels,
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
