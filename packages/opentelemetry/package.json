@@ -19,8 +19,6 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/types/index.d.ts",
-      "import": "./build/esm/index.js",
-      "require": "./build/cjs/index.js",
       "node": {
         "import": "./build/esm/index.js",
         "require": "./build/cjs/index.js"
@@ -32,7 +30,9 @@
       "browser": {
         "import": "./build/esm/index.browser.js",
         "require": "./build/cjs/index.browser.js"
-      }
+      },
+      "import": "./build/esm/index.js",
+      "require": "./build/cjs/index.js"
     }
   },
   "typesVersions": {
