@@ -1,4 +1,4 @@
-import { defineIntegration, type IntegrationFn } from '@sentry/core';
+import { defineIntegration, type IntegrationFn, waitForTracingChannelBinding } from '@sentry/core';
 import * as dc from 'node:diagnostics_channel';
 import { subscribeMysql2DiagnosticChannels } from './mysql2-dc-subscriber';
 
@@ -13,10 +13,9 @@ const _mysql2Integration = (() => {
 
       // Subscribe to mysql2's native tracing channels (mysql2 >= 3.20.0).
       // This is a no-op on versions that don't publish to the channels, so it is always safe to call.
-      // `bindTracingChannelToSpan` (inside the subscriber) makes the span the active context via
-      // `bindStore`, which needs the Sentry OTel context manager — `initOpenTelemetry()` registers
-      // that after `setupOnce`, so defer a tick.
-      void Promise.resolve().then(() => subscribeMysql2DiagnosticChannels(dc.tracingChannel));
+      waitForTracingChannelBinding(() => {
+        subscribeMysql2DiagnosticChannels(dc.tracingChannel);
+      });
     },
   };
 }) satisfies IntegrationFn;
