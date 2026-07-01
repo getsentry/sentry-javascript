@@ -14,6 +14,8 @@
 export const CHANNELS = {
   MYSQL_QUERY: 'orchestrion:mysql:query',
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',
+  IOREDIS_COMMAND: 'orchestrion:ioredis:command',
+  IOREDIS_CONNECT: 'orchestrion:ioredis:connect',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

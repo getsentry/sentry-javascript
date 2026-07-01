@@ -1,9 +1,11 @@
 import {
   mysqlChannelIntegration,
   lruMemoizerChannelIntegration,
+  ioredisChannelIntegration,
   detectOrchestrionSetup,
 } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
+import { cacheResponseHook } from '../integrations/tracing/redis/cache';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
 import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInjection';
 
@@ -41,12 +43,15 @@ import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInject
  */
 export function experimentalUseDiagnosticsChannelInjection(): void {
   setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
-    const integrations = [mysqlChannelIntegration(), lruMemoizerChannelIntegration()] as const;
-    const replacedOtelIntegrationNames = integrations.map(i => i.name);
+    // These channel integrations 1:1 replace the OTel integration of the same name.
+    const replacements = [mysqlChannelIntegration(), lruMemoizerChannelIntegration()] as const;
 
     return {
-      integrations,
-      replacedOtelIntegrationNames,
+      // ioredis only supersedes the ioredis monkey-patch inside the composite OTel
+      // `Redis` integration (gated off in `redisIntegration`), so it's added here
+      // but kept out of `replacedOtelIntegrationNames` — `Redis` must stay.
+      integrations: [...replacements, ioredisChannelIntegration({ responseHook: cacheResponseHook })],
+      replacedOtelIntegrationNames: replacements.map(i => i.name),
       register: registerDiagnosticsChannelInjection,
       detect: detectOrchestrionSetup,
     };

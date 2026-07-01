@@ -20,6 +20,7 @@ export type {
   RedisDiagnosticChannelResponseHook,
   RedisTracingChannelFactory,
 } from './redis/redis-dc-subscriber';
+export { defaultDbStatementSerializer } from './redis/redis-statement-serializer';
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type {
   SentryTracingChannel,
