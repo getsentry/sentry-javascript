@@ -52,7 +52,7 @@ describe('webVitalsIntegration', () => {
     vi.restoreAllMocks();
   });
 
-  it('tracks web vitals with the existing non-streaming behavior by default', () => {
+  it('tracks web vitals as measurements by default', () => {
     const client = getMockClient();
     const integration = webVitalsIntegration();
 
@@ -60,8 +60,8 @@ describe('webVitalsIntegration', () => {
     integration.afterAllSetup?.(client as never);
 
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      recordClsStandaloneSpans: false,
-      recordLcpStandaloneSpans: false,
+      trackCls: true,
+      trackLcp: true,
       client,
     });
     expect(mockStartTrackingINP).toHaveBeenCalledTimes(1);
@@ -71,24 +71,6 @@ describe('webVitalsIntegration', () => {
     expect(mockTrackInpAsSpan).not.toHaveBeenCalled();
   });
 
-  it('keeps standalone LCP and CLS experiments working', () => {
-    const client = getMockClient();
-    const integration = webVitalsIntegration({
-      _experiments: {
-        enableStandaloneClsSpans: true,
-        enableStandaloneLcpSpans: true,
-      },
-    });
-
-    integration.setup?.(client as never);
-
-    expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      recordClsStandaloneSpans: true,
-      recordLcpStandaloneSpans: true,
-      client,
-    });
-  });
-
   it('tracks LCP, CLS and INP as streamed spans when span streaming is enabled', () => {
     const client = getMockClient({ traceLifecycle: 'stream' });
     const integration = webVitalsIntegration();
@@ -96,9 +78,10 @@ describe('webVitalsIntegration', () => {
     integration.setup?.(client as never);
     integration.afterAllSetup?.(client as never);
 
+    // CLS/LCP are tracked as standalone spans, not as measurements on the pageload span
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      recordClsStandaloneSpans: undefined,
-      recordLcpStandaloneSpans: undefined,
+      trackCls: false,
+      trackLcp: false,
       client,
     });
     expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client);
@@ -108,7 +91,19 @@ describe('webVitalsIntegration', () => {
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
   });
 
-  it('supports ignoring selected web vitals for browserTracingIntegration compatibility', () => {
+  it('does not track ignored web vitals as streamed spans when span streaming is enabled', () => {
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration({ ignore: ['lcp'] });
+
+    integration.setup?.(client as never);
+    integration.afterAllSetup?.(client as never);
+
+    expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
+  });
+
+  it('supports ignoring selected web vitals', () => {
     const client = getMockClient();
     const integration = webVitalsIntegration({ ignore: ['cls', 'inp', 'lcp'] });
 
@@ -116,8 +111,8 @@ describe('webVitalsIntegration', () => {
     integration.afterAllSetup?.(client as never);
 
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      recordClsStandaloneSpans: undefined,
-      recordLcpStandaloneSpans: undefined,
+      trackCls: false,
+      trackLcp: false,
       client,
     });
     expect(mockStartTrackingINP).not.toHaveBeenCalled();
@@ -167,24 +162,6 @@ describe('webVitalsIntegration', () => {
       recordClsOnPageloadSpan: false,
       recordLcpOnPageloadSpan: false,
       spanStreamingEnabled: true,
-    });
-  });
-
-  it('does not record CLS/LCP on the pageload span when standalone spans are enabled', () => {
-    const client = getMockClient();
-    const span = {};
-    const integration = webVitalsIntegration({
-      _experiments: { enableStandaloneClsSpans: true, enableStandaloneLcpSpans: true },
-    });
-
-    integration.setup?.(client as never);
-    client.emit('afterStartPageLoadSpan', span);
-    client.emit('spanEnd', span);
-
-    expect(mockAddWebVitalsToSpan).toHaveBeenCalledWith(span, {
-      recordClsOnPageloadSpan: false,
-      recordLcpOnPageloadSpan: false,
-      spanStreamingEnabled: false,
     });
   });
 });
