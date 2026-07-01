@@ -38,6 +38,25 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
     module: { name: 'lru-memoizer', versionRange: '>=2.1.0 <4', filePath: 'lib/async.js' },
     functionQuery: { functionName: 'memoizedFunction', kind: 'Callback' },
   },
+  // graphql: three injection points mirroring `@opentelemetry/instrumentation-graphql`. All three are
+  // top-level named `function` declarations in their compiled files, stable across v14–v16 (the
+  // supported range), so `functionName` matches every major. `versionRange` matches the OTel
+  // instrumentation's `supportedVersions` (`>=14.0.0 <17`).
+  {
+    channelName: 'parse',
+    module: { name: 'graphql', versionRange: '>=14.0.0 <17', filePath: 'language/parser.js' },
+    functionQuery: { functionName: 'parse', kind: 'Sync' },
+  },
+  {
+    channelName: 'validate',
+    module: { name: 'graphql', versionRange: '>=14.0.0 <17', filePath: 'validation/validate.js' },
+    functionQuery: { functionName: 'validate', kind: 'Sync' },
+  },
+  {
+    channelName: 'execute',
+    module: { name: 'graphql', versionRange: '>=14.0.0 <17', filePath: 'execution/execute.js' },
+    functionQuery: { functionName: 'execute', kind: 'Auto' },
+  },
 ];
 
 /**

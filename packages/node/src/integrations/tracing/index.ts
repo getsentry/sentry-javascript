@@ -8,7 +8,7 @@ import { fastifyIntegration, instrumentFastifyV3 } from './fastify';
 import { firebaseIntegration, instrumentFirebase } from './firebase';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { googleGenAIIntegration, instrumentGoogleGenAI } from './google-genai';
-import { graphqlIntegration, instrumentGraphql } from './graphql';
+import { graphqlIntegration } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
 import { honoIntegration, instrumentHono } from './hono';
 import { instrumentKafka, kafkaIntegration } from './kafka';
@@ -87,7 +87,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentMysql2,
     instrumentPostgres,
     instrumentHapi,
-    instrumentGraphql,
     instrumentRedis,
     instrumentTedious,
     instrumentGenericPool,
