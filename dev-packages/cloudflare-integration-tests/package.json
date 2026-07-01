@@ -13,7 +13,7 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
-    "@langchain/langgraph": "^1.0.1",
+    "@langchain/langgraph": "^1.4.7",
     "@sentry/cloudflare": "10.63.0",
     "@sentry/hono": "10.63.0",
     "hono": "^4.12.25"
