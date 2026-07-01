@@ -14,6 +14,12 @@
 export const CHANNELS = {
   MYSQL_QUERY: 'orchestrion:mysql:query',
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',
+  // Express v4 runs each layer's handler through `Layer.prototype.handle_request`
+  // in the `express` module.
+  EXPRESS_HANDLE: 'orchestrion:express:handle',
+  // Express v5 delegates routing to the standalone `router` package, where the
+  // equivalent method is `Layer.prototype.handleRequest`.
+  ROUTER_HANDLE: 'orchestrion:router:handle',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

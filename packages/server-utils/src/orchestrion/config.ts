@@ -38,6 +38,29 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
     module: { name: 'lru-memoizer', versionRange: '>=2.1.0 <4', filePath: 'lib/async.js' },
     functionQuery: { functionName: 'memoizedFunction', kind: 'Callback' },
   },
+  // Express funnels every middleware/route handler through a single method on
+  // its routing `Layer`, so instrumenting that one method covers the whole
+  // request pipeline. The `expressChannelIntegration` opens one span per layer
+  // invocation. Both are `Layer.prototype.<method> = function <fn>(req, res, next)`
+  // prototype assignments (not `class` methods), so `expressionName` (matching
+  // the assignment's `left.property.name`) is used. `Callback`: the handler's
+  // last argument is `next`, so the transform ends the traced operation when
+  // `next` is invoked (and publishes `error` when it's called with an error).
+  //
+  // Express v4 ships its own router in `express/lib/router/layer.js`.
+  {
+    channelName: 'handle',
+    module: { name: 'express', versionRange: '>=4.0.0 <5', filePath: 'lib/router/layer.js' },
+    // v4's method is `Layer.prototype.handle_request = function handle(...)` —
+    // match the assigned property name, not the function name.
+    functionQuery: { expressionName: 'handle_request', kind: 'Callback' },
+  },
+  // Express v5 delegates routing to the standalone `router` package.
+  {
+    channelName: 'handle',
+    module: { name: 'router', versionRange: '>=2.0.0 <3', filePath: 'lib/layer.js' },
+    functionQuery: { expressionName: 'handleRequest', kind: 'Callback' },
+  },
 ];
 
 /**
