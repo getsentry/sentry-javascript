@@ -31,7 +31,7 @@ import {
   startInactiveSpan,
   stripDataUrlContent,
 } from '@sentry/core';
-import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '@sentry/node-core';
+import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '../../utils/outgoingFetchRequest';
 import {
   HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
@@ -190,7 +190,7 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
 
   // When spans are disabled we do not create a span, but we still inject trace propagation headers
   // directly (unless disabled via `tracePropagation`).
-  if (config.spans === false) {
+  if (!config.spans) {
     if (config.tracePropagation !== false && !ignoreForBreadcrumbs) {
       addTracePropagationHeadersToFetchRequest(request, propagationDecisionMap);
     }
