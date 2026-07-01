@@ -1,6 +1,3 @@
-// Opting in via `experimentalUseDiagnosticsChannelInjection()` (before `init`)
-// is all that's needed.
-//
 // `Sentry.init()` swaps the OTel `Hapi` integration
 // for the diagnostics-channel one and synchronously
 // installs the module hooks that inject the channels.

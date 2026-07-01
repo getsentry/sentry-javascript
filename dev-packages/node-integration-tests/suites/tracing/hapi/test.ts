@@ -36,13 +36,6 @@ describe('hapi auto-instrumentation', () => {
     },
   };
 
-  // The orchestrion (diagnostics-channel injection) path produces the same hapi
-  // span ops and attributes as the OTel path; only the span origin differs to
-  // signal the injection mechanism (`auto.http.orchestrion.hapi` vs
-  // `auto.http.otel.hapi`), mirroring the mysql orchestrion integration.
-  // `@hapi/hapi` is in the injected version range (`>=17.0.0 <22.0.0`), and the
-  // channels are injected synchronously by `Sentry.init()`, so no extra Node
-  // flags are needed and ESM works too.
   const INSTRUMENT_FILES = ['instrument.mjs', 'instrument-orchestrion.mjs'] as const;
 
   for (const instrument of INSTRUMENT_FILES) {
