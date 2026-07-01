@@ -136,6 +136,10 @@ export function createRunner(...paths: string[]) {
   let withSentryServer = false;
   let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
+  // When set, the test using this runner expects `completed()` to reject (e.g. `test.fails` variants
+  // created via `createEsmAndCjsTests` with `failsOnEsm`/`failsOnCjs`). We suppress the captured-log
+  // dump in that case, since the failure is expected and the output would just be noise.
+  let suppressErrorLogs = false;
   const logs: string[] = [];
 
   if (testPath.endsWith('.ts')) {
@@ -227,6 +231,14 @@ export function createRunner(...paths: string[]) {
       ensureNoErrorOutput = true;
       return this;
     },
+    /**
+     * Mark this runner's test as expected to fail (i.e. `completed()` is expected to reject).
+     * Suppresses the captured-log dump so expected failures don't emit noisy output.
+     */
+    suppressErrorLogs: function () {
+      suppressErrorLogs = true;
+      return this;
+    },
     start: function (): StartResult {
       let isComplete = false;
       let completeError: Error | undefined;
@@ -254,8 +266,9 @@ export function createRunner(...paths: string[]) {
        * that already streams the same lines live as they arrive.
        */
       function dumpCapturedLogs(): void {
-        // When in debug mode, this is already printed anyhow
-        if (process.env.DEBUG) {
+        // Skip when the failure is expected (`test.fails` variants) — the output would just be noise.
+        // In debug mode the same lines are already streamed live, so skip then too.
+        if (process.env.DEBUG || suppressErrorLogs) {
           return;
         }
 
