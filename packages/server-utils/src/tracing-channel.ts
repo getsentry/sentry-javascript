@@ -42,6 +42,22 @@ export interface TracingChannelLifeCycleOptions<TData extends object = object> {
    * For database drivers, it is not recommended to set this at all.
    */
   captureError?: boolean | ((e: unknown) => ExclusiveEventHintOrCaptureContext);
+
+  /**
+   * Take ownership of *when* the span ends: return `true` and the helper won't end it on
+   * `end`/`asyncEnd`. For results that settle out-of-band — e.g. a streamed `EventEmitter` that
+   * completes via its own `'end'`/`'error'` events.
+   *
+   * Call `end` when it settles — `end()` on success, `end(error)` on failure. `end` owns *how* the span
+   * ends (error status/attributes, `captureError`, `beforeSpanEnd`) and is idempotent. Default `false`
+   * lets the helper end the span as usual.
+   */
+  deferSpanEnd?: (args: {
+    span: Span;
+    data: TracingChannelPayloadWithSpan<TData>;
+    /** Ends the span: `end()` on success, `end(error)` on failure. Idempotent. */
+    end: (error?: unknown) => void;
+  }) => boolean;
 }
 
 /** Returned by {@link bindTracingChannelToSpan}: the bound channel plus a teardown handle. */
@@ -77,6 +93,7 @@ export function bindTracingChannelToSpan<TData extends object>(
   const handle = bindSpanToChannelStore(channel, getSpan);
 
   const beforeSpanEnd = opts?.beforeSpanEnd;
+  const deferSpanEnd = opts?.deferSpanEnd;
   const getErrorHint = (e: unknown): ExclusiveEventHintOrCaptureContext => {
     if (typeof opts?.captureError === 'function') {
       return opts.captureError(e);
@@ -90,6 +107,36 @@ export function bindTracingChannelToSpan<TData extends object>(
     };
   };
 
+  // Apply Sentry error status + attributes (and capture, if configured) to a span. Shared by the
+  // channel `error` lifecycle and the deferred `end` util so the two can't drift.
+  const annotateSpanError = (span: Span, error: unknown): void => {
+    if (opts?.captureError) {
+      captureException(error, getErrorHint(error));
+    }
+
+    const { message, attributes } = getErrorInfo(error);
+    span.setStatus({ code: SPAN_STATUS_ERROR, message });
+    span.setAttributes(attributes);
+  };
+
+  // Creates an end fn for deferred handlers to use, ensures consistent span end behavior
+  const makeDeferredEnd = (span: Span, data: TracingChannelPayloadWithSpan<TData>) => {
+    let ended = false;
+
+    return (error?: unknown): void => {
+      if (ended) {
+        return;
+      }
+
+      ended = true;
+      if (error !== undefined) {
+        annotateSpanError(span, error);
+      }
+
+      endBoundSpan(data, beforeSpanEnd);
+    };
+  };
+
   const subscribers: Partial<TracingChannelSubscribers<TracingChannelPayloadWithSpan<TData>>> = {
     start: NOOP,
     asyncStart: NOOP,
@@ -97,6 +144,10 @@ export function bindTracingChannelToSpan<TData extends object>(
       // The operation settled synchronously (returned or threw)
       // Presence checks because caller can return `undefined` result or throw a falsy value.
       if ('error' in data || 'result' in data) {
+        const span = data._sentrySpan;
+        if (span && deferSpanEnd?.({ span, data, end: makeDeferredEnd(span, data) })) {
+          return;
+        }
         endBoundSpan(data, beforeSpanEnd);
       }
     },
@@ -108,15 +159,13 @@ export function bindTracingChannelToSpan<TData extends object>(
         return;
       }
 
-      if (opts?.captureError) {
-        captureException(data.error, getErrorHint(data.error));
-      }
-
-      const { message, attributes } = getErrorInfo(data.error);
-      span.setStatus({ code: SPAN_STATUS_ERROR, message });
-      span.setAttributes(attributes);
+      annotateSpanError(span, data.error);
     },
     asyncEnd(data) {
+      const span = data._sentrySpan;
+      if (span && deferSpanEnd?.({ span, data, end: makeDeferredEnd(span, data) })) {
+        return;
+      }
       endBoundSpan(data, beforeSpanEnd);
     },
   };

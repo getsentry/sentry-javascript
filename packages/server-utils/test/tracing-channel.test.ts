@@ -783,6 +783,72 @@ describe('bindTracingChannelToSpan', () => {
     });
   });
 
+  describe('deferSpanEnd', () => {
+    // Drives a deferred span: `getSpan` opens it, `deferSpanEnd` returns true and captures the `end`
+    // util so the test can settle the span out-of-band, mimicking a streamed emitter.
+    function setupDeferred(
+      name: string,
+      opts?: { captureError?: boolean },
+    ): { span: Span; endSpy: ReturnType<typeof vi.spyOn>; end: (error?: unknown) => void } {
+      installTestAsyncContextStrategy();
+      initTestClient();
+      const span = startInactiveSpan({ name: 'channel-span' });
+      const endSpy = vi.spyOn(span, 'end');
+      let captured: (error?: unknown) => void = () => undefined;
+      const { channel } = bindTracingChannelToSpan(tracingChannel<{ operation: string }>(name), () => span, {
+        captureError: opts?.captureError,
+        deferSpanEnd({ end }) {
+          captured = end;
+          return true;
+        },
+      });
+
+      channel.traceSync(() => 'stream', { operation: 'read' });
+
+      return { span, endSpy, end: (error?: unknown) => captured(error) };
+    }
+
+    it('does not end the span while deferred', () => {
+      const { span, endSpy } = setupDeferred('test:defer:open');
+      expect(endSpy).not.toHaveBeenCalled();
+      expect(spanToJSON(span).timestamp).toBeUndefined();
+    });
+
+    it('`end()` ends the span once with no error status', () => {
+      const { span, endSpy, end } = setupDeferred('test:defer:ok');
+      end();
+      expect(endSpy).toHaveBeenCalledTimes(1);
+      expect(spanToJSON(span).timestamp).toBeDefined();
+      expect(spanToJSON(span).status).toBeUndefined();
+    });
+
+    it('`end(error)` sets error status and the `error.type` attribute, then ends', () => {
+      const { span, endSpy, end } = setupDeferred('test:defer:error');
+      end(new TypeError('stream blew up'));
+      expect(spanToJSON(span).status).toBe('stream blew up');
+      expect(spanToJSON(span).data['error.type']).toBe('TypeError');
+      expect(endSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('is idempotent: a trailing settle is a no-op', () => {
+      const { endSpy, end } = setupDeferred('test:defer:idempotent');
+      end(new Error('boom'));
+      end();
+      expect(endSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('captures the error via `end(error)` when `captureError` is set', () => {
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+      const { end } = setupDeferred('test:defer:capture', { captureError: true });
+      const error = new Error('captured-stream');
+      end(error);
+      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+        mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false },
+      });
+    });
+  });
+
   it('returns the channel unchanged when no async context binding is available', () => {
     // No async context strategy is installed, so the binding cannot be resolved.
     const span = startInactiveSpan({ name: 'channel-span' });
