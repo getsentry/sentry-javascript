@@ -486,6 +486,10 @@ describe('postgres auto instrumentation', () => {
             data: expect.objectContaining({ 'db.system': 'postgresql', 'db.name': 'tests', 'sentry.op': 'db' }),
             description: 'pg.connect',
             op: 'db',
+            // A failed connect has no canonical status message, so serializes
+            // to `internal_error` (same as OTel). Holds across Node versions
+            // even though the error class differs: plain `Error` on Node 18,
+            // `AggregateError` on Node 20+.
             status: 'internal_error',
             origin: 'manual',
           }),
@@ -532,6 +536,65 @@ describe('postgres auto instrumentation', () => {
                             'sentry.op': 'db',
                           }),
                           description: 'SELECT 2 AS parented',
+                          op: 'db',
+                          status: 'ok',
+                          origin: ORIGIN,
+                        }),
+                      ]),
+                    });
+                  },
+                })
+                .start()
+                .completed();
+            },
+          );
+        },
+      );
+    });
+
+    describe('ignoreConnectSpans', () => {
+      createEsmAndCjsTests(
+        __dirname,
+        'scenario.mjs',
+        'instrument-orchestrion-ignoreConnect.mjs',
+        (createTestRunner, test) => {
+          test(
+            "doesn't emit connect spans if ignoreConnectSpans is true (orchestrion)",
+            { timeout: 90_000 },
+            async () => {
+              await createTestRunner()
+                .withDockerCompose({ workingDirectory: [__dirname] })
+                .expect({
+                  transaction: txn => {
+                    const spanNames = txn.spans?.map(span => span.description);
+                    // No `pg.connect` / `pg-pool.connect` spans were produced.
+                    expect(spanNames?.find(name => name?.includes('connect'))).toBeUndefined();
+                    // ...but the query spans are still instrumented via orchestrion.
+                    expect(txn).toMatchObject({
+                      transaction: 'Test Transaction',
+                      spans: expect.arrayContaining([
+                        expect.objectContaining({
+                          data: expect.objectContaining({
+                            'db.system': 'postgresql',
+                            'db.name': 'tests',
+                            'db.statement': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                            'sentry.origin': ORIGIN,
+                            'sentry.op': 'db',
+                          }),
+                          description: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                          op: 'db',
+                          status: 'ok',
+                          origin: ORIGIN,
+                        }),
+                        expect.objectContaining({
+                          data: expect.objectContaining({
+                            'db.system': 'postgresql',
+                            'db.name': 'tests',
+                            'db.statement': 'SELECT * FROM "User"',
+                            'sentry.origin': ORIGIN,
+                            'sentry.op': 'db',
+                          }),
+                          description: 'SELECT * FROM "User"',
                           op: 'db',
                           status: 'ok',
                           origin: ORIGIN,

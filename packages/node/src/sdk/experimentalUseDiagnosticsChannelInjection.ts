@@ -1,12 +1,20 @@
 import {
+  mysqlChannelIntegration,
   lruMemoizerChannelIntegration,
   detectOrchestrionSetup,
-  mysqlChannelIntegration,
   postgresChannelIntegration,
 } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
 import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInjection';
+
+export function diagnosticsChannelInjectionIntegrations() {
+  return {
+    postgresIntegration: postgresChannelIntegration,
+    mysqlIntegration: mysqlChannelIntegration,
+    lruMemoizerIntegration: lruMemoizerChannelIntegration,
+  };
+}
 
 /**
  * EXPERIMENTAL: opt into diagnostics-channel-based auto-instrumentation.
@@ -38,24 +46,14 @@ import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInject
  * subscriber/channel modules; the heavy code-transform dependencies stay lazy
  * inside `register()` and load only when injection actually runs.
  *
- * Per-integration options are passed here rather than via the OTel
- * `xxxIntegration({...})` instances, because those are swapped out wholesale for
- * their channel equivalents (and a user-provided OTel instance would otherwise
- * win integration de-duplication, silently keeping the OTel path). For example,
- * to suppress pg connect spans on the orchestrion path:
- *
- * ```ts
- * Sentry.experimentalUseDiagnosticsChannelInjection({ postgres: { ignoreConnectSpans: true } });
- * ```
- *
  * @experimental May change or be removed in any release.
  */
 export function experimentalUseDiagnosticsChannelInjection(): void {
   setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
     const integrations = [
       mysqlChannelIntegration(),
-      postgresChannelIntegration(),
       lruMemoizerChannelIntegration(),
+      postgresChannelIntegration(),
     ] as const;
     const replacedOtelIntegrationNames = integrations.map(i => i.name);
 
