@@ -26,7 +26,7 @@ export interface SegmentSpanCaptureStrategy {
   /** Assemble and capture a segment (root or standalone-root) span's transaction. */
   onSegmentSpanEnded(scope: Scope, client: Client, convert: SegmentSpanConverter): void;
   /** Consider a child that ended after its segment for emission as its own orphan transaction. */
-  onChildSpanEnded(span: Span, rootSpan: Span, client: Client, convert: SegmentSpanConverter): void;
+  onChildSpanEnded(span: Span, rootSpan: Span, convert: SegmentSpanConverter): void;
 }
 
 /**
