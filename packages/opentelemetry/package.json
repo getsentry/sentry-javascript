@@ -18,30 +18,21 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "import": {
-        "node": {
-          "types": "./build/types/index.d.ts",
-          "default": "./build/esm/index.js"
-        },
-        "browser": {
-          "types": "./build/types/index.d.ts",
-          "default": "./build/esm/index.browser.js"
-        },
-        "types": "./build/types/index.d.ts",
-        "default": "./build/esm/index.js"
+      "types": "./build/types/index.d.ts",
+      "node": {
+        "import": "./build/esm/index.js",
+        "require": "./build/cjs/index.js"
       },
-      "require": {
-        "node": {
-          "types": "./build/types/index.d.ts",
-          "default": "./build/cjs/index.js"
-        },
-        "browser": {
-          "types": "./build/types/index.d.ts",
-          "default": "./build/cjs/index.browser.js"
-        },
-        "types": "./build/types/index.d.ts",
-        "default": "./build/cjs/index.js"
-      }
+      "worker": {
+        "import": "./build/esm/index.js",
+        "require": "./build/cjs/index.js"
+      },
+      "browser": {
+        "import": "./build/esm/index.browser.js",
+        "require": "./build/cjs/index.browser.js"
+      },
+      "import": "./build/esm/index.js",
+      "require": "./build/cjs/index.js"
     }
   },
   "typesVersions": {
