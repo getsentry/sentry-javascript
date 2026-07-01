@@ -401,10 +401,10 @@
     semifies "^1.0.0"
     source-map "^0.6.0"
 
-"@apm-js-collab/tracing-hooks@^0.10.0":
-  version "0.10.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.10.0.tgz#b31f4bd474380475dc72f57f1b84dd71ba98edde"
-  integrity sha512-2/Z3NTewJTruUkmsSnBC5bJlLNUd9keuD1OLlTEpim4FyLhm6m2Rnfv+wrFdUvFfhmH8CRdiDZBqBrn+wyaGuA==
+"@apm-js-collab/tracing-hooks@^0.10.1":
+  version "0.10.1"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.10.1.tgz#52a463f6dd03e99582a7dde9816257efabdf63b9"
+  integrity sha512-w2OWXR7FWrKqSziuE9+QclaZrStxO/8+OwbXM635s/zs0Eez1Qo3ivSPdB2WsaPY/iznKTytONPx/PitD7IXcA==
   dependencies:
     "@apm-js-collab/code-transformer" "^0.15.0"
     debug "^4.4.1"
