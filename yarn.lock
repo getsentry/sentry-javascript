@@ -3078,6 +3078,11 @@
   resolved "https://registry.yarnpkg.com/@cloudflare/workerd-windows-64/-/workerd-windows-64-1.20260426.1.tgz#b21d2a24afe0b274982d7ccbe7163a5689da1507"
   integrity sha512-d3Xj/IjINRgNVwH+eKhpUn4xkkcEewbWXbOvBlapiirKWh5zl9m0Epi3qOqmjyRYK6MICqIGXg4qZBEt0lxudw==
 
+"@cloudflare/workers-types@4.20250214.0":
+  version "4.20250214.0"
+  resolved "https://registry.yarnpkg.com/@cloudflare/workers-types/-/workers-types-4.20250214.0.tgz#f9a8109cdba9425e2a934d6a0870eca2769a5b6f"
+  integrity sha512-+M8oOFVbyXT5GeJrYLWMUGyPf5wGB4+k59PPqdedtOig7NjZ5r4S79wMdaZ/EV5IV8JPtZBSNjTKpDnNmfxjaQ==
+
 "@cloudflare/workers-types@4.20250922.0":
   version "4.20250922.0"
   resolved "https://registry.yarnpkg.com/@cloudflare/workers-types/-/workers-types-4.20250922.0.tgz#a159fbf3bb785fa85b473ecfaa8c501525827885"
@@ -6638,6 +6643,15 @@
   resolved "https://registry.yarnpkg.com/@poppinss/exception/-/exception-1.2.2.tgz#8d30d42e126c54fe84e997433e4dcac610090743"
   integrity sha512-m7bpKCD4QMlFCjA/nKTs23fuvoVFoA83brRKmObCUNmi/9tVu8Ve3w4YQAnJu4q3Tjf5fr685HYIC/IA2zHRSg==
 
+"@prisma/adapter-d1@6.15.0":
+  version "6.15.0"
+  resolved "https://registry.yarnpkg.com/@prisma/adapter-d1/-/adapter-d1-6.15.0.tgz#a3fd43a1b966d0012f1461ea278732b7464fb371"
+  integrity sha512-ozsANVFfmPyxa4SBQnGITQLSQ2aOVaRRV75CXBaDrhWU+zB+0Df3QUPF4vURSgskhdfUyOo35pzUOf4msPoGuQ==
+  dependencies:
+    "@cloudflare/workers-types" "4.20250214.0"
+    "@prisma/driver-adapter-utils" "6.15.0"
+    ky "1.7.5"
+
 "@prisma/adapter-pg@7.8.0":
   version "7.8.0"
   resolved "https://registry.yarnpkg.com/@prisma/adapter-pg/-/adapter-pg-7.8.0.tgz#8f39dc10ec0fa3d5914e09df385977ce0500fbec"
@@ -6672,6 +6686,13 @@
   version "7.8.0"
   resolved "https://registry.yarnpkg.com/@prisma/debug/-/debug-7.8.0.tgz#8e2f70d284b3091c2d713aa093a0f5898487e431"
   integrity sha512-p+QZReysDUqXC+mk17q9a+Y/qzh4c2KYliDK30buYUyfrGeTGSyfmc0AIrJRhZJrLHhRiJa9Au/J72h3C+szvA==
+
+"@prisma/driver-adapter-utils@6.15.0":
+  version "6.15.0"
+  resolved "https://registry.yarnpkg.com/@prisma/driver-adapter-utils/-/driver-adapter-utils-6.15.0.tgz#7e1803eb8ad18f3c8a8e9843049226b66ef3447d"
+  integrity sha512-tzcMG1eEBM3IJ8TBHo4jGeoUaalctqGXbrvxIoZb8jSEtgR82IUhdVyHHLVTlT8MdrHovcQJJ3jfcQfJARRnaQ==
+  dependencies:
+    "@prisma/debug" "6.15.0"
 
 "@prisma/driver-adapter-utils@7.8.0":
   version "7.8.0"
@@ -20154,6 +20175,11 @@ kuler@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/kuler/-/kuler-2.0.0.tgz#e2c570a3800388fb44407e851531c1d670b061b3"
   integrity sha512-Xq9nH7KlWZmXAtodXDDRE7vs6DU1gTU8zYDHDiWLSip45Egwq3plLHzPn27NgvzL2r1LMPC1vdqh98sQxtqj4A==
+
+ky@1.7.5:
+  version "1.7.5"
+  resolved "https://registry.yarnpkg.com/ky/-/ky-1.7.5.tgz#69c9b70ff818fd6108fc04a89c1454412c11dfce"
+  integrity sha512-HzhziW6sc5m0pwi5M196+7cEBtbt0lCYi67wNsiwMUmz833wloE0gbzJPWKs1gliFKQb34huItDQX97LyOdPdA==
 
 langsmith@^0.3.67:
   version "0.3.74"
