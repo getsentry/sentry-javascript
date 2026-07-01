@@ -1,11 +1,25 @@
 import {
   mysqlChannelIntegration,
   lruMemoizerChannelIntegration,
+  graphqlChannelIntegration,
   detectOrchestrionSetup,
 } from '@sentry/server-utils/orchestrion';
+import type { GraphqlChannelIntegrationOptions } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
 import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInjection';
+
+/** Per-integration options for the diagnostics-channel integrations swapped in by injection. */
+export interface DiagnosticsChannelInjectionOptions {
+  /**
+   * Options for the diagnostics-channel `graphql` integration.
+   *
+   * When you opt into injection, the OTel `graphqlIntegration()` is replaced by the channel-based one.
+   * Since that swap can't read options off an OTel `graphqlIntegration({ ... })` you may have configured,
+   * pass graphql options here instead so they apply on the injection path.
+   */
+  graphql?: GraphqlChannelIntegrationOptions;
+}
 
 /**
  * EXPERIMENTAL: opt into diagnostics-channel-based auto-instrumentation.
@@ -39,9 +53,13 @@ import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInject
  *
  * @experimental May change or be removed in any release.
  */
-export function experimentalUseDiagnosticsChannelInjection(): void {
+export function experimentalUseDiagnosticsChannelInjection(options: DiagnosticsChannelInjectionOptions = {}): void {
   setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
-    const integrations = [mysqlChannelIntegration(), lruMemoizerChannelIntegration()] as const;
+    const integrations = [
+      mysqlChannelIntegration(),
+      lruMemoizerChannelIntegration(),
+      graphqlChannelIntegration(options.graphql),
+    ] as const;
     const replacedOtelIntegrationNames = integrations.map(i => i.name);
 
     return {

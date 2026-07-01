@@ -14,6 +14,9 @@
 export const CHANNELS = {
   MYSQL_QUERY: 'orchestrion:mysql:query',
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',
+  GRAPHQL_PARSE: 'orchestrion:graphql:parse',
+  GRAPHQL_VALIDATE: 'orchestrion:graphql:validate',
+  GRAPHQL_EXECUTE: 'orchestrion:graphql:execute',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
