@@ -2,19 +2,17 @@
  * @vitest-environment jsdom
  */
 
-import * as sentryCore from '@sentry/core/browser';
-import { Scope } from '@sentry/core/browser';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';
 
-vi.mock('@sentry/core/browser', async requireActual => {
-  return {
-    ...((await requireActual()) as any),
-    _INTERNAL_flushLogsBuffer: vi.fn(),
-  };
-});
+function setDocumentHidden(): void {
+  if (WINDOW.document) {
+    Object.defineProperty(WINDOW.document, 'visibilityState', { value: 'hidden', configurable: true });
+    WINDOW.document.dispatchEvent(new Event('visibilitychange'));
+  }
+}
 
 describe('BrowserClient', () => {
   let client: BrowserClient;
@@ -24,58 +22,32 @@ describe('BrowserClient', () => {
     vi.clearAllMocks();
   });
 
-  it('does not flush logs when logs are disabled', () => {
-    client = new BrowserClient(
-      getDefaultBrowserClientOptions({
-        sendClientReports: true,
-      }),
-    );
-    const scope = new Scope();
-    scope.setClient(client);
+  it('flushes the client (spans, logs, metrics) when the page becomes hidden', async () => {
+    client = new BrowserClient(getDefaultBrowserClientOptions({ sendClientReports: true }));
+    const flushSpy = vi.spyOn(client, 'flush').mockReturnValue(Promise.resolve(true) as any);
+    const flushOutcomesSpy = vi.spyOn(client as any, '_flushOutcomes');
 
-    // Add some logs
-    sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 1' }, scope);
-    sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 2' }, scope);
+    setDocumentHidden();
 
-    // Simulate visibility change to hidden
-    if (WINDOW.document) {
-      Object.defineProperty(WINDOW.document, 'visibilityState', { value: 'hidden' });
-      WINDOW.document.dispatchEvent(new Event('visibilitychange'));
-    }
+    // The flush is deferred to a microtask so that visibilitychange listeners registered after the
+    // client's listener (e.g. browser tracing's background-tab detection) have already run.
+    expect(flushSpy).not.toHaveBeenCalled();
+    await Promise.resolve();
 
-    expect(sentryCore._INTERNAL_flushLogsBuffer).not.toHaveBeenCalled();
+    expect(flushOutcomesSpy).toHaveBeenCalled();
+    expect(flushSpy).toHaveBeenCalledTimes(1);
   });
 
-  describe('log flushing', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-      client = new BrowserClient(
-        getDefaultBrowserClientOptions({
-          enableLogs: true,
-          sendClientReports: true,
-        }),
-      );
-    });
+  it('does not flush outcomes when sendClientReports is disabled but still flushes the client', async () => {
+    client = new BrowserClient(getDefaultBrowserClientOptions({ sendClientReports: false }));
+    const flushSpy = vi.spyOn(client, 'flush').mockReturnValue(Promise.resolve(true) as any);
+    const flushOutcomesSpy = vi.spyOn(client as any, '_flushOutcomes');
 
-    it('flushes logs when page visibility changes to hidden', () => {
-      const flushOutcomesSpy = vi.spyOn(client as any, '_flushOutcomes');
+    setDocumentHidden();
+    await Promise.resolve();
 
-      const scope = new Scope();
-      scope.setClient(client);
-
-      // Add some logs
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 1' }, scope);
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 2' }, scope);
-
-      // Simulate visibility change to hidden
-      if (WINDOW.document) {
-        Object.defineProperty(WINDOW.document, 'visibilityState', { value: 'hidden' });
-        WINDOW.document.dispatchEvent(new Event('visibilitychange'));
-      }
-
-      expect(flushOutcomesSpy).toHaveBeenCalled();
-      expect(sentryCore._INTERNAL_flushLogsBuffer).toHaveBeenCalledWith(client);
-    });
+    expect(flushOutcomesSpy).not.toHaveBeenCalled();
+    expect(flushSpy).toHaveBeenCalledTimes(1);
   });
 });
 

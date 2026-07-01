@@ -22,18 +22,16 @@ import { URL } from 'url';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
-  getClient,
-  getTraceData,
+  isTracingSuppressed,
   LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  shouldPropagateTraceForUrl,
   SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   stripDataUrlContent,
-  withActiveSpan,
 } from '@sentry/core';
+import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '../../utils/outgoingFetchRequest';
 import {
   HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
@@ -49,7 +47,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
-  UndiciInstrumentationConfig,
+  NodeFetchOptions,
   UndiciRequest,
   RequestErrorMessage,
   RequestHeadersMessage,
@@ -65,12 +63,19 @@ const ATTR_HTTP_REQUEST_METHOD_ORIGINAL = 'http.request.method_original';
 // We can replace this with _isInstrumented once we drop support for Node.js 18.18.0
 const _channelSubs: Array<unknown> = [];
 const spanFromReq = new WeakMap<UndiciRequest, Span>();
+// Whether breadcrumbs (and span-less trace propagation) should be skipped for a given request.
+// We evaluate this at request-creation time because the active context is no longer correct by the
+// time the response-headers event fires.
+const ignoreRequestMap = new WeakMap<UndiciRequest, boolean>();
 // Caches trace-propagation decisions per URL so we don't recompute the `tracePropagationTargets` regexes per request.
 const propagationDecisionMap = new LRUMap<string, boolean>(100);
 
 /**
  * Instrument outgoing HTTP requests made through `undici` or the global `fetch` API: emit `http.client`
- * spans and propagate traces into the outgoing request headers.
+ * spans, record breadcrumbs, and propagate traces into the outgoing request headers.
+ *
+ * Span creation is gated by the `spans` option (defaults to `true`). When spans are disabled, breadcrumbs
+ * are still recorded and trace propagation headers are still injected (gated by `tracePropagation`).
  *
  * undici reports its request lifecycle via `diagnostics_channel`, so rather than patching any module we
  * subscribe to those channels directly. This is idempotent — subsequent calls are no-ops once the
@@ -79,7 +84,7 @@ const propagationDecisionMap = new LRUMap<string, boolean>(100);
  * A combination of https://github.com/elastic/apm-agent-nodejs and
  * https://github.com/gadget-inc/opentelemetry-instrumentations/blob/main/packages/opentelemetry-instrumentation-undici/src/index.ts
  */
-export function instrumentUndici(config: UndiciInstrumentationConfig = {}): void {
+export function instrumentUndici(config: NodeFetchOptions = {}): void {
   // Avoid duplicate subscriptions
   if (_channelSubs.length) {
     return;
@@ -170,18 +175,32 @@ function parseRequestHeaders(request: UndiciRequest): Map<string, string | strin
 // This is the 1st message we receive for each request (fired after request creation). Here we will
 // create the span and populate some atttributes, then link the span to the request for further
 // span processing
-function onRequestCreated(config: UndiciInstrumentationConfig, { request }: RequestMessage): void {
+function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage): void {
   const url = getAbsoluteUrl(request.origin, request.path);
 
-  // Ignore if:
-  // - the outgoing request is ignored via config
-  // - method is 'CONNECT'
-  const shouldIgnoreReq = safeExecute(
-    () => request.method === 'CONNECT' || !!config.ignoreOutgoingRequests?.(url),
+  const ignoredByCallback = safeExecute(
+    () => !!config.ignoreOutgoingRequests?.(url),
     e => e && DEBUG_BUILD && debug.error('caught ignoreOutgoingRequests error: ', e),
   );
 
-  if (shouldIgnoreReq) {
+  // Breadcrumbs & span-less trace propagation are additionally skipped when tracing is suppressed.
+  // We store this here because the active context is no longer correct in later channel events.
+  const ignoreForBreadcrumbs = isTracingSuppressed() || !!ignoredByCallback;
+  ignoreRequestMap.set(request, ignoreForBreadcrumbs);
+
+  // When spans are disabled we do not create a span, but we still inject trace propagation headers
+  // directly (unless disabled via `tracePropagation`).
+  if (!config.spans) {
+    if (config.tracePropagation !== false && !ignoreForBreadcrumbs) {
+      addTracePropagationHeadersToFetchRequest(request, propagationDecisionMap);
+    }
+    return;
+  }
+
+  // Ignore span creation if:
+  // - the outgoing request is ignored via config
+  // - method is 'CONNECT'
+  if (request.method === 'CONNECT' || ignoredByCallback) {
     return;
   }
 
@@ -249,7 +268,8 @@ function onRequestCreated(config: UndiciInstrumentationConfig, { request }: Requ
   // Context propagation goes last so no hook can tamper the propagation headers.
   // We propagate the trace data of the freshly created client span (not the active parent span)
   // so downstream services are parented to the http.client span, matching the upstream behavior.
-  injectTracePropagationHeaders(span, request, requestUrl.toString());
+  // This also de-duplicates against any trace headers the user set manually (e.g. via `getTraceData()`).
+  addTracePropagationHeadersToFetchRequest(request, propagationDecisionMap, span);
 
   spanFromReq.set(request, span);
 }
@@ -257,7 +277,7 @@ function onRequestCreated(config: UndiciInstrumentationConfig, { request }: Requ
 // This is the 2nd message we receive for each request. It is fired when connection with
 // the remote is established and about to send the first byte. Here we do have info about the
 // remote address and port so we can populate some `network.*` attributes into the span
-function onRequestHeaders(config: UndiciInstrumentationConfig, { request, socket }: RequestHeadersMessage): void {
+function onRequestHeaders(config: NodeFetchOptions, { request, socket }: RequestHeadersMessage): void {
   const span = spanFromReq.get(request);
 
   if (!span) {
@@ -290,7 +310,13 @@ function onRequestHeaders(config: UndiciInstrumentationConfig, { request, socket
 // This is the 3rd message we get for each request and it's fired when the server
 // headers are received, body may not be accessible yet.
 // From the response headers we can set the status and content length
-function onResponseHeaders(config: UndiciInstrumentationConfig, { request, response }: ResponseHeadersMessage): void {
+function onResponseHeaders(config: NodeFetchOptions, { request, response }: ResponseHeadersMessage): void {
+  // Breadcrumbs are recorded independently of spans, so this runs even when span creation is disabled.
+  const breadcrumbsEnabled = config.breadcrumbs !== false;
+  if (breadcrumbsEnabled && !ignoreRequestMap.get(request)) {
+    addFetchRequestBreadcrumb(request, response);
+  }
+
   const span = spanFromReq.get(request);
 
   if (!span) {
@@ -377,37 +403,6 @@ function onError({ request, error }: RequestErrorMessage): void {
   });
   span.end();
   spanFromReq.delete(request);
-}
-
-// Propagate the trace data of the given (client) span into the outgoing request headers, gated by
-// `tracePropagationTargets`. Mirrors what `propagation.inject()` did with the SentryPropagator, but
-// via Sentry's `getTraceData()` so we stay off OpenTelemetry's propagation API.
-function injectTracePropagationHeaders(span: Span, request: UndiciRequest, url: string): void {
-  const { tracePropagationTargets, propagateTraceparent } = getClient()?.getOptions() ?? {};
-
-  if (!shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)) {
-    return;
-  }
-
-  // We make the freshly created client span active so the propagated headers reference it (and not
-  // the parent span). Passing `{ span }` to `getTraceData()` is not enough: for an inactive span it
-  // resolves to the span's *captured* scope, whose active span is still the parent.
-  const addedHeaders = withActiveSpan(span, () => getTraceData({ propagateTraceparent }));
-
-  for (const [k, v] of Object.entries(addedHeaders)) {
-    if (!v) {
-      continue;
-    }
-
-    if (typeof request.addHeader === 'function') {
-      request.addHeader(k, v);
-    } else if (typeof request.headers === 'string') {
-      request.headers += `${k}: ${v}\r\n`;
-    } else if (Array.isArray(request.headers)) {
-      // undici@6.11.0 accidentally, briefly removed `request.addHeader()`.
-      request.headers.push(k, v);
-    }
-  }
 }
 
 function getRequestMethod(original: string): string {
