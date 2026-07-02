@@ -250,6 +250,10 @@ describe('sentryHandle', () => {
         //
       }
 
+      // The transaction is captured on a debounce (deferred so children ending after the root still
+      // join it), so flush to emit the envelope before asserting its trace header.
+      await client.flush();
+
       expect(_span).toBeDefined();
       expect(_span!.spanContext().traceId).toEqual('1234567890abcdef1234567890abcdef');
       expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890abcdef');
@@ -298,6 +302,10 @@ describe('sentryHandle', () => {
       } catch {
         //
       }
+
+      // The transaction is captured on a debounce (deferred so children ending after the root still
+      // join it), so flush to emit the envelope before asserting its trace header.
+      await client.flush();
 
       expect(_span!).toBeDefined();
       expect(envelopeHeaders!.trace).toEqual({

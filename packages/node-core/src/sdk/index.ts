@@ -167,7 +167,9 @@ export function validateOpenTelemetrySetup(): void {
 
   const required: ReturnType<typeof openTelemetrySetupCheck> = ['SentryContextManager', 'SentryPropagator'];
 
-  if (hasSpansEnabled()) {
+  const hasSentryTracerProvider = setup.includes('SentryTracerProvider');
+
+  if (hasSpansEnabled() && !hasSentryTracerProvider) {
     required.push('SentrySpanProcessor');
   }
 
@@ -179,7 +181,7 @@ export function validateOpenTelemetrySetup(): void {
     }
   }
 
-  if (!setup.includes('SentrySampler')) {
+  if (!hasSentryTracerProvider && !setup.includes('SentrySampler')) {
     debug.warn(
       'You have to set up the SentrySampler. Without this, the OpenTelemetry & Sentry integration may still work, but sample rates set for the Sentry SDK will not be respected. If you use a custom sampler, make sure to use `wrapSamplingDecision`.',
     );
