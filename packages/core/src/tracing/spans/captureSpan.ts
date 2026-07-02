@@ -10,7 +10,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE,
   SEMANTIC_ATTRIBUTE_USER_EMAIL,
   SEMANTIC_ATTRIBUTE_USER_ID,
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
@@ -28,7 +27,7 @@ import { getCapturedScopesOnSpan } from '../utils';
 import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
 import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 import { DEFAULT_ENVIRONMENT } from '../../constants';
-import { SENTRY_SPAN_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SPAN_SOURCE, SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 
 export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
   _segmentSpan: Span;
@@ -139,7 +138,7 @@ function applyCommonSpanAttributes(
 
   // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
   safeSetSpanJSONAttributes(spanJSON, {
-    [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: 'stream',
+    [SENTRY_TRACE_LIFECYCLE]: 'stream',
     [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: release,
     [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: environment || DEFAULT_ENVIRONMENT,
     [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: serializedSegmentSpan.name,

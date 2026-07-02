@@ -12,11 +12,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
-  SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 
 sentryTest(
   'sends a streamed span envelope if spanStreamingIntegration is enabled',
@@ -101,7 +101,7 @@ sentryTest(
             type: 'string',
             value: 'production',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+          [SENTRY_TRACE_LIFECYCLE]: {
             type: 'string',
             value: 'stream',
           },
@@ -141,7 +141,7 @@ sentryTest(
             type: 'string',
             value: 'production',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+          [SENTRY_TRACE_LIFECYCLE]: {
             type: 'string',
             value: 'stream',
           },
@@ -185,7 +185,7 @@ sentryTest(
             type: 'string',
             value: 'Connection Refused',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+          [SENTRY_TRACE_LIFECYCLE]: {
             type: 'string',
             value: 'stream',
           },
@@ -265,7 +265,7 @@ sentryTest(
             type: 'string',
             value: 'production',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+          [SENTRY_TRACE_LIFECYCLE]: {
             type: 'string',
             value: 'stream',
           },

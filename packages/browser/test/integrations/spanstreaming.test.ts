@@ -3,8 +3,8 @@ import {
   debug,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/core/browser';
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient, spanStreamingIntegration } from '../../src';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
@@ -138,7 +138,7 @@ describe('spanStreamingIntegration', () => {
       start_timestamp: expect.any(Number),
       status: 'ok',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+        [SENTRY_TRACE_LIFECYCLE]: {
           type: 'string',
           value: 'stream',
         },

@@ -11,8 +11,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/core';
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '../../../../utils/spanUtils';
@@ -43,7 +43,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
 
   expect(interactionSegmentSpan).toEqual({
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+      [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
       },
@@ -127,7 +127,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
   const interactionSpan = interactionSpanTree.find(span => getSpanOp(span) === 'ui.interaction.click');
   expect(interactionSpan).toEqual({
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
+      [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
       },

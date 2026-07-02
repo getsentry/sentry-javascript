@@ -100,6 +100,7 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
+    "@sentry/conventions": "0.15.1",
     "@sentry-internal/test-utils": "10.63.0",
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",

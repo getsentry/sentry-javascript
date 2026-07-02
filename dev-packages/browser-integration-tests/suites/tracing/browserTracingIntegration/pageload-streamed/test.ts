@@ -11,8 +11,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/core';
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, getSpansFromEnvelope, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
@@ -65,10 +65,6 @@ sentryTest(
 
     expect(pageloadSpan).toEqual({
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_TRACE_LIFECYCLE]: {
-          type: 'string',
-          value: 'stream',
-        },
         'culture.calendar': {
           type: 'string',
           value: expect.any(String),
@@ -168,6 +164,10 @@ sentryTest(
         [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
           type: 'string',
           value: 'production',
+        },
+        [SENTRY_TRACE_LIFECYCLE]: {
+          type: 'string',
+          value: 'stream',
         },
       },
       end_timestamp: expect.any(Number),
