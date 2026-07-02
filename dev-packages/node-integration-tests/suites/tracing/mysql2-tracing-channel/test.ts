@@ -59,9 +59,13 @@ conditionalTest({ min: 20 })('mysql2 tracing channel Test', () => {
           .withDockerCompose({ workingDirectory: [__dirname] })
           .expect({ transaction: EXPECTED_CONNECT })
           .expect({ transaction: EXPECTED_TRANSACTION })
+          // The scenario retries the initial connect (MySQL drops early handshakes right
+          // after the healthcheck passes), and each failed attempt emits a `mysql2.connect`
+          // transaction, so envelope order isn't guaranteed.
+          .unordered()
           .start()
           .completed();
-      });
+      }, 30_000);
 
       test('does not double-instrument: the legacy IITM mysql2 patcher does not fire on 3.20.0+', async () => {
         await createTestRunner()
@@ -69,6 +73,9 @@ conditionalTest({ min: 20 })('mysql2 tracing channel Test', () => {
           .expect({ transaction: EXPECTED_CONNECT })
           .expect({
             transaction: event => {
+              // With `.unordered()`, pin the assertion to the query transaction so a stray
+              // connect transaction (from a retried handshake) can't satisfy it.
+              expect(event.transaction).toBe('Test Transaction');
               const spans = event.spans || [];
               // The monkey-patch path (origin `auto.db.otel.mysql2`) must be inactive on 3.20.0+.
               expect(spans.find(span => span.origin === 'auto.db.otel.mysql2')).toBeUndefined();
@@ -76,9 +83,10 @@ conditionalTest({ min: 20 })('mysql2 tracing channel Test', () => {
               expect(spans.find(span => span.origin === 'auto.db.mysql2.diagnostic_channel')).toBeDefined();
             },
           })
+          .unordered()
           .start()
           .completed();
-      });
+      }, 30_000);
 
       test('never leaks raw values into db.query.text', async () => {
         await createTestRunner()
@@ -86,6 +94,9 @@ conditionalTest({ min: 20 })('mysql2 tracing channel Test', () => {
           .expect({ transaction: EXPECTED_CONNECT })
           .expect({
             transaction: event => {
+              // With `.unordered()`, pin the assertion to the query transaction so an empty
+              // connect transaction (from a retried handshake) can't vacuously satisfy it.
+              expect(event.transaction).toBe('Test Transaction');
               const spans = event.spans || [];
               for (const span of spans) {
                 const queryText = span.data?.['db.query.text'];
@@ -95,9 +106,10 @@ conditionalTest({ min: 20 })('mysql2 tracing channel Test', () => {
               }
             },
           })
+          .unordered()
           .start()
           .completed();
-      });
+      }, 30_000);
     },
     { additionalDependencies: { mysql2: '^3.20.0' } },
   );
