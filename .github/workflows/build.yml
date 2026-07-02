@@ -773,8 +773,8 @@ jobs:
 
   job_node_integration_tests:
     name:
-      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }}${{ (matrix.use_orchestrion && format(' (Orchestrion)', matrix.use_orchestrion)) || '' }} Integration
-      Tests
+      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }}${{
+      (matrix.use_orchestrion && format(' (Orchestrion)', matrix.use_orchestrion)) || '' }} Integration Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
