@@ -28,7 +28,7 @@ import { systemErrorIntegration } from '../integrations/systemError';
 import { defaultStackParser, getSentryRelease } from '../sdk/api';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
-import { isCjs } from '../utils/detection';
+import { isCjs } from '../utils/isCjs';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { setAsyncLocalStorageAsyncContextStrategy } from './asyncLocalStorageStrategy';
 import { LightNodeClient } from './client';

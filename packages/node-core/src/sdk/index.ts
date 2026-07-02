@@ -37,7 +37,7 @@ import { consoleIntegration } from '../integrations/console';
 import { systemErrorIntegration } from '../integrations/systemError';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
-import { isCjs } from '../utils/detection';
+import { isCjs } from '../utils/isCjs';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
