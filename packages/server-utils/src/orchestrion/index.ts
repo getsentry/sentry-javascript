@@ -2,7 +2,7 @@ import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/l
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { postgresChannelIntegration } from '../integrations/tracing-channel/postgres';
 
-export { detectOrchestrionSetup } from './detect';
+export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 export { lruMemoizerChannelIntegration, mysqlChannelIntegration, postgresChannelIntegration };
 
 /**

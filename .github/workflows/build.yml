@@ -778,7 +778,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -1033,8 +1033,8 @@ jobs:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
         if:
-          contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun", "hono-4", "bun-bytecode"]'),
-          matrix.test-application)
+          contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun", "hono-4", "bun-bytecode",
+          "bun-mysql"]'), matrix.test-application)
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.14'
@@ -1045,7 +1045,10 @@ jobs:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Deno
-        if: contains(matrix.test-application, 'deno') || matrix.test-application == 'hono-4'
+        if:
+          matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed' || matrix.test-application ==
+          'deno-redis' || matrix.test-application == 'hono-4' || matrix.test-application == 'deno-mysql' ||
+          matrix.test-application == 'deno-pg'
         uses: denoland/setup-deno@v2.0.4
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.0' }}
@@ -1168,7 +1171,7 @@ jobs:
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Deno
-        if: contains(matrix.test-application, 'deno')
+        if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
         uses: denoland/setup-deno@v2.0.4
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.0' }}
