@@ -11,13 +11,17 @@ sentryTest('Assigns web worker debug IDs when using webWorkerIntegration', async
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page, url);
-
-  page.route('**/worker.js', route => {
-    route.fulfill({
+  // `init.js` creates the worker (`new Worker('/worker.js')`) during page load, so the
+  // route must be registered (and awaited) before navigation is triggered. Otherwise the
+  // worker request can race the route setup, load the real worker without a debug ID, and
+  // the expected error envelope never arrives.
+  await page.route('**/worker.js', route => {
+    return route.fulfill({
       path: `${__dirname}/assets/worker.js`,
     });
   });
+
+  const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page, url);
 
   const button = page.locator('#errWorker');
   await button.click();
@@ -45,13 +49,17 @@ sentryTest('Captures unhandled rejections from web workers', async ({ getLocalTe
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page, url);
-
-  page.route('**/worker.js', route => {
-    route.fulfill({
+  // `init.js` creates the worker (`new Worker('/worker.js')`) during page load, so the
+  // route must be registered (and awaited) before navigation is triggered. Otherwise the
+  // worker request can race the route setup, load the real worker without a debug ID, and
+  // the expected error envelope never arrives.
+  await page.route('**/worker.js', route => {
+    return route.fulfill({
       path: `${__dirname}/assets/worker.js`,
     });
   });
+
+  const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page, url);
 
   const button = page.locator('#rejectionWorker');
   await button.click();
