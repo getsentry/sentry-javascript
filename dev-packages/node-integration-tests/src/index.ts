@@ -55,3 +55,8 @@ export function getPortAppIsRunningOn(app: Express): number | undefined {
   // @ts-expect-error It's not defined in the types but we'd like to read it.
   return app.port;
 }
+
+/** Returns true if orchestrion is enabled in env vars. */
+export function isOrchestrionEnabled(): boolean {
+  return process.env.INJECT_ORCHESTRION === 'true' || process.env.INJECT_ORCHESTRION === '1';
+}

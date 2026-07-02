@@ -58,6 +58,8 @@ describe('mysql auto instrumentation', () => {
     };
   }
 
+  // Note: here specifically, we want to ignore the generic orchestrion testing define via INJECT_ORCHESTRION,
+  // but instead test various different ways to run orchestrion manually
   const CHANNEL_ORIGIN = 'auto.db.orchestrion.mysql';
 
   // Each case maps to one of the two documented use cases, in opt-in and
@@ -137,7 +139,11 @@ describe('mysql auto instrumentation', () => {
                 .completed();
             });
           },
-          { failsOnEsm },
+          {
+            failsOnEsm,
+            // We handle injection ourselves here
+            injectOrchestrion: false,
+          },
         );
       }
 
@@ -174,7 +180,11 @@ describe('mysql auto instrumentation', () => {
               .completed();
           });
         },
-        { failsOnEsm },
+        {
+          failsOnEsm,
+          // We handle injection ourselves here
+          injectOrchestrion: false,
+        },
       );
     });
   }
