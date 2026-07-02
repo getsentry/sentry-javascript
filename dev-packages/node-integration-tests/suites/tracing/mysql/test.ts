@@ -4,6 +4,7 @@ import { cleanupChildProcesses, createCjsTests, createEsmAndCjsTests } from '../
 import { startMysqlTestServer } from './mysql-test-server';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
+import { isOrchestrionEnabled } from '../../../utils';
 
 describe('mysql auto instrumentation', () => {
   // A minimal in-process MySQL server (on a random free port) so the client's
@@ -58,6 +59,8 @@ describe('mysql auto instrumentation', () => {
     };
   }
 
+  // Note: here specifically, we want to ignore the generic orchestrion testing define via INJECT_ORCHESTRION,
+  // but instead test various different ways to run orchestrion manually
   const CHANNEL_ORIGIN = 'auto.db.orchestrion.mysql';
 
   // Each case maps to one of the two documented use cases, in opt-in and
@@ -137,7 +140,11 @@ describe('mysql auto instrumentation', () => {
                 .completed();
             });
           },
-          { failsOnEsm },
+          {
+            failsOnEsm,
+            // We handle injection ourselves here
+            injectOrchestrion: false,
+          },
         );
       }
 
@@ -174,7 +181,11 @@ describe('mysql auto instrumentation', () => {
               .completed();
           });
         },
-        { failsOnEsm },
+        {
+          failsOnEsm,
+          // We handle injection ourselves here
+          injectOrchestrion: false,
+        },
       );
     });
   }
@@ -225,7 +236,7 @@ describe('mysql auto instrumentation', () => {
         },
         'sentry.origin': {
           type: 'string',
-          value: 'auto.db.otel.mysql',
+          value: isOrchestrionEnabled() ? 'auto.db.orchestrion.mysql' : 'auto.db.otel.mysql',
         },
         'sentry.release': {
           type: 'string',

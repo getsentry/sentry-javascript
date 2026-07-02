@@ -191,7 +191,10 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     withEnv: function (env: Record<string, string>) {
-      withEnv = env;
+      withEnv = {
+        ...withEnv,
+        ...env,
+      };
       return this;
     },
     withFlags: function (...args: string[]) {

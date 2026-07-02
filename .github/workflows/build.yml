@@ -773,8 +773,8 @@ jobs:
 
   job_node_integration_tests:
     name:
-      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
-      Tests
+      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }}${{
+      (matrix.use_orchestrion && format(' (Orchestrion)', matrix.use_orchestrion)) || '' }} Integration Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
@@ -785,10 +785,21 @@ jobs:
         node: [18, 20, 22, 24, 26]
         typescript:
           - false
+        use_orchestrion:
+          - false
         include:
           # Only check typescript for latest version (to streamline CI)
           - node: 24
             typescript: '3.8'
+          # No need to test orchestrion for v18
+          - node: 20
+            use_orchestrion: 'true'
+          - node: 22
+            use_orchestrion: 'true'
+          - node: 24
+            use_orchestrion: 'true'
+          - node: 26
+            use_orchestrion: 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v6
@@ -811,6 +822,8 @@ jobs:
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
         run: yarn test
+        env:
+          INJECT_ORCHESTRION: ${{ matrix.use_orchestrion }}
 
   job_node_v18_compat:
     name: Node v18.0.0 Compatibility Check
