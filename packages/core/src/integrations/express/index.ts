@@ -211,7 +211,8 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErr
     setSDKProcessingMetadata(request);
     const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
 
-    if (shouldHandleError(error)) {
+    // Do not capture error again if the response was already handled by Sentry
+    if (shouldHandleError(error) && !(res as { sentry?: string }).sentry) {
       const eventId = captureException(error, {
         mechanism: { type: 'auto.middleware.express', handled: false },
       });

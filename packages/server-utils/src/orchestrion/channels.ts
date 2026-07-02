@@ -29,7 +29,6 @@ export const CHANNELS = {
   ...anthropicAiChannels,
   ...vercelAiChannels,
   ...expressChannels,
- 
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

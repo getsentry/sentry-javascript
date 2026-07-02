@@ -20,6 +20,11 @@ export interface ExpressRequest {
   method?: string;
   baseUrl?: string;
   originalUrl?: string;
+  // Enough of the underlying `http.IncomingMessage` for `httpRequestToRequestData`.
+  url?: string;
+  headers?: { [key: string]: string | string[] | undefined };
+  protocol?: string;
+  socket?: { encrypted?: boolean; remoteAddress?: string };
 }
 export interface ExpressResponse {
   once(event: string, listener: () => void): unknown;
@@ -54,10 +59,41 @@ export interface RegistrationChannelContext {
   arguments?: unknown[];
 }
 
+/**
+ * The context orchestrion attaches to the router dispatch channel
+ * (`Router.prototype.handle(req, res, out)`): `arguments` are `[req, res, out]`.
+ * `_sentryOutermost` marks the top-level router.handle for a request, so we only
+ * treat *its* `out(err)` as "reached finalhandler / unhandled".
+ */
+export interface DispatchChannelContext {
+  arguments?: unknown[];
+  _sentryOutermost?: boolean;
+}
+
+/**
+ * An error that escaped the Express pipeline. The optional status fields mirror
+ * `@sentry/core`'s Express error handler and are read by `defaultShouldHandleError`.
+ */
+export interface MiddlewareError extends Error {
+  status?: number | string;
+  statusCode?: number | string;
+  status_code?: number | string;
+  output?: {
+    statusCode?: number | string;
+  };
+}
+
 type IgnoreMatcher = string | RegExp | ((name: string) => boolean);
 export interface ExpressIntegrationOptions {
   /** Ignore specific based on their name */
   ignoreLayers?: IgnoreMatcher[];
   /** Ignore specific layers based on their type */
   ignoreLayersType?: ExpressLayerType[];
+  /**
+   * Callback deciding whether an *unhandled* error (one that escaped all of the
+   * app's error handlers and reached Express's final handler) should be captured.
+   * Errors a user error handler consumes are never passed here. Defaults to
+   * capturing errors whose status is `>= 500`.
+   */
+  shouldHandleError?: (error: MiddlewareError) => boolean;
 }

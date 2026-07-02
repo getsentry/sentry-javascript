@@ -2,11 +2,13 @@ import type * as diagnosticsChannel from 'node:diagnostics_channel';
 import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
+  captureException,
   debug,
   getActiveSpan,
   getDefaultIsolationScope,
   getIsolationScope,
   getRootSpan,
+  httpRequestToRequestData,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
@@ -26,12 +28,14 @@ import {
   setLayerRegisteredPath,
 } from './route';
 import type {
+  DispatchChannelContext,
   ExpressIntegrationOptions,
   ExpressLayer,
   ExpressLayerType,
   ExpressRequest,
   ExpressResponse,
   HandleChannelContext,
+  MiddlewareError,
   RegistrationChannelContext,
 } from './types';
 
@@ -44,6 +48,10 @@ const ATTR_EXPRESS_NAME = 'express.name';
 const ATTR_EXPRESS_TYPE = 'express.type';
 
 const NOOP = (): void => {};
+
+// The top-level `router.handle` for a request. Its `out(err)` callback firing is
+// the "error escaped everything unhandled" signal; nested routers must be ignored.
+const outermostDispatchSeen = new WeakSet<object>();
 
 let _isInstrumented = false;
 
@@ -98,6 +106,87 @@ export function instrumentExpress(
       asyncStart: popLayerPathForLayer,
     });
   }
+
+  // Auto-capture *unhandled* errors: the top-level `router.handle`'s `out`
+  // callback is invoked with an error only when the error escaped every layer
+  // (including the user's error handlers) and would reach Express's final
+  // handler. An error a user handler consumes never reaches this point, so it is
+  // (correctly) not captured. `start` tags the outermost router.handle;
+  // `asyncEnd` fires when `out` is called.
+  for (const channelName of [CHANNELS.EXPRESS_DISPATCH, CHANNELS.ROUTER_DISPATCH]) {
+    tracingChannel<DispatchChannelContext>(channelName).subscribe({
+      start: markOutermostDispatch,
+      asyncStart: NOOP,
+      end: NOOP,
+      error: NOOP,
+      asyncEnd: data => captureUnhandledError(data, options),
+    });
+  }
+}
+
+/** Tag the first (top-level) `router.handle` invocation for a request. */
+function markOutermostDispatch(data: DispatchChannelContext): void {
+  const req = data.arguments?.[0];
+  if (req && typeof req === 'object' && !outermostDispatchSeen.has(req)) {
+    outermostDispatchSeen.add(req);
+    data._sentryOutermost = true;
+  }
+}
+
+/**
+ * Capture an error that escaped the whole app unhandled (reached the final
+ * handler), gated by `shouldHandleError`. Skips capture if `res.sentry` is
+ * already set, so it doesn't double-report when the user also uses
+ * `setupExpressErrorHandler` (which captures and sets `res.sentry`).
+ */
+function captureUnhandledError(
+  data: DispatchChannelContext & { error?: unknown },
+  options: ExpressIntegrationOptions,
+): void {
+  if (!data._sentryOutermost) {
+    return;
+  }
+  const error = data.error;
+  if (!error) {
+    return;
+  }
+
+  const res = data.arguments?.[1] as { sentry?: string } | undefined;
+  if (res?.sentry) {
+    return;
+  }
+
+  const shouldHandleError = options.shouldHandleError ?? defaultShouldHandleError;
+  if (!shouldHandleError(error as MiddlewareError)) {
+    return;
+  }
+
+  const eventId = captureException(error, {
+    mechanism: { type: 'auto.middleware.express', handled: false },
+  });
+  if (res && typeof res === 'object') {
+    res.sentry = eventId;
+  }
+}
+
+/**
+ * Set `normalizedRequest` on the isolation scope from the Express request, so
+ * events captured during the request carry request data. Idempotent — no-op if
+ * already set (by an earlier layer or another integration). Mirrors
+ * `@sentry/core`'s Express `setSDKProcessingMetadata`.
+ */
+function setSDKProcessingMetadata(req: ExpressRequest): void {
+  const isolationScope = getIsolationScope();
+  if (!isolationScope.getScopeData().sdkProcessingMetadata?.normalizedRequest) {
+    isolationScope.setSDKProcessingMetadata({ normalizedRequest: httpRequestToRequestData(req) });
+  }
+}
+
+/** Returns true if the error's status code is a server error (>= 500). */
+function defaultShouldHandleError(error: MiddlewareError): boolean {
+  const statusCode = error.status || error.statusCode || error.status_code || error.output?.statusCode;
+  const status = statusCode ? parseInt(statusCode as string, 10) : 500;
+  return status >= 500;
 }
 
 /** Record the freshly-registered layer's path pattern from a `route`/`use` call. */
@@ -157,6 +246,14 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   if (!req) {
     return undefined;
   }
+
+  // Set `normalizedRequest` on the isolation scope early (before the active-span
+  // check, so it happens even when tracing is off), matching the OTel Express
+  // integration. Route handlers usually respond without calling `next`, so the
+  // request-handler middleware `setupExpressErrorHandler` adds never runs for
+  // successful requests — this ensures errors captured mid-request still carry
+  // request data. Idempotent: only the first layer of a request sets it.
+  setSDKProcessingMetadata(req);
 
   // No active parent span means this request is being ignored (unsampled /
   // filtered), so don't open a span

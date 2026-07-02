@@ -54,6 +54,20 @@ export const expressConfig = [
     module: { name: 'router', versionRange: '>=2.0.0 <3', filePath: 'index.js' },
     functionQuery: { expressionName: 'use', kind: 'Sync' },
   },
+  // The router's top-level dispatch, `Router.prototype.handle = function handle(req, res, out)`.
+  // `Callback` wraps the trailing `out` callback: it's invoked with an error only
+  // when the error escapes the whole router unhandled (i.e. reaches `finalhandler`),
+  // which is the signal used to auto-capture errors no user handler consumed.
+  {
+    channelName: 'dispatch',
+    module: { name: 'express', versionRange: '>=4.0.0 <5', filePath: 'lib/router/index.js' },
+    functionQuery: { expressionName: 'handle', kind: 'Callback' },
+  },
+  {
+    channelName: 'dispatch',
+    module: { name: 'router', versionRange: '>=2.0.0 <3', filePath: 'index.js' },
+    functionQuery: { expressionName: 'handle', kind: 'Callback' },
+  },
 ] satisfies InstrumentationConfig[];
 
 export const expressChannels = {
@@ -70,4 +84,10 @@ export const expressChannels = {
   EXPRESS_USE: 'orchestrion:express:use',
   ROUTER_ROUTE: 'orchestrion:router:route',
   ROUTER_USE: 'orchestrion:router:use',
+  // The router's top-level dispatch (`Router.prototype.handle`). Its `out`
+  // callback is invoked with an error only when the error escapes the whole
+  // router unhandled (reaching `finalhandler`) — the signal for auto-capturing
+  // errors a user's error handler didn't consume.
+  EXPRESS_DISPATCH: 'orchestrion:express:dispatch',
+  ROUTER_DISPATCH: 'orchestrion:router:dispatch',
 } as const;
