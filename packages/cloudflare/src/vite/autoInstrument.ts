@@ -8,12 +8,23 @@ type UnknownPlugin = any;
 
 export interface SentryCloudflareAutoInstrumentOptions {
   /**
-   * Path to the wrangler configuration file. Auto-detected from the Vite
-   * project root when omitted (tries `wrangler.toml`, `wrangler.json`,
-   * `wrangler.jsonc` in order).
+   * Path to the wrangler configuration file, resolved against the Vite project
+   * root. Auto-detected when omitted (tries `wrangler.json`, `wrangler.jsonc`,
+   * `wrangler.toml` in order — the same precedence wrangler applies).
    */
   wranglerConfigPath?: string;
 }
+
+// Vite normalizes module IDs to posix separators even on Windows, while
+// `path.resolve` yields backslashes there — normalize before comparing.
+function normalizePath(path: string): string {
+  return path.replace(/\\/g, '/');
+}
+
+// Extensions the entry-module match may tolerate swapping (e.g. wrangler's
+// `main` says `.ts` but the served module is `.js`). Anything else — `.css`,
+// `.html`, … — sharing the entry's basename must never be treated as the entry.
+const JS_EXTENSION_REGEX = /\.[cm]?[jt]sx?$/;
 
 export function sentryCloudflareAutoInstrumentPlugin(
   pluginOptions: SentryCloudflareAutoInstrumentOptions = {},
@@ -30,13 +41,13 @@ export function sentryCloudflareAutoInstrumentPlugin(
     configResolved(config: { root: string; logger?: { warn(msg: string): void } }): void {
       const result = resolveWranglerConfig(config.root, pluginOptions.wranglerConfigPath);
       if (!result) {
-        config.logger?.warn('[sentry] No wrangler config found — auto-instrumentation disabled.');
+        config.logger?.warn('[sentry] No parseable wrangler config found — auto-instrumentation disabled.');
         return;
       }
 
       wranglerConfig = result.config;
       if (wranglerConfig.main) {
-        entryFilePath = resolve(result.configDir, wranglerConfig.main);
+        entryFilePath = normalizePath(resolve(result.configDir, wranglerConfig.main));
       }
 
       if (entryFilePath) {
@@ -50,18 +61,25 @@ export function sentryCloudflareAutoInstrumentPlugin(
     },
 
     transform(
-      this: { parse(code: string): ProgramBody },
+      this: { parse(code: string): ProgramBody; warn?(msg: string): void; environment?: { name?: string } },
       code: string,
       id: string,
     ): { code: string; map: unknown } | undefined {
       if (!wranglerConfig || !entryFilePath) return undefined;
 
+      // The worker entry never belongs to the client (browser) environment.
+      // Skipping it keeps a same-basename sibling (e.g. a `src/index.tsx`
+      // client entry next to a `src/index.ts` worker) out of the browser bundle.
+      if (this.environment?.name === 'client') return undefined;
+
       // Vite may append query/hash params to the module ID.
-      const normalizedId = id.replace(/[?#].*$/, '');
+      const normalizedId = normalizePath(id.replace(/[?#].*$/, ''));
       if (normalizedId !== entryFilePath) {
-        // Tolerate a missing or different extension (e.g. `.tsx` vs `.ts`).
-        const stripExt = (p: string): string => p.replace(/\.\w+$/, '');
-        if (stripExt(normalizedId) !== stripExt(entryFilePath)) return undefined;
+        // Tolerate a differing JS-flavored extension (e.g. `.js` vs `.ts`).
+        if (!JS_EXTENSION_REGEX.test(normalizedId) || !JS_EXTENSION_REGEX.test(entryFilePath)) return undefined;
+        if (normalizedId.replace(JS_EXTENSION_REGEX, '') !== entryFilePath.replace(JS_EXTENSION_REGEX, '')) {
+          return undefined;
+        }
       }
 
       let ast: ProgramBody;
@@ -74,7 +92,19 @@ export function sentryCloudflareAutoInstrumentPlugin(
       }
 
       const doClassNames = new Set(wranglerConfig.durableObjects.map(d => d.className));
-      return applyAutoInstrumentTransforms(code, ast, { doClassNames, optionsFn, optionsImport }) ?? undefined;
+      const result = applyAutoInstrumentTransforms(code, ast, { doClassNames, optionsFn, optionsImport });
+
+      const wrappedDoClasses = result?.wrappedDoClasses ?? new Set<string>();
+      const missing = [...doClassNames].filter(name => !wrappedDoClasses.has(name));
+      if (missing.length > 0) {
+        this.warn?.(
+          `[sentry] Could not auto-instrument Durable Object class(es) ${missing.join(', ')}: no matching ` +
+            'exported class declaration found in the worker entry (re-exports from other modules cannot be ' +
+            'wrapped automatically). Wrap them manually with `instrumentDurableObjectWithSentry`.',
+        );
+      }
+
+      return result ?? undefined;
     },
   };
 }

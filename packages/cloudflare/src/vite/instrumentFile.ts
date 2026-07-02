@@ -34,16 +34,16 @@ export function resolveInstrumentFile(entryFilePath: string): string | undefined
  * `(env) => CloudflareOptions`.
  *
  * The import is emitted relative to `entryFilePath` because it is injected into
- * the entry file's source. The file extension is stripped so the bundler's
- * normal resolution applies (`./instrument.server.ts` → `./instrument.server`).
+ * the entry file's source. The file extension is kept: extensionless specifiers
+ * only resolve for extensions in Vite's default `resolve.extensions` (which
+ * excludes `.cjs`), and keeping it makes our probe order authoritative when
+ * several `instrument.server.*` files coexist.
  */
 export function buildOptionsImport(
   entryFilePath: string,
   instrumentFilePath: string,
 ): { optionsFn: string; importStmt: string } {
-  let relativePath = relative(dirname(entryFilePath), instrumentFilePath)
-    .replace(/\\/g, '/')
-    .replace(/\.\w+$/, '');
+  let relativePath = relative(dirname(entryFilePath), instrumentFilePath).replace(/\\/g, '/');
   if (!relativePath.startsWith('.')) relativePath = `./${relativePath}`;
 
   return {
