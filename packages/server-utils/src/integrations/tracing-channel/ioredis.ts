@@ -113,7 +113,6 @@ const _ioredisChannelIntegration = ((options: IORedisChannelIntegrationOptions =
             });
           },
           {
-            captureError: false,
             beforeSpanEnd(span, data) {
               if ('error' in data || !responseHook) {
                 return;
@@ -126,21 +125,17 @@ const _ioredisChannelIntegration = ((options: IORedisChannelIntegrationOptions =
           },
         );
 
-        bindTracingChannelToSpan(
-          connectChannel,
-          data => {
-            if (!getActiveSpan()) {
-              return undefined;
-            }
-            const { host, port } = getConnectionOptions(data.self);
-            return startInactiveSpan({
-              name: 'connect',
-              op: 'db',
-              attributes: { ...connectionAttributes(host, port), [DB_STATEMENT]: 'connect' },
-            });
-          },
-          { captureError: false },
-        );
+        bindTracingChannelToSpan(connectChannel, data => {
+          if (!getActiveSpan()) {
+            return undefined;
+          }
+          const { host, port } = getConnectionOptions(data.self);
+          return startInactiveSpan({
+            name: 'connect',
+            op: 'db',
+            attributes: { ...connectionAttributes(host, port), [DB_STATEMENT]: 'connect' },
+          });
+        });
       });
     },
   };

@@ -47,9 +47,11 @@ export function experimentalUseDiagnosticsChannelInjection(): void {
     const replacements = [mysqlChannelIntegration(), lruMemoizerChannelIntegration()] as const;
 
     return {
-      // ioredis only supersedes the ioredis monkey-patch inside the composite OTel
-      // `Redis` integration (gated off in `redisIntegration`), so it's added here
-      // but kept out of `replacedOtelIntegrationNames` — `Redis` must stay.
+      // The OTel `Redis` integration also covers node-redis and ioredis >=5.11
+      // (native diagnostics_channel), so we keep it in the set to retain that
+      // instrumentation. Only its ioredis <5.11 monkey-patch is gated off in
+      // `redisIntegration` — hence `ioredisChannelIntegration` is added but kept
+      // out of `replacedOtelIntegrationNames`.
       integrations: [...replacements, ioredisChannelIntegration({ responseHook: cacheResponseHook })],
       replacedOtelIntegrationNames: replacements.map(i => i.name),
       register: registerDiagnosticsChannelInjection,
