@@ -1,3 +1,8 @@
+// Published ESM-only via the `@sentry/cloudflare/vite` subpath export:
+// `@sentry/server-utils/orchestrion/vite` exposes no `require` condition, so a
+// CJS entry here would fail at resolution time (ERR_PACKAGE_PATH_NOT_EXPORTED).
+// The CJS rollup variant still emits this file, but `package.json` doesn't
+// expose it — same setup as `@sentry/server-utils/orchestrion/vite` itself.
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import { sentryCloudflareAutoInstrumentPlugin, type SentryCloudflareAutoInstrumentOptions } from './autoInstrument';
 
