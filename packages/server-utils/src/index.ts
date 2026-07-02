@@ -4,6 +4,7 @@
  * @module
  */
 
+export { mongooseIntegration } from './mongoose';
 export {
   IOREDIS_DC_CHANNEL_COMMAND,
   IOREDIS_DC_CHANNEL_CONNECT,
