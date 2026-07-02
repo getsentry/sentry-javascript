@@ -138,7 +138,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": [
-    "**/nodeVersion.js"
-  ]
+  "sideEffects": false
 }

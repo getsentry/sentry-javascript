@@ -10,7 +10,7 @@ import {
 } from '@sentry/core';
 import type { NodeClient } from '../sdk/client';
 import { createMissingInstrumentationContext } from './createMissingInstrumentationContext';
-import { isCjs } from './detection';
+import { isCjs } from './isCjs';
 
 /**
  * Checks and warns if a framework isn't wrapped by opentelemetry.
