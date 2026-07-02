@@ -7,6 +7,7 @@ import {
   getActiveSpan,
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -131,7 +132,9 @@ function subscribeQueryLikeChannel(
       // replays this scope onto that emitter.
       data._sentryCallerScope = getCurrentScope();
 
-      return startInactiveSpan(getSpanOptions(data));
+      // `kind: CLIENT` mirrors the OTel pg instrumentation, so the emitted
+      // `otel.kind` matches across the OTel and diagnostics-channel paths.
+      return startInactiveSpan({ ...getSpanOptions(data), kind: SPAN_KIND.CLIENT });
     },
     // `connect`/`pool-connect` resolve with a persistent `Client` (itself an
     // `EventEmitter`), which is NOT a streamed result. Deferring their span
