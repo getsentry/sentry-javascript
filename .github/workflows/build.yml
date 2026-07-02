@@ -791,8 +791,12 @@ jobs:
           # Only check typescript for latest version (to streamline CI)
           - node: 24
             typescript: '3.8'
-          # Only check orchestrion for v20 and v26
+          # No need to test orchestrion for v18
           - node: 20
+            use_orchestrion: 'true'
+          - node: 22
+            use_orchestrion: 'true'
+          - node: 24
             use_orchestrion: 'true'
           - node: 26
             use_orchestrion: 'true'
