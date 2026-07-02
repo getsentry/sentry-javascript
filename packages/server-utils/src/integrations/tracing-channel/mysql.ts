@@ -6,6 +6,7 @@ import {
   defineIntegration,
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -82,6 +83,7 @@ const _mysqlChannelIntegration = (() => {
 
             return startInactiveSpan({
               name: sql ?? 'mysql.query',
+              kind: SPAN_KIND.CLIENT,
               op: 'db',
               attributes: {
                 [ATTR_DB_SYSTEM]: 'mysql',
