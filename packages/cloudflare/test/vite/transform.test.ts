@@ -149,6 +149,54 @@ describe('Durable Object class wrapping', () => {
     const code = 'export const MyDurableObject = 42;';
     expect(transform(code, ctx)).toBeUndefined();
   });
+
+  it('wraps a DO class exported via a specifier list', () => {
+    const code = [
+      'class DurableObject {}',
+      'class MyDurableObject extends DurableObject {',
+      '  fetch(request) { return new Response("DO ok"); }',
+      '}',
+      'export { MyDurableObject };',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result).toBeDefined();
+    expect(result.code).toContain('class __SENTRY_ORIGINAL_MyDurableObject__');
+    expect(result.code).toContain(
+      'const MyDurableObject = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_ORIGINAL_MyDurableObject__);',
+    );
+    // The original specifier export keeps exporting the wrapped binding.
+    expect(result.code).toContain('export { MyDurableObject };');
+    expect(result.wrappedDoClasses).toEqual(new Set(['MyDurableObject']));
+  });
+
+  it('wraps a DO class exported via an aliased specifier', () => {
+    const code = [
+      'class DurableObject {}',
+      'class Internal extends DurableObject {}',
+      'export { Internal as MyDurableObject };',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result).toBeDefined();
+    expect(result.code).toContain('class __SENTRY_ORIGINAL_Internal__');
+    expect(result.code).toContain(
+      'const Internal = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_ORIGINAL_Internal__);',
+    );
+    expect(result.code).toContain('export { Internal as MyDurableObject };');
+    expect(result.wrappedDoClasses).toEqual(new Set(['MyDurableObject']));
+  });
+
+  it('leaves re-exports from other modules alone and reports them unwrapped', () => {
+    const code = "export { MyDurableObject } from './do';";
+    expect(transform(code, ctx)).toBeUndefined();
+  });
+
+  it('reports wrapped DO classes for the inline export form', () => {
+    const code = ['class DurableObject {}', 'export class MyDurableObject extends DurableObject {}'].join('\n');
+    const result = transform(code, ctx)!;
+    expect(result.wrappedDoClasses).toEqual(new Set(['MyDurableObject']));
+  });
 });
 
 // ---------------------------------------------------------------------------
