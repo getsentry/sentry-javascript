@@ -1,5 +1,5 @@
 /**
- * This is a copy of the Vercel AI integration from the Cloudflare SDK.
+ * This is a copy of the Vercel AI integration from the Cloudflare SDK (src/integrations/tracing/vercelai.ts).
  *
  * The only difference is that it includes tracing channel support
  * because the default Vercel AI integration needs `nodejs_als`, while this one uses `nodejs_compat`.
