@@ -48,7 +48,12 @@ import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
 import { getSegmentSpanCaptureStrategy, type SegmentSpanCaptureConvertOptions } from './segmentSpanCaptureStrategy';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
-import { getCapturedScopesOnSpan, markSpanSourceAsExplicit, spanShouldInferOtelSource } from './utils';
+import {
+  getCapturedScopesOnSpan,
+  markSpanSourceAsExplicit,
+  spanIsTracerProviderSpan,
+  spanShouldInferOtelSource,
+} from './utils';
 
 const MAX_SPAN_COUNT = 1000;
 
@@ -74,6 +79,9 @@ export class SentrySpan implements Span {
 
   /** if true, treat span as a standalone span (not part of a transaction) */
   private _isStandaloneSpan?: boolean;
+
+  /** if true, the span is sealed and ignores further mutations (set after end for tracer-provider spans) */
+  private _frozen?: boolean;
 
   /**
    * You should never call the constructor manually, always use `Sentry.startSpan()`
@@ -120,6 +128,9 @@ export class SentrySpan implements Span {
 
   /** @inheritDoc */
   public addLink(link: SpanLink): this {
+    if (this._frozen) {
+      return this;
+    }
     if (this._links) {
       this._links.push(link);
     } else {
@@ -130,6 +141,9 @@ export class SentrySpan implements Span {
 
   /** @inheritDoc */
   public addLinks(links: SpanLink[]): this {
+    if (this._frozen) {
+      return this;
+    }
     if (this._links) {
       this._links.push(...links);
     } else {
@@ -161,6 +175,10 @@ export class SentrySpan implements Span {
 
   /** @inheritdoc */
   public setAttribute(key: string, value: SpanAttributeValue | undefined): this {
+    if (this._frozen) {
+      return this;
+    }
+
     if (value === undefined) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this._attributes[key];
@@ -192,6 +210,9 @@ export class SentrySpan implements Span {
    * @internal
    */
   public updateStartTime(timeInput: SpanTimeInput): void {
+    if (this._frozen) {
+      return;
+    }
     this._startTime = spanTimeInputToSeconds(timeInput);
   }
 
@@ -199,6 +220,9 @@ export class SentrySpan implements Span {
    * @inheritDoc
    */
   public setStatus(value: SpanStatus): this {
+    if (this._frozen) {
+      return this;
+    }
     this._status = value;
     return this;
   }
@@ -207,6 +231,9 @@ export class SentrySpan implements Span {
    * @inheritDoc
    */
   public updateName(name: string): this {
+    if (this._frozen) {
+      return this;
+    }
     this._name = name;
     // Renaming a span marks its name as explicitly chosen, so we stamp `custom`.
     // The exception is spans created by SentryTraceProvider: those are branded for
@@ -221,8 +248,12 @@ export class SentrySpan implements Span {
 
   /** @inheritdoc */
   public end(endTimestamp?: SpanTimeInput): void {
-    // If already ended, skip
+    // If already ended, skip the end-of-span processing, but still seal a tracer-provider span. The
+    // seal at the bottom of this method is skipped on this early return, and `_endTime` may have been
+    // set before this first `end()` call (e.g. via the constructor's `endTimestamp`), which would
+    // otherwise leave the span mutable after `end()`. End-of-span processing already ran in that case.
     if (this._endTime) {
+      this._frozen = spanIsTracerProviderSpan(this);
       return;
     }
 
@@ -230,6 +261,16 @@ export class SentrySpan implements Span {
     logSpanEnd(this);
 
     this._onSpanEnded();
+
+    // A span created by the SentryTracerProvider is handed to OTel instrumentations as an OTel span,
+    // so once end-of-span processing is done (including the `spanEnd` hook where `applyOtelSpanData`
+    // finalizes status/source) it is sealed against further writes — mirroring the OpenTelemetry SDK,
+    // where setters no-op after a span has ended. Without this, an instrumentation that sets
+    // status/attributes after `end()` (e.g. Next.js on a render error) would overwrite the finalized
+    // values, and the deferred capture would then serialize those late writes. Spans created directly
+    // through the core API (e.g. the browser SDK, which backfills resource-timing attributes after a
+    // span ends) are not tracer-provider spans and stay mutable.
+    this._frozen = spanIsTracerProviderSpan(this);
   }
 
   /**
@@ -298,6 +339,9 @@ export class SentrySpan implements Span {
     attributesOrStartTime?: SpanAttributes | SpanTimeInput,
     startTime?: SpanTimeInput,
   ): this {
+    if (this._frozen) {
+      return this;
+    }
     DEBUG_BUILD && debug.log('[Tracing] Adding an event to span:', name);
 
     const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || timestampInSeconds();
