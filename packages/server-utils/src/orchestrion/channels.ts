@@ -17,6 +17,10 @@ export const CHANNELS = {
   PG_QUERY: 'orchestrion:pg:query',
   PG_CONNECT: 'orchestrion:pg:connect',
   PGPOOL_CONNECT: 'orchestrion:pg-pool:connect',
+  OPENAI_CHAT: 'orchestrion:openai:chat',
+  OPENAI_RESPONSES: 'orchestrion:openai:responses',
+  OPENAI_EMBEDDINGS: 'orchestrion:openai:embeddings',
+  OPENAI_CONVERSATIONS: 'orchestrion:openai:conversations',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
