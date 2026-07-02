@@ -85,7 +85,7 @@
     "@apm-js-collab/code-transformer-bundler-plugins": "^0.5.0",
     "@apm-js-collab/code-transformer": "^0.15.0",
     "@apm-js-collab/tracing-hooks": "^0.10.1",
-    "@sentry/conventions": "^0.12.0",
+    "@sentry/conventions": "^0.15.1",
     "@sentry/core": "10.63.0",
     "magic-string": "~0.30.0"
   },

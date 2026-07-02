@@ -27,6 +27,7 @@ import { getCapturedScopesOnSpan } from '../utils';
 import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
 import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 import { DEFAULT_ENVIRONMENT } from '../../constants';
+import { SENTRY_SPAN_SOURCE } from '@sentry/conventions/attributes';
 
 export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
   _segmentSpan: Span;
@@ -85,9 +86,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   const spanNameSource = processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
   if (spanNameSource) {
     safeSetSpanJSONAttributes(processedSpan, {
-      // Purposefully not using a constant defined here like in other attributes:
-      // This will be the name for SEMANTIC_ATTRIBUTE_SENTRY_SOURCE in v11
-      'sentry.span.source': spanNameSource,
+      [SENTRY_SPAN_SOURCE]: spanNameSource,
     });
   }
 

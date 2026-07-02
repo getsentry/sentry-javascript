@@ -25,6 +25,7 @@ import {
 import { safeSetSpanJSONAttributes } from '../../../../src/tracing/spans/captureSpan';
 import { scopeContextsToSpanAttributes } from '../../../../src/tracing/spans/scopeContextAttributes';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
+import { SENTRY_SPAN_SOURCE } from '@sentry/conventions/attributes';
 
 describe('captureSpan', () => {
   it.each([true, false, undefined])(
@@ -86,7 +87,7 @@ describe('captureSpan', () => {
             value: span.spanContext().spanId,
             type: 'string',
           },
-          'sentry.span.source': {
+          [SENTRY_SPAN_SOURCE]: {
             value: 'custom',
             type: 'string',
           },
@@ -187,7 +188,7 @@ describe('captureSpan', () => {
           value: span.spanContext().spanId,
           type: 'string',
         },
-        'sentry.span.source': {
+        [SENTRY_SPAN_SOURCE]: {
           value: 'custom',
           type: 'string',
         },
@@ -283,7 +284,7 @@ describe('captureSpan', () => {
           value: span.spanContext().spanId,
           type: 'string',
         },
-        'sentry.span.source': {
+        [SENTRY_SPAN_SOURCE]: {
           value: 'custom',
           type: 'string',
         },
@@ -348,7 +349,7 @@ describe('captureSpan', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
         [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { value: span.spanContext().spanId, type: 'string' },
-        'sentry.span.source': { value: 'custom', type: 'string' },
+        [SENTRY_SPAN_SOURCE]: { value: 'custom', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { value: 'custom', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { value: '1.0.0', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'staging', type: 'string' },
