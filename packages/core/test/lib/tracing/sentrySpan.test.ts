@@ -4,7 +4,7 @@ import { setCurrentClient } from '../../../src/sdk';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../../../src/semanticAttributes';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
-import { markSpanForOtelSourceInference } from '../../../src/tracing/utils';
+import { markSpanForOtelSourceInference, spanSourceWasExplicitlySet } from '../../../src/tracing/utils';
 import type { SpanJSON } from '../../../src/types/span';
 import { spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 import { timestampInSeconds } from '../../../src/utils/time';
@@ -58,6 +58,36 @@ describe('SentrySpan', () => {
       const spanJson = spanToJSON(span);
       expect(spanJson.description).toEqual('new name');
       expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBeUndefined();
+    });
+  });
+
+  describe('explicit source', () => {
+    it('flags a source set on a span marked for OTel source inference as explicit', () => {
+      const span = new SentrySpan({ name: 'original name' });
+      markSpanForOtelSourceInference(span);
+      expect(spanSourceWasExplicitlySet(span)).toBe(false);
+
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+
+      expect(spanSourceWasExplicitlySet(span)).toBe(true);
+    });
+
+    it('does not flag the default source set at construction (before the inference brand) as explicit', () => {
+      const span = new SentrySpan({
+        name: 'original name',
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' },
+      });
+      markSpanForOtelSourceInference(span);
+
+      expect(spanSourceWasExplicitlySet(span)).toBe(false);
+    });
+
+    it('does not flag a source set on a span that is not marked for OTel source inference', () => {
+      const span = new SentrySpan({ name: 'original name' });
+
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+
+      expect(spanSourceWasExplicitlySet(span)).toBe(false);
     });
   });
 
