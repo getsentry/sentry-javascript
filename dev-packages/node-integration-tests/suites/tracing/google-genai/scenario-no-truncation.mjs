@@ -1,35 +1,39 @@
-import { instrumentGoogleGenAIClient } from '@sentry/core';
+import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/node';
+import express from 'express';
 
-class MockGoogleGenerativeAI {
-  constructor(config) {
-    this.apiKey = config.apiKey;
-    this.models = {
-      generateContent: this._generateContent.bind(this),
-    };
-  }
+function startMockGoogleGenAIServer() {
+  const app = express();
+  app.use(express.json({ limit: '10mb' }));
 
-  async _generateContent() {
-    await new Promise(resolve => setTimeout(resolve, 10));
-    return {
-      response: {
-        text: () => 'Response',
-        usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5, totalTokenCount: 15 },
-        candidates: [
-          {
-            content: { parts: [{ text: 'Response' }], role: 'model' },
-            finishReason: 'STOP',
-          },
-        ],
-      },
-    };
-  }
+  app.post('/v1beta/models/:model\\:generateContent', (req, res) => {
+    res.send({
+      candidates: [
+        {
+          content: { parts: [{ text: 'Response' }], role: 'model' },
+          finishReason: 'stop',
+          index: 0,
+        },
+      ],
+      usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5, totalTokenCount: 15 },
+    });
+  });
+
+  return new Promise(resolve => {
+    const server = app.listen(0, () => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
+  const server = await startMockGoogleGenAIServer();
+
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    const mockClient = new MockGoogleGenerativeAI({ apiKey: 'mock-api-key' });
-    const client = instrumentGoogleGenAIClient(mockClient, { enableTruncation: false, recordInputs: true });
+    const client = new GoogleGenAI({
+      apiKey: 'mock-api-key',
+      httpOptions: { baseUrl: `http://localhost:${server.address().port}` },
+    });
 
     // Long content that would normally be truncated
     const longContent = 'A'.repeat(50_000);
@@ -42,6 +46,10 @@ async function run() {
       ],
     });
   });
+
+  await Sentry.flush(2000);
+
+  server.close();
 }
 
 run();
