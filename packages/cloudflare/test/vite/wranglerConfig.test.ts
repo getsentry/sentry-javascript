@@ -94,14 +94,24 @@ describe('resolveWranglerConfig', () => {
     expect(result!.config.main).toBe('src/index.ts');
   });
 
-  it('prefers wrangler.toml over wrangler.json', () => {
+  it('prefers wrangler.json over wrangler.toml (matching wrangler itself)', () => {
     const dir = writeTempDir({
       'wrangler.toml': 'main = "from-toml.ts"',
       'wrangler.json': '{ "main": "from-json.ts" }',
     });
 
     const result = resolveWranglerConfig(dir);
-    expect(result!.config.main).toBe('from-toml.ts');
+    expect(result!.config.main).toBe('from-json.ts');
+  });
+
+  it('prefers wrangler.jsonc over wrangler.toml (matching wrangler itself)', () => {
+    const dir = writeTempDir({
+      'wrangler.toml': 'main = "from-toml.ts"',
+      'wrangler.jsonc': '{ "main": "from-jsonc.ts" }',
+    });
+
+    const result = resolveWranglerConfig(dir);
+    expect(result!.config.main).toBe('from-jsonc.ts');
   });
 
   it('handles TOML with commented-out bindings', () => {
@@ -151,5 +161,84 @@ describe('resolveWranglerConfig', () => {
 
   it('returns undefined for explicit non-existent path', () => {
     expect(resolveWranglerConfig('/tmp', '/tmp/nonexistent.toml')).toBeUndefined();
+  });
+
+  it('resolves a relative explicit path against the root', () => {
+    const dir = writeTempDir({ 'custom.toml': 'main = "src/index.ts"' });
+
+    const result = resolveWranglerConfig(dir, 'custom.toml');
+    expect(result).toBeDefined();
+    expect(result!.config.main).toBe('src/index.ts');
+    expect(result!.configDir).toBe(dir);
+  });
+
+  it('returns undefined for an empty config file instead of crashing', () => {
+    const dir = writeTempDir({ 'wrangler.json': '' });
+    expect(resolveWranglerConfig(dir)).toBeUndefined();
+  });
+
+  it('returns undefined for invalid TOML instead of crashing', () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = [' });
+    expect(resolveWranglerConfig(dir)).toBeUndefined();
+  });
+
+  it('skips DO bindings with a script_name (class lives in another worker)', () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({
+        main: 'src/index.ts',
+        durable_objects: {
+          bindings: [
+            { name: 'LOCAL', class_name: 'LocalDO' },
+            { name: 'EXTERNAL', class_name: 'ExternalDO', script_name: 'other-worker' },
+          ],
+        },
+      }),
+    });
+
+    const result = resolveWranglerConfig(dir);
+    expect(result!.config.durableObjects).toEqual([{ name: 'LOCAL', className: 'LocalDO' }]);
+  });
+
+  it('unions DO bindings across named environments', () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({
+        main: 'src/index.ts',
+        durable_objects: { bindings: [{ name: 'TOP', class_name: 'TopDO' }] },
+        env: {
+          production: {
+            durable_objects: {
+              bindings: [
+                { name: 'TOP', class_name: 'TopDO' },
+                { name: 'PROD_ONLY', class_name: 'ProdDO' },
+              ],
+            },
+          },
+        },
+      }),
+    });
+
+    const result = resolveWranglerConfig(dir);
+    expect(result!.config.durableObjects).toEqual([
+      { name: 'TOP', className: 'TopDO' },
+      { name: 'PROD_ONLY', className: 'ProdDO' },
+    ]);
+  });
+
+  it('honors a CLOUDFLARE_ENV main override', () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({
+        main: 'src/index.ts',
+        env: { staging: { main: 'src/staging.ts' } },
+      }),
+    });
+
+    const previous = process.env.CLOUDFLARE_ENV;
+    process.env.CLOUDFLARE_ENV = 'staging';
+    try {
+      expect(resolveWranglerConfig(dir)!.config.main).toBe('src/staging.ts');
+    } finally {
+      if (previous === undefined) delete process.env.CLOUDFLARE_ENV;
+      else process.env.CLOUDFLARE_ENV = previous;
+    }
   });
 });
