@@ -25,8 +25,8 @@
   },
   "scripts": {
     "build": "react-router build",
-    "dev": "NODE_OPTIONS='--import ./instrument.mjs' react-router dev",
-    "start": "NODE_OPTIONS='--import ./instrument.mjs' react-router-serve ./build/server/index.js",
+    "dev": "react-router dev",
+    "start": "react-router-serve ./build/server/index.js",
     "proxy": "node start-event-proxy.mjs",
     "typecheck": "react-router typegen && tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",

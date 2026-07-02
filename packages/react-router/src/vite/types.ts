@@ -74,4 +74,41 @@ export type SentryReactRouterBuildOptions = BuildTimeOptionsBase &
      */
     sourceMapsUploadOptions?: SourceMapsOptions;
     // todo(v11): Remove this option (all options already exist in BuildTimeOptionsBase)
+
+    /**
+     * **Experimental.** Automatically injects Sentry server instrumentation into the built server bundle, so you
+     * don't have to manually add `NODE_OPTIONS='--import ./instrument.server.mjs'` to your start script.
+     *
+     * This is an experimental, opt-in feature. The option surface and behavior may change in a future release.
+     *
+     * Requires `buildEnd: sentryOnBuildEnd` to be set in your `react-router.config.ts` and a server
+     * instrumentation file (see {@link serverInstrumentationFile}, default `./instrument.server.mjs`) that calls
+     * `Sentry.init`.
+     *
+     * **DO NOT** keep `--import` in your start script when this option is enabled - it would initialize Sentry
+     * twice on the server.
+     *
+     * ---
+     *
+     * **`"experimental_dynamic-import"`**
+     *
+     * Wraps the server entry so the actual app is loaded via a dynamic `import()` *after* Sentry's hooks are
+     * registered. This enables full (OpenTelemetry) instrumentation - equivalent to using `--import` - including
+     * database spans. Recommended for Node servers started via `react-router-serve`.
+     *
+     * Auto-injection is currently only supported for Node server targets. It gracefully no-ops for SPA/prerender
+     * builds and is skipped (with a warning) for Cloudflare / Vercel / Netlify targets.
+     *
+     * @default false
+     * @experimental This option is experimental and may change in a future release.
+     */
+    autoInjectServerSentry?: 'experimental_dynamic-import' | false;
+
+    /**
+     * Path (relative to the project root) to the pre-built ESM server instrumentation file that calls
+     * `Sentry.init`. Only used when {@link autoInjectServerSentry} is enabled.
+     *
+     * @default './instrument.server.mjs'
+     */
+    serverInstrumentationFile?: string;
   };
