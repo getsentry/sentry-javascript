@@ -238,7 +238,7 @@ function prepareTmpDir(
   const cjsInstrumentPath = join(tmpDirPath, esmInstrumentBasename.replace('.mjs', '.cjs'));
 
   const cjsFlags: string[] = ['--require', cjsInstrumentPath];
-  const esmFlags: string[] = ['--import', mjsInstrumentPath];
+  const esmFlags: string[] = ['--import', esmInstrumentPathForRun];
 
   async function createTmpDir(): Promise<void> {
     await mkdir(tmpDirPath);
