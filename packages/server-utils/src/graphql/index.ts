@@ -4,7 +4,7 @@ import { type GraphqlDiagnosticChannelsOptions, subscribeGraphqlDiagnosticChanne
 
 const _graphqlIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) => {
   return {
-    name: 'Graphql',
+    name: 'Graphql' as const,
     setupOnce() {
       // Bail on Node <= 18.18.0, where `tracingChannel` does not exist.
       if (!dc.tracingChannel) {
