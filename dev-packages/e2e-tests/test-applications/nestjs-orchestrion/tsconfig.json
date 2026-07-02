@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    // `Node16` (not `commonjs`) to match `moduleResolution: Node16` below — TS 5.5 (this app's pinned
+    // version) errors on the `commonjs` + `Node16` combo (TS5110). The package is CommonJS (no
+    // `"type": "module"`), so `Node16` still emits CJS.
+    "module": "Node16",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2021",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
+    "moduleResolution": "Node16"
+  }
+}
