@@ -35,7 +35,7 @@
     "@aws-sdk/client-sns": "^3.1046.0",
     "@aws-sdk/client-sqs": "^3.1046.0",
     "@google/genai": "^1.20.0",
-    "@growthbook/growthbook": "^1.6.1",
+    "@growthbook/growthbook": "^1.6.5",
     "@hapi/hapi": "^21.3.10",
     "@hono/node-server": "^1.19.13",
     "@langchain/anthropic": "^0.3.10",
