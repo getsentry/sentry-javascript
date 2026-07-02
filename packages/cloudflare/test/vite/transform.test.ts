@@ -197,6 +197,60 @@ describe('Durable Object class wrapping', () => {
     const result = transform(code, ctx)!;
     expect(result.wrappedDoClasses).toEqual(new Set(['MyDurableObject']));
   });
+
+  it('counts a manually wrapped DO export as wrapped without touching it', () => {
+    const code = [
+      "import { instrumentDurableObjectWithSentry } from '@sentry/cloudflare';",
+      'class Impl {}',
+      'export const MyDurableObject = instrumentDurableObjectWithSentry((env) => ({}), Impl);',
+    ].join('\n');
+
+    // Nothing to rewrite and no banner requested → no result, but no wrap either.
+    expect(transform(code, ctx)).toBeUndefined();
+
+    const withBanner = transform(code, { ...ctx, prependBanner: '/* banner */\n' })!;
+    expect(withBanner.wrappedDoClasses).toEqual(new Set(['MyDurableObject']));
+    expect(withBanner.code).not.toContain('__SENTRY_ORIGINAL_');
+    expect(withBanner.code).toContain('export const MyDurableObject = instrumentDurableObjectWithSentry(');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Banner prepending
+// ---------------------------------------------------------------------------
+
+describe('banner prepending', () => {
+  const banner = 'globalThis.__SENTRY_ORCHESTRION__ = {};\n';
+  const ctx: TransformContext = { doClassNames: new Set(), optionsFn: '(env) => ({})', prependBanner: banner };
+
+  it('prepends the banner before the injected imports when wrapping', () => {
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = transform(code, ctx)!;
+    expect(result.code.startsWith(banner)).toBe(true);
+    expect(result.code).toContain('__SENTRY__.withSentry(');
+  });
+
+  it('returns a banner-only result when nothing was wrapped', () => {
+    const code = [
+      "import { withSentry } from '@sentry/cloudflare';",
+      'export default withSentry((env) => ({}), { fetch() {} });',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result).toBeDefined();
+    expect(result.code.startsWith(banner)).toBe(true);
+    expect(result.code).not.toContain('__SENTRY_DEFAULT_EXPORT__');
+    expect(result.map).toBeDefined();
+  });
+
+  it('still returns undefined without a banner when nothing was wrapped', () => {
+    const code = [
+      "import { withSentry } from '@sentry/cloudflare';",
+      'export default withSentry((env) => ({}), { fetch() {} });',
+    ].join('\n');
+
+    expect(transform(code, { doClassNames: new Set(), optionsFn: '(env) => ({})' })).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------

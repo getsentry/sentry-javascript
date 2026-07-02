@@ -26,6 +26,15 @@ function normalizePath(path: string): string {
 // `.html`, … — sharing the entry's basename must never be treated as the entry.
 const JS_EXTENSION_REGEX = /\.[cm]?[jt]sx?$/;
 
+// The orchestrion bundler marker is normally prepended to entry chunks in
+// `renderChunk`, which only runs at build time. Prepending it to the worker
+// entry here as well makes `vite dev` — where the channels are injected during
+// dep pre-bundling instead — register the channel subscribers too. Setting the
+// flag twice in a build is harmless.
+const ORCHESTRION_MARKER_BANNER =
+  'globalThis.__SENTRY_ORCHESTRION__ = (globalThis.__SENTRY_ORCHESTRION__ || {});\n' +
+  'globalThis.__SENTRY_ORCHESTRION__.bundler = true;\n';
+
 export function sentryCloudflareAutoInstrumentPlugin(
   pluginOptions: SentryCloudflareAutoInstrumentOptions = {},
 ): UnknownPlugin {
@@ -92,7 +101,12 @@ export function sentryCloudflareAutoInstrumentPlugin(
       }
 
       const doClassNames = new Set(wranglerConfig.durableObjects.map(d => d.className));
-      const result = applyAutoInstrumentTransforms(code, ast, { doClassNames, optionsFn, optionsImport });
+      const result = applyAutoInstrumentTransforms(code, ast, {
+        doClassNames,
+        optionsFn,
+        optionsImport,
+        prependBanner: ORCHESTRION_MARKER_BANNER,
+      });
 
       const wrappedDoClasses = result?.wrappedDoClasses ?? new Set<string>();
       const missing = [...doClassNames].filter(name => !wrappedDoClasses.has(name));
