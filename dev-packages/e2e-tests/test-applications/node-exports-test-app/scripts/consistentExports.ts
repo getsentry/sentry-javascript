@@ -25,6 +25,10 @@ const NODE_EXPORTS_IGNORE = [
   // registers Node module hooks and is not surfaced through the framework /
   // serverless SDKs.
   'experimentalUseDiagnosticsChannelInjection',
+  // Companion to the above: returns the diagnostics-channel integration
+  // factories for that same Node-runtime-only opt-in, so it isn't surfaced
+  // through the framework / serverless SDKs either.
+  'diagnosticsChannelInjectionIntegrations',
   // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
   '_INTERNAL_normalizeCollectionInterval',
 ];
