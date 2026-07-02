@@ -29,6 +29,10 @@ export interface OpenTelemetryServerRuntimeOptions extends ServerRuntimeOptions 
 
   /**
    * Provide an array of additional OpenTelemetry SpanProcessors that should be registered.
+   *
+   * Note: providing this forces the full OpenTelemetry SDK `BasicTracerProvider` instead of Sentry's
+   * minimal tracer provider, since custom span processors require the SDK span pipeline. See
+   * {@link OpenTelemetryServerRuntimeOptions.openTelemetryBasicTracerProvider}.
    */
   openTelemetrySpanProcessors?: SpanProcessor[];
 
