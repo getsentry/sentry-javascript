@@ -23,13 +23,12 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
+import { isOrchestrionEnabled } from '../../../../utils';
 
 describe.each([
-  ['6', {}, '^6.0.0'],
-  ['6', { USE_ORCHESTRION: 'true' }, '^6.0.0'],
-  ['7', {}, '7.0.0-beta.179'],
-  ['7', { USE_ORCHESTRION: 'true' }, '7.0.0-beta.179'],
-])('Vercel AI integration (version %s, env %o)', (version, env: Record<string, string>, vercelAiVersion) => {
+  ['6', '^6.0.0'],
+  ['7', '7.0.0-beta.179'],
+])('Vercel AI integration (version %s)', (version, vercelAiVersion) => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -39,8 +38,7 @@ describe.each([
   const nodeVersion = NODE_VERSION.major;
   const failsOnCjs = version === '7' && nodeVersion === 18;
 
-  const useOrchestrion = env.USE_ORCHESTRION === 'true';
-  const usesChannels = version === '7' || useOrchestrion;
+  const usesChannels = version === '7' || isOrchestrionEnabled();
 
   // in v7 and orchestrion mode, we use the channel-based integration
   // else, we use the OTel processor
@@ -55,7 +53,6 @@ describe.each([
     (createRunner, test) => {
       test('creates ai spans for dataCollection defaults', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -181,7 +178,6 @@ describe.each([
     (createRunner, test) => {
       test('creates ai spans when dataCollection.genAi has inputs and outputs disabled', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -308,7 +304,6 @@ describe.each([
         let errorEvent: Event | undefined;
 
         await createRunner()
-          .withEnv(env)
           .expect({
             transaction: transaction => {
               transactionEvent = transaction;
@@ -378,7 +373,6 @@ describe.each([
     (createRunner, test) => {
       test('creates ai related spans', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -421,7 +415,6 @@ describe.each([
     (createRunner, test) => {
       test('creates spans for ToolLoopAgent with tool calls', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -485,7 +478,6 @@ describe.each([
     (createRunner, test) => {
       test('parents concurrent calls that share one model instance correctly', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -539,7 +531,6 @@ describe.each([
         'parents concurrent streamText calls that share one model instance correctly',
         async () => {
           await createRunner()
-            .withEnv(env)
             .expect({ transaction: { transaction: 'main' } })
             .expect({
               span: container => {
@@ -592,7 +583,6 @@ describe.each([
         'creates streamText spans with the model call parented to invoke_agent',
         async () => {
           await createRunner()
-            .withEnv(env)
             .expect({ transaction: { transaction: 'main' } })
             .expect({
               span: container => {
@@ -633,7 +623,6 @@ describe.each([
     (createRunner, test) => {
       test('finishes spans with an error status when the operation rejects', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -674,7 +663,6 @@ describe.each([
     (createRunner, test) => {
       test('derives provider-metadata token breakdown, conversation id and system instructions', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -732,7 +720,6 @@ describe.each([
 
       test('creates embeddings spans for embed and embedMany', async () => {
         await createRunner()
-          .withEnv(env)
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {

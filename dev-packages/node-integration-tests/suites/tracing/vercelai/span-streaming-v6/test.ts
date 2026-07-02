@@ -19,6 +19,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
+import { isOrchestrionEnabled } from '../../../../utils';
 
 /**
  * Helper to match a typed attribute value in a SerializedStreamedSpan.
@@ -29,10 +30,12 @@ function attr(value: unknown) {
   return expect.objectContaining({ value });
 }
 
-describe('Vercel AI integration (streaming, V6)', () => {
+describe('Vercel AI integration (streaming, v6)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
+
+  const origin = isOrchestrionEnabled() ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
 
   const EXPECTED_SPANS_DEFAULT_PII_FALSE = {
     items: expect.arrayContaining([
@@ -48,7 +51,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(30),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
           'vercel.ai.pipeline.name': attr('generateText'),
           'vercel.ai.streaming': attr(false),
           'vercel.ai.request.headers.user-agent': expect.objectContaining({ value: expect.any(String) }),
@@ -66,7 +69,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(30),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('generate_content'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
           'vercel.ai.pipeline.name': attr('generateText.doGenerate'),
           'vercel.ai.streaming': attr(false),
         }),
@@ -82,7 +85,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(30),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
         }),
       }),
       // Fourth span - tool call invoke_agent
@@ -96,7 +99,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(40),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
         }),
       }),
       // Fifth span - tool call generate_content
@@ -110,7 +113,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(40),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('generate_content'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
         }),
       }),
       // Sixth span - execute_tool
@@ -124,7 +127,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_TOOL_TYPE_ATTRIBUTE]: attr('function'),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.execute_tool'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
         }),
       }),
     ]),
@@ -149,7 +152,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(30),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
           'vercel.ai.pipeline.name': attr('generateText'),
           'vercel.ai.streaming': attr(false),
         }),
@@ -170,7 +173,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(30),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('generate_content'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
         }),
       }),
       // Third span - explicit telemetry invoke_agent with messages
@@ -188,7 +191,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(30),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
         }),
       }),
       // Fourth span - tool call invoke_agent with messages (V6: no text part, only tool_call)
@@ -208,7 +211,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(40),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
         }),
       }),
       // Fifth span - tool call generate_content with available_tools
@@ -225,7 +228,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(40),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('generate_content'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
         }),
       }),
       // Sixth span - execute_tool with description and input/output
@@ -241,7 +244,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_TOOL_TYPE_ATTRIBUTE]: attr('function'),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.execute_tool'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
         }),
       }),
     ]),
@@ -254,7 +257,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
         attributes: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
         }),
       }),
       expect.objectContaining({
@@ -267,7 +270,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(40),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('generate_content'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
         }),
       }),
       expect.objectContaining({
@@ -279,7 +282,7 @@ describe('Vercel AI integration (streaming, V6)', () => {
           [GEN_AI_TOOL_TYPE_ATTRIBUTE]: attr('function'),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.execute_tool'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
         }),
       }),
     ]),
