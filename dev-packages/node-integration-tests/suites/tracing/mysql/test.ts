@@ -4,6 +4,7 @@ import { cleanupChildProcesses, createCjsTests, createEsmAndCjsTests } from '../
 import { startMysqlTestServer } from './mysql-test-server';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
+import { isOrchestrionEnabled } from '../../../utils';
 
 describe('mysql auto instrumentation', () => {
   // A minimal in-process MySQL server (on a random free port) so the client's
@@ -235,7 +236,7 @@ describe('mysql auto instrumentation', () => {
         },
         'sentry.origin': {
           type: 'string',
-          value: 'auto.db.otel.mysql',
+          value: isOrchestrionEnabled() ? 'auto.db.orchestrion.mysql' : 'auto.db.otel.mysql',
         },
         'sentry.release': {
           type: 'string',
