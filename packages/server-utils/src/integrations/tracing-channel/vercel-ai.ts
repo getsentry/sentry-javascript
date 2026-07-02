@@ -7,25 +7,18 @@ import { subscribeVercelAiOrchestrionChannels } from '../../vercel-ai/vercel-ai-
 type VercelAiOptions = Parameters<typeof baseVercelAiIntegration>[0];
 
 // In channel-based (orchestrion) mode we emit our own `gen_ai.*` spans from the
-// diagnostics channels. The `ai` SDK still emits its own native OpenTelemetry
-// spans whenever the user enables `experimental_telemetry`, which would be
-// duplicates. Every native `ai` span carries an `ai.operationId` attribute
-// (e.g. `ai.generateText`, `ai.generateText.doGenerate`, `ai.toolCall`) at span
-// start, whereas our channel spans use `vercel.ai.operationId` — so we drop the
-// native ones up front via `ignoreSpans`, before any vercel-ai processing runs.
-const NATIVE_VERCEL_AI_SPANS = { attributes: { 'ai.operationId': /^ai\./ } };
-
+// diagnostics channels. The `ai` SDK would otherwise emit its own native
+// OpenTelemetry spans whenever the user enables `experimental_telemetry`, which
+// would be duplicates. Rather than dropping those after the fact, the v6
+// subscriber suppresses them at the source: it flips the wrapped call's
+// `experimental_telemetry.isEnabled` to `false`, so `ai` falls back to its
+// internal no-op tracer and never creates the native spans in the first place.
+// See `subscribeVercelAiOrchestrionChannels`.
 const _vercelAiChannelIntegration = ((options: VercelAiOptions = {}) => {
   const parentIntegration = baseVercelAiIntegration(options);
 
   return extendIntegration(parentIntegration, {
     options,
-    beforeSetup(client) {
-      // Ensure we drop spans emitted by ai v6 or below
-      // To avoid double-instrumentation - in this scenario, we only want to rely on our own spans
-      const options = client.getOptions();
-      options.ignoreSpans = [...(options.ignoreSpans || []), NATIVE_VERCEL_AI_SPANS];
-    },
     setupOnce() {
       // Bail if this is not available
       if (!dc.tracingChannel) {

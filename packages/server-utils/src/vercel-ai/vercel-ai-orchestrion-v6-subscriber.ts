@@ -1,6 +1,5 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Span } from '@sentry/core';
-import { debug, SPAN_STATUS_ERROR, withActiveSpan } from '@sentry/core';
+import { debug, getActiveSpan, SPAN_STATUS_ERROR, withActiveSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '../tracing-channel';
@@ -76,15 +75,12 @@ const messages = new WeakMap<object, VercelAiChannelMessage>();
 // parent's `callId` so its span can be named after the operation (e.g. `ai.streamText.doStream`).
 const operationSpans = new WeakSet<Span>();
 const callIdBySpan = new WeakMap<Span, string>();
-// Carries the enclosing operation span down to the patched `doGenerate`/`doStream`, where the active
-// span is the `ai` SDK's own (ignored) model-call span rather than our operation span. It's bound onto
-// the operation channel via `bindStore` (see `bindOperation`), so it's scoped per traced operation and
-// propagates across the awaits inside it. This holds for `streamText` too: `ai` initiates the model
-// stream synchronously inside `streamText` (within this bound context), so the later `doStream` — even
-// though it runs after the operation's span has already ended — still restores this store and reads ITS
-// operation's span. That per-operation scoping is the sole parent-resolution mechanism, and it is what
-// keeps concurrent operations sharing a single model instance from cross-attributing their model calls.
-const operationParentStore = new AsyncLocalStorage<Span | undefined>();
+
+// The `experimental_telemetry` objects we swapped in to suppress `ai`'s native OTel spans (see
+// `suppressNativeTelemetry`). Our skip logic treats `isEnabled === false` as "user disabled telemetry,
+// emit no span"; without this set, a call whose options object we already neutralized — or a user-shared
+// telemetry object we replaced on a prior call — would be misread as user-disabled and lose its span.
+const suppressedTelemetry = new WeakSet<object>();
 
 let subscribed = false;
 
@@ -180,26 +176,26 @@ function bindOperation(
 ): void {
   const channel = tracingChannel<OrchestrionContext>(channelName);
 
-  // Create the operation span once per traced call (memoized on `data._sentrySpan`) and track it. Both
-  // stores bound on `channel.start` below call this; whichever transform Node runs first creates the span
-  // and the other reuses it. This must NOT depend on the two transforms' relative execution order: Node 26
-  // reversed `bindStore` transform execution from last-in-first-out to first-in-first-out. The previous
-  // approach — our parent-carrying store reading a `data._sentrySpan` that `bindTracingChannelToSpan`'s
-  // store was expected to have stashed first — bound `undefined` on Node 26, so `resolveModelCallParent`
-  // found no parent and no `generate_content` (model-call) span was emitted.
-  const getOrCreateSpan = (data: TracingChannelPayloadWithSpan<OrchestrionContext>): Span | undefined => {
-    if (data._sentrySpan) {
-      return data._sentrySpan;
-    }
+  // Build the operation span from the wrapped call's first argument and track it (so a model call can
+  // resolve it as its parent). `bindTracingChannelToSpan` calls this once at channel `start` and makes
+  // the returned span the active async context for the operation's duration — that active span is what
+  // `resolveModelCallParent` reads. It also sets `data._sentrySpan`, so we don't here.
+  const buildOperationSpan = (data: TracingChannelPayloadWithSpan<OrchestrionContext>): Span | undefined => {
     const callOptions = isRecord(data.arguments[0]) ? data.arguments[0] : {};
     const telemetry = isRecord(callOptions.experimental_telemetry) ? callOptions.experimental_telemetry : {};
-    if (telemetry.isEnabled === false) {
+    // `isEnabled === false` means the user opted out — emit no span. But `isEnabled` is also `false` on
+    // the telemetry object we swap in to suppress native spans, so don't mistake our own object for a
+    // user opt-out (which would drop the span on a call whose options we already neutralized).
+    if (telemetry.isEnabled === false && !suppressedTelemetry.has(telemetry)) {
       return undefined;
     }
     const message = build(callOptions, telemetry);
+    // Stop `ai` from emitting its own native OTel spans for this call — we build the equivalent spans
+    // from the channels, so the SDK's would be duplicates. Reads above have already captured everything
+    // we need off `telemetry`.
+    suppressNativeTelemetry(callOptions, telemetry);
     const span = createSpanFromMessage(message, options);
     if (span) {
-      data._sentrySpan = span;
       messages.set(data, message);
       operationSpans.add(span);
       const callId = asString(message.event.callId);
@@ -210,20 +206,9 @@ function bindOperation(
     return span;
   };
 
-  // Carry the operation span into our own async-context store, so a model call awaited within the
-  // operation reads ITS operation's span — no leak across sequential calls, no clobbering across
-  // concurrent ones (which a single mutable slot on the shared model instance cannot achieve).
-  // `bindStore` activates the store via `runStores` for the traced operation, and that propagates across
-  // the awaits inside it. `bindStore`'s store type is the channel's data type; our store value is the
-  // operation span, so cast (the runtime treats the store value opaquely — same as
-  // `bindTracingChannelToSpan` does internally).
-  channel.start.bindStore(operationParentStore as unknown as AsyncLocalStorage<OrchestrionContext>, data => {
-    return getOrCreateSpan(data as TracingChannelPayloadWithSpan<OrchestrionContext>) as unknown as OrchestrionContext;
-  });
-
   bindTracingChannelToSpan(
     channel,
-    (data: TracingChannelPayloadWithSpan<OrchestrionContext>) => getOrCreateSpan(data),
+    (data: TracingChannelPayloadWithSpan<OrchestrionContext>) => buildOperationSpan(data),
     {
       beforeSpanEnd: (span, data) => {
         const message = messages.get(data);
@@ -250,6 +235,29 @@ function bindOperation(
 }
 
 /**
+ * Neutralize `ai`'s native OpenTelemetry instrumentation for this call by pointing
+ * `experimental_telemetry` at a copy with `isEnabled: false`. `ai`'s `getTracer` then returns its
+ * internal no-op tracer, so it never creates (nor sets active) the duplicate `ai.*` spans we'd
+ * otherwise have to drop.
+ *
+ * Only a call that explicitly enabled telemetry emits native spans — otherwise `ai` already uses its
+ * no-op tracer, so there's nothing to suppress and we leave the user's options untouched. When
+ * `isEnabled === true`, `telemetry` is `callOptions.experimental_telemetry` and `callOptions` is the
+ * real first argument the SDK will read, so the reassignment takes effect for the wrapped call. We
+ * replace rather than mutate in place, so a telemetry object the user shares across calls keeps its own
+ * `isEnabled: true`; the replacement is tracked in `suppressedTelemetry` so our skip logic doesn't
+ * later read it back as a user opt-out.
+ */
+function suppressNativeTelemetry(callOptions: Record<string, unknown>, telemetry: Record<string, unknown>): void {
+  if (telemetry.isEnabled !== true) {
+    return;
+  }
+  const suppressed = { ...telemetry, isEnabled: false };
+  suppressedTelemetry.add(suppressed);
+  callOptions.experimental_telemetry = suppressed;
+}
+
+/**
  * `resolveLanguageModel` returns the model every call flows through. We don't span it — on `end` we
  * monkey-patch `doGenerate`/`doStream` on the returned model so each invocation produces a
  * `languageModelCall` span parented to the enclosing invoke_agent span.
@@ -266,9 +274,9 @@ function subscribeResolveLanguageModel(
         return;
       }
       const model = ctx.result as PatchableModel;
-      // Patch the model's `doGenerate`/`doStream` once. The model call recovers its parent from
-      // `operationParentStore` at call time (set per-operation by `bindOperation`), which propagates into
-      // the model call for `streamText` too, so there is nothing to capture on the model here.
+      // Patch the model's `doGenerate`/`doStream` once. The model call recovers its parent from the
+      // active async context at call time (the operation span `bindTracingChannelToSpan` bound), which
+      // propagates into the model call for `streamText` too, so there is nothing to capture on the model here.
       if (!model[PATCHED]) {
         model[PATCHED] = true;
         patchModelMethod(model, 'doGenerate', options);
@@ -291,20 +299,25 @@ function subscribeResolveLanguageModel(
 }
 
 /**
- * Pick the invoke_agent span a model call should hang under: the operation span bound onto
- * `operationParentStore` for the enclosing operation.
+ * Pick the invoke_agent span a model call should hang under: the operation span that
+ * `bindTracingChannelToSpan` planted as the active async context for the enclosing operation.
+ *
+ * Because we suppress `ai`'s native telemetry (so it never installs its own span as active), the active
+ * span inside `doGenerate`/`doStream` is our operation span. The `operationSpans` gate makes this return
+ * `undefined` when the active span isn't one of ours — e.g. telemetry was disabled for the call so we
+ * opened no operation span and the active span is the user's enclosing span — so the model call is
+ * skipped rather than mis-parented.
  *
  * This covers `generateText`/`embed` (whose model call is awaited inside the operation body) and
  * `streamText` alike — `ai` initiates the stream synchronously within the operation's bound context, so
- * `doStream` restores the same per-operation store even though it runs after the operation's span has
- * ended. Being per-operation, the store disambiguates concurrent calls that share one model instance (a
- * single mutable slot on the shared model could not — it would hold whichever operation resolved the
- * model last). Returns `undefined` when the store doesn't carry an operation span — e.g. telemetry was
- * disabled for the enclosing call — so the model call is skipped too.
+ * the later `doStream` continuation restores the same active span even though the operation's span has
+ * already ended. The per-operation binding also disambiguates concurrent calls that share one model
+ * instance (a single mutable slot on the shared model could not — it would hold whichever operation
+ * resolved the model last).
  */
 function resolveModelCallParent(): Span | undefined {
-  const fromContext = operationParentStore.getStore();
-  return fromContext && operationSpans.has(fromContext) ? fromContext : undefined;
+  const active = getActiveSpan();
+  return active && operationSpans.has(active) ? active : undefined;
 }
 
 function patchModelMethod(
