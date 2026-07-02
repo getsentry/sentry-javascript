@@ -2,6 +2,7 @@ import { NODE_VERSION, type Event } from '@sentry/node';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
+  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
@@ -704,6 +705,64 @@ describe.each([
                 const expected = '[{"type":"text","content":"You are a helpful assistant."}]';
                 expect(invokeAgent.attributes?.[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]?.value).toBe(expected);
                 expect(generateContent.attributes?.[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]?.value).toBe(expected);
+              }
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-embeddings.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      // `ai` v7 only routes `embed` through its telemetry tracing channel — `embedMany` is dispatched
+      // via the callback-only path and never published — so the channel-based integration (v7 and v6
+      // orchestrion) cannot see it there. On v6 both the OTel processor and the orchestrion channels
+      // instrument `embedMany`, so its span is expected only on v6.
+      const embedManyInstrumented = version === '6';
+
+      test('creates embeddings spans for embed and embedMany', async () => {
+        await createRunner()
+          .withEnv(env)
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
+
+              const embedSpan = container.items.find(
+                span => span.attributes?.[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]?.value === 'Embedding test!',
+              )!;
+              expect(embedSpan).toBeDefined();
+              expect(embedSpan.name).toBe('embeddings mock-model-id');
+              expect(embedSpan.status).toBe('ok');
+              expect(embedSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.embeddings');
+              expect(embedSpan.attributes?.[GEN_AI_REQUEST_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
+              expect(embedSpan.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(10);
+
+              const embedManySpan = container.items.find(
+                span =>
+                  span.attributes?.[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]?.value === '["First input","Second input"]',
+              );
+              if (embedManyInstrumented) {
+                expect(embedManySpan).toBeDefined();
+                expect(embedManySpan!.name).toBe('embeddings mock-model-id');
+                expect(embedManySpan!.status).toBe('ok');
+                expect(embedManySpan!.attributes?.['sentry.op']?.value).toBe('gen_ai.embeddings');
+                expect(embedManySpan!.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(20);
+              } else {
+                expect(embedManySpan).toBeUndefined();
               }
             },
           })

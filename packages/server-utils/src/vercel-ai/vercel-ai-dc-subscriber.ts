@@ -86,7 +86,7 @@ const toolDescriptionsByCallId = new Map<string, Map<string, string>>();
 
 // Only top-level operations own the `callId` → operationId mapping; `step`/`languageModelCall`/
 // `executeTool` share the parent's `callId`, so they must not clear it.
-const ROOT_OPERATION_TYPES = new Set<ChannelEventType>(['generateText', 'streamText', 'embed', 'rerank']);
+const ROOT_OPERATION_TYPES = new Set<ChannelEventType>(['generateText', 'streamText', 'embed', 'embedMany', 'rerank']);
 
 /** Drop the per-operation `callId` maps once the owning top-level operation settles (success or error). */
 export function clearOperationId(data: VercelAiChannelMessage): void {
@@ -158,6 +158,7 @@ export type ChannelEventType =
   | 'languageModelCall'
   | 'executeTool'
   | 'embed'
+  | 'embedMany'
   | 'rerank';
 
 /**
@@ -274,10 +275,14 @@ export function createSpanFromMessage(
     case 'executeTool':
       return buildToolSpan(event, recordInputs);
     case 'embed':
+    case 'embedMany': {
+      // `embed` carries a single `value`; `embedMany` a `values` array — both map to the embeddings input.
+      const input = type === 'embedMany' ? event.values : event.value;
       return startGenAiSpan(GEN_AI_EMBEDDINGS_OPERATION, modelId, {
         ...baseAttributes,
-        ...(recordInputs && event.value !== undefined ? { [GEN_AI_EMBEDDINGS_INPUT]: safeStringify(event.value) } : {}),
+        ...(recordInputs && input !== undefined ? { [GEN_AI_EMBEDDINGS_INPUT]: safeStringify(input) } : {}),
       });
+    }
     case 'rerank':
       return startGenAiSpan(GEN_AI_RERANK_OPERATION, modelId, baseAttributes);
     default:

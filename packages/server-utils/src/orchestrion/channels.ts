@@ -32,6 +32,7 @@ export const CHANNELS = {
   VERCEL_AI_GENERATE_TEXT: 'orchestrion:ai:generateText',
   VERCEL_AI_STREAM_TEXT: 'orchestrion:ai:streamText',
   VERCEL_AI_EMBED: 'orchestrion:ai:embed',
+  VERCEL_AI_EMBED_MANY: 'orchestrion:ai:embedMany',
   VERCEL_AI_EXECUTE_TOOL_CALL: 'orchestrion:ai:executeToolCall',
   // `resolveLanguageModel` is the single chokepoint every model call flows
   // through; we wrap it to monkey-patch `doGenerate`/`doStream` on the returned

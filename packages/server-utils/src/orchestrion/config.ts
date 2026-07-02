@@ -179,6 +179,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...vercelAiV6Entries('generateText', 'generateText', 'Async'),
   ...vercelAiV6Entries('streamText', 'streamText', 'Sync'),
   ...vercelAiV6Entries('embed', 'embed', 'Async'),
+  ...vercelAiV6Entries('embedMany', 'embedMany', 'Async'),
   ...vercelAiV6Entries('executeToolCall', 'executeToolCall', 'Async'),
   ...vercelAiV6Entries('resolveLanguageModel', 'resolveLanguageModel', 'Sync'),
 ];

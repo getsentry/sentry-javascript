@@ -126,6 +126,23 @@ export function subscribeVercelAiOrchestrionChannels(
     );
     bindOperation(
       tracingChannel,
+      CHANNELS.VERCEL_AI_EMBED_MANY,
+      // `embedMany` takes a `values` array (vs `embed`'s single `value`); the shared core reads it as the
+      // embeddings input, matching the OTel path's batch `ai.embedMany` span.
+      (callOptions, telemetry) => ({
+        type: 'embedMany',
+        event: {
+          callId: nextCallId(),
+          ...modelFields(callOptions.model),
+          maxRetries: callOptions.maxRetries,
+          values: callOptions.values,
+          ...recording(telemetry),
+        },
+      }),
+      options,
+    );
+    bindOperation(
+      tracingChannel,
       CHANNELS.VERCEL_AI_EXECUTE_TOOL_CALL,
       (callOptions, telemetry) => ({
         type: 'executeTool',
