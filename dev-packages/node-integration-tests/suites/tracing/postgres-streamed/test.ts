@@ -204,13 +204,17 @@ describe('postgres auto instrumentation (streamed)', () => {
               expect(dbSpans.find(span => span.name.includes('connect'))).toBeUndefined();
               expect(dbSpans.length).toBe(3);
 
+              // This block passes an explicit `postgresIntegration({ ignoreConnectSpans: true })`, which
+              // survives the orchestrion swap, so query spans keep the OTel origin even under INJECT_ORCHESTRION.
+              const origin = 'auto.db.otel.postgres';
               expect(dbSpans).toEqual([
-                expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT }),
+                expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT, origin }),
                 expectedDbSpan({
                   name: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
                   statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                  origin,
                 }),
-                expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"' }),
+                expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"', origin }),
               ]);
             },
           })
