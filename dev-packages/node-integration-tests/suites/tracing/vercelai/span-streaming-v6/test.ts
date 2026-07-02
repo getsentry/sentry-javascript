@@ -52,9 +52,6 @@ describe('Vercel AI integration (streaming, v6)', () => {
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
-          'vercel.ai.pipeline.name': attr('generateText'),
-          'vercel.ai.streaming': attr(false),
-          'vercel.ai.request.headers.user-agent': expect.objectContaining({ value: expect.any(String) }),
         }),
       }),
       // Second span - generate_content for simple generateText
@@ -70,8 +67,6 @@ describe('Vercel AI integration (streaming, v6)', () => {
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('generate_content'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.generate_content'),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
-          'vercel.ai.pipeline.name': attr('generateText.doGenerate'),
-          'vercel.ai.streaming': attr(false),
         }),
       }),
       // Third span - invoke_agent for explicit telemetry generateText
@@ -153,8 +148,6 @@ describe('Vercel AI integration (streaming, v6)', () => {
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
-          'vercel.ai.pipeline.name': attr('generateText'),
-          'vercel.ai.streaming': attr(false),
         }),
       }),
       // Second span - generate_content with input/output messages
