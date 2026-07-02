@@ -7,6 +7,20 @@ declare global {
 }
 
 /**
+ * Whether orchestrion has injected the diagnostics channels into this process,
+ * either by the runtime `--import` hook / init-time registration (`runtime`)
+ * or a bundler plugin (`bundler`). Both injectors set a flag on the
+ * `globalThis.__SENTRY_ORCHESTRION__` marker.
+ *
+ * Use this to avoid wiring up channel-subscriber integrations when nothing
+ * will ever publish to those channels.
+ */
+export function isOrchestrionInjected(): boolean {
+  const marker = globalThis.__SENTRY_ORCHESTRION__;
+  return !!(marker?.runtime || marker?.bundler);
+}
+
+/**
  * Verifies that the diagnostics channels have been injected either by the
  * runtime `--import` hook (or init-time registration), a bundler plugin, or
  * both, and warns if not.
@@ -30,7 +44,7 @@ export function detectOrchestrionSetup(): void {
 
   DEBUG_BUILD && debug.log(`[orchestrion] detect: runtime=${runtime} bundler=${bundler}`);
 
-  if (!runtime && !bundler) {
+  if (!isOrchestrionInjected()) {
     DEBUG_BUILD &&
       debug.warn(
         '[Sentry] No diagnostics-channel injection detected. Channel-based integrations ' +

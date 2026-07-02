@@ -1,11 +1,17 @@
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('postgres auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
+
+  // The query-span origin depends on which instrumentation is active. The blocks below drive the SDK's
+  // default integrations, so when the generic orchestrion run is enabled (via INJECT_ORCHESTRION) the OTel
+  // `Postgres` integration is swapped for the diagnostics-channel one, changing the origin. Blocks that pass
+  // an explicit `postgresIntegration()` (e.g. `ignoreConnectSpans`) keep the OTel origin and don't use this.
+  const QUERY_ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.postgres' : 'auto.db.otel.postgres';
 
   describe('default', () => {
     const EXPECTED_TRANSACTION = {
@@ -27,26 +33,26 @@ describe('postgres auto instrumentation', () => {
             'db.system': 'postgresql',
             'db.name': 'tests',
             'db.statement': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
-            'sentry.origin': 'auto.db.otel.postgres',
+            'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
           description: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgres',
+          origin: QUERY_ORIGIN,
         }),
         expect.objectContaining({
           data: expect.objectContaining({
             'db.system': 'postgresql',
             'db.name': 'tests',
             'db.statement': 'SELECT * FROM "User"',
-            'sentry.origin': 'auto.db.otel.postgres',
+            'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
           description: 'SELECT * FROM "User"',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgres',
+          origin: QUERY_ORIGIN,
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -54,26 +60,26 @@ describe('postgres auto instrumentation', () => {
             'db.name': 'tests',
             'db.statement': 'SELECT * FROM "User" WHERE "email" = $1',
             'db.postgresql.plan': 'select-user-by-email',
-            'sentry.origin': 'auto.db.otel.postgres',
+            'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
           description: 'SELECT * FROM "User" WHERE "email" = $1',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgres',
+          origin: QUERY_ORIGIN,
         }),
         expect.objectContaining({
           data: expect.objectContaining({
             'db.system': 'postgresql',
             'db.name': 'tests',
             'db.statement': 'SELECT * FROM "does_not_exist_table"',
-            'sentry.origin': 'auto.db.otel.postgres',
+            'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
           description: 'SELECT * FROM "does_not_exist_table"',
           op: 'db',
           status: 'internal_error',
-          origin: 'auto.db.otel.postgres',
+          origin: QUERY_ORIGIN,
         }),
       ]),
     };
@@ -165,13 +171,13 @@ describe('postgres auto instrumentation', () => {
             'db.system': 'postgresql',
             'db.name': 'tests',
             'db.statement': 'SELECT 1 AS foo',
-            'sentry.origin': 'auto.db.otel.postgres',
+            'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
           description: 'SELECT 1 AS foo',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgres',
+          origin: QUERY_ORIGIN,
         }),
       ]),
     };
@@ -232,13 +238,13 @@ describe('postgres auto instrumentation', () => {
             'db.system': 'postgresql',
             'db.name': 'tests',
             'db.statement': 'SELECT 1 AS connect_then',
-            'sentry.origin': 'auto.db.otel.postgres',
+            'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
           description: 'SELECT 1 AS connect_then',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgres',
+          origin: QUERY_ORIGIN,
         }),
       ]),
     };
@@ -278,13 +284,13 @@ describe('postgres auto instrumentation', () => {
                       'db.system': 'postgresql',
                       'db.name': 'tests',
                       'db.statement': 'SELECT 2 AS parented',
-                      'sentry.origin': 'auto.db.otel.postgres',
+                      'sentry.origin': QUERY_ORIGIN,
                       'sentry.op': 'db',
                     }),
                     description: 'SELECT 2 AS parented',
                     op: 'db',
                     status: 'ok',
-                    origin: 'auto.db.otel.postgres',
+                    origin: QUERY_ORIGIN,
                   }),
                 ]),
               });
@@ -316,26 +322,26 @@ describe('postgres auto instrumentation', () => {
             'db.system': 'postgresql',
             'db.name': 'tests',
             'db.statement': 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
-            'sentry.origin': 'auto.db.otel.postgres',
+            'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
           description: 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgres',
+          origin: QUERY_ORIGIN,
         }),
         expect.objectContaining({
           data: expect.objectContaining({
             'db.system': 'postgresql',
             'db.name': 'tests',
             'db.statement': 'SELECT * FROM "NativeUser"',
-            'sentry.origin': 'auto.db.otel.postgres',
+            'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
           description: 'SELECT * FROM "NativeUser"',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgres',
+          origin: QUERY_ORIGIN,
         }),
       ]),
     };
@@ -424,15 +430,23 @@ describe('postgres auto instrumentation', () => {
         ]),
       };
 
-      createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-orchestrion.mjs', (createTestRunner, test) => {
-        test('auto-instruments `pg` via diagnostics channels', { timeout: 90_000 }, async () => {
-          await createTestRunner()
-            .withDockerCompose({ workingDirectory: [__dirname] })
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .start()
-            .completed();
-        });
-      });
+      createEsmAndCjsTests(
+        __dirname,
+        'scenario.mjs',
+        'instrument-orchestrion.mjs',
+        (createTestRunner, test) => {
+          test('auto-instruments `pg` via diagnostics channels', { timeout: 90_000 }, async () => {
+            await createTestRunner()
+              .withDockerCompose({ workingDirectory: [__dirname] })
+              .expect({ transaction: EXPECTED_TRANSACTION })
+              .start()
+              .completed();
+          });
+        },
+        // This block enables orchestrion itself via its instrument file, so opt out of the generic
+        // INJECT_ORCHESTRION auto-injection to avoid enabling it twice.
+        { injectOrchestrion: false },
+      );
     });
 
     describe('pool', () => {
@@ -467,15 +481,22 @@ describe('postgres auto instrumentation', () => {
         ]),
       };
 
-      createEsmAndCjsTests(__dirname, 'scenario-pool.mjs', 'instrument-orchestrion.mjs', (createTestRunner, test) => {
-        test('auto-instruments `pg.Pool` and handles callback-style queries', { timeout: 90_000 }, async () => {
-          await createTestRunner()
-            .withDockerCompose({ workingDirectory: [__dirname] })
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .start()
-            .completed();
-        });
-      });
+      createEsmAndCjsTests(
+        __dirname,
+        'scenario-pool.mjs',
+        'instrument-orchestrion.mjs',
+        (createTestRunner, test) => {
+          test('auto-instruments `pg.Pool` and handles callback-style queries', { timeout: 90_000 }, async () => {
+            await createTestRunner()
+              .withDockerCompose({ workingDirectory: [__dirname] })
+              .expect({ transaction: EXPECTED_TRANSACTION })
+              .start()
+              .completed();
+          });
+        },
+        // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
+        { injectOrchestrion: false },
+      );
     });
 
     describe('connect error', () => {
@@ -505,6 +526,8 @@ describe('postgres auto instrumentation', () => {
             await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
           });
         },
+        // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
+        { injectOrchestrion: false },
       );
     });
 
@@ -549,6 +572,8 @@ describe('postgres auto instrumentation', () => {
             },
           );
         },
+        // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
+        { injectOrchestrion: false },
       );
     });
 
@@ -608,6 +633,8 @@ describe('postgres auto instrumentation', () => {
             },
           );
         },
+        // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
+        { injectOrchestrion: false },
       );
     });
   });
