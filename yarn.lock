@@ -122,6 +122,15 @@
   resolved "https://registry.yarnpkg.com/@adobe/css-tools/-/css-tools-4.4.3.tgz#beebbefb0264fdeb32d3052acae0e0d94315a9a2"
   integrity sha512-VQKMkwriZbaOgVCby1UDY/LDk5fIjhQicCvVPFqfe+69fWaPWydbWJ3wRt59/YzIwda1I81loas3oCoHxnqvdA==
 
+"@ai-sdk/gateway@3.0.142":
+  version "3.0.142"
+  resolved "https://registry.yarnpkg.com/@ai-sdk/gateway/-/gateway-3.0.142.tgz#d06b52db8237d49fb42bef77daa1396390c1f5be"
+  integrity sha512-Y1iwdxdebYXpoK5y/4CrcCfJGeFwEJWlEx+pMWIg/ZVWGi9KA+JXM7YBkhxcshpq/jAXx8YyQeFMyZr0TGfXZQ==
+  dependencies:
+    "@ai-sdk/provider" "3.0.13"
+    "@ai-sdk/provider-utils" "4.0.35"
+    "@vercel/oidc" "3.2.0"
+
 "@ai-sdk/provider-utils@2.2.8":
   version "2.2.8"
   resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-2.2.8.tgz#ad11b92d5a1763ab34ba7b5fc42494bfe08b76d1"
@@ -131,10 +140,26 @@
     nanoid "^3.3.8"
     secure-json-parse "^2.7.0"
 
+"@ai-sdk/provider-utils@4.0.35":
+  version "4.0.35"
+  resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-4.0.35.tgz#bd32efdd5e4ac4f5c2ac42924d960a1d8bf0b4e2"
+  integrity sha512-bjYld/2KGPLt78kpqbya+fD4LYS7BqVQJyUjE3qAHrYB0FR2Q90BaWEVIBZaguTWXf/A8L6uG1zO1v9TxVlGWg==
+  dependencies:
+    "@ai-sdk/provider" "3.0.13"
+    "@standard-schema/spec" "^1.1.0"
+    eventsource-parser "^3.0.8"
+
 "@ai-sdk/provider@1.1.3":
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/@ai-sdk/provider/-/provider-1.1.3.tgz#ebdda8077b8d2b3f290dcba32c45ad19b2704681"
   integrity sha512-qZMxYJ0qqX/RfnuIaab+zp8UAeJn/ygXXAffR5I4N0n1IrvA6qBsjc8hXLmBiMV2zoXlifkacF7sEFnYnjBcqg==
+  dependencies:
+    json-schema "^0.4.0"
+
+"@ai-sdk/provider@3.0.13":
+  version "3.0.13"
+  resolved "https://registry.yarnpkg.com/@ai-sdk/provider/-/provider-3.0.13.tgz#8d2d64bcf5bd077133c82cc1eeefad3bee0b192d"
+  integrity sha512-ZPtVYt5QIJzOta1kdUiDuCx4HhFkvNPv/rvmZ2b1iXwybYjJsCnNYR4PAw4kW7rgVfDARvHXcU64efWuqNp6bw==
   dependencies:
     json-schema "^0.4.0"
 
@@ -6074,7 +6099,7 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.9.0.tgz#d03eba68273dc0f7509e2a3d5cba21eae10379fe"
   integrity sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==
 
-"@opentelemetry/api@^1.3.0", "@opentelemetry/api@^1.9.1":
+"@opentelemetry/api@^1.3.0", "@opentelemetry/api@^1.9.0", "@opentelemetry/api@^1.9.1":
   version "1.9.1"
   resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.9.1.tgz#c1b0346de336ba55af2d5a7970882037baedec05"
   integrity sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==
@@ -9830,6 +9855,11 @@
     picomatch "^4.0.2"
     resolve-from "^5.0.0"
 
+"@vercel/oidc@3.2.0":
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/@vercel/oidc/-/oidc-3.2.0.tgz#5782a4d4904443f015808705b5537cf9c3b68528"
+  integrity sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==
+
 "@vinxi/listhen@^1.5.6":
   version "1.5.6"
   resolved "https://registry.yarnpkg.com/@vinxi/listhen/-/listhen-1.5.6.tgz#78a01eb6d92016b646f3b468433e7bbb8c9957ab"
@@ -10664,6 +10694,16 @@ ai@^4.3.16:
     "@ai-sdk/ui-utils" "1.2.11"
     "@opentelemetry/api" "1.9.0"
     jsondiffpatch "0.6.0"
+
+ai@^6.0.0:
+  version "6.0.218"
+  resolved "https://registry.yarnpkg.com/ai/-/ai-6.0.218.tgz#3f01d61313eee34469bc79fe3af540e097db42a1"
+  integrity sha512-HsyCUNaaYgX/b/kGOoYfKkqfT1HvpUKKDb8YkN1FKeCNZjKdqXLGY+cKBpYGIRAvsPuOHskxLxZ46cK1dTBWQQ==
+  dependencies:
+    "@ai-sdk/gateway" "3.0.142"
+    "@ai-sdk/provider" "3.0.13"
+    "@ai-sdk/provider-utils" "4.0.35"
+    "@opentelemetry/api" "^1.9.0"
 
 ajv-formats@2.1.1, ajv-formats@^2.1.1:
   version "2.1.1"
@@ -16472,6 +16512,11 @@ events@^3.0.0, events@^3.2.0, events@^3.3.0:
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/events/-/events-3.3.0.tgz#31a95ad0a924e2d2c419a813aeb2c4e878ea7400"
   integrity sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==
+
+eventsource-parser@^3.0.8:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/eventsource-parser/-/eventsource-parser-3.1.0.tgz#4e198eb91cd333d0a8ddcc036502b3618a25f449"
+  integrity sha512-kJezFj9YFAMLeORyi7aCLxLbD5/qWMQnoMVlVPyHIll7lgRJCc3JVln9Vgl9nwQi0YkMnhdGTMNn7CkRRAptMg==
 
 exact-mirror@^0.2.7:
   version "0.2.7"
