@@ -46,6 +46,7 @@ import { timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
+import { getSegmentSpanCaptureStrategy, type SegmentSpanCaptureConvertOptions } from './segmentSpanCaptureStrategy';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { getCapturedScopesOnSpan, markSpanSourceAsExplicit, spanShouldInferOtelSource } from './utils';
 
@@ -343,11 +344,8 @@ export class SentrySpan implements Span {
     // A segment span is basically the root span of a local span tree.
     // So for now, this is either what we previously refer to as the root span,
     // or a standalone span.
-    const isSegmentSpan = this._isStandaloneSpan || this === getRootSpan(this);
-
-    if (!isSegmentSpan) {
-      return;
-    }
+    const rootSpan = getRootSpan(this);
+    const isSegmentSpan = this._isStandaloneSpan || this === rootSpan;
 
     // if this is a standalone span, we send it immediately
     if (this._isStandaloneSpan) {
@@ -361,23 +359,43 @@ export class SentrySpan implements Span {
         }
       }
       return;
-    } else if (client && hasSpanStreamingEnabled(client)) {
+    }
+
+    // Non-segment children aren't captured on their own. A registered strategy may re-emit a late child
+    // as its own orphan transaction; without one, it's dropped.
+    if (!isSegmentSpan) {
+      const strategy = getSegmentSpanCaptureStrategy();
+      if (strategy) {
+        const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
+        strategy.onChildSpanEnded(this, rootSpan, options => this._convertSpanToTransaction(options), scope);
+      }
+      return;
+    }
+
+    if (client && hasSpanStreamingEnabled(client)) {
       // TODO (spans): Remove standalone span custom logic in favor of sending simple v2 web vital spans
       client.emit('afterSegmentSpanEnd', this);
       return;
     }
 
-    const transactionEvent = this._convertSpanToTransaction();
-    if (transactionEvent) {
-      const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
-      scope.captureEvent(transactionEvent);
+    // A registered strategy defers the snapshot so children closing just after the segment still land
+    // (and late ones can orphan); without one, assemble synchronously from the live tree.
+    const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
+    const strategy = getSegmentSpanCaptureStrategy();
+    if (strategy) {
+      strategy.onSegmentSpanEnded(options => this._convertSpanToTransaction(options), scope);
+    } else {
+      const transactionEvent = this._convertSpanToTransaction();
+      if (transactionEvent) {
+        scope.captureEvent(transactionEvent);
+      }
     }
   }
 
   /**
    * Finish the transaction & prepare the event to send to Sentry.
    */
-  private _convertSpanToTransaction(): TransactionEvent | undefined {
+  private _convertSpanToTransaction(options: SegmentSpanCaptureConvertOptions = {}): TransactionEvent | undefined {
     // We can only convert finished spans
     if (!isFullFinishedSpan(spanToJSON(this))) {
       return undefined;
@@ -396,10 +414,21 @@ export class SentrySpan implements Span {
       return undefined;
     }
 
-    // The transaction span itself as well as any potential standalone spans should be filtered out
-    const finishedSpans = getSpanDescendants(this).filter(span => span !== this && !isStandaloneSpan(span));
-
-    const spans = finishedSpans.map(span => spanToJSON(span)).filter(isFullFinishedSpan);
+    // Skip the span itself, standalone spans, and (when a strategy tracks it) spans already sent. The
+    // synchronous default passes no hooks, so this bookkeeping stays out of SDKs that don't defer.
+    options.onSpanCaptured?.(this);
+    const spans: SpanJSON[] = [];
+    for (const descendant of getSpanDescendants(this)) {
+      if (descendant === this || isStandaloneSpan(descendant) || options.isSpanAlreadyCaptured?.(descendant)) {
+        continue;
+      }
+      const spanJSON = spanToJSON(descendant);
+      if (!isFullFinishedSpan(spanJSON)) {
+        continue;
+      }
+      options.onSpanCaptured?.(descendant);
+      spans.push(spanJSON);
+    }
 
     const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
