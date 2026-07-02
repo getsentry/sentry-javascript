@@ -8,6 +8,7 @@ import {
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
+  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
@@ -301,7 +302,9 @@ describe('Anthropic integration', () => {
               expect(span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE].value).toBe('msg_stream_1');
             }
 
-            const detailedStreamSpan = requestStreamSpans[0];
+            const detailedStreamSpan = requestStreamSpans.find(
+              span => span.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]?.value === '["end_turn"]',
+            );
             expect(detailedStreamSpan).toBeDefined();
             expect(detailedStreamSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
             expect(detailedStreamSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
@@ -426,6 +429,7 @@ describe('Anthropic integration', () => {
               expect(span.status).toBe('ok');
               expect(span.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(span.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
+              expect(span.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE].value).toBe('["tool_use"]');
               expect(span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE].value).toBe(EXPECTED_TOOLS_JSON);
               expect(span.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE].value).toBe(EXPECTED_TOOL_CALLS_JSON);
             }
