@@ -29,3 +29,11 @@ export type {
   TracingChannelPayloadWithSpan,
 } from './tracing-channel';
 export { vercelAiIntegration } from './vercel-ai';
+
+export {
+  fastifyIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
+  handleFastifyError,
+  // oxlint-disable-next-line typescript/no-deprecated
+  instrumentFastify,
+} from './integrations/tracing-channel/fastify';

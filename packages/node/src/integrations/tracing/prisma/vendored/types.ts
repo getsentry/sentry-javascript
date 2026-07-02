@@ -5,12 +5,14 @@
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/prisma/prisma/tree/b6feea5565ec577545a79547d24273ccdd11b4c7/packages/instrumentation-contract
  * - Upstream version: @prisma/instrumentation-contract@7.8.0
+ * - Trimmed to the members the SDK's tracing helper relies on (dropped the unused `EngineTrace`,
+ *   `EngineTraceEvent`, and `LogLevel` types)
  */
-/* eslint-disable */
 
-import type { Context, Span, SpanOptions } from '@opentelemetry/api';
+import type { SpanOptions } from '@opentelemetry/api';
+import type { Span } from '@sentry/core';
 
-export type SpanCallback<R> = (span?: Span, context?: Context) => R;
+export type SpanCallback<R> = (span?: Span, parentSpan?: Span) => R;
 
 export interface ExtendedSpanOptions extends SpanOptions {
   /** The name of the span */
@@ -19,8 +21,6 @@ export interface ExtendedSpanOptions extends SpanOptions {
   internal?: boolean;
   /** Whether it propagates context (?=true) */
   active?: boolean;
-  /** The context to append the span to */
-  context?: Context;
 }
 
 export type EngineSpanId = string;
@@ -40,33 +40,11 @@ export type EngineSpan = {
   links?: EngineSpanId[];
 };
 
-export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'query';
-
-export interface EngineTraceEvent {
-  spanId: EngineSpanId;
-  target?: string;
-  level: LogLevel;
-  timestamp: HrTime;
-  attributes: Record<string, unknown> & {
-    message?: string;
-    query?: string;
-    duration_ms?: number;
-    params?: string;
-  };
-}
-
-export interface EngineTrace {
-  spans: EngineSpan[];
-  events: EngineTraceEvent[];
-}
-
 export interface TracingHelper {
   isEnabled(): boolean;
-  getTraceParent(context?: Context): string;
+  getTraceParent(span?: Span): string;
   dispatchEngineSpans(spans: EngineSpan[]): void;
-
-  getActiveContext(): Context | undefined;
-
+  getActiveContext(): Span | undefined;
   runInChildSpan<R>(nameOrOptions: string | ExtendedSpanOptions, callback: SpanCallback<R>): R;
 }
 

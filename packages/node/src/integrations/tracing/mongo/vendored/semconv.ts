@@ -28,48 +28,6 @@ export const ATTR_DB_CONNECTION_STRING = 'db.connection_string' as const;
 export const ATTR_DB_MONGODB_COLLECTION = 'db.mongodb.collection' as const;
 
 /**
- * Deprecated, use `db.namespace` instead.
- *
- * @deprecated Replaced by `db.namespace`.
- */
-export const ATTR_DB_NAME = 'db.name' as const;
-
-/**
- * Deprecated, use `db.operation.name` instead.
- *
- * @deprecated Replaced by `db.operation.name`.
- */
-export const ATTR_DB_OPERATION = 'db.operation' as const;
-
-/**
- * The database statement being executed.
- *
- * @deprecated Replaced by `db.query.text`.
- */
-export const ATTR_DB_STATEMENT = 'db.statement' as const;
-
-/**
- * Deprecated, use `db.system.name` instead.
- *
- * @deprecated Replaced by `db.system.name`.
- */
-export const ATTR_DB_SYSTEM = 'db.system' as const;
-
-/**
- * Deprecated, use `server.address` on client spans and `client.address` on server spans.
- *
- * @deprecated Replaced by `server.address` on client spans and `client.address` on server spans.
- */
-export const ATTR_NET_PEER_NAME = 'net.peer.name' as const;
-
-/**
- * Deprecated, use `server.port` on client spans and `client.port` on server spans.
- *
- * @deprecated Replaced by `server.port` on client spans and `client.port` on server spans.
- */
-export const ATTR_NET_PEER_PORT = 'net.peer.port' as const;
-
-/**
- * Enum value "mongodb" for attribute {@link ATTR_DB_SYSTEM}.
+ * Enum value "mongodb" for attribute `db.system`.
  */
 export const DB_SYSTEM_VALUE_MONGODB = 'mongodb' as const;

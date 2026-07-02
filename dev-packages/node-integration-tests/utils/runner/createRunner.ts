@@ -136,6 +136,10 @@ export function createRunner(...paths: string[]) {
   let withSentryServer = false;
   let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
+  // When set, the test using this runner expects `completed()` to reject (e.g. `test.fails` variants
+  // created via `createEsmAndCjsTests` with `failsOnEsm`/`failsOnCjs`). We suppress the captured-log
+  // dump in that case, since the failure is expected and the output would just be noise.
+  let suppressErrorLogs = false;
   const logs: string[] = [];
 
   if (testPath.endsWith('.ts')) {
@@ -187,7 +191,10 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     withEnv: function (env: Record<string, string>) {
-      withEnv = env;
+      withEnv = {
+        ...withEnv,
+        ...env,
+      };
       return this;
     },
     withFlags: function (...args: string[]) {
@@ -227,6 +234,14 @@ export function createRunner(...paths: string[]) {
       ensureNoErrorOutput = true;
       return this;
     },
+    /**
+     * Mark this runner's test as expected to fail (i.e. `completed()` is expected to reject).
+     * Suppresses the captured-log dump so expected failures don't emit noisy output.
+     */
+    suppressErrorLogs: function () {
+      suppressErrorLogs = true;
+      return this;
+    },
     start: function (): StartResult {
       let isComplete = false;
       let completeError: Error | undefined;
@@ -246,6 +261,33 @@ export function createRunner(...paths: string[]) {
         isComplete = true;
         completeError = error || undefined;
         child?.kill();
+      }
+
+      /**
+       * Print everything the child process wrote to stdout/stderr. Called when a test fails or
+       * times out so the captured output is visible in CI logs. Skipped when `DEBUG` is set, since
+       * that already streams the same lines live as they arrive.
+       */
+      function dumpCapturedLogs(): void {
+        // Skip when the failure is expected (`test.fails` variants) — the output would just be noise.
+        // In debug mode the same lines are already streamed live, so skip then too.
+        if (process.env.DEBUG || suppressErrorLogs) {
+          return;
+        }
+
+        // eslint-disable-next-line no-console
+        console.log(`\n--- Captured child process output for ${testPath} ---`);
+        if (logs.length === 0) {
+          // eslint-disable-next-line no-console
+          console.log('(no output captured)');
+        } else {
+          for (const line of logs) {
+            // eslint-disable-next-line no-console
+            console.log(line);
+          }
+        }
+        // eslint-disable-next-line no-console
+        console.log('--- End of captured child process output ---\n');
       }
 
       /** Called after each expect callback to check if we're complete */
@@ -472,9 +514,18 @@ export function createRunner(...paths: string[]) {
 
       return {
         completed: async function (): Promise<void> {
-          await waitFor(() => isComplete, 120_000, 'Timed out waiting for test to complete');
+          try {
+            await waitFor(() => isComplete, 120_000, 'Timed out waiting for test to complete');
+          } catch (e) {
+            // On timeout, dump the captured child output (same info `DEBUG=1` would have streamed live)
+            // so CI failures are diagnosable without re-running locally with DEBUG enabled.
+            dumpCapturedLogs();
+            throw e;
+          }
 
           if (completeError) {
+            // Same rationale as the timeout branch: surface what the child actually logged before failing.
+            dumpCapturedLogs();
             throw completeError;
           }
         },
@@ -563,10 +614,22 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   // ensure we're starting fresh
   close();
 
-  const result = spawnSync('docker', ['compose', 'up', '-d', '--wait'], {
-    cwd,
-    stdio: process.env.DEBUG ? 'inherit' : 'pipe',
-  });
+  const composeUp = (): ReturnType<typeof spawnSync> =>
+    spawnSync('docker', ['compose', 'up', '-d', '--wait'], {
+      cwd,
+      stdio: process.env.DEBUG ? 'inherit' : 'pipe',
+    });
+
+  // `docker compose up` occasionally fails on CI with transient daemon races
+  // (e.g. "failed to set up container networking: network <x>_default not
+  // found" right after the network was created). A clean teardown plus retry
+  // clears these, while genuine healthcheck failures stay red on every attempt.
+  const maxAttempts = 3;
+  let result = composeUp();
+  for (let attempt = 1; attempt < maxAttempts && result.status !== 0; attempt++) {
+    close();
+    result = composeUp();
+  }
 
   if (result.status !== 0) {
     const stderr = result.stderr?.toString() ?? '';

@@ -1,7 +1,7 @@
 /**
  * Use this attribute to represent the source of a span name.
  * Must be one of: custom, url, route, view, component, task
- * TODO(v11): rename this to sentry.span.source'
+ * TODO(v11): remove this export
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = 'sentry.source';
 

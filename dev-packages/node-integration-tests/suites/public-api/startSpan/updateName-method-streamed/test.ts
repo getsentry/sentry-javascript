@@ -15,7 +15,9 @@ test('updates the span name when calling `span.updateName` (streamed)', async ()
             name: 'new name',
             is_segment: true,
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { type: 'string', value: 'url' },
+              // `updateName` marks the name as explicitly chosen, so the source becomes `custom`,
+              // overriding the `url` source set at span start (a stale `url` no longer describes the name).
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { type: 'string', value: 'custom' },
             },
           },
         ],

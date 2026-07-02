@@ -20,6 +20,18 @@ async function run() {
 
       await client.user.findMany();
 
+      // Interactive transaction: exercises `prisma:client:transaction` and its nested engine spans.
+      await client.$transaction(async tx => {
+        await tx.user.create({
+          data: {
+            name: 'Burt',
+            email: `burt_${randomBytes(4).toString('hex')}@sentry.io`,
+          },
+        });
+
+        await tx.user.findMany();
+      });
+
       await client.user.deleteMany({
         where: {
           email: {
