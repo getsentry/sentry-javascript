@@ -2,11 +2,11 @@
 
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { TransactionEvent } from '@sentry/core';
+import type { DenoClient } from '@sentry/deno';
+import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
-import type { DenoClient } from '../build/esm/index.js';
-import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '../build/esm/index.js';
 
 function resetGlobals(): void {
   getCurrentScope().clear();
@@ -65,10 +65,11 @@ Deno.test('denoMysqlIntegration: included in default integrations (Deno 2.8.0+)'
 // import inside the entry graph in Deno 2.8.0 through 2.8.2.
 // TODO: revisit a `--import` or `--preload` approach once Deno 2.8.3 ships.
 Deno.test('@sentry/deno/import: transforms mysql so it publishes the orchestrion channel', async () => {
-  const scenario = new URL('./orchestrion-mysql/scenario.mjs', import.meta.url);
+  const scenario = new URL('./scenario.mjs', import.meta.url);
 
-  // packages/deno — where node_modules resolves
-  const cwd = new URL('../', import.meta.url);
+  // The package root — where `node_modules` (and thus `@sentry/deno` / `mysql`)
+  // resolves for the spawned `deno run`.
+  const cwd = new URL('../../', import.meta.url);
 
   const command = new Deno.Command('deno', {
     args: ['run', '--allow-all', scenario.pathname],
