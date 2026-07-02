@@ -180,38 +180,50 @@ function bindOperation(
 ): void {
   const channel = tracingChannel<OrchestrionContext>(channelName);
 
-  // Bind the operation span into our own async-context store. We bind it BEFORE `bindTracingChannelToSpan`
-  // so that — bound stores run last-in-first-out — this transform runs AFTER the helper's producer has
-  // stashed the span on `data._sentrySpan`. `bindStore` activates the store via `runStores` for the
-  // traced operation, and that propagates across the awaits inside it, so a model call awaited within the
+  // Create the operation span once per traced call (memoized on `data._sentrySpan`) and track it. Both
+  // stores bound on `channel.start` below call this; whichever transform Node runs first creates the span
+  // and the other reuses it. This must NOT depend on the two transforms' relative execution order: Node 26
+  // reversed `bindStore` transform execution from last-in-first-out to first-in-first-out. The previous
+  // approach — our parent-carrying store reading a `data._sentrySpan` that `bindTracingChannelToSpan`'s
+  // store was expected to have stashed first — bound `undefined` on Node 26, so `resolveModelCallParent`
+  // found no parent and no `generate_content` (model-call) span was emitted.
+  const getOrCreateSpan = (data: TracingChannelPayloadWithSpan<OrchestrionContext>): Span | undefined => {
+    if (data._sentrySpan) {
+      return data._sentrySpan;
+    }
+    const callOptions = isRecord(data.arguments[0]) ? data.arguments[0] : {};
+    const telemetry = isRecord(callOptions.experimental_telemetry) ? callOptions.experimental_telemetry : {};
+    if (telemetry.isEnabled === false) {
+      return undefined;
+    }
+    const message = build(callOptions, telemetry);
+    const span = createSpanFromMessage(message, options);
+    if (span) {
+      data._sentrySpan = span;
+      messages.set(data, message);
+      operationSpans.add(span);
+      const callId = asString(message.event.callId);
+      if (callId) {
+        callIdBySpan.set(span, callId);
+      }
+    }
+    return span;
+  };
+
+  // Carry the operation span into our own async-context store, so a model call awaited within the
   // operation reads ITS operation's span — no leak across sequential calls, no clobbering across
   // concurrent ones (which a single mutable slot on the shared model instance cannot achieve).
-  // `bindStore`'s store type is the channel's data type; our store value is the operation span, so cast
-  // (the runtime treats the store value opaquely — same as `bindTracingChannelToSpan` does internally).
+  // `bindStore` activates the store via `runStores` for the traced operation, and that propagates across
+  // the awaits inside it. `bindStore`'s store type is the channel's data type; our store value is the
+  // operation span, so cast (the runtime treats the store value opaquely — same as
+  // `bindTracingChannelToSpan` does internally).
   channel.start.bindStore(operationParentStore as unknown as AsyncLocalStorage<OrchestrionContext>, data => {
-    return (data as TracingChannelPayloadWithSpan<OrchestrionContext>)._sentrySpan as unknown as OrchestrionContext;
+    return getOrCreateSpan(data as TracingChannelPayloadWithSpan<OrchestrionContext>) as unknown as OrchestrionContext;
   });
 
   bindTracingChannelToSpan(
     channel,
-    (data: TracingChannelPayloadWithSpan<OrchestrionContext>) => {
-      const callOptions = isRecord(data.arguments[0]) ? data.arguments[0] : {};
-      const telemetry = isRecord(callOptions.experimental_telemetry) ? callOptions.experimental_telemetry : {};
-      if (telemetry.isEnabled === false) {
-        return undefined;
-      }
-      const message = build(callOptions, telemetry);
-      const span = createSpanFromMessage(message, options);
-      if (span) {
-        messages.set(data, message);
-        operationSpans.add(span);
-        const callId = asString(message.event.callId);
-        if (callId) {
-          callIdBySpan.set(span, callId);
-        }
-      }
-      return span;
-    },
+    (data: TracingChannelPayloadWithSpan<OrchestrionContext>) => getOrCreateSpan(data),
     {
       beforeSpanEnd: (span, data) => {
         const message = messages.get(data);
