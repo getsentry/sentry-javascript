@@ -50,14 +50,28 @@ export function createEsmAndCjsTests(
   const createdRunners = new Set<ReturnType<typeof createRunner>>();
 
   callback(
-    () => trackRunner(createdRunners, createRunner(paths.esm.scenario).withFlags('--import', paths.esm.instrument)),
+    () => {
+      const runner = createRunner(paths.esm.scenario).withFlags('--import', paths.esm.instrument);
+      // Expected failure — don't dump the child's captured output for these.
+      if (options?.failsOnEsm) {
+        runner.suppressErrorLogs();
+      }
+      return trackRunner(createdRunners, runner);
+    },
     esmTestFn,
     'esm',
     tmpDirPath,
   );
 
   callback(
-    () => trackRunner(createdRunners, createRunner(paths.cjs.scenario).withFlags('--require', paths.cjs.instrument)),
+    () => {
+      const runner = createRunner(paths.cjs.scenario).withFlags('--require', paths.cjs.instrument);
+      // Expected failure — don't dump the child's captured output for these.
+      if (options?.failsOnCjs) {
+        runner.suppressErrorLogs();
+      }
+      return trackRunner(createdRunners, runner);
+    },
     cjsTestFn,
     'cjs',
     tmpDirPath,

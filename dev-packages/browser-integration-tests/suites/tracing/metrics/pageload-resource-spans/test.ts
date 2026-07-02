@@ -65,6 +65,12 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
   expect(scriptSpans?.map(({ description }) => description).sort()).toEqual(expectedScripts);
   expect(scriptSpans?.map(({ parent_span_id }) => parent_span_id)).toEqual(expectedScripts.map(() => spanId));
 
+  // The init bundle script is served from the test origin: its description is origin-relative,
+  // but `url.full` retains the full absolute URL (needed for span description inference).
+  const sameOriginScriptSpan = scriptSpans?.find(({ description }) => description === '/init.bundle.js');
+  expect(sameOriginScriptSpan?.data?.['url.same_origin']).toBe(true);
+  expect(sameOriginScriptSpan?.data?.['url.full']).toMatch(/^https?:\/\/.+\/init\.bundle\.js$/);
+
   const customScriptSpan = scriptSpans?.find(
     ({ description }) => description === 'https://sentry-test-site.example/path/to/script.js',
   );
@@ -94,6 +100,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'server.address': 'sentry-test-site.example',
       'url.same_origin': false,
       'url.scheme': 'https',
+      'url.full': 'https://sentry-test-site.example/path/to/image.svg',
       ...(!isWebkitRun && {
         'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
@@ -141,6 +148,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'server.address': 'sentry-test-site.example',
       'url.same_origin': false,
       'url.scheme': 'https',
+      'url.full': 'https://sentry-test-site.example/path/to/style.css',
       ...(!isWebkitRun && {
         'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
@@ -182,6 +190,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'server.address': 'sentry-test-site.example',
       'url.same_origin': false,
       'url.scheme': 'https',
+      'url.full': 'https://sentry-test-site.example/path/to/script.js',
       ...(!isWebkitRun && {
         'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',

@@ -8,6 +8,7 @@ import {
   isPrimitive,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_URL_FULL,
   setMeasurement,
   spanToJSON,
   stringMatchesSomePattern,
@@ -773,6 +774,8 @@ export function _addResourceSpans(
   }
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
+
+  attributes[SEMANTIC_ATTRIBUTE_URL_FULL] = resourceUrl;
 
   _setResourceRequestAttributes(entry, attributes, [
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus

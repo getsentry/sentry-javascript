@@ -40,12 +40,15 @@ import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInject
  * @experimental May change or be removed in any release.
  */
 export function experimentalUseDiagnosticsChannelInjection(): void {
-  setDiagnosticsChannelInjectionLoader(
-    (): DiagnosticsChannelInjection => ({
-      integrations: [mysqlChannelIntegration(), lruMemoizerChannelIntegration()],
-      replacedOtelIntegrationNames: ['Mysql', 'LruMemoizer'],
+  setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
+    const integrations = [mysqlChannelIntegration(), lruMemoizerChannelIntegration()] as const;
+    const replacedOtelIntegrationNames = integrations.map(i => i.name);
+
+    return {
+      integrations,
+      replacedOtelIntegrationNames,
       register: registerDiagnosticsChannelInjection,
       detect: detectOrchestrionSetup,
-    }),
-  );
+    };
+  });
 }

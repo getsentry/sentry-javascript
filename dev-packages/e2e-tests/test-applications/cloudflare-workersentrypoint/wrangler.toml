@@ -2,7 +2,7 @@
 name = "cloudflare-workersentrypoint"
 main = "src/index.ts"
 compatibility_date = "2024-07-25"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_als"]
 
 [vars]
 E2E_TEST_DSN = ""

@@ -1,46 +1,19 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import { SentryNodeFetchInstrumentation } from './SentryNodeFetchInstrumentation';
-
-const INTEGRATION_NAME = 'NodeFetch';
-
-interface NodeFetchOptions {
-  /**
-   * Whether breadcrumbs should be recorded for requests.
-   * Defaults to true
-   */
-  breadcrumbs?: boolean;
-
-  /**
-   * Whether to inject trace propagation headers (sentry-trace, baggage, traceparent) into outgoing fetch requests.
-   *
-   * @default `true`
-   */
-  tracePropagation?: boolean;
-
-  /**
-   * Do not capture spans or breadcrumbs for outgoing fetch requests to URLs where the given callback returns `true`.
-   * This controls both span & breadcrumb creation - spans will be non recording if tracing is disabled.
-   */
-  ignoreOutgoingRequests?: (url: string) => boolean;
-}
-
-const instrumentSentryNodeFetch = generateInstrumentOnce(
-  `${INTEGRATION_NAME}.sentry`,
-  SentryNodeFetchInstrumentation,
-  (options: NodeFetchOptions) => {
-    return options;
-  },
-);
+import type { NodeFetchOptions } from './types';
+import { instrumentUndici } from './undici-instrumentation';
 
 const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   return {
     name: 'NodeFetch' as const,
     setupOnce() {
-      instrumentSentryNodeFetch(options);
+      instrumentUndici(options);
     },
   };
 }) satisfies IntegrationFn;
 
+/**
+ * Instrument outgoing fetch requests made through the native node `fetch` API.
+ * This emits (depending on the integration options) spans and breadcrumbs, as well as injecting trace propagation headers into the request.
+ */
 export const nativeNodeFetchIntegration = defineIntegration(_nativeNodeFetchIntegration);

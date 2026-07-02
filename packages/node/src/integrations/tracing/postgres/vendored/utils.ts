@@ -28,16 +28,15 @@ import type {
   PostgresCallback,
 } from './internal-types';
 import type { PgClient } from './pg-types';
+import { ATTR_DB_CONNECTION_STRING, DB_SYSTEM_VALUE_POSTGRESQL } from './semconv';
 import {
-  ATTR_DB_CONNECTION_STRING,
-  ATTR_DB_NAME,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
-  ATTR_DB_USER,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-  DB_SYSTEM_VALUE_POSTGRESQL,
-} from './semconv';
+  DB_NAME,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_USER,
+  NET_PEER_NAME,
+  NET_PEER_PORT,
+} from '@sentry/conventions/attributes';
 
 /* oxlint-disable typescript/no-deprecated */
 
@@ -128,12 +127,12 @@ function getPort(port: number | undefined): number | undefined {
 
 export function getSemanticAttributesFromConnection(params: PgParsedConnectionParams): SpanAttributes {
   return {
-    [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
-    [ATTR_DB_NAME]: params.database,
+    [DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
+    [DB_NAME]: params.database,
     [ATTR_DB_CONNECTION_STRING]: getConnectionString(params),
-    [ATTR_DB_USER]: params.user,
-    [ATTR_NET_PEER_NAME]: params.host, // required
-    [ATTR_NET_PEER_PORT]: getPort(params.port),
+    [DB_USER]: params.user,
+    [NET_PEER_NAME]: params.host, // required
+    [NET_PEER_PORT]: getPort(params.port),
   };
 }
 
@@ -148,12 +147,12 @@ export function getSemanticAttributesFromPoolConnection(params: PgPoolOptionsPar
   return {
     [AttributeNames.IDLE_TIMEOUT_MILLIS]: params.idleTimeoutMillis,
     [AttributeNames.MAX_CLIENT]: params.maxClient,
-    [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
-    [ATTR_DB_NAME]: url?.pathname.slice(1) ?? params.database,
+    [DB_SYSTEM]: DB_SYSTEM_VALUE_POSTGRESQL,
+    [DB_NAME]: url?.pathname.slice(1) ?? params.database,
     [ATTR_DB_CONNECTION_STRING]: getConnectionString(params),
-    [ATTR_NET_PEER_NAME]: url?.hostname ?? params.host,
-    [ATTR_NET_PEER_PORT]: Number(url?.port) || getPort(params.port),
-    [ATTR_DB_USER]: url?.username ?? params.user,
+    [NET_PEER_NAME]: url?.hostname ?? params.host,
+    [NET_PEER_PORT]: Number(url?.port) || getPort(params.port),
+    [DB_USER]: url?.username ?? params.user,
   };
 }
 
@@ -191,7 +190,7 @@ export function handleConfigQuery(
 
   // Set attributes
   if (queryConfig.text) {
-    span.setAttribute(ATTR_DB_STATEMENT, queryConfig.text);
+    span.setAttribute(DB_STATEMENT, queryConfig.text);
   }
 
   // Set plan name attribute, if present

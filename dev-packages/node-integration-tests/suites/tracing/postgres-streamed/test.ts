@@ -75,9 +75,31 @@ const COMMON_DB_ATTRIBUTES = {
  * Builds the expected strict shape of a streamed postgres db span.
  * The `pg.connect` span has neither a `db.statement` nor a `sentry.origin`,
  * whereas query spans carry both.
+ *
+ * `host` defaults to `localhost`, but the `pg-native` scenarios connect to the
+ * IPv4 loopback (`127.0.0.1`) explicitly, so the reported peer name and
+ * connection string reflect that.
  */
-function expectedDbSpan({ name, statement }: { name: string; statement?: string }): unknown {
-  const attributes: Record<string, unknown> = { ...COMMON_DB_ATTRIBUTES };
+function expectedDbSpan({
+  name,
+  statement,
+  host = 'localhost',
+}: {
+  name: string;
+  statement?: string;
+  host?: string;
+}): unknown {
+  const attributes: Record<string, unknown> = {
+    ...COMMON_DB_ATTRIBUTES,
+    'net.peer.name': {
+      type: 'string',
+      value: host,
+    },
+    'db.connection_string': {
+      type: 'string',
+      value: expect.stringMatching(new RegExp(`^postgresql://${host.replace(/\./g, '\\.')}:\\d+/tests$`)),
+    },
+  };
 
   if (statement) {
     attributes['db.statement'] = {
@@ -180,38 +202,53 @@ describe('postgres auto instrumentation (streamed)', () => {
   });
 
   conditionalTest({ max: 25 })('pg-native', () => {
-    createEsmAndCjsTests(__dirname, 'scenario-native.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('should auto-instrument `pg-native` package with span streaming enabled', { timeout: 90_000 }, async () => {
-        await createTestRunner()
-          .withDockerCompose({
-            workingDirectory: [__dirname],
-            setupCommand: 'yarn',
-          })
-          .expect({
-            span: container => {
-              const segmentSpan = container.items.find(item => item.is_segment);
-              expect(segmentSpan?.name).toBe('Test Span');
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-native.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test(
+          'should auto-instrument `pg-native` package with span streaming enabled',
+          { timeout: 120_000 },
+          async () => {
+            await createTestRunner()
+              .withDockerCompose({
+                workingDirectory: [__dirname],
+              })
+              .expect({
+                span: container => {
+                  const segmentSpan = container.items.find(item => item.is_segment);
+                  expect(segmentSpan?.name).toBe('Test Span');
 
-              const dbSpans = getDbSpans(container);
-              expect(dbSpans.length).toBe(4);
+                  const dbSpans = getDbSpans(container);
+                  expect(dbSpans.length).toBe(4);
 
-              expect(dbSpans).toEqual([
-                expectedDbSpan({ name: 'pg.connect' }),
-                expectedDbSpan({
-                  name: CREATE_NATIVE_USER_TABLE_STATEMENT,
-                  statement: CREATE_NATIVE_USER_TABLE_STATEMENT,
-                }),
-                expectedDbSpan({
-                  name: 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
-                  statement: 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
-                }),
-                expectedDbSpan({ name: 'SELECT * FROM "NativeUser"', statement: 'SELECT * FROM "NativeUser"' }),
-              ]);
-            },
-          })
-          .start()
-          .completed();
-      });
-    });
+                  expect(dbSpans).toEqual([
+                    expectedDbSpan({ name: 'pg.connect', host: '127.0.0.1' }),
+                    expectedDbSpan({
+                      name: CREATE_NATIVE_USER_TABLE_STATEMENT,
+                      statement: CREATE_NATIVE_USER_TABLE_STATEMENT,
+                      host: '127.0.0.1',
+                    }),
+                    expectedDbSpan({
+                      name: 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
+                      statement: 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
+                      host: '127.0.0.1',
+                    }),
+                    expectedDbSpan({
+                      name: 'SELECT * FROM "NativeUser"',
+                      statement: 'SELECT * FROM "NativeUser"',
+                      host: '127.0.0.1',
+                    }),
+                  ]);
+                },
+              })
+              .start()
+              .completed();
+          },
+        );
+      },
+      { additionalDependencies: { 'pg-native': '3.7.0', pg: '8.20.0' } },
+    );
   });
 });

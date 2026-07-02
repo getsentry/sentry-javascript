@@ -65,15 +65,19 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 
   const spans = transactionEvent.spans || [];
 
+  /* TODO(v11): Uncomment this. This only works on fastify v3.21.0, not worth it to test this here */
+  /*
   expect(spans).toContainEqual({
     data: {
-      'plugin.name': 'sentry-fastify-error-handler',
-      'fastify.type': 'request_handler',
-      'http.route': '/test-transaction',
       'sentry.origin': 'auto.http.otel.fastify',
       'sentry.op': 'request_handler.fastify',
+      'fastify.root': '@sentry/instrumentation-fastify',
+      'http.request.method': 'GET',
+      'url.path': '/test-transaction',
+      'http.route': '/test-transaction',
+      'http.response.status_code': 200,
     },
-    description: 'sentry-fastify-error-handler',
+    description: 'GET /test-transaction',
     op: 'request_handler.fastify',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -83,16 +87,17 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.http.otel.fastify',
   });
+  */
 
   expect(spans).toContainEqual({
-    data: {
-      'plugin.name': 'sentry-fastify-error-handler',
-      'fastify.type': 'request_handler',
-      'http.route': '/test-transaction',
-      'sentry.op': 'request_handler.fastify',
+    data: expect.objectContaining({
       'sentry.origin': 'auto.http.otel.fastify',
-    },
-    description: 'sentry-fastify-error-handler',
+      'sentry.op': 'request_handler.fastify',
+      // format is slightly different in v3.20.0 and v3.21.0
+      'fastify.type': expect.stringMatching(/request[-_]handler/),
+      'http.route': '/test-transaction',
+    }),
+    description: expect.stringContaining('sentry-fastify-error-handler'),
     op: 'request_handler.fastify',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),

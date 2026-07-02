@@ -22,18 +22,18 @@ import {
   SPAN_STATUS_ERROR,
   startSpan,
 } from '@sentry/core';
-import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import {
-  ATTR_DB_NAME,
-  ATTR_DB_OPERATION,
-  ATTR_DB_SQL_TABLE,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
-  ATTR_DB_USER,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-  ATTR_NET_TRANSPORT,
-} from './semconv';
+  DB_NAME,
+  DB_OPERATION,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_USER,
+  NET_PEER_NAME,
+  NET_PEER_PORT,
+  NET_TRANSPORT,
+} from '@sentry/conventions/attributes';
+import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
+import { ATTR_DB_SQL_TABLE } from './semconv';
 import * as utils from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-knex';
@@ -124,15 +124,15 @@ export class KnexInstrumentation extends InstrumentationBase<InstrumentationConf
         const attributes: SpanAttributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           'knex.version': moduleVersion,
-          [ATTR_DB_SYSTEM]: utils.mapSystem(this.client.driverName),
+          [DB_SYSTEM]: utils.mapSystem(this.client.driverName),
           [ATTR_DB_SQL_TABLE]: table,
-          [ATTR_DB_OPERATION]: operation,
-          [ATTR_DB_USER]: config?.connection?.user,
-          [ATTR_DB_NAME]: name,
-          [ATTR_NET_PEER_NAME]: config?.connection?.host ?? utils.extractHostFromConnectionString(connectionString),
-          [ATTR_NET_PEER_PORT]: config?.connection?.port ?? utils.extractPortFromConnectionString(connectionString),
-          [ATTR_NET_TRANSPORT]: config?.connection?.filename === ':memory:' ? 'inproc' : undefined,
-          [ATTR_DB_STATEMENT]: utils.limitLength(query?.sql, MAX_QUERY_LENGTH),
+          [DB_OPERATION]: operation,
+          [DB_USER]: config?.connection?.user,
+          [DB_NAME]: name,
+          [NET_PEER_NAME]: config?.connection?.host ?? utils.extractHostFromConnectionString(connectionString),
+          [NET_PEER_PORT]: config?.connection?.port ?? utils.extractPortFromConnectionString(connectionString),
+          [NET_TRANSPORT]: config?.connection?.filename === ':memory:' ? 'inproc' : undefined,
+          [DB_STATEMENT]: utils.limitLength(query?.sql, MAX_QUERY_LENGTH),
         };
 
         // The query builder captures the span active when it was created (see `_storeContext`).

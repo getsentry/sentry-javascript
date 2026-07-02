@@ -9,7 +9,6 @@ import {
   linkedErrorsIntegration,
   nodeStackLineParser,
   requestDataIntegration,
-  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { DenoClient } from './client';
@@ -118,15 +117,10 @@ export function init(options: DenoOptions = {}): Client {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }
 
-  const resolvedIntegrations = getIntegrationsToSetup(options);
-  if (options.traceLifecycle === 'stream' && !resolvedIntegrations.some(i => i.name === 'SpanStreaming')) {
-    resolvedIntegrations.push(spanStreamingIntegration());
-  }
-
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: resolvedIntegrations,
+    integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeFetchTransport,
   };
 

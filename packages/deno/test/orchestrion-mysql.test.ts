@@ -120,11 +120,15 @@ Deno.test('denoMysqlIntegration: orchestrion:mysql:query channel produces a nest
 
   // Callback-success order published by orchestrion's transform:
   // start → end → asyncStart → asyncEnd (the span closes on asyncEnd).
+  // `start`/`asyncStart` go through `runStores` (not bare `publish`), exactly as the transform's
+  // `wrapCallback` does — that's what activates the store the subscriber binds, so the span opens.
   startSpan({ name: 'parent', op: 'test' }, () => {
-    channel.start.publish(ctx);
-    channel.end.publish(ctx);
-    channel.asyncStart.publish(ctx);
-    channel.asyncEnd.publish(ctx);
+    channel.start.runStores(ctx, () => {
+      channel.end.publish(ctx);
+    });
+    channel.asyncStart.runStores(ctx, () => {
+      channel.asyncEnd.publish(ctx);
+    });
   });
 
   const parent = await withTimeout(

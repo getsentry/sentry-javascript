@@ -11,6 +11,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -171,6 +172,10 @@ sentryTest(
             type: 'string',
             value: 'production',
           },
+          [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: {
+            type: 'string',
+            value: 'Connection Refused',
+          },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,
@@ -178,7 +183,7 @@ sentryTest(
         parent_span_id: segmentSpanId,
         span_id: expect.stringMatching(/^[\da-f]{16}$/),
         start_timestamp: expect.any(Number),
-        status: 'ok',
+        status: 'error',
         trace_id: traceId,
       },
       {

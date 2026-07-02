@@ -29,9 +29,10 @@ import type { TimedEvent } from '../types/timedEvent';
 import { debug } from '../utils/debug-logger';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
+  addStatusMessageAttribute,
   convertSpanLinksForEnvelope,
   getRootSpan,
-  getSimpleStatusMessage,
+  getSimpleStatus,
   getSpanDescendants,
   getStatusMessage,
   getStreamedSpanLinks,
@@ -271,8 +272,8 @@ export class SentrySpan implements Span {
       // just in case _endTime is not set, we use the start time (i.e. duration 0)
       end_timestamp: this._endTime ?? this._startTime,
       is_segment: this._isStandaloneSpan || this === getRootSpan(this),
-      status: getSimpleStatusMessage(this._status),
-      attributes: this._attributes,
+      status: getSimpleStatus(this._status),
+      attributes: addStatusMessageAttribute(this._attributes, this._status),
       links: getStreamedSpanLinks(this._links),
     };
   }

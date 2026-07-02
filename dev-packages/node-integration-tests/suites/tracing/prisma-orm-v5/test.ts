@@ -23,6 +23,23 @@ describe('Prisma ORM v5 Tests', () => {
               const spans = transaction.spans || [];
               expect(spans.length).toBeGreaterThanOrEqual(5);
 
+              // Valid parents are the transaction root or any other span within the transaction.
+              const validParentIds = new Set([transaction.contexts?.trace?.span_id, ...spans.map(s => s.span_id)]);
+
+              const operationSpans = spans.filter(s => s.description === 'prisma:client:operation');
+              expect(operationSpans.length).toBeGreaterThanOrEqual(1);
+
+              // The db-query spans are materialized from the raw engine event; assert they nest inside the
+              // transaction rather than dangling as orphans.
+              const dbSpans = spans.filter(s => s.op === 'db');
+              expect(dbSpans.length).toBeGreaterThanOrEqual(1);
+              dbSpans.forEach(dbSpan => {
+                expect(validParentIds.has(dbSpan.parent_span_id)).toBe(true);
+              });
+
+              const txSpan = spans.find(s => s.description === 'prisma:client:transaction');
+              expect(txSpan).toBeDefined();
+
               expect(spans).toContainEqual(
                 expect.objectContaining({
                   data: {
