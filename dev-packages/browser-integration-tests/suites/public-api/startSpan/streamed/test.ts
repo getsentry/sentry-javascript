@@ -16,6 +16,7 @@ import {
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 
 sentryTest(
   'sends a streamed span envelope if spanStreamingIntegration is enabled',
@@ -100,6 +101,10 @@ sentryTest(
             type: 'string',
             value: 'production',
           },
+          [SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
+          },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,
@@ -135,6 +140,10 @@ sentryTest(
           [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
             type: 'string',
             value: 'production',
+          },
+          [SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
           },
         },
         end_timestamp: expect.any(Number),
@@ -175,6 +184,10 @@ sentryTest(
           [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: {
             type: 'string',
             value: 'Connection Refused',
+          },
+          [SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
           },
         },
         end_timestamp: expect.any(Number),
@@ -251,6 +264,10 @@ sentryTest(
           [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
             type: 'string',
             value: 'production',
+          },
+          [SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
           },
         },
         end_timestamp: expect.any(Number),

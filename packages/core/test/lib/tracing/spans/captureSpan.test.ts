@@ -25,7 +25,7 @@ import {
 import { safeSetSpanJSONAttributes } from '../../../../src/tracing/spans/captureSpan';
 import { scopeContextsToSpanAttributes } from '../../../../src/tracing/spans/scopeContextAttributes';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
-import { SENTRY_SPAN_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SPAN_SOURCE, SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 
 describe('captureSpan', () => {
   it.each([true, false, undefined])(
@@ -67,6 +67,10 @@ describe('captureSpan', () => {
         status: 'ok',
         is_segment: true,
         attributes: {
+          [SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
+          },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
             type: 'string',
             value: 'http.client',
@@ -204,6 +208,10 @@ describe('captureSpan', () => {
           value: 'staging',
           type: 'string',
         },
+        [SENTRY_TRACE_LIFECYCLE]: {
+          value: 'stream',
+          type: 'string',
+        },
         [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: {
           value: 'sentry.javascript.node',
           type: 'string',
@@ -300,6 +308,10 @@ describe('captureSpan', () => {
           value: 'production',
           type: 'string',
         },
+        [SENTRY_TRACE_LIFECYCLE]: {
+          value: 'stream',
+          type: 'string',
+        },
       },
       _segmentSpan: span,
     });
@@ -344,6 +356,7 @@ describe('captureSpan', () => {
       status: 'ok',
       is_segment: true,
       attributes: {
+        [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.client' },
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
