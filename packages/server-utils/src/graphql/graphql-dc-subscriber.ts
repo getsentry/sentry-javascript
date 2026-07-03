@@ -152,25 +152,20 @@ export function subscribeGraphqlDiagnosticChannels(
   if (subscribed) {
     return;
   }
-  subscribed = true;
 
   const ignoreResolveSpans = options.ignoreResolveSpans !== false;
   const ignoreTrivialResolveSpans = options.ignoreTrivialResolveSpans !== false;
 
-  try {
-    setupParseChannel(tracingChannel);
-    setupValidateChannel(tracingChannel);
-    setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_EXECUTE, SPAN_NAME_EXECUTE);
-    setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_SUBSCRIBE, SPAN_NAME_SUBSCRIBE);
+  setupParseChannel(tracingChannel);
+  setupValidateChannel(tracingChannel);
+  setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_EXECUTE, SPAN_NAME_EXECUTE);
+  setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_SUBSCRIBE, SPAN_NAME_SUBSCRIBE);
 
-    if (!ignoreResolveSpans) {
-      setupResolveChannel(tracingChannel, ignoreTrivialResolveSpans);
-    }
-  } catch {
-    // The factory relies on `node:diagnostics_channel`, which isn't always
-    // available. Fail closed; the SDK simply won't emit graphql spans here.
-    DEBUG_BUILD && debug.log('GraphQL node:diagnostics_channel subscription failed.');
+  if (!ignoreResolveSpans) {
+    setupResolveChannel(tracingChannel, ignoreTrivialResolveSpans);
   }
+
+  subscribed = true;
 }
 
 function setupParseChannel(tracingChannel: GraphqlTracingChannelFactory): void {
