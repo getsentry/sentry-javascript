@@ -33,11 +33,16 @@ export default defineNuxtConfig({
   nitro: {
     // Nuxt's server is built by Nitro (Rollup), not Vite — so the orchestrion
     // code transform has to run as a Nitro Rollup plugin to reach `server/api/*`
-    // routes. Force-bundle ONLY the instrumented deps (`mysql`) via
-    // `externals.inline`; externalized deps are `require()`d from `node_modules`
-    // at runtime and never pass through the transform.
+    // routes. Force-bundle the instrumented deps via `externals.inline`;
+    // externalized deps are `require()`d from `node_modules` at runtime and never
+    // pass through the transform.
+    //
+    // `standard-as-callback` is ioredis' CJS `export default` helper used by
+    // `connect()`. Left external, Rollup's interop resolves its `.default` to a
+    // non-function in the bundle; inlining it alongside ioredis links the
+    // interop consistently.
     externals: {
-      inline: INSTRUMENTED_MODULE_NAMES,
+      inline: [...INSTRUMENTED_MODULE_NAMES, 'standard-as-callback'],
     },
     rollupConfig: {
       plugins: [

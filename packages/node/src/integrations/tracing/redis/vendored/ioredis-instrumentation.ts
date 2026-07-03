@@ -20,7 +20,7 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { DB_STATEMENT, DB_SYSTEM, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
-import { defaultDbStatementSerializer } from './redis-common';
+import { defaultDbStatementSerializer } from '@sentry/server-utils';
 import { ATTR_DB_CONNECTION_STRING, DB_SYSTEM_VALUE_REDIS } from './semconv';
 import type { IORedisInstrumentationConfig } from './types';
 
