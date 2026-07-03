@@ -69,6 +69,12 @@ const messages = new WeakMap<object, VercelAiChannelMessage>();
 // parent's `callId` so its span can be named after the operation (e.g. `ai.streamText.doStream`).
 const operationSpans = new WeakSet<Span>();
 const callIdBySpan = new WeakMap<Span, string>();
+// The operation's per-call recording flags (`experimental_telemetry.recordInputs/recordOutputs`), keyed by
+// its span. A model call carries no telemetry of its own, so it inherits the enclosing operation's flags —
+// otherwise a per-call `recordInputs: true` would record inputs on the `invoke_agent` span but not on the
+// child `generate_content` span (whose event would fall back to the global default). v7's channel forwards
+// these flags on every event, so this keeps v6 identical.
+const recordingBySpan = new WeakMap<Span, ReturnType<typeof recording>>();
 
 // The `experimental_telemetry` objects we swapped in to suppress `ai`'s native OTel spans (see
 // `suppressNativeTelemetry`). Our skip logic treats `isEnabled === false` as "user disabled telemetry,
@@ -196,6 +202,7 @@ function bindOperation(
       if (callId) {
         callIdBySpan.set(span, callId);
       }
+      recordingBySpan.set(span, recording(telemetry));
     }
     return span;
   };
@@ -342,6 +349,9 @@ function patchModelMethod(
         modelId: model.modelId,
         tools: callArgs.tools,
         messages: callArgs.prompt,
+        // Inherit the enclosing operation's per-call recording flags so inputs/tools/outputs are recorded on
+        // the model-call span whenever they are on the parent `invoke_agent` span.
+        ...recordingBySpan.get(parent),
       },
     };
     const span = withActiveSpan(parent, () => createSpanFromMessage(message, options));

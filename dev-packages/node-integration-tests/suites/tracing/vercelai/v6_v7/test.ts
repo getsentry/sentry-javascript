@@ -234,15 +234,11 @@ describe.each([
               expect(secondInvokeAgentSpan.name).toBe('invoke_agent');
               expect(secondInvokeAgentSpan.status).toBe('ok');
               expect(secondInvokeAgentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.invoke_agent');
-              // On v6, vercel AI natively defaults to recording inputs and outputs by default when telemetry is enabled
-              // On v7, we do not have access to this, so this defaults to false in this case
-              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value).toEqual(
-                !usesChannels ? '[{"role":"user","content":"Where is the second span?"}]' : undefined,
+              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value).toBe(
+                '[{"role":"user","content":"Where is the second span?"}]',
               );
-              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value).toEqual(
-                !usesChannels
-                  ? '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]'
-                  : undefined,
+              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value).toBe(
+                '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
               );
 
               const secondGenerateContentSpan = container.items.find(
@@ -255,6 +251,13 @@ describe.each([
               expect(secondGenerateContentSpan.name).toBe('generate_content mock-model-id');
               expect(secondGenerateContentSpan.status).toBe('ok');
               expect(secondGenerateContentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(secondGenerateContentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+              expect(
+                secondGenerateContentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value as string,
+              ).toContain('Where is the second span?');
+              expect(
+                secondGenerateContentSpan.attributes?.[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value as string,
+              ).toContain('Second span here!');
 
               const toolInvokeAgentSpan = container.items.find(
                 span =>
