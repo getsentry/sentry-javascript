@@ -57,6 +57,8 @@ sentryTest(
           'sentry.op': 'navigation.redirect',
           'sentry.origin': 'auto.navigation.browser',
           'sentry.source': 'url',
+          'url.full': expect.any(String),
+          'url.path': expect.any(String),
         },
         description: expect.stringContaining('/sub-page-redirect-'),
         op: 'navigation.redirect',

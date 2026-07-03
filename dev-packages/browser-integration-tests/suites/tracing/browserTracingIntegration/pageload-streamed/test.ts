@@ -87,6 +87,10 @@ sentryTest(
           type: 'string',
           value: expect.any(String),
         },
+        'url.path': {
+          type: 'string',
+          value: expect.any(String),
+        },
         // formerly known as 'hardwareConcurrency'
         'device.processor_count': {
           type: expect.stringMatching(/^(integer)|(double)$/),
