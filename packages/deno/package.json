@@ -31,10 +31,6 @@
     "@sentry/core": "10.63.0",
     "@sentry/server-utils": "10.63.0"
   },
-  "devDependencies": {
-    "mysql": "^2.18.1",
-    "pg": "8.16.0"
-  },
   "scripts": {
     "deno-types": "node ./scripts/download-deno-types.mjs",
     "build": "run-s build:transpile build:types",
