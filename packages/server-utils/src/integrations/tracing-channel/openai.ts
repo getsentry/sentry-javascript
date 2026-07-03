@@ -70,7 +70,6 @@ const _openaiChannelIntegration = ((options: OpenAiOptions = {}) => {
               },
               // Streaming: the result is a `Stream` consumed later, so instrument it and let it end the span.
               deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, options),
-              captureError: () => ({ mechanism: { type: ORIGIN, handled: false } }),
             },
           );
         }
