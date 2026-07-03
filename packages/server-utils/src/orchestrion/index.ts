@@ -1,10 +1,17 @@
+import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
 import { postgresChannelIntegration } from '../integrations/tracing-channel/postgres';
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
-export { lruMemoizerChannelIntegration, mysqlChannelIntegration, postgresChannelIntegration, openaiChannelIntegration };
+export {
+  lruMemoizerChannelIntegration,
+  mysqlChannelIntegration,
+  postgresChannelIntegration,
+  openaiChannelIntegration,
+  anthropicChannelIntegration,
+};
 
 /**
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
@@ -20,4 +27,5 @@ export const channelIntegrations = {
   mysqlIntegration: mysqlChannelIntegration,
   lruMemoizerIntegration: lruMemoizerChannelIntegration,
   openaiIntegration: openaiChannelIntegration,
+  anthropicIntegration: anthropicChannelIntegration,
 } as const;
