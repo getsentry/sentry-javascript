@@ -196,7 +196,7 @@ function setupValidateChannel(tracingChannel: GraphqlTracingChannelFactory): voi
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
-          [GRAPHQL_DOCUMENT]: document ?? undefined,
+          [GRAPHQL_DOCUMENT]: document,
         },
       });
     },
@@ -227,8 +227,8 @@ function setupOperationChannel(
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
           [GRAPHQL_OPERATION_TYPE]: data.operationType ?? undefined,
-          [GRAPHQL_OPERATION_NAME]: data.operationName ?? undefined,
-          [GRAPHQL_DOCUMENT]: document ?? undefined,
+          [GRAPHQL_OPERATION_NAME]: data.operationName || undefined,
+          [GRAPHQL_DOCUMENT]: document,
         },
       });
     },
