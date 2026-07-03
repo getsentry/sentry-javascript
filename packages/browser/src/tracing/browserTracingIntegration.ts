@@ -24,6 +24,7 @@ import {
   GLOBAL_OBJ,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
+  isURLObjectRelative,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -424,14 +425,21 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       ? beforeStartSpan(startSpanOptions)
       : startSpanOptions;
 
-    const attributes = finalStartSpanOptions.attributes || {};
+    const urlObject = parseStringToURLObject(getLocationHref());
+
+    const attributes = {
+      ...(urlObject?.pathname && { 'url.path': urlObject.pathname }),
+      ...(urlObject && !isURLObjectRelative(urlObject) && { 'url.full': urlObject.href }),
+      ...finalStartSpanOptions.attributes,
+    };
 
     // If `finalStartSpanOptions.name` is different than `startSpanOptions.name`
     // it is because `beforeStartSpan` set a custom name. Therefore we set the source to 'custom'.
     if (initialSpanName !== finalStartSpanOptions.name) {
       attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'custom';
-      finalStartSpanOptions.attributes = attributes;
     }
+
+    finalStartSpanOptions.attributes = attributes;
 
     if (!makeActive) {
       // We want to ensure this has 0s duration
