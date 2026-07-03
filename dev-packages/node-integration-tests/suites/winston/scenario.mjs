@@ -1,18 +1,8 @@
 import * as Sentry from '@sentry/node';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import winston from 'winston';
 import Transport from 'winston-transport';
 
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0.0',
-  environment: 'test',
-  enableLogs: true,
-  transport: loggingTransport,
-  debug: true,
-});
-
-async function run(): Promise<void> {
+async function run() {
   // Create a custom transport that extends winston-transport
   const SentryWinstonTransport = Sentry.createSentryWinstonTransport(Transport);
 
@@ -99,7 +89,6 @@ async function run(): Promise<void> {
     });
 
     // This should NOT be captured (unknown level defaults to 'info', which is not in levels)
-    // @ts-ignore - custom levels are not part of the winston logger
     unmappedLogger.myUnknownLevel('This unknown level message should be skipped');
     // This SHOULD be captured
     unmappedLogger.error('This error message should be captured');
@@ -132,11 +121,8 @@ async function run(): Promise<void> {
       transports: [new SentryWinstonTransport()],
     });
 
-    // @ts-ignore - custom levels are not part of the winston logger
     mappedLogger.customCritical('This is a critical message');
-    // @ts-ignore - custom levels are not part of the winston logger
     mappedLogger.customWarning('This is a warning message');
-    // @ts-ignore - custom levels are not part of the winston logger
     mappedLogger.customNotice('This is a notice message');
   }
 
