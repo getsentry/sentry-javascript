@@ -3,9 +3,10 @@ import {
   _INTERNAL_resetConsoleInstrumentationOptions,
   addConsoleInstrumentationFilter,
   addConsoleInstrumentationHandler,
+  instrumentConsole,
 } from '../../../src/instrument/console';
 import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
-import { debug, originalConsoleMethods } from '../../../src/utils/debug-logger';
+import { CONSOLE_LEVELS, debug, originalConsoleMethods } from '../../../src/utils/debug-logger';
 import { resetInstrumentationHandlers } from '../../../src/instrument/handlers';
 
 describe('addConsoleInstrumentationHandler', () => {
@@ -52,6 +53,38 @@ describe('addConsoleInstrumentationHandler', () => {
     addConsoleInstrumentationHandler(vi.fn());
     mockConsoleMethods();
     expect(() => GLOBAL_OBJ.console.log('hello')).not.toThrow();
+  });
+
+  it('does not recurse infinitely when console is instrumented more than once', () => {
+    // Simulates a second copy of `@sentry/core` (e.g. a bundler-duplicated dep in React Native)
+    // instrumenting the already-wrapped console. Without the double-wrap guard, the second pass
+    // stores our own wrapper into `originalConsoleMethods[level]`, so calling through to the
+    // "original" re-enters the wrapper forever -> `RangeError: Maximum call stack size exceeded`.
+    const wrappedConsole: Partial<Record<string, unknown>> = {};
+    for (const level of CONSOLE_LEVELS) {
+      wrappedConsole[level] = GLOBAL_OBJ.console[level];
+    }
+
+    try {
+      const handler = vi.fn();
+      addConsoleInstrumentationHandler(handler);
+      mockConsoleMethods();
+
+      // Force a second instrumentation pass to mimic a duplicated SDK copy re-wrapping the console.
+      instrumentConsole();
+
+      // The second pass must be a no-op: the underlying "original" must stay the real method,
+      // never one of our wrappers (which carry `__sentry_original__`).
+      expect((originalConsoleMethods.error as { __sentry_original__?: unknown })?.__sentry_original__).toBeUndefined();
+
+      expect(() => GLOBAL_OBJ.console.error('boom')).not.toThrow();
+      expect(handler).toHaveBeenCalledWith(expect.objectContaining({ args: ['boom'], level: 'error' }));
+      expect(originalConsoleMethods.error).toHaveBeenCalledWith('boom');
+    } finally {
+      for (const level of CONSOLE_LEVELS) {
+        GLOBAL_OBJ.console[level] = wrappedConsole[level] as (typeof GLOBAL_OBJ.console)[typeof level];
+      }
+    }
   });
 
   describe('filter', () => {
