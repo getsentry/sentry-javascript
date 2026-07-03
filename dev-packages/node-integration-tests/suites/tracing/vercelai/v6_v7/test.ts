@@ -530,6 +530,11 @@ describe.each([
       // A single model instance shared by two concurrent `streamText` calls carries only one
       // captured-parent slot, so both model calls must still land under their own `invoke_agent` — not
       // collapse onto whichever operation resolved the shared model last.
+      // `ai` v7 publishes the top-level `streamText`/`step` channel events through a code path that
+      // loads `node:diagnostics_channel` via `process.getBuiltinModule()`, which was only added in
+      // Node 20.16 / 22.3 and never backported to Node 18. On Node 18 that lookup returns undefined,
+      // so the `streamText` event is never published and no `invoke_agent` span is created. The
+      // non-streaming ops load the channel via dynamic `import()` and are unaffected.
       test.skipIf(version === '7' && nodeVersion === 18)(
         'parents concurrent streamText calls that share one model instance correctly',
         async () => {
