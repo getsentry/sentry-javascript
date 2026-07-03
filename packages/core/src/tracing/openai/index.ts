@@ -56,7 +56,7 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
 /**
  * Extract request attributes from method arguments
  */
-function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
+export function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
@@ -80,7 +80,7 @@ function extractRequestAttributes(args: unknown[], operationName: string): Recor
 }
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
-function addRequestAttributes(
+export function addRequestAttributes(
   span: Span,
   params: Record<string, unknown>,
   operationName: string,

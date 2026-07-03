@@ -186,7 +186,16 @@ export {
 } from './tracing/ai/gen-ai-attributes';
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
-export { instrumentOpenAiClient } from './tracing/openai';
+export {
+  instrumentOpenAiClient,
+  extractRequestAttributes as extractOpenAiRequestAttributes,
+  addRequestAttributes as addOpenAiRequestAttributes,
+} from './tracing/openai';
+export {
+  addResponseAttributes as addOpenAiResponseAttributes,
+  extractRequestParameters as extractOpenAiRequestParameters,
+} from './tracing/openai/utils';
+export { instrumentStream as instrumentOpenAiStream } from './tracing/openai/streaming';
 export { OPENAI_INTEGRATION_NAME } from './tracing/openai/constants';
 export {
   instrumentAnthropicAiClient,
