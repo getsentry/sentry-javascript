@@ -3,7 +3,7 @@ import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
 import { postgresChannelIntegration } from '../integrations/tracing-channel/postgres';
 
-export { detectOrchestrionSetup } from './detect';
+export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 export { lruMemoizerChannelIntegration, mysqlChannelIntegration, postgresChannelIntegration, openaiChannelIntegration };
 
 /**

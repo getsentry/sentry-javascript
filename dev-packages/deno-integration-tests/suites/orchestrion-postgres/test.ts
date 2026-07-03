@@ -2,11 +2,11 @@
 
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { TransactionEvent } from '@sentry/core';
+import type { DenoClient } from '@sentry/deno';
+import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
-import type { DenoClient } from '../build/esm/index.js';
-import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '../build/esm/index.js';
 
 function resetGlobals(): void {
   getCurrentScope().clear();
@@ -15,7 +15,7 @@ function resetGlobals(): void {
   getGlobalScope().clear();
 }
 
-/** See `deno-redis.test.ts` same sink shape, deduped for clarity. */
+/** See deno-redis.test.ts — same sink shape, deduped for clarity. */
 function transactionSink(): {
   beforeSendTransaction: (event: TransactionEvent) => null;
   waitFor: (predicate: (event: TransactionEvent) => boolean) => Promise<TransactionEvent>;
@@ -65,10 +65,11 @@ Deno.test('denoPostgresIntegration: included in default integrations (Deno 2.8.0
 // import inside the entry graph in Deno 2.8.0 through 2.8.2.
 // TODO: revisit a `--import` or `--preload` approach once Deno 2.8.3 ships.
 Deno.test('@sentry/deno/import: transforms pg so it publishes the orchestrion channel', async () => {
-  const scenario = new URL('./orchestrion-postgres/scenario.mjs', import.meta.url);
+  const scenario = new URL('./scenario.mjs', import.meta.url);
 
-  // packages/deno, where node_modules resolves
-  const cwd = new URL('../', import.meta.url);
+  // The package root — where `node_modules` (and thus `@sentry/deno` / `pg`)
+  // resolves for the spawned `deno run`.
+  const cwd = new URL('../../', import.meta.url);
 
   const command = new Deno.Command('deno', {
     args: ['run', '--allow-all', scenario.pathname],
@@ -94,13 +95,12 @@ Deno.test('@sentry/deno/import: transforms pg so it publishes the orchestrion ch
   assert(line.includes('"runtime":true'), `expected runtime marker, got: ${line}`);
 });
 
-// Exercises the SDK path e2e: `init()` wires `denoPostgresIntegration`
-// (which installs the AsyncLocalStorage context strategy and subscribes to
-// the channel), and we drive the `orchestrion:pg:query` channel manually,
-// the same events the orchestrion transform publishes around
-// `client.query()`, so no live database is needed. Asserting a nested `db`
-// span proves the subscriber, the emitted attributes, AND the
-// context-strategy wiring all work.
+// Exercises the SDK path end-to-end: `init()` wires `denoPostgresIntegration`
+// (which installs the AsyncLocalStorage context strategy and subscribes to the
+// channel), and we drive the `orchestrion:pg:query` channel manually — the
+// same events the orchestrion transform publishes around `client.query()` —
+// so no live database is needed. Asserting a nested `db` span proves the
+// subscriber, the emitted attributes, AND the context-strategy wiring all work.
 Deno.test('denoPostgresIntegration: orchestrion:pg:query channel produces a nested db span', async () => {
   resetGlobals();
   const sink = transactionSink();
@@ -112,17 +112,17 @@ Deno.test('denoPostgresIntegration: orchestrion:pg:query channel produces a nest
 
   const channel = tracingChannel('orchestrion:pg:query');
 
-  // The shared context object orchestrion reuses across the lifecycle events
-  //
-  // `arguments[0]` is the SQL; `self.connectionParameters` is pg's resolved
-  // connection config.
+  // The shared context object orchestrion reuses across the lifecycle events.
+  // `arguments[0]` is the SQL; `self.connectionParameters` is pg's resolved connection config.
   const ctx = {
     arguments: ['SELECT 1 AS solution'],
     self: { connectionParameters: { host: '127.0.0.1', port: 5432, database: 'mydb', user: 'root' } },
   };
 
   // Callback-success order published by orchestrion's transform:
-  // start -> end -> asyncStart -> asyncEnd (the span closes on asyncEnd).
+  // start → end → asyncStart → asyncEnd (the span closes on asyncEnd).
+  // `start`/`asyncStart` go through `runStores` (not bare `publish`), exactly as the transform's
+  // `wrapCallback` does — that's what activates the store the subscriber binds, so the span opens.
   startSpan({ name: 'parent', op: 'test' }, () => {
     channel.start.runStores(ctx, () => {
       channel.end.publish(ctx);

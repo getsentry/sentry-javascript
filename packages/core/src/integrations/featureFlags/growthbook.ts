@@ -14,7 +14,9 @@ interface GrowthBookLike {
   getFeatureValue(this: GrowthBookLike, featureKey: string, defaultValue: unknown, ...rest: unknown[]): unknown;
 }
 
-export type GrowthBookClassLike = new (...args: unknown[]) => GrowthBookLike;
+// `unknown[]` is contravariantly incompatible with real constructors (e.g. GrowthBook's), so use `any[]`.
+// oxlint-disable-next-line typescript-eslint/no-explicit-any
+export type GrowthBookClassLike = new (...args: any[]) => GrowthBookLike;
 
 /**
  * Sentry integration for capturing feature flag evaluations from GrowthBook.

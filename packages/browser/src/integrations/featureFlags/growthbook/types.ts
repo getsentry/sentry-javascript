@@ -4,4 +4,6 @@ export interface GrowthBook {
 }
 
 // We only depend on the surface we wrap; constructor args are irrelevant here.
-export type GrowthBookClass = new (...args: unknown[]) => GrowthBook;
+// `unknown[]` is contravariantly incompatible with real constructors (e.g. GrowthBook's), so use `any[]`.
+// oxlint-disable-next-line typescript-eslint/no-explicit-any
+export type GrowthBookClass = new (...args: any[]) => GrowthBook;

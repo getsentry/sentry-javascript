@@ -1,4 +1,4 @@
-// Spawned by orchestrion-mysql.test.ts via `deno run`.
+// Spawned by test.ts via `deno run`.
 //
 // Importing `@sentry/deno/import` FIRST registers the orchestrion module hook,
 // so the subsequent `mysql` import is transformed to publish to the
