@@ -1,5 +1,5 @@
 import type { MissingInstrumentationContext } from '@sentry/core';
-import { isCjs } from './detection';
+import { isCjs } from './isCjs';
 
 export const createMissingInstrumentationContext = (pkg: string): MissingInstrumentationContext => ({
   package: pkg,

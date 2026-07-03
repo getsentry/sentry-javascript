@@ -16,6 +16,9 @@ export const CHANNELS = {
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',
   IOREDIS_COMMAND: 'orchestrion:ioredis:command',
   IOREDIS_CONNECT: 'orchestrion:ioredis:connect',
+  PG_QUERY: 'orchestrion:pg:query',
+  PG_CONNECT: 'orchestrion:pg:connect',
+  PGPOOL_CONNECT: 'orchestrion:pg-pool:connect',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

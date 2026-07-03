@@ -1,16 +1,6 @@
 import { consoleSandbox } from '@sentry/core';
 import { NODE_MAJOR, NODE_MINOR } from '../nodeVersion';
-
-/** Detect CommonJS. */
-export function isCjs(): boolean {
-  /*! rollup-include-cjs-only */
-  return true;
-  /*! rollup-include-cjs-only-end */
-
-  /*! rollup-include-esm-only */
-  return false;
-  /*! rollup-include-esm-only-end */
-}
+import { isCjs } from './isCjs';
 
 let hasWarnedAboutNodeVersion: boolean | undefined;
 
