@@ -1,19 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  transport: loggingTransport,
-  tracesSampleRate: 1,
-  integrations: [
-    Sentry.fsIntegration({
-      recordFilePaths: true,
-      recordErrorMessagesAsSpanAttributes: true,
-    }),
-  ],
-});
-
+import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import express from 'express';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -32,7 +18,7 @@ app.get('/readFile-error', async (_, res) => {
 });
 
 app.get('/readFile', async (_, res) => {
-  await new Promise<void>(resolve => {
+  await new Promise(resolve => {
     fs.readFile(path.join(__dirname, 'fixtures', 'some-file.txt'), 'utf-8', () => {
       resolve();
     });
@@ -43,7 +29,7 @@ app.get('/readFile', async (_, res) => {
 });
 
 app.get('/copyFile', async (_, res) => {
-  await new Promise<void>(resolve => {
+  await new Promise(resolve => {
     fs.copyFile(
       path.join(__dirname, 'fixtures', 'some-file.txt'),
       path.join(__dirname, 'fixtures', 'some-file.txt.copy'),
@@ -64,7 +50,7 @@ app.get('/copyFile', async (_, res) => {
 });
 
 app.get('/link', async (_, res) => {
-  await new Promise<void>(resolve => {
+  await new Promise(resolve => {
     fs.link(
       path.join(__dirname, 'fixtures', 'some-file.txt'),
       path.join(__dirname, 'fixtures', 'some-file.txt.link'),
@@ -92,7 +78,7 @@ app.get('/link', async (_, res) => {
 });
 
 app.get('/mkdtemp', async (_, res) => {
-  await new Promise<void>(resolve => {
+  await new Promise(resolve => {
     fs.mkdtemp(path.join(os.tmpdir(), 'foo-'), () => {
       resolve();
     });
@@ -104,7 +90,7 @@ app.get('/mkdtemp', async (_, res) => {
 });
 
 app.get('/exists', async (_, res) => {
-  await new Promise<void>(resolve => {
+  await new Promise(resolve => {
     fs.exists(path.join(__dirname, 'fixtures', 'some-file.txt'), () => {
       resolve();
     });
@@ -114,7 +100,7 @@ app.get('/exists', async (_, res) => {
 });
 
 app.get('/symlink', async (_, res) => {
-  await new Promise<void>(resolve => {
+  await new Promise(resolve => {
     fs.symlink(
       path.join(__dirname, 'fixtures', 'some-file.txt'),
       path.join(__dirname, 'fixtures', 'some-file.txt.symlink'),
