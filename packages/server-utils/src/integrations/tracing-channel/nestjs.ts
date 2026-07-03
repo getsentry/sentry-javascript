@@ -1,6 +1,13 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
-import { debug, defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, startSpan } from '@sentry/core';
+import {
+  debug,
+  defineIntegration,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startInactiveSpan,
+  startSpan,
+  waitForTracingChannelBinding,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
@@ -164,6 +171,11 @@ const _nestjsChannelIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
+      if (!diagnosticsChannel.tracingChannel) {
+        return;
+      }
+
       DEBUG_BUILD && debug.log('[orchestrion:nestjs] subscribing to @nestjs channels');
 
       // App-creation span: `bindTracingChannelToSpan` opens the span on
@@ -172,24 +184,35 @@ const _nestjsChannelIntegration = (() => {
       //
       // `captureError: false` a failed bootstrap surfaces to the caller.
       // We just annotate the span.
-      bindTracingChannelToSpan(
-        diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_APP_CREATION),
-        data => {
-          const moduleCls = data.arguments?.[0] as { name?: string } | undefined;
-          return startInactiveSpan({
-            name: 'Create Nest App',
-            op: `${TYPE_APP_CREATION}.nestjs`,
-            attributes: {
-              [ATTR_COMPONENT]: NESTJS_COMPONENT,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN_NESTJS,
-              [ATTR_NESTJS_TYPE]: TYPE_APP_CREATION,
-              ...(data.moduleVersion ? { [ATTR_NESTJS_VERSION]: data.moduleVersion } : {}),
-              ...(moduleCls?.name ? { [ATTR_NESTJS_MODULE]: moduleCls.name } : {}),
-            },
-          });
-        },
-        { captureError: false },
-      );
+      //
+      // `bindTracingChannelToSpan` uses `bindStore`, which needs the
+      // async-context binding registered after integration `setupOnce`;
+      // defer until it's available (matches the other channel subscribers).
+      // Only this bind is deferred: it fires at `NestFactory.create`
+      // (bootstrap), so a retry tick is fine. The plain `.subscribe` calls
+      // below stay synchronous. The decorator channels fire at module-load /
+      // decoration time (right after init), which a deferred subscription
+      // could miss.
+      waitForTracingChannelBinding(() => {
+        bindTracingChannelToSpan(
+          diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_APP_CREATION),
+          data => {
+            const moduleCls = data.arguments?.[0] as { name?: string } | undefined;
+            return startInactiveSpan({
+              name: 'Create Nest App',
+              op: `${TYPE_APP_CREATION}.nestjs`,
+              attributes: {
+                [ATTR_COMPONENT]: NESTJS_COMPONENT,
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN_NESTJS,
+                [ATTR_NESTJS_TYPE]: TYPE_APP_CREATION,
+                ...(data.moduleVersion ? { [ATTR_NESTJS_VERSION]: data.moduleVersion } : {}),
+                ...(moduleCls?.name ? { [ATTR_NESTJS_MODULE]: moduleCls.name } : {}),
+              },
+            });
+          },
+          { captureError: false },
+        );
+      });
 
       // request_context + request_handler. `RouterExecutionContext.create`
       // runs once per route at setup: it receives `(instance, callback, ...)`
