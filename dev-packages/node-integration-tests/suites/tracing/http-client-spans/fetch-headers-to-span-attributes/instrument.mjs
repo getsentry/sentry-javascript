@@ -5,16 +5,13 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,
-  traceLifecycle: 'stream',
   transport: loggingTransport,
+  integrations: [
+    Sentry.nativeNodeFetchIntegration({
+      headersToSpanAttributes: {
+        requestHeaders: ['x-test-header'],
+        responseHeaders: ['x-powered-by'],
+      },
+    }),
+  ],
 });
-
-async function run(): Promise<void> {
-  await Sentry.startSpan({ name: 'test_transaction' }, async () => {
-    await fetch(`${process.env.SERVER_URL}/api/v0`);
-  });
-
-  await Sentry.flush();
-}
-
-void run();

@@ -21,20 +21,3 @@ import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 registerInstrumentations({
   instrumentations: [new HttpInstrumentation()],
 });
-
-import * as http from 'http';
-
-void Sentry.startSpan({ name: 'test_transaction' }, async () => {
-  await makeHttpRequest(`${process.env.SERVER_URL}/api/v0`);
-});
-
-function makeHttpRequest(url: string): Promise<void> {
-  return new Promise<void>(resolve => {
-    http
-      .request(url, httpRes => {
-        httpRes.on('data', () => {});
-        httpRes.on('end', resolve);
-      })
-      .end();
-  });
-}
