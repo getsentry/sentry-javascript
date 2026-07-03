@@ -53,6 +53,8 @@ sentryTest('creates a pageload root span with navigation.redirect childspan', as
       'sentry.op': 'navigation.redirect',
       'sentry.origin': 'auto.navigation.browser',
       'sentry.source': 'url',
+      'url.full': 'http://sentry-test.io/sub-page',
+      'url.path': '/sub-page',
     },
     description: '/sub-page',
     op: 'navigation.redirect',
