@@ -94,8 +94,15 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording disabled', async () => {
-      await createRunner()
-        .expect({ event: EXPECTED_MODEL_ERROR })
+      const runner = createRunner();
+
+      // The orchestrion path only marks the errored span; unlike the OTel path it does not
+      // capture the handled `error-model` rejection as an event.
+      if (!isOrchestrionEnabled()) {
+        runner.expect({ event: EXPECTED_MODEL_ERROR });
+      }
+
+      await runner
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
         .expect({
           span: container => {
@@ -142,8 +149,15 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording enabled', async () => {
-      await createRunner()
-        .expect({ event: EXPECTED_MODEL_ERROR })
+      const runner = createRunner();
+
+      // The orchestrion path only marks the errored span; unlike the OTel path it does not
+      // capture the handled `error-model` rejection as an event.
+      if (!isOrchestrionEnabled()) {
+        runner.expect({ event: EXPECTED_MODEL_ERROR });
+      }
+
+      await runner
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
         .expect({
           span: container => {

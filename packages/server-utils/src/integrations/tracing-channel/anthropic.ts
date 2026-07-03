@@ -76,7 +76,6 @@ const _anthropicChannelIntegration = ((options: AnthropicAiOptions = {}) => {
                 );
               },
               deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, stream, options),
-              captureError: () => ({ mechanism: { type: ORIGIN, handled: false } }),
             },
           );
         }
