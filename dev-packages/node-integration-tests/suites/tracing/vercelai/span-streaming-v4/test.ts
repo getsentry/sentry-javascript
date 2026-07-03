@@ -19,6 +19,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
+import { isOrchestrionEnabled } from '../../../../utils';
 
 /**
  * Helper to match a typed attribute value in a SerializedStreamedSpan.
@@ -29,7 +30,7 @@ function attr(value: unknown) {
   return expect.objectContaining({ value });
 }
 
-describe('Vercel AI integration (streaming)', () => {
+describe.skipIf(isOrchestrionEnabled())('Vercel AI integration (streaming v4)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
