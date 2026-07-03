@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { DEBUG_BUILD } from '../debug-build';
 import type { ConsoleLevel, HandlerDataConsole } from '../types/instrument';
-import type { WrappedFunction } from '../types/wrappedfunction';
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../utils/debug-logger';
 import { fill } from '../utils/object';
 import { stringMatchesSomePattern } from '../utils/string';
@@ -52,6 +51,18 @@ export function _INTERNAL_resetConsoleInstrumentationOptions(): void {
   _filter.clear();
 }
 
+// The console levels *this* copy of the SDK has already wrapped. A copy must wrap each level at
+// most once: re-wrapping overwrites `originalConsoleMethods[level]` with a function that itself
+// reads `originalConsoleMethods[level]`, so calling through to the "original" (here and in
+// `consoleSandbox`) re-enters a wrapper indefinitely, ending in a `RangeError: Maximum call stack
+// size exceeded`. This can happen e.g. in React Native when instrumentation state is re-initialized
+// while the console stays wrapped. See getsentry/sentry-react-native SDK-CRASHES-REACT-NATIVE-5HZ.
+// We intentionally track this per copy rather than checking for the shared `__sentry_original__`
+// marker: a *different* SDK copy's wrapper (e.g. separate CDN bundles that each inline
+// `@sentry/core`) is safe to wrap since its call chain resolves down to the native method, and
+// skipping it would silently drop that copy's console handlers (breadcrumbs, `captureConsole`).
+const instrumentedLevels = new Set<ConsoleLevel>();
+
 /** Only exported for tests. */
 export function instrumentConsole(): void {
   if (!('console' in GLOBAL_OBJ)) {
@@ -59,20 +70,11 @@ export function instrumentConsole(): void {
   }
 
   CONSOLE_LEVELS.forEach(function (level: ConsoleLevel): void {
-    if (!(level in GLOBAL_OBJ.console)) {
+    if (instrumentedLevels.has(level) || !(level in GLOBAL_OBJ.console)) {
       return;
     }
 
-    // Never wrap a console method that is already one of our wrappers. This can happen when a
-    // second copy of `@sentry/core` is loaded (common in React Native / bundler-duplicated deps)
-    // or when instrumentation runs more than once. Wrapping again makes `originalConsoleMethods[level]`
-    // point at one of our own wrappers, so calling through to the "original" (here and in
-    // `consoleSandbox`) re-enters the wrapper indefinitely, ending in a
-    // `RangeError: Maximum call stack size exceeded`. See getsentry/sentry-react-native SDK-CRASHES-REACT-NATIVE-5HZ.
-    const existing = GLOBAL_OBJ.console[level];
-    if (typeof existing === 'function' && (existing as WrappedFunction).__sentry_original__) {
-      return;
-    }
+    instrumentedLevels.add(level);
 
     fill(GLOBAL_OBJ.console, level, function (originalConsoleMethod: () => any): Function {
       originalConsoleMethods[level] = originalConsoleMethod;

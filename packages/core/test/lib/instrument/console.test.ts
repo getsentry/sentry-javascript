@@ -55,11 +55,12 @@ describe('addConsoleInstrumentationHandler', () => {
     expect(() => GLOBAL_OBJ.console.log('hello')).not.toThrow();
   });
 
-  it('does not recurse infinitely when console is instrumented more than once', () => {
-    // Simulates a second copy of `@sentry/core` (e.g. a bundler-duplicated dep in React Native)
-    // instrumenting the already-wrapped console. Without the double-wrap guard, the second pass
-    // stores our own wrapper into `originalConsoleMethods[level]`, so calling through to the
-    // "original" re-enters the wrapper forever -> `RangeError: Maximum call stack size exceeded`.
+  it('does not recurse infinitely when the same SDK copy re-instruments an already-wrapped console', () => {
+    // Re-running `instrumentConsole()` within the same copy of `@sentry/core` (e.g. instrumentation
+    // state re-initialized in React Native while the console stays wrapped) must not re-wrap our own
+    // wrapper. Otherwise the second pass stores that wrapper into `originalConsoleMethods[level]`,
+    // which the wrapper reads on every call, so calling through to the "original" re-enters the
+    // wrapper forever -> `RangeError: Maximum call stack size exceeded`.
     const wrappedConsole: Partial<Record<string, unknown>> = {};
     for (const level of CONSOLE_LEVELS) {
       wrappedConsole[level] = GLOBAL_OBJ.console[level];
@@ -70,12 +71,14 @@ describe('addConsoleInstrumentationHandler', () => {
       addConsoleInstrumentationHandler(handler);
       mockConsoleMethods();
 
-      // Force a second instrumentation pass to mimic a duplicated SDK copy re-wrapping the console.
+      const wrapperAfterFirstPass = GLOBAL_OBJ.console.error;
+
+      // Force a second instrumentation pass on the same copy to mimic re-initialized state.
       instrumentConsole();
 
-      // The second pass must be a no-op: the underlying "original" must stay the real method,
-      // never one of our wrappers (which carry `__sentry_original__`).
-      expect((originalConsoleMethods.error as { __sentry_original__?: unknown })?.__sentry_original__).toBeUndefined();
+      // The second pass must be a no-op: our own wrapper is left in place (identity unchanged),
+      // so `originalConsoleMethods[level]` keeps pointing at the real method rather than a wrapper.
+      expect(GLOBAL_OBJ.console.error).toBe(wrapperAfterFirstPass);
 
       expect(() => GLOBAL_OBJ.console.error('boom')).not.toThrow();
       expect(handler).toHaveBeenCalledWith(expect.objectContaining({ args: ['boom'], level: 'error' }));
