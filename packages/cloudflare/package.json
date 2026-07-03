@@ -36,6 +36,10 @@
         "types": "./build/types/request.d.ts",
         "default": "./build/cjs/request.js"
       }
+    },
+    "./vite": {
+      "types": "./build/types/vite/index.d.ts",
+      "import": "./build/esm/vite/index.js"
     }
   },
   "typesVersions": {
