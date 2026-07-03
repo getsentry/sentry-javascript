@@ -26,12 +26,6 @@ import {
  * (`createSpanFromMessage` / `enrichSpanOnEnd`) the v7 subscriber uses, so the
  * emitted spans are identical between v6 and v7.
  *
- * Like the v7 subscriber, each operation channel is wired up via
- * {@link bindTracingChannelToSpan}, which binds the opened span into the runtime's
- * async context for the duration of the traced call and ends it when the call
- * settles. That binding is what lets the model call below find its enclosing
- * `invoke_agent` span via the active context (see {@link resolveModelCallParent}).
- *
  * The model call (`languageModelCall` / `generate_content` span) has no
  * injectable definition in `ai`, so we instead wrap `resolveLanguageModel` (the
  * single chokepoint every model call flows through) and monkey-patch
