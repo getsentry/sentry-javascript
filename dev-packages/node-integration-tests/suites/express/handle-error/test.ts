@@ -10,6 +10,7 @@ describe('express error handling', () => {
     createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
       test('should capture and send Express controller error with txn name if tracesSampleRate is 1', async () => {
         const runner = createRunner()
+          .unordered()
           .expect({
             transaction: {
               transaction: 'GET /test/express/:id',
