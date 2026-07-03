@@ -1,6 +1,7 @@
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
+import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
 import { postgresChannelIntegration } from '../integrations/tracing-channel/postgres';
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
@@ -8,6 +9,7 @@ export {
   ioredisChannelIntegration,
   lruMemoizerChannelIntegration,
   mysqlChannelIntegration,
+  openaiChannelIntegration,
   postgresChannelIntegration,
 };
 export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/tracing-channel/ioredis';
@@ -29,4 +31,5 @@ export const channelIntegrations = {
   postgresIntegration: postgresChannelIntegration,
   mysqlIntegration: mysqlChannelIntegration,
   lruMemoizerIntegration: lruMemoizerChannelIntegration,
+  openaiIntegration: openaiChannelIntegration,
 } as const;
