@@ -7,6 +7,7 @@ import {
 } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 sentryTest('creates a pageload root span with navigation.redirect childspan', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -53,8 +54,8 @@ sentryTest('creates a pageload root span with navigation.redirect childspan', as
       'sentry.op': 'navigation.redirect',
       'sentry.origin': 'auto.navigation.browser',
       'sentry.source': 'url',
-      'url.full': 'http://sentry-test.io/sub-page',
-      'url.path': '/sub-page',
+      [URL_FULL]: 'http://sentry-test.io/sub-page',
+      [URL_PATH]: '/sub-page',
     },
     description: '/sub-page',
     op: 'navigation.redirect',
