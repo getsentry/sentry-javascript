@@ -32,7 +32,7 @@ interface GraphqlOptions {
   useOperationNameForRootSpan?: boolean;
 }
 
-const INTEGRATION_NAME = 'Graphql';
+const INTEGRATION_NAME = 'Graphql' as const;
 
 export const instrumentGraphql = generateInstrumentOnce(
   INTEGRATION_NAME,

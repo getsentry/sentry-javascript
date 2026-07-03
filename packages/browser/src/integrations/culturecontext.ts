@@ -2,7 +2,7 @@ import type { CultureContext, IntegrationFn } from '@sentry/core/browser';
 import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core/browser';
 import { WINDOW } from '../helpers';
 
-const INTEGRATION_NAME = 'CultureContext';
+const INTEGRATION_NAME = 'CultureContext' as const;
 
 const _cultureContextIntegration = (() => {
   return {

@@ -7,7 +7,7 @@
     "dev": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\"",
     "build": "wrangler deploy --dry-run",
     "typecheck": "tsc --noEmit",
-    "cf-typegen": "wrangler types",
+    "cf-typegen": "wrangler types --include-runtime=false",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm typecheck && pnpm test:dev && pnpm test:prod",
     "test:prod": "TEST_ENV=production playwright test",

@@ -10,7 +10,7 @@ import { httpServerSpansIntegration } from './httpServerSpansIntegration';
 import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
 import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
 
-const INTEGRATION_NAME = 'Http';
+const INTEGRATION_NAME = 'Http' as const;
 
 interface HttpOptions {
   /**

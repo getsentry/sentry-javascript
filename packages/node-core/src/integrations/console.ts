@@ -32,7 +32,7 @@ interface ConsoleIntegrationOptions {
  */
 export const consoleIntegration = defineIntegration((options: Partial<ConsoleIntegrationOptions> = {}) => {
   return {
-    name: 'Console',
+    name: 'Console' as const,
     setup(client) {
       if (process.env.LAMBDA_TASK_ROOT) {
         maybeInstrument('console', instrumentConsoleLambda);

@@ -167,6 +167,75 @@ export function addIntegration(integration: Integration): void {
  * Define an integration function that can be used to create an integration instance.
  * Note that this by design hides the implementation details of the integration, as they are considered internal.
  */
-export function defineIntegration<Fn extends IntegrationFn>(fn: Fn): (...args: Parameters<Fn>) => Integration {
+export function defineIntegration<Fn extends IntegrationFn>(
+  fn: Fn,
+): (...args: Parameters<Fn>) => Integration & { name: ReturnType<Fn>['name'] } {
   return fn;
+}
+
+// When  extending an integration, we allow other properties to be passed-through
+type IntegrationWithOtherProperties = Record<string, unknown> & Integration;
+type ExtendedIntegration<Base extends Integration, Extended extends Partial<IntegrationWithOtherProperties>> = Omit<
+  Base,
+  keyof Extended
+> &
+  Extended;
+
+/**
+ * Wrap a parent integration with an extended integration.
+ * Any passed integration function will call the parent integration function first, if it exists.
+ *
+ * Example usage:
+ *
+ * @example
+ * ```typescript
+ * const parentIntegration = defineIntegration(() => ({
+ *   name: 'ParentIntegration',
+ *   setupOnce: () => {
+ *     console.log('ParentIntegration setupOnce');
+ *   },
+ * }));
+ *
+ * const extendedIntegration = extendIntegration(parentIntegration, {
+ *   setupOnce: () => {
+ *     console.log('ExtendedIntegration setupOnce');
+ *   },
+ * });
+ * ```
+ */
+export function extendIntegration<Base extends Integration, Extended extends Partial<IntegrationWithOtherProperties>>(
+  integration: Base,
+  extendedIntegration: Extended,
+): ExtendedIntegration<Base, Extended> {
+  // The extension overrides the base for any shared key (object spread + the wrapping below), so the
+  // result type drops the overridden base keys rather than intersecting them — `Base & Extended` would
+  // wrongly intersect shared keys (e.g. a re-typed property collapses to `never`).
+  const wrappedIntegration = {
+    ...integration,
+    ...extendedIntegration,
+  } as ExtendedIntegration<Base, Extended>;
+
+  // Make sure that functions that are extended also call the base functions, if defined
+  // oxlint-disable-next-line guard-for-in
+  for (const key in extendedIntegration) {
+    const baseValue = integration[key as keyof Base];
+    const extendedValue = extendedIntegration[key];
+
+    type ValueType = typeof extendedValue;
+
+    if (typeof baseValue === 'function' && typeof extendedValue === 'function') {
+      const wrappedFunction = new Proxy(baseValue, {
+        apply: (target, thisArg, args) => {
+          Reflect.apply(target, thisArg, args);
+          return Reflect.apply(extendedValue, thisArg, args);
+        },
+      }) as ValueType;
+
+      // We know this is OK, but typescript does not properly narrow/infer types here
+      // so instead of casting the wrappedFunction to some complicated type, we just make clear that we simply overwrite this
+      (wrappedIntegration as Record<string, unknown>)[key] = wrappedFunction;
+    }
+  }
+
+  return wrappedIntegration;
 }

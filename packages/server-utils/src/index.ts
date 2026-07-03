@@ -4,6 +4,7 @@
  * @module
  */
 
+export { mongooseIntegration } from './mongoose';
 export {
   IOREDIS_DC_CHANNEL_COMMAND,
   IOREDIS_DC_CHANNEL_CONNECT,
@@ -20,6 +21,7 @@ export type {
   RedisDiagnosticChannelResponseHook,
   RedisTracingChannelFactory,
 } from './redis/redis-dc-subscriber';
+export { defaultDbStatementSerializer } from './redis/redis-statement-serializer';
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type {
   SentryTracingChannel,
@@ -28,3 +30,11 @@ export type {
   TracingChannelPayloadWithSpan,
 } from './tracing-channel';
 export { vercelAiIntegration } from './vercel-ai';
+
+export {
+  fastifyIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
+  handleFastifyError,
+  // oxlint-disable-next-line typescript/no-deprecated
+  instrumentFastify,
+} from './integrations/tracing-channel/fastify';

@@ -2,6 +2,7 @@ import { NODE_VERSION, type Event } from '@sentry/node';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
+  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
@@ -22,6 +23,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
+import { isOrchestrionEnabled } from '../../../../utils';
 
 describe.each([
   ['6', '^6.0.0'],
@@ -36,9 +38,11 @@ describe.each([
   const nodeVersion = NODE_VERSION.major;
   const failsOnCjs = version === '7' && nodeVersion === 18;
 
-  // v6 is instrumented via the OTel processor, v7 via the `ai:telemetry` tracing-channel subscriber,
-  // so the span origin differs by version.
-  const expectedOrigin = version === '7' ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
+  const usesChannels = version === '7' || isOrchestrionEnabled();
+
+  // in v7 and orchestrion mode, we use the channel-based integration
+  // else, we use the OTel processor
+  const expectedOrigin = usesChannels ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
 
   // We only run this in ESM and CJS to verify full support
   // Other suites we only run in ESM to simplify the test setup
@@ -230,15 +234,11 @@ describe.each([
               expect(secondInvokeAgentSpan.name).toBe('invoke_agent');
               expect(secondInvokeAgentSpan.status).toBe('ok');
               expect(secondInvokeAgentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.invoke_agent');
-              // On v6, vercel AI natively defaults to recording inputs and outputs by default when telemetry is enabled
-              // On v7, we do not have access to this, so this defaults to false in this case
-              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value).toEqual(
-                version === '6' ? '[{"role":"user","content":"Where is the second span?"}]' : undefined,
+              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value).toBe(
+                '[{"role":"user","content":"Where is the second span?"}]',
               );
-              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value).toEqual(
-                version === '6'
-                  ? '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]'
-                  : undefined,
+              expect(secondInvokeAgentSpan.attributes?.[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value).toBe(
+                '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
               );
 
               const secondGenerateContentSpan = container.items.find(
@@ -251,6 +251,13 @@ describe.each([
               expect(secondGenerateContentSpan.name).toBe('generate_content mock-model-id');
               expect(secondGenerateContentSpan.status).toBe('ok');
               expect(secondGenerateContentSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(secondGenerateContentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+              expect(
+                secondGenerateContentSpan.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value as string,
+              ).toContain('Where is the second span?');
+              expect(
+                secondGenerateContentSpan.attributes?.[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value as string,
+              ).toContain('Second span here!');
 
               const toolInvokeAgentSpan = container.items.find(
                 span =>
@@ -517,6 +524,61 @@ describe.each([
 
   createEsmTests(
     __dirname,
+    'scenario-concurrent-stream.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      // A single model instance shared by two concurrent `streamText` calls carries only one
+      // captured-parent slot, so both model calls must still land under their own `invoke_agent` — not
+      // collapse onto whichever operation resolved the shared model last.
+      // `ai` v7 publishes the top-level `streamText`/`step` channel events through a code path that
+      // loads `node:diagnostics_channel` via `process.getBuiltinModule()`, which was only added in
+      // Node 20.16 / 22.3 and never backported to Node 18. On Node 18 that lookup returns undefined,
+      // so the `streamText` event is never published and no `invoke_agent` span is created. The
+      // non-streaming ops load the channel via dynamic `import()` and are unaffected.
+      test.skipIf(version === '7' && nodeVersion === 18)(
+        'parents concurrent streamText calls that share one model instance correctly',
+        async () => {
+          await createRunner()
+            .expect({ transaction: { transaction: 'main' } })
+            .expect({
+              span: container => {
+                const invokeAgents = container.items.filter(
+                  span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
+                );
+                const generateContents = container.items.filter(
+                  span => span.attributes?.['sentry.op']?.value === 'gen_ai.generate_content',
+                );
+
+                // Two concurrent operations -> two invoke_agent + two generate_content spans.
+                expect(invokeAgents).toHaveLength(2);
+                expect(generateContents).toHaveLength(2);
+
+                const agentSpanIds = new Set(invokeAgents.map(span => span.span_id));
+
+                // Each model call lands under an invoke_agent span...
+                for (const span of generateContents) {
+                  expect(agentSpanIds.has(span.parent_span_id!)).toBe(true);
+                }
+                // ...a distinct one each (no cross-attribution despite the shared model instance)...
+                expect(new Set(generateContents.map(span => span.parent_span_id)).size).toBe(2);
+                // ...and both operations sit under the same `main` parent.
+                expect(new Set(invokeAgents.map(span => span.parent_span_id)).size).toBe(1);
+              },
+            })
+            .start()
+            .completed();
+        },
+      );
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
     'scenario-stream-text.mjs',
     'instrument.mjs',
     (createRunner, test) => {
@@ -639,6 +701,63 @@ describe.each([
                 const expected = '[{"type":"text","content":"You are a helpful assistant."}]';
                 expect(invokeAgent.attributes?.[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]?.value).toBe(expected);
                 expect(generateContent.attributes?.[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]?.value).toBe(expected);
+              }
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-embeddings.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      // `ai` v7 only routes `embed` through its telemetry tracing channel — `embedMany` is dispatched
+      // via the callback-only path and never published — so the channel-based integration (v7 and v6
+      // orchestrion) cannot see it there. On v6 both the OTel processor and the orchestrion channels
+      // instrument `embedMany`, so its span is expected only on v6.
+      const embedManyInstrumented = version === '6';
+
+      test('creates embeddings spans for embed and embedMany', async () => {
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
+
+              const embedSpan = container.items.find(
+                span => span.attributes?.[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]?.value === 'Embedding test!',
+              )!;
+              expect(embedSpan).toBeDefined();
+              expect(embedSpan.name).toBe('embeddings mock-model-id');
+              expect(embedSpan.status).toBe('ok');
+              expect(embedSpan.attributes?.['sentry.op']?.value).toBe('gen_ai.embeddings');
+              expect(embedSpan.attributes?.[GEN_AI_REQUEST_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
+              expect(embedSpan.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(10);
+
+              const embedManySpan = container.items.find(
+                span =>
+                  span.attributes?.[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]?.value === '["First input","Second input"]',
+              );
+              if (embedManyInstrumented) {
+                expect(embedManySpan).toBeDefined();
+                expect(embedManySpan!.name).toBe('embeddings mock-model-id');
+                expect(embedManySpan!.status).toBe('ok');
+                expect(embedManySpan!.attributes?.['sentry.op']?.value).toBe('gen_ai.embeddings');
+                expect(embedManySpan!.attributes?.[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(20);
+              } else {
+                expect(embedManySpan).toBeUndefined();
               }
             },
           })

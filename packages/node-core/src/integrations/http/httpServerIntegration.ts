@@ -17,7 +17,7 @@ import { DEBUG_BUILD } from '../../debug-build';
 export { recordRequestSession };
 
 const HTTP_SERVER_INSTRUMENTED_KEY = createContextKey('sentry_http_server_instrumented');
-const INTEGRATION_NAME = 'Http.Server';
+const INTEGRATION_NAME = 'Http.Server' as const;
 
 // Inlining this type to not depend on newer TS types
 interface WeakRefImpl<T> {
@@ -171,6 +171,6 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
 export const httpServerIntegration = _httpServerIntegration as (
   options?: HttpServerIntegrationOptions,
 ) => Integration & {
-  name: 'HttpServer';
+  name: 'Http.Server';
   setupOnce: () => void;
 };

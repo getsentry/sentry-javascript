@@ -11,7 +11,7 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
-const INTEGRATION_NAME = 'Hono';
+const INTEGRATION_NAME = 'Hono' as const;
 
 interface HonoError extends Error {
   status?: number;

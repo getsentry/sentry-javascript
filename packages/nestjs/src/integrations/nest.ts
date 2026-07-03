@@ -6,7 +6,7 @@ import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentat
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
 import { SentryNestScheduleInstrumentation } from './sentry-nest-schedule-instrumentation';
 
-const INTEGRATION_NAME = 'Nest';
+const INTEGRATION_NAME = 'Nest' as const;
 
 const instrumentNestCore = generateInstrumentOnce(`${INTEGRATION_NAME}.Core`, () => {
   return new NestInstrumentationCore();

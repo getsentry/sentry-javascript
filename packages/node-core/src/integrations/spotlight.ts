@@ -10,7 +10,7 @@ type SpotlightConnectionOptions = {
   sidecarUrl?: string;
 };
 
-export const INTEGRATION_NAME = 'Spotlight';
+export const INTEGRATION_NAME = 'Spotlight' as const;
 
 const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {
   const _options = {

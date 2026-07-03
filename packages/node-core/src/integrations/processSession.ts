@@ -1,6 +1,6 @@
 import { defineIntegration, endSession, getIsolationScope, startSession } from '@sentry/core';
 
-const INTEGRATION_NAME = 'ProcessSession';
+const INTEGRATION_NAME = 'ProcessSession' as const;
 
 /**
  * Records a Session for the current process to track release health.

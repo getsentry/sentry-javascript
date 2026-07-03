@@ -16,7 +16,7 @@ import {
 } from '@sentry/core';
 import type { ServeOptions } from 'bun';
 
-const INTEGRATION_NAME = 'BunServer';
+const INTEGRATION_NAME = 'BunServer' as const;
 
 const _bunServerIntegration = (() => {
   return {

@@ -11,7 +11,6 @@ import {
   linkedErrorsIntegration,
   propagationContextFromHeaders,
   requestDataIntegration,
-  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
@@ -171,10 +170,6 @@ function getClientOptions(
     defaultIntegrations,
     integrations,
   });
-
-  if (mergedOptions.traceLifecycle === 'stream' && !resolvedIntegrations.some(i => i.name === 'SpanStreaming')) {
-    resolvedIntegrations.push(spanStreamingIntegration());
-  }
 
   return {
     ...mergedOptions,

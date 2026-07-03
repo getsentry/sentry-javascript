@@ -18,8 +18,9 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
+import { isOrchestrionEnabled } from '../../../../utils';
 
-describe('Vercel AI integration (V5)', () => {
+describe.skipIf(isOrchestrionEnabled())('Vercel AI integration (v5)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

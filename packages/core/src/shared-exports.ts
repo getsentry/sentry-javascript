@@ -49,11 +49,11 @@ export {
   hasExternalPropagationContext,
 } from './currentScopes';
 export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
+export { setAsyncContextStrategy, getAsyncContextStrategy } from './asyncContext';
 export {
-  setAsyncContextStrategy,
-  getTracingChannelBinding as _INTERNAL_getTracingChannelBinding,
+  waitForTracingChannelBinding,
   _INTERNAL_createTracingChannelBinding,
-} from './asyncContext';
+} from './asyncContext/tracing-channel-binding';
 export { getGlobalSingleton, getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 export { Scope } from './scope';
@@ -65,7 +65,13 @@ export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from './transports/multiplexed';
-export { getIntegrationsToSetup, addIntegration, defineIntegration, installedIntegrations } from './integration';
+export {
+  getIntegrationsToSetup,
+  addIntegration,
+  defineIntegration,
+  extendIntegration,
+  installedIntegrations,
+} from './integration';
 export {
   _INTERNAL_skipAiProviderWrapping,
   _INTERNAL_shouldSkipAiProviderWrapping,
@@ -97,6 +103,7 @@ export {
   spanToJSON,
   spanToStreamedSpanJSON,
   spanIsSampled,
+  spanIsSentrySpan,
   spanToTraceContext,
   getSpanDescendants,
   getStatusMessage,
@@ -171,16 +178,32 @@ export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { addVercelAiProcessors, getProviderMetadataAttributes } from './tracing/vercel-ai';
-export { getTruncatedJsonString, shouldEnableTruncation } from './tracing/ai/utils';
+export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptions } from './tracing/ai/utils';
 export {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from './tracing/ai/gen-ai-attributes';
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
-export { instrumentOpenAiClient } from './tracing/openai';
+export {
+  instrumentOpenAiClient,
+  extractRequestAttributes as extractOpenAiRequestAttributes,
+  addRequestAttributes as addOpenAiRequestAttributes,
+} from './tracing/openai';
+export {
+  addResponseAttributes as addOpenAiResponseAttributes,
+  extractRequestParameters as extractOpenAiRequestParameters,
+} from './tracing/openai/utils';
+export { instrumentStream as instrumentOpenAiStream } from './tracing/openai/streaming';
 export { OPENAI_INTEGRATION_NAME } from './tracing/openai/constants';
-export { instrumentAnthropicAiClient } from './tracing/anthropic-ai';
+export {
+  instrumentAnthropicAiClient,
+  extractRequestAttributes as extractAnthropicRequestAttributes,
+  addPrivateRequestAttributes as addAnthropicRequestAttributes,
+  addResponseAttributes as addAnthropicResponseAttributes,
+} from './tracing/anthropic-ai';
+export { instrumentAsyncIterableStream, instrumentMessageStream } from './tracing/anthropic-ai/streaming';
 export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants';
 export { instrumentGoogleGenAIClient } from './tracing/google-genai';
 export { GOOGLE_GENAI_INTEGRATION_NAME } from './tracing/google-genai/constants';

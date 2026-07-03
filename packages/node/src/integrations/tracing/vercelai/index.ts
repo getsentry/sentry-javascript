@@ -1,5 +1,5 @@
 import type { Client, IntegrationFn } from '@sentry/core';
-import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
+import { addVercelAiProcessors, defineIntegration, extendIntegration } from '@sentry/core';
 import { generateInstrumentOnce, type modulesIntegration } from '@sentry/node-core';
 import { vercelAiIntegration as serverUtilsVercelAiIntegration } from '@sentry/server-utils';
 import { INTEGRATION_NAME } from './constants';
@@ -22,12 +22,10 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
 
   const parentIntegration = serverUtilsVercelAiIntegration(options);
 
-  return {
-    name: INTEGRATION_NAME,
+  return extendIntegration(parentIntegration, {
     options,
     setupOnce() {
       instrumentation = instrumentVercelAi();
-      parentIntegration.setupOnce?.();
     },
     afterAllSetup(client) {
       // Auto-detect if we should force the integration when running with 'ai' package available
@@ -40,7 +38,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
         instrumentation?.callWhenPatched(() => addVercelAiProcessors(client));
       }
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**

@@ -1,6 +1,6 @@
 {
   "compatibility_date": "2026-03-12",
-  "compatibility_flags": ["global_fetch_strictly_public", "nodejs_compat"],
+  "compatibility_flags": ["global_fetch_strictly_public", "nodejs_als"],
   "name": "astro-6-cf-workers",
   "main": "./sentry.server.config.js",
   "assets": {

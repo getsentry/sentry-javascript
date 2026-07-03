@@ -2,7 +2,7 @@ import { defineIntegration } from '@sentry/core';
 import { enableFsInstrumentation } from './vendored/instrumentation';
 import type { FsInstrumentationConfig } from './vendored/types';
 
-const INTEGRATION_NAME = 'FileSystem';
+const INTEGRATION_NAME = 'FileSystem' as const;
 
 /**
  * This integration will create spans for `fs` API operations, like reading and writing files.

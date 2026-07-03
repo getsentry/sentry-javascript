@@ -48,7 +48,7 @@ interface Options {
  */
 export const thirdPartyErrorFilterIntegration = defineIntegration((options: Options) => {
   return {
-    name: 'ThirdPartyErrorsFilter',
+    name: 'ThirdPartyErrorsFilter' as const,
     setup(client) {
       // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
       client.on('beforeEnvelope', envelope => {

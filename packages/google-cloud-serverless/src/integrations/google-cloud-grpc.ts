@@ -27,7 +27,7 @@ export interface Stub {
 
 const SERVICE_PATH_REGEX = /^(\w+)\.googleapis.com$/;
 
-const INTEGRATION_NAME = 'GoogleCloudGrpc';
+const INTEGRATION_NAME = 'GoogleCloudGrpc' as const;
 
 const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 

@@ -13,6 +13,6 @@ export const unleashIntegrationShim = defineIntegration((_options?: unknown) => 
   }
 
   return {
-    name: 'Unleash',
+    name: 'Unleash' as const,
   };
 });

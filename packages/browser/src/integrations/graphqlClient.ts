@@ -42,7 +42,7 @@ interface GraphQLOperation {
   operationName?: string;
 }
 
-const INTEGRATION_NAME = 'GraphQLClient';
+const INTEGRATION_NAME = 'GraphQLClient' as const;
 
 const _graphqlClientIntegration = ((options: GraphQLClientOptions) => {
   return {

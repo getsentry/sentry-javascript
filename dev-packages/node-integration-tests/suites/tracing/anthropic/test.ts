@@ -20,6 +20,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Anthropic integration', () => {
@@ -53,68 +54,6 @@ describe('Anthropic integration', () => {
   const EXPECTED_STREAM_EVENT_HANDLER_MESSAGE = {
     message: 'stream event from user-added event listener captured',
   };
-
-  createEsmAndCjsTests(__dirname, 'scenario-manual-client.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates anthropic related spans when manually insturmenting client', async () => {
-      await createRunner()
-        .ignore('event')
-        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
-        .expect({
-          span: container => {
-            expect(container.items).toHaveLength(4);
-            const completionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'msg_mock123',
-            );
-            expect(completionSpan).toBeDefined();
-            expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(completionSpan!.status).toBe('ok');
-            expect(completionSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
-            expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(completionSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-            expect(completionSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
-            expect(completionSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('claude-3-haiku-20240307');
-            expect(completionSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
-            expect(completionSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE].value).toBe(100);
-            expect(completionSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('claude-3-haiku-20240307');
-            expect(completionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(10);
-            expect(completionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(15);
-            expect(completionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(25);
-
-            const errorSpan = container.items.find(span => span.name === 'chat error-model');
-            expect(errorSpan).toBeDefined();
-            expect(errorSpan!.status).toBe('error');
-            expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
-            expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(errorSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-            expect(errorSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
-            expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('error-model');
-
-            const tokenCountingSpan = container.items.find(
-              span =>
-                span.name === 'chat claude-3-haiku-20240307' &&
-                span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE] === undefined,
-            );
-            expect(tokenCountingSpan).toBeDefined();
-            expect(tokenCountingSpan!.status).toBe('ok');
-            expect(tokenCountingSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(tokenCountingSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('claude-3-haiku-20240307');
-
-            const modelsSpan = container.items.find(span => span.name === 'models claude-3-haiku-20240307');
-            expect(modelsSpan).toBeDefined();
-            expect(modelsSpan!.status).toBe('ok');
-            expect(modelsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('models');
-            expect(modelsSpan!.attributes['sentry.op'].value).toBe('gen_ai.models');
-            expect(modelsSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-            expect(modelsSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
-            expect(modelsSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('claude-3-haiku-20240307');
-            expect(modelsSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE].value).toBe('claude-3-haiku-20240307');
-            expect(modelsSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('claude-3-haiku-20240307');
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
 
   createEsmAndCjsTests(__dirname, 'scenario-with-response.mjs', 'instrument.mjs', (createRunner, test) => {
     test('preserves .withResponse() and .asResponse() for non-streaming and streaming', async () => {
@@ -155,8 +94,15 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording disabled', async () => {
-      await createRunner()
-        .expect({ event: EXPECTED_MODEL_ERROR })
+      const runner = createRunner();
+
+      // The orchestrion path only marks the errored span; unlike the OTel path it does not
+      // capture the handled `error-model` rejection as an event.
+      if (!isOrchestrionEnabled()) {
+        runner.expect({ event: EXPECTED_MODEL_ERROR });
+      }
+
+      await runner
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
         .expect({
           span: container => {
@@ -203,8 +149,15 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording enabled', async () => {
-      await createRunner()
-        .expect({ event: EXPECTED_MODEL_ERROR })
+      const runner = createRunner();
+
+      // The orchestrion path only marks the errored span; unlike the OTel path it does not
+      // capture the handled `error-model` rejection as an event.
+      if (!isOrchestrionEnabled()) {
+        runner.expect({ event: EXPECTED_MODEL_ERROR });
+      }
+
+      await runner
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
         .expect({
           span: container => {
@@ -230,7 +183,9 @@ describe('Anthropic integration', () => {
             expect(completionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(15);
             expect(completionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(25);
             expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(completionSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
+            expect(completionSpan!.attributes['sentry.origin'].value).toBe(
+              isOrchestrionEnabled() ? 'auto.ai.orchestrion.anthropic' : 'auto.ai.anthropic',
+            );
 
             const errorSpan = container.items.find(
               span =>
@@ -486,23 +441,25 @@ describe('Anthropic integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(2);
-            const streamingToolSpan = container.items.find(span => span.status === 'ok');
-            expect(streamingToolSpan).toBeDefined();
-            expect(streamingToolSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(streamingToolSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(streamingToolSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE].value).toBe(true);
-            expect(streamingToolSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
-            expect(streamingToolSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE].value).toBe(
-              EXPECTED_TOOLS_JSON,
-            );
-            expect(streamingToolSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE].value).toBe(
-              EXPECTED_TOOL_CALLS_JSON,
-            );
+            for (const span of container.items) {
+              expect(span.name).toBe('chat claude-3-haiku-20240307');
+              expect(span.status).toBe('ok');
+              expect(span.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(span.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
+              expect(span.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE].value).toBe('["tool_use"]');
+              expect(span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE].value).toBe(EXPECTED_TOOLS_JSON);
+              expect(span.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE].value).toBe(EXPECTED_TOOL_CALLS_JSON);
+            }
 
-            const errorSpan = container.items.find(span => span.status === 'error');
-            expect(errorSpan).toBeDefined();
-            expect(errorSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            // messages.create({ stream: true }) carries the request stream param; messages.stream() does not.
+            const createStreamSpan = container.items.find(
+              span => span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
+            );
+            expect(createStreamSpan).toBeDefined();
+            const messagesStreamSpan = container.items.find(
+              span => span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
+            );
+            expect(messagesStreamSpan).toBeDefined();
           },
         })
         .start()

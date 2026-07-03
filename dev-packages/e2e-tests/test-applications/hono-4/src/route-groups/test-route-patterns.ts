@@ -18,6 +18,10 @@ routePatterns.get('/async', async c => {
 // Dedicated route for query_string test to avoid transaction name collisions
 routePatterns.get('/query-test', c => c.text('query test response'));
 
+// Dedicated route for request data extraction tests to avoid transaction name collisions
+routePatterns.get('/request-data', c => c.text('request data response'));
+routePatterns.post('/request-data', c => c.text('request data response'));
+
 // .all() registration
 routePatterns.all('/all', c => c.text('all handler response'));
 

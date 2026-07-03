@@ -12,7 +12,7 @@ import {
  */
 export function svelteKitSpansIntegration(): Integration {
   return {
-    name: 'SvelteKitSpansEnhancement',
+    name: 'SvelteKitSpansEnhancement' as const,
     // Using preprocessEvent to ensure the processing happens before user-configured
     // event processors are executed
     preprocessEvent(event) {

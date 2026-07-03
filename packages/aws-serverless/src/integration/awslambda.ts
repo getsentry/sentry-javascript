@@ -29,7 +29,7 @@ const AWS_CLOUDWATCH_CONTEXT_FIELDS = ['log_group', 'log_stream', 'url'] as cons
 
 const _awsLambdaIntegration = ((options: AwsLambdaOptions = {}) => {
   return {
-    name: 'AwsLambda',
+    name: 'AwsLambda' as const,
     setupOnce() {
       instrumentAwsLambda(options);
     },

@@ -1,6 +1,7 @@
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { createCjsTests } from '../../../utils/runner/createEsmAndCjsTests';
+import { isOrchestrionEnabled } from '../../../utils';
 
 describe('lru-memoizer', () => {
   afterAll(() => {
@@ -33,9 +34,10 @@ describe('lru-memoizer', () => {
           .completed();
       });
     },
-    { failsOnEsm: true },
+    { failsOnEsm: !isOrchestrionEnabled() },
   );
 
+  // CJS-only: the parallel scenario is flaky in ESM (see #21729).
   createCjsTests(__dirname, 'scenario-parallel.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('keeps each span context across parallel memoized requests', async () => {
       // Each parallel request emits a transaction whose callback must have run in its own context.

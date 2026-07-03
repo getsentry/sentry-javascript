@@ -23,7 +23,7 @@ type GlobalObjectWithUtil = typeof GLOBAL_OBJ & {
   };
 };
 
-const INTEGRATION_NAME = 'Console';
+const INTEGRATION_NAME = 'Console' as const;
 
 /**
  * Captures calls to the `console` API as breadcrumbs in Sentry.
