@@ -785,6 +785,8 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          ['url.full']: 'https://example.com/',
+          ['url.path']: '/',
           testy: 'yes',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
