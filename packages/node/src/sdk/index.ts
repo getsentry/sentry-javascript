@@ -78,9 +78,14 @@ function _init(
   // integrations in place of their OTel equivalents so the two don't both
   // instrument the same library. Done here (rather than in
   // `getDefaultIntegrations`) so it also covers framework SDKs (e.g.
-  // `@sentry/nestjs`) that pass their own `defaultIntegrations` array, and it
-  // respects `defaultIntegrations: false` (not an array -> left untouched).
-  if (diagnosticsChannelInjection && Array.isArray(defaultIntegrations)) {
+  // `@sentry/nestjs`) that pass their own `defaultIntegrations` array.
+  //
+  // Only when there's a non-empty default set to swap:
+  // `defaultIntegrations: false` (not an array) and `[]` /
+  // `initWithoutDefaultIntegrations()` (explicitly no defaults) are left
+  // untouched, as appending channel integrations there would resurrect
+  // defaults the caller opted out of.
+  if (diagnosticsChannelInjection && Array.isArray(defaultIntegrations) && defaultIntegrations.length > 0) {
     const replaced = new Set(diagnosticsChannelInjection.replacedOtelIntegrationNames);
     defaultIntegrations = [
       ...defaultIntegrations.filter(integration => !replaced.has(integration.name)),

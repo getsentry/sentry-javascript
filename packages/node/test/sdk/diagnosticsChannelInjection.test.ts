@@ -1,7 +1,7 @@
 import type { Integration } from '@sentry/core';
 import { debug } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { init } from '../../src/sdk';
+import { init, initWithoutDefaultIntegrations } from '../../src/sdk';
 import { setDiagnosticsChannelInjectionLoader } from '../../src/sdk/diagnosticsChannelInjection';
 import { cleanupOtel, resetGlobals } from '../helpers/mockSdkInit';
 
@@ -83,5 +83,35 @@ describe('diagnostics-channel injection integration swap', () => {
     // Hooks installed and detection ran once.
     expect(register).toHaveBeenCalledTimes(1);
     expect(detect).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not add channel integrations when defaults are explicitly empty', () => {
+    const channelEmptyMysql = mockIntegration('EmptyMysql');
+    setDiagnosticsChannelInjectionLoader(() => ({
+      integrations: [channelEmptyMysql],
+      replacedOtelIntegrationNames: ['EmptyMysql'],
+      register: vi.fn(),
+      detect: vi.fn(),
+    }));
+
+    // `defaultIntegrations: []` opts out of all defaults; the swap must not
+    // resurrect them by appending the channel integrations.
+    init({ dsn: PUBLIC_DSN, tracesSampleRate: 1, skipOpenTelemetrySetup: true, defaultIntegrations: [] });
+
+    expect(channelEmptyMysql.setupOnce).not.toHaveBeenCalled();
+  });
+
+  it('does not add channel integrations to initWithoutDefaultIntegrations()', () => {
+    const channelNoDefaults = mockIntegration('NoDefaultsMysql');
+    setDiagnosticsChannelInjectionLoader(() => ({
+      integrations: [channelNoDefaults],
+      replacedOtelIntegrationNames: ['NoDefaultsMysql'],
+      register: vi.fn(),
+      detect: vi.fn(),
+    }));
+
+    initWithoutDefaultIntegrations({ dsn: PUBLIC_DSN, tracesSampleRate: 1, skipOpenTelemetrySetup: true });
+
+    expect(channelNoDefaults.setupOnce).not.toHaveBeenCalled();
   });
 });
