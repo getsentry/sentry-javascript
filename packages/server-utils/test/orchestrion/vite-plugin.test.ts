@@ -4,7 +4,7 @@ import { INSTRUMENTED_MODULE_NAMES } from '../../src/orchestrion/config';
 
 function getMarkerPlugin() {
   const plugins = sentryOrchestrionPlugin();
-  const marker = plugins.find((p) => p.name === 'sentry-orchestrion-marker');
+  const marker = plugins.find(p => p.name === 'sentry-orchestrion-marker');
   expect(marker).toBeDefined();
   return marker;
 }
@@ -12,8 +12,8 @@ function getMarkerPlugin() {
 describe('sentryOrchestrionPlugin', () => {
   it('returns the marker plugin and the code transformer', () => {
     const plugins = sentryOrchestrionPlugin();
-    expect(plugins.map((p) => p.name)).toContain('sentry-orchestrion-marker');
-    expect(plugins.map((p) => p.name)).toContain('code-transformer');
+    expect(plugins.map(p => p.name)).toContain('sentry-orchestrion-marker');
+    expect(plugins.map(p => p.name)).toContain('code-transformer');
   });
 
   it('force-bundles instrumented packages via ssr.noExternal', () => {
