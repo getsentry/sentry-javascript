@@ -2,14 +2,14 @@ import type { TracingChannel } from 'node:diagnostics_channel';
 import { GRAPHQL_DOCUMENT, GRAPHQL_OPERATION_NAME, GRAPHQL_OPERATION_TYPE } from '@sentry/conventions/attributes';
 import { WEB_SERVER_GRAPHQL_SPAN_OP } from '@sentry/conventions/op';
 import {
-  debug,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
 import { bindTracingChannelToSpan } from '../tracing-channel';
+import type { GraphqlDocumentNode } from './utils';
+import { getOperationSpanName, hasResultErrors, redactGraphqlDocument, renameRootSpanWithOperation } from './utils';
 
 // Channel names published by graphql >= 17.0.0 (see graphql-js `src/diagnostics.ts`).
 // Hardcoded so the subscriber does not have to import graphql — the channels just
@@ -34,27 +34,6 @@ const GRAPHQL_FIELD_NAME = 'graphql.field.name';
 const GRAPHQL_FIELD_PATH = 'graphql.field.path';
 const GRAPHQL_FIELD_TYPE = 'graphql.field.type';
 const GRAPHQL_PARENT_NAME = 'graphql.parent.name';
-
-// graphql-js token kinds whose values may carry user data (literal arguments). We
-// replace them in the serialized document so raw inline values can never reach
-// `graphql.document`. Mirrors the legacy OTel instrumentation's redaction set.
-const REDACTED_LITERAL_KINDS = new Set(['Int', 'Float', 'String', 'BlockString']);
-
-/** Minimal shape of a graphql-js lexer token, enough to locate literal spans for redaction. */
-interface GraphqlToken {
-  kind: string;
-  start: number;
-  end: number;
-  next?: GraphqlToken | null;
-}
-
-/** Minimal shape of a parsed graphql-js `DocumentNode`, enough to read its source and tokens. */
-interface GraphqlDocumentNode {
-  loc?: {
-    startToken?: GraphqlToken;
-    source?: { body?: string };
-  };
-}
 
 /** Context published on the sync-only `graphql:parse` channel. */
 export interface GraphqlParseData {
@@ -118,6 +97,12 @@ export interface GraphqlDiagnosticChannelsOptions {
    * (fields without a user-defined resolver), which are rarely interesting. Defaults to `true`.
    */
   ignoreTrivialResolveSpans?: boolean;
+
+  /**
+   * Rename the enclosing root span to include the operation name(s), e.g.
+   * `GET /graphql` -> `GET /graphql (query GetUser)`. Defaults to `true`.
+   */
+  useOperationNameForRootSpan?: boolean;
 }
 
 /**
@@ -155,11 +140,12 @@ export function subscribeGraphqlDiagnosticChannels(
 
   const ignoreResolveSpans = options.ignoreResolveSpans !== false;
   const ignoreTrivialResolveSpans = options.ignoreTrivialResolveSpans !== false;
+  const useOperationNameForRootSpan = options.useOperationNameForRootSpan !== false;
 
   setupParseChannel(tracingChannel);
   setupValidateChannel(tracingChannel);
-  setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_EXECUTE, SPAN_NAME_EXECUTE);
-  setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_SUBSCRIBE, SPAN_NAME_SUBSCRIBE);
+  setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_EXECUTE, SPAN_NAME_EXECUTE, useOperationNameForRootSpan);
+  setupOperationChannel(tracingChannel, GRAPHQL_DC_CHANNEL_SUBSCRIBE, SPAN_NAME_SUBSCRIBE, useOperationNameForRootSpan);
 
   if (!ignoreResolveSpans) {
     setupResolveChannel(tracingChannel, ignoreTrivialResolveSpans);
@@ -210,14 +196,15 @@ function setupOperationChannel(
   tracingChannel: GraphqlTracingChannelFactory,
   channelName: string,
   fallbackName: string,
+  useOperationNameForRootSpan: boolean,
 ): void {
   bindTracingChannelToSpan(
     tracingChannel<GraphqlOperationData>(channelName),
     data => {
       const document = redactGraphqlDocument(data.document);
 
-      return startInactiveSpan({
-        name: getOperationSpanName(data, fallbackName),
+      const span = startInactiveSpan({
+        name: getOperationSpanName(data.operationType, data.operationName, fallbackName),
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
@@ -226,6 +213,12 @@ function setupOperationChannel(
           [GRAPHQL_DOCUMENT]: document,
         },
       });
+
+      if (useOperationNameForRootSpan && data.operationType) {
+        renameRootSpanWithOperation(span, data.operationType, data.operationName);
+      }
+
+      return span;
     },
     {
       beforeSpanEnd: (span, data) => {
@@ -258,66 +251,4 @@ function setupResolveChannel(tracingChannel: GraphqlTracingChannelFactory, ignor
       },
     });
   });
-}
-
-/**
- * Span name follows the GraphQL semantic conventions: `<operation.type> <operation.name>` when both
- * are available, `<operation.type>` when only the type is, otherwise a static fallback.
- */
-function getOperationSpanName(data: GraphqlOperationData, fallbackName: string): string {
-  const { operationType, operationName } = data;
-  if (operationType && operationName) {
-    return `${operationType} ${operationName}`;
-  }
-  if (operationType) {
-    return operationType;
-  }
-
-  return fallbackName;
-}
-
-function hasResultErrors(result: unknown): boolean {
-  if (result && typeof result === 'object' && 'errors' in result) {
-    const errors = (result as { errors?: unknown }).errors;
-
-    return Array.isArray(errors) && errors.length > 0;
-  }
-
-  return false;
-}
-
-/**
- * Serialize a parsed document into `graphql.document` while redacting every literal argument value:
- * the original source text is preserved verbatim except that string/number literal spans are
- * replaced (`"foo"` -> `"*"`, `42` -> `*`). graphql does not sanitize its channel payload, so this
- * prevents raw inline values (potential PII) from leaving the process. Variable values are never
- * included. Returns `undefined` (rather than throwing) on anything it cannot serialize.
- */
-function redactGraphqlDocument(document: GraphqlDocumentNode | undefined): string | undefined {
-  const loc = document?.loc;
-  const body = loc?.source?.body;
-  if (typeof body !== 'string' || !loc?.startToken) {
-    return undefined;
-  }
-
-  try {
-    // Collect literal token spans, then splice them out back-to-front so earlier offsets stay valid.
-    const ranges: Array<{ start: number; end: number; kind: string }> = [];
-    for (let token: GraphqlToken | null | undefined = loc.startToken; token; token = token.next) {
-      if (REDACTED_LITERAL_KINDS.has(token.kind)) {
-        ranges.push({ start: token.start, end: token.end, kind: token.kind });
-      }
-    }
-
-    let out = body;
-    for (let i = ranges.length - 1; i >= 0; i--) {
-      const { start, end, kind } = ranges[i]!;
-      const replacement = kind === 'String' || kind === 'BlockString' ? '"*"' : '*';
-      out = out.slice(0, start) + replacement + out.slice(end);
-    }
-
-    return out;
-  } catch {
-    return undefined;
-  }
 }

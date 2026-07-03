@@ -21,7 +21,8 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
     });
 
   const EXPECTED_TRANSACTION = {
-    transaction: 'Test Transaction',
+    // Root span renamed with the (sorted) operation names. useOperationNameForRootSpan defaults to true.
+    transaction: 'Test Transaction (mutation Login, query, query Boom, query GetUser)',
     spans: expect.arrayContaining([
       expect.objectContaining({ description: 'graphql.parse', op: 'graphql' }),
       expect.objectContaining({ description: 'graphql.validate', op: 'graphql' }),
