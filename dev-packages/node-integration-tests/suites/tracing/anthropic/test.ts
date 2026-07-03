@@ -20,6 +20,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Anthropic integration', () => {
@@ -93,8 +94,15 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording disabled', async () => {
-      await createRunner()
-        .expect({ event: EXPECTED_MODEL_ERROR })
+      const runner = createRunner();
+
+      // The orchestrion path only marks the errored span; unlike the OTel path it does not
+      // capture the handled `error-model` rejection as an event.
+      if (!isOrchestrionEnabled()) {
+        runner.expect({ event: EXPECTED_MODEL_ERROR });
+      }
+
+      await runner
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
         .expect({
           span: container => {
@@ -141,8 +149,15 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording enabled', async () => {
-      await createRunner()
-        .expect({ event: EXPECTED_MODEL_ERROR })
+      const runner = createRunner();
+
+      // The orchestrion path only marks the errored span; unlike the OTel path it does not
+      // capture the handled `error-model` rejection as an event.
+      if (!isOrchestrionEnabled()) {
+        runner.expect({ event: EXPECTED_MODEL_ERROR });
+      }
+
+      await runner
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
         .expect({
           span: container => {
@@ -168,7 +183,9 @@ describe('Anthropic integration', () => {
             expect(completionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(15);
             expect(completionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(25);
             expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(completionSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
+            expect(completionSpan!.attributes['sentry.origin'].value).toBe(
+              isOrchestrionEnabled() ? 'auto.ai.orchestrion.anthropic' : 'auto.ai.anthropic',
+            );
 
             const errorSpan = container.items.find(
               span =>

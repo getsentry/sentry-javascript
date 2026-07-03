@@ -23,6 +23,9 @@ export const CHANNELS = {
   OPENAI_RESPONSES: 'orchestrion:openai:responses',
   OPENAI_EMBEDDINGS: 'orchestrion:openai:embeddings',
   OPENAI_CONVERSATIONS: 'orchestrion:openai:conversations',
+  ANTHROPIC_CHAT: 'orchestrion:@anthropic-ai/sdk:chat',
+  ANTHROPIC_MODELS: 'orchestrion:@anthropic-ai/sdk:models',
+  ANTHROPIC_MESSAGES_STREAM: 'orchestrion:@anthropic-ai/sdk:messages-stream',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

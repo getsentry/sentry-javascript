@@ -1,3 +1,4 @@
+import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
@@ -6,6 +7,7 @@ import { postgresChannelIntegration } from '../integrations/tracing-channel/post
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 export {
+  anthropicChannelIntegration,
   ioredisChannelIntegration,
   lruMemoizerChannelIntegration,
   mysqlChannelIntegration,
@@ -32,4 +34,5 @@ export const channelIntegrations = {
   mysqlIntegration: mysqlChannelIntegration,
   lruMemoizerIntegration: lruMemoizerChannelIntegration,
   openaiIntegration: openaiChannelIntegration,
+  anthropicIntegration: anthropicChannelIntegration,
 } as const;
