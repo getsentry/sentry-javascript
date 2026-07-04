@@ -287,16 +287,4 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       expect(json.data['server.port']).toBeUndefined();
     });
   });
-
-  describe('idempotency', () => {
-    it('does not throw or double-subscribe on a second call', async () => {
-      subscribeMysql2DiagnosticChannels(factory);
-
-      const { span } = await traceOperation(MYSQL2_DC_CHANNEL_QUERY, { query: 'SELECT 1' }, { result: [] });
-
-      // a single subscription means a single span, ended exactly once
-      expect(span).toBeDefined();
-      expect(spanToJSON(span!).timestamp).toBeDefined();
-    });
-  });
 });

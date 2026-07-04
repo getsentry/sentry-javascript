@@ -76,8 +76,6 @@ export interface MySQL2ConnectData {
  */
 export type MySQL2TracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
 
-let subscribed = false;
-
 /**
  * Subscribe Sentry span handlers to mysql2's diagnostics-channel events
  * (`mysql2:query`, `:execute`, `:connect`, `:pool:connect`), published by
@@ -86,19 +84,12 @@ let subscribed = false;
  * On older mysql2 versions the channels are never published to, so the
  * subscribers are inert — there is no double-instrumentation against the
  * vendored OTel patcher, which is gated to `< 3.20.0`.
- *
- * Idempotent: subsequent calls are a no-op.
  */
 export function subscribeMysql2DiagnosticChannels(tracingChannel: MySQL2TracingChannelFactory): void {
-  if (subscribed) {
-    return;
-  }
-
   setupQueryChannel(tracingChannel, MYSQL2_DC_CHANNEL_QUERY);
   setupQueryChannel(tracingChannel, MYSQL2_DC_CHANNEL_EXECUTE);
   setupConnectChannel(tracingChannel, MYSQL2_DC_CHANNEL_CONNECT, 'mysql2.connect');
   setupConnectChannel(tracingChannel, MYSQL2_DC_CHANNEL_POOL_CONNECT, 'mysql2.pool.connect');
-  subscribed = true;
 }
 
 function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelName: string): void {
