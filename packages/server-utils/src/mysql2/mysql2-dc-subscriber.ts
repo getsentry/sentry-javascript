@@ -9,12 +9,10 @@ import {
 } from '@sentry/conventions/attributes';
 import {
   _INTERNAL_sanitizeSqlQuery,
-  debug,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
 // Channel names published by mysql2 >= 3.20.0 (see mysql2 `lib/tracing.js`).
@@ -94,66 +92,50 @@ export function subscribeMysql2DiagnosticChannels(tracingChannel: MySQL2TracingC
   if (subscribed) {
     return;
   }
-  subscribed = true;
 
-  try {
-    setupQueryChannel(tracingChannel, MYSQL2_DC_CHANNEL_QUERY);
-    setupQueryChannel(tracingChannel, MYSQL2_DC_CHANNEL_EXECUTE);
-    setupConnectChannel(tracingChannel, MYSQL2_DC_CHANNEL_CONNECT, 'mysql2.connect');
-    setupConnectChannel(tracingChannel, MYSQL2_DC_CHANNEL_POOL_CONNECT, 'mysql2.pool.connect');
-  } catch {
-    // The factory relies on `node:diagnostics_channel`, which isn't always
-    // available. Fail closed; the SDK simply won't emit mysql2 spans here.
-    DEBUG_BUILD && debug.log('mysql2 node:diagnostics_channel subscription failed.');
-  }
+  setupQueryChannel(tracingChannel, MYSQL2_DC_CHANNEL_QUERY);
+  setupQueryChannel(tracingChannel, MYSQL2_DC_CHANNEL_EXECUTE);
+  setupConnectChannel(tracingChannel, MYSQL2_DC_CHANNEL_CONNECT, 'mysql2.connect');
+  setupConnectChannel(tracingChannel, MYSQL2_DC_CHANNEL_POOL_CONNECT, 'mysql2.pool.connect');
+  subscribed = true;
 }
 
 function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelName: string): void {
-  bindTracingChannelToSpan(
-    tracingChannel<MySQL2QueryData>(channelName),
-    data => {
-      // mysql2 does not sanitize its channel payload, so the statement may carry
-      // raw user values (on the `query` channel they are inlined). Strip every
-      // literal before it leaves the process; `values` is never attached.
-      const queryText = data.query ? _INTERNAL_sanitizeSqlQuery(data.query) : undefined;
-      const operation = queryText?.match(SQL_OPERATION_RE)?.[1]?.toUpperCase();
+  bindTracingChannelToSpan(tracingChannel<MySQL2QueryData>(channelName), data => {
+    // mysql2 does not sanitize its channel payload, so the statement may carry
+    // raw user values (on the `query` channel they are inlined). Strip every
+    // literal before it leaves the process; `values` is never attached.
+    const queryText = data.query ? _INTERNAL_sanitizeSqlQuery(data.query) : undefined;
+    const operation = queryText?.match(SQL_OPERATION_RE)?.[1]?.toUpperCase();
 
-      return startInactiveSpan({
-        name: queryText || 'mysql2.query',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
-          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
-          [DB_QUERY_TEXT]: queryText,
-          [DB_OPERATION_NAME]: operation,
-          [DB_NAMESPACE]: data.database || undefined,
-          [SERVER_ADDRESS]: data.serverAddress,
-          [SERVER_PORT]: data.serverPort,
-        },
-      });
-    },
-    // Query failures are surfaced to (and usually handled by) the caller; only annotate the
-    // span so we don't emit a duplicate error event for every failed query.
-    { captureError: false },
-  );
+    return startInactiveSpan({
+      name: queryText || 'mysql2.query',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
+        [DB_QUERY_TEXT]: queryText,
+        [DB_OPERATION_NAME]: operation,
+        [DB_NAMESPACE]: data.database || undefined,
+        [SERVER_ADDRESS]: data.serverAddress,
+        [SERVER_PORT]: data.serverPort,
+      },
+    });
+  });
 }
 
 function setupConnectChannel(tracingChannel: MySQL2TracingChannelFactory, channelName: string, spanName: string): void {
-  bindTracingChannelToSpan(
-    tracingChannel<MySQL2ConnectData>(channelName),
-    data => {
-      return startInactiveSpan({
-        name: spanName,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
-          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
-          [DB_NAMESPACE]: data.database || undefined,
-          [SERVER_ADDRESS]: data.serverAddress,
-          [SERVER_PORT]: data.serverPort,
-        },
-      });
-    },
-    { captureError: false },
-  );
+  bindTracingChannelToSpan(tracingChannel<MySQL2ConnectData>(channelName), data => {
+    return startInactiveSpan({
+      name: spanName,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
+        [DB_NAMESPACE]: data.database || undefined,
+        [SERVER_ADDRESS]: data.serverAddress,
+        [SERVER_PORT]: data.serverPort,
+      },
+    });
+  });
 }
