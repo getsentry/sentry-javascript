@@ -14,9 +14,9 @@ const resolveData = {
   isDefaultResolver: false,
 };
 
-// `subscribeGraphqlDiagnosticChannels` is process-global and idempotent, so each option configuration
-// is exercised in its own file — Vitest isolates files in separate processes. Here: resolve spans on,
-// trivial (default-resolver) spans still ignored (the `ignoreTrivialResolveSpans` default).
+// `subscribeGraphqlDiagnosticChannels` binds handlers to process-global channels with no teardown, so
+// each option configuration is exercised in its own file — Vitest isolates files in separate processes.
+// Here: resolve spans on, trivial (default-resolver) spans still ignored (the `ignoreTrivialResolveSpans` default).
 describe('subscribeGraphqlDiagnosticChannels (resolve spans enabled)', () => {
   beforeAll(() => {
     installTestAsyncContextStrategy();

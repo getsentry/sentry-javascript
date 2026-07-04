@@ -114,8 +114,6 @@ export interface GraphqlDiagnosticChannelsOptions {
  */
 export type GraphqlTracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
 
-let subscribed = false;
-
 /**
  * Subscribe Sentry span handlers to graphql's diagnostics-channel events
  * (`graphql:parse`, `:validate`, `:execute`, `:subscribe`), published by graphql >= 17.0.0.
@@ -127,17 +125,11 @@ let subscribed = false;
  * resolver spans are per-field and can be extremely high-volume, so they are off by default (matching
  * the legacy OTel path). When enabled, `ignoreTrivialResolveSpans` (default `true`) additionally skips
  * graphql's default property resolver.
- *
- * Idempotent: subsequent calls are a no-op.
  */
 export function subscribeGraphqlDiagnosticChannels(
   tracingChannel: GraphqlTracingChannelFactory,
   options: GraphqlDiagnosticChannelsOptions = {},
 ): void {
-  if (subscribed) {
-    return;
-  }
-
   const ignoreResolveSpans = options.ignoreResolveSpans !== false;
   const ignoreTrivialResolveSpans = options.ignoreTrivialResolveSpans !== false;
   const useOperationNameForRootSpan = options.useOperationNameForRootSpan !== false;
@@ -150,8 +142,6 @@ export function subscribeGraphqlDiagnosticChannels(
   if (!ignoreResolveSpans) {
     setupResolveChannel(tracingChannel, ignoreTrivialResolveSpans);
   }
-
-  subscribed = true;
 }
 
 function setupParseChannel(tracingChannel: GraphqlTracingChannelFactory): void {
@@ -208,7 +198,7 @@ function setupOperationChannel(
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
-          [GRAPHQL_OPERATION_TYPE]: data.operationType ?? undefined,
+          [GRAPHQL_OPERATION_TYPE]: data.operationType,
           [GRAPHQL_OPERATION_NAME]: data.operationName || undefined,
           [GRAPHQL_DOCUMENT]: document,
         },

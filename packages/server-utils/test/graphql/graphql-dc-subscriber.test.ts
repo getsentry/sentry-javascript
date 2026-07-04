@@ -201,21 +201,4 @@ describe('subscribeGraphqlDiagnosticChannels', () => {
       expect(span).toBeUndefined();
     });
   });
-
-  describe('idempotency', () => {
-    it('does not re-subscribe on a second call', async () => {
-      // A second subscribe must be a no-op: a single execute should still bind exactly one span.
-      subscribeGraphqlDiagnosticChannels(factory);
-
-      const document = makeDocument('{ hello }', []);
-      const { span } = await traceOperation(
-        GRAPHQL_DC_CHANNEL_EXECUTE,
-        { document, operationType: 'query' },
-        { result: { data: {} } },
-      );
-
-      expect(span).toBeDefined();
-      expect(spanToJSON(span!).op).toBe('graphql');
-    });
-  });
 });
