@@ -97,30 +97,39 @@ function installTestAsyncContextStrategy(): void {
   });
 }
 
-/** Drives a channel's `tracePromise` and captures the span bound by the subscriber. */
+/**
+ * Drives a channel's `tracePromise` inside an enclosing span and captures the span bound by the
+ * subscriber. The subscriber only creates a span when there is an enclosing active span, so the
+ * helper always establishes one and returns its id for parenting assertions.
+ */
 async function traceOperation(
   channelName: string,
   data: Record<string, unknown>,
   outcome: { result?: unknown; error?: Error },
-): Promise<{ span: Span | undefined; childParentSpanId: string | undefined }> {
+): Promise<{ span: Span | undefined; childParentSpanId: string | undefined; enclosingSpanId: string | undefined }> {
   const channel = tracingChannel(channelName);
   let span: Span | undefined;
   let childParentSpanId: string | undefined;
+  let enclosingSpanId: string | undefined;
 
-  const run = channel.tracePromise(async () => {
-    span = getActiveSpan();
-    startSpan({ name: 'child' }, child => {
-      childParentSpanId = spanToJSON(child).parent_span_id;
-    });
-    if (outcome.error) {
-      throw outcome.error;
-    }
-    return outcome.result;
-  }, data);
+  await startSpan({ name: 'enclosing' }, async enclosing => {
+    enclosingSpanId = enclosing.spanContext().spanId;
 
-  await run.catch(() => undefined);
+    const run = channel.tracePromise(async () => {
+      span = getActiveSpan();
+      startSpan({ name: 'child' }, child => {
+        childParentSpanId = spanToJSON(child).parent_span_id;
+      });
+      if (outcome.error) {
+        throw outcome.error;
+      }
+      return outcome.result;
+    }, data);
 
-  return { span, childParentSpanId };
+    await run.catch(() => undefined);
+  });
+
+  return { span, childParentSpanId, enclosingSpanId };
 }
 
 const factory = tracingChannel as MySQL2TracingChannelFactory;
@@ -151,6 +160,20 @@ describe('subscribeMysql2DiagnosticChannels', () => {
     getCurrentScope().setClient(undefined);
     getGlobalScope().clear();
     vi.clearAllMocks();
+  });
+
+  it('does not create a span when there is no enclosing active span', async () => {
+    const channel = tracingChannel(MYSQL2_DC_CHANNEL_QUERY);
+    let span: Span | undefined;
+
+    await channel.tracePromise(
+      async () => {
+        span = getActiveSpan();
+      },
+      { query: 'SELECT 1' },
+    );
+
+    expect(span).toBeUndefined();
   });
 
   describe('query channel', () => {
@@ -219,16 +242,14 @@ describe('subscribeMysql2DiagnosticChannels', () => {
     });
 
     it('parents the mysql2 span to the surrounding span and parents children to it', async () => {
-      let outerSpanId: string | undefined;
-      let result: Awaited<ReturnType<typeof traceOperation>> | undefined;
+      const { span, childParentSpanId, enclosingSpanId } = await traceOperation(
+        MYSQL2_DC_CHANNEL_QUERY,
+        { query: 'SELECT 1' },
+        { result: [] },
+      );
 
-      await startSpan({ name: 'outer' }, async outer => {
-        outerSpanId = outer.spanContext().spanId;
-        result = await traceOperation(MYSQL2_DC_CHANNEL_QUERY, { query: 'SELECT 1' }, { result: [] });
-      });
-
-      expect(spanToJSON(result!.span!).parent_span_id).toBe(outerSpanId);
-      expect(result!.childParentSpanId).toBe(result!.span!.spanContext().spanId);
+      expect(spanToJSON(span!).parent_span_id).toBe(enclosingSpanId);
+      expect(childParentSpanId).toBe(span!.spanContext().spanId);
     });
   });
 
