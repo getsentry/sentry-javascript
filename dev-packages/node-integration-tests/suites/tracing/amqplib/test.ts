@@ -17,6 +17,11 @@ const expectedProducerSpan = (routingKey: string) =>
     data: expect.objectContaining({
       'messaging.system': 'rabbitmq',
       'messaging.rabbitmq.routing_key': routingKey,
+      'messaging.url': 'amqp://sentry:***@localhost:5672/',
+      'messaging.protocol': 'AMQP',
+      'messaging.protocol_version': '0.9.1',
+      'net.peer.name': 'localhost',
+      'net.peer.port': 5672,
       'otel.kind': 'PRODUCER',
       'sentry.op': 'message',
       'sentry.origin': PUBLISHER_ORIGIN,
