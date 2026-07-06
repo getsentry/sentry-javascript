@@ -1,14 +1,13 @@
 import type { RequestOptions } from 'node:http';
 import type { HttpIncomingMessage } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { HttpServerIntegrationOptions } from './httpServerIntegration';
 import { httpServerIntegration } from './httpServerIntegration';
 import type { HttpServerSpansIntegrationOptions } from './httpServerSpansIntegration';
 import { httpServerSpansIntegration } from './httpServerSpansIntegration';
 import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
-import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
+import { instrumentHttpOutgoingRequests } from './SentryHttpInstrumentation';
 
 const INTEGRATION_NAME = 'Http' as const;
 
@@ -125,12 +124,9 @@ interface HttpOptions {
   disableIncomingRequestSpans?: boolean;
 }
 
-export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
-  `${INTEGRATION_NAME}.sentry`,
-  options => {
-    return new SentryHttpInstrumentation(options);
-  },
-);
+export const instrumentSentryHttp = Object.assign(instrumentHttpOutgoingRequests, {
+  id: `${INTEGRATION_NAME}.sentry`,
+});
 
 /**
  * The http integration instruments Node's internal http and https modules.
@@ -175,7 +171,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     setupOnce() {
       server.setupOnce();
 
-      instrumentSentryHttp(httpInstrumentationOptions);
+      instrumentHttpOutgoingRequests(httpInstrumentationOptions);
     },
 
     processEvent(event) {
