@@ -1,4 +1,5 @@
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
+import { graphqlChannelIntegration } from '../integrations/tracing-channel/graphql';
 import { hapiChannelIntegration } from '../integrations/tracing-channel/hapi';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
@@ -10,6 +11,7 @@ import { vercelAiChannelIntegration } from '../integrations/tracing-channel/verc
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 export {
   anthropicChannelIntegration,
+  graphqlChannelIntegration,
   hapiChannelIntegration,
   ioredisChannelIntegration,
   lruMemoizerChannelIntegration,
@@ -19,6 +21,11 @@ export {
   vercelAiChannelIntegration,
 };
 export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/tracing-channel/ioredis';
+export type { GraphqlChannelIntegrationOptions } from '../integrations/tracing-channel/graphql';
+
+// The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s
+// vendored OTel graphql instrumentation (re-exported from here so the two can't drift).
+export type * from '../integrations/tracing-channel/graphql/graphql-types';
 
 /**
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
@@ -41,4 +48,5 @@ export const channelIntegrations = {
   anthropicIntegration: anthropicChannelIntegration,
   vercelAiIntegration: vercelAiChannelIntegration,
   hapiIntegration: hapiChannelIntegration,
+  graphqlIntegration: graphqlChannelIntegration,
 } as const;

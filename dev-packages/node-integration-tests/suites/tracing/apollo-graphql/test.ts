@@ -1,10 +1,15 @@
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Server start transaction (Apollo Server v5 no longer runs introspection query on start)
 const EXPECTED_START_SERVER_TRANSACTION = {
   transaction: 'Test Server Start',
 };
+
+// These suites run twice on CI — once on OTel, once with orchestrion auto-injected. graphql is a
+// drop-in replacement: only the span origin differs between the two paths, so branch just that.
+const ORIGIN = isOrchestrionEnabled() ? 'auto.graphql.orchestrion.graphql' : 'auto.graphql.otel.graphql';
 
 describe('GraphQL/Apollo Tests', () => {
   afterAll(() => {
@@ -19,11 +24,11 @@ describe('GraphQL/Apollo Tests', () => {
           data: {
             'graphql.operation.type': 'query',
             'graphql.source': '{hello}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'sentry.origin': ORIGIN,
           },
           description: 'query',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: ORIGIN,
         }),
       ]),
     };
@@ -55,11 +60,11 @@ describe('GraphQL/Apollo Tests', () => {
             'graphql.operation.name': 'Mutation',
             'graphql.operation.type': 'mutation',
             'graphql.source': 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'sentry.origin': ORIGIN,
           },
           description: 'mutation Mutation',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: ORIGIN,
         }),
       ]),
     };
@@ -89,12 +94,12 @@ describe('GraphQL/Apollo Tests', () => {
         expect.objectContaining({
           description: 'mutation',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: ORIGIN,
           data: expect.objectContaining({
             'graphql.operation.type': 'mutation',
             // The inline email literal must be redacted to `"*"`, so the raw value can never reach `graphql.source`.
             'graphql.source': expect.stringContaining('login(email: "*")'),
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'sentry.origin': ORIGIN,
           }),
         }),
       ]),
@@ -127,11 +132,11 @@ describe('GraphQL/Apollo Tests', () => {
             'graphql.operation.name': 'Mutation',
             'graphql.operation.type': 'mutation',
             'graphql.source': 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'sentry.origin': ORIGIN,
           },
           description: 'mutation Mutation',
           status: 'internal_error',
-          origin: 'auto.graphql.otel.graphql',
+          origin: ORIGIN,
         }),
       ]),
     };

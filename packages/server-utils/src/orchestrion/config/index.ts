@@ -7,6 +7,7 @@ import { pgConfig } from './pg';
 import { anthropicAiConfig } from './anthropic-ai';
 import { vercelAiConfig } from './vercel-ai';
 import { hapiConfig } from './hapi';
+import { graphqlConfig } from './graphql';
 
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...mysqlConfig,
@@ -17,6 +18,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...anthropicAiConfig,
   ...vercelAiConfig,
   ...hapiConfig,
+  ...graphqlConfig,
 ];
 
 /**
