@@ -205,9 +205,15 @@ export const prismaIntegration = defineIntegration((options?: PrismaOptions) => 
         const spanJSON = spanToJSON(span);
         if (spanJSON.description?.startsWith('prisma:')) {
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.prisma');
-          // Register the span so v5 engine spans (dispatched later, detached) can resolve it as a
-          // parent by the id Prisma reported it under (see `createResolvedEngineSpans`).
-          registerPrismaSpan(span.spanContext().spanId, span);
+
+          // Register client spans so a v5 engine span (dispatched later, detached) can resolve one as a
+          // parent by the Sentry span id Prisma reported via `getTraceParent` (see
+          // `createResolvedEngineSpans`). Only client spans are referenced this way; engine spans
+          // reference their parent by the engine's own id and are registered in `createResolvedEngineSpans`,
+          // so registering them here too would just leave entries that are never looked up.
+          if (spanJSON.description.startsWith('prisma:client:')) {
+            registerPrismaSpan(span.spanContext().spanId, span);
+          }
         }
 
         // Make sure we use the query text as the span name, for ex. SELECT * FROM "User" WHERE "id" = $1.
