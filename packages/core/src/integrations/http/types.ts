@@ -102,12 +102,22 @@ export interface HttpIncomingMessage {
   removeListener(event: string | symbol, listener: (...args: unknown[]) => void): this;
 }
 
-/** Minimal interface for a Node.js http / https module export */
+/** Minimal interface for the Node.js `http.ClientRequest` constructor. */
+export interface HttpClientRequestConstructor {
+  prototype: {
+    // Called once per request while it is being set up (before headers are
+    // flushed). `https` requests go through `http`'s `ClientRequest`, so this
+    // is the shared choke point for all outgoing requests.
+    //oxlint-disable-next-line typescript/no-explicit-any
+    onSocket?: (this: HttpClientRequest, ...args: any[]) => unknown;
+  };
+}
+
+/** Minimal interface for a Node.js http module export */
 export interface HttpExport {
-  //oxlint-disable typescript/no-explicit-any
-  request: (...args: any[]) => HttpClientRequest;
-  //oxlint-disable typescript/no-explicit-any
-  get: (...args: any[]) => HttpClientRequest;
+  // Only `http` exports this; `https` reuses `http`'s `ClientRequest`, so this
+  // is `undefined` on the `https` module.
+  ClientRequest?: HttpClientRequestConstructor;
   [key: string]: unknown;
 }
 

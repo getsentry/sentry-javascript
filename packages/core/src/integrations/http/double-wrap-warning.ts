@@ -14,7 +14,7 @@ let didDoubleWrapWarning = false;
 export const doubleWrapWarning = DEBUG_BUILD
   ? (http: HttpModuleExport) => {
       if (!didDoubleWrapWarning) {
-        if (isOtelWrapped(http.request) || isOtelWrapped(http.get)) {
+        if (isOtelWrapped(http.request as Function) || isOtelWrapped(http.get as Function)) {
           didDoubleWrapWarning = true;
           debug.warn(warning);
         }

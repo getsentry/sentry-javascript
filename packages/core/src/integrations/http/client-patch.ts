@@ -37,72 +37,68 @@ import type { HttpExport, HttpModuleExport, HttpInstrumentationOptions, HttpClie
 import { getOriginalFunction, wrapMethod } from '../../utils/object';
 import { getHttpClientSubscriptions } from './client-subscriptions';
 
-function patchHttpRequest(httpModule: HttpExport, options: HttpInstrumentationOptions): void {
-  // avoid double-wrap
-  if (!getOriginalFunction(httpModule.request)) {
-    const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = getHttpClientSubscriptions({
-      ...options,
-      http: httpModule,
-    });
+/**
+ * Patch `ClientRequest.prototype.onSocket` so that every outgoing request is
+ * routed through our instrumentation.
+ *
+ * We deliberately patch the shared `ClientRequest` prototype rather than the
+ * module's `request`/`get` exports. Every outgoing request — no matter how the
+ * module was imported (`require('node:http')`, `import http from 'node:http'`,
+ * or `import * as http from 'node:http'`) — ultimately constructs a
+ * `ClientRequest` and invokes `onSocket` on this one prototype. ES module
+ * namespace bindings (`import * as http` / `import { request }`) are immutable
+ * snapshots that cannot be monkey-patched at all, but the prototype is a
+ * shared, mutable object, so patching it reaches those consumers too.
+ *
+ * `onSocket` runs synchronously while the request is being set up: before the
+ * headers are flushed (so we can still inject trace-propagation headers) and in
+ * the caller's async context (so spans are parented correctly). It is invoked
+ * exactly once per request, including for reused keep-alive sockets and
+ * `agent: false` requests.
+ *
+ * `https` requests reuse `http`'s `ClientRequest`, so patching `http` covers
+ * both; the `https` module does not expose its own `ClientRequest` and is a
+ * no-op here.
+ */
+function patchClientRequest(httpModule: HttpExport, options: HttpInstrumentationOptions): void {
+  const proto = httpModule.ClientRequest?.prototype;
 
-    const originalRequest = httpModule.request;
-    wrapMethod(httpModule, 'request', function patchedRequest(this: HttpExport, ...args: unknown[]) {
-      const request = originalRequest.apply(this, args) as HttpClientRequest;
-      onHttpClientRequestCreated({ request }, HTTP_ON_CLIENT_REQUEST);
-      return request;
-    });
+  // Nothing to patch if the module doesn't expose `ClientRequest` (e.g.
+  // `https`), or if `onSocket` was already wrapped. The latter also covers the
+  // case where `https`'s `ClientRequest` inherits `http`'s already-patched
+  // `onSocket`, avoiding double instrumentation.
+  if (typeof proto?.onSocket !== 'function' || getOriginalFunction(proto.onSocket)) {
+    return;
   }
-}
 
-// This simply ensures that http.get calls http.request, which we patched.
-// Call it from the object each time, to ensure that any subsequent patches
-// or other mutations are also respected.
-function patchHttpGet(httpModule: HttpExport) {
-  if (!getOriginalFunction(httpModule.get)) {
-    // match node's normalization to exactly 3 arguments.
-    wrapMethod(httpModule, 'get', function patchedGet(this: HttpExport, input: unknown, options: unknown, cb: unknown) {
-      // http.get is like http.request but automatically calls .end()
-      const request = httpModule.request.call(this, input, options, cb) as HttpClientRequest;
-      request.end();
-      return request;
-    });
-  }
+  const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = getHttpClientSubscriptions({
+    ...options,
+    http: httpModule,
+  });
+
+  const originalOnSocket = proto.onSocket;
+  wrapMethod(proto, 'onSocket', function patchedOnSocket(this: HttpClientRequest, ...args: unknown[]) {
+    // Never let instrumentation errors break the underlying request.
+    try {
+      onHttpClientRequestCreated({ request: this }, HTTP_ON_CLIENT_REQUEST);
+    } catch {
+      // ignore
+    }
+    return originalOnSocket.apply(this, args);
+  });
 }
 
 function patchModule(httpModuleExport: HttpModuleExport, options: HttpInstrumentationOptions = {}): HttpModuleExport {
-  const httpDefault = getDefaultExport(httpModuleExport);
-  const httpModule = httpModuleExport as HttpExport;
-  // if we have a default, patch that, and copy to the import container
-  if (httpDefault !== httpModuleExport) {
-    patchModule(httpDefault, options);
-    // Mirror the patched methods onto the outer container so that consumers
-    // reading them off `httpModuleExport` (rather than its default export) see
-    // the wrapped versions too. Copy with defineProperty because these might be
-    // configured oddly. Real ES module namespace objects (e.g. `import * as
-    // http`) expose non-configurable, read-only exports that can neither be
-    // redefined nor assigned, so skip those — patching the default export is
-    // enough for `require()`/default-import consumers, which is the common case.
-    for (const method of ['get', 'request']) {
-      const desc = Object.getOwnPropertyDescriptor(httpDefault, method);
-      // Only redefine if the *target* property is missing or configurable.
-      // e.g. if `httpModule` is an ESM module namespace object, like `import * as http`,
-      // its exports are non-configurable and read-only, so we skip this —
-      // you cannot redefine or assign non-configurable properties.
-      const existing = Object.getOwnPropertyDescriptor(httpModule, method);
-      if (desc && (!existing || existing.configurable)) {
-        Object.defineProperty(httpModule, method, desc);
-      }
-    }
-    return httpModule;
-  }
-  patchHttpRequest(httpModule, options);
-  patchHttpGet(httpModule);
+  // Resolve to the underlying module in case we were handed an interop
+  // container (e.g. `{ default: http }`). Either the container or its default
+  // export carries the same `ClientRequest` class.
+  const httpModule = getDefaultExport(httpModuleExport);
+  patchClientRequest(httpModule, options);
   return httpModuleExport;
 }
 
 /**
- * Patch an `node:http` or `node:https` module-shaped export so that every
- * outgoing request is tracked by Sentry.
+ * Patch `node:http`. This also covers `node:https` as it reuses the same `ClientRequest` class.
  *
  * @example
  * ```javascript

@@ -17,7 +17,6 @@ import { HTTP_ON_CLIENT_REQUEST } from '@sentry/core';
 import { NODE_VERSION } from '../../nodeVersion';
 import { errorMonitor } from 'node:events';
 import * as http from 'node:http';
-import * as https from 'node:https';
 
 const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL =
   (NODE_VERSION.major === 22 && NODE_VERSION.minor >= 12) ||
@@ -144,10 +143,8 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig &
     sessionFlushingDelayMS?: number;
   };
 
-let _isInstrumented = false;
-
 /**
- * This instruments the http/https modules for outgoing requests.
+ * This instruments the http modules for outgoing requests.
  * It uses the diagnostics channel if available, otherwise it falls back to monkey-patching.
  *
  * The instrumentation will start spans, create breadcrumbs, and propagate trace headers in outgoing requests (depending on the settings).
@@ -202,7 +199,6 @@ export function instrumentHttpOutgoingRequests(
     errorMonitor,
     // Pass these in to detect OTel double-wrapping if we're enabling spans
     http,
-    https,
   } satisfies HttpInstrumentationOptions;
 
   if (FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL) {
@@ -226,14 +222,14 @@ function instrumentHttpOutgoingRequestsViaChannel(options: HttpInstrumentationOp
 }
 
 /**
- * Instrument outgoing HTTP(S) requests by old-school monkey-patching the `http` and `https` modules.
+ * Instrument outgoing HTTP(S) requests by old-school monkey-patching the `http` module.
  * This has no support to update options after instrumentation was applied, which is a tradeoff we accept.
  * This is the fallback for runtimes that do not fully support the `node:http` client diagnostics channel
  * (Node < 22.12).
  */
 function instrumentHttpOutgoingRequestsViaMonkeyPatching(options: HttpInstrumentationOptions): void {
+  // Patching http also patches https, as this uses the same underlying object
   patchHttpModuleClient(http, options);
-  patchHttpModuleClient(https, options);
 }
 
 /**

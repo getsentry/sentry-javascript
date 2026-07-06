@@ -12,34 +12,19 @@ vi.mock('../../../../src/integrations/http/client-subscriptions', () => ({
   })),
 }));
 
-function makeMockClientRequest(): HttpClientRequest {
-  return {
-    method: 'GET',
-    path: '/api/test',
-    host: 'example.com',
-    protocol: 'http:',
-    port: 80,
-    end: vi.fn(),
-    getHeader: vi.fn(() => undefined),
-    getHeaders: vi.fn(() => ({})),
-    setHeader: vi.fn(),
-    removeHeader: vi.fn(),
-    on: vi.fn(),
-    once: vi.fn(),
-    prependListener: vi.fn(),
-    listenerCount: vi.fn(() => 0),
-    removeListener: vi.fn(),
-  } as unknown as HttpClientRequest;
-}
-
+/**
+ * Build a mock that mirrors the shape we patch: a module exposing a
+ * `ClientRequest` constructor with an `onSocket` method on its prototype.
+ */
 function makeMockHttpModule(): HttpExport & {
-  request: ReturnType<typeof vi.fn>;
-  get: ReturnType<typeof vi.fn>;
+  ClientRequest: { prototype: { onSocket: ReturnType<typeof vi.fn> } };
 } {
-  const mockClientReq = makeMockClientRequest();
-  const request = vi.fn(() => mockClientReq);
-  const get = vi.fn(() => mockClientReq);
-  return { request, get };
+  const onSocket = vi.fn();
+  return {
+    request: vi.fn(),
+    get: vi.fn(),
+    ClientRequest: { prototype: { onSocket } },
+  } as unknown as HttpExport & { ClientRequest: { prototype: { onSocket: ReturnType<typeof vi.fn> } } };
 }
 
 describe('patchHttpModuleClient', () => {
@@ -47,91 +32,85 @@ describe('patchHttpModuleClient', () => {
     vi.clearAllMocks();
   });
 
-  it('replaces request with a wrapped version', () => {
+  it('replaces ClientRequest.prototype.onSocket with a wrapped version', () => {
     const httpModule = makeMockHttpModule();
-    const originalRequest = httpModule.request;
+    const originalOnSocket = httpModule.ClientRequest.prototype.onSocket;
 
     patchHttpModuleClient(httpModule);
 
-    expect(httpModule.request).not.toBe(originalRequest);
+    expect(httpModule.ClientRequest.prototype.onSocket).not.toBe(originalOnSocket);
   });
 
   it('preserves the original function via __sentry_original__', () => {
     const httpModule = makeMockHttpModule();
-    const originalRequest = httpModule.request;
+    const originalOnSocket = httpModule.ClientRequest.prototype.onSocket;
 
     patchHttpModuleClient(httpModule);
 
-    expect(getOriginalFunction(httpModule.request)).toBe(originalRequest);
+    expect(getOriginalFunction(httpModule.ClientRequest.prototype.onSocket)).toBe(originalOnSocket);
   });
 
-  it('still calls the original request when the patched one is invoked', () => {
+  it('still calls the original onSocket when the patched one is invoked', () => {
     const httpModule = makeMockHttpModule();
-    const originalRequest = httpModule.request;
+    const originalOnSocket = httpModule.ClientRequest.prototype.onSocket;
 
     patchHttpModuleClient(httpModule);
-    httpModule.request('http://example.com/');
+    const request = {} as HttpClientRequest;
+    const socket = {};
+    httpModule.ClientRequest.prototype.onSocket.call(request, socket);
 
-    expect(originalRequest).toHaveBeenCalledOnce();
+    expect(originalOnSocket).toHaveBeenCalledOnce();
+    expect(originalOnSocket).toHaveBeenCalledWith(socket);
   });
 
-  it('returns the result of the original request', () => {
-    const httpModule = makeMockHttpModule();
-
-    patchHttpModuleClient(httpModule);
-    const result = httpModule.request('http://example.com/');
-
-    expect(result).toBeDefined();
-  });
-
-  it('invokes the subscription handler after each request', () => {
+  it('invokes the subscription handler with the request on each onSocket call', () => {
     const httpModule = makeMockHttpModule();
 
     patchHttpModuleClient(httpModule);
-    httpModule.request('http://example.com/');
+    const request = { method: 'GET' } as HttpClientRequest;
+    httpModule.ClientRequest.prototype.onSocket.call(request, {});
 
     expect(mockClientRequestHandler).toHaveBeenCalledOnce();
-    expect(mockClientRequestHandler).toHaveBeenCalledWith(
-      expect.objectContaining({ request: expect.any(Object) }),
-      HTTP_ON_CLIENT_REQUEST,
-    );
+    expect(mockClientRequestHandler).toHaveBeenCalledWith({ request }, HTTP_ON_CLIENT_REQUEST);
   });
 
-  it('wraps get to call .end() on the returned request automatically', () => {
+  it('still calls the original onSocket even if the handler throws', () => {
     const httpModule = makeMockHttpModule();
-    const mockReq = makeMockClientRequest();
-    httpModule.request = vi.fn(() => mockReq);
+    const originalOnSocket = httpModule.ClientRequest.prototype.onSocket;
+    mockClientRequestHandler.mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
 
     patchHttpModuleClient(httpModule);
-    httpModule.get('http://example.com/');
-
-    expect(mockReq.end).toHaveBeenCalledOnce();
+    expect(() => httpModule.ClientRequest.prototype.onSocket.call({} as HttpClientRequest, {})).not.toThrow();
+    expect(originalOnSocket).toHaveBeenCalledOnce();
   });
 
   it('is idempotent — patching a second time does not re-wrap', () => {
     const httpModule = makeMockHttpModule();
 
     patchHttpModuleClient(httpModule);
-    const wrappedRequest = httpModule.request;
+    const wrappedOnSocket = httpModule.ClientRequest.prototype.onSocket;
 
     patchHttpModuleClient(httpModule);
 
-    expect(httpModule.request).toBe(wrappedRequest);
+    expect(httpModule.ClientRequest.prototype.onSocket).toBe(wrappedOnSocket);
   });
 
-  it('handles CJS default export — patches the default and copies back to the container', () => {
+  it('is a no-op for modules without a ClientRequest (e.g. https)', () => {
+    const httpModule = { request: vi.fn(), get: vi.fn() } as unknown as HttpExport;
+
+    expect(() => patchHttpModuleClient(httpModule)).not.toThrow();
+    expect(mockClientRequestHandler).not.toHaveBeenCalled();
+  });
+
+  it('handles a CJS default export by patching the default export', () => {
     const httpDefault = makeMockHttpModule();
-    const httpModule: HttpExport & { default: HttpExport } = {
-      ...httpDefault,
-      default: httpDefault,
-    };
-    const originalRequest = httpDefault.request;
+    const httpModule: HttpExport & { default: HttpExport } = { default: httpDefault };
+    const originalOnSocket = httpDefault.ClientRequest.prototype.onSocket;
 
     patchHttpModuleClient(httpModule);
 
-    // The default export's request is now wrapped
-    expect(getOriginalFunction(httpDefault.request)).toBe(originalRequest);
-    // The module container's request descriptor was copied from the default
-    expect(httpModule.request).toBe(httpDefault.request);
+    expect(getOriginalFunction(httpDefault.ClientRequest.prototype.onSocket)).toBe(originalOnSocket);
   });
 });
