@@ -34,7 +34,7 @@ export interface EventFiltersOptions {
   disableErrorDefaults: boolean;
 }
 
-const INTEGRATION_NAME = 'EventFilters';
+const INTEGRATION_NAME = 'EventFilters' as const;
 
 /**
  * An integration that filters out events (errors and transactions) based on:
@@ -86,7 +86,7 @@ export const eventFiltersIntegration = defineIntegration((options: Partial<Event
 export const inboundFiltersIntegration = defineIntegration(((options: Partial<EventFiltersOptions> = {}) => {
   return {
     ...eventFiltersIntegration(options),
-    name: 'InboundFilters',
+    name: 'InboundFilters' as const,
   };
 }) satisfies IntegrationFn);
 

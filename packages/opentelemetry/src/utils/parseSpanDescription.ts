@@ -14,7 +14,7 @@ import {
   RPC_SERVICE,
   URL_FULL,
 } from '@sentry/conventions/attributes';
-import type { SpanAttributes, TransactionSource } from '@sentry/core';
+import type { Span, SpanAttributes, TransactionSource } from '@sentry/core';
 import {
   getSanitizedUrlString,
   parseUrl,
@@ -22,6 +22,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanToJSON,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
@@ -104,10 +105,22 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
  * Based on https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/7422ce2a06337f68a59b552b8c5a2ac125d6bae5/exporter/sentryexporter/sentry_exporter.go#L306
  */
 export function parseSpanDescription(span: AbstractSpan): SpanDescription {
-  const attributes = spanHasAttributes(span) ? span.attributes : {};
-  const name = spanHasName(span) ? span.name : '<unknown>';
-  const kind = getSpanKind(span);
+  let attributes: Attributes;
+  let name: string;
 
+  // TODO(v11): Once the OTel SDK provider is removed and SentryTracerProvider is the only path,
+  // every span is a native Sentry span — drop this `spanHasAttributes` (OTel ReadableSpan) branch
+  // and keep only the `spanToJSON()` path below.
+  if (spanHasAttributes(span)) {
+    attributes = span.attributes;
+    name = spanHasName(span) ? span.name : '<unknown>';
+  } else {
+    const json = typeof (span as Span).spanContext === 'function' ? spanToJSON(span as Span) : undefined;
+    attributes = json?.data || {};
+    name = spanHasName(span) ? span.name : json?.description || '<unknown>';
+  }
+
+  const kind = getSpanKind(span);
   return inferSpanData(name, attributes, kind);
 }
 
@@ -183,10 +196,14 @@ export function descriptionForHttpMethod(
     data.url = url;
   }
   if (query) {
-    data['http.query'] = query;
+    // Strip the leading `?`/`#` (the `URL.search`/`URL.hash` prefix) so the attribute matches the
+    // canonical format the OTel SDK exporter emits (`getData` in `spanExporter.ts` slices these too).
+    // TODO(v11): emit `url.query`/`url.fragment` (OTel-standard, no leading `?`/`#`) and drop
+    // this stripping + `http.query`/`http.fragment`; `http.query` is specced to keep the leading `?`.
+    data['http.query'] = query.slice(1);
   }
   if (fragment) {
-    data['http.fragment'] = fragment;
+    data['http.fragment'] = fragment.slice(1);
   }
 
   // If the span kind is neither client nor server, we use the original name

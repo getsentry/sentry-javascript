@@ -1,12 +1,12 @@
 /**
  * Bundle the `lighthouse-react` test app for each mode (no-sentry, init-only,
- * errors-only, no-integrations, no-browser-api-errors, tracing, tracing-replay)
- * and POST the tarballs to the Sentry Lighthouse lab
- * (https://lighthouse.sentry.gg). The lab runs Lighthouse asynchronously and
- * ships results to Sentry on its own schedule — this script exits as soon as
- * the upload succeeds.
+ * errors-only, minimal-integrations, no-integrations, no-browser-api-errors,
+ * no-breadcrumbs, no-browser-session, tracing, tracing-lazy-import, tracing-replay) and POST the
+ * tarballs to the Sentry Lighthouse lab (https://lighthouse.sentry.gg). The lab
+ * runs Lighthouse asynchronously and ships results to Sentry on its own
+ * schedule — this script exits as soon as the upload succeeds.
  *
- * Single-app static matrix: 1 app × 7 modes = 7 cells.
+ * Single-app static matrix: 1 app × 10 modes = 10 cells.
  *
  * Zero runtime dependencies — uses Node 22 builtins (fetch, FormData, Blob) and
  * the system `tar`. Every external command is invoked via `execFileSync` with
@@ -38,9 +38,13 @@ const MODES = [
   'no-sentry',
   'init-only',
   'errors-only',
+  'minimal-integrations',
   'no-integrations',
   'no-browser-api-errors',
+  'no-breadcrumbs',
+  'no-browser-session',
   'tracing',
+  'tracing-lazy-import',
   'tracing-replay',
 ];
 const STATIC_DIR = 'dist';

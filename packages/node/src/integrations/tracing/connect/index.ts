@@ -8,7 +8,7 @@ type ConnectApp = {
   use: (middleware: any) => void;
 };
 
-const INTEGRATION_NAME = 'Connect';
+const INTEGRATION_NAME = 'Connect' as const;
 
 export const instrumentConnect = generateInstrumentOnce(INTEGRATION_NAME, () => new ConnectInstrumentation());
 

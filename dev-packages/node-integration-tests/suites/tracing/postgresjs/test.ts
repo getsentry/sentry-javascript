@@ -228,6 +228,9 @@ describe('postgresjs auto instrumentation', () => {
             .withDockerCompose({ workingDirectory: [__dirname] })
             .expect({ transaction: EXPECTED_TRANSACTION })
             .expect({ event: EXPECTED_ERROR_EVENT })
+            // The error event is captured via an unhandled rejection processed on a later tick than
+            // the transaction, so the two envelopes can reach the transport in either order.
+            .unordered()
             .start()
             .completed();
         });

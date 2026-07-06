@@ -1,6 +1,5 @@
 import { subscribe } from 'node:diagnostics_channel';
 import { context, trace } from '@opentelemetry/api';
-import { isTracingSuppressed } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'node:http';
@@ -11,7 +10,13 @@ import type {
   HttpModuleExport,
   Span,
 } from '@sentry/core';
-import { getHttpClientSubscriptions, patchHttpModuleClient, SDK_VERSION, getRequestOptions } from '@sentry/core';
+import {
+  getHttpClientSubscriptions,
+  patchHttpModuleClient,
+  SDK_VERSION,
+  getRequestOptions,
+  isTracingSuppressed,
+} from '@sentry/core';
 import { INSTRUMENTATION_NAME } from './constants';
 import { HTTP_ON_CLIENT_REQUEST } from '@sentry/core';
 import { NODE_VERSION } from '../../nodeVersion';
@@ -172,8 +177,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       spans: options.createSpansForOutgoingRequests && (options.spans ?? true),
       ignoreOutgoingRequests(url, request) {
         return (
-          isTracingSuppressed(context.active()) ||
-          !!options.ignoreOutgoingRequests?.(url, getRequestOptions(request as ClientRequest))
+          isTracingSuppressed() || !!options.ignoreOutgoingRequests?.(url, getRequestOptions(request as ClientRequest))
         );
       },
       outgoingRequestHook(span, request) {

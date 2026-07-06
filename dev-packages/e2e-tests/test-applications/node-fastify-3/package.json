@@ -10,6 +10,7 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "typecheck": "tsc",
     "test:build": "pnpm install && pnpm run typecheck",
+    "test:build-3_20": "pnpm install && pnpm add fastify@~3.20.0 && pnpm run typecheck",
     "test:assert": "pnpm test && pnpm test:override"
   },
   "dependencies": {
@@ -25,5 +26,13 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-3_20",
+        "label": "fastify v3.20.0"
+      }
+    ]
   }
 }

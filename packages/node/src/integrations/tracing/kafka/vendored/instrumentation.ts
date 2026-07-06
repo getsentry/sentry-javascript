@@ -15,6 +15,7 @@
 
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
+import { MESSAGING_BATCH_MESSAGE_COUNT } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
   continueTrace,
@@ -37,7 +38,6 @@ import type {
   Transaction,
 } from './kafkajs-types';
 import {
-  ATTR_MESSAGING_BATCH_MESSAGE_COUNT,
   ATTR_MESSAGING_DESTINATION_PARTITION_ID,
   MESSAGING_OPERATION_TYPE_VALUE_PROCESS,
   MESSAGING_OPERATION_TYPE_VALUE_RECEIVE,
@@ -191,7 +191,7 @@ export class KafkaJsInstrumentation extends InstrumentationBase<InstrumentationC
             message: undefined,
             operationType: MESSAGING_OPERATION_TYPE_VALUE_RECEIVE,
             attributes: {
-              [ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: payload.batch.messages.length,
+              [MESSAGING_BATCH_MESSAGE_COUNT]: payload.batch.messages.length,
               [ATTR_MESSAGING_DESTINATION_PARTITION_ID]: String(payload.batch.partition),
             },
           }),

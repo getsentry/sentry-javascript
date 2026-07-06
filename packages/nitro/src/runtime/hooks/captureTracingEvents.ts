@@ -1,4 +1,4 @@
-import { tracingChannel } from 'node:diagnostics_channel';
+import * as dc from 'node:diagnostics_channel';
 import {
   getActiveSpan,
   getClient,
@@ -80,8 +80,13 @@ function getParameterizedRoute(event: H3TracingRequestEvent['event']): string | 
 }
 
 function setupH3TracingChannels(): void {
+  // Bail if this is not available
+  if (!dc.tracingChannel) {
+    return;
+  }
+
   const { channel: h3Channel } = bindTracingChannelToSpan(
-    tracingChannel<H3TracingRequestEvent>('h3.request'),
+    dc.tracingChannel<H3TracingRequestEvent>('h3.request'),
     data => {
       const parsedUrl = parseStringToURLObject(data.event.url.href);
       const routePattern = getParameterizedRoute(data.event);
@@ -145,12 +150,16 @@ function setupH3TracingChannels(): void {
 }
 
 function setupSrvxTracingChannels(): void {
+  if (!dc.tracingChannel) {
+    return;
+  }
+
   // Store the parent span per-request so middleware and fetch share the same parent.
   // WeakMap ensures per-request isolation in concurrent environments and automatic cleanup.
   const requestParentSpans = new WeakMap<Request, Span>();
 
   bindTracingChannelToSpan(
-    tracingChannel<SrvxRequestEvent>('srvx.request'),
+    dc.tracingChannel<SrvxRequestEvent>('srvx.request'),
     data => {
       const parsedUrl = data.request._url ? parseStringToURLObject(data.request._url.href) : undefined;
       const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.srvx', {
@@ -186,7 +195,7 @@ function setupSrvxTracingChannels(): void {
   );
 
   bindTracingChannelToSpan(
-    tracingChannel<SrvxRequestEvent>('srvx.middleware'),
+    dc.tracingChannel<SrvxRequestEvent>('srvx.middleware'),
     data => {
       // For the first middleware, capture the current parent span per-request
       if (data.middleware?.index === 0) {

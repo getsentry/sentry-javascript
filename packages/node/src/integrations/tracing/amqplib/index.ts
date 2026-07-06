@@ -1,22 +1,11 @@
-import type { Span } from '@opentelemetry/api';
-import { AmqplibInstrumentation } from './vendored/amqplib';
-import type { AmqplibInstrumentationConfig } from './vendored/types';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '@sentry/node-core';
+import { AmqplibInstrumentation } from './vendored/instrumentation';
 
-const INTEGRATION_NAME = 'Amqplib';
+const INTEGRATION_NAME = 'Amqplib' as const;
 
-const config: AmqplibInstrumentationConfig = {
-  consumeEndHook: (span: Span) => {
-    addOriginToSpan(span, 'auto.amqplib.otel.consumer');
-  },
-  publishHook: (span: Span) => {
-    addOriginToSpan(span, 'auto.amqplib.otel.publisher');
-  },
-};
-
-export const instrumentAmqplib = generateInstrumentOnce(INTEGRATION_NAME, () => new AmqplibInstrumentation(config));
+export const instrumentAmqplib = generateInstrumentOnce(INTEGRATION_NAME, () => new AmqplibInstrumentation());
 
 const _amqplibIntegration = (() => {
   return {

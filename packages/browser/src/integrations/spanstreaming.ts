@@ -12,7 +12,7 @@ import { DEBUG_BUILD } from '../debug-build';
 
 export const spanStreamingIntegration = defineIntegration(() => {
   return {
-    name: 'SpanStreaming',
+    name: 'SpanStreaming' as const,
 
     beforeSetup(client) {
       // If users only set spanStreamingIntegration, without traceLifecycle, we set it to "stream" for them.

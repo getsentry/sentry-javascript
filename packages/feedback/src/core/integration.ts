@@ -339,7 +339,7 @@ export const buildFeedbackIntegration = ({
     };
 
     return {
-      name: 'Feedback',
+      name: 'Feedback' as const,
       setupOnce() {
         if (!isBrowser() || !_options.autoInject) {
           return;

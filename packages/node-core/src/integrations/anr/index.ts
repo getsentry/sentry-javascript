@@ -59,7 +59,7 @@ async function getContexts(client: NodeClient): Promise<Contexts> {
   return event?.contexts || {};
 }
 
-const INTEGRATION_NAME = 'Anr';
+const INTEGRATION_NAME = 'Anr' as const;
 
 type AnrInternal = { startWorker: () => void; stopWorker: () => void };
 

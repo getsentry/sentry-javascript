@@ -3,6 +3,7 @@ import type { Span } from '../types/span';
 import type { getTraceData } from '../utils/traceData';
 import type {
   continueTrace,
+  isTracingSuppressed,
   startInactiveSpan,
   startNewTrace,
   startSpan,
@@ -21,7 +22,7 @@ export interface TracingChannelBinding {
   /**
    * The ALS instance that will be bound to the channel.
    */
-  asyncLocalStorage: unknown;
+  asyncLocalStorage: NonNullable<unknown>;
 
   /**
    * Activates a span for the tracing channels nested invocations, the return value must be the same type as the `asyncLocalStorage` inner value.
@@ -85,6 +86,9 @@ export interface AsyncContextStrategy {
 
   /** Suppress tracing in the given callback, ensuring no spans are generated inside of it.  */
   suppressTracing?: typeof suppressTracing;
+
+  /** If tracing is suppressed in the given scope.  */
+  isTracingSuppressed?: typeof isTracingSuppressed;
 
   /** Get trace data as serialized string values for propagation via `sentry-trace` and `baggage`. */
   getTraceData?: typeof getTraceData;

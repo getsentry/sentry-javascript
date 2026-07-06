@@ -24,7 +24,7 @@ import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from 
  */
 export const launchDarklyIntegration = defineIntegration(() => {
   return {
-    name: 'LaunchDarkly',
+    name: 'LaunchDarkly' as const,
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
       return _INTERNAL_copyFlagsFromScopeToEvent(event);

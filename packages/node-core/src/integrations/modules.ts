@@ -1,13 +1,12 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { GLOBAL_OBJ, type IntegrationFn } from '@sentry/core';
-import { isCjs } from '../utils/detection';
 
 type ModuleInfo = Record<string, string>;
 
 let moduleCache: ModuleInfo | undefined;
 
-const INTEGRATION_NAME = 'Modules';
+const INTEGRATION_NAME = 'Modules' as const;
 
 declare const __SENTRY_SERVER_MODULES__: Record<string, string>;
 
@@ -68,7 +67,9 @@ function collectModules(): ModuleInfo {
   return {
     ...getServerModules(),
     ...getModulesFromPackageJson(),
-    ...(isCjs() ? collectRequireModules() : {}),
+    /*! rollup-include-cjs-only */
+    ...collectRequireModules(),
+    /*! rollup-include-cjs-only-end */
   };
 }
 

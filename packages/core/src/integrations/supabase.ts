@@ -569,7 +569,7 @@ interface SupabaseIntegrationOptions {
   sendOperationData?: boolean;
 }
 
-const INTEGRATION_NAME = 'Supabase';
+const INTEGRATION_NAME = 'Supabase' as const;
 
 const _supabaseIntegration = ((supabaseClient: unknown, options: { sendOperationData?: boolean }) => {
   return {

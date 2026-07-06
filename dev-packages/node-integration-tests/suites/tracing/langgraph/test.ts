@@ -356,89 +356,96 @@ describe('LangGraph integration', () => {
     },
   );
 
-  // createReactAgent tests
-  const EXPECTED_TRANSACTION_REACT_AGENT = {
-    transaction: 'main',
-    spans: [
-      expect.objectContaining({
-        data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
-          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'helpful_assistant',
-          [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'helpful_assistant',
-        }),
-        description: 'invoke_agent helpful_assistant',
-        op: 'gen_ai.invoke_agent',
-        origin: 'auto.ai.langgraph',
-        status: 'ok',
-      }),
-      expect.objectContaining({ op: 'http.client' }),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'helpful_assistant',
-        }),
-        op: 'gen_ai.chat',
-      }),
-    ],
-  };
-
+  // createReactAgent tests.
+  // Spans are asserted order-independently: the span-array order is not a protocol guarantee (Sentry
+  // rebuilds the tree from `parent_span_id`), and the provider emits tree order while the OTel exporter
+  // emits finish order (the `http.client` that the chat span wraps finishes before the chat span itself).
   createEsmAndCjsTests(__dirname, 'agent-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
     test('should instrument createReactAgent with agent and chat spans', { timeout: 30000 }, async () => {
       await createRunner()
         .ignore('event')
-        .expect({ transaction: EXPECTED_TRANSACTION_REACT_AGENT })
+        .expect({
+          transaction: event => {
+            const spans = event.spans ?? [];
+            expect(event.transaction).toBe('main');
+            expect(spans).toHaveLength(3);
+            expect(spans).toContainEqual(
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
+                  [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'helpful_assistant',
+                  [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'helpful_assistant',
+                }),
+                description: 'invoke_agent helpful_assistant',
+                op: 'gen_ai.invoke_agent',
+                origin: 'auto.ai.langgraph',
+                status: 'ok',
+              }),
+            );
+            expect(spans).toContainEqual(expect.objectContaining({ op: 'http.client' }));
+            expect(spans).toContainEqual(
+              expect.objectContaining({
+                data: expect.objectContaining({ [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'helpful_assistant' }),
+                op: 'gen_ai.chat',
+              }),
+            );
+          },
+        })
         .start()
         .completed();
     });
   });
 
-  // createReactAgent with tools - verifies tool execution spans
-  const EXPECTED_TRANSACTION_REACT_AGENT_TOOLS = {
-    transaction: 'main',
-    spans: [
-      expect.objectContaining({
-        data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'math_assistant',
-        }),
-        op: 'gen_ai.invoke_agent',
-        status: 'ok',
-      }),
-      expect.objectContaining({ op: 'http.client' }),
-      expect.objectContaining({ op: 'gen_ai.chat' }),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
-          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'add',
-          'gen_ai.tool.type': 'function',
-        }),
-        description: 'execute_tool add',
-        op: 'gen_ai.execute_tool',
-        status: 'ok',
-      }),
-      expect.objectContaining({ op: 'http.client' }),
-      expect.objectContaining({ op: 'gen_ai.chat' }),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
-          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'multiply',
-          'gen_ai.tool.type': 'function',
-        }),
-        description: 'execute_tool multiply',
-        op: 'gen_ai.execute_tool',
-        status: 'ok',
-      }),
-      expect.objectContaining({ op: 'http.client' }),
-      expect.objectContaining({ op: 'gen_ai.chat' }),
-    ],
-  };
-
+  // createReactAgent with tools - verifies tool execution spans (asserted order-independently, see above).
   createEsmAndCjsTests(__dirname, 'agent-tools-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
     test('should create tool execution spans for createReactAgent with tools', { timeout: 30000 }, async () => {
       await createRunner()
         .ignore('event')
-        .expect({ transaction: EXPECTED_TRANSACTION_REACT_AGENT_TOOLS })
+        .expect({
+          transaction: event => {
+            const spans = event.spans ?? [];
+            expect(event.transaction).toBe('main');
+            expect(spans).toHaveLength(9);
+            expect(spans).toContainEqual(
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+                  [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'math_assistant',
+                }),
+                op: 'gen_ai.invoke_agent',
+                status: 'ok',
+              }),
+            );
+            expect(spans).toContainEqual(
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
+                  [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'add',
+                  'gen_ai.tool.type': 'function',
+                }),
+                description: 'execute_tool add',
+                op: 'gen_ai.execute_tool',
+                status: 'ok',
+              }),
+            );
+            expect(spans).toContainEqual(
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
+                  [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'multiply',
+                  'gen_ai.tool.type': 'function',
+                }),
+                description: 'execute_tool multiply',
+                op: 'gen_ai.execute_tool',
+                status: 'ok',
+              }),
+            );
+            expect(spans.filter(span => span.op === 'http.client')).toHaveLength(3);
+            expect(spans.filter(span => span.op === 'gen_ai.chat')).toHaveLength(3);
+          },
+        })
         .start()
         .completed();
     });

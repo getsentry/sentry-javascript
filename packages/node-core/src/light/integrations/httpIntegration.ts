@@ -16,7 +16,7 @@ import type { ClientRequest } from 'node:http';
 import { errorMonitor } from 'node:events';
 import { NODE_VERSION } from '../../nodeVersion';
 
-const INTEGRATION_NAME = 'Http';
+const INTEGRATION_NAME = 'Http' as const;
 
 const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL =
   (NODE_VERSION.major === 22 && NODE_VERSION.minor >= 12) ||

@@ -19,7 +19,7 @@ import {
   takeProfileFromGlobalCache,
 } from './utils';
 
-const INTEGRATION_NAME = 'BrowserProfiling';
+const INTEGRATION_NAME = 'BrowserProfiling' as const;
 
 const _browserProfilingIntegration = (() => {
   return {

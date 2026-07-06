@@ -9,7 +9,6 @@ import {
   linkedErrorsIntegration,
   nodeStackLineParser,
   requestDataIntegration,
-  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { DenoClient } from './client';
@@ -25,6 +24,7 @@ import {
 import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
 import { denoMysqlIntegration } from './integrations/mysql';
+import { denoPostgresIntegration } from './integrations/postgres';
 import { denoRedisIntegration } from './integrations/redis';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
@@ -60,7 +60,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     // It's possible that the orchestrion channels will be injected AFTER
     // (or in parallel to) loading the SDK, so we only gate on whether the
     // feature is possible. If they're never loaded, it'll just be a no-op.
-    ...(MODULE_REGISTER_HOOKS_SUPPORTED ? [denoMysqlIntegration()] : []),
+    ...(MODULE_REGISTER_HOOKS_SUPPORTED ? [denoMysqlIntegration(), denoPostgresIntegration()] : []),
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),
@@ -118,15 +118,10 @@ export function init(options: DenoOptions = {}): Client {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }
 
-  const resolvedIntegrations = getIntegrationsToSetup(options);
-  if (options.traceLifecycle === 'stream' && !resolvedIntegrations.some(i => i.name === 'SpanStreaming')) {
-    resolvedIntegrations.push(spanStreamingIntegration());
-  }
-
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: resolvedIntegrations,
+    integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeFetchTransport,
   };
 

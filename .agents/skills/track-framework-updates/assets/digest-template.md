@@ -35,6 +35,10 @@ _Window: last <SINCE_DAYS> days · generated <GENERATED_AT>_
 
 <!-- Same per-framework structure as Client-Side. -->
 
+## Platform / Runtime
+
+<!-- Same per-framework structure as Client-Side. Covers Node.js, Bun, Deno, Cloudflare Workers, AWS Lambda, Google Cloud. -->
+
 ## Source coverage
 
 ⚠ The following SDK packages are **not tracked** in `sources.json`. Add an upstream framework entry or exclude them in `scripts/check_sources.py`:

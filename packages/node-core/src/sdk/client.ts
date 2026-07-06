@@ -2,17 +2,21 @@ import * as os from 'node:os';
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
+  _INTERNAL_setDeferSegmentSpanCapture,
   applySdkMetadata,
   debug,
   SDK_VERSION,
   ServerRuntimeClient,
 } from '@sentry/core';
-import { type AsyncLocalStorageLookup, getTraceContextForScope } from '@sentry/opentelemetry';
+import {
+  type AsyncLocalStorageLookup,
+  getTraceContextForScope,
+  type OpenTelemetryTracerProvider,
+} from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
@@ -21,7 +25,7 @@ const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitr
 
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
-  public traceProvider: BasicTracerProvider | undefined;
+  public traceProvider: OpenTelemetryTracerProvider | undefined;
   public asyncLocalStorageLookup: AsyncLocalStorageLookup | undefined;
 
   private _tracer: Tracer | undefined;
@@ -71,6 +75,16 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
       process.on('beforeExit', this._logOnExitFlushListener);
     }
+
+    // Enable deferred segment-span transaction capture here, in the constructor, rather than in
+    // `initOtel`. Every client runs its constructor exactly once, whereas `initOtel` only runs on
+    // `Sentry.init()` and only fully wires up the first client (a second `init` loses the
+    // `setGlobalTracerProvider` race and bails early, and a manually constructed `NodeClient` never
+    // runs `initOtel` at all). Anchoring on the constructor means every client — first, second, or
+    // manual — defers correctly. It's unconditional and cheap: clients on the OpenTelemetry SDK
+    // provider path produce OTel spans that never reach `SentrySpan`, so the strategy is simply never
+    // consulted for them.
+    _INTERNAL_setDeferSegmentSpanCapture(this);
   }
 
   /** Get the OTEL tracer. */

@@ -13,6 +13,6 @@ export const statsigIntegrationShim = defineIntegration((_options?: unknown) => 
   }
 
   return {
-    name: 'Statsig',
+    name: 'Statsig' as const,
   };
 });

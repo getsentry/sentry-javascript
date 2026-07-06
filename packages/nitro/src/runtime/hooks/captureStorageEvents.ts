@@ -1,4 +1,4 @@
-import { tracingChannel } from 'node:diagnostics_channel';
+import * as dc from 'node:diagnostics_channel';
 import {
   flushIfServerless,
   GLOBAL_OBJ,
@@ -55,8 +55,13 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
   const keys = (data: TraceContext): string[] => data.keys ?? [];
   const mountBase = (data: TraceContext): string => (data.base ?? '').replace(/:$/, '');
 
+  // Bail if this is not available
+  if (!dc.tracingChannel) {
+    return;
+  }
+
   bindTracingChannelToSpan(
-    tracingChannel<TraceContext>(`unstorage.${operation}`),
+    dc.tracingChannel<TraceContext>(`unstorage.${operation}`),
     data => {
       const cacheKeys = keys(data);
 

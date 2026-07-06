@@ -15,3 +15,22 @@ export const SPAN_KIND = {
 } as const;
 
 export type SpanKindValue = (typeof SPAN_KIND)[keyof typeof SPAN_KIND];
+
+// Reverse of SPAN_KIND (value → name), for the `otel.kind` attribute. The numeric keys come from
+// SPAN_KIND so they stay in sync; `satisfies` ensures every kind has a name.
+const SPAN_KIND_NAME = {
+  [SPAN_KIND.INTERNAL]: 'INTERNAL',
+  [SPAN_KIND.SERVER]: 'SERVER',
+  [SPAN_KIND.CLIENT]: 'CLIENT',
+  [SPAN_KIND.PRODUCER]: 'PRODUCER',
+  [SPAN_KIND.CONSUMER]: 'CONSUMER',
+} as const satisfies Record<SpanKindValue, string>;
+
+/**
+ * Resolve the string name of a span kind value (e.g. `1` → `'SERVER'`), mirroring the reverse
+ * mapping of OpenTelemetry's `SpanKind` enum. Used for the `otel.kind` span attribute, so SDK
+ * code doesn't need to import `@opentelemetry/api` just for that reverse lookup.
+ */
+export function spanKindToName(kind: number): (typeof SPAN_KIND_NAME)[SpanKindValue] | undefined {
+  return SPAN_KIND_NAME[kind as SpanKindValue];
+}

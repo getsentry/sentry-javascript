@@ -22,20 +22,16 @@ To get started, first install the `@sentry/cloudflare` package:
 npm install @sentry/cloudflare
 ```
 
-Then either set the `nodejs_als` or `nodejs_compat` compatibility flags in your `wrangler.jsonc`/`wrangler.toml` config. This is because the SDK needs access to the `AsyncLocalStorage` API to work correctly.
+Then set the `nodejs_compat` compatibility flag in your `wrangler.jsonc`/`wrangler.toml` config. This is because the SDK needs access to Node.js compatibility APIs to work correctly.
 
 ```jsonc {tabTitle:JSON} {filename:wrangler.jsonc}
 {
-  "compatibility_flags": [
-    "nodejs_als",
-    // "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
 }
 ```
 
 ```toml {tabTitle:Toml} {filename:wrangler.toml}
-compatibility_flags = ["nodejs_als"]
-# compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat"]
 ```
 
 ## Setup (Cloudflare Pages)

@@ -1,7 +1,7 @@
 /**
  * Use this attribute to represent the source of a span name.
  * Must be one of: custom, url, route, view, component, task
- * TODO(v11): rename this to sentry.span.source'
+ * TODO(v11): remove this export
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = 'sentry.source';
 
@@ -30,6 +30,16 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_OP = 'sentry.op';
  * Use this attribute to represent the origin of a span.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'sentry.origin';
+
+/**
+ * Holds the human-readable span status message (e.g. set via
+ * `span.setStatus({ code, message })`).
+ *
+ * Streamed (v2) span statuses are reduced to `ok`/`error`, so we preserve the
+ * message as an attribute instead of dropping it. This mirrors the attribute
+ * Sentry's OTLP ingestion uses for the same purpose.
+ */
+export const SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE = 'sentry.status.message';
 
 /** The reason why an idle span finished. */
 export const SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON = 'sentry.idle_span_finish_reason';

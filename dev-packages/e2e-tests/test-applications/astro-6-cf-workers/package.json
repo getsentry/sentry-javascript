@@ -10,7 +10,7 @@
     "start": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --port 3030",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "TEST_ENV=production playwright test",
-    "generate-types": "wrangler types"
+    "cf-typegen": "wrangler types --include-runtime=false"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.0.2",

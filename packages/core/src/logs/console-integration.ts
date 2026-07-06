@@ -15,7 +15,7 @@ interface CaptureConsoleOptions {
   levels: ConsoleLevel[];
 }
 
-const INTEGRATION_NAME = 'ConsoleLogs';
+const INTEGRATION_NAME = 'ConsoleLogs' as const;
 
 const DEFAULT_ATTRIBUTES = {
   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.log.console',
