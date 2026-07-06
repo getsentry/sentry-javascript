@@ -2,7 +2,9 @@ import { loadModule } from '@sentry/core';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getBuildPluginOptions } from '../../src/config/getBuildPluginOptions';
 import {
   handleRunAfterProductionCompile,
   stripSourceMappingURLComments,
@@ -312,7 +314,7 @@ describe('handleRunAfterProductionCompile', () => {
   });
 
   describe('sourceMappingURL stripping', () => {
-    let readdirSpy: ReturnType<typeof vi.spyOn>;
+    let readdirSpy: MockInstance;
 
     beforeEach(() => {
       // Spy on fs.promises.readdir to detect whether stripping was attempted.
@@ -399,7 +401,8 @@ describe('handleRunAfterProductionCompile', () => {
         },
         {
           ...mockSentryBuildOptions,
-          sourcemaps: { deleteSourcemapsAfterUpload: true },
+          // user-provided assets skip the uncovered-source-map check, which also reads the static dir
+          sourcemaps: { deleteSourcemapsAfterUpload: true, assets: ['.next/static'] },
         },
       );
 
@@ -424,6 +427,168 @@ describe('handleRunAfterProductionCompile', () => {
         path.join('/path/to/.next', 'static'),
         expect.objectContaining({ recursive: true }),
       );
+    });
+  });
+
+  describe('uncovered source map warning', () => {
+    let readdirSpy: MockInstance;
+    let warnSpy: MockInstance;
+
+    const uncoveredWarningMatcher = expect.stringContaining('not covered by the source map upload patterns');
+
+    beforeEach(() => {
+      readdirSpy = vi.spyOn(fs.promises, 'readdir').mockRejectedValue(new Error('ENOENT'));
+      warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.mocked(getBuildPluginOptions).mockReturnValueOnce({
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          assets: ['/path/to/.next/server', '/path/to/.next/static/chunks'],
+        },
+      });
+    });
+
+    afterEach(() => {
+      readdirSpy.mockRestore();
+      warnSpy.mockRestore();
+    });
+
+    it('warns when source maps exist outside the upload asset paths and deletion is enabled for turbopack', async () => {
+      readdirSpy.mockResolvedValue(['immutable/chunks/page-abc.js.map', 'chunks/covered.js.map']);
+
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'turbopack',
+        },
+        {
+          ...mockSentryBuildOptions,
+          sourcemaps: { deleteSourcemapsAfterUpload: true },
+        },
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(uncoveredWarningMatcher);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('immutable/chunks/page-abc.js.map'));
+    });
+
+    it('does not warn when all source maps are covered by the upload asset paths', async () => {
+      readdirSpy.mockResolvedValue(['chunks/page-abc.js.map', 'chunks/app/layout.mjs.map']);
+
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'turbopack',
+        },
+        {
+          ...mockSentryBuildOptions,
+          sourcemaps: { deleteSourcemapsAfterUpload: true },
+        },
+      );
+
+      expect(warnSpy).not.toHaveBeenCalledWith(uncoveredWarningMatcher);
+    });
+
+    it('ignores css source maps', async () => {
+      readdirSpy.mockResolvedValue(['css/styles.css.map']);
+
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'turbopack',
+        },
+        {
+          ...mockSentryBuildOptions,
+          sourcemaps: { deleteSourcemapsAfterUpload: true },
+        },
+      );
+
+      expect(warnSpy).not.toHaveBeenCalledWith(uncoveredWarningMatcher);
+    });
+
+    it('does not warn when deleteSourcemapsAfterUpload is disabled', async () => {
+      readdirSpy.mockResolvedValue(['immutable/chunks/page-abc.js.map']);
+
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'turbopack',
+        },
+        {
+          ...mockSentryBuildOptions,
+          sourcemaps: { deleteSourcemapsAfterUpload: false },
+        },
+      );
+
+      expect(warnSpy).not.toHaveBeenCalledWith(uncoveredWarningMatcher);
+    });
+
+    it('does not warn for webpack builds', async () => {
+      readdirSpy.mockResolvedValue(['immutable/chunks/page-abc.js.map']);
+
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'webpack',
+        },
+        {
+          ...mockSentryBuildOptions,
+          sourcemaps: { deleteSourcemapsAfterUpload: true },
+        },
+      );
+
+      expect(warnSpy).not.toHaveBeenCalledWith(uncoveredWarningMatcher);
+    });
+
+    it('does not warn when sourcemaps are disabled', async () => {
+      readdirSpy.mockResolvedValue(['immutable/chunks/page-abc.js.map']);
+      vi.mocked(getBuildPluginOptions).mockReset().mockReturnValueOnce({
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          disable: true,
+          assets: ['/path/to/.next/server', '/path/to/.next/static/chunks'],
+        },
+      });
+
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'turbopack',
+        },
+        {
+          ...mockSentryBuildOptions,
+          sourcemaps: { deleteSourcemapsAfterUpload: true },
+        },
+      );
+
+      expect(warnSpy).not.toHaveBeenCalledWith(uncoveredWarningMatcher);
+    });
+
+    it('does not warn when the user provided their own sourcemaps.assets', async () => {
+      readdirSpy.mockResolvedValue(['immutable/chunks/page-abc.js.map']);
+
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'turbopack',
+        },
+        {
+          ...mockSentryBuildOptions,
+          sourcemaps: {
+            deleteSourcemapsAfterUpload: true,
+            assets: ['.next/server', '.next/static'],
+          },
+        },
+      );
+
+      expect(warnSpy).not.toHaveBeenCalledWith(uncoveredWarningMatcher);
     });
   });
 
