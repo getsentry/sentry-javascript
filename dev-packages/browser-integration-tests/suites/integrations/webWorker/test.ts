@@ -11,10 +11,7 @@ sentryTest('Assigns web worker debug IDs when using webWorkerIntegration', async
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  // `init.js` creates the worker (`new Worker('/worker.js')`) during page load, so the
-  // route must be registered (and awaited) before navigation is triggered. Otherwise the
-  // worker request can race the route setup, load the real worker without a debug ID, and
-  // the expected error envelope never arrives.
+  // `init.js` creates the worker at page load, so the route must be registered before navigating.
   await page.route('**/worker.js', route => {
     return route.fulfill({
       path: `${__dirname}/assets/worker.js`,
@@ -53,10 +50,7 @@ sentryTest('Captures unhandled rejections from web workers', async ({ getLocalTe
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  // `init.js` creates the worker (`new Worker('/worker.js')`) during page load, so the
-  // route must be registered (and awaited) before navigation is triggered. Otherwise the
-  // worker request can race the route setup, load the real worker without a debug ID, and
-  // the expected error envelope never arrives.
+  // `init.js` creates the worker at page load, so the route must be registered before navigating.
   await page.route('**/worker.js', route => {
     return route.fulfill({
       path: `${__dirname}/assets/worker.js`,
@@ -74,7 +68,6 @@ sentryTest('Captures unhandled rejections from web workers', async ({ getLocalTe
 
   const errorEvent = envelopeRequestParser<Event>(await errorEventPromise);
 
-  // Verify the unhandled rejection was captured
   expect(errorEvent.exception?.values?.[0]?.value).toContain('Worker unhandled rejection');
   expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe('auto.browser.web_worker.onunhandledrejection');
   expect(errorEvent.exception?.values?.[0]?.mechanism?.handled).toBe(false);
