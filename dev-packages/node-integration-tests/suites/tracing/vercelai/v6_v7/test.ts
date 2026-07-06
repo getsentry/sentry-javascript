@@ -530,45 +530,37 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
       // A single model instance shared by two concurrent `streamText` calls carries only one
       // captured-parent slot, so both model calls must still land under their own `invoke_agent` — not
       // collapse onto whichever operation resolved the shared model last.
-      // `ai` v7 publishes the top-level `streamText`/`step` channel events through a code path that
-      // loads `node:diagnostics_channel` via `process.getBuiltinModule()`, which was only added in
-      // Node 20.16 / 22.3 and never backported to Node 18. On Node 18 that lookup returns undefined,
-      // so the `streamText` event is never published and no `invoke_agent` span is created. The
-      // non-streaming ops load the channel via dynamic `import()` and are unaffected.
-      test.skipIf(version === '7' && nodeVersion === 18)(
-        'parents concurrent streamText calls that share one model instance correctly',
-        async () => {
-          await createRunner()
-            .expect({ transaction: { transaction: 'main' } })
-            .expect({
-              span: container => {
-                const invokeAgents = container.items.filter(
-                  span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
-                );
-                const generateContents = container.items.filter(
-                  span => span.attributes?.['sentry.op']?.value === 'gen_ai.generate_content',
-                );
+      test('parents concurrent streamText calls that share one model instance correctly', async () => {
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              const invokeAgents = container.items.filter(
+                span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
+              );
+              const generateContents = container.items.filter(
+                span => span.attributes?.['sentry.op']?.value === 'gen_ai.generate_content',
+              );
 
-                // Two concurrent operations -> two invoke_agent + two generate_content spans.
-                expect(invokeAgents).toHaveLength(2);
-                expect(generateContents).toHaveLength(2);
+              // Two concurrent operations -> two invoke_agent + two generate_content spans.
+              expect(invokeAgents).toHaveLength(2);
+              expect(generateContents).toHaveLength(2);
 
-                const agentSpanIds = new Set(invokeAgents.map(span => span.span_id));
+              const agentSpanIds = new Set(invokeAgents.map(span => span.span_id));
 
-                // Each model call lands under an invoke_agent span...
-                for (const span of generateContents) {
-                  expect(agentSpanIds.has(span.parent_span_id!)).toBe(true);
-                }
-                // ...a distinct one each (no cross-attribution despite the shared model instance)...
-                expect(new Set(generateContents.map(span => span.parent_span_id)).size).toBe(2);
-                // ...and both operations sit under the same `main` parent.
-                expect(new Set(invokeAgents.map(span => span.parent_span_id)).size).toBe(1);
-              },
-            })
-            .start()
-            .completed();
-        },
-      );
+              // Each model call lands under an invoke_agent span...
+              for (const span of generateContents) {
+                expect(agentSpanIds.has(span.parent_span_id!)).toBe(true);
+              }
+              // ...a distinct one each (no cross-attribution despite the shared model instance)...
+              expect(new Set(generateContents.map(span => span.parent_span_id)).size).toBe(2);
+              // ...and both operations sit under the same `main` parent.
+              expect(new Set(invokeAgents.map(span => span.parent_span_id)).size).toBe(1);
+            },
+          })
+          .start()
+          .completed();
+      });
     },
     {
       additionalDependencies: {
@@ -582,40 +574,32 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     'scenario-stream-text.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      // `ai` v7 publishes the top-level `streamText`/`step` channel events through a code path that
-      // loads `node:diagnostics_channel` via `process.getBuiltinModule()`, which was only added in
-      // Node 20.16 / 22.3 and never backported to Node 18. On Node 18 that lookup returns undefined,
-      // so the `streamText` event is never published and no `invoke_agent` span is created. The
-      // non-streaming ops load the channel via dynamic `import()` and are unaffected.
-      test.skipIf(version === '7' && nodeVersion === 18)(
-        'creates streamText spans with the model call parented to invoke_agent',
-        async () => {
-          await createRunner()
-            .expect({ transaction: { transaction: 'main' } })
-            .expect({
-              span: container => {
-                // Every emitted gen_ai span carries the version-appropriate origin.
-                container.items
-                  .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
-                  .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
-                const invokeAgent = container.items.find(
-                  span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
-                )!;
-                expect(invokeAgent).toBeDefined();
-                expect(invokeAgent.attributes?.['vercel.ai.operationId']?.value).toBe('ai.streamText');
+      test('creates streamText spans with the model call parented to invoke_agent', async () => {
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes?.['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes?.['sentry.origin']?.value).toBe(expectedOrigin));
+              const invokeAgent = container.items.find(
+                span => span.attributes?.['sentry.op']?.value === 'gen_ai.invoke_agent',
+              )!;
+              expect(invokeAgent).toBeDefined();
+              expect(invokeAgent.attributes?.['vercel.ai.operationId']?.value).toBe('ai.streamText');
 
-                const generateContent = container.items.find(
-                  span => span.attributes?.['sentry.op']?.value === 'gen_ai.generate_content',
-                )!;
-                expect(generateContent).toBeDefined();
-                expect(generateContent.parent_span_id).toBe(invokeAgent.span_id);
-                expect(generateContent.attributes?.['vercel.ai.operationId']?.value).toBe('ai.streamText.doStream');
-              },
-            })
-            .start()
-            .completed();
-        },
-      );
+              const generateContent = container.items.find(
+                span => span.attributes?.['sentry.op']?.value === 'gen_ai.generate_content',
+              )!;
+              expect(generateContent).toBeDefined();
+              expect(generateContent.parent_span_id).toBe(invokeAgent.span_id);
+              expect(generateContent.attributes?.['vercel.ai.operationId']?.value).toBe('ai.streamText.doStream');
+            },
+          })
+          .start()
+          .completed();
+      });
     },
     {
       additionalDependencies: {
