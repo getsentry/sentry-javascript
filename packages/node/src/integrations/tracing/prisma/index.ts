@@ -1,6 +1,7 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import type { Span } from '@sentry/core';
 import {
+  debug,
   defineIntegration,
   LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -9,6 +10,7 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
+import { DEBUG_BUILD } from '../../../debug-build';
 import { PrismaInstrumentation } from './vendored/instrumentation';
 import type { PrismaV5TracingHelper } from './vendored/v5-tracing-helper';
 import type { PrismaV6TracingHelper } from './vendored/v6-tracing-helper';
@@ -147,10 +149,19 @@ class SentryPrismaInteropInstrumentation extends PrismaInstrumentation {
         engineSpanEvent: V5EngineSpanEvent,
       ) => {
         pendingEngineSpans.push(...engineSpanEvent.spans);
-        if (pendingEngineSpans.length > MAX_TRACKED_PRISMA_SPANS) {
-          pendingEngineSpans.splice(0, pendingEngineSpans.length - MAX_TRACKED_PRISMA_SPANS);
-        }
+
+        // Resolve before capping so a span is only ever dropped after a full resolution attempt, never
+        // before it had a chance to find its parent. What remains are orphans whose parent was never
+        // registered (e.g. evicted from the registry under sustained load); cap that backlog so it can't
+        // grow without bound.
         createResolvedEngineSpans();
+
+        const overflow = pendingEngineSpans.length - MAX_TRACKED_PRISMA_SPANS;
+        if (overflow > 0) {
+          DEBUG_BUILD &&
+            debug.log(`[Prisma] Dropping ${overflow} unresolved v5 engine span(s) whose parent was never registered.`);
+          pendingEngineSpans.splice(0, overflow);
+        }
       };
     }
   }
