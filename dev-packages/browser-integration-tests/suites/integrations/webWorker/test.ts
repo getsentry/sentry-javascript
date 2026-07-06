@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequest } from '../../../utils/helpers';
 
 sentryTest('Assigns web worker debug IDs when using webWorkerIntegration', async ({ getLocalTestUrl, page }) => {
   const bundle = process.env.PW_BUNDLE;
@@ -21,12 +21,16 @@ sentryTest('Assigns web worker debug IDs when using webWorkerIntegration', async
     });
   });
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page, url);
+  const errorEventPromise = waitForErrorRequest(
+    page,
+    event => !!event.exception?.values?.[0]?.value?.includes('Worker error for testing'),
+  );
 
-  const button = page.locator('#errWorker');
-  await button.click();
+  await page.goto(url);
 
-  const errorEvent = await errorEventPromise;
+  await page.locator('#errWorker').click();
+
+  const errorEvent = envelopeRequestParser<Event>(await errorEventPromise);
 
   expect(errorEvent.debug_meta?.images).toBeDefined();
 
@@ -59,12 +63,16 @@ sentryTest('Captures unhandled rejections from web workers', async ({ getLocalTe
     });
   });
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page, url);
+  const errorEventPromise = waitForErrorRequest(
+    page,
+    event => !!event.exception?.values?.[0]?.value?.includes('Worker unhandled rejection'),
+  );
 
-  const button = page.locator('#rejectionWorker');
-  await button.click();
+  await page.goto(url);
 
-  const errorEvent = await errorEventPromise;
+  await page.locator('#rejectionWorker').click();
+
+  const errorEvent = envelopeRequestParser<Event>(await errorEventPromise);
 
   // Verify the unhandled rejection was captured
   expect(errorEvent.exception?.values?.[0]?.value).toContain('Worker unhandled rejection');
