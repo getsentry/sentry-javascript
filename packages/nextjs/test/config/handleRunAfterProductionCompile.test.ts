@@ -546,14 +546,16 @@ describe('handleRunAfterProductionCompile', () => {
 
     it('does not warn when sourcemaps are disabled', async () => {
       readdirSpy.mockResolvedValue(['immutable/chunks/page-abc.js.map']);
-      vi.mocked(getBuildPluginOptions).mockReset().mockReturnValueOnce({
-        org: 'test-org',
-        project: 'test-project',
-        sourcemaps: {
-          disable: true,
-          assets: ['/path/to/.next/server', '/path/to/.next/static/chunks'],
-        },
-      });
+      vi.mocked(getBuildPluginOptions)
+        .mockReset()
+        .mockReturnValueOnce({
+          org: 'test-org',
+          project: 'test-project',
+          sourcemaps: {
+            disable: true,
+            assets: ['/path/to/.next/server', '/path/to/.next/static/chunks'],
+          },
+        });
 
       await handleRunAfterProductionCompile(
         {
