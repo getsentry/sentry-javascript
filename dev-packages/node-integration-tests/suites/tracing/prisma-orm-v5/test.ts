@@ -1,3 +1,4 @@
+import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -5,13 +6,113 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-// TODO(provider): Prisma v5 engine spans (`prisma:engine:*`) are minted by Sentry's v5 compatibility
-// shim (`prismaIntegration`), which forces the engine-supplied span/trace IDs by overriding the OTel
-// SDK tracer's private `_idGenerator`. Under the SentryTracerProvider the global tracer is a
-// `SentryTracer`, which has no `_idGenerator`, so the shim bails out and drops every engine span,
-// leaving only the `prisma:client:*` spans. v6/v7 are unaffected (they create engine spans via core's
-// span APIs). Re-enable once the v5 shim can mint spans with explicit IDs under the provider.
-describe.skip('Prisma ORM v5 Tests', () => {
+const ADDITIONAL_DEPENDENCIES = {
+  '@prisma/client': '5.22.0',
+  prisma: '5.22.0',
+};
+
+// Prisma v5 engine spans are minted by Sentry's v5 compatibility shim through Sentry's
+// provider-agnostic span APIs, so the same span tree must be produced under both the default
+// SentryTracerProvider and the opt-in OTel BasicTracerProvider (`openTelemetryBasicTracerProvider`).
+function expectPrismaV5Spans(transaction: TransactionEvent): void {
+  expect(transaction.transaction).toBe('Test Transaction');
+  const spans = transaction.spans || [];
+  expect(spans.length).toBeGreaterThanOrEqual(5);
+
+  // Valid parents are the transaction root or any other span within the transaction.
+  const validParentIds = new Set([transaction.contexts?.trace?.span_id, ...spans.map(s => s.span_id)]);
+
+  const operationSpans = spans.filter(s => s.description === 'prisma:client:operation');
+  expect(operationSpans.length).toBeGreaterThanOrEqual(1);
+
+  // The db-query spans are materialized from the raw engine event; assert they nest inside the
+  // transaction rather than dangling as orphans.
+  const dbSpans = spans.filter(s => s.op === 'db');
+  expect(dbSpans.length).toBeGreaterThanOrEqual(1);
+  dbSpans.forEach(dbSpan => {
+    expect(validParentIds.has(dbSpan.parent_span_id)).toBe(true);
+  });
+
+  const txSpan = spans.find(s => s.description === 'prisma:client:transaction');
+  expect(txSpan).toBeDefined();
+
+  expect(spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        data: {
+          method: 'create',
+          model: 'User',
+          name: 'User.create',
+          'sentry.origin': 'auto.db.otel.prisma',
+        },
+        description: 'prisma:client:operation',
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        data: {
+          method: 'findMany',
+          model: 'User',
+          name: 'User.findMany',
+          'sentry.origin': 'auto.db.otel.prisma',
+        },
+        description: 'prisma:client:operation',
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        data: {
+          'sentry.origin': 'auto.db.otel.prisma',
+        },
+        description: 'prisma:client:serialize',
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        data: {
+          'sentry.origin': 'auto.db.otel.prisma',
+        },
+        description: 'prisma:client:connect',
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        data: {
+          'db.statement': expect.stringContaining('INSERT INTO'),
+          'db.system': 'postgresql',
+          'otel.kind': 'CLIENT',
+          'sentry.op': 'db',
+          'sentry.origin': 'auto.db.otel.prisma',
+        },
+        op: 'db',
+        description: expect.stringContaining('INSERT INTO'),
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        data: {
+          'db.statement': expect.stringContaining('SELECT'),
+          'db.system': 'postgresql',
+          'otel.kind': 'CLIENT',
+          'sentry.op': 'db',
+          'sentry.origin': 'auto.db.otel.prisma',
+        },
+        op: 'db',
+        description: expect.stringContaining('SELECT'),
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        data: {
+          'db.statement': expect.stringContaining('DELETE'),
+          'db.system': 'postgresql',
+          'otel.kind': 'CLIENT',
+          'sentry.op': 'db',
+          'sentry.origin': 'auto.db.otel.prisma',
+        },
+        op: 'db',
+        description: expect.stringContaining('DELETE'),
+        status: 'ok',
+      }),
+    ]),
+  );
+}
+
+describe('Prisma ORM v5 Tests', () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario.mjs',
@@ -23,135 +124,39 @@ describe.skip('Prisma ORM v5 Tests', () => {
             workingDirectory: [cwd],
             setupCommand: 'yarn prisma generate && yarn prisma migrate dev -n sentry-test',
           })
-          .expect({
-            transaction: transaction => {
-              expect(transaction.transaction).toBe('Test Transaction');
-              const spans = transaction.spans || [];
-              expect(spans.length).toBeGreaterThanOrEqual(5);
-
-              // Valid parents are the transaction root or any other span within the transaction.
-              const validParentIds = new Set([transaction.contexts?.trace?.span_id, ...spans.map(s => s.span_id)]);
-
-              const operationSpans = spans.filter(s => s.description === 'prisma:client:operation');
-              expect(operationSpans.length).toBeGreaterThanOrEqual(1);
-
-              // The db-query spans are materialized from the raw engine event; assert they nest inside the
-              // transaction rather than dangling as orphans.
-              const dbSpans = spans.filter(s => s.op === 'db');
-              expect(dbSpans.length).toBeGreaterThanOrEqual(1);
-              dbSpans.forEach(dbSpan => {
-                expect(validParentIds.has(dbSpan.parent_span_id)).toBe(true);
-              });
-
-              const txSpan = spans.find(s => s.description === 'prisma:client:transaction');
-              expect(txSpan).toBeDefined();
-
-              expect(spans).toContainEqual(
-                expect.objectContaining({
-                  data: {
-                    method: 'create',
-                    model: 'User',
-                    name: 'User.create',
-                    'sentry.origin': 'auto.db.otel.prisma',
-                  },
-                  description: 'prisma:client:operation',
-                  status: 'ok',
-                }),
-              );
-
-              expect(spans).toContainEqual(
-                expect.objectContaining({
-                  data: {
-                    'sentry.origin': 'auto.db.otel.prisma',
-                  },
-                  description: 'prisma:client:serialize',
-                  status: 'ok',
-                }),
-              );
-
-              expect(spans).toContainEqual(
-                expect.objectContaining({
-                  data: {
-                    'sentry.origin': 'auto.db.otel.prisma',
-                  },
-                  description: 'prisma:client:connect',
-                  status: 'ok',
-                }),
-              );
-              expect(spans).toContainEqual(
-                expect.objectContaining({
-                  data: {
-                    method: 'findMany',
-                    model: 'User',
-                    name: 'User.findMany',
-                    'sentry.origin': 'auto.db.otel.prisma',
-                  },
-                  description: 'prisma:client:operation',
-                  status: 'ok',
-                }),
-              );
-              expect(spans).toContainEqual(
-                expect.objectContaining({
-                  data: {
-                    'sentry.origin': 'auto.db.otel.prisma',
-                  },
-                  description: 'prisma:client:serialize',
-                  status: 'ok',
-                }),
-              );
-              expect(spans).toContainEqual(
-                expect.objectContaining({
-                  data: {
-                    'db.statement': expect.stringContaining('INSERT INTO'),
-                    'db.system': 'postgresql',
-                    'otel.kind': 'CLIENT',
-                    'sentry.op': 'db',
-                    'sentry.origin': 'auto.db.otel.prisma',
-                  },
-                  op: 'db',
-                  description: expect.stringContaining('INSERT INTO'),
-                  status: 'ok',
-                }),
-              );
-              expect(spans).toContainEqual(
-                expect.objectContaining({
-                  data: {
-                    'db.statement': expect.stringContaining('SELECT'),
-                    'db.system': 'postgresql',
-                    'otel.kind': 'CLIENT',
-                    'sentry.op': 'db',
-                    'sentry.origin': 'auto.db.otel.prisma',
-                  },
-                  op: 'db',
-                  description: expect.stringContaining('SELECT'),
-                  status: 'ok',
-                }),
-              );
-              expect(spans).toContainEqual(
-                expect.objectContaining({
-                  data: {
-                    'db.statement': expect.stringContaining('DELETE'),
-                    'db.system': 'postgresql',
-                    'otel.kind': 'CLIENT',
-                    'sentry.op': 'db',
-                    'sentry.origin': 'auto.db.otel.prisma',
-                  },
-                  op: 'db',
-                  description: expect.stringContaining('DELETE'),
-                  status: 'ok',
-                }),
-              );
-            },
-          })
+          .expect({ transaction: expectPrismaV5Spans })
           .start()
           .completed();
       });
     },
     {
-      additionalDependencies: {
-        '@prisma/client': '5.22.0',
-        prisma: '5.22.0',
-      },
+      additionalDependencies: ADDITIONAL_DEPENDENCIES,
+      copyPaths: ['prisma', 'docker-compose.yml'],
+    },
+  );
+});
+
+// The BasicTracerProvider path is opt-in via `openTelemetryBasicTracerProvider: true`; it must produce
+// the same Prisma v5 span tree as the default SentryTracerProvider.
+describe('Prisma ORM v5 Tests (BasicTracerProvider)', () => {
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario.mjs',
+    'instrument-basic-tracer-provider.mjs',
+    (createRunner, test, _mode, cwd) => {
+      test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
+        await createRunner()
+          .withDockerCompose({
+            workingDirectory: [cwd],
+            setupCommand: 'yarn prisma generate && yarn prisma migrate dev -n sentry-test',
+          })
+          .expect({ transaction: expectPrismaV5Spans })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: ADDITIONAL_DEPENDENCIES,
       copyPaths: ['prisma', 'docker-compose.yml'],
     },
   );
