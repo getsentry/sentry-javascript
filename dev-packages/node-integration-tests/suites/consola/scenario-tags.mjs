@@ -1,16 +1,7 @@
 import * as Sentry from '@sentry/node';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import { consola } from 'consola';
 
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0.0',
-  environment: 'test',
-  enableLogs: true,
-  transport: loggingTransport,
-});
-
-async function run(): Promise<void> {
+async function run() {
   // Set consola level to capture all logs including debug and trace
   consola.level = 5;
 
@@ -20,10 +11,10 @@ async function run(): Promise<void> {
   // Add the reporter to consola
   consola.addReporter(sentryReporter);
 
-  // Test basic logging with different types
-  consola.info('Test info message');
-  consola.error('Test error message');
-  consola.warn('Test warn message');
+  // Test with scoped logger (tags)
+  const taggedLogger = consola.withTag('api');
+  taggedLogger.info('Tagged info message');
+  taggedLogger.error('Tagged error message');
 
   await Sentry.flush();
 }
