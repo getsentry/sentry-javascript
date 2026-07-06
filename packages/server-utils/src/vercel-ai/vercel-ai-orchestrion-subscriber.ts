@@ -1,9 +1,11 @@
+/* eslint-disable max-lines */
 import type { Span } from '@sentry/core';
 import { debug, getActiveSpan, SPAN_STATUS_ERROR, withActiveSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '../tracing-channel';
 import {
+  captureToolError,
   clearOperationCallId,
   clearOperationId,
   createSpanFromMessage,
@@ -14,22 +16,28 @@ import {
 } from './vercel-ai-dc-subscriber';
 
 /**
- * v6 channel adapter for the Vercel AI (`ai`) SDK.
+ * v5 & v6 channel adapter for the Vercel AI (`ai`) SDK.
  *
  * `ai` >= 7 publishes a normalized `ai:telemetry` tracing channel natively
- * (consumed by `subscribeVercelAiTracingChannel`). v6 has no such channel, so
+ * (consumed by `subscribeVercelAiTracingChannel`). v5/v6 have no such channel, so
  * orchestrion injects `orchestrion:ai:*` channels around the top-level
  * functions (see `orchestrion/config/index.ts`). The injected channels carry only the
  * wrapped call's `{ arguments, result, error }` — NOT v7's normalized `event`
  * object — so this adapter reconstructs an equivalent {@link VercelAiChannelMessage}
- * from v6's argument/result shapes and delegates to the SAME span-building core
+ * from v5/v6's argument/result shapes and delegates to the SAME span-building core
  * (`createSpanFromMessage` / `enrichSpanOnEnd`) the v7 subscriber uses, so the
- * emitted spans are identical between v6 and v7.
+ * emitted spans are identical between v5, v6 and v7.
  *
  * The model call (`languageModelCall` / `generate_content` span) has no
  * injectable definition in `ai`, so we instead wrap `resolveLanguageModel` (the
- * single chokepoint every model call flows through) and monkey-patch
- * `doGenerate`/`doStream` on the returned model.
+ * single chokepoint every model call flows through, present in both v5 and v6)
+ * and monkey-patch `doGenerate`/`doStream` on the returned model.
+ *
+ * Tool-call spans differ by version: v6 exposes a per-call `executeToolCall`
+ * function orchestrion wraps into its own channel. v5 has no such export (only a
+ * batch `executeTools`), so instead we monkey-patch each tool's `execute` from
+ * the operation's `tools` — but only when the `executeToolCall` channel is never
+ * seen (i.e. we're on v5), so v6 never double-counts tool spans.
  */
 
 /** Shape orchestrion's transform attaches to the tracing-channel context. */
@@ -51,9 +59,19 @@ interface ResolvedModel {
 }
 
 const PATCHED = Symbol('SentryVercelAiModelPatched');
+const TOOL_PATCHED = Symbol('SentryVercelAiToolPatched');
 
 /** A resolved model with our patch bookkeeping (idempotency flag). */
 type PatchableModel = ResolvedModel & { [PATCHED]?: boolean };
+
+/** A tool definition off an operation's `tools`, with our patch bookkeeping. */
+type PatchableTool = { execute?: (...args: unknown[]) => unknown; [TOOL_PATCHED]?: boolean };
+
+// Set the first time the v6-only `executeToolCall` channel fires. It gates the v5 tool-`execute`
+// patching: on v6 every tool call flows through `executeToolCall` (its own span-emitting channel), so
+// the channel fires before any tool `execute` runs and our patched `execute` becomes a no-op — no
+// duplicate tool spans. On v5 the channel is never published, so the patch is what emits tool spans.
+let sawExecuteToolCallChannel = false;
 
 // Per-operation correlation id. No Date/random (unavailable / non-deterministic) — a counter is enough.
 let callIdCounter = 0;
@@ -140,17 +158,21 @@ export function subscribeVercelAiOrchestrionChannels(
     bindOperation(
       tracingChannel,
       CHANNELS.VERCEL_AI_EXECUTE_TOOL_CALL,
-      (callOptions, telemetry) => ({
-        type: 'executeTool',
-        // v6 carries the tool definitions on the executeToolCall args (a record keyed by name);
-        // the shared core reads the matching tool's `description` for the span.
-        event: {
-          callId: nextCallId(),
-          toolCall: callOptions.toolCall,
-          tools: callOptions.tools,
-          ...recording(telemetry),
-        },
-      }),
+      (callOptions, telemetry) => {
+        // Only v6 publishes this channel; seeing it disables the v5 tool-`execute` patch (see flag docs).
+        sawExecuteToolCallChannel = true;
+        return {
+          type: 'executeTool',
+          // v6 carries the tool definitions on the executeToolCall args (a record keyed by name);
+          // the shared core reads the matching tool's `description` for the span.
+          event: {
+            callId: nextCallId(),
+            toolCall: callOptions.toolCall,
+            tools: callOptions.tools,
+            ...recording(telemetry),
+          },
+        };
+      },
       options,
     );
     subscribeResolveLanguageModel(tracingChannel, CHANNELS.VERCEL_AI_RESOLVE_LANGUAGE_MODEL, options);
@@ -203,6 +225,11 @@ function bindOperation(
         callIdBySpan.set(span, callId);
       }
       recordingBySpan.set(span, recording(telemetry));
+      // v5 has no `executeToolCall` channel, so patch each tool's `execute` to emit the tool-call span.
+      // A no-op on v6 (guarded inside `patchToolExecute` once the `executeToolCall` channel is seen).
+      if (isRecord(callOptions.tools)) {
+        patchOperationTools(callOptions.tools, options);
+      }
     }
     return span;
   };
@@ -394,6 +421,90 @@ function patchModelMethod(
   };
 }
 
+/**
+ * Patch every executable tool on an operation's `tools` (a record keyed by tool name) so each
+ * invocation emits a `gen_ai.execute_tool` span. v5 routes tool execution through the batch
+ * `executeTools`, which binds `tool.execute` at call time — so replacing the `execute` property here
+ * (before the call runs) is picked up. Tools without an `execute` (client-side tools) are skipped,
+ * matching `executeTools`.
+ */
+function patchOperationTools(tools: Record<string, unknown>, options: VercelAiChannelOptions): void {
+  // This runs inside the channel `start` transform (no upstream try/catch), so a throw here would break
+  // the user's `ai` call. Instrumentation must never do that — degrade to no tool span instead.
+  try {
+    for (const [toolName, tool] of Object.entries(tools)) {
+      if (isRecord(tool)) {
+        patchToolExecute(toolName, tool as PatchableTool, tools, options);
+      }
+    }
+  } catch {
+    DEBUG_BUILD && debug.log('Vercel AI orchestrion tool patching failed.');
+  }
+}
+
+function patchToolExecute(
+  toolName: string,
+  tool: PatchableTool,
+  tools: Record<string, unknown>,
+  options: VercelAiChannelOptions,
+): void {
+  const original = tool.execute;
+  if (typeof original !== 'function' || tool[TOOL_PATCHED]) {
+    return;
+  }
+  tool[TOOL_PATCHED] = true;
+  tool.execute = function (this: unknown, input: unknown, ...rest: unknown[]): unknown {
+    // On v6 the `executeToolCall` channel already spanned this call before `execute` ran; don't
+    // double-count. Also skip if there's no enclosing operation span (telemetry disabled for the call).
+    const parent = resolveModelCallParent();
+    if (sawExecuteToolCallChannel || !parent) {
+      return original.apply(this, [input, ...rest]);
+    }
+
+    // v5 passes `{ toolCallId, messages, abortSignal, ... }` as the second argument to `execute`.
+    const callOptions = isRecord(rest[0]) ? rest[0] : {};
+    const message: VercelAiChannelMessage = {
+      type: 'executeTool',
+      event: {
+        callId: callIdBySpan.get(parent),
+        toolCall: { toolName, toolCallId: asString(callOptions.toolCallId), input },
+        // The `tools` record (keyed by name) lets the shared core backfill the tool's `description`.
+        tools,
+        // Inherit the enclosing operation's per-call recording flags so tool inputs/outputs are recorded
+        // whenever they are on the parent `invoke_agent` span.
+        ...recordingBySpan.get(parent),
+      },
+    };
+    const span = withActiveSpan(parent, () => createSpanFromMessage(message, options));
+    // `executeTool` always opens a span; the guard just keeps the wrapper safe if that changes.
+    if (!span) {
+      return original.apply(this, [input, ...rest]);
+    }
+
+    // v5's `executeTools` catches a thrown tool error and turns it into `tool-error` content rather
+    // than rejecting, so the user never sees a rejection — we must capture it here. Rethrow so
+    // `executeTools` still produces its `tool-error` result and the operation continues normally.
+    const failSpan = (error: unknown): never => {
+      captureToolError(span, message, error);
+      span.end();
+      throw error;
+    };
+
+    try {
+      const result = Promise.resolve(original.apply(this, [input, ...rest]));
+      return result.then(value => {
+        // The shared core (matching v6/v7) expects the tool result nested under `output`.
+        message.result = { output: value };
+        enrichSpanOnEnd(span, message, options);
+        span.end();
+        return value;
+      }, failSpan);
+    } catch (error) {
+      return failSpan(error);
+    }
+  };
+}
+
 function buildTextMessage(type: 'generateText' | 'streamText'): MessageBuilder {
   return (options, telemetry) => ({
     type,
@@ -422,7 +533,15 @@ function normalizePromptMessages(options: Record<string, unknown>): unknown {
 }
 
 function recording(telemetry: Record<string, unknown>): { recordInputs: unknown; recordOutputs: unknown } {
-  return { recordInputs: telemetry.recordInputs, recordOutputs: telemetry.recordOutputs };
+  // Match the OTel integration's per-call default: an explicit `recordInputs`/`recordOutputs` wins, but a
+  // call that merely enables telemetry (`isEnabled: true`, no explicit flags) defaults both to `true`.
+  // Unlike v7's native `ai:telemetry` channel, the orchestrion channels expose `isEnabled`, so — as noted
+  // in `resolveRecording` — we CAN reproduce that default here (the native-channel subscriber cannot).
+  const enabledDefault = telemetry.isEnabled === true ? true : undefined;
+  return {
+    recordInputs: telemetry.recordInputs ?? enabledDefault,
+    recordOutputs: telemetry.recordOutputs ?? enabledDefault,
+  };
 }
 
 function modelFields(model: unknown): { provider?: string; modelId?: string } {

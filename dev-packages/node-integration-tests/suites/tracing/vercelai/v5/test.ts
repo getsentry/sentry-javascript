@@ -20,7 +20,12 @@ import {
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { isOrchestrionEnabled } from '../../../../utils';
 
-describe.skipIf(isOrchestrionEnabled())('Vercel AI integration (v5)', () => {
+// In orchestrion mode the channel-based integration emits the spans (origin `auto.vercelai.channel`);
+// otherwise the OTel-based integration does (`auto.vercelai.otel`). The spans are otherwise identical,
+// so the same assertions run in both modes — only the origin differs.
+const expectedOrigin = isOrchestrionEnabled() ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
+
+describe('Vercel AI integration (v5)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -47,6 +52,7 @@ describe.skipIf(isOrchestrionEnabled())('Vercel AI integration (v5)', () => {
               expect(firstInvokeAgentSpan!.name).toBe('invoke_agent');
               expect(firstInvokeAgentSpan!.status).toBe('ok');
               expect(firstInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+              expect(firstInvokeAgentSpan!.attributes['sentry.origin'].value).toBe(expectedOrigin);
               expect(firstInvokeAgentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateText');
               expect(firstInvokeAgentSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('mock-model-id');
               expect(firstInvokeAgentSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('mock-model-id');
@@ -122,6 +128,7 @@ describe.skipIf(isOrchestrionEnabled())('Vercel AI integration (v5)', () => {
               expect(toolExecutionSpan!.name).toBe('execute_tool getWeather');
               expect(toolExecutionSpan!.status).toBe('ok');
               expect(toolExecutionSpan!.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
+              expect(toolExecutionSpan!.attributes['sentry.origin'].value).toBe(expectedOrigin);
               expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE].value).toBe('getWeather');
               expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE].value).toBe('call-1');
               expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_TYPE_ATTRIBUTE].value).toBe('function');
@@ -291,6 +298,7 @@ describe.skipIf(isOrchestrionEnabled())('Vercel AI integration (v5)', () => {
               expect(toolSpan!.name).toBe('execute_tool getWeather');
               expect(toolSpan!.status).toBe('error');
               expect(toolSpan!.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
+              expect(toolSpan!.attributes['sentry.origin'].value).toBe(expectedOrigin);
               expect(toolSpan!.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE].value).toBe('getWeather');
             },
           })
