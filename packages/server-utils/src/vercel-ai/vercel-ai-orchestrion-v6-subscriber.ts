@@ -19,7 +19,7 @@ import {
  * `ai` >= 7 publishes a normalized `ai:telemetry` tracing channel natively
  * (consumed by `subscribeVercelAiTracingChannel`). v6 has no such channel, so
  * orchestrion injects `orchestrion:ai:*` channels around the top-level
- * functions (see `orchestrion/config.ts`). The injected channels carry only the
+ * functions (see `orchestrion/config/index.ts`). The injected channels carry only the
  * wrapped call's `{ arguments, result, error }` — NOT v7's normalized `event`
  * object — so this adapter reconstructs an equivalent {@link VercelAiChannelMessage}
  * from v6's argument/result shapes and delegates to the SAME span-building core
