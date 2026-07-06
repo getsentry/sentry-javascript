@@ -37,7 +37,6 @@ export const CHANNELS = {
   ...hapiChannels,
   ...redisChannels,
   ...expressChannels,
- 
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
