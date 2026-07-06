@@ -98,6 +98,19 @@ function createResolvedEngineSpans(): void {
         parentSpan,
       });
       registerPrismaSpan(engineSpan.span_id, span);
+
+      // Engine links reference other engine spans by their engine id; re-point them at the Sentry spans
+      // we minted (mirroring v6/v7's `dispatchEngineSpan`). Links must be added before the span ends,
+      // since the SentryTracerProvider seals spans on end. Links to spans we haven't created are dropped.
+      if (engineSpan.links) {
+        span.addLinks(
+          engineSpan.links.flatMap(link => {
+            const linkedSpan = prismaSpanRegistry.get(link.span_id);
+            return linkedSpan ? [{ context: linkedSpan.spanContext() }] : [];
+          }),
+        );
+      }
+
       span.end(engineSpan.end_time);
 
       pendingEngineSpans.splice(i, 1);
