@@ -75,14 +75,23 @@ function patchModule(httpModuleExport: HttpModuleExport, options: HttpInstrument
   // if we have a default, patch that, and copy to the import container
   if (httpDefault !== httpModuleExport) {
     patchModule(httpDefault, options);
-    // copy with defineProperty because these might be configured oddly
+    // Mirror the patched methods onto the outer container so that consumers
+    // reading them off `httpModuleExport` (rather than its default export) see
+    // the wrapped versions too. Copy with defineProperty because these might be
+    // configured oddly. Real ES module namespace objects (e.g. `import * as
+    // http`) expose non-configurable, read-only exports that can neither be
+    // redefined nor assigned, so skip those — patching the default export is
+    // enough for `require()`/default-import consumers, which is the common case.
     for (const method of ['get', 'request']) {
       const desc = Object.getOwnPropertyDescriptor(httpDefault, method);
-      /* v8 ignore start - will always be set at this point */
-      if (desc) {
+      // Only redefine if the *target* property is missing or configurable.
+      // e.g. if `httpModule` is an ESM module namespace object, like `import * as http`,
+      // its exports are non-configurable and read-only, so we skip this —
+      // you cannot redefine or assign non-configurable properties.
+      const existing = Object.getOwnPropertyDescriptor(httpModule, method);
+      if (desc && (!existing || existing.configurable)) {
         Object.defineProperty(httpModule, method, desc);
       }
-      /* v8 ignore stop */
     }
     return httpModule;
   }
