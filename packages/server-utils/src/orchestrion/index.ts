@@ -1,3 +1,4 @@
+import { amqplibChannelIntegration } from '../integrations/tracing-channel/amqplib';
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
@@ -8,6 +9,7 @@ import { vercelAiChannelIntegration } from '../integrations/tracing-channel/verc
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 export {
+  amqplibChannelIntegration,
   anthropicChannelIntegration,
   ioredisChannelIntegration,
   lruMemoizerChannelIntegration,
@@ -38,4 +40,5 @@ export const channelIntegrations = {
   openaiIntegration: openaiChannelIntegration,
   anthropicIntegration: anthropicChannelIntegration,
   vercelAiIntegration: vercelAiChannelIntegration,
+  amqplibIntegration: amqplibChannelIntegration,
 } as const;

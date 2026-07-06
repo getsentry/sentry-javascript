@@ -6,6 +6,7 @@ import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { anthropicAiConfig } from './anthropic-ai';
 import { vercelAiConfig } from './vercel-ai';
+import { amqplibConfig } from './amqplib';
 
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...mysqlConfig,
@@ -15,6 +16,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...pgConfig,
   ...anthropicAiConfig,
   ...vercelAiConfig,
+  ...amqplibConfig,
 ];
 
 /**

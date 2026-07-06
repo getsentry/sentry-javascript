@@ -23,6 +23,7 @@ import {
 } from './denoVersion';
 import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
+import { denoAmqplibIntegration } from './integrations/amqplib';
 import { denoMysqlIntegration } from './integrations/mysql';
 import { denoPostgresIntegration } from './integrations/postgres';
 import { denoRedisIntegration } from './integrations/redis';
@@ -60,7 +61,9 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     // It's possible that the orchestrion channels will be injected AFTER
     // (or in parallel to) loading the SDK, so we only gate on whether the
     // feature is possible. If they're never loaded, it'll just be a no-op.
-    ...(MODULE_REGISTER_HOOKS_SUPPORTED ? [denoMysqlIntegration(), denoPostgresIntegration()] : []),
+    ...(MODULE_REGISTER_HOOKS_SUPPORTED
+      ? [denoMysqlIntegration(), denoPostgresIntegration(), denoAmqplibIntegration()]
+      : []),
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),

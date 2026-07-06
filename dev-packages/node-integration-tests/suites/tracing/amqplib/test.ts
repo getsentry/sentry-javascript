@@ -1,6 +1,13 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+
+// The span origin depends on which instrumentation is active. These blocks drive the SDK's default
+// integrations, so when the generic orchestrion run is enabled (via INJECT_ORCHESTRION) the OTel
+// `Amqplib` integration is swapped for the diagnostics-channel one, changing the origin.
+const PUBLISHER_ORIGIN = isOrchestrionEnabled() ? 'auto.amqplib.orchestrion.publisher' : 'auto.amqplib.otel.publisher';
+const CONSUMER_ORIGIN = isOrchestrionEnabled() ? 'auto.amqplib.orchestrion.consumer' : 'auto.amqplib.otel.consumer';
 
 // Each scenario uses its own queue name to keep them isolated on the shared broker, so the
 // expected producer span is parameterized by the routing key (queue name) it publishes to.
@@ -12,7 +19,7 @@ const expectedProducerSpan = (routingKey: string) =>
       'messaging.rabbitmq.routing_key': routingKey,
       'otel.kind': 'PRODUCER',
       'sentry.op': 'message',
-      'sentry.origin': 'auto.amqplib.otel.publisher',
+      'sentry.origin': PUBLISHER_ORIGIN,
     }),
     status: 'ok',
   });
@@ -24,7 +31,7 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
     'messaging.rabbitmq.routing_key': 'queue1',
     'otel.kind': 'CONSUMER',
     'sentry.op': 'message',
-    'sentry.origin': 'auto.amqplib.otel.consumer',
+    'sentry.origin': CONSUMER_ORIGIN,
   }),
   status: 'ok',
 });
@@ -65,10 +72,10 @@ describe('amqplib auto-instrumentation', () => {
                 // identify it by its origin rather than by transaction name. The consumer span is its
                 // own transaction, identified by the origin on its trace context.
                 const producer = receivedTransactions.find(t =>
-                  t.spans?.some(s => s.data?.['sentry.origin'] === 'auto.amqplib.otel.publisher'),
+                  t.spans?.some(s => s.data?.['sentry.origin'] === PUBLISHER_ORIGIN),
                 );
                 const consumer = receivedTransactions.find(
-                  t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.amqplib.otel.consumer',
+                  t => t.contexts?.trace?.data?.['sentry.origin'] === CONSUMER_ORIGIN,
                 );
 
                 expect(producer).toBeDefined();
@@ -77,9 +84,7 @@ describe('amqplib auto-instrumentation', () => {
                 expect(producer!.transaction).toBe('root span');
                 expect(consumer!.transaction).toBe('queue1 process');
 
-                const producerSpan = producer!.spans?.find(
-                  s => s.data?.['sentry.origin'] === 'auto.amqplib.otel.publisher',
-                );
+                const producerSpan = producer!.spans?.find(s => s.data?.['sentry.origin'] === PUBLISHER_ORIGIN);
                 expect(producerSpan).toMatchObject(expectedProducerSpan('queue1'));
 
                 expect(consumer!.contexts?.trace).toMatchObject(EXPECTED_MESSAGE_SPAN_CONSUMER);
@@ -116,7 +121,7 @@ describe('amqplib auto-instrumentation', () => {
                 receivedTransactions.push(transaction);
 
                 const consumer = receivedTransactions.find(
-                  t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.amqplib.otel.consumer',
+                  t => t.contexts?.trace?.data?.['sentry.origin'] === CONSUMER_ORIGIN,
                 );
 
                 expect(consumer).toBeDefined();
@@ -129,7 +134,7 @@ describe('amqplib auto-instrumentation', () => {
                       'messaging.system': 'rabbitmq',
                       'otel.kind': 'CONSUMER',
                       'sentry.op': 'message',
-                      'sentry.origin': 'auto.amqplib.otel.consumer',
+                      'sentry.origin': CONSUMER_ORIGIN,
                     }),
                   }),
                 );
@@ -159,9 +164,7 @@ describe('amqplib auto-instrumentation', () => {
                 transaction: (transaction: TransactionEvent) => {
                   expect(transaction.transaction).toBe('root span');
 
-                  const producerSpans = transaction.spans?.filter(
-                    s => s.data?.['sentry.origin'] === 'auto.amqplib.otel.publisher',
-                  );
+                  const producerSpans = transaction.spans?.filter(s => s.data?.['sentry.origin'] === PUBLISHER_ORIGIN);
 
                   // The confirm channel internally calls the base publish; the instrumentation must not
                   // double-instrument, so we expect exactly one producer span.
