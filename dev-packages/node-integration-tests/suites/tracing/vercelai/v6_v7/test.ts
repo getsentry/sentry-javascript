@@ -25,18 +25,19 @@ import {
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
 import { isOrchestrionEnabled } from '../../../../utils';
 
-describe.each([
-  ['6', '^6.0.0'],
-  ['7', '7.0.0-beta.179'],
-])('Vercel AI integration (version %s)', (version, vercelAiVersion) => {
+// On Node 18, we only test v6 as v7 is not supported
+const matrix =
+  NODE_VERSION.major === 18
+    ? ([['6', '^6.0.0']] as const)
+    : ([
+        ['6', '^6.0.0'],
+        ['7', '^7.0.0'],
+      ] as const);
+
+describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVersion) => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
-  // Vercel AI v7 does not support CJS
-  // This fails on Node 18 only, as newer versions of ESM support require
-  const nodeVersion = NODE_VERSION.major;
-  const failsOnCjs = version === '7' && nodeVersion === 18;
 
   const usesChannels = version === '7' || isOrchestrionEnabled();
 
@@ -167,7 +168,6 @@ describe.each([
       additionalDependencies: {
         ai: vercelAiVersion,
       },
-      failsOnCjs,
     },
   );
 
