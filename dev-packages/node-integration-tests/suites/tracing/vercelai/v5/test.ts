@@ -20,9 +20,6 @@ import {
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { isOrchestrionEnabled } from '../../../../utils';
 
-// In orchestrion mode the channel-based integration emits the spans (origin `auto.vercelai.channel`);
-// otherwise the OTel-based integration does (`auto.vercelai.otel`). The spans are otherwise identical,
-// so the same assertions run in both modes — only the origin differs.
 const expectedOrigin = isOrchestrionEnabled() ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
 
 describe('Vercel AI integration (v5)', () => {
@@ -274,6 +271,9 @@ describe('Vercel AI integration (v5)', () => {
         let errorEvent: Event | undefined;
 
         await createRunner()
+          // The tool error is captured while the tool is running (mid-transaction), so the error event
+          // and the transaction/span envelopes can arrive in either order — assert content, not wire order.
+          .unordered()
           .expect({
             transaction: transaction => {
               transactionEvent = transaction;
