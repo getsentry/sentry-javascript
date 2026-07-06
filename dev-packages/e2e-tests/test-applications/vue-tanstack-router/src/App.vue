@@ -11,6 +11,9 @@
         <li>
           <Link to="/posts/$postId" :params="{ postId: '2' }" id="nav-link"> Post 2 </Link>
         </li>
+        <li>
+          <Link to="/redirect" id="redirect-link">Redirect</Link>
+        </li>
       </ul>
     </nav>
     <hr />
