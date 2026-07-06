@@ -42,29 +42,22 @@ interface OutgoingHttpRequestInstrumentationOptions {
 
   /**
    * Whether to propagate Sentry trace headers in outgoing requests.
-   * By default this is done by the HttpInstrumentation, but if that is not added (e.g. because tracing is disabled)
-   * then this instrumentation can take over.
    *
-   * @default `false`
+   * @default `true`
    */
   propagateTraceInOutgoingRequests?: boolean;
 
   /**
-   * Whether to enable the capability to create spans for outgoing requests via diagnostic channels.
-   * If enabled, spans will only be created if the `spans` option is also enabled (default: true).
-   *
-   * This is a feature flag that should be enabled by SDKs when the runtime supports it (Node 22.12+).
-   * Individual users should not need to configure this directly.
+   * @deprecated Use spans option instead.
    *
    * @default `false`
    */
   createSpansForOutgoingRequests?: boolean;
 
   /**
-   * Do not capture breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
-   * For the scope of this instrumentation, this callback only controls breadcrumb creation.
-   * The same option can be passed to the top-level httpIntegration where it controls both, breadcrumb and
-   * span creation.
+   * Do not instrument outgoing HTTP requests to URLs where the given callback returns `true`.
+   * When it returns `true`, the request is skipped entirely: no breadcrumb and no span are created,
+   * and no trace headers are propagated for that request.
    *
    * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the outgoing request.
    * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
@@ -72,7 +65,8 @@ interface OutgoingHttpRequestInstrumentationOptions {
   ignoreOutgoingRequests?: (url: string, request: http.RequestOptions) => boolean;
 
   /**
-   * Hooks for outgoing request spans, called when `createSpansForOutgoingRequests` is enabled.
+   * Hooks for outgoing request spans, only called when spans are created for outgoing requests
+   * (i.e. when both `createSpansForOutgoingRequests` and `spans` are enabled).
    * These mirror the OTEL HttpInstrumentation hooks for backwards compatibility.
    */
   outgoingRequestHook?: (span: Span, request: ClientRequest | HttpClientRequest) => void;
