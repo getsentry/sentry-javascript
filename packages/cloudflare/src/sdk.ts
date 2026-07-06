@@ -14,7 +14,7 @@ import {
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
 import { makeFlushLock } from './flush';
-import { channelIntegrations, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
+import { getRegisteredChannelIntegrations } from '@sentry/server-utils/orchestrion';
 import { httpServerIntegration } from './integrations/httpServer';
 import { fetchIntegration } from './integrations/fetch';
 import { honoIntegration } from './integrations/hono';
@@ -47,9 +47,11 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     consoleIntegration(),
     // The orchestrion diagnostics-channel subscribers (mysql, pg, …). The
     // `@sentry/cloudflare/vite` plugin injects the channels at build time and
-    // sets the orchestrion bundler marker; without it the channels never fire,
-    // so only add the subscribers when injection actually happened.
-    ...(isOrchestrionInjected() ? Object.values(channelIntegrations).map(factory => factory()) : []),
+    // adds the `@sentry/cloudflare/orchestrion` registration module to the
+    // bundle, which puts the subscriber factories on the global marker. Read
+    // from there instead of importing them so bundles built without the
+    // plugin — where the channels would never fire — don't ship the code.
+    ...getRegisteredChannelIntegrations(),
   ];
 }
 

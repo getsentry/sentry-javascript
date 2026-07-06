@@ -1,3 +1,4 @@
+import type { Integration } from '@sentry/core';
 import { debug } from '@sentry/core';
 import { createRequire } from 'node:module';
 import * as Module from 'node:module';
@@ -7,7 +8,9 @@ import { SENTRY_INSTRUMENTATIONS } from '../config';
 
 declare global {
   // eslint-disable-next-line no-var
-  var __SENTRY_ORCHESTRION__: { runtime?: boolean; bundler?: boolean } | undefined;
+  var __SENTRY_ORCHESTRION__:
+    | { runtime?: boolean; bundler?: boolean; integrations?: Array<() => Integration> }
+    | undefined;
 }
 
 /**

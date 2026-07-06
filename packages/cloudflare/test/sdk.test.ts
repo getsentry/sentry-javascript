@@ -66,7 +66,7 @@ describe('getDefaultIntegrations', () => {
     delete globalThis.__SENTRY_ORCHESTRION__;
   });
 
-  test('does not add orchestrion channel integrations when injection did not happen', () => {
+  test('does not add orchestrion channel integrations when none were registered', () => {
     delete globalThis.__SENTRY_ORCHESTRION__;
 
     const names = getDefaultIntegrations({}).map(i => i.name);
@@ -76,8 +76,19 @@ describe('getDefaultIntegrations', () => {
     expect(names).not.toContain('LruMemoizer');
   });
 
-  test('adds orchestrion channel integrations when the bundler marker is set', () => {
+  test('does not add orchestrion channel integrations when only the bundler marker is set', () => {
     globalThis.__SENTRY_ORCHESTRION__ = { bundler: true };
+
+    const names = getDefaultIntegrations({}).map(i => i.name);
+
+    expect(names).not.toContain('Mysql');
+    expect(names).not.toContain('Postgres');
+    expect(names).not.toContain('LruMemoizer');
+  });
+
+  test('adds orchestrion channel integrations registered by the injected registration module', async () => {
+    // Import the actual registration module the vite plugin injects into bundles.
+    await import('../src/orchestrion');
 
     const names = getDefaultIntegrations({}).map(i => i.name);
 

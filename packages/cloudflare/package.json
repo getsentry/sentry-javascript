@@ -40,6 +40,16 @@
     "./vite": {
       "types": "./build/types/vite/index.d.ts",
       "import": "./build/esm/vite/index.js"
+    },
+    "./orchestrion": {
+      "import": {
+        "types": "./build/types/orchestrion.d.ts",
+        "default": "./build/esm/orchestrion.js"
+      },
+      "require": {
+        "types": "./build/types/orchestrion.d.ts",
+        "default": "./build/cjs/orchestrion.js"
+      }
     }
   },
   "typesVersions": {
@@ -94,5 +104,8 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false
+  "sideEffects": [
+    "./build/esm/orchestrion.js",
+    "./build/cjs/orchestrion.js"
+  ]
 }

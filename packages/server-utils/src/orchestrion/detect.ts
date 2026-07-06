@@ -1,9 +1,12 @@
+import type { Integration } from '@sentry/core';
 import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
 declare global {
   // eslint-disable-next-line no-var
-  var __SENTRY_ORCHESTRION__: { runtime?: boolean; bundler?: boolean } | undefined;
+  var __SENTRY_ORCHESTRION__:
+    | { runtime?: boolean; bundler?: boolean; integrations?: Array<() => Integration> }
+    | undefined;
 }
 
 /**
@@ -18,6 +21,21 @@ declare global {
 export function isOrchestrionInjected(): boolean {
   const marker = globalThis.__SENTRY_ORCHESTRION__;
   return !!(marker?.runtime || marker?.bundler);
+}
+
+/**
+ * Returns fresh instances of every channel-subscriber integration an injector
+ * registered on the global marker (e.g. the registration module that the
+ * `@sentry/cloudflare/vite` plugin injects into the worker bundle).
+ *
+ * SDKs that can't afford to ship the subscriber code unconditionally read the
+ * registry through this function instead of importing the integrations: no
+ * static import means bundlers drop the integration code entirely unless the
+ * injector put its registration module — and with it the integrations — into
+ * the bundle.
+ */
+export function getRegisteredChannelIntegrations(): Integration[] {
+  return (globalThis.__SENTRY_ORCHESTRION__?.integrations || []).map(factory => factory());
 }
 
 /**

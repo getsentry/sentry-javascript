@@ -2,6 +2,6 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
-    entrypoints: ['src/index.ts', 'src/vite/index.ts'],
+    entrypoints: ['src/index.ts', 'src/vite/index.ts', 'src/orchestrion.ts'],
   }),
 );
