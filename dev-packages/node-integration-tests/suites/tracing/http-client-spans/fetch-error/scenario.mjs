@@ -1,27 +1,22 @@
 import { createServer } from 'http';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-});
 
 // Bind and immediately release a port so we have an address that reliably refuses the connection.
 // A refused outgoing request fires the `undici:request:error` channel, exercising the error path.
-function getRefusedPort(): Promise<number> {
+/**
+ * @returns {Promise<number>}
+ */
+function getRefusedPort() {
   return new Promise(resolve => {
     const server = createServer();
     server.listen(0, () => {
-      const { port } = server.address() as { port: number };
-      server.close(() => resolve(port));
+      const address = /** @type {{ port: number }} */ (server.address());
+      server.close(() => resolve(address.port));
     });
   });
 }
 
-async function run(): Promise<void> {
+async function run() {
   const port = await getRefusedPort();
 
   await Sentry.startSpan({ name: 'test_transaction' }, async () => {
