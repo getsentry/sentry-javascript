@@ -153,7 +153,7 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig &
  * @TODO Cleanup options in v11
  */
 export function instrumentHttpOutgoingRequests(
-  instrumentationOptions: OutgoingHttpRequestInstrumentationOptions,
+  instrumentationOptions: OutgoingHttpRequestInstrumentationOptions = {},
 ): void {
   const { outgoingRequestApplyCustomAttributes: applyCustomAttributesOnSpan, ...options } = instrumentationOptions;
   const patchOptions = {
