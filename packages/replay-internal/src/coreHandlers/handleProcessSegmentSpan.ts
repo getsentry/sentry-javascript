@@ -10,10 +10,6 @@ export function handleProcessSegmentSpan(replay: ReplayContainer): ProcessSegmen
       return;
     }
 
-    const traceId = spanJSON.trace_id;
-    const segmentName = spanJSON.name;
-    if (traceId && segmentName) {
-      addSegmentDetailsToContext(replay, traceId, segmentName);
-    }
+    addSegmentDetailsToContext(replay, spanJSON.trace_id, spanJSON.name || undefined);
   };
 }

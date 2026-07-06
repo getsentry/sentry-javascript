@@ -33,10 +33,7 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
 }
 
 function handleTransactionEvent(replay: ReplayContainer, event: TransactionEvent): void {
-  const traceId = event.contexts?.trace?.trace_id;
-  if (traceId && event.transaction) {
-    addSegmentDetailsToContext(replay, traceId, event.transaction);
-  }
+  addSegmentDetailsToContext(replay, event.contexts?.trace?.trace_id, event.transaction);
 }
 
 function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {

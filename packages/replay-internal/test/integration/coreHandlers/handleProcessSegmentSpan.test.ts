@@ -117,7 +117,7 @@ describe('Integration | coreHandlers | handleProcessSegmentSpan', () => {
     expect(Array.from(replay.getContext().traceIds)).toEqual([]);
   });
 
-  it('does not record segment spans with empty names', async () => {
+  it('records traceId but not segmentName for segment spans with empty names', async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {
         stickySession: false,
@@ -140,7 +140,33 @@ describe('Integration | coreHandlers | handleProcessSegmentSpan', () => {
       status: 'ok',
     } as StreamedSpanJSON);
 
-    expect(Array.from(replay.getContext().traceIds)).toEqual([]);
+    expect(Array.from(replay.getContext().traceIds)).toEqual(['trace-stream-1']);
     expect(Array.from(replay.getContext().segmentNames)).toEqual([]);
+  });
+
+  it('records segmentName but not traceId for segment spans with missing trace_id', async () => {
+    ({ replay } = await resetSdkMock({
+      replayOptions: {
+        stickySession: false,
+      },
+      sentryOptions: {
+        replaysSessionSampleRate: 1.0,
+        replaysOnErrorSampleRate: 0.0,
+      },
+    }));
+
+    const client = getClient()!;
+
+    client.emit('processSegmentSpan', {
+      span_id: 'span1',
+      name: 'GET /api/users',
+      is_segment: true,
+      start_timestamp: 0,
+      end_timestamp: 1,
+      status: 'ok',
+    } as StreamedSpanJSON);
+
+    expect(Array.from(replay.getContext().traceIds)).toEqual([]);
+    expect(Array.from(replay.getContext().segmentNames)).toEqual(['GET /api/users']);
   });
 });
