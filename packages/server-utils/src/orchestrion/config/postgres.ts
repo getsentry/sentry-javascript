@@ -32,6 +32,17 @@ const postgresJsInstrumentationConfig = (dir: string): InstrumentationConfig[] =
     module: { name: 'postgres', versionRange: '>=3.0.0 <4', filePath: `${dir}/connection.js` },
     functionQuery: { functionName: 'execute', kind: 'Sync' },
   },
+  // The connection object's `connect(query)` method. Matched by `methodName`
+  // (an object-literal method): `functionName` would hit the unrelated
+  // socket-level `async function connect()` in the same file. `self` is the
+  // connection object and `arguments[0]` the query, so the first query that
+  // opens a connection (dispatched via a bare `execute` with no `self`) still
+  // gets connection attributes in multi-endpoint apps.
+  {
+    channelName: 'connect',
+    module: { name: 'postgres', versionRange: '>=3.0.0 <4', filePath: `${dir}/connection.js` },
+    functionQuery: { methodName: 'connect', kind: 'Sync' },
+  },
 ];
 
 export const postgresJsConfig = ['src', 'cjs/src'].flatMap(postgresJsInstrumentationConfig);
@@ -40,4 +51,5 @@ export const postgresJsChannels = {
   POSTGRESJS_HANDLE: 'orchestrion:postgres:handle',
   POSTGRESJS_CONNECTION: 'orchestrion:postgres:connection',
   POSTGRESJS_EXECUTE: 'orchestrion:postgres:execute',
+  POSTGRESJS_CONNECT: 'orchestrion:postgres:connect',
 } as const;

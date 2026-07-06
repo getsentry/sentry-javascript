@@ -138,6 +138,10 @@ function publishExecute(connection: object, query: FakeQuery): void {
   tracingChannel(CHANNELS.POSTGRESJS_EXECUTE).traceSync(() => undefined, { self: connection, arguments: [query] });
 }
 
+function publishConnect(connection: object, query: FakeQuery): void {
+  tracingChannel(CHANNELS.POSTGRESJS_CONNECT).traceSync(() => undefined, { self: connection, arguments: [query] });
+}
+
 function lastPgSpan(): Span | undefined {
   return endedSpans.filter(s => spanToJSON(s).data['sentry.origin'] === 'auto.db.orchestrion.postgresjs').at(-1);
 }
@@ -295,6 +299,21 @@ describe('postgresJsChannelIntegration', () => {
       const query = makeQuery(['SELECT 1']);
       await driveHandle(query);
       publishExecute(connectionX, query);
+      query.resolve({ command: 'SELECT' });
+
+      const json = spanToJSON(lastPgSpan()!);
+      expect(json.data['server.address']).toBe('localhost');
+      expect(json.data['server.port']).toBe(5444);
+      expect(json.data['db.namespace']).toBe('test_db');
+    });
+
+    it('attaches per-connection attrs via the connect channel (first query opening a connection)', async () => {
+      // Registry has two endpoints (no handle-start fallback). The first query on a
+      // fresh connection reaches `execute` bare (no self), but `c.connect(query)`
+      // carries the connection, so the span still gets its attributes.
+      const query = makeQuery(['SELECT 1']);
+      await driveHandle(query);
+      publishConnect(connectionX, query);
       query.resolve({ command: 'SELECT' });
 
       const json = spanToJSON(lastPgSpan()!);

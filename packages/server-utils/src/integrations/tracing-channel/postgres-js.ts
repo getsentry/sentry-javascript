@@ -158,6 +158,25 @@ function setConnectionAttributes(span: Span, query: PostgresQuery, context: Post
   }
 }
 
+/**
+ * Backfill connection attributes onto a query's span from a channel whose `self`
+ * is the connection object and `arguments[0]` the query. Shared by the `execute`
+ * and `connect` channels; both carry that shape and both resolve the context via
+ * the `connectionContexts` WeakMap. Idempotent (guarded inside `setConnectionAttributes`).
+ */
+function attachConnectionAttributesFromChannel(message: PostgresJsQueryContext): void {
+  const connection = message.self as object | undefined;
+  const query = message.arguments?.[0] as PostgresQuery | undefined;
+  if (!connection || !query) {
+    return;
+  }
+  const span = (query as Record<symbol, unknown>)[QUERY_SPAN] as Span | undefined;
+  const context = connectionContexts.get(connection);
+  if (span && context) {
+    setConnectionAttributes(span, query, context);
+  }
+}
+
 function setOperationName(span: Span, sanitizedQuery: string | undefined, command?: string): void {
   if (command) {
     span.setAttribute(DB_OPERATION_NAME, command);
@@ -257,26 +276,29 @@ const _postgresJsChannelIntegration = ((options: PostgresJsChannelIntegrationOpt
         },
       });
 
+      // Per-connection attributes for queries reusing an already-open connection
+      // (`c.execute(q)`, `self === c`). `execute` is also called bare
+      // (`self === undefined`) for the first query on each connection, `fetchState`
+      // and `retry`; those miss here (the `connect` channel below covers the first
+      // user query, and the single-endpoint fallback covers the common case).
       diagnosticsChannel.tracingChannel<PostgresJsQueryContext>(CHANNELS.POSTGRESJS_EXECUTE).subscribe({
         end: NOOP,
         asyncStart: NOOP,
         asyncEnd: NOOP,
         error: NOOP,
-        start(message) {
-          // `execute` is also called bare (`self === undefined`) for the first
-          // query on each connection, `fetchState` and `retry`; those miss here
-          // and rely on the handle-start fallback instead.
-          const connection = message.self as object | undefined;
-          const query = message.arguments?.[0] as PostgresQuery | undefined;
-          if (!connection || !query) {
-            return;
-          }
-          const span = (query as Record<symbol, unknown>)[QUERY_SPAN] as Span | undefined;
-          const context = connectionContexts.get(connection);
-          if (span && context) {
-            setConnectionAttributes(span, query, context);
-          }
-        },
+        start: attachConnectionAttributesFromChannel,
+      });
+
+      // The connection's `connect(query)` method (`self === c`, `arguments[0]` the
+      // query) fires when a fresh connection is opened for a query. That first query
+      // is later dispatched via a bare `execute` (no `self`), so this is where it
+      // gets its connection attributes in multi-endpoint apps.
+      diagnosticsChannel.tracingChannel<PostgresJsQueryContext>(CHANNELS.POSTGRESJS_CONNECT).subscribe({
+        end: NOOP,
+        asyncStart: NOOP,
+        asyncEnd: NOOP,
+        error: NOOP,
+        start: attachConnectionAttributesFromChannel,
       });
 
       // The span-creating `handle` subscription needs the async-context binding
@@ -363,10 +385,10 @@ const _postgresJsChannelIntegration = ((options: PostgresJsChannelIntegrationOpt
 /**
  * EXPERIMENTAL — orchestrion-driven postgres.js (`postgres` v3.x) integration.
  *
- * Subscribes to the `orchestrion:postgres:handle` / `:connection` / `:execute`
- * diagnostics channels injected into postgres.js' `Query.prototype.handle` and
- * `Connection`/`execute` (in `src/*` and `cjs/src/*`) and creates db spans
- * matching the OTel `postgresJsIntegration`. Requires the orchestrion runtime
+ * Subscribes to the `orchestrion:postgres:handle` / `:connection` / `:execute` /
+ * `:connect` diagnostics channels injected into postgres.js' `Query.prototype.handle`
+ * and `Connection`/`execute`/`connect` (in `src/*` and `cjs/src/*`) and creates db
+ * spans matching the OTel `postgresJsIntegration`. Requires the orchestrion runtime
  * hook or bundler plugin.
  */
 export const postgresJsChannelIntegration = defineIntegration(_postgresJsChannelIntegration);
