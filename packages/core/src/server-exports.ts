@@ -23,7 +23,11 @@ export type {
   ExpressMiddleware,
   ExpressErrorMiddleware,
 } from './integrations/express/types';
-export { instrumentPostgresJsSql, _sanitizeSqlQuery as _INTERNAL_sanitizeSqlQuery } from './integrations/postgresjs';
+export {
+  instrumentPostgresJsSql,
+  _sanitizeSqlQuery as _INTERNAL_sanitizeSqlQuery,
+  _reconstructQuery as _INTERNAL_reconstructPostgresQuery,
+} from './integrations/postgresjs';
 export { getSqlQuerySummary as _INTERNAL_getSqlQuerySummary } from './utils/sql';
 
 export { patchHttpModuleClient } from './integrations/http/client-patch';
