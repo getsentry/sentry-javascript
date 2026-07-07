@@ -25,6 +25,9 @@ test.describe('client - navigation performance', () => {
             'sentry.origin': 'auto.navigation.react_router',
             'sentry.op': 'navigation',
             'sentry.source': 'route',
+            'url.template': '/performance/ssr',
+            'url.path': '/performance/ssr',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/ssr$/),
           },
           op: 'navigation',
           origin: 'auto.navigation.react_router',
@@ -77,6 +80,9 @@ test.describe('client - navigation performance', () => {
           origin: 'auto.navigation.react_router',
           data: {
             'sentry.source': 'route',
+            'url.template': '/performance/with/:param',
+            'url.path': '/performance/with/object-nav',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/object-nav\?foo=bar$/),
           },
         },
       },
@@ -102,6 +108,12 @@ test.describe('client - navigation performance', () => {
         trace: {
           op: 'navigation',
           origin: 'auto.navigation.react_router',
+          data: {
+            'url.template': '/performance',
+            // the initial pageload to `/performance` gets 301-redirected to a trailing slash by react-router-serve
+            'url.path': '/performance/',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/\?query=test$/),
+          },
         },
       },
       transaction: '/performance',
@@ -132,6 +144,9 @@ test.describe('client - navigation performance', () => {
             'sentry.origin': 'auto.navigation.react_router',
             'sentry.op': 'navigation',
             'sentry.source': 'route',
+            'url.template': '/performance/with/:param',
+            'url.path': '/performance/with/sentry',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),
           },
           op: 'navigation',
           origin: 'auto.navigation.react_router',

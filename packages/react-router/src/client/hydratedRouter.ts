@@ -1,4 +1,4 @@
-import { startBrowserTracingNavigationSpan } from '@sentry/browser';
+import { getAbsoluteUrl, startBrowserTracingNavigationSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
   debug,
@@ -14,7 +14,8 @@ import {
 import type { DataRouter, RouterState } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { isClientInstrumentationApiUsed } from './createClientInstrumentation';
-import { resolveNavigateArg } from './utils';
+import { resolveNavigateArg, resolveNavigateUrl } from './utils';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __reactRouterDataRouter?: DataRouter;
@@ -50,6 +51,7 @@ export function instrumentHydratedRouter(): void {
           pageloadSpan.setAttributes({
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react_router',
+            [URL_TEMPLATE]: parameterizePageloadRoute,
           });
         }
       }
@@ -60,7 +62,11 @@ export function instrumentHydratedRouter(): void {
         router.navigate = function sentryPatchedNavigate(...args) {
           // Skip if instrumentation API is enabled (it handles navigation spans itself)
           if (!isClientInstrumentationApiUsed()) {
-            maybeCreateNavigationTransaction(resolveNavigateArg(args[0]) || '<unknown route>', 'url');
+            maybeCreateNavigationTransaction(
+              resolveNavigateArg(args[0]) || '<unknown route>',
+              resolveNavigateUrl(args[0]),
+              'url',
+            );
           }
           return originalNav(...args);
         };
@@ -98,7 +104,7 @@ export function instrumentHydratedRouter(): void {
           normalizePathname(newState.location.pathname) === normalizePathname(rootSpanName)
         ) {
           rootSpan.updateName(parameterizedRoute);
-          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+          rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: parameterizedRoute });
         }
       });
       return true;
@@ -122,21 +128,26 @@ export function instrumentHydratedRouter(): void {
   }
 }
 
-function maybeCreateNavigationTransaction(name: string, source: 'url' | 'route'): Span | undefined {
+function maybeCreateNavigationTransaction(name: string, url: string, source: 'url' | 'route'): Span | undefined {
   const client = getClient();
 
   if (!client) {
     return undefined;
   }
 
-  return startBrowserTracingNavigationSpan(client, {
-    name,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router',
+  return startBrowserTracingNavigationSpan(
+    client,
+    {
+      name,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router',
+        ...(source === 'route' ? { [URL_TEMPLATE]: name } : {}),
+      },
     },
-  });
+    { url: getAbsoluteUrl(url) },
+  );
 }
 
 function getActiveRootSpan(): Span | undefined {
