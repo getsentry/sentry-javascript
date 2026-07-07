@@ -1,11 +1,7 @@
-// * import so that loading this module doesn't error on Deno versions
-// lacking `tracingChannel` (added in Deno 1.44.3).
-// On older runtimes the integration becomes a no-op.
-import * as dc from 'node:diagnostics_channel';
-import type { RedisDiagnosticChannelResponseHook, RedisTracingChannelFactory } from '@sentry/server-utils';
-import { subscribeRedisDiagnosticChannels } from '@sentry/server-utils';
+import type { RedisDiagnosticChannelResponseHook } from '@sentry/server-utils';
+import { redisIntegration as redisChannelIntegration } from '@sentry/server-utils';
 import type { Integration, IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, extendIntegration } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 
 const INTEGRATION_NAME = 'DenoRedis' as const;
@@ -19,18 +15,17 @@ export interface DenoRedisIntegrationOptions {
 }
 
 const _denoRedisIntegration = ((options: DenoRedisIntegrationOptions = {}) => {
-  return {
+  // The diagnostics_channel subscription lives in server-utils so it is shared across runtimes; we
+  // extend it here to install Deno's AsyncLocalStorage async-context strategy, which the channel
+  // binding reads via `getTracingChannelBinding`. `extendIntegration` runs the base `setupOnce`
+  // first, but its subscribe is deferred a tick when no binding exists yet, so the strategy set
+  // synchronously below is in place by the time the deferred subscribe runs.
+  return extendIntegration(redisChannelIntegration({ responseHook: options.responseHook }), {
     name: INTEGRATION_NAME,
     setupOnce() {
-      if (!dc.tracingChannel) {
-        return;
-      }
-      // The span is bound into Deno's AsyncLocalStorage context via the async-context
-      // strategy's `getTracingChannelBinding`, so the native channel can be passed directly.
       setAsyncLocalStorageAsyncContextStrategy();
-      subscribeRedisDiagnosticChannels(dc.tracingChannel as RedisTracingChannelFactory, options.responseHook);
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**

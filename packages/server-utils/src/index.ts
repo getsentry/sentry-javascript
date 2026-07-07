@@ -5,22 +5,8 @@
  */
 
 export { mongooseIntegration } from './mongoose';
-export {
-  IOREDIS_DC_CHANNEL_COMMAND,
-  IOREDIS_DC_CHANNEL_CONNECT,
-  REDIS_DC_CHANNEL_BATCH,
-  REDIS_DC_CHANNEL_COMMAND,
-  REDIS_DC_CHANNEL_CONNECT,
-  subscribeRedisDiagnosticChannels,
-} from './redis/redis-dc-subscriber';
-export type {
-  IORedisCommandData,
-  RedisBatchData,
-  RedisCommandData,
-  RedisConnectData,
-  RedisDiagnosticChannelResponseHook,
-  RedisTracingChannelFactory,
-} from './redis/redis-dc-subscriber';
+export { redisIntegration, type RedisDiagnosticChannelsOptions } from './redis';
+export type { RedisDiagnosticChannelResponseHook } from './redis/redis-dc-subscriber';
 export { defaultDbStatementSerializer } from './redis/redis-statement-serializer';
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type {

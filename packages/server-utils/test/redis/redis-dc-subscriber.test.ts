@@ -17,9 +17,8 @@ import {
   spanToJSON,
   startSpan,
 } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  _resetRedisDiagnosticChannelsForTesting,
   IOREDIS_DC_CHANNEL_COMMAND,
   IOREDIS_DC_CHANNEL_CONNECT,
   REDIS_DC_CHANNEL_BATCH,
@@ -127,23 +126,31 @@ async function traceCommand(
 
 const factory = tracingChannel as RedisTracingChannelFactory;
 
+// The response hook is bound into the channel handlers when we subscribe, so it must be a stable
+// reference for the whole file; `vi.clearAllMocks` in `afterEach` resets its recorded calls per test.
+const responseHook = vi.fn();
+
 describe('subscribeRedisDiagnosticChannels', () => {
-  let responseHook: ReturnType<typeof vi.fn>;
   let captureExceptionSpy: ReturnType<typeof vi.spyOn>;
 
-  // `node:diagnostics_channel` channels are process-global. `_reset…` calls each binding's `unbind`,
-  // so we can subscribe and fully detach per test without handlers leaking across tests.
-  beforeEach(() => {
+  // The subscriber binds handlers onto process-global channels with no teardown, so subscribe once
+  // here, mirroring production where `setupOnce` subscribes a single time. Per-test we only reset the
+  // client, scopes, and mock call history (in `afterEach`), so nothing leaks between tests.
+  beforeAll(() => {
     installTestAsyncContextStrategy();
-    initTestClient();
-    responseHook = vi.fn();
-    captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
     subscribeRedisDiagnosticChannels(factory, responseHook);
   });
 
-  afterEach(() => {
-    _resetRedisDiagnosticChannelsForTesting();
+  afterAll(() => {
     setAsyncContextStrategy(undefined);
+  });
+
+  beforeEach(() => {
+    initTestClient();
+    captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+  });
+
+  afterEach(() => {
     getCurrentScope().clear();
     getCurrentScope().setClient(undefined);
     getGlobalScope().clear();
@@ -259,23 +266,6 @@ describe('subscribeRedisDiagnosticChannels', () => {
 
       expect(spanToJSON(span!).op).toBe('db.redis.connect');
       expect(spanToJSON(span!).timestamp).toBeDefined();
-    });
-  });
-
-  describe('idempotency', () => {
-    it('does not re-subscribe on a second call, but updates the response hook', async () => {
-      const secondHook = vi.fn();
-      subscribeRedisDiagnosticChannels(factory, secondHook);
-
-      const { span } = await traceCommand(
-        REDIS_DC_CHANNEL_COMMAND,
-        { command: 'GET', args: ['GET', 'k'] },
-        { result: 'v' },
-      );
-
-      expect(secondHook).toHaveBeenCalledTimes(1);
-      expect(secondHook).toHaveBeenCalledWith(span, 'GET', ['k'], 'v');
-      expect(responseHook).not.toHaveBeenCalled();
     });
   });
 });
