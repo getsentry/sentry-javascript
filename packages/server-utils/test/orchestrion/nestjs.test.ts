@@ -514,6 +514,41 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
     expect(teardowns).toHaveLength(0);
   });
 
+  it('sync interceptor that short-circuits without next.handle(): ends the before-span', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    const teardowns: Array<() => void> = [];
+    const observable = {
+      subscribe(): { add: (fn: () => void) => void } {
+        return { add: (fn: () => void) => void teardowns.push(fn) };
+      },
+    };
+
+    let beforeSpan: ReturnType<typeof getActiveSpan>;
+    class CachingInterceptor {
+      // Synchronously returns an Observable without calling `next.handle()`
+      // (a cache/validation short-circuit).
+      public intercept(_context: unknown, _next: { handle: () => unknown }): unknown {
+        beforeSpan = getActiveSpan();
+        return observable;
+      }
+    }
+    applyInjectable(CachingInterceptor);
+
+    const next = { handle: vi.fn() };
+    const returned = new CachingInterceptor().intercept({}, next) as typeof observable;
+
+    expect(returned).toBe(observable);
+    expect(next.handle).not.toHaveBeenCalled();
+    // before-span is closed even though `next.handle()` (which normally ends it) never ran
+    expect(spanToJSON(beforeSpan!).timestamp).toBeDefined();
+    // no after-span, so the observable is left un-instrumented
+    returned.subscribe();
+    expect(teardowns).toHaveLength(0);
+  });
+
   it('skips targets flagged __SENTRY_INTERNAL__', () => {
     installTestAsyncContextStrategy();
     initTestClient();
