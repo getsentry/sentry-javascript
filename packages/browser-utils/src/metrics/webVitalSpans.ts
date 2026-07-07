@@ -22,6 +22,7 @@ import { isValidLcpMetric } from './lcp';
 import type { WebVitalReportEvent } from './utils';
 import { getBrowserPerformanceAPI, listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
 import type { PerformanceEventTiming } from './instrument';
+import { SENTRY_SEGMENT_NAME, SENTRY_TRANSACTION } from '@sentry/conventions/attributes';
 
 // Locally-defined interfaces to avoid leaking bare global type references into the
 // generated .d.ts. The `declare global` augmentations in web-vitals/types.ts make these
@@ -79,7 +80,9 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0,
     [`browser.web_vital.${metricName}.value`]: value,
-    'sentry.transaction': routeName,
+    // oxlint-disable-next-line typescript-eslint/no-deprecated
+    [SENTRY_TRANSACTION]: routeName,
+    [SENTRY_SEGMENT_NAME]: routeName,
     // Web vital score calculation relies on the user agent
     'user_agent.original': WINDOW.navigator?.userAgent,
     ...passedAttributes,
@@ -304,7 +307,9 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming): v
     value: inpValue,
     attributes: {
       [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
-      'sentry.transaction': routeName,
+      // oxlint-disable-next-line typescript-eslint/no-deprecated
+      [SENTRY_TRANSACTION]: routeName,
+      [SENTRY_SEGMENT_NAME]: routeName,
     },
     startTime,
     endTime: startTime + duration,

@@ -1,14 +1,14 @@
-import { afterAll, describe, test } from 'vitest';
-import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
+import { afterAll, describe } from 'vitest';
+import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
 
 describe('express tracesSampler', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  describe('CJS', () => {
+  createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('correctly samples & passes data to tracesSampler', async () => {
-      const runner = createRunner(__dirname, 'server.js')
+      const runner = createRunner()
         .expect({
           transaction: {
             transaction: 'GET /test/:id',
@@ -23,25 +23,26 @@ describe('express tracesSampler', () => {
       await runner.completed();
     });
   });
-});
 
-describe('express tracesSampler includes normalizedRequest data', () => {
-  afterAll(() => {
-    cleanupChildProcesses();
-  });
+  describe('normalizedRequest data', () => {
+    createCjsTests(
+      __dirname,
+      'scenario-normalized-request.mjs',
+      'instrument-normalized-request.mjs',
+      (createRunner, test) => {
+        test('correctly samples & passes normalizedRequest data to tracesSampler', async () => {
+          const runner = createRunner()
+            .expect({
+              transaction: {
+                transaction: 'GET /test-normalized-request',
+              },
+            })
+            .start();
 
-  describe('CJS', () => {
-    test('correctly samples & passes data to tracesSampler', async () => {
-      const runner = createRunner(__dirname, 'scenario-normalizedRequest.js')
-        .expect({
-          transaction: {
-            transaction: 'GET /test-normalized-request',
-          },
-        })
-        .start();
-
-      runner.makeRequest('get', '/test-normalized-request?query=123');
-      await runner.completed();
-    });
+          runner.makeRequest('get', '/test-normalized-request?query=123');
+          await runner.completed();
+        });
+      },
+    );
   });
 });

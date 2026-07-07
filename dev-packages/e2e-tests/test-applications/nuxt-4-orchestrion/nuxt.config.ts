@@ -1,19 +1,14 @@
 import codeTransformerRollup from '@apm-js-collab/code-transformer-bundler-plugins/rollup';
 import { INSTRUMENTED_MODULE_NAMES, SENTRY_INSTRUMENTATIONS } from '@sentry/server-utils/orchestrion/config';
 
-// Mirrors the marker that `sentryOrchestrionPlugin()` (the Vite plugin) prepends to entry chunks.
-const orchestrionBundlerMarker = {
-  name: 'sentry-orchestrion-marker',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  renderChunk(code: string, chunk: any): { code: string; map: null } | null {
-    if (!chunk.isEntry) {
-      return null;
-    }
-    const banner =
-      'globalThis.__SENTRY_ORCHESTRION__=(globalThis.__SENTRY_ORCHESTRION__||{});globalThis.__SENTRY_ORCHESTRION__.bundler=true;\n';
-    return { code: banner + code, map: null };
-  },
-};
+// Tells the SDK the orchestrion bundler transform ran, so `detectOrchestrionSetup()`
+// no-ops the runtime diagnostics-channel hook. Injected via `codeTransformerRollup`'s
+// `injectDiagnostics` option (sourcemap-safe) instead of a hand-rolled plugin.
+const orchestrionBundlerMarker = [
+  'globalThis.__SENTRY_ORCHESTRION__ = (globalThis.__SENTRY_ORCHESTRION__ || {});',
+  'globalThis.__SENTRY_ORCHESTRION__.bundler = true;',
+  '',
+].join('\n');
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -46,9 +41,11 @@ export default defineNuxtConfig({
     },
     rollupConfig: {
       plugins: [
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        codeTransformerRollup({ instrumentations: SENTRY_INSTRUMENTATIONS }) as any,
-        orchestrionBundlerMarker,
+        codeTransformerRollup({
+          instrumentations: SENTRY_INSTRUMENTATIONS,
+          injectDiagnostics: () => orchestrionBundlerMarker,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }) as any,
       ],
     },
   },
