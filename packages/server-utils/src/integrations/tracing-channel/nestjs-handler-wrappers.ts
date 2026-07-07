@@ -13,13 +13,21 @@ import { isWrapped, markWrapped } from './nestjs-shared';
 
 const NOOP = (): void => {};
 
-// Mechanism types for scheduled-handler error capture (no span)
-// match vendored `SentryNestScheduleInstrumentation`
+// Error-capture mechanism types. Kept identical to the vendored OTel
+// instrumentations (`SentryNest{Schedule,Event,Bullmq}Instrumentation`) so
+// captured errors attribute and group the same regardless of which
+// instrumentation path (OTel vs orchestrion) caught them.
 const MECHANISM_CRON = 'auto.function.nestjs.cron';
 const MECHANISM_INTERVAL = 'auto.function.nestjs.interval';
 const MECHANISM_TIMEOUT = 'auto.function.nestjs.timeout';
 const MECHANISM_EVENT = 'auto.event.nestjs';
 const MECHANISM_BULLMQ = 'auto.queue.nestjs.bullmq';
+
+// Span origins for the orchestrion path. Unlike the mechanism types above,
+// these carry the `orchestrion` segment so orchestrion-created spans are
+// distinguishable from OTel
+const ORIGIN_EVENT = 'auto.event.orchestrion.nestjs';
+const ORIGIN_BULLMQ = 'auto.queue.orchestrion.nestjs.bullmq';
 
 const EVENT_LISTENER_METADATA = 'EVENT_LISTENER_METADATA';
 
@@ -115,7 +123,7 @@ function wrapEventHandler(handler: AnyFn, fallbackEvent: unknown): AnyFn {
           name: `event ${eventName}`,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'event.nestjs',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: MECHANISM_EVENT,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN_EVENT,
           },
           forceTransaction: true,
         },
@@ -145,7 +153,7 @@ function wrapBullMQProcess(process: AnyFn, queueName: string): AnyFn {
           name: `${queueName} process`,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: MECHANISM_BULLMQ,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN_BULLMQ,
             'messaging.system': 'bullmq',
             'messaging.destination.name': queueName,
           },

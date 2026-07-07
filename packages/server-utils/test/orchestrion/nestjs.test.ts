@@ -148,7 +148,7 @@ describe('nestjsChannelIntegration: app_creation', () => {
     const json = spanToJSON(span!);
     expect(json.description).toBe('Create Nest App');
     expect(json.op).toBe('app_creation.nestjs');
-    expect(json.origin).toBe('auto.http.otel.nestjs');
+    expect(json.origin).toBe('auto.http.orchestrion.nestjs');
     expect(json.data).toMatchObject({
       component: '@nestjs/core',
       'nestjs.type': 'app_creation',
@@ -242,7 +242,7 @@ describe('nestjsChannelIntegration: request_context / request_handler', () => {
     expect(contextSpanJson).toBeDefined();
     expect(contextSpanJson!.description).toBe('CatsController.getCats');
     expect(contextSpanJson!.op).toBe('request_context.nestjs');
-    expect(contextSpanJson!.origin).toBe('auto.http.otel.nestjs');
+    expect(contextSpanJson!.origin).toBe('auto.http.orchestrion.nestjs');
     expect(contextSpanJson!.data).toMatchObject({
       component: '@nestjs/core',
       'nestjs.type': 'request_context',
@@ -279,7 +279,7 @@ describe('nestjsChannelIntegration: request_context / request_handler', () => {
     expect(handlerSpanJson).toBeDefined();
     expect(handlerSpanJson!.description).toBe('getCats');
     expect(handlerSpanJson!.op).toBe('handler.nestjs');
-    expect(handlerSpanJson!.origin).toBe('auto.http.otel.nestjs');
+    expect(handlerSpanJson!.origin).toBe('auto.http.orchestrion.nestjs');
     expect(handlerSpanJson!.data).toMatchObject({
       component: '@nestjs/core',
       'nestjs.type': 'handler',
@@ -355,7 +355,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('LoggerMiddleware');
     expect(json.op).toBe('middleware.nestjs');
-    expect(json.origin).toBe('auto.middleware.nestjs');
+    expect(json.origin).toBe('auto.middleware.orchestrion.nestjs');
     // startSpanManual span ends when the proxied `next` is called.
     expect(json.timestamp).toBeDefined();
   });
@@ -378,7 +378,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('AuthGuard');
     expect(json.op).toBe('middleware.nestjs');
-    expect(json.origin).toBe('auto.middleware.nestjs.guard');
+    expect(json.origin).toBe('auto.middleware.orchestrion.nestjs.guard');
   });
 
   it('pipe: wraps `transform` in a span and preserves its return value', () => {
@@ -399,7 +399,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('ParseIntPipe');
     expect(json.op).toBe('middleware.nestjs');
-    expect(json.origin).toBe('auto.middleware.nestjs.pipe');
+    expect(json.origin).toBe('auto.middleware.orchestrion.nestjs.pipe');
   });
 
   it('interceptor: opens a before-span (ended at next.handle) and instruments the returned observable', () => {
@@ -433,7 +433,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
     const beforeJson = spanToJSON(beforeSpan!);
     expect(beforeJson.description).toBe('LoggingInterceptor');
     expect(beforeJson.op).toBe('middleware.nestjs');
-    expect(beforeJson.origin).toBe('auto.middleware.nestjs.interceptor');
+    expect(beforeJson.origin).toBe('auto.middleware.orchestrion.nestjs.interceptor');
     // before-span ends when `next.handle()` is called.
     expect(beforeJson.timestamp).toBeDefined();
 
@@ -498,7 +498,7 @@ describe('nestjsChannelIntegration: @Catch (exception filter)', () => {
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('HttpExceptionFilter');
     expect(json.op).toBe('middleware.nestjs');
-    expect(json.origin).toBe('auto.middleware.nestjs.exception_filter');
+    expect(json.origin).toBe('auto.middleware.orchestrion.nestjs.exception_filter');
   });
 
   it('does not open a span when exception or host is absent', () => {
@@ -612,7 +612,7 @@ describe('nestjsChannelIntegration: schedule / event / bullmq', () => {
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('event user.created');
     expect(json.op).toBe('event.nestjs');
-    expect(json.origin).toBe('auto.event.nestjs');
+    expect(json.origin).toBe('auto.event.orchestrion.nestjs');
   });
 
   it('bullmq @Processor: patches `process` into a queue.process transaction (string queue name)', async () => {
@@ -642,7 +642,7 @@ describe('nestjsChannelIntegration: schedule / event / bullmq', () => {
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('emails process');
     expect(json.op).toBe('queue.process');
-    expect(json.origin).toBe('auto.queue.nestjs.bullmq');
+    expect(json.origin).toBe('auto.queue.orchestrion.nestjs.bullmq');
     expect(json.data).toMatchObject({
       'messaging.system': 'bullmq',
       'messaging.destination.name': 'emails',
