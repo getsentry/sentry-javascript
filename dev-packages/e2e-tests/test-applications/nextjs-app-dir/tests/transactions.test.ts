@@ -38,6 +38,9 @@ test('Sends a pageload transaction', async ({ page }) => {
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
             'sentry.source': 'url',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
+            'url.path': '/',
+            // no url.template because the route isn't parameterized (sentry.source: 'url')
           }),
         },
       }),
