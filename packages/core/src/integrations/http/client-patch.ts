@@ -38,23 +38,32 @@ import { getOriginalFunction, wrapMethod } from '../../utils/object';
 import { getHttpClientSubscriptions } from './client-subscriptions';
 
 /**
- * Patch `ClientRequest.prototype.onSocket` so that every outgoing request is
- * routed through our instrumentation.
+ * Patch `ClientRequest.prototype._storeHeader` so that every outgoing request
+ * is routed through our instrumentation.
  *
  * We deliberately patch the shared `ClientRequest` prototype rather than the
  * module's `request`/`get` exports. Every outgoing request — no matter how the
  * module was imported (`require('node:http')`, `import http from 'node:http'`,
  * or `import * as http from 'node:http'`) — ultimately constructs a
- * `ClientRequest` and invokes `onSocket` on this one prototype. ES module
- * namespace bindings (`import * as http` / `import { request }`) are immutable
- * snapshots that cannot be monkey-patched at all, but the prototype is a
- * shared, mutable object, so patching it reaches those consumers too.
+ * `ClientRequest` and serializes its headers through `_storeHeader` on this one
+ * prototype. ES module namespace bindings (`import * as http` / `import
+ * { request }`) are immutable snapshots that cannot be monkey-patched at all,
+ * but the prototype is a shared, mutable object, so patching it reaches those
+ * consumers too.
  *
- * `onSocket` runs synchronously while the request is being set up: before the
- * headers are flushed (so we can still inject trace-propagation headers) and in
- * the caller's async context (so spans are parented correctly). It is invoked
- * exactly once per request, including for reused keep-alive sockets and
- * `agent: false` requests.
+ * `_storeHeader` is the method that renders the outgoing header block into
+ * `request._header`. We run *before* the original, which is the last moment a
+ * header can still be added via `setHeader` (afterwards `request._header` is
+ * set and any `setHeader` call throws `ERR_HTTP_HEADERS_SENT`). It runs
+ * synchronously in the caller's async context — during `request.end()` /
+ * `request.write()` — so spans are parented correctly, and is invoked exactly
+ * once per request whether the headers are being sent immediately or buffered
+ * while a socket is assigned.
+ *
+ * We intentionally do *not* hook `onSocket`: it does not fire until a socket is
+ * assigned to the request, which for an `Agent` with all sockets busy (e.g.
+ * `maxSockets: 1`) happens only *after* the request's headers have already been
+ * serialized — far too late to inject trace-propagation headers.
  *
  * `https` requests reuse `http`'s `ClientRequest`, so patching `http` covers
  * both; the `https` module does not expose its own `ClientRequest` and is a
@@ -64,10 +73,10 @@ function patchClientRequest(httpModule: HttpExport, options: HttpInstrumentation
   const proto = httpModule.ClientRequest?.prototype;
 
   // Nothing to patch if the module doesn't expose `ClientRequest` (e.g.
-  // `https`), or if `onSocket` was already wrapped. The latter also covers the
-  // case where `https`'s `ClientRequest` inherits `http`'s already-patched
-  // `onSocket`, avoiding double instrumentation.
-  if (typeof proto?.onSocket !== 'function' || getOriginalFunction(proto.onSocket)) {
+  // `https`), or if `_storeHeader` was already wrapped. The latter also covers
+  // the case where `https`'s `ClientRequest` inherits `http`'s already-patched
+  // `_storeHeader`, avoiding double instrumentation.
+  if (typeof proto?._storeHeader !== 'function' || getOriginalFunction(proto._storeHeader)) {
     return;
   }
 
@@ -76,15 +85,15 @@ function patchClientRequest(httpModule: HttpExport, options: HttpInstrumentation
     http: httpModule,
   });
 
-  const originalOnSocket = proto.onSocket;
-  wrapMethod(proto, 'onSocket', function patchedOnSocket(this: HttpClientRequest, ...args: unknown[]) {
+  const originalStoreHeader = proto._storeHeader;
+  wrapMethod(proto, '_storeHeader', function patchedStoreHeader(this: HttpClientRequest, ...args: unknown[]) {
     // Never let instrumentation errors break the underlying request.
     try {
       onHttpClientRequestCreated({ request: this }, HTTP_ON_CLIENT_REQUEST);
     } catch {
       // ignore
     }
-    return originalOnSocket.apply(this, args);
+    return originalStoreHeader.apply(this, args);
   });
 }
 

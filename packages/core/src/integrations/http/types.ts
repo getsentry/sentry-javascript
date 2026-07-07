@@ -105,9 +105,16 @@ export interface HttpIncomingMessage {
 /** Minimal interface for the Node.js `http.ClientRequest` constructor. */
 export interface HttpClientRequestConstructor {
   prototype: {
-    // Called once per request while it is being set up (before headers are
-    // flushed). `https` requests go through `http`'s `ClientRequest`, so this
-    // is the shared choke point for all outgoing requests.
+    // The method we actually patch: it renders the outgoing header block into
+    // `request._header`, is called exactly once per request right before the
+    // headers are serialized, and is the last point at which a header can still
+    // be added. `https` requests go through `http`'s `ClientRequest`, so this
+    // is the shared choke point for all outgoing requests. `_storeHeader` is
+    // not part of the public `@types/node` surface, so we also reference the
+    // (publicly typed) `onSocket` to keep the real `node:http` `ClientRequest`
+    // structurally assignable to this type.
+    //oxlint-disable-next-line typescript/no-explicit-any
+    _storeHeader?: (this: HttpClientRequest, ...args: any[]) => unknown;
     //oxlint-disable-next-line typescript/no-explicit-any
     onSocket?: (this: HttpClientRequest, ...args: any[]) => unknown;
   };
