@@ -519,6 +519,104 @@ describe('nestjsChannelIntegration: @Catch (exception filter)', () => {
     new HttpExceptionFilter().catch('boom', undefined);
     expect(spanInside).toBeUndefined();
   });
+
+  // A class can be decorated with both `@Injectable` and `@Catch` (an exception
+  // filter that uses DI). Which channel fires first depends on decorator
+  // stacking order (decorators apply inner-first): `@Catch` over `@Injectable`
+  // fires @Injectable first; `@Injectable` over `@Catch` fires @Catch first.
+  // Because the two passes use separate patched-flags, both must wrap their own
+  // methods regardless of which channel fires first.
+  function fireInjectable(target: object): void {
+    tracingChannel<{ arguments: unknown[] }>(CHANNELS.NESTJS_INJECTABLE).traceSync(() => undefined, {
+      arguments: [target],
+    });
+  }
+
+  it('still wraps `catch` when the @Injectable channel fired first (dual @Injectable @Catch filter)', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    let spanInside: ReturnType<typeof getActiveSpan>;
+    class HttpExceptionFilter {
+      public catch(exception: unknown, _host: unknown): string {
+        spanInside = getActiveSpan();
+        return `handled:${String(exception)}`;
+      }
+    }
+    fireInjectable(HttpExceptionFilter);
+    applyCatch(HttpExceptionFilter);
+
+    const ret = new HttpExceptionFilter().catch('boom', { switchToHttp: () => ({}) });
+    expect(ret).toBe('handled:boom');
+
+    const json = spanToJSON(spanInside!);
+    expect(json.description).toBe('HttpExceptionFilter');
+    expect(json.op).toBe('middleware.nestjs');
+    expect(json.origin).toBe('auto.middleware.orchestrion.nestjs.exception_filter');
+  });
+
+  it('still wraps `catch` when the @Catch channel fired first (dual @Injectable @Catch filter)', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    let spanInside: ReturnType<typeof getActiveSpan>;
+    class HttpExceptionFilter {
+      public catch(exception: unknown, _host: unknown): string {
+        spanInside = getActiveSpan();
+        return `handled:${String(exception)}`;
+      }
+    }
+    applyCatch(HttpExceptionFilter);
+    fireInjectable(HttpExceptionFilter);
+
+    const ret = new HttpExceptionFilter().catch('boom', { switchToHttp: () => ({}) });
+    expect(ret).toBe('handled:boom');
+
+    const json = spanToJSON(spanInside!);
+    expect(json.description).toBe('HttpExceptionFilter');
+    expect(json.op).toBe('middleware.nestjs');
+    expect(json.origin).toBe('auto.middleware.orchestrion.nestjs.exception_filter');
+  });
+
+  // A (contrived) class that is BOTH a guard (`canActivate`) and an exception
+  // filter (`catch`) proves the two passes are independent: neither ordering may
+  // let one pass's patched-flag block the other. Both spans must appear either way.
+  for (const order of ['injectable-first', 'catch-first'] as const) {
+    it(`wraps BOTH canActivate and catch when the ${order} channel fired first`, () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+      nestjsChannelIntegration().setupOnce!();
+
+      let guardSpan: ReturnType<typeof getActiveSpan>;
+      let filterSpan: ReturnType<typeof getActiveSpan>;
+      class GuardAndFilter {
+        public canActivate(_ctx: unknown): boolean {
+          guardSpan = getActiveSpan();
+          return true;
+        }
+        public catch(exception: unknown, _host: unknown): string {
+          filterSpan = getActiveSpan();
+          return `handled:${String(exception)}`;
+        }
+      }
+
+      if (order === 'injectable-first') {
+        fireInjectable(GuardAndFilter);
+        applyCatch(GuardAndFilter);
+      } else {
+        applyCatch(GuardAndFilter);
+        fireInjectable(GuardAndFilter);
+      }
+
+      expect(new GuardAndFilter().canActivate({ ctx: true })).toBe(true);
+      expect(new GuardAndFilter().catch('boom', { switchToHttp: () => ({}) })).toBe('handled:boom');
+
+      expect(spanToJSON(guardSpan!).origin).toBe('auto.middleware.orchestrion.nestjs.guard');
+      expect(spanToJSON(filterSpan!).origin).toBe('auto.middleware.orchestrion.nestjs.exception_filter');
+    });
+  }
 });
 
 describe('nestjsChannelIntegration: schedule / event / bullmq', () => {
