@@ -11,8 +11,8 @@ const CONNECT_CONFIG = {
 // `docker compose up --wait` gates on the healthcheck, but MySQL keeps finalizing
 // for a short window afterwards and drops early handshakes ("server closed the
 // connection"). Retry the initial connect so the suite doesn't flake on that window.
-// A failed attempt still publishes on mysql2's `connect` channel, so the test asserts
-// its envelopes with `.unordered()` to tolerate the transient connect transaction.
+// The connect happens outside an active span, so the subscriber leaves it
+// uninstrumented and no connect transaction is emitted.
 async function connectWithRetry(attempts = 15, delayMs = 500) {
   let lastError;
   for (let attempt = 0; attempt < attempts; attempt++) {
