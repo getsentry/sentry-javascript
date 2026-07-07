@@ -5,6 +5,7 @@ import { ioredisConfig } from './ioredis';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { anthropicAiConfig } from './anthropic-ai';
+import { googleGenAiConfig } from './google-genai';
 import { vercelAiConfig } from './vercel-ai';
 import { hapiConfig } from './hapi';
 
@@ -15,6 +16,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...openaiConfig,
   ...pgConfig,
   ...anthropicAiConfig,
+  ...googleGenAiConfig,
   ...vercelAiConfig,
   ...hapiConfig,
 ];
