@@ -21,6 +21,7 @@ import { getScopesFromContext } from '@sentry/opentelemetry';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
 import { ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
@@ -29,7 +30,6 @@ import { isBuild } from '../common/utils/isBuild';
 import { flushSafelyWithTimeout, isCloudflareWaitUntilAvailable, waitUntil } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
-import { enhanceMiddlewareRootSpan } from './enhanceMiddlewareRootSpan';
 
 export * from '@sentry/vercel-edge';
 export * from '../common';

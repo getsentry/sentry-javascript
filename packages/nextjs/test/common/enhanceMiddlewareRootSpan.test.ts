@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
-import { enhanceMiddlewareRootSpan } from '../../src/edge/enhanceMiddlewareRootSpan';
+import { enhanceMiddlewareRootSpan } from '../../src/common/enhanceMiddlewareRootSpan';
 
 function makeSpan(attributes: Record<string, unknown>, name?: string) {
   let currentName = name;

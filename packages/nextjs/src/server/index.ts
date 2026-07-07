@@ -15,6 +15,7 @@ import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
+import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
@@ -259,6 +260,17 @@ export function init(options: NodeOptions): NodeClient | undefined {
           event.contexts!.trace!.op = op;
         },
       });
+
+      // Since Next.js 16, Node.js middleware/proxy runs as its own root span (`Middleware.execute`)
+      // rather than a child of `BaseServer.handleRequest`, so the middleware name normalization that
+      // `enhanceHandleRequestRootSpan` applies for older versions no longer kicks in for it.
+      enhanceMiddlewareRootSpan({
+        attributes: event.contexts.trace.data,
+        getName: () => event.transaction,
+        setName: name => {
+          event.transaction = name;
+        },
+      });
     }
 
     setUrlProcessingMetadata(event);
@@ -278,6 +290,16 @@ export function init(options: NodeOptions): NodeClient | undefined {
       // overrides land somewhere readable (the legacy path uses a separate `event.contexts.trace.op`).
       setOp: op => {
         attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+      },
+    });
+
+    // Streamed-span counterpart of the `enhanceMiddlewareRootSpan` call in `preprocessEvent` above,
+    // for Node.js middleware/proxy root spans (see the comment there).
+    enhanceMiddlewareRootSpan({
+      attributes,
+      getName: () => span.name,
+      setName: name => {
+        span.name = name;
       },
     });
   });

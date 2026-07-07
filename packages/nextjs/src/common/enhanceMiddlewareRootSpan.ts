@@ -1,5 +1,5 @@
 import { stripUrlQueryAndFragment } from '@sentry/core';
-import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
+import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from './nextSpanAttributes';
 
 export interface MutableMiddlewareRootSpan {
   attributes: Record<string, unknown>;
@@ -8,9 +8,13 @@ export interface MutableMiddlewareRootSpan {
 }
 
 /**
- * Normalizes the transaction name for the root span of a Next.js `Middleware.execute` request on the Edge runtime.
+ * Normalizes the transaction name for the root span of a Next.js `Middleware.execute` request.
  *
- * Older Next.js versions append the full URL to the middleware span name (e.g. `middleware GET /foo?bar=1`),
+ * Used by both runtimes: on the Edge runtime middleware always runs as its own root span, and since
+ * Next.js 16 the Node.js runtime runs middleware/proxy as its own root span too (previously a child of
+ * `BaseServer.handleRequest`).
+ *
+ * Some Next.js versions append the full URL to the middleware span name (e.g. `middleware GET /foo?bar=1`),
  * producing high-cardinality transaction names. We collapse the name to `middleware {METHOD}` when possible,
  * and strip query/fragment otherwise.
  *
