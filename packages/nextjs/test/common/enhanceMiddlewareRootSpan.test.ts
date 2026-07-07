@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { enhanceMiddlewareRootSpan } from '../../src/common/enhanceMiddlewareRootSpan';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
-import { enhanceMiddlewareRootSpan } from '../../src/edge/enhanceMiddlewareRootSpan';
 
 function makeSpan(attributes: Record<string, unknown>, name?: string) {
   let currentName = name;
+  let currentOp: string | undefined;
   return {
     span: {
       attributes,
@@ -11,14 +12,18 @@ function makeSpan(attributes: Record<string, unknown>, name?: string) {
       setName: (n: string) => {
         currentName = n;
       },
+      setOp: (op: string) => {
+        currentOp = op;
+      },
     },
     getName: () => currentName,
+    getOp: () => currentOp,
   };
 }
 
 describe('enhanceMiddlewareRootSpan', () => {
   it('does nothing for spans that are not Middleware.execute', () => {
-    const { span, getName } = makeSpan(
+    const { span, getName, getOp } = makeSpan(
       { [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest', [ATTR_NEXT_SPAN_NAME]: 'middleware GET /foo' },
       'GET /foo',
     );
@@ -26,18 +31,20 @@ describe('enhanceMiddlewareRootSpan', () => {
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBe('GET /foo');
+    expect(getOp()).toBeUndefined();
   });
 
-  it('does nothing when next.span_name is missing', () => {
-    const { span, getName } = makeSpan({ [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute' }, 'middleware');
+  it('sets the op but keeps the name when next.span_name is missing', () => {
+    const { span, getName, getOp } = makeSpan({ [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute' }, 'middleware');
 
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBe('middleware');
+    expect(getOp()).toBe('http.server.middleware');
   });
 
-  it('does nothing when next.span_name is an empty string', () => {
-    const { span, getName } = makeSpan(
+  it('sets the op but keeps the name when next.span_name is an empty string', () => {
+    const { span, getName, getOp } = makeSpan(
       { [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute', [ATTR_NEXT_SPAN_NAME]: '' },
       'middleware',
     );
@@ -45,10 +52,11 @@ describe('enhanceMiddlewareRootSpan', () => {
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBe('middleware');
+    expect(getOp()).toBe('http.server.middleware');
   });
 
-  it('does nothing when next.span_name is not a string', () => {
-    const { span, getName } = makeSpan(
+  it('sets the op but keeps the name when next.span_name is not a string', () => {
+    const { span, getName, getOp } = makeSpan(
       { [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute', [ATTR_NEXT_SPAN_NAME]: 123 },
       'middleware',
     );
@@ -56,10 +64,11 @@ describe('enhanceMiddlewareRootSpan', () => {
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBe('middleware');
+    expect(getOp()).toBe('http.server.middleware');
   });
 
-  it('does nothing when the current name is empty', () => {
-    const { span, getName } = makeSpan(
+  it('sets the op but keeps the name when the current name is empty', () => {
+    const { span, getName, getOp } = makeSpan(
       { [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute', [ATTR_NEXT_SPAN_NAME]: 'middleware GET /foo' },
       undefined,
     );
@@ -67,6 +76,7 @@ describe('enhanceMiddlewareRootSpan', () => {
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBeUndefined();
+    expect(getOp()).toBe('http.server.middleware');
   });
 
   it.each([
@@ -75,7 +85,7 @@ describe('enhanceMiddlewareRootSpan', () => {
     ['middleware DELETE /resources/[id]', 'middleware DELETE'],
     ['middleware HEAD /', 'middleware HEAD'],
   ])('collapses "%s" to "%s"', (spanName, expected) => {
-    const { span, getName } = makeSpan(
+    const { span, getName, getOp } = makeSpan(
       { [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute', [ATTR_NEXT_SPAN_NAME]: spanName },
       spanName,
     );
@@ -83,6 +93,21 @@ describe('enhanceMiddlewareRootSpan', () => {
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBe(expected);
+    expect(getOp()).toBe('http.server.middleware');
+  });
+
+  it('normalizes the plain "middleware {METHOD}" name emitted for Node.js middleware', () => {
+    // Node.js middleware roots come pre-mangled by HTTP span inference (e.g. `GET middleware GET`),
+    // while `next.span_name` holds the original `middleware GET`.
+    const { span, getName, getOp } = makeSpan(
+      { [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute', [ATTR_NEXT_SPAN_NAME]: 'middleware GET' },
+      'GET middleware GET',
+    );
+
+    enhanceMiddlewareRootSpan(span);
+
+    expect(getName()).toBe('middleware GET');
+    expect(getOp()).toBe('http.server.middleware');
   });
 
   it('strips query and fragment from non-method-prefixed middleware names', () => {

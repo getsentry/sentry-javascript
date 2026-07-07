@@ -9,9 +9,9 @@ describe('getTraceMetaTags', () => {
       baggage: 'sentry-environment=production',
     });
 
-    expect(getTraceMetaTags())
-      .toBe(`<meta name="sentry-trace" content="12345678901234567890123456789012-1234567890123456-1"/>
-<meta name="baggage" content="sentry-environment=production"/>`);
+    expect(getTraceMetaTags()).toBe(
+      '<meta name="sentry-trace" content="12345678901234567890123456789012-1234567890123456-1"/><meta name="baggage" content="sentry-environment=production"/>',
+    );
   });
 
   it('renders just sentry-trace values to stringified Html meta tags', () => {
@@ -39,9 +39,9 @@ describe('getTraceMetaTags', () => {
         'sentry-environment=test,sentry-public_key=public12345,sentry-trace_id=ab12345678901234567890123456789012,sentry-sample_rate=0.5',
     };
 
-    expect(getTraceMetaTags(customTraceData))
-      .toBe(`<meta name="sentry-trace" content="ab12345678901234567890123456789012-1234567890abcdef-1"/>
-<meta name="baggage" content="sentry-environment=test,sentry-public_key=public12345,sentry-trace_id=ab12345678901234567890123456789012,sentry-sample_rate=0.5"/>`);
+    expect(getTraceMetaTags(customTraceData)).toBe(
+      '<meta name="sentry-trace" content="ab12345678901234567890123456789012-1234567890abcdef-1"/><meta name="baggage" content="sentry-environment=test,sentry-public_key=public12345,sentry-trace_id=ab12345678901234567890123456789012,sentry-sample_rate=0.5"/>',
+    );
 
     expect(getTraceDataSpy).not.toHaveBeenCalled();
   });
