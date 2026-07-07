@@ -1,11 +1,6 @@
 import { json } from '@sveltejs/kit';
 import mysql from 'mysql';
 
-const connection = mysql.createConnection({
-  user: 'root',
-  password: 'docker',
-});
-
 export const GET = async () => {
   const connection = mysql.createConnection({ user: 'root', password: 'docker' });
   try {
