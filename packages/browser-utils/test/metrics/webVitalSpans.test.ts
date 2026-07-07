@@ -476,10 +476,7 @@ describe('_sendInpSpan', () => {
         name: 'body > CachedButton',
         attributes: expect.objectContaining({
           'sentry.transaction': 'cached-route',
-          // `sentry.segment.name` is set in `_emitWebVitalSpan` from the current scope's
-          // transaction name, not from `_sendInpSpan`'s `routeName` (which comes from the
-          // cached interaction's span and only feeds `sentry.transaction`).
-          'sentry.segment.name': 'test-route',
+          'sentry.segment.name': 'cached-route',
         }),
         parentSpan: mockRootSpan,
       }),
