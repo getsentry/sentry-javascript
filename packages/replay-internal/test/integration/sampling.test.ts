@@ -38,6 +38,7 @@ describe('Integration | sampling', () => {
     expect(replay.getContext()).toEqual({
       errorIds: new Set(),
       traceIds: new Set(),
+      segmentNames: new Set(),
       urls: [],
       initialTimestamp: expect.any(Number),
       initialUrl: '',
@@ -79,6 +80,7 @@ describe('Integration | sampling', () => {
       initialTimestamp: expect.any(Number),
       initialUrl: 'http://localhost:3000/',
       traceIds: new Set(),
+      segmentNames: new Set(),
       urls: ['http://localhost:3000/'],
     });
     expect(replay.recordingMode).toBe('buffer');
