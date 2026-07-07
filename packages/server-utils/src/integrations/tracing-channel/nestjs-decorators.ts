@@ -18,7 +18,7 @@ const ORIGIN_MIDDLEWARE = 'auto.middleware.orchestrion.nestjs';
 /** The class an `@Injectable` decorator is applied to (`ctx.arguments[0]`). */
 export interface InjectableTarget {
   name?: string;
-  sentryPatched?: boolean;
+  sentryPatchedInjectable?: boolean;
   __SENTRY_INTERNAL__?: boolean;
   prototype: {
     use?: AnyFn;
@@ -31,7 +31,7 @@ export interface InjectableTarget {
 /** The class a `@Catch` decorator is applied to (an exception filter). */
 export interface CatchTarget {
   name?: string;
-  sentryPatched?: boolean;
+  sentryPatchedCatch?: boolean;
   __SENTRY_INTERNAL__?: boolean;
   prototype: { catch?: AnyFn };
 }
@@ -49,14 +49,20 @@ interface ObservableLike {
 }
 
 /**
- * Mark a target class as patched so it's instrumented only once (mirrors the
- * vendored `isPatched`). Also give idempotency across repeated subscriptions.
+ * Mark a target class as patched (for the given pass) so it's instrumented only
+ * once, and to stay idempotent across repeated subscriptions.
+ *
+ * The `@Injectable` and `@Catch` passes use *separate* flags on purpose: they
+ * wrap disjoint method sets (use/canActivate/transform/intercept vs catch), and
+ * a class can be decorated with both (an exception filter that also uses DI).
+ * A single shared flag would let whichever channel fired first latch it and
+ * block the other pass, dropping that pass's spans regardless of ordering.
  */
-function isTargetPatched(target: { sentryPatched?: boolean }): boolean {
-  if (target.sentryPatched) {
+function isTargetPatched(target: object, flag: 'sentryPatchedInjectable' | 'sentryPatchedCatch'): boolean {
+  if ((target as Record<string, unknown>)[flag]) {
     return true;
   }
-  addNonEnumerableProperty(target as object, 'sentryPatched', true);
+  addNonEnumerableProperty(target, flag, true);
   return false;
 }
 
@@ -201,7 +207,7 @@ function patchInterceptor(target: InjectableTarget, intercept: AnyFn, seenContex
  */
 export function patchInjectableTarget(target: InjectableTarget, seenContexts: WeakSet<object>): void {
   const proto = target?.prototype;
-  if (!proto || target.__SENTRY_INTERNAL__ || isTargetPatched(target)) {
+  if (!proto || target.__SENTRY_INTERNAL__ || isTargetPatched(target, 'sentryPatchedInjectable')) {
     return;
   }
 
@@ -264,7 +270,12 @@ export function patchInjectableTarget(target: InjectableTarget, seenContexts: We
  */
 export function patchCatchTarget(target: CatchTarget): void {
   const proto = target?.prototype;
-  if (!proto || typeof proto.catch !== 'function' || target.__SENTRY_INTERNAL__ || isTargetPatched(target)) {
+  if (
+    !proto ||
+    typeof proto.catch !== 'function' ||
+    target.__SENTRY_INTERNAL__ ||
+    isTargetPatched(target, 'sentryPatchedCatch')
+  ) {
     return;
   }
   proto.catch = new Proxy(proto.catch, {
