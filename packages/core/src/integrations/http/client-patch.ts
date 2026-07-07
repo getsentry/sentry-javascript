@@ -34,7 +34,7 @@
 import { getDefaultExport } from '../../utils/get-default-export';
 import { HTTP_ON_CLIENT_REQUEST } from './constants';
 import type { HttpExport, HttpModuleExport, HttpInstrumentationOptions, HttpClientRequest } from './types';
-import { getOriginalFunction, wrapMethod } from '../../utils/object';
+import { getOriginalFunction, unwrapMethod, wrapMethod } from '../../utils/object';
 import { getHttpClientSubscriptions } from './client-subscriptions';
 
 /**
@@ -72,12 +72,14 @@ import { getHttpClientSubscriptions } from './client-subscriptions';
 function patchClientRequest(httpModule: HttpExport, options: HttpInstrumentationOptions): void {
   const proto = httpModule.ClientRequest?.prototype;
 
-  // Nothing to patch if the module doesn't expose `ClientRequest` (e.g.
-  // `https`), or if `_storeHeader` was already wrapped. The latter also covers
-  // the case where `https`'s `ClientRequest` inherits `http`'s already-patched
-  // `_storeHeader`, avoiding double instrumentation.
-  if (typeof proto?._storeHeader !== 'function' || getOriginalFunction(proto._storeHeader)) {
+  // Nothing to patch if the module doesn't expose `ClientRequest` (e.g. `https`)
+  if (typeof proto?._storeHeader !== 'function') {
     return;
+  }
+
+  // This means it was already wrap, unwrap it first...
+  if (getOriginalFunction(proto._storeHeader)) {
+    unwrapMethod(proto, '_storeHeader');
   }
 
   const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = getHttpClientSubscriptions({

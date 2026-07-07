@@ -218,7 +218,6 @@ function instrumentHttpOutgoingRequestsViaChannel(options: HttpInstrumentationOp
 
 /**
  * Instrument outgoing HTTP(S) requests by old-school monkey-patching the `http` module.
- * This has no support to update options after instrumentation was applied, which is a tradeoff we accept.
  * This is the fallback for runtimes that do not fully support the `node:http` client diagnostics channel
  * (Node < 22.12).
  */
