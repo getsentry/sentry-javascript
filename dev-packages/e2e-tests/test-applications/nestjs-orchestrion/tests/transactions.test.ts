@@ -26,7 +26,7 @@ test('app_creation: emits a "Create Nest App" transaction at startup', async () 
   };
 
   expect(transaction.contexts.trace.op).toBe('app_creation.nestjs');
-  expect(transaction.contexts.trace.origin).toBe('auto.http.otel.nestjs');
+  expect(transaction.contexts.trace.origin).toBe('auto.http.orchestrion.nestjs');
   expect(transaction.contexts.trace.data).toEqual(
     expect.objectContaining({
       component: '@nestjs/core',
@@ -50,7 +50,7 @@ test('request_context + handler: a route transaction nests the nestjs spans', as
   // request_context span, identified by its controller/callback attributes. Its description isn't asserted:
   // the span carries `http.*` attributes, so the OTel span-name inference rewrites it to `GET /test-transaction`
   // (same as the OTel `Nest` integration — this matches, rather than diverges from, the baseline).
-  const requestContext = findSpan(transactionEvent, 'request_context.nestjs', 'auto.http.otel.nestjs');
+  const requestContext = findSpan(transactionEvent, 'request_context.nestjs', 'auto.http.orchestrion.nestjs');
   expect(requestContext).toBeDefined();
   expect(requestContext?.data).toMatchObject({
     'nestjs.type': 'request_context',
@@ -67,10 +67,14 @@ test('request_context + handler: a route transaction nests the nestjs spans', as
 
 // op + origin produced by `@Injectable`/`@Catch` instrumentation, per component type.
 const MIDDLEWARE_CASES = [
-  { route: 'test-middleware', origin: 'auto.middleware.nestjs', description: 'ExampleMiddleware' },
-  { route: 'test-guard', origin: 'auto.middleware.nestjs.guard', description: 'ExampleGuard' },
-  { route: 'test-pipe/123', origin: 'auto.middleware.nestjs.pipe', description: 'ParseIntPipe' },
-  { route: 'test-interceptor', origin: 'auto.middleware.nestjs.interceptor', description: 'ExampleInterceptor' },
+  { route: 'test-middleware', origin: 'auto.middleware.orchestrion.nestjs', description: 'ExampleMiddleware' },
+  { route: 'test-guard', origin: 'auto.middleware.orchestrion.nestjs.guard', description: 'ExampleGuard' },
+  { route: 'test-pipe/123', origin: 'auto.middleware.orchestrion.nestjs.pipe', description: 'ParseIntPipe' },
+  {
+    route: 'test-interceptor',
+    origin: 'auto.middleware.orchestrion.nestjs.interceptor',
+    description: 'ExampleInterceptor',
+  },
 ] as const;
 
 for (const { route, origin, description } of MIDDLEWARE_CASES) {
@@ -101,7 +105,7 @@ test('exception_filter span: a @Catch filter opens a middleware.nestjs span', as
   await fetch(`${baseURL}/test-exception`);
   const transactionEvent = await transactionPromise;
 
-  const span = findSpan(transactionEvent, 'middleware.nestjs', 'auto.middleware.nestjs.exception_filter');
+  const span = findSpan(transactionEvent, 'middleware.nestjs', 'auto.middleware.orchestrion.nestjs.exception_filter');
   expect(span).toBeDefined();
   expect(span?.description).toBe('ExampleExceptionFilter');
 });
