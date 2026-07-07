@@ -1,52 +1,39 @@
-import { instrumentAnthropicAiClient } from '@sentry/core';
+import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
+import express from 'express';
 
-class MockAnthropic {
-  constructor(config) {
-    this.apiKey = config.apiKey;
-    this.baseURL = config.baseURL;
+function startMockAnthropicServer() {
+  const app = express();
+  app.use(express.json({ limit: '10mb' }));
 
-    // Create messages object with create method
-    this.messages = {
-      create: this._messagesCreate.bind(this),
-    };
-  }
-
-  /**
-   * Create a mock message
-   */
-  async _messagesCreate(params) {
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 10));
-
-    return {
+  app.post('/anthropic/v1/messages', (req, res) => {
+    res.send({
       id: 'msg-truncation-test',
       type: 'message',
       role: 'assistant',
-      content: [
-        {
-          type: 'text',
-          text: 'Response to truncated messages',
-        },
-      ],
-      model: params.model,
+      content: [{ type: 'text', text: 'Response to truncated messages' }],
+      model: req.body.model,
       stop_reason: 'end_turn',
       stop_sequence: null,
-      usage: {
-        input_tokens: 10,
-        output_tokens: 15,
-      },
-    };
-  }
+      usage: { input_tokens: 10, output_tokens: 15 },
+    });
+  });
+
+  return new Promise(resolve => {
+    const server = app.listen(0, () => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
-  await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    const mockClient = new MockAnthropic({
-      apiKey: 'mock-api-key',
-    });
+  const server = await startMockAnthropicServer();
 
-    const client = instrumentAnthropicAiClient(mockClient, { enableTruncation: true, recordInputs: true });
+  await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
+    const client = new Anthropic({
+      apiKey: 'mock-api-key',
+      baseURL: `http://localhost:${server.address().port}/anthropic`,
+    });
 
     // Test 1: Given an array of messages only the last message should be kept
     // The last message should be truncated to fit within the 20KB limit
@@ -79,6 +66,10 @@ async function run() {
       temperature: 0.7,
     });
   });
+
+  await Sentry.flush(2000);
+
+  server.close();
 }
 
 run();

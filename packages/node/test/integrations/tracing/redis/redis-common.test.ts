@@ -4,8 +4,8 @@
  * Licensed under the Apache License, Version 2.0
  */
 
+import { defaultDbStatementSerializer } from '@sentry/server-utils';
 import { describe, expect, it } from 'vitest';
-import { defaultDbStatementSerializer } from '../../../../src/integrations/tracing/redis/vendored/redis-common';
 
 describe('defaultDbStatementSerializer()', () => {
   const testCases: Array<{

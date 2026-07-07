@@ -1,14 +1,14 @@
-import { afterAll, describe, test } from 'vitest';
-import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
+import { afterAll, describe } from 'vitest';
+import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
 
-describe('express tracing experimental', () => {
+describe('express tracing with error', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  describe('CJS', () => {
+  createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should apply the scope transactionName to error events', async () => {
-      const runner = createRunner(__dirname, 'server.js')
+      const runner = createRunner()
         .ignore('transaction')
         .expect({
           event: {

@@ -9,14 +9,7 @@ import type {
   Scope,
   SeverityLevel,
 } from '@sentry/core/browser';
-import {
-  _INTERNAL_flushLogsBuffer,
-  _INTERNAL_flushMetricsBuffer,
-  addAutoIpAddressToSession,
-  applySdkMetadata,
-  Client,
-  getSDKSource,
-} from '@sentry/core/browser';
+import { addAutoIpAddressToSession, applySdkMetadata, Client, getSDKSource } from '@sentry/core/browser';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
@@ -104,27 +97,26 @@ export class BrowserClient extends Client<BrowserClientOptions> {
       };
     }
 
-    const { sendClientReports, enableLogs, _experiments, enableMetrics: enableMetricsOption } = this._options;
+    const { sendClientReports } = this._options;
 
-    // todo(v11): Remove the experimental flag
-    // eslint-disable-next-line typescript/no-deprecated
-    const enableMetrics = enableMetricsOption ?? _experiments?.enableMetrics ?? true;
-
-    // Flush logs and metrics when page becomes hidden (e.g., tab switch, navigation)
-    // todo(v11): Remove the experimental flag
-    if (WINDOW.document && (sendClientReports || enableLogs || enableMetrics)) {
+    // Flush buffered data when the page becomes hidden (e.g. tab switch, navigation, or the page
+    // being discarded). `flush()` emits the `flush` hook, which drains the span (streaming), log and
+    // metric buffers and hands the resulting envelopes to the transport (which uses `keepalive`).
+    // Client report outcomes don't listen to the `flush` hook, so we flush them separately.
+    if (WINDOW.document) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
           if (sendClientReports) {
             this._flushOutcomes();
           }
-          if (enableLogs) {
-            _INTERNAL_flushLogsBuffer(this);
-          }
-
-          if (enableMetrics) {
-            _INTERNAL_flushMetricsBuffer(this);
-          }
+          // Defer the flush to a microtask so that visibilitychange listeners registered after this
+          // one have already run. In particular, browser tracing's background-tab detection ends the
+          // active pageload/navigation (segment) span when the page is hidden. Deferring ensures that
+          // segment span has been added to the streaming buffer before we flush, so it is sent
+          // together with its child spans instead of being orphaned.
+          queueMicrotask(() => {
+            void this.flush();
+          });
         }
       });
     }

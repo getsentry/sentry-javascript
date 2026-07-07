@@ -1,11 +1,16 @@
 import {
-  mysqlChannelIntegration,
-  lruMemoizerChannelIntegration,
+  channelIntegrations,
+  ioredisChannelIntegration,
   detectOrchestrionSetup,
 } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
+import { cacheResponseHook } from '../integrations/tracing/redis/cache';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
 import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInjection';
+
+export function diagnosticsChannelInjectionIntegrations(): typeof channelIntegrations {
+  return channelIntegrations;
+}
 
 /**
  * EXPERIMENTAL: opt into diagnostics-channel-based auto-instrumentation.
@@ -41,11 +46,17 @@ import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInject
  */
 export function experimentalUseDiagnosticsChannelInjection(): void {
   setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
-    const integrations = [mysqlChannelIntegration(), lruMemoizerChannelIntegration()] as const;
+    // The registry integrations 1:1 replace the OTel integration of the same name.
+    const integrations = Object.values(channelIntegrations).map(createIntegration => createIntegration());
     const replacedOtelIntegrationNames = integrations.map(i => i.name);
 
     return {
-      integrations,
+      // ioredis is wired here rather than in the shared `channelIntegrations` registry: it needs
+      // the node redis cache `responseHook`, and it only partially replaces the composite OTel
+      // `Redis` integration (which also covers node-redis and ioredis >=5.11 native diagnostics_channel).
+      // So it's added to the integration set but kept OUT of `replacedOtelIntegrationNames` — `Redis`
+      // must stay; its ioredis <5.11 monkey-patch is gated off in `redisIntegration` instead.
+      integrations: [...integrations, ioredisChannelIntegration({ responseHook: cacheResponseHook })],
       replacedOtelIntegrationNames,
       register: registerDiagnosticsChannelInjection,
       detect: detectOrchestrionSetup,

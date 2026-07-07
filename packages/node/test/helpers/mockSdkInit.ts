@@ -30,12 +30,13 @@ export function mockSdkInit(options?: Partial<NodeClientOptions>) {
 export function cleanupOtel(_provider?: BasicTracerProvider): void {
   const provider = getProvider(_provider);
 
-  if (!provider) {
-    return;
+  // `getProvider` only resolves the OpenTelemetry SDK `BasicTracerProvider`; the default
+  // `SentryTracerProvider` is not an instance of it. Flush/shutdown only apply to the SDK provider,
+  // but the global APIs must always be disabled so the next test can register its own provider.
+  if (provider) {
+    void provider.forceFlush();
+    void provider.shutdown();
   }
-
-  void provider.forceFlush();
-  void provider.shutdown();
 
   // Disable all globally registered APIs
   trace.disable();

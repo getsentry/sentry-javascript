@@ -2,7 +2,7 @@ import { errorMonitor } from 'node:events';
 import type { IncomingHttpHeaders } from 'node:http';
 import { context, SpanKind, trace } from '@opentelemetry/api';
 import type { RPCMetadata } from '@opentelemetry/core';
-import { getRPCMetadata, RPCType, setRPCMetadata } from '@opentelemetry/core';
+import { RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
   HTTP_RESPONSE_STATUS_CODE,
   HTTP_ROUTE,
@@ -178,10 +178,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           applyCustomAttributesOnSpan?.(span, request, response);
           onSpanCreated?.(span, request, response);
 
-          const rpcMetadata: RPCMetadata = {
-            type: RPCType.HTTP,
-            span,
-          };
+          const rpcMetadata: RPCMetadata = { type: RPCType.HTTP, span };
 
           return context.with(setRPCMetadata(trace.setSpan(context.active(), span), rpcMetadata), () => {
             context.bind(context.active(), request);
@@ -197,7 +194,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
               isEnded = true;
 
-              const newAttributes = getIncomingRequestAttributesOnResponse(request, response);
+              const newAttributes = getIncomingRequestAttributesOnResponse(request, response, rpcMetadata);
               span.setAttributes(newAttributes);
               span.setStatus(status);
               span.end();
@@ -226,15 +223,25 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
       });
     },
     processEvent(event) {
-      // Drop transaction if it has a status code that should be ignored
       if (event.type === 'transaction') {
         const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
         if (typeof statusCode === 'number') {
-          const shouldDrop = shouldFilterStatusCode(statusCode, ignoreStatusCodes);
-          if (shouldDrop) {
+          // Drop transaction if it has a status code that should be ignored
+          if (shouldFilterStatusCode(statusCode, ignoreStatusCodes)) {
             DEBUG_BUILD && debug.log('Dropping transaction due to status code', statusCode);
             return null;
           }
+
+          // Surface the HTTP status as the top-level `response` context. The OTel SDK span
+          // exporter already does this on its path; doing it here covers transactions produced
+          // by the `SentryTracerProvider`, which bypasses that exporter.
+          event.contexts = {
+            ...event.contexts,
+            response: {
+              ...event.contexts?.response,
+              status_code: statusCode,
+            },
+          };
         }
       }
 
@@ -369,6 +376,7 @@ function isCompressed(headers: IncomingHttpHeaders): boolean {
 function getIncomingRequestAttributesOnResponse(
   request: HttpIncomingMessage,
   response: HttpServerResponse,
+  rpcMetadata?: RPCMetadata,
 ): SpanAttributes {
   // take socket from the request,
   // since it may be detached from the response object in keep-alive mode
@@ -382,7 +390,6 @@ function getIncomingRequestAttributesOnResponse(
     'http.status_text': statusMessage?.toUpperCase(),
   };
 
-  const rpcMetadata = getRPCMetadata(context.active());
   if (socket) {
     const { localAddress, localPort, remoteAddress, remotePort } = socket;
     // eslint-disable-next-line typescript/no-deprecated

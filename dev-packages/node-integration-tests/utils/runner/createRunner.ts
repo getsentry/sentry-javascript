@@ -15,6 +15,7 @@ import type {
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
 import { execSync, spawn, spawnSync } from 'child_process';
+import { createHash } from 'crypto';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { inspect } from 'util';
@@ -136,6 +137,10 @@ export function createRunner(...paths: string[]) {
   let withSentryServer = false;
   let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
+  // When set, the test using this runner expects `completed()` to reject (e.g. `test.fails` variants
+  // created via `createEsmAndCjsTests` with `failsOnEsm`/`failsOnCjs`). We suppress the captured-log
+  // dump in that case, since the failure is expected and the output would just be noise.
+  let suppressErrorLogs = false;
   const logs: string[] = [];
 
   if (testPath.endsWith('.ts')) {
@@ -187,7 +192,10 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     withEnv: function (env: Record<string, string>) {
-      withEnv = env;
+      withEnv = {
+        ...withEnv,
+        ...env,
+      };
       return this;
     },
     withFlags: function (...args: string[]) {
@@ -227,6 +235,14 @@ export function createRunner(...paths: string[]) {
       ensureNoErrorOutput = true;
       return this;
     },
+    /**
+     * Mark this runner's test as expected to fail (i.e. `completed()` is expected to reject).
+     * Suppresses the captured-log dump so expected failures don't emit noisy output.
+     */
+    suppressErrorLogs: function () {
+      suppressErrorLogs = true;
+      return this;
+    },
     start: function (): StartResult {
       let isComplete = false;
       let completeError: Error | undefined;
@@ -246,6 +262,33 @@ export function createRunner(...paths: string[]) {
         isComplete = true;
         completeError = error || undefined;
         child?.kill();
+      }
+
+      /**
+       * Print everything the child process wrote to stdout/stderr. Called when a test fails or
+       * times out so the captured output is visible in CI logs. Skipped when `DEBUG` is set, since
+       * that already streams the same lines live as they arrive.
+       */
+      function dumpCapturedLogs(): void {
+        // Skip when the failure is expected (`test.fails` variants) — the output would just be noise.
+        // In debug mode the same lines are already streamed live, so skip then too.
+        if (process.env.DEBUG || suppressErrorLogs) {
+          return;
+        }
+
+        // eslint-disable-next-line no-console
+        console.log(`\n--- Captured child process output for ${testPath} ---`);
+        if (logs.length === 0) {
+          // eslint-disable-next-line no-console
+          console.log('(no output captured)');
+        } else {
+          for (const line of logs) {
+            // eslint-disable-next-line no-console
+            console.log(line);
+          }
+        }
+        // eslint-disable-next-line no-console
+        console.log('--- End of captured child process output ---\n');
       }
 
       /** Called after each expect callback to check if we're complete */
@@ -472,9 +515,18 @@ export function createRunner(...paths: string[]) {
 
       return {
         completed: async function (): Promise<void> {
-          await waitFor(() => isComplete, 120_000, 'Timed out waiting for test to complete');
+          try {
+            await waitFor(() => isComplete, 120_000, 'Timed out waiting for test to complete');
+          } catch (e) {
+            // On timeout, dump the captured child output (same info `DEBUG=1` would have streamed live)
+            // so CI failures are diagnosable without re-running locally with DEBUG enabled.
+            dumpCapturedLogs();
+            throw e;
+          }
 
           if (completeError) {
+            // Same rationale as the timeout branch: surface what the child actually logged before failing.
+            dumpCapturedLogs();
             throw completeError;
           }
         },
@@ -553,8 +605,20 @@ export function createRunner(...paths: string[]) {
  */
 async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   const cwd = join(...options.workingDirectory);
+
+  // Docker Compose derives the project name from the compose file's directory
+  // basename by default. Several suites live in directories that share a
+  // basename (e.g. `tracing/mysql2` and `tracing/knex/mysql2`), so they collide
+  // on the same project + network when running in parallel: one suite's
+  // teardown removes the shared `<name>_default` network while a sibling is
+  // still starting, producing "network <name>_default not found". Deriving a
+  // unique, stable project name from the full working directory isolates every
+  // suite from each other.
+  const projectName = `sentry-it-${createHash('sha1').update(cwd).digest('hex').slice(0, 12)}`;
+  const composeArgs = (...args: string[]): string[] => ['compose', '-p', projectName, ...args];
+
   const close = (): void => {
-    spawnSync('docker', ['compose', 'down', '--volumes'], {
+    spawnSync('docker', composeArgs('down', '--volumes'), {
       cwd,
       stdio: process.env.DEBUG ? 'inherit' : undefined,
     });
@@ -564,7 +628,7 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   close();
 
   const composeUp = (): ReturnType<typeof spawnSync> =>
-    spawnSync('docker', ['compose', 'up', '-d', '--wait'], {
+    spawnSync('docker', composeArgs('up', '-d', '--wait'), {
       cwd,
       stdio: process.env.DEBUG ? 'inherit' : 'pipe',
     });
@@ -584,7 +648,7 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     const stderr = result.stderr?.toString() ?? '';
     const stdout = result.stdout?.toString() ?? '';
     // Surface container logs to make healthcheck failures easier to diagnose in CI
-    const logs = spawnSync('docker', ['compose', 'logs'], { cwd }).stdout?.toString() ?? '';
+    const logs = spawnSync('docker', composeArgs('logs'), { cwd }).stdout?.toString() ?? '';
     close();
     throw new Error(
       `docker compose up --wait failed (exit ${result.status})\n${stderr}${stdout}\n--- container logs ---\n${logs}`,

@@ -20,6 +20,7 @@
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "type-check": "tsc",
     "test": "vitest run",
+    "test:orchestrion": "INJECT_ORCHESTRION=true yarn test",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
@@ -48,6 +49,7 @@
     "@prisma/client": "6.15.0",
     "@sentry/aws-serverless": "10.63.0",
     "@sentry/core": "10.63.0",
+    "@sentry/server-utils": "10.63.0",
     "@sentry/hono": "10.63.0",
     "@sentry/node": "10.63.0",
     "@types/mongodb": "^3.6.20",
@@ -82,7 +84,7 @@
     "node-cron": "^3.0.3",
     "node-schedule": "^2.1.1",
     "openai": "5.18.1",
-    "pg": "8.16.0",
+    "pg": "8.20.0",
     "pino": "9.10.0",
     "pino-next": "npm:pino@^9.12.0",
     "postgres": "^3.4.7",
@@ -98,6 +100,7 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
+    "@sentry/conventions": "0.15.1",
     "@sentry-internal/test-utils": "10.63.0",
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",

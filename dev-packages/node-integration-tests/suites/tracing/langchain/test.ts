@@ -21,6 +21,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { createEsmTests } from '../../../utils/runner/createEsmAndCjsTests';
 
@@ -255,7 +256,9 @@ describe('LangChain integration', () => {
           span: container => {
             expect(container.items).toHaveLength(2);
             const anthropicSpan = container.items.find(
-              span => span.attributes['sentry.origin'].value === 'auto.ai.anthropic',
+              span =>
+                span.attributes['sentry.origin'].value ===
+                (isOrchestrionEnabled() ? 'auto.ai.orchestrion.anthropic' : 'auto.ai.anthropic'),
             );
             expect(anthropicSpan).toBeDefined();
             expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');

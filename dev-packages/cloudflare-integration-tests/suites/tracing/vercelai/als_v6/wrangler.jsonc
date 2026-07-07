@@ -1,0 +1,6 @@
+{
+  "name": "vercelai-v6-worker",
+  "compatibility_date": "2026-04-26",
+  "main": "index.ts",
+  "compatibility_flags": ["nodejs_als"],
+}

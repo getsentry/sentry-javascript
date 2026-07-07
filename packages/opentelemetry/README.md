@@ -85,6 +85,35 @@ function setupSentry() {
 A full setup example can be found in
 [node-experimental](https://github.com/getsentry/sentry-javascript/blob/develop/packages/node-experimental).
 
+## Sentry Tracer Provider
+
+`SentryTracerProvider` is a minimal OpenTelemetry tracer provider which creates native Sentry spans directly.
+It is useful when code uses the global OpenTelemetry API and you do not need the full OpenTelemetry SDK span processor
+and exporter pipeline.
+
+```js
+import { trace } from '@opentelemetry/api';
+import { SentryTracerProvider } from '@sentry/opentelemetry';
+
+trace.setGlobalTracerProvider(new SentryTracerProvider());
+
+const span = trace.getTracer('example').startSpan('work');
+span.end();
+```
+
+In `@sentry/node`, this is the default tracer provider. To use the full OpenTelemetry SDK `BasicTracerProvider`
+instead, opt out with:
+
+```js
+Sentry.init({
+  dsn: 'xxx',
+  openTelemetryBasicTracerProvider: true,
+});
+```
+
+Providing `openTelemetrySpanProcessors` also falls back to the full OpenTelemetry SDK provider, since custom span
+processors require the SDK span pipeline. The `SentryTracerProvider` does not handle OpenTelemetry logs and metrics.
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)

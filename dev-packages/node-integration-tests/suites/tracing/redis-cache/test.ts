@@ -1,10 +1,16 @@
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('redis cache auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
+
+  // Under orchestrion, ioredis <5.11 is instrumented by the diagnostics-channel
+  // subscriber instead of the OTel monkey-patch, so ioredis span origins differ.
+  // node-redis (redis-4/redis-5) is not ported, so those keep `auto.db.otel.redis`.
+  const ioredisOrigin = isOrchestrionEnabled() ? 'auto.db.orchestrion.redis' : 'auto.db.otel.redis';
 
   describe('ioredis non-cache keys', () => {
     const EXPECTED_TRANSACTION = {
@@ -13,7 +19,7 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'set test-key [1 other arguments]',
           op: 'db',
-          origin: 'auto.db.otel.redis',
+          origin: ioredisOrigin,
           data: expect.objectContaining({
             'sentry.op': 'db',
             'db.system': 'redis',
@@ -25,7 +31,7 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'get test-key',
           op: 'db',
-          origin: 'auto.db.otel.redis',
+          origin: ioredisOrigin,
           data: expect.objectContaining({
             'sentry.op': 'db',
             'db.system': 'redis',
@@ -56,9 +62,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'ioredis-cache:test-key',
           op: 'cache.put',
-          origin: 'auto.db.otel.redis',
+          origin: ioredisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': ioredisOrigin,
             'db.statement': 'set ioredis-cache:test-key [1 other arguments]',
             'cache.key': ['ioredis-cache:test-key'],
             'cache.item_size': 2,
@@ -70,9 +76,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'ioredis-cache:test-key-set-EX',
           op: 'cache.put',
-          origin: 'auto.db.otel.redis',
+          origin: ioredisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': ioredisOrigin,
             'db.statement': 'set ioredis-cache:test-key-set-EX [3 other arguments]',
             'cache.key': ['ioredis-cache:test-key-set-EX'],
             'cache.item_size': 2,
@@ -84,9 +90,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'ioredis-cache:test-key-setex',
           op: 'cache.put',
-          origin: 'auto.db.otel.redis',
+          origin: ioredisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': ioredisOrigin,
             'db.statement': 'setex ioredis-cache:test-key-setex [2 other arguments]',
             'cache.key': ['ioredis-cache:test-key-setex'],
             'cache.item_size': 2,
@@ -98,9 +104,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'ioredis-cache:test-key',
           op: 'cache.get',
-          origin: 'auto.db.otel.redis',
+          origin: ioredisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': ioredisOrigin,
             'db.statement': 'get ioredis-cache:test-key',
             'cache.hit': true,
             'cache.key': ['ioredis-cache:test-key'],
@@ -113,9 +119,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'ioredis-cache:unavailable-data',
           op: 'cache.get',
-          origin: 'auto.db.otel.redis',
+          origin: ioredisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': ioredisOrigin,
             'db.statement': 'get ioredis-cache:unavailable-data',
             'cache.hit': false,
             'cache.key': ['ioredis-cache:unavailable-data'],
@@ -127,9 +133,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'test-key, ioredis-cache:test-key, ioredis-cache:unavailable-data',
           op: 'cache.get',
-          origin: 'auto.db.otel.redis',
+          origin: ioredisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': ioredisOrigin,
             'db.statement': 'mget [3 other arguments]',
             'cache.hit': true,
             'cache.key': ['test-key', 'ioredis-cache:test-key', 'ioredis-cache:unavailable-data'],

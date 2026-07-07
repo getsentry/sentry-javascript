@@ -53,6 +53,8 @@ interface ListenerRecord {
  *
  * This is heavily inspired & adapted from:
  * https://github.com/open-telemetry/opentelemetry-js-contrib/blob/28e209a9da36bc4e1f8c2b0db7360170ed46cb80/plugins/node/instrumentation-undici/src/undici.ts
+ *
+ * @deprecated This class is no longer used internally and will be removed in a future major version. Use `nativeNodeFetchIntegration` instead.
  */
 export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNodeFetchInstrumentationOptions> {
   // Keep ref to avoid https://github.com/nodejs/node/issues/42170 bug and for

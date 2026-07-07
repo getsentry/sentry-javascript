@@ -24,7 +24,7 @@ import {
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_URL } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
-import { getSamplingDecision } from './utils/getSamplingDecision';
+import { getSampledForPropagation, getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
 import { setIsSetup } from './utils/setupCheck';
 
@@ -173,7 +173,7 @@ export function getInjectionData(
       dynamicSamplingContext,
       traceId: spanContext.traceId,
       spanId: spanContext.spanId,
-      sampled: getSamplingDecision(spanContext), // TODO: Do we need to change something here?
+      sampled: getSampledForPropagation(span, options.client),
     };
   }
 

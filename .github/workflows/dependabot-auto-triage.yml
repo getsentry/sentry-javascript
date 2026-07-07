@@ -58,7 +58,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ vars.GITFLOW_APP_ID }}
+          client-id: ${{ vars.GITFLOW_APP_ID }}
           private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
 
       - name: Checkout develop
@@ -135,7 +135,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ vars.GITFLOW_APP_ID }}
+          client-id: ${{ vars.GITFLOW_APP_ID }}
           private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
 
       - name: Checkout develop
@@ -210,7 +210,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ vars.GITFLOW_APP_ID }}
+          client-id: ${{ vars.GITFLOW_APP_ID }}
           private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
 
       - name: Checkout develop
