@@ -31,8 +31,10 @@
         "import": "./build/esm/index.browser.js",
         "require": "./build/cjs/index.browser.js"
       },
-      "import": "./build/esm/index.js",
-      "require": "./build/cjs/index.js"
+      "default": {
+        "import": "./build/esm/index.js",
+        "require": "./build/cjs/index.js"
+      }
     }
   },
   "typesVersions": {
