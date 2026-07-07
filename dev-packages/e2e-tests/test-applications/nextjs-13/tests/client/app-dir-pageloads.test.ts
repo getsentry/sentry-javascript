@@ -27,6 +27,9 @@ test('should create a pageload transaction when the `app` directory is used', as
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
           'sentry.source': 'url',
+          'url.path': '/pageload-transaction',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/pageload-transaction$/),
+          // no url.template because source is url and we didn't paremeterize the route
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
