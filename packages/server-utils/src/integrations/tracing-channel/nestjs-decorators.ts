@@ -191,6 +191,10 @@ function patchInterceptor(target: InjectableTarget, intercept: AnyFn, seenContex
         // Sync interceptor: `next.handle()` (if it was going to be called) has
         // already run synchronously, so `afterSpan` is settled.
         if (!afterSpan) {
+          // `next.handle()` was never called (e.g. the interceptor
+          // short-circuited for a cache/validation hit), so its `handle` proxy
+          // never ended the before-span; close it here.
+          beforeSpan.end();
           return returned;
         }
 
