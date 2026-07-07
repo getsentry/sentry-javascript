@@ -155,7 +155,7 @@ export function instrumentHttpOutgoingRequests(
     applyCustomAttributesOnSpan,
     ...options,
     // oxlint-disable-next-line typescript/no-deprecated
-    spans: options.createSpansForOutgoingRequests && (options.spans ?? true),
+    spans: (options.createSpansForOutgoingRequests !== false) && (options.spans ?? true),
     ignoreOutgoingRequests(url, request) {
       return (
         isTracingSuppressed() || !!options.ignoreOutgoingRequests?.(url, getRequestOptions(request as ClientRequest))
@@ -243,7 +243,7 @@ function instrumentHttpOutgoingRequestsViaMonkeyPatching(options: HttpInstrument
  * This is heavily inspired & adapted from:
  * https://github.com/open-telemetry/opentelemetry-js/blob/f8ab5592ddea5cba0a3b33bf8d74f27872c0367f/experimental/packages/opentelemetry-instrumentation-http/src/http.ts
  *
- * @deprecated This will be removed in v11. Use instrumentHttpWithoutFullChannelSupport() instead.
+ * @deprecated This will be removed in v11. Use instrumentHttpOutgoingRequests() instead.
  */
 export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
