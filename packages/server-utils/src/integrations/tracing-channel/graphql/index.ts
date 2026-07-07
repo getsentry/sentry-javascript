@@ -46,8 +46,6 @@ export interface GraphqlChannelIntegrationOptions {
   useOperationNameForRootSpan?: boolean;
 }
 
-// The context orchestrion's transform attaches to each channel: `arguments` is the live args of the
-// wrapped call, `result` the settled return value.
 interface GraphqlChannelContext {
   arguments: unknown[];
   self?: unknown;

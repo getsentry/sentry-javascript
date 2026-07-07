@@ -46,7 +46,6 @@ export function startParseSpan(): Span {
   return startInactiveSpan({ name: SpanNames.PARSE });
 }
 
-/** `result` is the parsed `DocumentNode` (present on a successful parse). */
 export function finalizeParseSpan(span: Span, result: unknown): void {
   const document = result as (DocumentNode & ObjectWithGraphQLData) | undefined;
   if (!document) {
@@ -65,7 +64,6 @@ export function startValidateSpan(): Span {
   return startInactiveSpan({ name: SpanNames.VALIDATE });
 }
 
-/** `documentAST` is the second argument to `validate(schema, documentAST, …)`. */
 export function finalizeValidateSpan(span: Span, documentAST: unknown): void {
   const document = documentAST as DocumentNode | undefined;
   if (!document?.loc) {

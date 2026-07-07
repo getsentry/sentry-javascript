@@ -7,8 +7,6 @@ const EXPECTED_START_SERVER_TRANSACTION = {
   transaction: 'Test Server Start',
 };
 
-// These suites run twice on CI — once on OTel, once with orchestrion auto-injected. graphql is a
-// drop-in replacement: only the span origin differs between the two paths, so branch just that.
 const ORIGIN = isOrchestrionEnabled() ? 'auto.graphql.orchestrion.graphql' : 'auto.graphql.otel.graphql';
 
 describe('GraphQL/Apollo Tests', () => {

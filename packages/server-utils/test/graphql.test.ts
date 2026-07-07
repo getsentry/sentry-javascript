@@ -343,7 +343,6 @@ describe('graphqlChannelIntegration', () => {
       await tracedExecute({ schema, document, contextValue });
     });
 
-    // Each execute still opens its own span, and the shared context is instrumented exactly once.
     expect(spans.filter(s => spanToJSON(s).description === 'query')).toHaveLength(2);
     expect(spans.some(s => spanToJSON(s).description === 'graphql.resolve hello')).toBe(true);
   });
