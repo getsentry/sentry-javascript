@@ -122,6 +122,10 @@ export interface HttpClientRequestConstructor {
 
 /** Minimal interface for a Node.js http module export */
 export interface HttpExport {
+  //oxlint-disable typescript/no-explicit-any
+  request: (...args: any[]) => HttpClientRequest;
+  //oxlint-disable typescript/no-explicit-any
+  get: (...args: any[]) => HttpClientRequest;
   // Only `http` exports this; `https` reuses `http`'s `ClientRequest`, so this
   // is `undefined` on the `https` module.
   ClientRequest?: HttpClientRequestConstructor;
