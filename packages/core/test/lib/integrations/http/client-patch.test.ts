@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HTTP_ON_CLIENT_REQUEST } from '../../../../src/integrations/http/constants';
 import { patchHttpModuleClient } from '../../../../src/integrations/http/client-patch';
-import type { HttpClientRequest, HttpExport } from '../../../../src/integrations/http/types';
+import type { HttpClientRequest, HttpExport, HttpModuleExport } from '../../../../src/integrations/http/types';
 import { getOriginalFunction } from '../../../../src/utils/object';
+import { getHttpClientSubscriptions } from '../../../../src/integrations/http/client-subscriptions';
 
 const mockClientRequestHandler = vi.fn();
 
@@ -17,14 +18,14 @@ vi.mock('../../../../src/integrations/http/client-subscriptions', () => ({
  * `ClientRequest` constructor with a `_storeHeader` method on its prototype.
  */
 function makeMockHttpModule(): HttpExport & {
-  ClientRequest: { prototype: { _storeHeader: ReturnType<typeof vi.fn> } };
+  ClientRequest: NonNullable<HttpExport['ClientRequest']> & { prototype: { _storeHeader: ReturnType<typeof vi.fn> } };
 } {
   const _storeHeader = vi.fn();
   return {
     request: vi.fn(),
     get: vi.fn(),
     ClientRequest: { prototype: { _storeHeader } },
-  } as unknown as HttpExport & { ClientRequest: { prototype: { _storeHeader: ReturnType<typeof vi.fn> } } };
+  };
 }
 
 describe('patchHttpModuleClient', () => {
@@ -102,15 +103,29 @@ describe('patchHttpModuleClient', () => {
     expect(originalStoreHeader).toHaveBeenCalledOnce();
   });
 
-  it('is idempotent — patching a second time does not re-wrap', () => {
+  it('is idempotent — patching a second time does not re-wrap but updates options', () => {
     const httpModule = makeMockHttpModule();
 
-    patchHttpModuleClient(httpModule);
+    // Each patch derives its subscription handler from the options it was given,
+    // so distinct handlers stand in for distinct options here.
+    const handler1 = vi.fn();
+    const handler2 = vi.fn();
+    vi.mocked(getHttpClientSubscriptions)
+      .mockReturnValueOnce({ [HTTP_ON_CLIENT_REQUEST]: handler1 })
+      .mockReturnValueOnce({ [HTTP_ON_CLIENT_REQUEST]: handler2 });
+
+    patchHttpModuleClient(httpModule, { propagateTrace: true });
     const wrappedStoreHeader = httpModule.ClientRequest.prototype._storeHeader;
 
-    patchHttpModuleClient(httpModule);
+    patchHttpModuleClient(httpModule, { propagateTrace: false });
 
+    // The wrapper itself is preserved (no double-wrapping)...
     expect(httpModule.ClientRequest.prototype._storeHeader).toBe(wrappedStoreHeader);
+
+    // ...but it now routes through the handler derived from the second patch's options.
+    httpModule.ClientRequest.prototype._storeHeader.call({} as HttpClientRequest, 'GET / HTTP/1.1\r\n', {});
+    expect(handler2).toHaveBeenCalledOnce();
+    expect(handler1).not.toHaveBeenCalled();
   });
 
   it('is a no-op for modules without a ClientRequest (e.g. https)', () => {
@@ -122,7 +137,7 @@ describe('patchHttpModuleClient', () => {
 
   it('handles a CJS default export by patching the default export', () => {
     const httpDefault = makeMockHttpModule();
-    const httpModule: HttpExport & { default: HttpExport } = { default: httpDefault };
+    const httpModule: HttpModuleExport = { default: httpDefault, get: vi.fn(), request: vi.fn() };
     const originalStoreHeader = httpDefault.ClientRequest.prototype._storeHeader;
 
     patchHttpModuleClient(httpModule);

@@ -34,8 +34,10 @@
 import { getDefaultExport } from '../../utils/get-default-export';
 import { HTTP_ON_CLIENT_REQUEST } from './constants';
 import type { HttpExport, HttpModuleExport, HttpInstrumentationOptions, HttpClientRequest } from './types';
-import { getOriginalFunction, unwrapMethod, wrapMethod } from '../../utils/object';
+import { getOriginalFunction, wrapMethod } from '../../utils/object';
 import { getHttpClientSubscriptions } from './client-subscriptions';
+
+let onHttpClientRequestCreated: ReturnType<typeof getHttpClientSubscriptions>[typeof HTTP_ON_CLIENT_REQUEST];
 
 /**
  * Patch `ClientRequest.prototype._storeHeader` so that every outgoing request
@@ -77,15 +79,18 @@ function patchClientRequest(httpModule: HttpExport, options: HttpInstrumentation
     return;
   }
 
-  // This means it was already wrap, unwrap it first...
-  if (getOriginalFunction(proto._storeHeader)) {
-    unwrapMethod(proto, '_storeHeader');
-  }
-
-  const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = getHttpClientSubscriptions({
+  const subscriptions = getHttpClientSubscriptions({
     ...options,
     http: httpModule,
   });
+
+  onHttpClientRequestCreated = subscriptions[HTTP_ON_CLIENT_REQUEST];
+
+  // This means it was already wrapped, we just update onHttpClientRequestCreated and then stop
+  // future calls will pick up the new function
+  if (getOriginalFunction(proto._storeHeader)) {
+    return;
+  }
 
   const originalStoreHeader = proto._storeHeader;
   wrapMethod(proto, '_storeHeader', function patchedStoreHeader(this: HttpClientRequest, ...args: unknown[]) {

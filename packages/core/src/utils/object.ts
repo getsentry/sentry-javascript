@@ -112,31 +112,6 @@ export function wrapMethod<O extends {}, T extends string & keyof O>(
 }
 
 /**
- * Unwrap a method that was previously wrapped by `wrapMethod`, restoring the original implementation.
- */
-export function unwrapMethod<O extends {}, T extends string & keyof O>(
-  obj: O,
-  field: T,
-  enumerable: boolean = true,
-): void {
-  const original = obj[field];
-  if (typeof original !== 'function') {
-    throw new Error(`Cannot unwrap method: ${field} is not a function`);
-  }
-  const originalImplementation = getOriginalFunction(original);
-  if (!originalImplementation) {
-    throw new Error(`Attempting to unwrap method ${field} that was not wrapped`);
-  }
-
-  Object.defineProperty(obj, field, {
-    writable: true,
-    configurable: true,
-    enumerable,
-    value: originalImplementation,
-  });
-}
-
-/**
  * This extracts the original function if available.  See
  * `markFunctionWrapped` for more information.
  *
