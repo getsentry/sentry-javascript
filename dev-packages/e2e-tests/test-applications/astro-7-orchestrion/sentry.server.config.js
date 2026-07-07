@@ -3,8 +3,7 @@ import { experimentalUseDiagnosticsChannelInjection } from '@sentry/node';
 
 // Registers the diagnostics-channel subscribers that turn the build-time
 // injected channel events (from the orchestrion Vite plugin) into Sentry spans.
-// Must run before Sentry.init(). `@sentry/astro` does not re-export this
-// Node-runtime-only opt-in, so it is imported directly from `@sentry/node`.
+// Must run before Sentry.init()
 experimentalUseDiagnosticsChannelInjection();
 
 Sentry.init({

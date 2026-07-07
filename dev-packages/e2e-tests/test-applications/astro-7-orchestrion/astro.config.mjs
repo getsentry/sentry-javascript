@@ -20,8 +20,7 @@ export default defineConfig({
   }),
   vite: {
     // Run the orchestrion code transform on the Vite SSR bundle so instrumented
-    // DB drivers (mysql, ioredis) get `diagnostics_channel` publishers injected
-    // at build time.
+    // DB drivers get `diagnostics_channel` publishers injected at build time.
     plugins: [sentryOrchestrionPlugin()],
   },
 });
