@@ -27,7 +27,7 @@ const INTEGRATION_NAME = 'Nest';
 // `@sentry/nestjs` because that package depends on this one, not vice versa.
 // Orchestrion's whole point is to keep this surface free of OTel.
 const NESTJS_COMPONENT = '@nestjs/core';
-const ORIGIN_NESTJS = 'auto.http.otel.nestjs';
+const ORIGIN_NESTJS = 'auto.http.orchestrion.nestjs';
 const ATTR_COMPONENT = 'component';
 const ATTR_NESTJS_TYPE = 'nestjs.type';
 const ATTR_NESTJS_VERSION = 'nestjs.version';

@@ -13,7 +13,7 @@ import {
 import type { AnyFn } from './nestjs-shared';
 
 const OP_MIDDLEWARE = 'middleware.nestjs';
-const ORIGIN_MIDDLEWARE = 'auto.middleware.nestjs';
+const ORIGIN_MIDDLEWARE = 'auto.middleware.orchestrion.nestjs';
 
 /** The class an `@Injectable` decorator is applied to (`ctx.arguments[0]`). */
 export interface InjectableTarget {

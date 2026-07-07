@@ -16,7 +16,7 @@ describe('nestjs orchestrion auto-instrumentation', () => {
         transaction: transaction => {
           expect(transaction.transaction).toBe('Create Nest App');
           expect(transaction.contexts?.trace?.op).toBe('app_creation.nestjs');
-          expect(transaction.contexts?.trace?.origin).toBe('auto.http.otel.nestjs');
+          expect(transaction.contexts?.trace?.origin).toBe('auto.http.orchestrion.nestjs');
           expect(transaction.contexts?.trace?.data).toEqual(
             expect.objectContaining({
               component: '@nestjs/core',
@@ -44,7 +44,7 @@ describe('nestjs orchestrion auto-instrumentation', () => {
           expect(transaction.transaction).toBe('GET /test-transaction');
           const spans = transaction.spans ?? [];
           expect(
-            spans.find(span => span.op === 'request_context.nestjs' && span.origin === 'auto.http.otel.nestjs'),
+            spans.find(span => span.op === 'request_context.nestjs' && span.origin === 'auto.http.orchestrion.nestjs'),
             'expected a request_context.nestjs span',
           ).toBeDefined();
           expect(
