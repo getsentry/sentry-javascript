@@ -167,15 +167,17 @@ function patchInterceptor(target: InjectableTarget, intercept: AnyFn, seenContex
           throw e;
         }
 
-        if (!afterSpan) {
-          return returned;
-        }
-
         // async interceptor: returns a Promise<Observable>
         if (isThenable(returned)) {
           return returned.then(
             (observable: unknown) => {
-              instrumentObservable(observable as ObservableLike, afterSpan ?? parentSpan);
+              if (afterSpan) {
+                instrumentObservable(observable as ObservableLike, afterSpan);
+              } else {
+                // `next.handle()` was never called, so nothing ended the
+                // before-span (its `handle` proxy never ran); close it here.
+                beforeSpan.end();
+              }
               return observable;
             },
             (e: unknown) => {
@@ -184,6 +186,12 @@ function patchInterceptor(target: InjectableTarget, intercept: AnyFn, seenContex
               throw e;
             },
           );
+        }
+
+        // Sync interceptor: `next.handle()` (if it was going to be called) has
+        // already run synchronously, so `afterSpan` is settled.
+        if (!afterSpan) {
+          return returned;
         }
 
         // sync interceptor: returns an Observable

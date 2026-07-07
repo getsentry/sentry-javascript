@@ -444,6 +444,76 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
     expect(() => teardowns.forEach(fn => fn())).not.toThrow();
   });
 
+  it('async interceptor that awaits before next.handle(): still instruments the after-span', async () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    const teardowns: Array<() => void> = [];
+    const observable = {
+      subscribe(): { add: (fn: () => void) => void } {
+        return { add: (fn: () => void) => void teardowns.push(fn) };
+      },
+    };
+
+    let beforeSpan: ReturnType<typeof getActiveSpan>;
+    class AsyncInterceptor {
+      // Awaits *before* calling `next.handle()`, so `intercept` returns a
+      // pending Promise while the after-span does not yet exist.
+      public async intercept(_context: unknown, next: { handle: () => unknown }): Promise<unknown> {
+        beforeSpan = getActiveSpan();
+        await Promise.resolve();
+        return next.handle();
+      }
+    }
+    applyInjectable(AsyncInterceptor);
+
+    const next = { handle: () => observable };
+    const returned = (await new AsyncInterceptor().intercept({}, next)) as typeof observable;
+
+    expect(returned).toBe(observable);
+    // before-span ended (when `next.handle()` ran, post-await)
+    expect(spanToJSON(beforeSpan!).timestamp).toBeDefined();
+    // after-span was created AND the observable instrumented despite the await
+    returned.subscribe();
+    expect(teardowns).toHaveLength(1);
+    expect(() => teardowns.forEach(fn => fn())).not.toThrow();
+  });
+
+  it('async interceptor that never calls next.handle(): ends the before-span, no after-span', async () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    nestjsChannelIntegration().setupOnce!();
+
+    const teardowns: Array<() => void> = [];
+    const observable = {
+      subscribe(): { add: (fn: () => void) => void } {
+        return { add: (fn: () => void) => void teardowns.push(fn) };
+      },
+    };
+
+    let beforeSpan: ReturnType<typeof getActiveSpan>;
+    class ShortCircuitInterceptor {
+      public async intercept(_context: unknown, _next: { handle: () => unknown }): Promise<unknown> {
+        beforeSpan = getActiveSpan();
+        await Promise.resolve();
+        return observable; // short-circuits without calling `next.handle()`
+      }
+    }
+    applyInjectable(ShortCircuitInterceptor);
+
+    const next = { handle: vi.fn() };
+    const returned = (await new ShortCircuitInterceptor().intercept({}, next)) as typeof observable;
+
+    expect(returned).toBe(observable);
+    expect(next.handle).not.toHaveBeenCalled();
+    // before-span is closed even though `next.handle()` (which normally ends it) never ran
+    expect(spanToJSON(beforeSpan!).timestamp).toBeDefined();
+    // no after-span, so the observable is left un-instrumented
+    returned.subscribe();
+    expect(teardowns).toHaveLength(0);
+  });
+
   it('skips targets flagged __SENTRY_INTERNAL__', () => {
     installTestAsyncContextStrategy();
     initTestClient();
