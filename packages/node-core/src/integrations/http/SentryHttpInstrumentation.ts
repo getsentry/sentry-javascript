@@ -155,7 +155,7 @@ export function instrumentHttpOutgoingRequests(
     applyCustomAttributesOnSpan,
     ...options,
     // oxlint-disable-next-line typescript/no-deprecated
-    spans: (options.createSpansForOutgoingRequests !== false) && (options.spans ?? true),
+    spans: options.createSpansForOutgoingRequests !== false && (options.spans ?? true),
     ignoreOutgoingRequests(url, request) {
       return (
         isTracingSuppressed() || !!options.ignoreOutgoingRequests?.(url, getRequestOptions(request as ClientRequest))

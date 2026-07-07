@@ -133,6 +133,12 @@ export const instrumentSentryHttp = Object.assign(instrumentHttpOutgoingRequests
  * It creates breadcrumbs for outgoing HTTP requests which will be attached to the currently active span.
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
+  // In node-core, for now we disable incoming requests spans by default
+  // we may revisit this in a future release
+  const spans = options.spans ?? false;
+  const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? false;
+  const enabledServerSpans = spans && !disableIncomingRequestSpans;
+
   const serverOptions: HttpServerIntegrationOptions = {
     sessions: options.trackIncomingRequestsAsSessions,
     sessionFlushingDelayMS: options.sessionFlushingDelayMS,
@@ -150,16 +156,11 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     breadcrumbs: options.breadcrumbs,
     propagateTraceInOutgoingRequests: options.tracePropagation ?? true,
     ignoreOutgoingRequests: options.ignoreOutgoingRequests,
+    spans,
   };
 
   const server = httpServerIntegration(serverOptions);
   const serverSpans = httpServerSpansIntegration(serverSpansOptions);
-
-  // In node-core, for now we disable incoming requests spans by default
-  // we may revisit this in a future release
-  const spans = options.spans ?? false;
-  const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? false;
-  const enabledServerSpans = spans && !disableIncomingRequestSpans;
 
   return {
     name: INTEGRATION_NAME,
