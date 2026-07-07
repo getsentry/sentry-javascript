@@ -13,6 +13,7 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
+    "ai": "^6.0.0",
     "@langchain/langgraph": "^1.0.1",
     "@prisma/adapter-d1": "6.15.0",
     "@prisma/client": "6.15.0",
