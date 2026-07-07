@@ -150,6 +150,7 @@ describe('kafkajsChannelIntegration', () => {
 
       const producerSpans = endedSpans.map(spanToJSON).filter(s => s.description === 'send test-topic');
       expect(producerSpans).toHaveLength(1);
+      expect(producerSpans[0]!.op).toBe('message');
       expect(producerSpans[0]!.data).toMatchObject({
         'messaging.system': 'kafka',
         'messaging.destination.name': 'test-topic',
@@ -205,6 +206,7 @@ describe('kafkajsChannelIntegration', () => {
 
       const consumerSpans = endedSpans.map(spanToJSON).filter(s => s.description === 'process test-topic');
       expect(consumerSpans).toHaveLength(1);
+      expect(consumerSpans[0]!.op).toBe('message');
       expect(consumerSpans[0]!.data).toMatchObject({
         'messaging.system': 'kafka',
         'messaging.destination.name': 'test-topic',

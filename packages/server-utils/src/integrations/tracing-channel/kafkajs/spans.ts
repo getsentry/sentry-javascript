@@ -97,6 +97,8 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
 
   return startInactiveSpan({
     name: `${operationName} ${topic}`,
+    // todo(v11): Use https://getsentry.github.io/sentry-conventions/ops/#messaging
+    op: 'message',
     kind: operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE ? SPAN_KIND.CLIENT : SPAN_KIND.CONSUMER,
     links,
     attributes: {
@@ -119,6 +121,7 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
 export function startProducerSpan(topic: string, message: Message): Span {
   const span = startInactiveSpan({
     name: `send ${topic}`,
+    op: 'message',
     kind: SPAN_KIND.PRODUCER,
     attributes: {
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
