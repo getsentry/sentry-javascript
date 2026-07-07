@@ -1,3 +1,4 @@
+// oxlint-disable max-lines
 import { getAbsoluteUrl, startBrowserTracingNavigationSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
