@@ -1,19 +1,17 @@
+import { ERROR_TYPE } from '@sentry/conventions/attributes';
+import type { PostgresConnectionContext, Span } from '@sentry/core';
 import {
-  DB_NAMESPACE,
-  DB_OPERATION_NAME,
-  ERROR_TYPE,
-  SERVER_ADDRESS,
-  SERVER_PORT,
-} from '@sentry/conventions/attributes';
-import type { Span } from '@sentry/core';
-import { debug, SPAN_STATUS_ERROR } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
+  _INTERNAL_buildPostgresConnectionContext,
+  _INTERNAL_setPostgresConnectionAttributes,
+  _INTERNAL_setPostgresOperationName,
+  debug,
+  SPAN_STATUS_ERROR,
+} from '@sentry/core';
+import { DEBUG_BUILD } from '../../../debug-build';
+import type { PostgresJsQueryContext, PostgresParsedOptions, PostgresQuery } from './types';
 
-// Not part of `@sentry/conventions`, so we keep it inline (matches the OTel
-// `PostgresJsInstrumentation`).
+// Not part of `@sentry/conventions`, so we keep it inline (matches the OTel `PostgresJsInstrumentation`).
 const DB_RESPONSE_STATUS_CODE = 'db.response.status_code';
-
-const SQL_OPERATION_REGEX = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i;
 
 // Same `Symbol.for()` marker the core `instrumentPostgresJsSql` wrapper sets on
 // queries it manually instruments, so we skip them there and never double-span.
@@ -28,50 +26,15 @@ const CONNECTION_ATTRS_SET = Symbol('sentryPostgresJsConnectionAttrsSet');
 // span, so `deferSpanEnd` knows the wrappers own the lifecycle.
 export const SPAN_ENDED = Symbol('sentryPostgresJsSpanEnded');
 
-/**
- * Connection attributes resolved from postgres.js' parsed options. Port is kept
- * as a string to match the `requestHook` contract of the OTel integration
- * (and the portable `instrumentPostgresJsSql`); it's coerced to a number when
- * set on the span (semantic conventions expect a number for `server.port`).
- */
-export interface PostgresConnectionContext {
-  ATTR_DB_NAMESPACE?: string;
-  ATTR_SERVER_ADDRESS?: string;
-  ATTR_SERVER_PORT?: string;
-}
-
-/** The `Query` instance postgres.js passes as `self` to `Query.prototype.handle`. */
-export interface PostgresQuery {
-  strings?: string[];
-  executed?: boolean;
-  resolve?: (...args: unknown[]) => unknown;
-  reject?: (...args: unknown[]) => unknown;
-}
-
-export interface PostgresJsQueryContext {
-  arguments?: unknown[];
-  self?: PostgresQuery;
-  result?: unknown;
-  error?: unknown;
-}
-
-// postgres.js parses `host`/`port` into arrays (it can connect to multiple
-// hosts); the `Connection` factory receives this parsed options object.
-export interface PostgresParsedOptions {
-  host?: string[];
-  port?: number[];
-  database?: string;
-}
-
 // A connection object -> its resolved context, populated on the `connection`
 // channel and read on the `execute`/`connect` channels (keyed by the same object).
-export const connectionContexts = new WeakMap<object, PostgresConnectionContext>();
+const connectionContexts = new WeakMap<object, PostgresConnectionContext>();
 // Distinct endpoints seen so far (value-compared, so N connections to one DB
 // count once). When exactly one endpoint exists — the common case, and the only
 // one the tests exercise — every query resolves to it at handle-start.
 const endpointRegistry: PostgresConnectionContext[] = [];
 
-export function registerEndpoint(context: PostgresConnectionContext): void {
+function registerEndpoint(context: PostgresConnectionContext): void {
   const alreadyKnown = endpointRegistry.some(
     e =>
       e.ATTR_SERVER_ADDRESS === context.ATTR_SERVER_ADDRESS &&
@@ -88,15 +51,20 @@ export function resolveSingleEndpoint(): PostgresConnectionContext | undefined {
   return endpointRegistry.length === 1 ? endpointRegistry[0] : undefined;
 }
 
-export function buildConnectionContext(options: PostgresParsedOptions): PostgresConnectionContext {
-  // postgres.js defaults to 'localhost'/5432, but be defensive.
-  const host = options.host?.[0] || 'localhost';
-  const port = options.port?.[0] || 5432;
-  return {
-    ATTR_DB_NAMESPACE: typeof options.database === 'string' && options.database !== '' ? options.database : undefined,
-    ATTR_SERVER_ADDRESS: host,
-    ATTR_SERVER_PORT: String(port),
-  };
+/**
+ * Record a connection from the `connection` channel `end` (`result` is the
+ * connection object, `arguments[0]` the parsed options), keying its resolved
+ * context by the connection object and tracking its endpoint.
+ */
+export function recordConnectionFromChannel(message: PostgresJsQueryContext): void {
+  const connection = message.result;
+  const options = message.arguments?.[0] as PostgresParsedOptions | undefined;
+  if (!connection || typeof connection !== 'object' || !options) {
+    return;
+  }
+  const context = _INTERNAL_buildPostgresConnectionContext(options);
+  connectionContexts.set(connection, context);
+  registerEndpoint(context);
 }
 
 export function setConnectionAttributes(span: Span, query: PostgresQuery, context: PostgresConnectionContext): void {
@@ -105,19 +73,7 @@ export function setConnectionAttributes(span: Span, query: PostgresQuery, contex
     return;
   }
   queryRecord[CONNECTION_ATTRS_SET] = true;
-
-  if (context.ATTR_SERVER_ADDRESS) {
-    span.setAttribute(SERVER_ADDRESS, context.ATTR_SERVER_ADDRESS);
-  }
-  if (context.ATTR_SERVER_PORT !== undefined) {
-    const port = parseInt(context.ATTR_SERVER_PORT, 10);
-    if (!Number.isNaN(port)) {
-      span.setAttribute(SERVER_PORT, port);
-    }
-  }
-  if (context.ATTR_DB_NAMESPACE) {
-    span.setAttribute(DB_NAMESPACE, context.ATTR_DB_NAMESPACE);
-  }
+  _INTERNAL_setPostgresConnectionAttributes(span, context);
 }
 
 /**
@@ -136,17 +92,6 @@ export function attachConnectionAttributesFromChannel(message: PostgresJsQueryCo
   const context = connectionContexts.get(connection);
   if (span && context) {
     setConnectionAttributes(span, query, context);
-  }
-}
-
-function setOperationName(span: Span, sanitizedQuery: string | undefined, command?: string): void {
-  if (command) {
-    span.setAttribute(DB_OPERATION_NAME, command);
-    return;
-  }
-  const operationMatch = sanitizedQuery?.match(SQL_OPERATION_REGEX);
-  if (operationMatch?.[1]) {
-    span.setAttribute(DB_OPERATION_NAME, operationMatch[1].toUpperCase());
   }
 }
 
@@ -177,7 +122,7 @@ export function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sa
       markEnded();
       try {
         const command = (resolveArgs[0] as { command?: string } | undefined)?.command;
-        setOperationName(span, sanitizedSqlQuery, command);
+        _INTERNAL_setPostgresOperationName(span, sanitizedSqlQuery, command);
         span.end();
       } catch (e) {
         DEBUG_BUILD && debug.error('[orchestrion:postgresjs] error ending span in resolve:', e);
@@ -195,7 +140,7 @@ export function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sa
         span.setStatus({ code: SPAN_STATUS_ERROR, message: err?.message || 'unknown_error' });
         span.setAttribute(DB_RESPONSE_STATUS_CODE, err?.code || 'unknown');
         span.setAttribute(ERROR_TYPE, err?.name || 'unknown');
-        setOperationName(span, sanitizedSqlQuery);
+        _INTERNAL_setPostgresOperationName(span, sanitizedSqlQuery);
         span.end();
       } catch (e) {
         DEBUG_BUILD && debug.error('[orchestrion:postgresjs] error ending span in reject:', e);

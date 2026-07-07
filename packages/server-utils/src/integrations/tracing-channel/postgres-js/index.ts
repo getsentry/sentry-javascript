@@ -1,6 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
-import type { IntegrationFn, Span } from '@sentry/core';
+import type { IntegrationFn, PostgresConnectionContext, Span } from '@sentry/core';
 import {
   _INTERNAL_reconstructPostgresQuery,
   _INTERNAL_sanitizeSqlQuery,
@@ -12,22 +12,20 @@ import {
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
-import { CHANNELS } from '../../orchestrion/channels';
-import { bindTracingChannelToSpan } from '../../tracing-channel';
-import type { PostgresConnectionContext, PostgresJsQueryContext, PostgresParsedOptions } from './postgres-js-utils';
+import { DEBUG_BUILD } from '../../../debug-build';
+import { CHANNELS } from '../../../orchestrion/channels';
+import { bindTracingChannelToSpan } from '../../../tracing-channel';
+import type { PostgresJsQueryContext } from './types';
 import {
   attachConnectionAttributesFromChannel,
-  buildConnectionContext,
-  connectionContexts,
   QUERY_FROM_INSTRUMENTED_SQL,
   QUERY_SPAN,
-  registerEndpoint,
+  recordConnectionFromChannel,
   resolveSingleEndpoint,
   setConnectionAttributes,
   SPAN_ENDED,
   wrapQuerySettlement,
-} from './postgres-js-utils';
+} from './utils';
 
 // Same name as the OTel `PostgresJs` integration by design: when this is
 // enabled, the OTel integration of the same name is dropped from the default
@@ -72,16 +70,7 @@ const _postgresJsChannelIntegration = ((options: PostgresJsChannelIntegrationOpt
         asyncStart: NOOP,
         asyncEnd: NOOP,
         error: NOOP,
-        end(message) {
-          const connection = message.result;
-          const connectionOptions = message.arguments?.[0] as PostgresParsedOptions | undefined;
-          if (!connection || typeof connection !== 'object' || !connectionOptions) {
-            return;
-          }
-          const context = buildConnectionContext(connectionOptions);
-          connectionContexts.set(connection, context);
-          registerEndpoint(context);
-        },
+        end: recordConnectionFromChannel,
       });
 
       // Per-connection attributes for queries reusing an already-open connection

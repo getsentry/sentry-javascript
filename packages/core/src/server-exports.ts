@@ -27,7 +27,11 @@ export {
   instrumentPostgresJsSql,
   _sanitizeSqlQuery as _INTERNAL_sanitizeSqlQuery,
   _reconstructQuery as _INTERNAL_reconstructPostgresQuery,
+  _buildConnectionContext as _INTERNAL_buildPostgresConnectionContext,
+  _setConnectionAttributes as _INTERNAL_setPostgresConnectionAttributes,
+  _setOperationName as _INTERNAL_setPostgresOperationName,
 } from './integrations/postgresjs';
+export type { PostgresConnectionContext } from './integrations/postgresjs';
 export { getSqlQuerySummary as _INTERNAL_getSqlQuerySummary } from './utils/sql';
 
 export { patchHttpModuleClient } from './integrations/http/client-patch';
