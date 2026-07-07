@@ -100,7 +100,13 @@ export function makeBaseNPMConfig(options = {}) {
     treeshake: {
       moduleSideEffects: (id, external) => {
         if (external === false && ignoreSideEffects.test(id)) {
-          // Tell Rollup this module has no side effects, so it can be tree-shaken
+            // Tell Rollup this module has no side effects, so it can be tree-shaken
+          return false;
+        }
+
+        // @sentry/conventions only exports constants (sideEffects: false),
+        // so Rollup shouldn't emit bare side-effect imports for it.
+        if (external && id.startsWith('@sentry/conventions')) {
           return false;
         }
 
