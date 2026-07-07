@@ -104,6 +104,12 @@ export function makeBaseNPMConfig(options = {}) {
           return false;
         }
 
+        // @sentry/conventions only exports constants (sideEffects: false),
+        // so Rollup shouldn't emit bare side-effect imports for it.
+        if (external && id.startsWith('@sentry/conventions')) {
+          return false;
+        }
+
         return true;
       },
     },
