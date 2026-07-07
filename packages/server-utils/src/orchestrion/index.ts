@@ -19,6 +19,8 @@ export {
   vercelAiChannelIntegration,
 };
 export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/tracing-channel/ioredis';
+export { redisChannelIntegration } from '../integrations/tracing-channel/redis';
+export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/tracing-channel/redis';
 
 /**
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
@@ -29,9 +31,9 @@ export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../i
  * `diagnosticsChannelInjectionIntegrations()` map — picks it up automatically, so there's no separate
  * list to keep in sync.
  *
- * NOTE: `ioredisChannelIntegration` is intentionally NOT here. It only partially replaces the
- * composite OTel `Redis` integration and needs the node SDK's redis cache `responseHook` (which
- * can't live in `server-utils`), so `@sentry/node` wires it up separately.
+ * NOTE: `ioredisChannelIntegration` and `redisChannelIntegration` are intentionally NOT here. They
+ * only partially replace the composite OTel `Redis` integration and need the node SDK's redis cache
+ * `responseHook` (which can't live in `server-utils`), so `@sentry/node` wires them up separately.
  */
 export const channelIntegrations = {
   postgresIntegration: postgresChannelIntegration,

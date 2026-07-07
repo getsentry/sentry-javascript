@@ -42,13 +42,12 @@ describe('instrumentRedis ioredis gating', () => {
     expect(instrumentCalls).toContain('Redis.Redis');
   });
 
-  it('skips the OTel ioredis monkey-patch when diagnostics-channel injection is enabled', () => {
+  it('skips both OTel monkey-patches when diagnostics-channel injection is enabled', () => {
     injection.enabled = true;
 
     instrumentRedis();
 
-    // ioredis is owned by orchestrion; node-redis is still instrumented by OTel.
     expect(instrumentCalls).not.toContain('Redis.IORedis');
-    expect(instrumentCalls).toContain('Redis.Redis');
+    expect(instrumentCalls).not.toContain('Redis.Redis');
   });
 });

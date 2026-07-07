@@ -6,6 +6,7 @@ import { openaiChannels } from './config/openai';
 import { anthropicAiChannels } from './config/anthropic-ai';
 import { vercelAiChannels } from './config/vercel-ai';
 import { hapiChannels } from './config/hapi';
+import { redisChannels } from './config/redis';
 
 /**
  * Fully-qualified `diagnostics_channel` names that orchestrion publishes to.
@@ -29,6 +30,7 @@ export const CHANNELS = {
   ...anthropicAiChannels,
   ...vercelAiChannels,
   ...hapiChannels,
+  ...redisChannels,
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
