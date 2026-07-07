@@ -9,10 +9,6 @@
     "lib": ["DOM", "es2020"],
     // package-specific options
     "esModuleInterop": true,
-    "types": ["node"],
-    // Needed for NestJS `.ts` scenarios (e.g. `suites/tracing/nestjs-orchestrion`) run via
-    // `ts-node/register`: NestJS relies on decorators + emitted design-type metadata for DI.
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "types": ["node"]
   }
 }
