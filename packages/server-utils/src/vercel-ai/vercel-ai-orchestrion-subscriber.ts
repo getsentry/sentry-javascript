@@ -36,8 +36,11 @@ import {
  * Tool-call spans differ by version: v6 exposes a per-call `executeToolCall`
  * function orchestrion wraps into its own channel. v5 has no such export (only a
  * batch `executeTools`), so instead we monkey-patch each tool's `execute` from
- * the operation's `tools` — but only when the `executeToolCall` channel is never
- * seen (i.e. we're on v5), so v6 never double-counts tool spans.
+ * the operation's `tools`. On v6 that patch is inert: `executeToolCall` runs
+ * `execute` inside its own tool-call span (the active async context), so the
+ * patch sees that span as its parent and skips — only v5 (where the parent is
+ * the enclosing `invoke_agent` span) emits the patched span, so v6 never
+ * double-counts tool spans.
  */
 
 /** Shape orchestrion's transform attaches to the tracing-channel context. */
@@ -67,12 +70,6 @@ type PatchableModel = ResolvedModel & { [PATCHED]?: boolean };
 /** A tool definition off an operation's `tools`, with our patch bookkeeping. */
 type PatchableTool = { execute?: (...args: unknown[]) => unknown; [TOOL_PATCHED]?: boolean };
 
-// Set the first time the v6-only `executeToolCall` channel fires. It gates the v5 tool-`execute`
-// patching: on v6 every tool call flows through `executeToolCall` (its own span-emitting channel), so
-// the channel fires before any tool `execute` runs and our patched `execute` becomes a no-op — no
-// duplicate tool spans. On v5 the channel is never published, so the patch is what emits tool spans.
-let sawExecuteToolCallChannel = false;
-
 // Per-operation correlation id. No Date/random (unavailable / non-deterministic) — a counter is enough.
 let callIdCounter = 0;
 function nextCallId(): string {
@@ -86,6 +83,10 @@ const messages = new WeakMap<object, VercelAiChannelMessage>();
 // parent against this set (so it never mis-attributes to the enclosing `main`/user span) and reads the
 // parent's `callId` so its span can be named after the operation (e.g. `ai.streamText.doStream`).
 const operationSpans = new WeakSet<Span>();
+// Tool-call spans — only v6's `executeToolCall` channel opens these. The v5 tool-`execute` patch
+// consults this to avoid double-counting: `executeToolCall` runs `execute` inside its span (which is
+// therefore the active parent), so a resolved parent in this set means v6 already spanned the call.
+const toolCallSpans = new WeakSet<Span>();
 const callIdBySpan = new WeakMap<Span, string>();
 // The operation's per-call recording flags (`experimental_telemetry.recordInputs/recordOutputs`), keyed by
 // its span. A model call carries no telemetry of its own, so it inherits the enclosing operation's flags —
@@ -158,21 +159,17 @@ export function subscribeVercelAiOrchestrionChannels(
     bindOperation(
       tracingChannel,
       CHANNELS.VERCEL_AI_EXECUTE_TOOL_CALL,
-      (callOptions, telemetry) => {
-        // Only v6 publishes this channel; seeing it disables the v5 tool-`execute` patch (see flag docs).
-        sawExecuteToolCallChannel = true;
-        return {
-          type: 'executeTool',
-          // v6 carries the tool definitions on the executeToolCall args (a record keyed by name);
-          // the shared core reads the matching tool's `description` for the span.
-          event: {
-            callId: nextCallId(),
-            toolCall: callOptions.toolCall,
-            tools: callOptions.tools,
-            ...recording(telemetry),
-          },
-        };
-      },
+      (callOptions, telemetry) => ({
+        type: 'executeTool',
+        // v6 carries the tool definitions on the executeToolCall args (a record keyed by name);
+        // the shared core reads the matching tool's `description` for the span.
+        event: {
+          callId: nextCallId(),
+          toolCall: callOptions.toolCall,
+          tools: callOptions.tools,
+          ...recording(telemetry),
+        },
+      }),
       options,
     );
     subscribeResolveLanguageModel(tracingChannel, CHANNELS.VERCEL_AI_RESOLVE_LANGUAGE_MODEL, options);
@@ -220,13 +217,18 @@ function bindOperation(
     if (span) {
       messages.set(data, message);
       operationSpans.add(span);
+      // v6's `executeToolCall` span: tracked so the v5 tool-`execute` patch can recognize (and skip)
+      // tool calls it runs, since that patch sees this span as its active parent (see `patchToolExecute`).
+      if (message.type === 'executeTool') {
+        toolCallSpans.add(span);
+      }
       const callId = asString(message.event.callId);
       if (callId) {
         callIdBySpan.set(span, callId);
       }
       recordingBySpan.set(span, recording(telemetry));
       // v5 has no `executeToolCall` channel, so patch each tool's `execute` to emit the tool-call span.
-      // A no-op on v6 (guarded inside `patchToolExecute` once the `executeToolCall` channel is seen).
+      // Inert on v6 (guarded inside `patchToolExecute` when the parent is `executeToolCall`'s own span).
       if (isRecord(callOptions.tools)) {
         patchOperationTools(callOptions.tools, options);
       }
@@ -454,10 +456,12 @@ function patchToolExecute(
   }
   tool[TOOL_PATCHED] = true;
   tool.execute = function (this: unknown, input: unknown, ...rest: unknown[]): unknown {
-    // On v6 the `executeToolCall` channel already spanned this call before `execute` ran; don't
-    // double-count. Also skip if there's no enclosing operation span (telemetry disabled for the call).
+    // Skip if there's no enclosing operation span (telemetry disabled for the call), or if that parent
+    // is itself a tool-call span — the latter means v6's `executeToolCall` already opened a span for
+    // this call and is running `execute` inside it, so spanning again here would double-count. On v5
+    // the parent is the enclosing `invoke_agent` operation span, so we proceed.
     const parent = resolveModelCallParent();
-    if (sawExecuteToolCallChannel || !parent) {
+    if (!parent || toolCallSpans.has(parent)) {
       return original.apply(this, [input, ...rest]);
     }
 
