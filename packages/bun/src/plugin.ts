@@ -37,7 +37,11 @@ type UnknownPlugin = any;
 // CJS build requires it. Bun resolves correctly for ESM modules in either
 // module system.
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/bun';
-import { SENTRY_INSTRUMENTATIONS, withoutInstrumentedExternals } from '@sentry/server-utils/orchestrion/config';
+import {
+  INSTRUMENTED_MODULE_NAMES,
+  SENTRY_INSTRUMENTATIONS,
+  withoutInstrumentedExternals,
+} from '@sentry/server-utils/orchestrion/config';
 
 const BUNDLER_MARKER_BANNER =
   ';(globalThis.__SENTRY_ORCHESTRION__=(globalThis.__SENTRY_ORCHESTRION__||{})).bundler=true;';
@@ -45,7 +49,7 @@ const BUNDLER_MARKER_BANNER =
 // Minimal shape of Bun's `PluginBuilder` that we touch. Typed locally instead
 // of depending on `bun-types`, which would pull Bun's globals.
 interface BunPluginBuilder {
-  config?: { banner?: string; external?: string[] };
+  config?: { banner?: string; external?: string[]; packages?: 'bundle' | 'external' };
 }
 
 /**
@@ -88,6 +92,31 @@ export function sentryBunPlugin(): UnknownPlugin {
         // be silently never injected. Bun has no runtime fallback here, so
         // bundling is the only injection path.
         build.config.external = withoutInstrumentedExternals(build.config.external);
+
+        // A blanket externalization strategy like `packages: 'external'` or
+        // `'*'` in `external` externalizes instrumented packages too, and
+        // `withoutInstrumentedExternals` only strips exact names/subpaths (not
+        // these), so those packages ship un-transformed with no runtime
+        // fallback. Forcing them back in via `onResolve` is not an option: Bun
+        // ignores `{ external: false }` against a blanket strategy, and
+        // returning a resolved `path` corrupts the package's ESM/CJS interop.
+        // So warn instead. This runs in the user's build script, where the
+        // Sentry debug logger isn't enabled, and `console` is the thing to use.
+        const blanketExternal =
+          build.config.packages === 'external'
+            ? "packages: 'external'"
+            : build.config.external?.includes('*')
+              ? "'*' in external"
+              : undefined;
+        if (blanketExternal) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[Sentry] This Bun build externalizes all dependencies (${blanketExternal}), so Sentry ` +
+              'cannot instrument bundled libraries. Instrumentation will be missing for any of ' +
+              `these packages your app uses: ${INSTRUMENTED_MODULE_NAMES.join(', ')}. To instrument them, ` +
+              'externalize only the specific packages you need external instead of all of them.',
+          );
+        }
       }
 
       // Delegate to the upstream code-transformer, which registers the `onLoad`

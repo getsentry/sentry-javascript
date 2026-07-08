@@ -20,12 +20,6 @@ vi.mock('@sentry/node-core', async importOriginal => {
   };
 });
 
-// The >=5.11.0 diagnostics_channel subscription is irrelevant here; keep it inert.
-vi.mock('@sentry/server-utils', async importOriginal => {
-  const actual = (await importOriginal()) as Record<string, unknown>;
-  return { ...actual, subscribeRedisDiagnosticChannels: () => undefined };
-});
-
 import { instrumentRedis } from '../../../src/integrations/tracing/redis';
 
 describe('instrumentRedis ioredis gating', () => {

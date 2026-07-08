@@ -83,7 +83,8 @@ const _openaiChannelIntegration = ((options: OpenAiOptions = {}) => {
  * Returning `undefined` opts the payload out so no span is opened.
  */
 function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, options: OpenAiOptions): Span | undefined {
-  // langchain drives the openai SDK itself and instruments at its own layer; skip here to avoid double spans.
+  // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks this
+  // provider as skipped; skip here to avoid double spans.
   if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
     return undefined;
   }
