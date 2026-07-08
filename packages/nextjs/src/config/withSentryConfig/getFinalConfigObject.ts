@@ -1,3 +1,5 @@
+import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
+import { getNextDefaultExternals, getTranspilePackages, makeIsInstalled } from '../diagnosticsChannelInjection';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { getNextjsVersion } from '../util';
 import { setUpBuildTimeVariables } from './buildTime';
@@ -85,9 +87,29 @@ export function getFinalConfigObject(
 
   maybeEnableTurbopackSourcemaps(incomingUserNextConfigObject, userSentryOptions, bundlerInfo);
 
+  const useDiagnosticsChannelInjection = userSentryOptions._experimental?.useDiagnosticsChannelInjection ?? false;
+
+  // Force-bundle the instrumented packages Next externalizes by default, so the code transform
+  // reaches them (removing them from `serverExternalPackages` isn't enough for Next's own defaults).
+  const transpilePackagesPatch = useDiagnosticsChannelInjection
+    ? {
+        transpilePackages: Array.from(
+          new Set([
+            ...(incomingUserNextConfigObject.transpilePackages ?? []),
+            ...getTranspilePackages({
+              instrumented: INSTRUMENTED_MODULE_NAMES,
+              nextDefaultExternals: getNextDefaultExternals(process.cwd()),
+              isInstalled: makeIsInstalled(process.cwd()),
+            }),
+          ]),
+        ),
+      }
+    : {};
+
   return {
     ...incomingUserNextConfigObject,
-    ...getServerExternalPackagesPatch(incomingUserNextConfigObject, nextMajor),
+    ...transpilePackagesPatch,
+    ...getServerExternalPackagesPatch(incomingUserNextConfigObject, nextMajor, useDiagnosticsChannelInjection),
     ...getWebpackPatch({
       incomingUserNextConfigObject,
       userSentryOptions,

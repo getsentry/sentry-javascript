@@ -10,7 +10,7 @@ type NextRewrite = {
   destination: string;
 };
 
-interface WebpackPluginInstance {
+export interface WebpackPluginInstance {
   [index: string]: unknown;
   apply: (compiler: unknown) => void;
 }
@@ -53,6 +53,7 @@ export type NextConfigObject = {
   // https://nextjs.org/docs/pages/api-reference/next-config-js/env
   env?: Record<string, string>;
   serverExternalPackages?: string[]; // next >= v15.0.0
+  transpilePackages?: string[];
   turbopack?: TurbopackOptions;
   compiler?: {
     runAfterProductionCompile?: (context: { distDir: string; projectDir: string }) => Promise<void> | void;
@@ -765,6 +766,19 @@ export type SentryBuildOptions = {
       enabled?: boolean;
       ignoredComponents?: string[];
     };
+    /**
+     * EXPERIMENTAL: Wire up orchestrion diagnostics-channel instrumentation at build time.
+     *
+     * When enabled, `withSentryConfig` injects the orchestrion code-transform loader and bundles
+     * the instrumented server packages (e.g. `pg`, `ioredis`, `mysql`) so that
+     * `Sentry.experimentalUseDiagnosticsChannelInjection()` (which you must still call in your
+     * server config) can produce spans for them.
+     *
+     * Turbopack support requires Next.js 16+; the webpack path works on earlier versions.
+     *
+     * @experimental May change or be removed in any release.
+     */
+    useDiagnosticsChannelInjection?: boolean;
   }>;
 
   /**
@@ -835,6 +849,7 @@ export type BuildContext = {
     version: string;
     DefinePlugin: new (values: Record<string, string | boolean>) => WebpackPluginInstance;
     ProvidePlugin: new (values: Record<string, string | string[]>) => WebpackPluginInstance;
+    IgnorePlugin: new (options: { resourceRegExp: RegExp; contextRegExp?: RegExp }) => WebpackPluginInstance;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultLoaders: any; // needed for type tests (test:types)

@@ -34,6 +34,7 @@ export default [
         // `Sentry.init()` to install the channel-injection hooks.
         'src/orchestrion/runtime/register.ts',
         'src/orchestrion/bundler/vite.ts',
+        'src/orchestrion/bundler/webpack.ts',
       ],
       packageSpecificConfig: {
         output: {

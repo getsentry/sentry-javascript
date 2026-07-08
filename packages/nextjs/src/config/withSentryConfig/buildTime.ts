@@ -50,6 +50,11 @@ export function setUpBuildTimeVariables(
     buildTimeVariables._sentryRewritesTunnelPath = rewritesTunnelPath;
   }
 
+  // Marker read by the server SDK to warn if the runtime opt-in call is missing.
+  if (userSentryOptions._experimental?.useDiagnosticsChannelInjection) {
+    buildTimeVariables._sentryUseDiagnosticsChannelInjection = 'true';
+  }
+
   if (basePath) {
     buildTimeVariables._sentryBasePath = basePath;
   }

@@ -20,7 +20,9 @@ import type {
   WebpackConfigObject,
   WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
+  WebpackPluginInstance,
 } from './types';
+import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
 import { getNextjsVersion, getPackageModules } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
 
@@ -428,6 +430,13 @@ export function constructWebpackConfigFunction({
         __SENTRY_SERVER_MODULES__: JSON.stringify(getPackageModules(projectDir)),
       }),
     );
+
+    // Orchestrion code-transform loader
+    if (isServer && userSentryOptions._experimental?.useDiagnosticsChannelInjection) {
+      // stops the webpack build from failing on pg's optional (uninstalled) pg-native native binding now that we bundle pg.
+      newConfig.plugins.push(new buildContext.webpack.IgnorePlugin({ resourceRegExp: /^pg-native$/ }));
+      newConfig.plugins.push(sentryOrchestrionWebpackPlugin() as WebpackPluginInstance);
+    }
 
     return newConfig;
   };

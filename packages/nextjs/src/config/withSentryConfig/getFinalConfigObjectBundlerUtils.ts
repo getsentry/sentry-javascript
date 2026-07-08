@@ -1,3 +1,5 @@
+import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
+import { filterInstrumentedExternals } from '../diagnosticsChannelInjection';
 import { handleRunAfterProductionCompile } from '../handleRunAfterProductionCompile';
 import type { RouteManifest } from '../manifest/types';
 import { constructTurbopackConfig } from '../turbopack';
@@ -227,23 +229,26 @@ export function maybeEnableTurbopackSourcemaps(
 export function getServerExternalPackagesPatch(
   incomingUserNextConfigObject: NextConfigObject,
   nextMajor: number | undefined,
+  useDiagnosticsChannelInjection = false,
 ): Partial<NextConfigObject> {
+  // Diagnostics-channel injection needs the instrumented packages bundled (so the code transform
+  // reaches them), so drop them from the external list — the rest stay external for the OTel path.
+  const instrumented = useDiagnosticsChannelInjection ? INSTRUMENTED_MODULE_NAMES : [];
+  const mergeExternals = (userProvided: string[] | undefined): string[] => {
+    const merged = [...(userProvided || []), ...DEFAULT_SERVER_EXTERNAL_PACKAGES];
+    return useDiagnosticsChannelInjection ? filterInstrumentedExternals(merged, instrumented) : merged;
+  };
+
   if (nextMajor && nextMajor >= 15) {
-    return {
-      serverExternalPackages: [
-        ...(incomingUserNextConfigObject.serverExternalPackages || []),
-        ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
-      ],
-    };
+    return { serverExternalPackages: mergeExternals(incomingUserNextConfigObject.serverExternalPackages) };
   }
 
   return {
     experimental: {
       ...incomingUserNextConfigObject.experimental,
-      serverComponentsExternalPackages: [
-        ...(incomingUserNextConfigObject.experimental?.serverComponentsExternalPackages || []),
-        ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
-      ],
+      serverComponentsExternalPackages: mergeExternals(
+        incomingUserNextConfigObject.experimental?.serverComponentsExternalPackages,
+      ),
     },
   };
 }
