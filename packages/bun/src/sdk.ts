@@ -63,8 +63,8 @@ function getPerformanceIntegrations(options: Options): Integration[] {
   ];
 }
 
-/** Get the default integrations for the Bun SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
+/** Get the default integrations for the Bun SDK, excluding performance integrations. */
+export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
     // Common
@@ -88,8 +88,12 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     processSessionIntegration(),
     // Bun Specific
     bunServerIntegration(),
-    ...getPerformanceIntegrations(options),
   ];
+}
+
+/** Get the default integrations for the Bun SDK. */
+export function getDefaultIntegrations(options: Options): Integration[] {
+  return [...getDefaultIntegrationsWithoutPerformance(), ...getPerformanceIntegrations(options)];
 }
 
 /**
@@ -137,6 +141,23 @@ export function getDefaultIntegrations(options: Options): Integration[] {
  * @see {@link BunOptions} for documentation on configuration options.
  */
 export function init(userOptions: BunOptions = {}): NodeClient | undefined {
+  return _init(userOptions, getDefaultIntegrations);
+}
+
+/**
+ * Initialize Sentry for Bun, without any integrations added by default.
+ */
+export function initWithoutDefaultIntegrations(userOptions: BunOptions = {}): NodeClient | undefined {
+  return _init(userOptions, () => []);
+}
+
+/**
+ * Internal initialization function.
+ */
+function _init(
+  userOptions: BunOptions = {},
+  getDefaultIntegrationsImpl: (options: Options) => Integration[],
+): NodeClient | undefined {
   applySdkMetadata(userOptions, 'bun');
 
   const options = {
@@ -149,7 +170,7 @@ export function init(userOptions: BunOptions = {}): NodeClient | undefined {
   options.transport = options.transport || makeFetchTransport;
 
   if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
+    options.defaultIntegrations = getDefaultIntegrationsImpl(options);
   }
 
   return initNode(options);
