@@ -16,26 +16,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CLOUD_ACCOUNT_ID, FAAS_COLDSTART, URL_FULL } from '@sentry/conventions/attributes';
-import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
-import {
-  continueTrace,
-  debug,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
-  SPAN_STATUS_ERROR,
-  startSpanManual,
-} from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { continueTrace, debug, SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import type { Callback, Context, Handler, StreamifyHandler } from 'aws-lambda';
 import { DEBUG_BUILD } from './debug-build';
-import {
-  AWS_HANDLER_HIGHWATERMARK_SYMBOL,
-  AWS_HANDLER_STREAMING_RESPONSE,
-  AWS_HANDLER_STREAMING_SYMBOL,
-  wrapHandler,
-} from './sdk';
-import { ATTR_FAAS_EXECUTION, ATTR_FAAS_ID } from './semconv';
+import { getRequestSpanOptions } from './requestSpanOptions';
+import { AWS_HANDLER_HIGHWATERMARK_SYMBOL, AWS_HANDLER_STREAMING_SYMBOL, isStreamingHandler, wrapHandler } from './sdk';
 import { getAwsTraceData, markEventUnhandled } from './utils';
 
 export const lambdaMaxInitInMilliseconds = 10_000;
@@ -67,14 +54,6 @@ export function instrumentHandler<T extends Handler | StreamifyHandler>(original
   }
 
   return wrapHandler(patched as Handler) as T;
-}
-
-function isStreamingHandler<TEvent, TResult>(
-  handler: Handler<TEvent, TResult> | StreamifyHandler<TEvent, TResult>,
-): handler is StreamifyHandler<TEvent, TResult> {
-  return (
-    (handler as unknown as Record<symbol, unknown>)[AWS_HANDLER_STREAMING_SYMBOL] === AWS_HANDLER_STREAMING_RESPONSE
-  );
 }
 
 function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime: number): Handler | StreamifyHandler {
@@ -161,24 +140,6 @@ function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime
   };
 }
 
-function getRequestSpanOptions(event: unknown, context: Context, requestIsColdStart: boolean): StartSpanOptions {
-  // The span is started within the surrounding `continueTrace`, so it continues the incoming trace.
-  return {
-    name: context.functionName,
-    op: 'function.aws.lambda',
-    forceTransaction: true,
-    kind: SPAN_KIND.SERVER,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws_lambda',
-      [ATTR_FAAS_EXECUTION]: context.awsRequestId,
-      [ATTR_FAAS_ID]: context.invokedFunctionArn,
-      [CLOUD_ACCOUNT_ID]: extractAccountId(context.invokedFunctionArn),
-      [FAAS_COLDSTART]: requestIsColdStart,
-      ...extractOtherEventFields(event),
-    },
-  };
-}
-
 function captureLambdaError(err: Error | string): void {
   captureException(err, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.otel'));
 }
@@ -231,62 +192,4 @@ function endSpan(span: Span, err: string | Error | null | undefined): void {
   }
 
   span.end();
-}
-
-function extractAccountId(arn: string): string | undefined {
-  const parts = arn.split(':');
-  if (parts.length >= 5) {
-    return parts[4];
-  }
-  return undefined;
-}
-
-interface ApiGatewayLikeEvent {
-  headers?: Record<string, string | undefined>;
-  path?: string;
-  rawPath?: string;
-  queryStringParameters?: Record<string, string | undefined>;
-}
-
-function extractOtherEventFields(event: unknown): SpanAttributes {
-  const answer: SpanAttributes = {};
-  const fullUrl = extractFullUrl(event as ApiGatewayLikeEvent);
-  if (fullUrl) {
-    answer[URL_FULL] = fullUrl;
-  }
-  return answer;
-}
-
-function extractFullUrl(event: ApiGatewayLikeEvent): string | undefined {
-  // API gateway encodes a lot of url information in various places to recompute this
-  const headers = event.headers;
-  if (!headers) {
-    return undefined;
-  }
-  // Helper function to deal with case variations (instead of making a tolower() copy of the headers)
-  function findAny(key1: string, key2: string): string | undefined {
-    return headers?.[key1] ?? headers?.[key2];
-  }
-  const host = findAny('host', 'Host');
-  const proto = findAny('x-forwarded-proto', 'X-Forwarded-Proto');
-  const port = findAny('x-forwarded-port', 'X-Forwarded-Port');
-  if (!(proto && host && (event.path || event.rawPath))) {
-    return undefined;
-  }
-  let answer = `${proto}://${host}`;
-  if (port) {
-    answer += `:${port}`;
-  }
-  answer += event.path ?? event.rawPath;
-  if (event.queryStringParameters) {
-    let first = true;
-    for (const [key, value] of Object.entries(event.queryStringParameters)) {
-      answer += first ? '?' : '&';
-      answer += encodeURIComponent(key);
-      answer += '=';
-      answer += encodeURIComponent(value ?? '');
-      first = false;
-    }
-  }
-  return answer;
 }
