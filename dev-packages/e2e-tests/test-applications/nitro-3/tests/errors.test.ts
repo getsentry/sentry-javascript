@@ -6,7 +6,9 @@ test('Sends an error event to Sentry', async ({ request }) => {
     return !event.type && !!event.exception?.values?.some(v => v.value === 'This is a test error');
   });
 
-  await request.get('/api/test-error');
+  await request.get('/api/test-error').catch(() => {
+    // noop - route throws, request may be reset before a response is sent
+  });
 
   const errorEvent = await errorEventPromise;
 

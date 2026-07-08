@@ -22,7 +22,7 @@ test('Should record streamed span for trpc query', async ({ baseURL }) => {
   expect(trpcSpan).toBeDefined();
   expect(trpcSpan.name).toBe('trpc/getSomething');
   expect(getSpanOp(trpcSpan)).toBe('rpc.server');
-  expect(trpcSpan.attributes?.['sentry.origin']?.value).toBe('auto.rpc.trpc');
+  expect(trpcSpan.attributes['sentry.origin']?.value).toBe('auto.rpc.trpc');
 });
 
 test('Should record streamed span for trpc mutation', async ({ baseURL }) => {
@@ -44,7 +44,7 @@ test('Should record streamed span for trpc mutation', async ({ baseURL }) => {
   expect(trpcSpan).toBeDefined();
   expect(trpcSpan.name).toBe('trpc/createSomething');
   expect(getSpanOp(trpcSpan)).toBe('rpc.server');
-  expect(trpcSpan.attributes?.['sentry.origin']?.value).toBe('auto.rpc.trpc');
+  expect(trpcSpan.attributes['sentry.origin']?.value).toBe('auto.rpc.trpc');
 });
 
 test('Should record streamed span and error for a crashing trpc handler', async ({ baseURL }) => {

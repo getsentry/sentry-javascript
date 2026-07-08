@@ -114,8 +114,8 @@ test('Storage operations create spans in Durable Object', async ({ baseURL }) =>
   const putSpan = spans.find(span => span.name === 'durable_object_storage_put' && getSpanOp(span) === 'db');
 
   expect(putSpan).toBeDefined();
-  expect(putSpan?.attributes?.['db.system.name']?.value).toBe('cloudflare.durable_object.storage');
-  expect(putSpan?.attributes?.['db.operation.name']?.value).toBe('put');
+  expect(putSpan?.attributes['db.system.name']?.value).toBe('cloudflare.durable_object.storage');
+  expect(putSpan?.attributes['db.operation.name']?.value).toBe('put');
 });
 
 test.describe('Alarm instrumentation', () => {
@@ -150,13 +150,13 @@ test.describe('Alarm instrumentation', () => {
 
     // Alarm creates a streamed span with correct attributes
     expect(getSpanOp(alarmSpan)).toBe('function');
-    expect(alarmSpan.attributes?.['sentry.origin']?.value).toBe('auto.faas.cloudflare.durable_object');
+    expect(alarmSpan.attributes['sentry.origin']?.value).toBe('auto.faas.cloudflare.durable_object');
 
     // Alarm starts a new trace (different trace ID from the request that called setAlarm)
     expect(alarmSpan.trace_id).not.toBe(setAlarmSpan.trace_id);
 
     // Alarm links to the trace that called setAlarm via sentry.previous_trace attribute
-    const previousTrace = alarmSpan.attributes?.['sentry.previous_trace']?.value;
+    const previousTrace = alarmSpan.attributes['sentry.previous_trace']?.value;
     expect(previousTrace).toBeDefined();
     expect(previousTrace).toContain(setAlarmSpan.trace_id);
   });

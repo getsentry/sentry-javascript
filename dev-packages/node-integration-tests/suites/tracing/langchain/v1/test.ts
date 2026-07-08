@@ -18,7 +18,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
-import { conditionalTest, isOrchestrionEnabled } from '../../../../utils';
+import { conditionalTest, getStringAttributeValue, isOrchestrionEnabled } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { createEsmTests } from '../../../../utils/runner/createEsmAndCjsTests';
 
@@ -238,7 +238,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               const arrayInputSpan = container.items.find(
                 span =>
                   span.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]?.value === 2 &&
-                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.match(
+                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
                     /^\[\{"role":"user","content":"C+"\}\]$/,
                   ),
               );
