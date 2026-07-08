@@ -83,4 +83,34 @@ describe('kafkajs', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-error.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('marks the producer span as errored when a send fails', { timeout: 90_000 }, async () => {
+      await createRunner()
+        .withDockerCompose({
+          workingDirectory: [__dirname],
+        })
+        .expect({
+          transaction: (transaction: TransactionEvent) => {
+            expect(transaction.transaction).toBe('send invalid topic name');
+            expect(transaction.contexts?.trace).toMatchObject(
+              expect.objectContaining({
+                op: 'message',
+                status: 'internal_error',
+                data: expect.objectContaining({
+                  'messaging.system': 'kafka',
+                  'messaging.destination.name': 'invalid topic name',
+                  'otel.kind': 'PRODUCER',
+                  'sentry.op': 'message',
+                  'sentry.origin': 'auto.kafkajs.otel.producer',
+                  'error.type': 'KafkaJSNonRetriableError',
+                }),
+              }),
+            );
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

@@ -36,6 +36,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
           'http.method': 'GET',
           url: 'https://example.com',
           'http.url': 'https://example.com/',
+          'url.full': 'https://example.com/',
           'server.address': 'example.com',
           type: 'fetch',
           'http.response_content_length': expect.any(Number),

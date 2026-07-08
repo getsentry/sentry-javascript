@@ -1,20 +1,20 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {
-  ATTR_DB_SYSTEM_NAME,
-  ATTR_HTTP_REQUEST_METHOD,
-  ATTR_HTTP_ROUTE,
-  ATTR_URL_FULL,
-  SEMATTRS_DB_STATEMENT,
-  SEMATTRS_DB_SYSTEM,
-  SEMATTRS_FAAS_TRIGGER,
-  SEMATTRS_HTTP_METHOD,
-  SEMATTRS_HTTP_TARGET,
-  SEMATTRS_HTTP_URL,
-  SEMATTRS_MESSAGING_SYSTEM,
-  SEMATTRS_RPC_SERVICE,
-} from '@opentelemetry/semantic-conventions';
-import type { SpanAttributes, TransactionSource } from '@sentry/core';
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_SYSTEM_NAME,
+  FAAS_TRIGGER,
+  HTTP_METHOD,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  HTTP_TARGET,
+  HTTP_URL,
+  MESSAGING_SYSTEM,
+  RPC_SERVICE,
+  URL_FULL,
+} from '@sentry/conventions/attributes';
+import type { Span, SpanAttributes, TransactionSource } from '@sentry/core';
 import {
   getSanitizedUrlString,
   parseUrl,
@@ -22,6 +22,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanToJSON,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
@@ -41,14 +42,14 @@ interface SpanDescription {
  */
 export function inferSpanData(spanName: string, attributes: SpanAttributes, kind: SpanKind): SpanDescription {
   // if http.method exists, this is an http request span
-  // eslint-disable-next-line deprecation/deprecation
-  const httpMethod = attributes[ATTR_HTTP_REQUEST_METHOD] || attributes[SEMATTRS_HTTP_METHOD];
+  // eslint-disable-next-line typescript/no-deprecated
+  const httpMethod = attributes[HTTP_REQUEST_METHOD] || attributes[HTTP_METHOD];
   if (httpMethod) {
     return descriptionForHttpMethod({ attributes, name: spanName, kind }, httpMethod);
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  const dbSystem = attributes[ATTR_DB_SYSTEM_NAME] || attributes[SEMATTRS_DB_SYSTEM];
+  // eslint-disable-next-line typescript/no-deprecated
+  const dbSystem = attributes[DB_SYSTEM_NAME] || attributes[DB_SYSTEM];
   const opIsCache =
     typeof attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'string' &&
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP].startsWith('cache.');
@@ -62,8 +63,8 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
   const customSourceOrRoute = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom' ? 'custom' : 'route';
 
   // If rpc.service exists then this is a rpc call span.
-  // eslint-disable-next-line deprecation/deprecation
-  const rpcService = attributes[SEMATTRS_RPC_SERVICE];
+  // eslint-disable-next-line typescript/no-deprecated
+  const rpcService = attributes[RPC_SERVICE];
   if (rpcService) {
     return {
       ...getUserUpdatedNameAndSource(spanName, attributes, 'route'),
@@ -72,8 +73,8 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
   }
 
   // If messaging.system exists then this is a messaging system span.
-  // eslint-disable-next-line deprecation/deprecation
-  const messagingSystem = attributes[SEMATTRS_MESSAGING_SYSTEM];
+  // eslint-disable-next-line typescript/no-deprecated
+  const messagingSystem = attributes[MESSAGING_SYSTEM];
   if (messagingSystem) {
     return {
       ...getUserUpdatedNameAndSource(spanName, attributes, customSourceOrRoute),
@@ -82,8 +83,8 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
   }
 
   // If faas.trigger exists then this is a function as a service span.
-  // eslint-disable-next-line deprecation/deprecation
-  const faasTrigger = attributes[SEMATTRS_FAAS_TRIGGER];
+  // eslint-disable-next-line typescript/no-deprecated
+  const faasTrigger = attributes[FAAS_TRIGGER];
   if (faasTrigger) {
     return {
       ...getUserUpdatedNameAndSource(spanName, attributes, customSourceOrRoute),
@@ -104,10 +105,22 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
  * Based on https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/7422ce2a06337f68a59b552b8c5a2ac125d6bae5/exporter/sentryexporter/sentry_exporter.go#L306
  */
 export function parseSpanDescription(span: AbstractSpan): SpanDescription {
-  const attributes = spanHasAttributes(span) ? span.attributes : {};
-  const name = spanHasName(span) ? span.name : '<unknown>';
-  const kind = getSpanKind(span);
+  let attributes: Attributes;
+  let name: string;
 
+  // TODO(v11): Once the OTel SDK provider is removed and SentryTracerProvider is the only path,
+  // every span is a native Sentry span — drop this `spanHasAttributes` (OTel ReadableSpan) branch
+  // and keep only the `spanToJSON()` path below.
+  if (spanHasAttributes(span)) {
+    attributes = span.attributes;
+    name = spanHasName(span) ? span.name : '<unknown>';
+  } else {
+    const json = typeof (span as Span).spanContext === 'function' ? spanToJSON(span as Span) : undefined;
+    attributes = json?.data || {};
+    name = spanHasName(span) ? span.name : json?.description || '<unknown>';
+  }
+
+  const kind = getSpanKind(span);
   return inferSpanData(name, attributes, kind);
 }
 
@@ -128,8 +141,8 @@ function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; 
   }
 
   // Use DB statement (Ex "SELECT * FROM table") if possible as description.
-  // eslint-disable-next-line deprecation/deprecation
-  const statement = attributes[SEMATTRS_DB_STATEMENT];
+  // eslint-disable-next-line typescript/no-deprecated
+  const statement = attributes[DB_STATEMENT];
 
   const description = statement ? statement.toString() : name;
 
@@ -183,10 +196,14 @@ export function descriptionForHttpMethod(
     data.url = url;
   }
   if (query) {
-    data['http.query'] = query;
+    // Strip the leading `?`/`#` (the `URL.search`/`URL.hash` prefix) so the attribute matches the
+    // canonical format the OTel SDK exporter emits (`getData` in `spanExporter.ts` slices these too).
+    // TODO(v11): emit `url.query`/`url.fragment` (OTel-standard, no leading `?`/`#`) and drop
+    // this stripping + `http.query`/`http.fragment`; `http.query` is specced to keep the leading `?`.
+    data['http.query'] = query.slice(1);
   }
   if (fragment) {
-    data['http.fragment'] = fragment;
+    data['http.fragment'] = fragment.slice(1);
   }
 
   // If the span kind is neither client nor server, we use the original name
@@ -247,13 +264,13 @@ export function getSanitizedUrl(
   hasRoute: boolean;
 } {
   // This is the relative path of the URL, e.g. /sub
-  // eslint-disable-next-line deprecation/deprecation
-  const httpTarget = attributes[SEMATTRS_HTTP_TARGET];
+  // eslint-disable-next-line typescript/no-deprecated
+  const httpTarget = attributes[HTTP_TARGET];
   // This is the full URL, including host & query params etc., e.g. https://example.com/sub?foo=bar
-  // eslint-disable-next-line deprecation/deprecation
-  const httpUrl = attributes[SEMATTRS_HTTP_URL] || attributes[ATTR_URL_FULL];
+  // eslint-disable-next-line typescript/no-deprecated
+  const httpUrl = attributes[HTTP_URL] || attributes[URL_FULL];
   // This is the normalized route name - may not always be available!
-  const httpRoute = attributes[ATTR_HTTP_ROUTE];
+  const httpRoute = attributes[HTTP_ROUTE];
 
   const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
   const url = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;

@@ -1,12 +1,14 @@
 import { expect } from '@playwright/test';
 import {
   SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
+import { SENTRY_TRACE_LIFECYCLE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import {
@@ -70,6 +72,10 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
 
   expect(navigationSpan).toEqual({
     attributes: {
+      [SENTRY_TRACE_LIFECYCLE]: {
+        type: 'string',
+        value: 'stream',
+      },
       'culture.calendar': {
         type: 'string',
         value: expect.any(String),
@@ -86,7 +92,11 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: expect.any(String),
       },
-      'url.full': {
+      [URL_FULL]: {
+        type: 'string',
+        value: expect.any(String),
+      },
+      [URL_PATH]: {
         type: 'string',
         value: expect.any(String),
       },
@@ -151,6 +161,10 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
       'sentry.span.source': {
         type: 'string',
         value: 'url',
+      },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+        type: 'string',
+        value: 'production',
       },
     },
     end_timestamp: expect.any(Number),

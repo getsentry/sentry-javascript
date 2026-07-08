@@ -19,7 +19,7 @@ import {
   takeProfileFromGlobalCache,
 } from './utils';
 
-const INTEGRATION_NAME = 'BrowserProfiling';
+const INTEGRATION_NAME = 'BrowserProfiling' as const;
 
 const _browserProfilingIntegration = (() => {
   return {
@@ -33,7 +33,7 @@ const _browserProfilingIntegration = (() => {
         options.profileLifecycle = 'manual';
       }
 
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
       if (hasLegacyProfiling(options) && !options.profilesSampleRate) {
         DEBUG_BUILD && debug.log('[Profiling] Profiling disabled, no profiling options found.');
         return;

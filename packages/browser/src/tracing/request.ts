@@ -169,8 +169,12 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       if (createdSpan) {
         const fullUrl = getFullURL(handlerData.fetchData.url);
         const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+        const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
         createdSpan.setAttributes({
-          'http.url': fullUrl ? stripDataUrlContent(fullUrl) : undefined,
+          'http.url': sanitizedFullUrl,
+          // `url.full` must match `http.url`. Setting it here ensures parentless `http.client`
+          // segment spans don't get `url.full` backfilled with the host page URL (see httpContextIntegration).
+          'url.full': sanitizedFullUrl,
           'server.address': host,
         });
 
@@ -367,6 +371,7 @@ function xhrCallback(
 
   const fullUrl = getFullURL(url);
   const parsedUrl = fullUrl ? parseUrl(fullUrl) : parseUrl(url);
+  const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
 
   const urlForSpanName = stripDataUrlContent(stripUrlQueryAndFragment(url));
 
@@ -383,7 +388,10 @@ function xhrCallback(
             url: stripDataUrlContent(url),
             type: 'xhr',
             'http.method': method,
-            'http.url': fullUrl ? stripDataUrlContent(fullUrl) : undefined,
+            'http.url': sanitizedFullUrl,
+            // `url.full` must match `http.url`. Setting it here ensures parentless `http.client`
+            // segment spans don't get `url.full` backfilled with the host page URL (see httpContextIntegration).
+            'url.full': sanitizedFullUrl,
             'server.address': parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',

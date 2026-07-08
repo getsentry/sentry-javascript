@@ -30,7 +30,7 @@ function getSentrySvelteKitPlugins(options?: Parameters<typeof sentrySvelteKit>[
       authToken: 'token',
       org: 'org',
       project: 'project',
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
       ...options?.sourceMapsUploadOptions,
     },
     ...options,

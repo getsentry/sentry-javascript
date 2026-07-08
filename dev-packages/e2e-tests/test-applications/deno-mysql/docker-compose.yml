@@ -1,0 +1,18 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    container_name: e2e-tests-deno-mysql
+    # The `mysql` 2.x driver doesn't speak MySQL 8's default
+    # `caching_sha2_password` auth, so force the legacy plugin.
+    command: ['--default-authentication-plugin=mysql_native_password']
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -ppassword']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s

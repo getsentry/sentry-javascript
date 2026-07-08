@@ -1,17 +1,6 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-mysql2
@@ -21,20 +10,29 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
+import { DB_STATEMENT, DB_SYSTEM } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
+import {
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+} from '@sentry/core';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import type { Connection, FormatFunction, Query, QueryError, QueryOptions } from './mysql2-types';
-import { ATTR_DB_STATEMENT, ATTR_DB_SYSTEM, DB_SYSTEM_VALUE_MYSQL } from './semconv';
+import { DB_SYSTEM_VALUE_MYSQL } from './semconv';
 import { getConnectionAttributes, getConnectionPrototypeToInstrument, getQueryText, getSpanName, once } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-mysql2';
 const ORIGIN = 'auto.db.otel.mysql2';
 
-const supportedVersions = ['>=1.4.2 <4'];
+// mysql2 >= 3.20.0 publishes via diagnostics_channel and is instrumented by
+// `subscribeMysql2DiagnosticChannels` instead, so this IITM patcher must not
+// overlap it — otherwise every query would emit two mysql2 spans.
+const supportedVersions = ['>=1.4.2 <3.20.0'];
 
 // The raw imported `mysql2` module exposes the `format` helper used to render
 // parameterized queries. Typed shallowly since it is only read internally.
@@ -122,14 +120,16 @@ export class MySQL2Instrumentation extends InstrumentationBase<InstrumentationCo
 
         const attributes: SpanAttributes = {
           ...getConnectionAttributes(this.config),
-          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
-          [ATTR_DB_STATEMENT]: getQueryText(query, format, values),
+          // oxlint-disable-next-line typescript/no-deprecated
+          [DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
+          // oxlint-disable-next-line typescript/no-deprecated
+          [DB_STATEMENT]: getQueryText(query, format, values),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };
 
         const span = startInactiveSpan({
           name: getSpanName(query),
-          kind: SpanKind.CLIENT,
+          kind: SPAN_KIND.CLIENT,
           attributes,
         });
 

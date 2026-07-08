@@ -31,7 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import type { D1Database, DurableObjectNamespace, Queue } from '@cloudflare/workers-types';
+import type { D1Database, DurableObjectNamespace, Queue, R2Bucket } from '@cloudflare/workers-types';
 
 /**
  * Checks if a value is a JSRPC proxy (service binding).
@@ -79,5 +79,19 @@ export function isD1Database(item: unknown): item is D1Database {
     typeof item.prepare === 'function' &&
     typeof item.batch === 'function' &&
     typeof item.exec === 'function'
+  );
+}
+
+/**
+ * Duck-type check for R2 Bucket bindings.
+ * R2Bucket has `head`, `put`, and `createMultipartUpload` methods.
+ */
+export function isR2Bucket(item: unknown): item is R2Bucket {
+  return (
+    item != null &&
+    isNotJSRPC(item) &&
+    typeof item.head === 'function' &&
+    typeof item.put === 'function' &&
+    typeof item.createMultipartUpload === 'function'
   );
 }

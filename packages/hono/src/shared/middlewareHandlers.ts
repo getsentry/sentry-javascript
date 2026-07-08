@@ -10,9 +10,9 @@ import {
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import type { Context } from 'hono';
-import { routePath } from 'hono/route';
 import { hasFetchEvent } from '../utils/hono-context';
 import { defaultShouldHandleError } from './defaultShouldHandleError';
+import { resolveRouteName } from './resolveRouteName';
 import { type SentryHonoMiddlewareOptions } from '../shared/types';
 import { type GetConnInfo } from 'hono/conninfo';
 
@@ -20,11 +20,10 @@ import { type GetConnInfo } from 'hono/conninfo';
  * Request handler for Hono framework
  */
 export function requestHandler(context: Context, getConnInfo?: GetConnInfo): void {
-  const defaultScope = getDefaultIsolationScope();
-  const currentIsolationScope = getIsolationScope();
+  const isolationScope = getCurrentIsolationScope();
 
-  const isolationScope = defaultScope === currentIsolationScope ? defaultScope : currentIsolationScope;
-
+  // Set a provisional route name as early as possible so events captured during the request already carry the route.
+  // It is re-resolved in `responseHandler` once the middleware chain has run.
   updateSpanRouteName(isolationScope, context);
 
   isolationScope.setSDKProcessingMetadata({
@@ -34,6 +33,13 @@ export function requestHandler(context: Context, getConnInfo?: GetConnInfo): voi
   if (getConnInfo) {
     setConnInfoAttributes(context, getConnInfo, isolationScope);
   }
+}
+
+function getCurrentIsolationScope(): Scope {
+  const defaultScope = getDefaultIsolationScope();
+  const currentIsolationScope = getIsolationScope();
+
+  return defaultScope === currentIsolationScope ? defaultScope : currentIsolationScope;
 }
 
 /**
@@ -80,6 +86,9 @@ export function responseHandler(
   context: Context,
   shouldHandleError?: SentryHonoMiddlewareOptions['shouldHandleError'],
 ): void {
+  // Overwrite the route name now that the middleware chain has run: `routeIndex` is accurate here
+  updateSpanRouteName(getCurrentIsolationScope(), context);
+
   if (context.error) {
     if ((shouldHandleError ?? defaultShouldHandleError)(context.error)) {
       getClient()?.captureException(context.error, {
@@ -90,19 +99,17 @@ export function responseHandler(
 }
 
 function updateSpanRouteName(isolationScope: Scope, context: Context): void {
+  const routeName = `${context.req.method} ${resolveRouteName(context)}`;
   const activeSpan = getActiveSpan();
 
-  // Final matched route: https://hono.dev/docs/helpers/route#using-with-index-parameter
-  const lastMatchedRoute = routePath(context, -1);
-
   if (activeSpan) {
-    activeSpan.updateName(`${context.req.method} ${lastMatchedRoute}`);
+    activeSpan.updateName(routeName);
     activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
 
     const rootSpan = getRootSpan(activeSpan);
-    updateSpanName(rootSpan, `${context.req.method} ${lastMatchedRoute}`);
+    updateSpanName(rootSpan, routeName);
     rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   }
 
-  isolationScope.setTransactionName(`${context.req.method} ${lastMatchedRoute}`);
+  isolationScope.setTransactionName(routeName);
 }

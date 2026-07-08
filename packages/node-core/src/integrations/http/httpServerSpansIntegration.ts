@@ -2,15 +2,15 @@ import { errorMonitor } from 'node:events';
 import type { IncomingHttpHeaders } from 'node:http';
 import { context, SpanKind, trace } from '@opentelemetry/api';
 import type { RPCMetadata } from '@opentelemetry/core';
-import { getRPCMetadata, isTracingSuppressed, RPCType, setRPCMetadata } from '@opentelemetry/core';
+import { RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
-  ATTR_HTTP_RESPONSE_STATUS_CODE,
-  ATTR_HTTP_ROUTE,
-  SEMATTRS_HTTP_STATUS_CODE,
-  SEMATTRS_NET_HOST_IP,
-  SEMATTRS_NET_HOST_PORT,
-  SEMATTRS_NET_PEER_IP,
-} from '@opentelemetry/semantic-conventions';
+  HTTP_RESPONSE_STATUS_CODE,
+  HTTP_ROUTE,
+  HTTP_STATUS_CODE,
+  NET_HOST_IP,
+  NET_HOST_PORT,
+  NET_PEER_IP,
+} from '@sentry/conventions/attributes';
 import type {
   Event,
   HttpClientRequest,
@@ -32,12 +32,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
+  isTracingSuppressed,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { addStartSpanCallback } from './httpServerIntegration';
 
-const INTEGRATION_NAME = 'Http.ServerSpans';
+const INTEGRATION_NAME = 'Http.ServerSpans' as const;
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -103,7 +104,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   ];
 
   const { onSpanCreated } = options;
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const { requestHook, responseHook, applyCustomAttributesOnSpan } = options.instrumentation ?? {};
 
   return {
@@ -177,10 +178,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           applyCustomAttributesOnSpan?.(span, request, response);
           onSpanCreated?.(span, request, response);
 
-          const rpcMetadata: RPCMetadata = {
-            type: RPCType.HTTP,
-            span,
-          };
+          const rpcMetadata: RPCMetadata = { type: RPCType.HTTP, span };
 
           return context.with(setRPCMetadata(trace.setSpan(context.active(), span), rpcMetadata), () => {
             context.bind(context.active(), request);
@@ -196,7 +194,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
               isEnded = true;
 
-              const newAttributes = getIncomingRequestAttributesOnResponse(request, response);
+              const newAttributes = getIncomingRequestAttributesOnResponse(request, response, rpcMetadata);
               span.setAttributes(newAttributes);
               span.setStatus(status);
               span.end();
@@ -225,15 +223,25 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
       });
     },
     processEvent(event) {
-      // Drop transaction if it has a status code that should be ignored
       if (event.type === 'transaction') {
         const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
         if (typeof statusCode === 'number') {
-          const shouldDrop = shouldFilterStatusCode(statusCode, ignoreStatusCodes);
-          if (shouldDrop) {
+          // Drop transaction if it has a status code that should be ignored
+          if (shouldFilterStatusCode(statusCode, ignoreStatusCodes)) {
             DEBUG_BUILD && debug.log('Dropping transaction due to status code', statusCode);
             return null;
           }
+
+          // Surface the HTTP status as the top-level `response` context. The OTel SDK span
+          // exporter already does this on its path; doing it here covers transactions produced
+          // by the `SentryTracerProvider`, which bypasses that exporter.
+          event.contexts = {
+            ...event.contexts,
+            response: {
+              ...event.contexts?.response,
+              status_code: statusCode,
+            },
+          };
         }
       }
 
@@ -266,7 +274,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 export const httpServerSpansIntegration = _httpServerSpansIntegration as (
   options?: HttpServerSpansIntegrationOptions,
 ) => Integration & {
-  name: 'HttpServerSpans';
+  name: 'Http.ServerSpans';
   setup: (client: NodeClient) => void;
   processEvent: (event: Event) => Event | null;
 };
@@ -306,7 +314,7 @@ function shouldIgnoreSpansForIncomingRequest(
     ignoreIncomingRequests?: (urlPath: string, request: HttpIncomingMessage) => boolean;
   },
 ): boolean {
-  if (isTracingSuppressed(context.active())) {
+  if (isTracingSuppressed()) {
     return true;
   }
 
@@ -368,6 +376,7 @@ function isCompressed(headers: IncomingHttpHeaders): boolean {
 function getIncomingRequestAttributesOnResponse(
   request: HttpIncomingMessage,
   response: HttpServerResponse,
+  rpcMetadata?: RPCMetadata,
 ): SpanAttributes {
   // take socket from the request,
   // since it may be detached from the response object in keep-alive mode
@@ -375,30 +384,29 @@ function getIncomingRequestAttributesOnResponse(
   const { statusCode, statusMessage } = response;
 
   const newAttributes: SpanAttributes = {
-    [ATTR_HTTP_RESPONSE_STATUS_CODE]: statusCode,
-    // eslint-disable-next-line deprecation/deprecation
-    [SEMATTRS_HTTP_STATUS_CODE]: statusCode,
+    [HTTP_RESPONSE_STATUS_CODE]: statusCode,
+    // eslint-disable-next-line typescript/no-deprecated
+    [HTTP_STATUS_CODE]: statusCode,
     'http.status_text': statusMessage?.toUpperCase(),
   };
 
-  const rpcMetadata = getRPCMetadata(context.active());
   if (socket) {
     const { localAddress, localPort, remoteAddress, remotePort } = socket;
-    // eslint-disable-next-line deprecation/deprecation
-    newAttributes[SEMATTRS_NET_HOST_IP] = localAddress;
-    // eslint-disable-next-line deprecation/deprecation
-    newAttributes[SEMATTRS_NET_HOST_PORT] = localPort;
-    // eslint-disable-next-line deprecation/deprecation
-    newAttributes[SEMATTRS_NET_PEER_IP] = remoteAddress;
+    // eslint-disable-next-line typescript/no-deprecated
+    newAttributes[NET_HOST_IP] = localAddress;
+    // eslint-disable-next-line typescript/no-deprecated
+    newAttributes[NET_HOST_PORT] = localPort;
+    // eslint-disable-next-line typescript/no-deprecated
+    newAttributes[NET_PEER_IP] = remoteAddress;
     newAttributes['net.peer.port'] = remotePort;
   }
-  // eslint-disable-next-line deprecation/deprecation
-  newAttributes[SEMATTRS_HTTP_STATUS_CODE] = statusCode;
+  // eslint-disable-next-line typescript/no-deprecated
+  newAttributes[HTTP_STATUS_CODE] = statusCode;
   newAttributes['http.status_text'] = (statusMessage || '').toUpperCase();
 
   if (rpcMetadata?.type === RPCType.HTTP && rpcMetadata.route !== undefined) {
     const routeName = rpcMetadata.route;
-    newAttributes[ATTR_HTTP_ROUTE] = routeName;
+    newAttributes[HTTP_ROUTE] = routeName;
   }
 
   return newAttributes;

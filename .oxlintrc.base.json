@@ -36,7 +36,8 @@
     "no-unsafe-optional-chaining": "off",
     "no-eval": "off",
     "no-import-assign": "off",
-    "typescript/no-duplicate-type-constituents": "off"
+    "typescript/no-duplicate-type-constituents": "off",
+    "typescript/no-deprecated": "error"
   },
   "overrides": [
     {
@@ -101,7 +102,8 @@
         "typescript/no-misused-spread": "off",
         "typescript/require-array-sort-compare": "off",
         "typescript/no-base-to-string": "off",
-        "typescript/await-thenable": "off"
+        "typescript/await-thenable": "off",
+        "typescript/no-deprecated": "off"
       }
     },
     {
@@ -151,8 +153,7 @@
         "typescript/no-explicit-any": "off",
         "typescript/no-unsafe-member-access": "off",
         "typescript/no-this-alias": "off",
-        "max-lines": "off",
-        "no-bitwise": "off"
+        "max-lines": "off"
       }
     },
     {
@@ -168,7 +169,6 @@
         "**/integrations/tracing/amqplib/vendored/**/*.ts",
         "**/integrations/tracing/prisma/vendored/**/*.ts",
         "**/integrations/tracing/postgres/vendored/**/*.ts",
-        "**/integrations/tracing/fastify/vendored/**/*.ts",
         "**/integrations/tracing/redis/vendored/**/*.ts"
       ],
       "rules": {

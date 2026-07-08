@@ -41,7 +41,7 @@ sentryTest("navigation spans link back to previous trace's root span", async ({ 
     },
   ]);
 
-  expect(navigation1Span.attributes?.['sentry.previous_trace']).toEqual({
+  expect(navigation1Span.attributes['sentry.previous_trace']).toEqual({
     type: 'string',
     value: `${pageloadTraceId}-${pageloadSpan.span_id}-1`,
   });
@@ -60,7 +60,7 @@ sentryTest("navigation spans link back to previous trace's root span", async ({ 
     },
   ]);
 
-  expect(navigation2Span.attributes?.['sentry.previous_trace']).toEqual({
+  expect(navigation2Span.attributes['sentry.previous_trace']).toEqual({
     type: 'string',
     value: `${navigation1TraceId}-${navigation1Span.span_id}-1`,
   });

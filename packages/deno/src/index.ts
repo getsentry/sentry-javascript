@@ -49,6 +49,8 @@ export {
   setExtras,
   setTag,
   setTags,
+  setAttribute,
+  setAttributes,
   setUser,
   getSpanStatusFromHttpCode,
   setHttpStatus,
@@ -65,8 +67,9 @@ export {
   startInactiveSpan,
   startSpanManual,
   startNewTrace,
+  bindScopeToEmitter,
   suppressTracing,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
@@ -108,6 +111,8 @@ export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
 export { denoRedisIntegration } from './integrations/redis';
 export type { DenoRedisIntegrationOptions } from './integrations/redis';
+export { denoMysqlIntegration } from './integrations/mysql';
+export { denoPostgresIntegration } from './integrations/postgres';
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { normalizePathsIntegration } from './integrations/normalizepaths';

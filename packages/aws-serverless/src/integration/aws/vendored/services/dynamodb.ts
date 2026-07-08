@@ -1,17 +1,6 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-aws-sdk
@@ -42,11 +31,9 @@ import {
   ATTR_AWS_DYNAMODB_TABLE_COUNT,
   ATTR_AWS_DYNAMODB_TABLE_NAMES,
   ATTR_AWS_DYNAMODB_TOTAL_SEGMENTS,
-  ATTR_DB_NAME,
-  ATTR_DB_OPERATION,
-  ATTR_DB_SYSTEM,
   DB_SYSTEM_VALUE_DYNAMODB,
 } from '../semconv';
+import { DB_NAME, DB_OPERATION, DB_SYSTEM } from '@sentry/conventions/attributes';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
 
 export class DynamodbServiceExtension implements ServiceExtension {
@@ -66,9 +53,12 @@ export class DynamodbServiceExtension implements ServiceExtension {
 
     const spanAttributes: Attributes = {};
 
-    spanAttributes[ATTR_DB_SYSTEM] = DB_SYSTEM_VALUE_DYNAMODB;
-    spanAttributes[ATTR_DB_NAME] = tableName;
-    spanAttributes[ATTR_DB_OPERATION] = operation;
+    // oxlint-disable-next-line typescript/no-deprecated
+    spanAttributes[DB_SYSTEM] = DB_SYSTEM_VALUE_DYNAMODB;
+    // oxlint-disable-next-line typescript/no-deprecated
+    spanAttributes[DB_NAME] = tableName;
+    // oxlint-disable-next-line typescript/no-deprecated
+    spanAttributes[DB_OPERATION] = operation;
 
     // normalizedRequest.commandInput.RequestItems) is undefined when no table names are returned
     // keys in this object are the table names

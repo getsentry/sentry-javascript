@@ -1,16 +1,22 @@
 import { expect } from '@playwright/test';
 import {
   SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
-  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
+import {
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_TRACE_LIFECYCLE,
+  URL_FULL,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, getSpansFromEnvelope, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
@@ -79,7 +85,11 @@ sentryTest(
           type: 'string',
           value: expect.any(String),
         },
-        'url.full': {
+        [URL_FULL]: {
+          type: 'string',
+          value: expect.any(String),
+        },
+        [URL_PATH]: {
           type: 'string',
           value: expect.any(String),
         },
@@ -131,11 +141,11 @@ sentryTest(
           type: 'integer',
           value: 1,
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: {
+        [SENTRY_SDK_NAME]: {
           type: 'string',
           value: 'sentry.javascript.browser',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: {
+        [SENTRY_SDK_VERSION]: {
           type: 'string',
           value: SDK_VERSION,
         },
@@ -143,11 +153,11 @@ sentryTest(
           type: 'array',
           value: expect.arrayContaining(['BrowserTracing', 'SpanStreaming']),
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: {
+        [SENTRY_SEGMENT_ID]: {
           type: 'string',
           value: pageloadSpan?.span_id,
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: {
+        [SENTRY_SEGMENT_NAME]: {
           type: 'string',
           value: '/index.html',
         },
@@ -158,6 +168,14 @@ sentryTest(
         'sentry.span.source': {
           type: 'string',
           value: 'url',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          type: 'string',
+          value: 'production',
+        },
+        [SENTRY_TRACE_LIFECYCLE]: {
+          type: 'string',
+          value: 'stream',
         },
       },
       end_timestamp: expect.any(Number),

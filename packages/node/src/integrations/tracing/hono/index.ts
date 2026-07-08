@@ -1,4 +1,4 @@
-import { ATTR_HTTP_REQUEST_METHOD, ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   captureException,
@@ -17,7 +17,7 @@ import { AttributeNames } from './constants';
 import { HonoInstrumentation } from './instrumentation';
 import type { Context, MiddlewareHandler, MiddlewareHandlerInterface, Next } from './types';
 
-const INTEGRATION_NAME = 'Hono';
+const INTEGRATION_NAME = 'Hono' as const;
 
 function addHonoSpanAttributes(span: Span): void {
   const attributes = spanToJSON(span).data;
@@ -41,8 +41,8 @@ function addHonoSpanAttributes(span: Span): void {
     return;
   }
 
-  const route = attributes[ATTR_HTTP_ROUTE];
-  const method = attributes[ATTR_HTTP_REQUEST_METHOD];
+  const route = attributes[HTTP_ROUTE];
+  const method = attributes[HTTP_REQUEST_METHOD];
   if (typeof route === 'string' && typeof method === 'string') {
     getIsolationScope().setTransactionName(`${method} ${route}`);
   }

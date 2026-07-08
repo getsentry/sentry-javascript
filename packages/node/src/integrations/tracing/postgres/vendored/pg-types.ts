@@ -3,7 +3,6 @@
  * Deep type trees (Connection, Submittable, QueryConfig generics, FieldDef,
  * NoticeMessage, ClientConfig) are replaced with structural equivalents.
  */
-/* eslint-disable */
 
 export interface FieldDef {
   name: string;

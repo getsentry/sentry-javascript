@@ -96,14 +96,14 @@ export function generateVitePluginOptions(
   // Source Maps
   if (svelteKitPluginOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
     const {
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
       unstable_sentryVitePluginOptions: deprecated_unstableSourceMapUploadOptions,
       ...deprecatedSourceMapUploadOptions
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
     } = svelteKitPluginOptions.sourceMapsUploadOptions || {};
 
     const {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars,deprecation/deprecation
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars,typescript/no-deprecated
       sourceMapsUploadOptions: _filtered1,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       unstable_sentryVitePluginOptions: _filtered2,
@@ -135,14 +135,14 @@ export function generateVitePluginOptions(
 
     // Handle sourcemaps options - merge deprecated and new, with new taking precedence
     if (
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
       deprecatedSourceMapUploadOptions.sourcemaps ||
       svelteKitPluginOptions.sourcemaps ||
       deprecated_unstableSourceMapUploadOptions?.sourcemaps ||
       unstable_sentryVitePluginOptions?.sourcemaps
     ) {
       sentryVitePluginsOptions.sourcemaps = {
-        // eslint-disable-next-line deprecation/deprecation
+        // eslint-disable-next-line typescript/no-deprecated
         ...deprecatedSourceMapUploadOptions.sourcemaps,
         ...svelteKitPluginOptions.sourcemaps,
         // Also handle nested deprecated options from unstable plugin options
@@ -153,14 +153,14 @@ export function generateVitePluginOptions(
 
     // Handle release options - merge deprecated and new, with new taking precedence
     if (
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
       deprecatedSourceMapUploadOptions.release ||
       svelteKitPluginOptions.release ||
       deprecated_unstableSourceMapUploadOptions?.release ||
       unstable_sentryVitePluginOptions?.release
     ) {
       sentryVitePluginsOptions.release = {
-        // eslint-disable-next-line deprecation/deprecation
+        // eslint-disable-next-line typescript/no-deprecated
         ...deprecatedSourceMapUploadOptions.release,
         ...svelteKitPluginOptions.release,
         // Also handle nested deprecated options from unstable plugin options

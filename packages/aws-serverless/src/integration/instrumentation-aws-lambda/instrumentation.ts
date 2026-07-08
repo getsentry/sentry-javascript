@@ -21,23 +21,7 @@
  * limitations under the License.
  */
 
-import type {
-  Attributes,
-  Context as OtelContext,
-  MeterProvider,
-  Span,
-  TextMapGetter,
-  TracerProvider,
-} from '@opentelemetry/api';
-import {
-  context as otelContext,
-  diag,
-  propagation,
-  ROOT_CONTEXT,
-  SpanKind,
-  SpanStatusCode,
-  trace,
-} from '@opentelemetry/api';
+import type { Attributes, TracerProvider } from '@opentelemetry/api';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
@@ -45,45 +29,44 @@ import {
   isWrapped,
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
+import { CLOUD_ACCOUNT_ID, FAAS_COLDSTART, URL_FULL } from '@sentry/conventions/attributes';
+import type { Span } from '@sentry/core';
 import {
-  ATTR_URL_FULL,
-  SEMATTRS_FAAS_EXECUTION,
-  SEMRESATTRS_CLOUD_ACCOUNT_ID,
-  SEMRESATTRS_FAAS_ID,
-} from '@opentelemetry/semantic-conventions';
-import type { APIGatewayProxyEventHeaders, Callback, Context, Handler, StreamifyHandler } from 'aws-lambda';
+  continueTrace,
+  debug,
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  withActiveSpan,
+} from '@sentry/core';
+import { captureException } from '@sentry/node';
+import type { Callback, Context, Handler, StreamifyHandler } from 'aws-lambda';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { LambdaModule } from './internal-types';
-import { ATTR_FAAS_COLDSTART } from './semconv';
-import type { AwsLambdaInstrumentationConfig, EventContextExtractor } from './types';
+import { ATTR_FAAS_EXECUTION, ATTR_FAAS_ID } from './semconv';
+import type { AwsLambdaInstrumentationConfig } from './types';
 import { wrapHandler } from '../../sdk';
-import { SDK_VERSION } from '@sentry/core';
+import { getAwsTraceData, markEventUnhandled } from '../../utils';
+import { DEBUG_BUILD } from '../../debug-build';
 
 // OpenTelemetry package version was 0.54.0 at time of vendoring.
 const PACKAGE_VERSION = SDK_VERSION;
 const PACKAGE_NAME = '@sentry/instrumentation-aws-lambda';
-
-const headerGetter: TextMapGetter<APIGatewayProxyEventHeaders> = {
-  keys(carrier): string[] {
-    return Object.keys(carrier);
-  },
-  get(carrier, key: string) {
-    return carrier[key];
-  },
-};
 
 export const lambdaMaxInitInMilliseconds = 10_000;
 const AWS_HANDLER_STREAMING_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming');
 const AWS_HANDLER_HIGHWATERMARK_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming.highWaterMark');
 const AWS_HANDLER_STREAMING_RESPONSE = 'response';
 
+type LambdaModule = Record<string, Handler>;
+
 /**
  *
  */
 export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstrumentationConfig> {
   declare private _traceForceFlusher?: () => Promise<void>;
-  declare private _metricForceFlusher?: () => Promise<void>;
 
   constructor(config: AwsLambdaInstrumentationConfig = {}) {
     super(PACKAGE_NAME, PACKAGE_VERSION, config);
@@ -98,10 +81,11 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
 
     // _HANDLER and LAMBDA_TASK_ROOT are always defined in Lambda but guard bail out if in the future this changes.
     if (!taskRoot || !handlerDef) {
-      this._diag.debug('Skipping lambda instrumentation: no _HANDLER/lambdaHandler or LAMBDA_TASK_ROOT.', {
-        taskRoot,
-        handlerDef,
-      });
+      DEBUG_BUILD &&
+        debug.log('Skipping lambda instrumentation: no _HANDLER/lambdaHandler or LAMBDA_TASK_ROOT.', {
+          taskRoot,
+          handlerDef,
+        });
       return [];
     }
 
@@ -126,11 +110,12 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     const [module, functionName] = handler.split('.', 2);
 
     if (!module || !functionName) {
-      this._diag.warn('Invalid handler definition', {
-        handler,
-        moduleRoot,
-        module,
-      });
+      DEBUG_BUILD &&
+        debug.warn('Invalid handler definition', {
+          handler,
+          moduleRoot,
+          module,
+        });
       return [];
     }
 
@@ -153,24 +138,26 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
             // fallback to .cjs (CommonJS)
             filename += '.cjs';
           } catch (e3) {
-            this._diag.warn(
-              'No handler file was able to resolved with one of the known extensions for the file',
-              filename,
-            );
+            DEBUG_BUILD &&
+              debug.warn(
+                'No handler file was able to resolved with one of the known extensions for the file',
+                filename,
+              );
           }
         }
       }
     }
 
-    diag.debug('Instrumenting lambda handler', {
-      taskRoot,
-      handlerDef,
-      handler,
-      moduleRoot,
-      module,
-      filename,
-      functionName,
-    });
+    DEBUG_BUILD &&
+      debug.log('Instrumenting lambda handler', {
+        taskRoot,
+        handlerDef,
+        handler,
+        moduleRoot,
+        module,
+        filename,
+        functionName,
+      });
 
     const lambdaStartTime = this.getConfig().lambdaStartTime || Date.now() - Math.floor(1000 * process.uptime());
 
@@ -233,7 +220,7 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
    *
    */
   private _getPatchHandler(original: Handler | StreamifyHandler, lambdaStartTime: number): Handler | StreamifyHandler {
-    diag.debug('patch handler function');
+    DEBUG_BUILD && debug.log('patch handler function');
     const plugin = this;
 
     let requestHandledBefore = false;
@@ -274,23 +261,25 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
         context: Context,
       ) {
         _onRequest();
-        const parent = plugin._determineParent(event, context);
-        const span = plugin._createSpanForRequest(event, context, requestIsColdStart, parent);
-        plugin._applyRequestHook(span, event, context);
+        const { 'sentry-trace': sentryTrace, baggage } = getAwsTraceData(event, context);
 
-        return otelContext.with(trace.setSpan(parent, span), () => {
-          const maybePromise = safeExecuteInTheMiddle(
-            () => original.apply(this, [event, responseStream, context]),
-            error => {
-              if (error != null) {
-                // Exception thrown synchronously before resolving promise.
-                plugin._applyResponseHook(span, error);
-                plugin._endSpan(span, error, () => {});
-              }
-            },
-          ) as Promise<{}> | undefined;
+        return continueTrace({ sentryTrace, baggage }, () => {
+          const span = plugin._createSpanForRequest(event, context, requestIsColdStart);
 
-          return plugin._handlePromiseResult(span, maybePromise);
+          return withActiveSpan(span, () => {
+            const maybePromise = safeExecuteInTheMiddle(
+              () => original.apply(this, [event, responseStream, context]),
+              error => {
+                if (error != null) {
+                  // Exception thrown synchronously before resolving promise.
+                  plugin._captureError(error);
+                  plugin._endSpan(span, error, () => {});
+                }
+              },
+            ) as Promise<{}> | undefined;
+
+            return plugin._handlePromiseResult(span, maybePromise);
+          });
         });
       };
     }
@@ -304,91 +293,72 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     ) {
       _onRequest();
 
-      const parent = plugin._determineParent(event, context);
+      const { 'sentry-trace': sentryTrace, baggage } = getAwsTraceData(event, context);
 
-      const span = plugin._createSpanForRequest(event, context, requestIsColdStart, parent);
-      plugin._applyRequestHook(span, event, context);
+      return continueTrace({ sentryTrace, baggage }, () => {
+        const span = plugin._createSpanForRequest(event, context, requestIsColdStart);
 
-      return otelContext.with(trace.setSpan(parent, span), () => {
-        // Lambda seems to pass a callback even if handler is of Promise form, so we wrap all the time before calling
-        // the handler and see if the result is a Promise or not. In such a case, the callback is usually ignored. If
-        // the handler happened to both call the callback and complete a returned Promise, whichever happens first will
-        // win and the latter will be ignored.
-        const wrappedCallback = plugin._wrapCallback(callback, span);
-        const maybePromise = safeExecuteInTheMiddle(
-          () => original.apply(this, [event, context, wrappedCallback]),
-          error => {
-            if (error != null) {
-              // Exception thrown synchronously before resolving callback / promise.
-              plugin._applyResponseHook(span, error);
-              plugin._endSpan(span, error, () => {});
-            }
-          },
-        ) as Promise<{}> | undefined;
+        return withActiveSpan(span, () => {
+          // Lambda seems to pass a callback even if handler is of Promise form, so we wrap all the time before calling
+          // the handler and see if the result is a Promise or not. In such a case, the callback is usually ignored. If
+          // the handler happened to both call the callback and complete a returned Promise, whichever happens first will
+          // win and the latter will be ignored.
+          const wrappedCallback = plugin._wrapCallback(callback, span);
+          const maybePromise = safeExecuteInTheMiddle(
+            () => original.apply(this, [event, context, wrappedCallback]),
+            error => {
+              if (error != null) {
+                // Exception thrown synchronously before resolving callback / promise.
+                plugin._captureError(error);
+                plugin._endSpan(span, error, () => {});
+              }
+            },
+          ) as Promise<{}> | undefined;
 
-        return plugin._handlePromiseResult(span, maybePromise);
+          return plugin._handlePromiseResult(span, maybePromise);
+        });
       });
     };
   }
 
-  private _createSpanForRequest(event: any, context: Context, requestIsColdStart: boolean, parent: OtelContext): Span {
-    const name = context.functionName;
-    return this.tracer.startSpan(
-      name,
-      {
-        kind: SpanKind.SERVER,
-        attributes: {
-          [SEMATTRS_FAAS_EXECUTION]: context.awsRequestId,
-          [SEMRESATTRS_FAAS_ID]: context.invokedFunctionArn,
-          [SEMRESATTRS_CLOUD_ACCOUNT_ID]: AwsLambdaInstrumentation._extractAccountId(context.invokedFunctionArn),
-          [ATTR_FAAS_COLDSTART]: requestIsColdStart,
-          ...AwsLambdaInstrumentation._extractOtherEventFields(event),
-        },
+  private _createSpanForRequest(event: any, context: Context, requestIsColdStart: boolean): Span {
+    // The span is created within the surrounding `continueTrace`, so it continues the incoming trace.
+    return startInactiveSpan({
+      name: context.functionName,
+      op: 'function.aws.lambda',
+      forceTransaction: true,
+      kind: SPAN_KIND.SERVER,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws_lambda',
+        [ATTR_FAAS_EXECUTION]: context.awsRequestId,
+        [ATTR_FAAS_ID]: context.invokedFunctionArn,
+        [CLOUD_ACCOUNT_ID]: AwsLambdaInstrumentation._extractAccountId(context.invokedFunctionArn),
+        [FAAS_COLDSTART]: requestIsColdStart,
+        ...AwsLambdaInstrumentation._extractOtherEventFields(event),
       },
-      parent,
-    );
+    });
   }
 
-  private _applyRequestHook(span: Span, event: any, context: Context): void {
-    const { requestHook } = this.getConfig();
-    if (requestHook) {
-      safeExecuteInTheMiddle(
-        () => requestHook(span, { event, context }),
-        e => {
-          if (e) diag.error('aws-lambda instrumentation: requestHook error', e);
-        },
-        true,
-      );
-    }
+  private _captureError(err: Error | string): void {
+    captureException(err, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.otel'));
   }
 
   private _handlePromiseResult(span: Span, maybePromise: Promise<{}> | undefined): Promise<{}> | undefined {
     if (typeof maybePromise?.then === 'function') {
       return maybePromise.then(
         value => {
-          this._applyResponseHook(span, null, value);
           return new Promise(resolve => this._endSpan(span, undefined, () => resolve(value)));
         },
         (err: Error | string) => {
-          this._applyResponseHook(span, err);
+          this._captureError(err);
           return new Promise((resolve, reject) => this._endSpan(span, err, () => reject(err)));
         },
       );
     }
 
-    // Handle synchronous return values by ending the span and applying response hook
-    this._applyResponseHook(span, null, maybePromise);
+    // Handle synchronous return values by ending the span
     this._endSpan(span, undefined, () => {});
     return maybePromise;
-  }
-
-  private _determineParent(event: any, context: Context): OtelContext {
-    const config = this.getConfig();
-    return AwsLambdaInstrumentation._determineParent(
-      event,
-      context,
-      config.eventContextExtractor || AwsLambdaInstrumentation._defaultEventContextExtractor,
-    );
   }
 
   private _isStreamingHandler<TEvent, TResult>(
@@ -429,37 +399,16 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
   /**
    *
    */
-  override setMeterProvider(meterProvider: MeterProvider) {
-    super.setMeterProvider(meterProvider);
-    this._metricForceFlusher = this._metricForceFlush(meterProvider);
-  }
-
-  /**
-   *
-   */
-  private _metricForceFlush(meterProvider: MeterProvider) {
-    if (!meterProvider) return undefined;
-
-    const currentProvider: any = meterProvider;
-
-    if (typeof currentProvider.forceFlush === 'function') {
-      return currentProvider.forceFlush.bind(currentProvider);
-    }
-
-    return undefined;
-  }
-
-  /**
-   *
-   */
   private _wrapCallback(original: Callback, span: Span): Callback {
     const plugin = this;
     return function wrappedCallback(this: never, err, res) {
-      diag.debug('executing wrapped lookup callback function');
-      plugin._applyResponseHook(span, err, res);
+      DEBUG_BUILD && debug.log('executing wrapped lookup callback function');
+      if (err) {
+        plugin._captureError(err);
+      }
 
       plugin._endSpan(span, err, () => {
-        diag.debug('executing original lookup callback function');
+        DEBUG_BUILD && debug.log('executing original lookup callback function');
         return original.apply(this, [err, res]);
       });
     };
@@ -469,10 +418,6 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
    *
    */
   private _endSpan(span: Span, err: string | Error | null | undefined, callback: () => void) {
-    if (err) {
-      span.recordException(err);
-    }
-
     let errMessage;
     if (typeof err === 'string') {
       errMessage = err;
@@ -481,7 +426,7 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     }
     if (errMessage) {
       span.setStatus({
-        code: SpanStatusCode.ERROR,
+        code: SPAN_STATUS_ERROR,
         message: errMessage,
       });
     }
@@ -492,18 +437,11 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     if (this._traceForceFlusher) {
       flushers.push(this._traceForceFlusher());
     } else {
-      diag.debug(
-        'Spans may not be exported for the lambda function because we are not force flushing before callback.',
-      );
+      DEBUG_BUILD &&
+        debug.log(
+          'Spans may not be exported for the lambda function because we are not force flushing before callback.',
+        );
     }
-    if (this._metricForceFlusher) {
-      flushers.push(this._metricForceFlusher());
-    } else {
-      diag.debug(
-        'Metrics may not be exported for the lambda function because we are not force flushing before callback.',
-      );
-    }
-
     const FORCE_FLUSH_TIMEOUT_MS = 2000;
     let timeoutId: ReturnType<typeof setTimeout>;
     const timeoutPromise = new Promise<void>(resolve => {
@@ -521,22 +459,6 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
   /**
    *
    */
-  private _applyResponseHook(span: Span, err?: Error | string | null, res?: any) {
-    const { responseHook } = this.getConfig();
-    if (responseHook) {
-      safeExecuteInTheMiddle(
-        () => responseHook(span, { err, res }),
-        e => {
-          if (e) diag.error('aws-lambda instrumentation: responseHook error', e);
-        },
-        true,
-      );
-    }
-  }
-
-  /**
-   *
-   */
   private static _extractAccountId(arn: string): string | undefined {
     const parts = arn.split(':');
     if (parts.length >= 5) {
@@ -548,20 +470,11 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
   /**
    *
    */
-  private static _defaultEventContextExtractor(event: any): OtelContext {
-    // The default extractor tries to get sampled trace header from HTTP headers.
-    const httpHeaders = event.headers || {};
-    return propagation.extract(otelContext.active(), httpHeaders, headerGetter);
-  }
-
-  /**
-   *
-   */
   private static _extractOtherEventFields(event: any): Attributes {
     const answer: Attributes = {};
     const fullUrl = this._extractFullUrl(event);
     if (fullUrl) {
-      answer[ATTR_URL_FULL] = fullUrl;
+      answer[URL_FULL] = fullUrl;
     }
     return answer;
   }
@@ -603,26 +516,5 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
       }
     }
     return answer;
-  }
-
-  /**
-   *
-   */
-  private static _determineParent(
-    event: any,
-    context: Context,
-    eventContextExtractor: EventContextExtractor,
-  ): OtelContext {
-    const extractedContext = safeExecuteInTheMiddle(
-      () => eventContextExtractor(event, context),
-      e => {
-        if (e) diag.error('aws-lambda instrumentation: eventContextExtractor error', e);
-      },
-      true,
-    );
-    if (trace.getSpan(extractedContext)?.spanContext()) {
-      return extractedContext;
-    }
-    return ROOT_CONTEXT;
   }
 }

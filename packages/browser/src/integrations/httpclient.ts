@@ -18,7 +18,7 @@ import { DEBUG_BUILD } from '../debug-build';
 export type HttpStatusCodeRange = [number, number] | number;
 export type HttpRequestTarget = string | RegExp;
 
-const INTEGRATION_NAME = 'HttpClient';
+const INTEGRATION_NAME = 'HttpClient' as const;
 
 interface HttpClientOptions {
   /**
@@ -433,7 +433,7 @@ function _getDataCollectionSettings() {
   // collect headers/cookies with deny-list filtering even without sendDefaultPii).
   const options = client.getOptions();
   if (options.dataCollection == null) {
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     const enabled = Boolean(options.sendDefaultPii);
     return { cookies: enabled, requestHeaders: enabled, responseHeaders: enabled };
   }

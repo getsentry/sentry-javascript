@@ -4,7 +4,7 @@ import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { anthropicAIIntegration, instrumentAnthropicAi } from './anthropic-ai';
 import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress } from './express';
-import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
+import { fastifyIntegration, instrumentFastifyV3 } from './fastify';
 import { firebaseIntegration, instrumentFirebase } from './firebase';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { googleGenAIIntegration, instrumentGoogleGenAI } from './google-genai';
@@ -36,6 +36,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     expressIntegration(),
     fastifyIntegration(),
     graphqlIntegration(),
+    // eslint-disable-next-line typescript/no-deprecated
     honoIntegration(),
     mongoIntegration(),
     mongooseIntegration(),
@@ -74,7 +75,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentSentryHttp,
     instrumentExpress,
     instrumentConnect,
-    instrumentFastify,
     instrumentFastifyV3,
     instrumentHapi,
     instrumentHono,

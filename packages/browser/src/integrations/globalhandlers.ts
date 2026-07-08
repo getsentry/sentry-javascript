@@ -21,7 +21,7 @@ type GlobalHandlersIntegrationsOptionKeys = 'onerror' | 'onunhandledrejection';
 
 type GlobalHandlersIntegrations = Record<GlobalHandlersIntegrationsOptionKeys, boolean>;
 
-const INTEGRATION_NAME = 'GlobalHandlers';
+const INTEGRATION_NAME = 'GlobalHandlers' as const;
 
 const _globalHandlersIntegration = ((options: Partial<GlobalHandlersIntegrations> = {}) => {
   const _options = {

@@ -22,6 +22,9 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
+
+const EXPECTED_ORIGIN = isOrchestrionEnabled() ? 'auto.ai.orchestrion.google_genai' : 'auto.ai.google_genai';
 
 describe('Google GenAI integration', () => {
   afterAll(() => {
@@ -47,7 +50,7 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.status).toBe('ok');
             expect(chatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
-            expect(chatSpan!.attributes['sentry.origin'].value).toBe('auto.ai.google_genai');
+            expect(chatSpan!.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
             expect(chatSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
             expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(8);
@@ -347,7 +350,7 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario-message-truncation.mjs',
-    'instrument-with-pii.mjs',
+    'instrument-with-truncation.mjs',
     (createRunner, test) => {
       test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
         await createRunner()
@@ -357,7 +360,7 @@ describe('Google GenAI integration', () => {
             span: container => {
               expect(container.items).toHaveLength(2);
               const truncatedSpan = container.items.find(span =>
-                span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.match(
+                getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
                   /^\[\{"role":"user","parts":\[\{"text":"C+"\}\]\}\]$/,
                 ),
               );
@@ -439,7 +442,7 @@ describe('Google GenAI integration', () => {
             for (const span of successfulSpans) {
               expect(span.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
               expect(span.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
-              expect(span.attributes['sentry.origin'].value).toBe('auto.ai.google_genai');
+              expect(span.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
               expect(span.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
               expect(span.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('text-embedding-004');
               expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]).toBeUndefined();
@@ -548,7 +551,9 @@ describe('Google GenAI integration', () => {
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                streamingLongContent,
+              ),
             );
             expect(chatSpan).toBeDefined();
           },
@@ -572,14 +577,14 @@ describe('Google GenAI integration', () => {
               // With explicit enableTruncation: true, content should be truncated despite streaming.
               // Find the chat span by matching the start of the truncated content (the 'A' repeated messages).
               const chatSpan = spans.find(s =>
-                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith(
+                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
                   '[{"role":"user","parts":[{"text":"AAAA',
                 ),
               );
               expect(chatSpan).toBeDefined();
-              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
-                streamingLongContent.length,
-              );
+              expect(
+                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value) ?? '').length,
+              ).toBeLessThan(streamingLongContent.length);
             },
           })
           .start()

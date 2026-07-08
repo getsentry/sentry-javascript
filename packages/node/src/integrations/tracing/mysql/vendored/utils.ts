@@ -1,29 +1,18 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-mysql
  * - Upstream version: @opentelemetry/instrumentation-mysql@0.64.0
  * - Types from the `mysql` package inlined as simplified interfaces
  */
-/* eslint-disable */
 
-import type { Pool, Query, QueryOptions } from './mysql-types';
+import type { ConnectionConfig, PoolConfig, Query, QueryOptions } from './mysql-types';
 
-export function getConfig(config: any) {
-  const { host, port, database, user } = (config && config.connectionConfig) || config || {};
+export function getConfig(config: ConnectionConfig | PoolConfig | undefined) {
+  const resolved = (config as PoolConfig | undefined)?.connectionConfig || config || {};
+  const { host, port, database, user } = resolved;
   return { host, port, database, user };
 }
 
@@ -52,16 +41,6 @@ export function getDbQueryText(query: string | Query | QueryOptions): string {
   }
 }
 
-export function getDbValues(query: string | Query | QueryOptions, values?: any[]): string {
-  if (typeof query === 'string') {
-    return arrayStringifyHelper(values);
-  } else {
-    // According to https://github.com/mysqljs/mysql#performing-queries
-    // The values argument will override the values in the option object.
-    return arrayStringifyHelper(values || query.values);
-  }
-}
-
 /**
  * The span name SHOULD be set to a low cardinality value
  * representing the statement executed on the database.
@@ -78,22 +57,4 @@ export function getSpanName(query: string | Query | QueryOptions): string {
     return rawQuery?.substring(0, firstSpace);
   }
   return rawQuery;
-}
-
-export function arrayStringifyHelper(arr: Array<unknown> | undefined): string {
-  if (arr) return `[${arr.toString()}]`;
-  return '';
-}
-
-export function getPoolNameOld(pool: Pool): string {
-  const c = pool.config.connectionConfig;
-  let poolName = '';
-  poolName += c?.host ? `host: '${c.host}', ` : '';
-  poolName += c?.port ? `port: ${c.port}, ` : '';
-  poolName += c?.database ? `database: '${c.database}', ` : '';
-  poolName += c?.user ? `user: '${c.user}'` : '';
-  if (!c?.user) {
-    poolName = poolName.substring(0, poolName.length - 2); //omit last comma
-  }
-  return poolName.trim();
 }

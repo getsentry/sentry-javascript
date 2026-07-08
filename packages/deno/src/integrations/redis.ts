@@ -1,19 +1,10 @@
-// * import so that loading this module doesn't error on Deno versions
-// lacking `tracingChannel` (added in Deno 1.44.3).
-// On older runtimes the integration becomes a no-op.
-import * as dc from 'node:diagnostics_channel';
-import type {
-  RedisDiagnosticChannelResponseHook,
-  RedisTracingChannel,
-  RedisTracingChannelFactory,
-  RedisTracingChannelSubscribers,
-} from '@sentry/server-utils';
-import { subscribeRedisDiagnosticChannels } from '@sentry/server-utils';
-import type { Integration, IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import type { RedisDiagnosticChannelResponseHook } from '@sentry/server-utils';
+import { redisIntegration as redisChannelIntegration } from '@sentry/server-utils';
+import type { Integration, IntegrationFn } from '@sentry/core';
+import { defineIntegration, extendIntegration } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 
-const INTEGRATION_NAME = 'DenoRedis';
+const INTEGRATION_NAME = 'DenoRedis' as const;
 
 export interface DenoRedisIntegrationOptions {
   /**
@@ -23,51 +14,18 @@ export interface DenoRedisIntegrationOptions {
   responseHook?: RedisDiagnosticChannelResponseHook;
 }
 
-/**
- * Portable tracing-channel factory: wraps `node:diagnostics_channel.tracingChannel`
- * and stamps `data._sentrySpan` from `transformStart` in the `start` subscriber.
- *
- * Unlike `@sentry/opentelemetry/tracing-channel`, this does not call `bindStore`
- */
-type DataWithSpan<T> = T & { _sentrySpan?: Span };
-type SubscriberFn<T> = (data: DataWithSpan<T>) => void;
-
-const portableTracingChannel: RedisTracingChannelFactory = <T extends object>(
-  name: string,
-  transformStart: (data: T) => Span,
-): RedisTracingChannel<T> => {
-  const channel = dc.tracingChannel<DataWithSpan<T>>(name);
-  return {
-    subscribe(subs: Partial<RedisTracingChannelSubscribers<T>>): void {
-      const userStart = subs.start as SubscriberFn<T> | undefined;
-      const composed: Record<string, SubscriberFn<T>> = {
-        start(data) {
-          data._sentrySpan = transformStart(data);
-          userStart?.(data);
-        },
-      };
-      for (const event of ['asyncStart', 'asyncEnd', 'end', 'error'] as const) {
-        const fn = subs[event] as SubscriberFn<T> | undefined;
-        if (fn) composed[event] = fn;
-      }
-      // Native subscribe is typed for the full subscriber set, but only the
-      // handlers actually present are invoked at runtime.
-      channel.subscribe(composed as unknown as Parameters<typeof channel.subscribe>[0]);
-    },
-  };
-};
-
 const _denoRedisIntegration = ((options: DenoRedisIntegrationOptions = {}) => {
-  return {
+  // The diagnostics_channel subscription lives in server-utils so it is shared across runtimes; we
+  // extend it here to install Deno's AsyncLocalStorage async-context strategy, which the channel
+  // binding reads via `getTracingChannelBinding`. `extendIntegration` runs the base `setupOnce`
+  // first, but its subscribe is deferred a tick when no binding exists yet, so the strategy set
+  // synchronously below is in place by the time the deferred subscribe runs.
+  return extendIntegration(redisChannelIntegration({ responseHook: options.responseHook }), {
     name: INTEGRATION_NAME,
     setupOnce() {
-      if (!dc.tracingChannel) {
-        return;
-      }
       setAsyncLocalStorageAsyncContextStrategy();
-      subscribeRedisDiagnosticChannels(portableTracingChannel, options.responseHook);
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**

@@ -1,10 +1,17 @@
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('hapi auto-instrumentation', () => {
   afterAll(async () => {
     cleanupChildProcesses();
   });
+
+  // `createEsmAndCjsTests` auto-runs this suite with orchestrion on CI. The
+  // orchestrion path keeps span ops/attributes identical to the OTel path; only
+  // the origin differs to signal the injection mechanism, so we branch on
+  // `isOrchestrionEnabled()`.
+  const origin = isOrchestrionEnabled() ? 'auto.http.orchestrion.hapi' : 'auto.http.otel.hapi';
 
   const EXPECTED_TRANSACTION = {
     transaction: 'GET /',
@@ -14,12 +21,12 @@ describe('hapi auto-instrumentation', () => {
           'http.route': '/',
           'http.method': 'GET',
           'hapi.type': 'router',
-          'sentry.origin': 'auto.http.otel.hapi',
+          'sentry.origin': origin,
           'sentry.op': 'router.hapi',
         }),
         description: 'GET /',
         op: 'router.hapi',
-        origin: 'auto.http.otel.hapi',
+        origin,
         status: 'ok',
       }),
     ]),
@@ -40,6 +47,43 @@ describe('hapi auto-instrumentation', () => {
     test('should auto-instrument `@hapi/hapi` package.', async () => {
       const runner = createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start();
       runner.makeRequest('get', '/');
+      await runner.completed();
+    });
+
+    test('should instrument plugin routes and server extensions.', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            transaction: 'GET /plugin-route',
+            spans: expect.arrayContaining([
+              expect.objectContaining({
+                description: 'GET /plugin-route',
+                op: 'plugin.hapi',
+                origin,
+                data: expect.objectContaining({
+                  'http.route': '/plugin-route',
+                  'hapi.type': 'plugin',
+                  'hapi.plugin.name': 'testPlugin',
+                  'sentry.op': 'plugin.hapi',
+                  'sentry.origin': origin,
+                }),
+              }),
+              expect.objectContaining({
+                description: 'ext - onPreResponse',
+                op: 'server.ext.hapi',
+                origin,
+                data: expect.objectContaining({
+                  'hapi.type': 'server.ext',
+                  'server.ext.type': 'onPreResponse',
+                  'sentry.op': 'server.ext.hapi',
+                  'sentry.origin': origin,
+                }),
+              }),
+            ]),
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/plugin-route');
       await runner.completed();
     });
 

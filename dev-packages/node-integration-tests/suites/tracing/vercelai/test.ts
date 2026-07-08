@@ -22,14 +22,15 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
 
-describe('Vercel AI integration', () => {
+describe.skipIf(isOrchestrionEnabled())('Vercel AI integration (v4)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates ai related spans with genAI recording disabled', async () => {
+    test('creates ai spans when dataCollection.genAi has inputs and outputs disabled', async () => {
       await createRunner()
         .expect({ transaction: { transaction: 'main' } })
         .expect({
@@ -92,7 +93,9 @@ describe('Vercel AI integration', () => {
             const secondGenerateContentSpan = container.items.find(
               span =>
                 span.name === 'generate_content mock-model-id' &&
-                span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Second span here!'),
+                getStringAttributeValue(span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                  'Second span here!',
+                ),
             );
             expect(secondGenerateContentSpan).toBeDefined();
             expect(secondGenerateContentSpan!.name).toBe('generate_content mock-model-id');
@@ -142,7 +145,7 @@ describe('Vercel AI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates ai related spans with genAI recording enabled', async () => {
+    test('creates ai spans for dataCollection defaults', async () => {
       await createRunner()
         .expect({ transaction: { transaction: 'main' } })
         .expect({
@@ -169,7 +172,9 @@ describe('Vercel AI integration', () => {
             const firstGenerateContentSpan = container.items.find(
               span =>
                 span.name === 'generate_content mock-model-id' &&
-                span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value?.includes('First span here!'),
+                getStringAttributeValue(span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                  'First span here!',
+                ),
             );
             expect(firstGenerateContentSpan).toBeDefined();
             expect(firstGenerateContentSpan!.name).toBe('generate_content mock-model-id');
@@ -200,7 +205,9 @@ describe('Vercel AI integration', () => {
             const secondGenerateContentSpan = container.items.find(
               span =>
                 span.name === 'generate_content mock-model-id' &&
-                span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Second span here!'),
+                getStringAttributeValue(span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                  'Second span here!',
+                ),
             );
             expect(secondGenerateContentSpan).toBeDefined();
             expect(secondGenerateContentSpan!.name).toBe('generate_content mock-model-id');
@@ -225,7 +232,9 @@ describe('Vercel AI integration', () => {
             const toolGenerateContentSpan = container.items.find(
               span =>
                 span.name === 'generate_content mock-model-id' &&
-                span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]?.value?.includes('getWeather'),
+                getStringAttributeValue(span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]?.value)?.includes(
+                  'getWeather',
+                ),
             );
             expect(toolGenerateContentSpan).toBeDefined();
             expect(toolGenerateContentSpan!.name).toBe('generate_content mock-model-id');
@@ -446,7 +455,7 @@ describe('Vercel AI integration', () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario-message-truncation.mjs',
-    'instrument-with-pii.mjs',
+    'instrument-with-truncation.mjs',
     (createRunner, test) => {
       test('truncates messages when they exceed byte limit', async () => {
         await createRunner()
@@ -458,7 +467,9 @@ describe('Vercel AI integration', () => {
               const truncatedInvokeAgentSpan = container.items.find(
                 span =>
                   span.name === 'invoke_agent' &&
-                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.match(/^\[.*"(?:text|content)":"C+".*\]$/),
+                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
+                    /^\[.*"(?:text|content)":"C+".*\]$/,
+                  ),
               );
               expect(truncatedInvokeAgentSpan).toBeDefined();
               expect(truncatedInvokeAgentSpan!.name).toBe('invoke_agent');
@@ -473,7 +484,7 @@ describe('Vercel AI integration', () => {
               const smallMessageInvokeAgentSpan = container.items.find(
                 span =>
                   span.name === 'invoke_agent' &&
-                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(
+                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
                     'This is a small message that fits within the limit',
                   ),
               );

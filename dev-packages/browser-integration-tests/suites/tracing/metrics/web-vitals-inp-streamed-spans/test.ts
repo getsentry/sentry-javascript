@@ -27,14 +27,18 @@ sentryTest('captures INP click as a streamed span', async ({ getLocalTestUrl, pa
   const inpSpan = await inpSpanPromise;
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(inpSpan.attributes?.['sentry.op']).toEqual({ type: 'string', value: 'ui.interaction.click' });
-  expect(inpSpan.attributes?.['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.inp' });
-  expect(inpSpan.attributes?.['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
+  expect(inpSpan.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.interaction.click' });
+  expect(inpSpan.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.inp' });
+  expect(inpSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
 
-  const inpValue = inpSpan.attributes?.['browser.web_vital.inp.value']?.value as number;
+  // Check the INP span carries the transaction/segment name it belongs to
+  expect(inpSpan.attributes['sentry.transaction']).toEqual({ type: 'string', value: '/index.html' });
+  expect(inpSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: '/index.html' });
+
+  const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
   expect(inpValue).toBeGreaterThan(0);
 
-  expect(inpSpan.attributes?.['sentry.exclusive_time']?.value).toBeGreaterThan(0);
+  expect(inpSpan.attributes['sentry.exclusive_time']?.value).toBeGreaterThan(0);
 
   expect(inpSpan.name).toBe('body > NormalButton');
 
@@ -72,8 +76,8 @@ sentryTest('captures the slowest interaction as streamed INP span', async ({ get
   const inpSpan = await inpSpanPromise;
 
   expect(inpSpan.name).toBe('body > SlowButton');
-  expect(inpSpan.attributes?.['sentry.exclusive_time']?.value).toBeGreaterThan(400);
+  expect(inpSpan.attributes['sentry.exclusive_time']?.value).toBeGreaterThan(400);
 
-  const inpValue = inpSpan.attributes?.['browser.web_vital.inp.value']?.value as number;
+  const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
   expect(inpValue).toBeGreaterThan(400);
 });

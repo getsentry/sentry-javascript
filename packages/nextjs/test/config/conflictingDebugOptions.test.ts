@@ -19,6 +19,7 @@ describe('debug: true + removeDebugLogging warning', () => {
   let originalDocument: unknown;
   let originalLocation: unknown;
   let originalAddEventListener: unknown;
+  let originalRemoveEventListener: unknown;
 
   beforeAll(async () => {
     // Pre-warm V8 compilation cache for the large SDK module graphs.
@@ -34,16 +35,19 @@ describe('debug: true + removeDebugLogging warning', () => {
     originalDocument = (globalThis as any).document;
     originalLocation = (globalThis as any).location;
     originalAddEventListener = (globalThis as any).addEventListener;
+    originalRemoveEventListener = (globalThis as any).removeEventListener;
 
     Object.defineProperty(globalThis, 'document', { value: dom.window.document, writable: true });
     Object.defineProperty(globalThis, 'location', { value: dom.window.location, writable: true });
     Object.defineProperty(globalThis, 'addEventListener', { value: () => undefined, writable: true });
+    Object.defineProperty(globalThis, 'removeEventListener', { value: () => undefined, writable: true });
   });
 
   afterAll(() => {
     Object.defineProperty(globalThis, 'document', { value: originalDocument, writable: true });
     Object.defineProperty(globalThis, 'location', { value: originalLocation, writable: true });
     Object.defineProperty(globalThis, 'addEventListener', { value: originalAddEventListener, writable: true });
+    Object.defineProperty(globalThis, 'removeEventListener', { value: originalRemoveEventListener, writable: true });
   });
 
   afterEach(() => {

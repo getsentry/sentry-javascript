@@ -1,49 +1,33 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-hapi
  * - Upstream version: @opentelemetry/instrumentation-hapi@0.64.0
  * - Types vendored from @hapi/hapi as simplified interfaces
  * - Minor TypeScript strictness adjustments for this repository's compiler settings
+ * - Span creation migrated to the @sentry/core API; op/origin folded into span creation
  */
-/* eslint-disable */
 
 import * as api from '@opentelemetry/api';
 import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
-import {
-  InstrumentationBase,
-  InstrumentationConfig,
-  InstrumentationNodeModuleDefinition,
-  isWrapped,
-  SemconvStability,
-  semconvStabilityFromStr,
-} from '@opentelemetry/instrumentation';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 
 import type * as Hapi from './hapi-types';
-import { SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { AttributeNames } from './enums/AttributeNames';
 import {
   HapiComponentName,
-  HapiServerRouteInput,
   handlerPatched,
-  PatchableServerRoute,
-  HapiServerRouteInputMethod,
-  HapiPluginInput,
-  RegisterFunction,
-  PatchableExtMethod,
-  ServerExtDirectInput,
+  type HapiServerRouteInput,
+  type PatchableServerRoute,
+  type HapiServerRouteInputMethod,
+  type HapiPluginInput,
+  type RegisterFunction,
+  type PatchableExtMethod,
+  type ServerExtDirectInput,
 } from './internal-types';
 import {
   getRouteMetadata,
@@ -60,11 +44,8 @@ const PACKAGE_NAME = '@sentry/instrumentation-hapi';
 
 /** Hapi instrumentation for OpenTelemetry */
 export class HapiInstrumentation extends InstrumentationBase {
-  private _semconvStability: SemconvStability;
-
   constructor(config: InstrumentationConfig = {}) {
     super(PACKAGE_NAME, SDK_VERSION, config);
-    this._semconvStability = semconvStabilityFromStr('http', process.env.OTEL_SEMCONV_STABILITY_OPT_IN);
   }
 
   protected init() {
@@ -74,11 +55,11 @@ export class HapiInstrumentation extends InstrumentationBase {
       (module: any) => {
         const moduleExports: typeof Hapi = module[Symbol.toStringTag] === 'Module' ? module.default : module;
         if (!isWrapped(moduleExports.server)) {
-          this._wrap(moduleExports, 'server', this._getServerPatch.bind(this) as any);
+          this._wrap(moduleExports, 'server', this._getServerPatch.bind(this));
         }
 
         if (!isWrapped(moduleExports.Server)) {
-          this._wrap(moduleExports, 'Server', this._getServerPatch.bind(this) as any);
+          this._wrap(moduleExports, 'Server', this._getServerPatch.bind(this));
         }
         return moduleExports;
       },
@@ -115,7 +96,7 @@ export class HapiInstrumentation extends InstrumentationBase {
 
       // Casting as any is necessary here due to multiple overloads on the Hapi.Server.register
       // function, which requires supporting a variety of different types of Plugin inputs
-      self._wrap(newServer, 'register', instrumentation._getServerRegisterPatch.bind(instrumentation) as any);
+      self._wrap(newServer, 'register', instrumentation._getServerRegisterPatch.bind(instrumentation));
       return newServer;
     };
   }
@@ -202,6 +183,7 @@ export class HapiInstrumentation extends InstrumentationBase {
           route[i] = newRoute;
         }
       } else {
+        // oxlint-disable-next-line no-param-reassign
         route = instrumentation._wrapRouteHandler.call(instrumentation, route, pluginName);
       }
       return original.apply(this, [route]);
@@ -254,38 +236,29 @@ export class HapiInstrumentation extends InstrumentationBase {
     const instrumentation: HapiInstrumentation = this;
     if (method instanceof Array) {
       for (let i = 0; i < method.length; i++) {
-        method[i] = instrumentation._wrapExtMethods(method[i]!, extPoint) as PatchableExtMethod;
+        method[i] = instrumentation._wrapExtMethods(method[i]!, extPoint);
       }
       return method;
     } else if (isPatchableExtMethod(method)) {
       if (method[handlerPatched] === true) return method;
       method[handlerPatched] = true;
 
-      const newHandler: PatchableExtMethod = async function (this: any, ...params: Parameters<Hapi.Lifecycle.Method>) {
+      const newHandler: PatchableExtMethod = function (this: any, ...params: Parameters<Hapi.Lifecycle.Method>) {
         if (api.trace.getSpan(api.context.active()) === undefined) {
-          return await method.apply(this, params);
+          return method.apply(this, params);
         }
         const metadata = getExtMetadata(extPoint, pluginName, method.name);
-        const span = instrumentation.tracer.startSpan(metadata.name, {
-          attributes: metadata.attributes,
-        });
-        try {
-          return await api.context.with<Parameters<Hapi.Lifecycle.Method>, Hapi.Lifecycle.Method>(
-            api.trace.setSpan(api.context.active(), span),
-            method,
-            undefined,
-            ...params,
-          );
-        } catch (err: any) {
-          span.recordException(err);
-          span.setStatus({
-            code: api.SpanStatusCode.ERROR,
-            message: err.message,
-          });
-          throw err;
-        } finally {
-          span.end();
-        }
+        return startSpan(
+          {
+            name: metadata.name,
+            op: `${metadata.attributes[AttributeNames.HAPI_TYPE]}.hapi`,
+            attributes: {
+              ...metadata.attributes,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.hapi',
+            },
+          },
+          () => method.apply(undefined, params),
+        );
       };
       return newHandler as T;
     }
@@ -300,34 +273,27 @@ export class HapiInstrumentation extends InstrumentationBase {
    * for adding this server route. Else, signifies that the route was added directly
    */
   private _wrapRouteHandler(route: PatchableServerRoute, pluginName?: string): PatchableServerRoute {
-    const instrumentation: HapiInstrumentation = this;
     if (route[handlerPatched] === true) return route;
     route[handlerPatched] = true;
 
     const wrapHandler: (oldHandler: Hapi.Lifecycle.Method) => Hapi.Lifecycle.Method = oldHandler => {
-      return async function (this: any, ...params: Parameters<Hapi.Lifecycle.Method>) {
+      return function (this: any, ...params: Parameters<Hapi.Lifecycle.Method>) {
         if (api.trace.getSpan(api.context.active()) === undefined) {
-          return await oldHandler.call(this, ...params);
+          return oldHandler.call(this, ...params);
         }
         setHttpServerSpanRouteAttribute(route.path);
-        const metadata = getRouteMetadata(route, instrumentation._semconvStability, pluginName);
-        const span = instrumentation.tracer.startSpan(metadata.name, {
-          attributes: metadata.attributes,
-        });
-        try {
-          return await api.context.with(api.trace.setSpan(api.context.active(), span), () =>
-            oldHandler.call(this, ...params),
-          );
-        } catch (err: any) {
-          span.recordException(err);
-          span.setStatus({
-            code: api.SpanStatusCode.ERROR,
-            message: err.message,
-          });
-          throw err;
-        } finally {
-          span.end();
-        }
+        const metadata = getRouteMetadata(route, pluginName);
+        return startSpan(
+          {
+            name: metadata.name,
+            op: `${metadata.attributes[AttributeNames.HAPI_TYPE]}.hapi`,
+            attributes: {
+              ...metadata.attributes,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.hapi',
+            },
+          },
+          () => oldHandler.call(this, ...params),
+        );
       };
     };
 

@@ -9,5 +9,6 @@
     "typescript/no-misused-spread": "off",
     "typescript/no-base-to-string": "off",
     "typescript/await-thenable": "off"
-  }
+  },
+  "ignorePatterns": ["bundler-plugin-integration-tests/fixtures/**"]
 }

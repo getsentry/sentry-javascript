@@ -1,3 +1,4 @@
+import { SENTRY_SPAN_SOURCE } from '@sentry/conventions/attributes';
 import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
@@ -14,6 +15,7 @@ import { extractOrgIdFromClient } from '../utils/dsn';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { addNonEnumerableProperty } from '../utils/object';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
+import { spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { getCapturedScopesOnSpan } from './utils';
 
 /**
@@ -105,6 +107,23 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     return applyLocalSampleRateToDsc(frozenDsc);
   }
 
+  // For a non-recording placeholder in Tracing without Performance (TwP) mode, the DSC is not
+  // carried on the span; the scope is the source of truth. Resolve it from the span's captured
+  // scope: continued traces keep the incoming DSC, new traces derive it from the client.
+  //
+  // We gate this on `!hasSpansEnabled()` so it mirrors the `sentry-trace` source in `getTraceData`:
+  // with tracing enabled, a non-recording span (e.g. an `onlyIfParent` placeholder) keeps deriving
+  // its DSC from the span/client so the baggage agrees with the `-0` decision that `spanToTraceHeader`
+  // encodes for `sentry-trace`. Without this guard the two headers can disagree.
+  //
+  // We spread into a new object so applying the local sample rate can't mutate the scope's DSC.
+  if (spanIsNonRecordingSpan(rootSpan) && !hasSpansEnabled(client.getOptions())) {
+    const capturedScope = getCapturedScopesOnSpan(rootSpan).scope;
+    if (capturedScope) {
+      return applyLocalSampleRateToDsc({ ...getDynamicSamplingContextFromScope(client, capturedScope) });
+    }
+  }
+
   // For OpenTelemetry, we freeze the DSC on the trace state
   const traceStateDsc = traceState?.get('sentry.dsc');
 
@@ -119,8 +138,8 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
 
   // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-  // TODO(v11): Only read `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` again, once we renamed it to `sentry.span.source`
-  const source = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] ?? rootSpanAttributes['sentry.span.source'];
+  // TODO(v11): Only read `SENTRY_SPAN_SOURCE` once we removed `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE`
+  const source = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] ?? rootSpanAttributes[SENTRY_SPAN_SOURCE];
 
   // after JSON conversion, txn.name becomes jsonSpan.description
   const name = rootSpanJson.description;

@@ -27,7 +27,7 @@ interface OnUncaughtExceptionOptions {
   onFatalError?(this: void, firstError: Error, secondError?: Error): void;
 }
 
-const INTEGRATION_NAME = 'OnUncaughtException';
+const INTEGRATION_NAME = 'OnUncaughtException' as const;
 
 /**
  * Add a global exception handler.

@@ -1,74 +1,60 @@
-import { instrumentAnthropicAiClient } from '@sentry/core';
+import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
+import express from 'express';
 
-class MockAnthropic {
-  constructor(config) {
-    this.apiKey = config.apiKey;
-    this.messages = {
-      create: this._messagesCreate.bind(this),
-    };
-    this.models = {
-      retrieve: this._modelsRetrieve.bind(this),
-    };
-  }
+function startMockAnthropicServer() {
+  const app = express();
+  app.use(express.json());
 
-  async _messagesCreate(params) {
-    await new Promise(resolve => setTimeout(resolve, 5));
-
-    // Case 1: Invalid tool format error
-    if (params.model === 'invalid-format') {
-      const error = new Error('Invalid format');
-      error.status = 400;
-      error.headers = { 'x-request-id': 'mock-invalid-tool-format-error' };
-      throw error;
+  app.post('/anthropic/v1/messages', (req, res) => {
+    if (req.body.model === 'invalid-format') {
+      res
+        .status(400)
+        .set('x-request-id', 'mock-invalid-tool-format-error')
+        .send({ type: 'error', error: { type: 'invalid_request_error', message: 'Invalid format' } });
+      return;
     }
 
-    // Default case (success) - return tool use for successful tool usage test
-    return {
+    res.send({
       id: 'msg_ok',
       type: 'message',
-      model: params.model,
+      model: req.body.model,
       role: 'assistant',
-      content: [
-        {
-          type: 'tool_use',
-          id: 'tool_ok_1',
-          name: 'calculator',
-          input: { expression: '2+2' },
-        },
-      ],
+      content: [{ type: 'tool_use', id: 'tool_ok_1', name: 'calculator', input: { expression: '2+2' } }],
       stop_reason: 'tool_use',
+      stop_sequence: null,
       usage: { input_tokens: 7, output_tokens: 9 },
-    };
-  }
+    });
+  });
 
-  async _modelsRetrieve(modelId) {
-    await new Promise(resolve => setTimeout(resolve, 5));
-
-    // Case for model retrieval error
-    if (modelId === 'nonexistent-model') {
-      const error = new Error('Model not found');
-      error.status = 404;
-      error.headers = { 'x-request-id': 'mock-model-retrieval-error' };
-      throw error;
+  app.get('/anthropic/v1/models/:model', (req, res) => {
+    if (req.params.model === 'nonexistent-model') {
+      res
+        .status(404)
+        .set('x-request-id', 'mock-model-retrieval-error')
+        .send({ type: 'error', error: { type: 'not_found_error', message: 'Model not found' } });
+      return;
     }
+    res.send({ id: req.params.model, name: req.params.model, created_at: 1715145600, model: req.params.model });
+  });
 
-    return {
-      id: modelId,
-      name: modelId,
-      created_at: 1715145600,
-      model: modelId,
-    };
-  }
+  return new Promise(resolve => {
+    const server = app.listen(0, () => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
-  await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    const mockClient = new MockAnthropic({ apiKey: 'mock-api-key' });
-    const client = instrumentAnthropicAiClient(mockClient);
+  const server = await startMockAnthropicServer();
 
-    // 1. Test invalid format error
-    // https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/implement-tool-use#handling-tool-use-and-tool-result-content-blocks
+  await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
+    const client = new Anthropic({
+      apiKey: 'mock-api-key',
+      baseURL: `http://localhost:${server.address().port}/anthropic`,
+    });
+
+    // 1. Invalid format error
     try {
       await client.messages.create({
         model: 'invalid-format',
@@ -76,7 +62,7 @@ async function run() {
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Here are the results:' }, // ❌ Text before tool_result
+              { type: 'text', text: 'Here are the results:' },
               { type: 'tool_result', tool_use_id: 'toolu_01' },
             ],
           },
@@ -86,14 +72,14 @@ async function run() {
       // Error expected
     }
 
-    // 2. Test model retrieval error
+    // 2. Model retrieval error
     try {
       await client.models.retrieve('nonexistent-model');
     } catch {
       // Error expected
     }
 
-    // 3. Test successful tool usage for comparison
+    // 3. Successful tool usage for comparison
     await client.messages.create({
       model: 'claude-3-haiku-20240307',
       messages: [{ role: 'user', content: 'Calculate 2+2' }],
@@ -110,6 +96,10 @@ async function run() {
       ],
     });
   });
+
+  await Sentry.flush(2000);
+
+  server.close();
 }
 
 run();

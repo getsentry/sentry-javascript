@@ -33,6 +33,7 @@ import {
 } from '../../src/tracing/browserTracingIntegration';
 import { PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE } from '../../src/tracing/linkedTraces';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 const oldTextEncoder = global.window.TextEncoder;
 const oldTextDecoder = global.window.TextDecoder;
@@ -65,10 +66,16 @@ describe('browserTracingIntegration', () => {
     getCurrentScope().clear();
     getIsolationScope().clear();
     getCurrentScope().setClient(undefined);
-    document.head.innerHTML = '';
 
+    // Reset document and location to a fresh JSDOM for every test. `getLocationHref()` reads
+    // `WINDOW.document.location.href`, so leaving `document` bound to a shared instance leaks URL state
+    // (e.g. `/test`) from `pushState` in earlier tests into later ones. `history` must stay bound to the
+    // shared instance because the history instrumentation patches it once globally on `client.init()`.
     const dom = new JSDOM(undefined, { url: 'https://example.com/' });
+    Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
     Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
+
+    document.head.innerHTML = '';
 
     // We want to suppress the "Multiple browserTracingIntegration instances are not supported." warnings
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -174,6 +181,8 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [URL_FULL]: 'https://example.com/',
+        [URL_PATH]: '/',
       },
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -258,6 +267,8 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [URL_FULL]: 'https://example.com/',
+        [URL_PATH]: '/',
       },
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -286,6 +297,8 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [URL_FULL]: 'https://example.com/test',
+        [URL_PATH]: '/test',
         [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: `${span?.spanContext().traceId}-${span?.spanContext().spanId}-1`,
       },
       links: [
@@ -325,6 +338,8 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [URL_FULL]: 'https://example.com/test2',
+        [URL_PATH]: '/test2',
         [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: `${span2?.spanContext().traceId}-${span2?.spanContext().spanId}-1`,
       },
       links: [
@@ -366,6 +381,8 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [URL_FULL]: 'https://example.com/',
+        [URL_PATH]: '/',
       },
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -394,6 +411,8 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation.redirect',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [URL_FULL]: 'https://example.com/test',
+          [URL_PATH]: '/test',
         },
         description: '/test',
         op: 'navigation.redirect',
@@ -456,6 +475,8 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [URL_FULL]: 'https://example.com/',
+          [URL_PATH]: '/',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
@@ -492,6 +513,8 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [URL_FULL]: 'https://example.com/',
+          [URL_PATH]: '/',
           testy: 'yes',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -564,6 +587,52 @@ describe('browserTracingIntegration', () => {
       startBrowserTracingPageLoadSpan(client, { name: 'test pageload span' });
 
       expect(getCurrentScope().getScopeData().transactionName).toBe('test pageload span');
+    });
+
+    it('removes the readystatechange listener once the auto-finish signal is emitted', () => {
+      const addEventListenerSpy = vi.spyOn(WINDOW.document!, 'addEventListener');
+      const removeEventListenerSpy = vi.spyOn(WINDOW.document!, 'removeEventListener');
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      // The document is already loaded (readyState 'complete') in the test environment, so the auto-finish signal is
+      // emitted synchronously and the listener must be cleaned up right away instead of leaking with the idle span.
+      startBrowserTracingPageLoadSpan(client, { name: 'test span' });
+
+      const addedListener = addEventListenerSpy.mock.calls.find(([type]) => type === 'readystatechange')?.[1];
+      expect(addedListener).toBeDefined();
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('readystatechange', addedListener);
+    });
+
+    it('removes the readystatechange listener when the document finishes loading later', () => {
+      const readyStateSpy = vi.spyOn(WINDOW.document!, 'readyState', 'get').mockReturnValue('loading');
+      const removeEventListenerSpy = vi.spyOn(WINDOW.document!, 'removeEventListener');
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      startBrowserTracingPageLoadSpan(client, { name: 'test span' });
+
+      // While loading, no auto-finish signal is emitted yet, so the listener is still attached.
+      expect(removeEventListenerSpy).not.toHaveBeenCalledWith('readystatechange', expect.any(Function));
+
+      readyStateSpy.mockReturnValue('complete');
+      WINDOW.document!.dispatchEvent(new dom.window.Event('readystatechange'));
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('readystatechange', expect.any(Function));
     });
   });
 
@@ -687,6 +756,8 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
           [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/),
+          [URL_FULL]: 'https://example.com/',
+          [URL_PATH]: '/',
         },
         links: [
           {
@@ -739,6 +810,8 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [URL_FULL]: 'https://example.com/',
+          [URL_PATH]: '/',
           testy: 'yes',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),

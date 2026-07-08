@@ -22,6 +22,11 @@ export default Sentry.withSentry(
         return new Response('ok');
       }
 
+      if (url.pathname === '/exec') {
+        await env.DB.exec('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)');
+        return new Response('ok');
+      }
+
       if (url.pathname === '/double-instrument') {
         const prepareBeforeManual = env.DB.prepare;
         const db = Sentry.instrumentD1WithSentry(env.DB);
@@ -35,6 +40,23 @@ export default Sentry.withSentry(
 
       if (url.pathname === '/error') {
         await env.DB.prepare('SELECT * FROM non_existent_table').all();
+        return new Response('ok');
+      }
+
+      if (url.pathname === '/batch') {
+        await env.DB.batch([
+          env.DB.prepare('INSERT INTO users (name) VALUES (?)').bind('Alice'),
+          env.DB.prepare('INSERT INTO users (name) VALUES (?)').bind('Bob'),
+        ]);
+        return new Response('ok');
+      }
+
+      if (url.pathname === '/with-session/batch') {
+        const session = env.DB.withSession();
+        await session.batch([
+          session.prepare('INSERT INTO users (name) VALUES (?)').bind('Alice'),
+          session.prepare('INSERT INTO users (name) VALUES (?)').bind('Bob'),
+        ]);
         return new Response('ok');
       }
 

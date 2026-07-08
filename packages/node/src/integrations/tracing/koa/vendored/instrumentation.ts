@@ -1,17 +1,6 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-koa
@@ -33,7 +22,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/core';
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { getMiddlewareMetadata, isLayerIgnored } from './utils';
 import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 import { DEBUG_BUILD } from '../../../../debug-build';
@@ -182,7 +171,7 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
           },
         },
         () => {
-          const route = metadata.attributes[ATTR_HTTP_ROUTE];
+          const route = metadata.attributes[HTTP_ROUTE];
           if (getIsolationScope() === getDefaultIsolationScope()) {
             DEBUG_BUILD && debug.warn('Isolation scope is default isolation scope - skipping setting transactionName');
           } else if (route) {

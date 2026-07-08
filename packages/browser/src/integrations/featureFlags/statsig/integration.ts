@@ -33,7 +33,7 @@ import type { FeatureGate, StatsigClient } from './types';
 export const statsigIntegration = defineIntegration(
   ({ featureFlagClient: statsigClient }: { featureFlagClient: StatsigClient }) => {
     return {
-      name: 'Statsig',
+      name: 'Statsig' as const,
 
       setup(_client: Client) {
         statsigClient.on('gate_evaluation', (event: { gate: FeatureGate }) => {

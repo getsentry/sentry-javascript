@@ -79,10 +79,10 @@ test.describe('route registration styles', () => {
 test.describe('request data extraction', () => {
   test('includes method, url, and headers on transaction', async ({ baseURL }) => {
     const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${PREFIX}`;
+      return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${PREFIX}/request-data`;
     });
 
-    const response = await fetch(`${baseURL}${PREFIX}`);
+    const response = await fetch(`${baseURL}${PREFIX}/request-data`);
     expect(response.status).toBe(200);
 
     const transaction = await transactionPromise;
@@ -95,27 +95,27 @@ test.describe('request data extraction', () => {
     const transactionPromise = waitForTransaction(APP_NAME, event => {
       return (
         event.contexts?.trace?.op === 'http.server' &&
-        event.transaction === `GET ${PREFIX}` &&
+        event.transaction === `GET ${PREFIX}/query-test` &&
         event.request?.query_string === 'foo=bar&baz=42'
       );
     });
 
-    const response = await fetch(`${baseURL}${PREFIX}?foo=bar&baz=42`);
+    const response = await fetch(`${baseURL}${PREFIX}/query-test?foo=bar&baz=42`);
     expect(response.status).toBe(200);
 
     const transaction = await transactionPromise;
 
     expect(transaction.request?.method).toBe('GET');
-    expect(transaction.request?.url).toContain(PREFIX);
+    expect(transaction.request?.url).toContain(`${PREFIX}/query-test`);
     expect(transaction.request?.query_string).toBe('foo=bar&baz=42');
   });
 
   test('includes request data for POST with headers', async ({ baseURL }) => {
     const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && event.transaction === `POST ${PREFIX}`;
+      return event.contexts?.trace?.op === 'http.server' && event.transaction === `POST ${PREFIX}/request-data`;
     });
 
-    const response = await fetch(`${baseURL}${PREFIX}`, {
+    const response = await fetch(`${baseURL}${PREFIX}/request-data`, {
       method: 'POST',
       headers: { 'X-Custom-Header': 'test-value' },
     });

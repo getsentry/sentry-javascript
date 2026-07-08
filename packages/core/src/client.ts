@@ -257,7 +257,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // Backfill enableLogs option from _experiments.enableLogs
     // TODO(v11): Remove or change default value
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs;
 
     // Setup log flushing with weight and timeout tracking
@@ -266,7 +266,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     }
 
     // todo(v11): Remove the experimental flag
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     const enableMetrics = this._options.enableMetrics ?? this._options._experiments?.enableMetrics ?? true;
 
     // Setup metric flushing with weight and timeout tracking
@@ -667,6 +667,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'afterSegmentSpanEnd', callback: (immutableSegmentSpan: Readonly<Span>) => void): () => void;
 
   /**
+   * Register a callback to preprocess a span JSON _before_ it is passed to the `processSpan` and
+   * `processSegmentSpan` hooks. Use this to backfill data that subsequent hooks rely on.
+   * The optional `hint` exposes additional context about the originating span (e.g. the OTel `spanKind`).
+   */
+  public on(
+    hook: 'preprocessSpan',
+    callback: (streamedSpanJSON: StreamedSpanJSON, hint?: { spanKind?: number }) => void,
+  ): () => void;
+
+  /**
    * Register a callback for when a span JSON is processed, to add some data to the span JSON.
    */
   public on(hook: 'processSpan', callback: (streamedSpanJSON: StreamedSpanJSON) => void): () => void;
@@ -805,7 +815,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(
     hook: 'beforeStartNavigationSpan',
-    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean }) => void,
+    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean; url?: string }) => void,
   ): () => void;
 
   /**
@@ -814,7 +824,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(
     hook: 'startNavigationSpan',
-    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean }) => void,
+    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean; url?: string }) => void,
   ): () => void;
 
   /**
@@ -972,6 +982,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'afterSegmentSpanEnd', immutableSegmentSpan: Readonly<Span>): void;
 
   /**
+   * Fire a hook event to preprocess a span JSON before the `processSpan` and `processSegmentSpan` hooks run.
+   */
+  public emit(hook: 'preprocessSpan', streamedSpanJSON: StreamedSpanJSON, hint?: { spanKind?: number }): void;
+
+  /**
    * Fire a hook event when a span JSON is processed, to add some data to the span JSON.
    */
   public emit(hook: 'processSpan', streamedSpanJSON: StreamedSpanJSON): void;
@@ -1085,7 +1100,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(
     hook: 'beforeStartNavigationSpan',
     options: StartSpanOptions,
-    navigationOptions?: { isRedirect?: boolean },
+    navigationOptions?: { isRedirect?: boolean; url?: string },
   ): void;
 
   /**
@@ -1094,7 +1109,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(
     hook: 'startNavigationSpan',
     options: StartSpanOptions,
-    navigationOptions?: { isRedirect?: boolean },
+    navigationOptions?: { isRedirect?: boolean; url?: string },
   ): void;
 
   /**

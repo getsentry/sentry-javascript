@@ -66,7 +66,7 @@ export function constructTurbopackConfig({
   // so it is safe even for node_modules with strict initialization order.
   // We only exclude Next.js build polyfills which contain non-standard syntax that causes
   // parse errors when any code is prepended (Turbopack re-parses the loader output).
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   const applicationKey = userSentryOptions?.applicationKey ?? userSentryOptions?._experimental?.turbopackApplicationKey;
   if (applicationKey && nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {

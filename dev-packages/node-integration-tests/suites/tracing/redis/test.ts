@@ -1,4 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('redis auto instrumentation', () => {
@@ -6,32 +7,37 @@ describe('redis auto instrumentation', () => {
     cleanupChildProcesses();
   });
 
+  // Under orchestrion, ioredis <5.11 is instrumented by the diagnostics-channel
+  // subscriber instead of the OTel monkey-patch, so the span origin differs. All
+  // other attributes are identical.
+  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.redis' : 'auto.db.otel.redis';
+
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Span',
     spans: expect.arrayContaining([
       expect.objectContaining({
         description: 'set test-key [1 other arguments]',
         op: 'db',
-        origin: 'auto.db.otel.redis',
+        origin,
         data: expect.objectContaining({
           'sentry.op': 'db',
-          'sentry.origin': 'auto.db.otel.redis',
+          'sentry.origin': origin,
           'db.system': 'redis',
           'net.peer.name': 'localhost',
-          'net.peer.port': 6379,
+          'net.peer.port': 6380,
           'db.statement': 'set test-key [1 other arguments]',
         }),
       }),
       expect.objectContaining({
         description: 'get test-key',
         op: 'db',
-        origin: 'auto.db.otel.redis',
+        origin,
         data: expect.objectContaining({
           'sentry.op': 'db',
-          'sentry.origin': 'auto.db.otel.redis',
+          'sentry.origin': origin,
           'db.system': 'redis',
           'net.peer.name': 'localhost',
-          'net.peer.port': 6379,
+          'net.peer.port': 6380,
           'db.statement': 'get test-key',
         }),
       }),
@@ -40,13 +46,13 @@ describe('redis auto instrumentation', () => {
         description: 'incr test-key',
         op: 'db',
         status: 'internal_error',
-        origin: 'auto.db.otel.redis',
+        origin,
         data: expect.objectContaining({
           'sentry.op': 'db',
-          'sentry.origin': 'auto.db.otel.redis',
+          'sentry.origin': origin,
           'db.system': 'redis',
           'net.peer.name': 'localhost',
-          'net.peer.port': 6379,
+          'net.peer.port': 6380,
           'db.statement': 'incr test-key',
         }),
       }),

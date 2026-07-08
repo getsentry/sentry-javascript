@@ -1,5 +1,5 @@
 import { PassThrough } from 'node:stream';
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import {
   flushIfServerless,
   getActiveSpan,
@@ -72,7 +72,7 @@ describe('wrapSentryHandleRequest', () => {
     await wrappedHandler(new Request('https://nacho.queso'), 200, new Headers(), routerContext, {} as any);
 
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
-      [ATTR_HTTP_ROUTE]: '/some-path',
+      [HTTP_ROUTE]: '/some-path',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
     });
@@ -191,7 +191,7 @@ describe('wrapSentryHandleRequest', () => {
 
     // Should set route attributes without origin (to preserve instrumentation_api origin)
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
-      [ATTR_HTTP_ROUTE]: '/some-path',
+      [HTTP_ROUTE]: '/some-path',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
     });
   });

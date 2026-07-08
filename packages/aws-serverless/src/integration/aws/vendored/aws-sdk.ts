@@ -1,17 +1,6 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-aws-sdk
@@ -21,7 +10,7 @@
  */
 
 import { Span, SpanKind, context, trace, diag, SpanStatusCode } from '@opentelemetry/api';
-import { AttributeNames } from './enums';
+import { AWS_REQUEST_EXTENDED_ID, AWS_REQUEST_ID, CLOUD_REGION } from './enums';
 import { ServicesExtensions } from './services';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from './types';
 import {
@@ -46,7 +35,7 @@ import {
 } from './utils';
 import { propwrap } from './propwrap';
 import { RequestMetadata } from './services/ServiceExtension';
-import { ATTR_HTTP_STATUS_CODE } from './semconv';
+import { HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-aws-sdk';
@@ -265,7 +254,7 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
           Promise.resolve(regionPromise)
             .then(resolvedRegion => {
               normalizedRequest.region = resolvedRegion;
-              span.setAttribute(AttributeNames.CLOUD_REGION, resolvedRegion);
+              span.setAttribute(CLOUD_REGION, resolvedRegion);
             })
             .catch(e => {
               // there is nothing much we can do in this case.
@@ -284,17 +273,18 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                 .then((response: any) => {
                   const requestId = response.output?.$metadata?.requestId;
                   if (requestId) {
-                    span.setAttribute(AttributeNames.AWS_REQUEST_ID, requestId);
+                    span.setAttribute(AWS_REQUEST_ID, requestId);
                   }
 
                   const httpStatusCode = response.output?.$metadata?.httpStatusCode;
                   if (httpStatusCode) {
-                    span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
+                    // oxlint-disable-next-line typescript/no-deprecated
+                    span.setAttribute(HTTP_STATUS_CODE, httpStatusCode);
                   }
 
                   const extendedRequestId = response.output?.$metadata?.extendedRequestId;
                   if (extendedRequestId) {
-                    span.setAttribute(AttributeNames.AWS_REQUEST_EXTENDED_ID, extendedRequestId);
+                    span.setAttribute(AWS_REQUEST_EXTENDED_ID, extendedRequestId);
                   }
 
                   const normalizedResponse: NormalizedResponse = {
@@ -312,17 +302,18 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
                 .catch((err: any) => {
                   const requestId = err?.RequestId;
                   if (requestId) {
-                    span.setAttribute(AttributeNames.AWS_REQUEST_ID, requestId);
+                    span.setAttribute(AWS_REQUEST_ID, requestId);
                   }
 
                   const httpStatusCode = err?.$metadata?.httpStatusCode;
                   if (httpStatusCode) {
-                    span.setAttribute(ATTR_HTTP_STATUS_CODE, httpStatusCode);
+                    // oxlint-disable-next-line typescript/no-deprecated
+                    span.setAttribute(HTTP_STATUS_CODE, httpStatusCode);
                   }
 
                   const extendedRequestId = err?.extendedRequestId;
                   if (extendedRequestId) {
-                    span.setAttribute(AttributeNames.AWS_REQUEST_EXTENDED_ID, extendedRequestId);
+                    span.setAttribute(AWS_REQUEST_EXTENDED_ID, extendedRequestId);
                   }
 
                   span.setStatus({

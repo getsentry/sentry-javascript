@@ -1,4 +1,4 @@
-import { SpanStatusCode } from '@opentelemetry/api';
+import { SPAN_STATUS_ERROR } from '@sentry/core';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { AwsLambdaInstrumentation } from '../src/integration/instrumentation-aws-lambda/instrumentation';
 
@@ -68,7 +68,7 @@ describe('AwsLambdaInstrumentation', () => {
       expect(mockSpan.end).toHaveBeenCalled();
     });
 
-    test('error information is set on span before flush attempt', async () => {
+    test('error status is set on span before flush attempt', async () => {
       const instrumentation = new AwsLambdaInstrumentation();
 
       const normalProvider = createMockTracerProvider(() => Promise.resolve());
@@ -76,7 +76,6 @@ describe('AwsLambdaInstrumentation', () => {
 
       const mockSpan = {
         end: vi.fn(),
-        recordException: vi.fn(),
         setStatus: vi.fn(),
       };
 
@@ -87,9 +86,8 @@ describe('AwsLambdaInstrumentation', () => {
 
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      expect(mockSpan.recordException).toHaveBeenCalledWith(error);
       expect(mockSpan.setStatus).toHaveBeenCalledWith({
-        code: SpanStatusCode.ERROR,
+        code: SPAN_STATUS_ERROR,
         message: 'lambda failure',
       });
       expect(mockSpan.end).toHaveBeenCalled();

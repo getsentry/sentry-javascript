@@ -1,17 +1,6 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-mysql2
@@ -20,15 +9,10 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
+import { DB_NAME, DB_USER, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
 import type { FormatFunction } from './mysql2-types';
-import {
-  ATTR_DB_CONNECTION_STRING,
-  ATTR_DB_NAME,
-  ATTR_DB_USER,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-} from './semconv';
+import { ATTR_DB_CONNECTION_STRING } from './semconv';
 
 interface QueryOptions {
   sql: string;
@@ -52,14 +36,17 @@ export function getConnectionAttributes(config: Config): SpanAttributes {
 
   const attrs: SpanAttributes = {
     [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, port, database),
-    [ATTR_DB_NAME]: database,
-    [ATTR_DB_USER]: user,
-    [ATTR_NET_PEER_NAME]: host,
+    // oxlint-disable-next-line typescript/no-deprecated
+    [DB_NAME]: database,
+    [DB_USER]: user,
+    // oxlint-disable-next-line typescript/no-deprecated
+    [NET_PEER_NAME]: host,
   };
 
   const portNumber = parseInt(port, 10);
   if (!isNaN(portNumber)) {
-    attrs[ATTR_NET_PEER_PORT] = portNumber;
+    // oxlint-disable-next-line typescript/no-deprecated
+    attrs[NET_PEER_PORT] = portNumber;
   }
 
   return attrs;

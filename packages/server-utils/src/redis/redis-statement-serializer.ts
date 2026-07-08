@@ -1,0 +1,61 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * NOTICE from the Sentry authors:
+ * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/instrumentation-redis-v0.62.0/packages/redis-common
+ * - Upstream version: @opentelemetry/redis-common@0.38.2
+ *
+ * Single canonical copy, shared by the orchestrion ioredis subscriber here and
+ * the node SDK's vendored redis/ioredis instrumentations (which re-export it via
+ * `packages/node/src/integrations/tracing/redis/vendored/redis-common.ts`).
+ */
+/* eslint-disable -- vendored @opentelemetry/redis-common */
+
+/**
+ * List of regexes and the number of arguments that should be serialized for matching commands.
+ * For example, HSET should serialize which key and field it's operating on, but not its value.
+ * Setting the subset to -1 will serialize all arguments.
+ * Commands without a match will have their first argument serialized.
+ *
+ * Refer to https://redis.io/commands/ for the full list.
+ */
+const serializationSubsets = [
+  {
+    regex: /^ECHO/i,
+    args: 0,
+  },
+  {
+    regex: /^(LPUSH|MSET|PFA|PUBLISH|RPUSH|SADD|SET|SPUBLISH|XADD|ZADD)/i,
+    args: 1,
+  },
+  {
+    regex: /^(HSET|HMSET|LSET|LINSERT)/i,
+    args: 2,
+  },
+  {
+    regex:
+      /^(ACL|BIT|B[LRZ]|CLIENT|CLUSTER|CONFIG|COMMAND|DECR|DEL|EVAL|EX|FUNCTION|GEO|GET|HINCR|HMGET|HSCAN|INCR|L[TRLM]|MEMORY|P[EFISTU]|RPOP|S[CDIMORSU]|XACK|X[CDGILPRT]|Z[CDILMPRS])/i,
+    args: -1,
+  },
+];
+
+/**
+ * Given the redis command name and arguments, return a combination of the
+ * command name + the allowed arguments according to `serializationSubsets`.
+ */
+export const defaultDbStatementSerializer = (
+  cmdName: string,
+  cmdArgs: Array<string | Buffer | number | unknown[]>,
+): string => {
+  if (Array.isArray(cmdArgs) && cmdArgs.length) {
+    const nArgsToSerialize = serializationSubsets.find(({ regex }) => regex.test(cmdName))?.args ?? 0;
+    const argsToSerialize: Array<string | Buffer | number | unknown[]> =
+      nArgsToSerialize >= 0 ? cmdArgs.slice(0, nArgsToSerialize) : cmdArgs.slice();
+    if (cmdArgs.length > argsToSerialize.length) {
+      argsToSerialize.push(`[${cmdArgs.length - nArgsToSerialize} other arguments]`);
+    }
+    return `${cmdName} ${argsToSerialize.join(' ')}`;
+  }
+  return cmdName;
+};

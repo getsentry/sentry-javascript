@@ -32,6 +32,7 @@ sentryTest('should create spans for fetch requests called directly after init', 
     data: {
       'http.method': 'GET',
       'http.url': 'http://sentry-test-site.example/0',
+      'url.full': 'http://sentry-test-site.example/0',
       url: 'http://sentry-test-site.example/0',
       'server.address': 'sentry-test-site.example',
       type: 'fetch',

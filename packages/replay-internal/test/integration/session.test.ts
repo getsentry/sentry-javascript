@@ -253,6 +253,7 @@ describe('Integration | session', () => {
       urls: [],
       errorIds: new Set(),
       traceIds: new Set(),
+      segmentNames: new Set(),
     });
   });
 

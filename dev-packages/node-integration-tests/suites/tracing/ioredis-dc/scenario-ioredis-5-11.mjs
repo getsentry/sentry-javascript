@@ -6,7 +6,7 @@ async function run() {
   await Promise.resolve();
 
   const { default: Redis } = await import('ioredis-5');
-  const redisClient = new Redis({ host: '127.0.0.1', port: 6379, lazyConnect: true });
+  const redisClient = new Redis({ host: '127.0.0.1', port: 6382, lazyConnect: true });
 
   await redisClient.connect();
 

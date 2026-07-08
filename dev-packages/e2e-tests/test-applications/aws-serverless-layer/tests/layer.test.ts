@@ -257,6 +257,90 @@ test.describe('Lambda layer', () => {
     );
   });
 
+  test('callback-style handlers work', async ({ lambdaClient }) => {
+    const transactionEventPromise = waitForTransaction('aws-serverless-layer', transactionEvent => {
+      return transactionEvent?.transaction === 'LayerCallback';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerCallback',
+        Payload: JSON.stringify({}),
+      }),
+    );
+
+    const transactionEvent = await transactionEventPromise;
+
+    expect(transactionEvent.contexts?.trace).toEqual(
+      expect.objectContaining({
+        op: 'function.aws.lambda',
+        origin: 'auto.otel.aws_lambda',
+        status: 'ok',
+        data: expect.objectContaining({
+          'sentry.op': 'function.aws.lambda',
+          'sentry.origin': 'auto.otel.aws_lambda',
+          'otel.kind': 'SERVER',
+          'faas.id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerCallback',
+        }),
+      }),
+    );
+  });
+
+  test('callback-style handler errors are captured', async ({ lambdaClient }) => {
+    const errorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'callback error';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerCallback',
+        Payload: JSON.stringify({ shouldError: true }),
+      }),
+    );
+
+    const errorEvent = await errorEventPromise;
+
+    expect(errorEvent.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        type: 'Error',
+        value: 'callback error',
+        mechanism: {
+          type: 'auto.function.aws_serverless.otel',
+          handled: false,
+        },
+      }),
+    );
+  });
+
+  test('continues a trace from incoming headers', async ({ lambdaClient }) => {
+    const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
+    const parentSpanId = '6e0c63257de34c92';
+
+    const transactionEventPromise = waitForTransaction('aws-serverless-layer', transactionEvent => {
+      return (
+        transactionEvent?.transaction === 'LayerTracingCjs' && transactionEvent.contexts?.trace?.trace_id === traceId
+      );
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerTracingCjs',
+        Payload: JSON.stringify({
+          headers: {
+            'sentry-trace': `${traceId}-${parentSpanId}-1`,
+            baggage: `sentry-environment=qa,sentry-public_key=public,sentry-trace_id=${traceId}`,
+          },
+        }),
+      }),
+    );
+
+    const transactionEvent = await transactionEventPromise;
+
+    // The Lambda transaction is parented to the incoming trace context (eventContextExtractor + startInactiveSpan).
+    expect(transactionEvent.contexts?.trace?.trace_id).toEqual(traceId);
+    expect(transactionEvent.contexts?.trace?.parent_span_id).toEqual(parentSpanId);
+  });
+
   test('extension tunnel validates DSN allowlist and rejects invalid envelopes', async ({ lambdaClient }) => {
     const matchingMarker = `extension-tunnel-matching-${Date.now()}`;
     const matchingRequestPromise = waitForRequest('aws-serverless-layer', requestData => {

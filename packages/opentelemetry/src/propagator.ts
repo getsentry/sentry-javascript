@@ -1,7 +1,7 @@
 import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
 import { context, INVALID_TRACEID, propagation, trace, TraceFlags } from '@opentelemetry/api';
 import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
-import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
+import { HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
 import type { Client, continueTrace, DynamicSamplingContext, Scope } from '@sentry/core';
 import {
   baggageHeaderToDynamicSamplingContext,
@@ -24,7 +24,7 @@ import {
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_URL } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
-import { getSamplingDecision } from './utils/getSamplingDecision';
+import { getSampledForPropagation, getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
 import { setIsSetup } from './utils/setupCheck';
 
@@ -173,7 +173,7 @@ export function getInjectionData(
       dynamicSamplingContext,
       traceId: spanContext.traceId,
       spanId: spanContext.spanId,
-      sampled: getSamplingDecision(spanContext), // TODO: Do we need to change something here?
+      sampled: getSampledForPropagation(span, options.client),
     };
   }
 
@@ -275,9 +275,9 @@ function getExistingSentryTrace(carrier: unknown): string | string[] | undefined
  */
 function getCurrentURL(span: Span): string | undefined {
   const spanData = spanToJSON(span).data;
-  // `ATTR_URL_FULL` is the new attribute, but we still support the old one, `SEMATTRS_HTTP_URL`, for now.
-  // eslint-disable-next-line deprecation/deprecation
-  const urlAttribute = spanData[SEMATTRS_HTTP_URL] || spanData[ATTR_URL_FULL];
+  // `URL_FULL` is the new attribute, but we still support the old one, `HTTP_URL`, for now.
+  // eslint-disable-next-line typescript/no-deprecated
+  const urlAttribute = spanData[HTTP_URL] || spanData[URL_FULL];
   if (typeof urlAttribute === 'string') {
     return urlAttribute;
   }

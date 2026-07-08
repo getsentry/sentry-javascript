@@ -4,6 +4,7 @@ import { requestHandler, responseHandler } from '../../src/shared/middlewareHand
 
 vi.mock('hono/route', () => ({
   routePath: () => '/test',
+  matchedRoutes: () => [{ basePath: '/', path: '/test', method: 'GET', handler: (_c: unknown) => undefined }],
 }));
 
 vi.mock('../../src/utils/hono-context', () => ({
@@ -49,7 +50,7 @@ const getActiveSpanMock = SentryCore.getActiveSpan as ReturnType<typeof vi.fn>;
 
 function createMockContext(status: number, error?: Error): unknown {
   return {
-    req: { method: 'GET', raw: new Request('http://localhost/test') },
+    req: { method: 'GET', routeIndex: 0, raw: new Request('http://localhost/test') },
     res: { status },
     error,
   };

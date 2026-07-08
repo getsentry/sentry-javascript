@@ -1,7 +1,7 @@
 import type { IntegrationFn } from '@sentry/core';
 import { createStackParser, defineIntegration, dirname, nodeStackLineParser } from '@sentry/core';
 
-const INTEGRATION_NAME = 'NormalizePaths';
+const INTEGRATION_NAME = 'NormalizePaths' as const;
 
 function appRootFromErrorStack(error: Error): string | undefined {
   // We know at the other end of the stack from here is the entry point that called 'init'

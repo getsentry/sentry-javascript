@@ -1,7 +1,9 @@
 import type { Scope } from '../scope';
+import type { Span } from '../types/span';
 import type { getTraceData } from '../utils/traceData';
 import type {
   continueTrace,
+  isTracingSuppressed,
   startInactiveSpan,
   startNewTrace,
   startSpan,
@@ -10,6 +12,23 @@ import type {
   withActiveSpan,
 } from './../tracing/trace';
 import type { getActiveSpan } from './../utils/spanUtils';
+
+/*
+ * @private Private API with no semver guarantees!
+ *
+ * A binding object used to enable context propagation for a tracing channel against a span
+ */
+export interface TracingChannelBinding {
+  /**
+   * The ALS instance that will be bound to the channel.
+   */
+  asyncLocalStorage: NonNullable<unknown>;
+
+  /**
+   * Activates a span for the tracing channels nested invocations, the return value must be the same type as the `asyncLocalStorage` inner value.
+   */
+  getStoreWithActiveSpan: (span: Span) => unknown;
+}
 
 /**
  * @private Private API with no semver guarantees!
@@ -68,6 +87,9 @@ export interface AsyncContextStrategy {
   /** Suppress tracing in the given callback, ensuring no spans are generated inside of it.  */
   suppressTracing?: typeof suppressTracing;
 
+  /** If tracing is suppressed in the given scope.  */
+  isTracingSuppressed?: typeof isTracingSuppressed;
+
   /** Get trace data as serialized string values for propagation via `sentry-trace` and `baggage`. */
   getTraceData?: typeof getTraceData;
 
@@ -80,4 +102,7 @@ export interface AsyncContextStrategy {
 
   /** Start a new trace, ensuring all spans in the callback share the same traceId. */
   startNewTrace?: typeof startNewTrace;
+
+  /** Get the runtime store required to bind tracing channels to an active span. */
+  getTracingChannelBinding?: () => TracingChannelBinding | undefined;
 }

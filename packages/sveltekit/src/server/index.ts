@@ -9,9 +9,9 @@ export {
   addEventProcessor,
   addIntegration,
   amqplibIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   anrIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
@@ -54,7 +54,7 @@ export {
   getTraceMetaTags,
   graphqlIntegration,
   hapiIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   eventFiltersIntegration,
   initOpenTelemetry,
@@ -98,6 +98,8 @@ export {
   setMeasurement,
   setTag,
   setTags,
+  setAttribute,
+  setAttributes,
   setupConnectErrorHandler,
   setupExpressErrorHandler,
   setupHapiErrorHandler,
@@ -109,6 +111,7 @@ export {
   spotlightIntegration,
   startInactiveSpan,
   startNewTrace,
+  bindScopeToEmitter,
   suppressTracing,
   startSession,
   startSpan,

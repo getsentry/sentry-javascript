@@ -1,9 +1,18 @@
 import { describe, expect, it, test, vi } from 'vitest';
 import { getCurrentScope } from '../../../src/currentScopes';
 import { setCurrentClient } from '../../../src/sdk';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../../../src/semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
+  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../../../src/semanticAttributes';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
+import {
+  markSpanAsTracerProviderSpan,
+  markSpanForOtelSourceInference,
+  spanSourceWasExplicitlySet,
+} from '../../../src/tracing/utils';
 import type { SpanJSON } from '../../../src/types/span';
 import { spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 import { timestampInSeconds } from '../../../src/utils/time';
@@ -36,6 +45,57 @@ describe('SentrySpan', () => {
       const spanJson = spanToJSON(span);
       expect(spanJson.description).toEqual('new name');
       expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
+    });
+
+    it('sets the source to custom when calling updateName on a span without a source', () => {
+      const span = new SentrySpan({ name: 'original name' });
+
+      span.updateName('new name');
+
+      const spanJson = spanToJSON(span);
+      expect(spanJson.description).toEqual('new name');
+      expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
+    });
+
+    it('does not set the source when calling updateName on a span marked for OTel source inference', () => {
+      const span = new SentrySpan({ name: 'original name' });
+      markSpanForOtelSourceInference(span);
+
+      span.updateName('new name');
+
+      const spanJson = spanToJSON(span);
+      expect(spanJson.description).toEqual('new name');
+      expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBeUndefined();
+    });
+  });
+
+  describe('explicit source', () => {
+    it('flags a source set on a span marked for OTel source inference as explicit', () => {
+      const span = new SentrySpan({ name: 'original name' });
+      markSpanForOtelSourceInference(span);
+      expect(spanSourceWasExplicitlySet(span)).toBe(false);
+
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+
+      expect(spanSourceWasExplicitlySet(span)).toBe(true);
+    });
+
+    it('does not flag the default source set at construction (before the inference brand) as explicit', () => {
+      const span = new SentrySpan({
+        name: 'original name',
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' },
+      });
+      markSpanForOtelSourceInference(span);
+
+      expect(spanSourceWasExplicitlySet(span)).toBe(false);
+    });
+
+    it('does not flag a source set on a span that is not marked for OTel source inference', () => {
+      const span = new SentrySpan({ name: 'original name' });
+
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+
+      expect(spanSourceWasExplicitlySet(span)).toBe(false);
     });
   });
 
@@ -77,6 +137,78 @@ describe('SentrySpan', () => {
       expect(serialized).toHaveProperty('parent_span_id', 'b');
       expect(serialized).toHaveProperty('span_id', 'd');
       expect(serialized).toHaveProperty('trace_id', 'c');
+    });
+  });
+
+  describe('tracer-provider span sealing', () => {
+    it('seals a tracer-provider span against all mutation after it ends', () => {
+      const span = new SentrySpan({ name: 'original', startTimestamp: 1, attributes: { key: 'before' } });
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'before' });
+      span.addEvent('measurement', {
+        [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: 1,
+        [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
+      });
+      const linked = new SentrySpan({ name: 'linked' });
+
+      markSpanAsTracerProviderSpan(span);
+      span.end();
+
+      // Every mutator must no-op on a tracer-provider span once it has ended, mirroring OTel SDK spans.
+      span.setAttribute('key', 'after');
+      span.setAttributes({ key2: 'after' });
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'after' });
+      span.updateName('after');
+      span.updateStartTime(999);
+      span.addLink({ context: linked.spanContext() });
+      span.addLinks([{ context: linked.spanContext() }]);
+      span.addEvent('measurement', {
+        [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: 2,
+        [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
+      });
+
+      const json = spanToJSON(span);
+      expect(json.data?.['key']).toBe('before');
+      expect(json.data?.['key2']).toBeUndefined();
+      expect(json.status).toBe('before');
+      expect(json.description).toBe('original');
+      expect(json.start_timestamp).toBe(1);
+      expect(json.links).toBeUndefined();
+      expect(json.measurements).toEqual({ measurement: { value: 1, unit: 'millisecond' } });
+    });
+
+    it('keeps a span that is not a tracer-provider span mutable after it ends', () => {
+      const span = new SentrySpan({ name: 'original', startTimestamp: 1, attributes: { key: 'before' } });
+      const linked = new SentrySpan({ name: 'linked' });
+
+      span.end();
+
+      span.setAttribute('key', 'after');
+      span.updateName('after');
+      span.updateStartTime(999);
+      span.addLink({ context: linked.spanContext() });
+
+      const json = spanToJSON(span);
+      expect(json.data?.['key']).toBe('after');
+      expect(json.description).toBe('after');
+      expect(json.start_timestamp).toBe(999);
+      expect(json.links).toHaveLength(1);
+    });
+
+    it('seals a tracer-provider span that ended via the constructor endTimestamp', () => {
+      // `_endTime` is set in the constructor, so `end()` early-returns before reaching the seal at the
+      // bottom of its body. The span must still be sealed once `end()` is invoked.
+      const span = new SentrySpan({
+        name: 'original',
+        startTimestamp: 1,
+        endTimestamp: 2,
+        attributes: { key: 'before' },
+      });
+      markSpanAsTracerProviderSpan(span);
+
+      span.end();
+
+      span.setAttribute('key', 'after');
+      expect(spanToJSON(span).data?.['key']).toBe('before');
     });
   });
 

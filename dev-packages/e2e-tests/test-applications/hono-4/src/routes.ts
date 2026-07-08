@@ -96,6 +96,12 @@ export function addRoutes(app: HonoType<{ Bindings?: { E2E_TEST_DSN: string } }>
 
   app.basePath('/test-basepath').route('/v1', apiSubApp);
 
+  app.use(async function trailingMiddleware(_c, next) {
+    // Trailing middleware to make sure the route names are resolved correctly (not `/*`).
+    await new Promise(resolve => setTimeout(resolve, 50));
+    await next();
+  });
+
   // .use() on the cloned instance returned by .basePath() — the clone has its own
   // .use class field, so this tests whether middleware instrumentation propagates.
   app

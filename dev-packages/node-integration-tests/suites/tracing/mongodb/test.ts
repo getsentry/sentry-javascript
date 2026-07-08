@@ -97,6 +97,22 @@ describe('MongoDB auto-instrumentation', () => {
     origin: 'auto.db.otel.mongo',
   });
 
+  // A query the server rejects: same attributes as a successful find, but with an error status.
+  const SPAN_FIND_ERROR_MATCHER = expect.objectContaining({
+    data: expect.objectContaining({
+      'sentry.origin': 'auto.db.otel.mongo',
+      'sentry.op': 'db',
+      'db.system': 'mongodb',
+      'db.operation': 'find',
+      'db.statement': '{"$thisOperatorDoesNotExist":"?"}',
+      'otel.kind': 'CLIENT',
+    }),
+    description: '{"$thisOperatorDoesNotExist":"?"}',
+    op: 'db',
+    origin: 'auto.db.otel.mongo',
+    status: 'internal_error',
+  });
+
   const SPAN_ENDSESSIONS_MATCHER = expect.objectContaining({
     data: {
       'sentry.origin': 'auto.db.otel.mongo',
@@ -147,7 +163,7 @@ describe('MongoDB auto-instrumentation', () => {
             }, {});
 
             expect(operationCounts).toEqual({
-              find: 3,
+              find: 4,
               isMaster: 2,
               insert: 1,
               update: 1,
@@ -158,6 +174,7 @@ describe('MongoDB auto-instrumentation', () => {
             expect(spans).toContainEqual(SPAN_INSERT_MATCHER);
             expect(spans).toContainEqual(SPAN_ISMASTER_MATCHER);
             expect(spans).toContainEqual(SPAN_UPDATE_MATCHER);
+            expect(spans).toContainEqual(SPAN_FIND_ERROR_MATCHER);
             expect(spans).toContainEqual(SPAN_ENDSESSIONS_MATCHER);
           },
         })

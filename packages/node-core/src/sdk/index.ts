@@ -13,7 +13,6 @@ import {
   linkedErrorsIntegration,
   propagationContextFromHeaders,
   requestDataIntegration,
-  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
@@ -38,7 +37,6 @@ import { consoleIntegration } from '../integrations/console';
 import { systemErrorIntegration } from '../integrations/systemError';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
-import { isCjs } from '../utils/detection';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
@@ -51,7 +49,7 @@ export function getDefaultIntegrations(): Integration[] {
   return [
     // Common
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
@@ -114,7 +112,7 @@ function _init(
     initializeEsmLoader();
   }
 
-  setOpenTelemetryContextAsyncContextStrategy();
+  setOpenTelemetryContextAsyncContextStrategy(options);
 
   const scope = getCurrentScope();
   scope.update(options.initialScope);
@@ -135,7 +133,12 @@ function _init(
 
   client.init();
 
-  debug.log(`SDK initialized from ${isCjs() ? 'CommonJS' : 'ESM'}`);
+  /*! rollup-include-cjs-only */
+  debug.log(`SDK initialized from CommonJS`);
+  /*! rollup-include-cjs-only-end */
+  /*! rollup-include-esm-only */
+  debug.log(`SDK initialized from ESM`);
+  /*! rollup-include-esm-only-end */
 
   client.startClientReportTracking();
 
@@ -168,7 +171,9 @@ export function validateOpenTelemetrySetup(): void {
 
   const required: ReturnType<typeof openTelemetrySetupCheck> = ['SentryContextManager', 'SentryPropagator'];
 
-  if (hasSpansEnabled()) {
+  const hasSentryTracerProvider = setup.includes('SentryTracerProvider');
+
+  if (hasSpansEnabled() && !hasSentryTracerProvider) {
     required.push('SentrySpanProcessor');
   }
 
@@ -180,7 +185,7 @@ export function validateOpenTelemetrySetup(): void {
     }
   }
 
-  if (!setup.includes('SentrySampler')) {
+  if (!hasSentryTracerProvider && !setup.includes('SentrySampler')) {
     debug.warn(
       'You have to set up the SentrySampler. Without this, the OpenTelemetry & Sentry integration may still work, but sample rates set for the Sentry SDK will not be respected. If you use a custom sampler, make sure to use `wrapSamplingDecision`.',
     );
@@ -217,10 +222,6 @@ function getClientOptions(
     defaultIntegrations,
     integrations,
   });
-
-  if (mergedOptions.traceLifecycle === 'stream' && !resolvedIntegrations.some(i => i.name === 'SpanStreaming')) {
-    resolvedIntegrations.push(spanStreamingIntegration());
-  }
 
   return {
     ...mergedOptions,

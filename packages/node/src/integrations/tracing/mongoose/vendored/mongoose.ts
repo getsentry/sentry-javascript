@@ -1,17 +1,6 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-mongoose
@@ -21,23 +10,23 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import {
   type InstrumentationConfig,
   InstrumentationBase,
   type InstrumentationModuleDefinition,
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
+import { DB_OPERATION, DB_SYSTEM } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   startInactiveSpan,
   withActiveSpan,
 } from '@sentry/core';
 import type * as mongoose from './mongoose-types';
-import { ATTR_DB_OPERATION, ATTR_DB_SYSTEM } from './semconv';
 import { getAttributesFromCollection, handleCallbackResponse, handlePromiseResponse } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-mongoose';
@@ -118,7 +107,10 @@ export class MongooseInstrumentation extends InstrumentationBase<Instrumentation
   protected init(): InstrumentationModuleDefinition {
     const module = new InstrumentationNodeModuleDefinition(
       'mongoose',
-      ['>=5.9.7 <10'],
+      // mongoose >= 9.7.0 publishes via diagnostics_channel and is instrumented by
+      // `subscribeMongooseDiagnosticChannels` instead, so this IITM patcher must not
+      // overlap it — otherwise every operation would emit two mongoose spans.
+      ['>=5.9.7 <9.7.0'],
       this.patch.bind(this),
       this.unpatch.bind(this),
     );
@@ -308,14 +300,16 @@ export class MongooseInstrumentation extends InstrumentationBase<Instrumentation
   private _startSpan(collection: mongoose.Collection, modelName: string, operation: string, parentSpan?: Span): Span {
     const attributes: SpanAttributes = {
       ...getAttributesFromCollection(collection),
-      [ATTR_DB_OPERATION]: operation,
-      [ATTR_DB_SYSTEM]: 'mongoose', // keep for backwards compatibility
+      // oxlint-disable-next-line typescript/no-deprecated
+      [DB_OPERATION]: operation,
+      // oxlint-disable-next-line typescript/no-deprecated
+      [DB_SYSTEM]: 'mongoose', // keep for backwards compatibility
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     };
 
     return startInactiveSpan({
       name: `mongoose.${modelName}.${operation}`,
-      kind: SpanKind.CLIENT,
+      kind: SPAN_KIND.CLIENT,
       attributes,
       parentSpan,
     });

@@ -7,7 +7,7 @@ import type { StackFrame } from '../types/stackframe';
 import { debug } from '../utils/debug-logger';
 import { getFramesFromEvent } from '../utils/stacktrace';
 
-const INTEGRATION_NAME = 'Dedupe';
+const INTEGRATION_NAME = 'Dedupe' as const;
 
 const _dedupeIntegration = (() => {
   let previousEvent: Event | undefined;
