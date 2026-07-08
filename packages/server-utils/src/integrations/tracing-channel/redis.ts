@@ -180,10 +180,10 @@ function subscribeLegacyRedisCommand(responseHook: RedisResponseHook | undefined
         [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       };
-      if (client?.connection_options) {
-        attributes[NET_PEER_NAME] = client.connection_options.host;
-        attributes[NET_PEER_PORT] = client.connection_options.port;
-      }
+
+      attributes[NET_PEER_NAME] = client?.connection_options?.host;
+      attributes[NET_PEER_PORT] = client?.connection_options?.port;
+
       if (client?.address) {
         attributes[ATTR_DB_CONNECTION_STRING] = `redis://${client.address}`;
       }
