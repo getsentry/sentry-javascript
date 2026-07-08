@@ -29,7 +29,7 @@ import { isBuild } from '../common/utils/isBuild';
 import { flushSafelyWithTimeout, isCloudflareWaitUntilAvailable, waitUntil } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
-import { enhanceMiddlewareRootSpan } from './enhanceMiddlewareRootSpan';
+import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
 
 export * from '@sentry/vercel-edge';
 export * from '../common';
@@ -155,6 +155,9 @@ export function init(options: VercelEdgeOptions = {}): void {
         setName: name => {
           event.transaction = name;
         },
+        setOp: op => {
+          event.contexts!.trace!.op = op;
+        },
       });
     }
 
@@ -170,6 +173,9 @@ export function init(options: VercelEdgeOptions = {}): void {
       getName: () => span.name,
       setName: name => {
         span.name = name;
+      },
+      setOp: op => {
+        attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
       },
     });
   });

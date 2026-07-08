@@ -1,5 +1,5 @@
 import { createApp } from 'vue';
-import { RouterProvider, createRoute, createRootRoute, createRouter } from '@tanstack/vue-router';
+import { RouterProvider, createRoute, createRootRoute, createRouter, redirect } from '@tanstack/vue-router';
 import * as Sentry from '@sentry/vue';
 import { tanstackRouterBrowserTracingIntegration } from '@sentry/vue/tanstackrouter';
 
@@ -33,7 +33,15 @@ const postIdRoute = createRoute({
   component: PostView,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, postsRoute.addChildren([postIdRoute])]);
+const redirectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'redirect',
+  beforeLoad: () => {
+    throw redirect({ to: '/posts/$postId', params: { postId: '1' }, replace: true });
+  },
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, redirectRoute, postsRoute.addChildren([postIdRoute])]);
 
 const router = createRouter({
   routeTree,

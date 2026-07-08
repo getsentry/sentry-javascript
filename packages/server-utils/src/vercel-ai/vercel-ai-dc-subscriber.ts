@@ -86,7 +86,7 @@ const toolDescriptionsByCallId = new Map<string, Map<string, string>>();
 
 // Only top-level operations own the `callId` → operationId mapping; `step`/`languageModelCall`/
 // `executeTool` share the parent's `callId`, so they must not clear it.
-const ROOT_OPERATION_TYPES = new Set<ChannelEventType>(['generateText', 'streamText', 'embed', 'rerank']);
+const ROOT_OPERATION_TYPES = new Set<ChannelEventType>(['generateText', 'streamText', 'embed', 'embedMany', 'rerank']);
 
 /** Drop the per-operation `callId` maps once the owning top-level operation settles (success or error). */
 export function clearOperationId(data: VercelAiChannelMessage): void {
@@ -95,9 +95,19 @@ export function clearOperationId(data: VercelAiChannelMessage): void {
   }
   const callId = asString(data.event.callId);
   if (callId) {
-    operationIdByCallId.delete(callId);
-    toolDescriptionsByCallId.delete(callId);
+    clearOperationCallId(callId);
   }
+}
+
+/**
+ * Drop the per-operation `callId` maps for a single id. The v6 orchestrion adapter uses this to clear a
+ * `streamText` operation only after its lazily-run model call settles — the operation's own span ends
+ * synchronously (when `streamText` returns) but the model call runs later as the stream is consumed, and
+ * it still needs the operation's `operationId`/`isStream` entry to name itself `ai.streamText.doStream`.
+ */
+export function clearOperationCallId(callId: string): void {
+  operationIdByCallId.delete(callId);
+  toolDescriptionsByCallId.delete(callId);
 }
 
 /** Record tool name → description from an event's `tools`, so tool spans can backfill the description. */
@@ -148,6 +158,7 @@ export type ChannelEventType =
   | 'languageModelCall'
   | 'executeTool'
   | 'embed'
+  | 'embedMany'
   | 'rerank';
 
 /**
@@ -172,10 +183,10 @@ export interface VercelAiChannelMessage {
  * nested AI SDK operations (model calls, tool calls) become children of the enclosing span without
  * any manual parent bookkeeping here.
  */
-type VercelAiTracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
+export type VercelAiTracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
 
 /** Integration-level recording options, pinned at subscribe time so we never look the integration up per event. */
-interface VercelAiChannelOptions {
+export interface VercelAiChannelOptions {
   recordInputs?: boolean;
   recordOutputs?: boolean;
   enableTruncation?: boolean;
@@ -264,10 +275,14 @@ export function createSpanFromMessage(
     case 'executeTool':
       return buildToolSpan(event, recordInputs);
     case 'embed':
+    case 'embedMany': {
+      // `embed` carries a single `value`; `embedMany` a `values` array — both map to the embeddings input.
+      const input = type === 'embedMany' ? event.values : event.value;
       return startGenAiSpan(GEN_AI_EMBEDDINGS_OPERATION, modelId, {
         ...baseAttributes,
-        ...(recordInputs && event.value !== undefined ? { [GEN_AI_EMBEDDINGS_INPUT]: safeStringify(event.value) } : {}),
+        ...(recordInputs && input !== undefined ? { [GEN_AI_EMBEDDINGS_INPUT]: safeStringify(input) } : {}),
       });
+    }
     case 'rerank':
       return startGenAiSpan(GEN_AI_RERANK_OPERATION, modelId, baseAttributes);
     default:
@@ -515,7 +530,7 @@ function partsFromTextAndToolCalls(text: unknown, toolCalls: unknown): Array<Rec
   return parts;
 }
 
-function captureToolError(span: Span, data: VercelAiChannelMessage, error: unknown): void {
+export function captureToolError(span: Span, data: VercelAiChannelMessage, error: unknown): void {
   span.setStatus({
     code: SPAN_STATUS_ERROR,
     message: error instanceof Error ? error.message : 'tool_error',

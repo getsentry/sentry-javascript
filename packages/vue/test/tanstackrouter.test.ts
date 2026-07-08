@@ -118,24 +118,34 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
     expect(startBrowserTracingPageLoadSpanSpy).not.toHaveBeenCalled();
   });
 
+  const getSubscribeCallback = (eventType: string): ((...args: any[]) => void) =>
+    (mockRouter.subscribe as any).mock.calls.find(
+      (call: [string, (...args: any[]) => void]) => call[0] === eventType,
+    )?.[1];
+
   it('subscribes to router navigation events when instrumentNavigation is true', () => {
     const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
       instrumentNavigation: true,
+      instrumentPageLoad: false,
     });
 
     integration.afterAllSetup(mockClient as any);
 
-    expect(mockRouter.subscribe).toHaveBeenCalledWith('onBeforeNavigate', expect.any(Function));
+    // Navigation is driven by `onBeforeLoad` + `onResolved` rather than `onBeforeNavigate`, which
+    // TanStack suppresses after a redirect (upstream TanStack/router#3920).
+    expect(mockRouter.subscribe).toHaveBeenCalledWith('onBeforeLoad', expect.any(Function));
+    expect(mockRouter.subscribe).toHaveBeenCalledWith('onResolved', expect.any(Function));
+    expect(mockRouter.subscribe).not.toHaveBeenCalledWith('onBeforeNavigate', expect.any(Function));
   });
 
   it('does not subscribe to navigation events when instrumentNavigation is false', () => {
     const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
       instrumentNavigation: false,
+      instrumentPageLoad: false,
     });
 
     integration.afterAllSetup(mockClient as any);
 
-    // Only pageload should have been called
     expect(mockRouter.subscribe).not.toHaveBeenCalled();
   });
 
@@ -147,15 +157,11 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
 
     integration.afterAllSetup(mockClient as any);
 
-    // Get the onBeforeNavigate callback
-    const onBeforeNavigateCallback = (mockRouter.subscribe as any).mock.calls.find(
-      (call: [string, (...args: any[]) => void]) => call[0] === 'onBeforeNavigate',
-    )?.[1];
-
-    expect(onBeforeNavigateCallback).toBeDefined();
+    const onBeforeLoadCallback = getSubscribeCallback('onBeforeLoad');
+    expect(onBeforeLoadCallback).toBeDefined();
 
     // Simulate navigation
-    onBeforeNavigateCallback({
+    onBeforeLoadCallback({
       toLocation: {
         pathname: '/test/456',
         search: {},
@@ -178,6 +184,28 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
     });
   });
 
+  it('skips navigation span creation on the initial pageload (no fromLocation)', () => {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
+      instrumentNavigation: true,
+      instrumentPageLoad: false,
+    });
+
+    integration.afterAllSetup(mockClient as any);
+
+    const onBeforeLoadCallback = getSubscribeCallback('onBeforeLoad');
+
+    // The initial pageload emits `onBeforeLoad` without a `fromLocation`.
+    onBeforeLoadCallback({
+      toLocation: {
+        pathname: '/test/456',
+        search: {},
+        state: 'state-1',
+      },
+    });
+
+    expect(startBrowserTracingNavigationSpanSpy).not.toHaveBeenCalled();
+  });
+
   it('skips navigation span creation when state is the same', () => {
     const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
       instrumentNavigation: true,
@@ -186,12 +214,10 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
 
     integration.afterAllSetup(mockClient as any);
 
-    const onBeforeNavigateCallback = (mockRouter.subscribe as any).mock.calls.find(
-      (call: [string, (...args: any[]) => void]) => call[0] === 'onBeforeNavigate',
-    )?.[1];
+    const onBeforeLoadCallback = getSubscribeCallback('onBeforeLoad');
 
-    // Simulate navigation with same state (e.g., during pageload)
-    onBeforeNavigateCallback({
+    // Simulate a no-op reload (same history state)
+    onBeforeLoadCallback({
       toLocation: {
         pathname: '/test/456',
         search: {},
@@ -215,12 +241,10 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
 
     integration.afterAllSetup(mockClient as any);
 
-    const onBeforeNavigateCallback = (mockRouter.subscribe as any).mock.calls.find(
-      (call: [string, (...args: any[]) => void]) => call[0] === 'onBeforeNavigate',
-    )?.[1];
+    const onBeforeLoadCallback = getSubscribeCallback('onBeforeLoad');
 
     // Simulate navigation
-    onBeforeNavigateCallback({
+    onBeforeLoadCallback({
       toLocation: {
         pathname: '/test/456',
         search: {},
@@ -233,11 +257,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
       },
     });
 
-    // Get the onResolved callback that was registered
-    const onResolvedCallback = (mockRouter.subscribe as any).mock.calls.find(
-      (call: [string, (...args: any[]) => void]) => call[0] === 'onResolved',
-    )?.[1];
-
+    const onResolvedCallback = getSubscribeCallback('onResolved');
     expect(onResolvedCallback).toBeDefined();
 
     // Mock different matched routes for the redirect
@@ -265,5 +285,32 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
       'url.path.parameter.id': '789',
       'params.id': '789',
     });
+  });
+
+  it('reuses the in-flight span across a redirect chain instead of starting a second span', () => {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
+      instrumentNavigation: true,
+      instrumentPageLoad: false,
+    });
+
+    integration.afterAllSetup(mockClient as any);
+
+    const onBeforeLoadCallback = getSubscribeCallback('onBeforeLoad');
+
+    // First load of the navigation (the route that throws the redirect)
+    onBeforeLoadCallback({
+      toLocation: { pathname: '/test/456', search: {}, state: 'state-1' },
+      fromLocation: { pathname: '/test/123', search: {}, state: 'state-0' },
+    });
+
+    // Redirect continuation: a second load within the same navigation
+    onBeforeLoadCallback({
+      toLocation: { pathname: '/test/789', search: {}, state: 'state-2' },
+      fromLocation: { pathname: '/test/456', search: {}, state: 'state-1' },
+    });
+
+    // Only a single navigation span is started; the second load renames it.
+    expect(startBrowserTracingNavigationSpanSpy).toHaveBeenCalledTimes(1);
+    expect(mockNavigationSpan.updateName).toHaveBeenCalled();
   });
 });

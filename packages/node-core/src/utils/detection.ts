@@ -1,6 +1,15 @@
 import { consoleSandbox } from '@sentry/core';
 import { NODE_MAJOR, NODE_MINOR } from '../nodeVersion';
-import { isCjs } from './isCjs';
+
+function isCjs(): boolean {
+  /*! rollup-include-cjs-only */
+  return true;
+  /*! rollup-include-cjs-only-end */
+
+  /*! rollup-include-esm-only */
+  return false;
+  /*! rollup-include-esm-only-end */
+}
 
 let hasWarnedAboutNodeVersion: boolean | undefined;
 
