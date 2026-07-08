@@ -121,6 +121,8 @@
         "outputs": [
           "{projectRoot}/build/npm/esm",
           "{projectRoot}/build/npm/cjs",
+          "{projectRoot}/build/npm/run-lambda-handler.mjs",
+          "{projectRoot}/build/npm/run-lambda-handler.mjs.map",
           "{projectRoot}/build/lambda-extension"
         ],
         "cache": true
