@@ -28,8 +28,8 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
 class MyWorkerEntrypointBase extends WorkerEntrypoint {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
-    const id = this.env.MY_DURABLE_OBJECT.idFromName('test');
-    const stub = this.env.MY_DURABLE_OBJECT.get(id);
+    const id = (this.env as Env).MY_DURABLE_OBJECT.idFromName('test');
+    const stub = (this.env as Env).MY_DURABLE_OBJECT.get(id);
 
     if (url.pathname === '/rpc/hello') {
       const result = await stub.sayHello('World');

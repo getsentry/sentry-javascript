@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/cloudflare';
-import { MockChain, MockChatModel, MockTool } from './mocks';
+import { type CallbackHandler, MockChain, MockChatModel, MockTool } from './mocks';
 
 interface Env {
   SENTRY_DSN: string;
@@ -14,10 +14,11 @@ export default Sentry.withSentry(
   {
     async fetch(_request, _env, _ctx) {
       // Create LangChain callback handler
+      // The mock models accept their own local `CallbackHandler` shape, which differs from the SDK's handler type.
       const callbackHandler = Sentry.createLangChainCallbackHandler({
         recordInputs: false,
         recordOutputs: false,
-      });
+      }) as unknown as CallbackHandler;
 
       // Test 1: Chat model invocation
       const chatModel = new MockChatModel({
