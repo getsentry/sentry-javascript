@@ -234,11 +234,9 @@ export function getServerExternalPackagesPatch(
   nextMajor: number | undefined,
   useDiagnosticsChannelInjection = false,
 ): Partial<NextConfigObject> {
-  // Diagnostics-channel injection: drop the verified bundle-safe instrumented packages from OUR
-  // defaults so the build-time loader transforms them. Everything else — the user's own externals,
-  // Next's defaults, the rest of our defaults — stays external and is instrumented by the runtime
-  // module hook on require. That hook only works if the orchestrion machinery itself is external
-  // too (bundled, its parser breaks), so add those packages to the external list.
+  // Diagnostics-channel injection: only bundle-safe packages leave OUR defaults (→ build-time
+  // loader); everything else stays external (→ runtime module hook), including the orchestrion
+  // machinery itself, which breaks when bundled.
   const mergeExternals = (userProvided: string[] | undefined): string[] => {
     const defaults = useDiagnosticsChannelInjection
       ? filterInstrumentedExternals(DEFAULT_SERVER_EXTERNAL_PACKAGES, BUNDLE_SAFE_INSTRUMENTED_PACKAGES)
