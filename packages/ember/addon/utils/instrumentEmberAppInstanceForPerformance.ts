@@ -5,10 +5,21 @@ import type {
   startBrowserTracingNavigationSpan as startBrowserTracingNavigationSpanType,
   startBrowserTracingPageLoadSpan as startBrowserTracingPageLoadSpanType,
 } from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, startInactiveSpan } from '@sentry/browser';
+import {
+  getAbsoluteUrl,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  startInactiveSpan,
+} from '@sentry/browser';
 import type { Client, Span } from '@sentry/core';
 import type { EmberRouterMain } from '../types';
 import { getBackburner } from './performance';
+
+const URL_FULL = 'url.full';
+const URL_PATH = 'url.path';
+const URL_TEMPLATE = 'url.template';
+
+type TransitionWithIntent = Transition & { intent?: { url?: string } };
 
 export function instrumentEmberAppInstanceForPerformance(
   client: Client,
@@ -22,6 +33,7 @@ export function instrumentEmberAppInstanceForPerformance(
   let routerService = appInstance.lookup('service:router') as RouterService & {
     externalRouter?: RouterService;
     _hasMountedSentryPerformanceRouting?: boolean;
+    currentURL?: string;
   };
 
   if (routerService.externalRouter) {
@@ -60,6 +72,49 @@ function getTransitionInformation(
   };
 }
 
+function getUrlPathFromEmberLocation(url: string): string {
+  if (!url) {
+    return '/';
+  }
+
+  const withoutQuery = url.split('?')[0] ?? url;
+
+  if (withoutQuery.includes('#')) {
+    const hashPart = withoutQuery.substring(withoutQuery.indexOf('#') + 1);
+    return hashPart.startsWith('/') ? hashPart : `/${hashPart}`;
+  }
+
+  return withoutQuery.startsWith('/') ? withoutQuery : `/${withoutQuery}`;
+}
+
+function buildUrlTemplate(path: string, params: Record<string, unknown> = {}): string {
+  let template = path;
+
+  const paramEntries = Object.entries(params)
+    .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].length > 0)
+    .sort(([, a], [, b]) => b.length - a.length);
+
+  for (const [key, value] of paramEntries) {
+    template = template.replace(`/${value}`, `/:${key}`);
+  }
+
+  return template;
+}
+
+// Only exported for testing
+export function _getRouteUrlAttributes(
+  url: string,
+  params: Record<string, unknown> = {},
+): Record<string, string> {
+  const path = getUrlPathFromEmberLocation(url);
+
+  return {
+    [URL_PATH]: path,
+    [URL_FULL]: getAbsoluteUrl(path),
+    [URL_TEMPLATE]: buildUrlTemplate(path, params),
+  };
+}
+
 // Only exported for testing
 export function _getLocationURL(location: EmberRouterMain['location']): string {
   if (!location?.getURL || !location?.formatURL) {
@@ -76,7 +131,7 @@ export function _getLocationURL(location: EmberRouterMain['location']): string {
 
 function _instrumentEmberRouter(
   client: Client,
-  routerService: RouterService,
+  routerService: RouterService & { currentURL?: string },
   routerMain: EmberRouterMain,
   config: { disableRunloopPerformance?: boolean; instrumentPageLoad?: boolean; instrumentNavigation?: boolean },
   startBrowserTracingPageLoadSpan: typeof startBrowserTracingPageLoadSpanType,
@@ -96,6 +151,7 @@ function _instrumentEmberRouter(
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
+        ..._getRouteUrlAttributes(url, routeInfo.params),
         url,
         toRoute: routeInfo.name,
       },
@@ -124,11 +180,16 @@ function _instrumentEmberRouter(
 
     activeRootSpan?.end();
 
+    const targetUrl =
+      (transition as TransitionWithIntent).intent?.url ?? _getLocationURL(location);
+    const urlAttributes = _getRouteUrlAttributes(targetUrl, transition.to?.params);
+
     activeRootSpan = startBrowserTracingNavigationSpan(client, {
       name: `route:${toRoute}`,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
+        ...urlAttributes,
         fromRoute,
         toRoute,
       },
@@ -149,6 +210,12 @@ function _instrumentEmberRouter(
       return;
     }
     transitionSpan.end();
+
+    const url = routerService.currentURL ?? _getLocationURL(location);
+    if (url) {
+      const routeInfo = routerService.recognize(url);
+      activeRootSpan.setAttributes(_getRouteUrlAttributes(url, routeInfo.params ?? transition.to?.params));
+    }
 
     if (disableRunloopPerformance) {
       activeRootSpan.end();
