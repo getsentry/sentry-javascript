@@ -1,3 +1,16 @@
+import { mysqlChannels } from './config/mysql';
+import { lruMemoizerChannels } from './config/lru-memoizer';
+import { ioredisChannels } from './config/ioredis';
+import { pgChannels } from './config/pg';
+import { postgresJsChannels } from './config/postgres';
+import { openaiChannels } from './config/openai';
+import { anthropicAiChannels } from './config/anthropic-ai';
+import { googleGenAiChannels } from './config/google-genai';
+import { vercelAiChannels } from './config/vercel-ai';
+import { hapiChannels } from './config/hapi';
+import { redisChannels } from './config/redis';
+import { expressChannels } from './config/express';
+
 /**
  * Fully-qualified `diagnostics_channel` names that orchestrion publishes to.
  *
@@ -12,8 +25,18 @@
  * they don't drift apart and silently stop firing.
  */
 export const CHANNELS = {
-  MYSQL_QUERY: 'orchestrion:mysql:query',
-  LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',
+  ...mysqlChannels,
+  ...lruMemoizerChannels,
+  ...ioredisChannels,
+  ...pgChannels,
+  ...postgresJsChannels,
+  ...openaiChannels,
+  ...anthropicAiChannels,
+  ...googleGenAiChannels,
+  ...vercelAiChannels,
+  ...hapiChannels,
+  ...redisChannels,
+  ...expressChannels,
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

@@ -655,6 +655,9 @@ describe('ProfilingIntegration', () => {
 
       const nonProfiledTransaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
       nonProfiledTransaction.end();
+      // The transaction is captured on a debounce (deferred so children ending after the root still
+      // join it), so advance the fake timers to emit the envelope before asserting on it.
+      vi.advanceTimersByTime(1);
 
       expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1]).not.toMatchObject({
         contexts: {
@@ -670,6 +673,8 @@ describe('ProfilingIntegration', () => {
       integration._profiler.start();
       const profiledTransaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
       profiledTransaction.end();
+      // Drain the deferred capture while the profiler is still running so the profile context attaches.
+      vi.advanceTimersByTime(1);
       Sentry.profiler.stopProfiler();
 
       expect(transportSpy.mock.calls?.[1]?.[0]?.[1]?.[0]?.[1]).toMatchObject({

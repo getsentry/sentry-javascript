@@ -1,106 +1,19 @@
-import type { IntegrationFn, Span } from '@sentry/core';
-import {
-  defineIntegration,
-  SEMANTIC_ATTRIBUTE_CACHE_HIT,
-  SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
-  SEMANTIC_ATTRIBUTE_CACHE_KEY,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  spanToJSON,
-  truncate,
-  waitForTracingChannelBinding,
-} from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
+import { defineIntegration, extendIntegration } from '@sentry/core';
 import * as dc from 'node:diagnostics_channel';
-import { subscribeRedisDiagnosticChannels, type RedisTracingChannelFactory } from '@sentry/server-utils';
+import { redisIntegration as redisChannelIntegration } from '@sentry/server-utils';
 import { generateInstrumentOnce } from '@sentry/node-core';
-import type { IORedisCommandArgs } from '../../../utils/redisCache';
-import {
-  calculateCacheItemSize,
-  GET_COMMANDS,
-  getCacheKeySafely,
-  getCacheOperation,
-  isInCommands,
-  shouldConsiderForCache,
-} from '../../../utils/redisCache';
-import type { IORedisResponseCustomAttributeFunction } from './vendored/types';
+import { isDiagnosticsChannelInjectionEnabled } from '../../../sdk/diagnosticsChannelInjection';
+import { cacheResponseHook, type RedisOptions, setRedisOptions } from './cache';
 import { IORedisInstrumentation } from './vendored/ioredis-instrumentation';
 import { RedisInstrumentation } from './vendored/redis-instrumentation';
 
-interface RedisOptions {
-  /**
-   * Define cache prefixes for cache keys that should be captured as a cache span.
-   *
-   * Setting this to, for example, `['user:']` will capture cache keys that start with `user:`.
-   */
-  cachePrefixes?: string[];
-  /**
-   * Maximum length of the cache key added to the span description. If the key exceeds this length, it will be truncated.
-   *
-   * Passing `0` will use the full cache key without truncation.
-   *
-   * By default, the full cache key is used.
-   */
-  maxCacheKeyLength?: number;
-}
+// `cacheResponseHook`/`_redisOptions` live in `./cache` (which has no OTel
+// instrumentation imports) so the orchestrion opt-in can pull the hook without
+// dragging the OTel redis instrumentation in. Re-exported here for tests.
+export { _redisOptions, cacheResponseHook } from './cache';
 
 const INTEGRATION_NAME = 'Redis' as const;
-
-/* Only exported for testing purposes */
-export let _redisOptions: RedisOptions = {};
-
-/* Only exported for testing purposes */
-export const cacheResponseHook: IORedisResponseCustomAttributeFunction = (
-  span: Span,
-  redisCommand: string,
-  cmdArgs: IORedisCommandArgs,
-  response: unknown,
-) => {
-  const safeKey = getCacheKeySafely(redisCommand, cmdArgs);
-  const cacheOperation = getCacheOperation(redisCommand);
-
-  if (
-    !safeKey ||
-    !cacheOperation ||
-    !_redisOptions.cachePrefixes ||
-    !shouldConsiderForCache(redisCommand, safeKey, _redisOptions.cachePrefixes)
-  ) {
-    // not relevant for cache
-    return;
-  }
-
-  // otel/ioredis seems to be using the old standard, as there was a change to those params: https://github.com/open-telemetry/opentelemetry-specification/issues/3199
-  // We are using params based on the docs: https://opentelemetry.io/docs/specs/semconv/attributes-registry/network/
-  // Fall back to stable semconv attributes (server.address/server.port) when
-  // old-semconv ones are absent, eg OTEL_SEMCONV_STABILITY_OPT_IN=database
-  // set for node-redis v4/v5.
-  const spanData = spanToJSON(span).data;
-  const networkPeerAddress = spanData['net.peer.name'] ?? spanData['server.address'];
-  const networkPeerPort = spanData['net.peer.port'] ?? spanData['server.port'];
-  if (networkPeerPort && networkPeerAddress) {
-    span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
-  }
-
-  const cacheItemSize = calculateCacheItemSize(response);
-
-  if (cacheItemSize) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
-  }
-
-  if (isInCommands(GET_COMMANDS, redisCommand) && cacheItemSize !== undefined) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, cacheItemSize > 0);
-  }
-
-  span.setAttributes({
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: cacheOperation,
-    [SEMANTIC_ATTRIBUTE_CACHE_KEY]: safeKey,
-  });
-
-  // todo: change to string[] once EAP supports it
-  const spanDescription = safeKey.join(', ');
-
-  span.updateName(
-    _redisOptions.maxCacheKeyLength ? truncate(spanDescription, _redisOptions.maxCacheKeyLength) : spanDescription,
-  );
-};
 
 const instrumentIORedis = generateInstrumentOnce(`${INTEGRATION_NAME}.IORedis`, () => {
   return new IORedisInstrumentation({
@@ -120,18 +33,13 @@ const instrumentRedisModule = generateInstrumentOnce(`${INTEGRATION_NAME}.Redis`
  */
 export const instrumentRedis = Object.assign(
   (): void => {
-    instrumentIORedis();
-    instrumentRedisModule();
-    // node-redis >= 5.12.0 and ioredis >= 5.11.0 publish via diagnostics_channel.
-    // `bindTracingChannelToSpan` (inside the subscriber) makes the span the active
-    // OTel context via `bindStore`, which needs the Sentry OTel context manager to
-    // be registered — `initOpenTelemetry()` does that after integration `setupOnce`,
-    // so defer to the next tick.
-    // Check this here to ensure this does not fail at runtime for Node <= 18.18.0
-    if (dc.tracingChannel) {
-      waitForTracingChannelBinding(() => {
-        subscribeRedisDiagnosticChannels(dc.tracingChannel as RedisTracingChannelFactory, cacheResponseHook);
-      });
+    // When diagnostics-channel injection is opted in, orchestrion fully owns the older
+    // ioredis (`<5.11.0`) and redis/node-redis (`<5.12.0`) ranges — commands, connect, and
+    // batches — so skip both OTel monkey-patches to avoid double instrumentation. On Node
+    // without `tracingChannel` (<18.19) orchestrion can't run, so keep the OTel patches there.
+    if (!isDiagnosticsChannelInjectionEnabled() || !dc.tracingChannel) {
+      instrumentIORedis();
+      instrumentRedisModule();
     }
 
     // todo: implement them gradually
@@ -141,13 +49,17 @@ export const instrumentRedis = Object.assign(
 );
 
 const _redisIntegration = ((options: RedisOptions = {}) => {
-  return {
+  // The diagnostics_channel subscription (node-redis >= 5.12.0, ioredis >= 5.11.0) lives in
+  // server-utils so it is shared across server runtimes; we extend it here to also run the vendored
+  // OTel patchers for older client versions. `cacheResponseHook` reads options set in the extension's
+  // `setupOnce` below, but it only runs at command time, by which point those options are set.
+  return extendIntegration(redisChannelIntegration({ responseHook: cacheResponseHook }), {
     name: INTEGRATION_NAME,
     setupOnce() {
-      _redisOptions = options;
+      setRedisOptions(options);
       instrumentRedis();
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**

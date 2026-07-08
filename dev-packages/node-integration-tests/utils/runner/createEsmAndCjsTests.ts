@@ -5,18 +5,35 @@ import { basename, join } from 'path';
 import { promisify } from 'util';
 import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
 import { CLEANUP_STEPS, createRunner } from './createRunner';
+import { isOrchestrionEnabled } from '../../utils';
 
 const execPromise = promisify(exec);
 
 interface ScenarioPaths {
   cjs: {
     scenario: string;
-    instrument: string;
+    flags: string[];
   };
   esm: {
     scenario: string;
-    instrument: string;
+    flags: string[];
   };
+}
+
+interface CommonTestOptions {
+  /**
+   * `additionalDependencies` to install in the tmp dir.
+   */
+  additionalDependencies?: Record<string, string>;
+  /** Copy these files/dirs into the tmp dir. */
+  copyPaths?: string[];
+  /** If orchestrion should be injected before any instrument file. */
+  injectOrchestrion?: boolean;
+}
+
+interface EsmAndCjsTestOptions extends CommonTestOptions {
+  failsOnCjs?: boolean;
+  failsOnEsm?: boolean;
 }
 
 /**
@@ -32,32 +49,45 @@ export function createEsmAndCjsTests(
     mode: 'esm' | 'cjs',
     cwd: string,
   ) => void,
-  options?: {
-    failsOnCjs?: boolean;
-    failsOnEsm?: boolean;
-    /**
-     * `additionalDependencies` to install in the tmp dir.
-     */
-    additionalDependencies?: Record<string, string>;
-    /** Copy these files/dirs into the tmp dir. */
-    copyPaths?: string[];
-  },
+  options?: EsmAndCjsTestOptions,
 ): void {
-  const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, options);
+  const optionsWithDefaults = {
+    injectOrchestrion: isOrchestrionEnabled() || undefined,
+    ...options,
+  };
+  const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, optionsWithDefaults);
 
-  const esmTestFn = options?.failsOnEsm ? wrapTestApi(test.fails, 'esm - fails') : wrapTestApi(test, 'esm');
-  const cjsTestFn = options?.failsOnCjs ? wrapTestApi(test.fails, 'cjs - fails') : wrapTestApi(test, 'cjs');
+  const esmTestFn = optionsWithDefaults.failsOnEsm ? wrapTestApi(test.fails, 'esm - fails') : wrapTestApi(test, 'esm');
+  const cjsTestFn = optionsWithDefaults.failsOnCjs ? wrapTestApi(test.fails, 'cjs - fails') : wrapTestApi(test, 'cjs');
   const createdRunners = new Set<ReturnType<typeof createRunner>>();
 
   callback(
-    () => trackRunner(createdRunners, createRunner(paths.esm.scenario).withFlags('--import', paths.esm.instrument)),
+    () => {
+      const runner = createRunner(paths.esm.scenario)
+        .withEnv(optionsWithDefaults.injectOrchestrion ? { INJECT_ORCHESTRION: 'true' } : {})
+        .withFlags(...paths.esm.flags);
+      // Expected failure — don't dump the child's captured output for these.
+      if (optionsWithDefaults.failsOnEsm) {
+        runner.suppressErrorLogs();
+      }
+      return trackRunner(createdRunners, runner);
+    },
     esmTestFn,
     'esm',
     tmpDirPath,
   );
 
   callback(
-    () => trackRunner(createdRunners, createRunner(paths.cjs.scenario).withFlags('--require', paths.cjs.instrument)),
+    () => {
+      const runner = createRunner(paths.cjs.scenario)
+        .withEnv(optionsWithDefaults.injectOrchestrion ? { INJECT_ORCHESTRION: 'true' } : {})
+        .withFlags(...paths.cjs.flags);
+      // Expected failure — don't dump the child's captured output for these.
+      if (optionsWithDefaults.failsOnCjs) {
+        runner.suppressErrorLogs();
+      }
+      return trackRunner(createdRunners, runner);
+    },
     cjsTestFn,
     'cjs',
     tmpDirPath,
@@ -74,20 +104,23 @@ export function createEsmTests(
   scenarioPath: string,
   instrumentPath: string,
   callback: (createTestRunner: () => ReturnType<typeof createRunner>, testFn: typeof test, cwd: string) => void,
-  options?: {
-    /**
-     * `additionalDependencies` to install in the tmp dir.
-     */
-    additionalDependencies?: Record<string, string>;
-    /** Copy these files/dirs into the tmp dir. */
-    copyPaths?: string[];
-  },
+  options?: CommonTestOptions,
 ) {
-  const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, options);
+  const optionsWithDefaults = {
+    injectOrchestrion: isOrchestrionEnabled() || undefined,
+    ...options,
+  };
+  const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, optionsWithDefaults);
   const createdRunners = new Set<ReturnType<typeof createRunner>>();
 
   callback(
-    () => trackRunner(createdRunners, createRunner(paths.esm.scenario).withFlags('--import', paths.esm.instrument)),
+    () =>
+      trackRunner(
+        createdRunners,
+        createRunner(paths.esm.scenario)
+          .withEnv(optionsWithDefaults.injectOrchestrion ? { INJECT_ORCHESTRION: 'true' } : {})
+          .withFlags(...paths.esm.flags),
+      ),
     test,
     tmpDirPath,
   );
@@ -103,20 +136,23 @@ export function createCjsTests(
   scenarioPath: string,
   instrumentPath: string,
   callback: (createTestRunner: () => ReturnType<typeof createRunner>, testFn: typeof test, cwd: string) => void,
-  options?: {
-    /**
-     * `additionalDependencies` to install in the tmp dir.
-     */
-    additionalDependencies?: Record<string, string>;
-    /** Copy these files/dirs into the tmp dir. */
-    copyPaths?: string[];
-  },
+  options?: CommonTestOptions,
 ) {
-  const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, options);
+  const optionsWithDefaults = {
+    injectOrchestrion: isOrchestrionEnabled() || undefined,
+    ...options,
+  };
+  const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, optionsWithDefaults);
   const createdRunners = new Set<ReturnType<typeof createRunner>>();
 
   callback(
-    () => trackRunner(createdRunners, createRunner(paths.cjs.scenario).withFlags('--require', paths.cjs.instrument)),
+    () =>
+      trackRunner(
+        createdRunners,
+        createRunner(paths.cjs.scenario)
+          .withEnv(optionsWithDefaults.injectOrchestrion ? { INJECT_ORCHESTRION: 'true' } : {})
+          .withFlags(...paths.cjs.flags),
+      ),
     test,
     tmpDirPath,
   );
@@ -175,8 +211,10 @@ function prepareTmpDir(
   cwd: string,
   scenarioPath: string,
   instrumentPath: string,
-  options?: { additionalDependencies?: Record<string, string>; copyPaths?: string[] },
+  options?: CommonTestOptions,
 ): [string, () => Promise<void>, ScenarioPaths] {
+  const injectOrchestrion = options?.injectOrchestrion ?? false;
+
   const mjsScenarioPath = join(cwd, scenarioPath);
   const mjsInstrumentPath = join(cwd, instrumentPath);
 
@@ -199,6 +237,9 @@ function prepareTmpDir(
   const cjsScenarioPath = join(tmpDirPath, esmScenarioBasename.replace('.mjs', '.cjs'));
   const cjsInstrumentPath = join(tmpDirPath, esmInstrumentBasename.replace('.mjs', '.cjs'));
 
+  const cjsFlags: string[] = ['--require', cjsInstrumentPath];
+  const esmFlags: string[] = ['--import', esmInstrumentPathForRun];
+
   async function createTmpDir(): Promise<void> {
     await mkdir(tmpDirPath);
 
@@ -209,6 +250,28 @@ function prepareTmpDir(
     // Pre-create CJS converted files inside tmp dir
     await convertEsmFileToCjs(esmScenarioPathForRun, cjsScenarioPath);
     await convertEsmFileToCjs(esmInstrumentPathForRun, cjsInstrumentPath);
+
+    if (injectOrchestrion) {
+      const mjsInjectOrchetrionPath = join(tmpDirPath, 'inject-orchestrion.mjs');
+      const cjsInjectOrchetrionPath = join(tmpDirPath, 'inject-orchestrion.cjs');
+
+      await writeFile(
+        mjsInjectOrchetrionPath,
+        `import {experimentalUseDiagnosticsChannelInjection} from '@sentry/node';
+experimentalUseDiagnosticsChannelInjection();`,
+        'utf8',
+      );
+
+      await writeFile(
+        cjsInjectOrchetrionPath,
+        `const {experimentalUseDiagnosticsChannelInjection} = require('@sentry/node');
+experimentalUseDiagnosticsChannelInjection();`,
+        'utf8',
+      );
+
+      esmFlags.unshift('--import', mjsInjectOrchetrionPath);
+      cjsFlags.unshift('--require', cjsInjectOrchetrionPath);
+    }
 
     // Copy any additional files/dirs into tmp dir
     if (options?.copyPaths) {
@@ -246,11 +309,11 @@ function prepareTmpDir(
   const paths: ScenarioPaths = {
     cjs: {
       scenario: cjsScenarioPath,
-      instrument: cjsInstrumentPath,
+      flags: cjsFlags,
     },
     esm: {
       scenario: esmScenarioPathForRun,
-      instrument: esmInstrumentPathForRun,
+      flags: esmFlags,
     },
   };
 
@@ -303,10 +366,15 @@ const NPM_INSTALL_RETRY_DELAY_MS = 2_000;
 async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
   for (let attempt = 1; attempt <= NPM_INSTALL_MAX_RETRIES; attempt++) {
     try {
-      const { stdout, stderr } = await execPromise('npm install --prefer-offline --silent --no-audit --no-fund', {
-        cwd,
-        encoding: 'utf8',
-      });
+      const { stdout, stderr } = await execPromise(
+        // We only use --prefer-offline on the first attempt to try to read from cache
+        // in follow ups we just try to install in any way
+        `npm install ${attempt === 1 ? '--prefer-offline' : ''} --no-audit --no-fund`,
+        {
+          cwd,
+          encoding: 'utf8',
+        },
+      );
 
       if (process.env.DEBUG) {
         // eslint-disable-next-line no-console
@@ -325,8 +393,10 @@ async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
         );
         await new Promise(resolve => setTimeout(resolve, NPM_INSTALL_RETRY_DELAY_MS));
       } else {
+        // oxlint-disable-next-line no-console
+        console.error(error);
         throw new Error(
-          `Failed to install additionalDependencies in tmp dir ${cwd} after ${NPM_INSTALL_MAX_RETRIES} attempts: ${error}`,
+          `Failed to install additionalDependencies in tmp dir ${cwd} after ${NPM_INSTALL_MAX_RETRIES} attempts`,
         );
       }
     }

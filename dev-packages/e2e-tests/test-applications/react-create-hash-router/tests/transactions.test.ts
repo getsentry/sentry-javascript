@@ -26,6 +26,8 @@ test('Captures a pageload transaction', async ({ page }) => {
       'performance.activationStart': expect.any(Number),
       'lcp.renderTime': expect.any(Number),
       'lcp.loadTime': expect.any(Number),
+      'url.full': 'http://localhost:3030/',
+      'url.path': '/',
     },
     op: 'pageload',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),

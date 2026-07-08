@@ -1,6 +1,6 @@
 {
   "name": "@sentry/server-utils",
-  "version": "10.62.0",
+  "version": "10.64.0",
   "description": "Server Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/server-utils",
@@ -28,9 +28,9 @@
       "require": "./build/cjs/orchestrion/index.js"
     },
     "./orchestrion/config": {
-      "types": "./build/types/orchestrion/config.d.ts",
-      "import": "./build/esm/orchestrion/config.js",
-      "require": "./build/cjs/orchestrion/config.js"
+      "types": "./build/types/orchestrion/config/index.d.ts",
+      "import": "./build/esm/orchestrion/config/index.js",
+      "require": "./build/cjs/orchestrion/config/index.js"
     },
     "./orchestrion/register": {
       "types": "./build/types/orchestrion/runtime/register.d.ts",
@@ -54,7 +54,7 @@
         "build/types-ts3.8/orchestrion/index.d.ts"
       ],
       "orchestrion/config": [
-        "build/types-ts3.8/orchestrion/config.d.ts"
+        "build/types-ts3.8/orchestrion/config/index.d.ts"
       ],
       "orchestrion/register": [
         "build/types-ts3.8/orchestrion/runtime/register.d.ts"
@@ -68,7 +68,7 @@
         "build/types/orchestrion/index.d.ts"
       ],
       "orchestrion/config": [
-        "build/types/orchestrion/config.d.ts"
+        "build/types/orchestrion/config/index.d.ts"
       ],
       "orchestrion/register": [
         "build/types/orchestrion/runtime/register.d.ts"
@@ -84,9 +84,9 @@
   "dependencies": {
     "@apm-js-collab/code-transformer-bundler-plugins": "^0.5.0",
     "@apm-js-collab/code-transformer": "^0.15.0",
-    "@apm-js-collab/tracing-hooks": "^0.10.0",
-    "@sentry/conventions": "^0.12.0",
-    "@sentry/core": "10.62.0",
+    "@apm-js-collab/tracing-hooks": "^0.10.1",
+    "@sentry/conventions": "^0.15.1",
+    "@sentry/core": "10.64.0",
     "magic-string": "~0.30.0"
   },
   "devDependencies": {

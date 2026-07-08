@@ -1,7 +1,7 @@
 /**
  * Use this attribute to represent the source of a span name.
  * Must be one of: custom, url, route, view, component, task
- * TODO(v11): rename this to sentry.span.source'
+ * TODO(v11): remove this export
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = 'sentry.source';
 
@@ -54,13 +54,25 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE = 'sentry.measurement_v
 export const SEMANTIC_ATTRIBUTE_SENTRY_RELEASE = 'sentry.release';
 /** The environment name (e.g., "production", "staging", "development") */
 export const SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT = 'sentry.environment';
-/** The segment name (e.g., "GET /users") */
+/**
+ * The segment name (e.g., "GET /users")
+ * @deprecated Use `SENTRY_SEGMENT_NAME` `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME = 'sentry.segment.name';
-/** The id of the segment that this span belongs to. */
+/**
+ * The id of the segment that this span belongs to.
+ * @deprecated Use `SENTRY_SEGMENT_ID` `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID = 'sentry.segment.id';
-/** The name of the Sentry SDK (e.g., "sentry.php", "sentry.javascript") */
+/**
+ * The name of the Sentry SDK (e.g., "sentry.php", "sentry.javascript")
+ * @deprecated Use `SENTRY_SDK_NAME` `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
-/** The version of the Sentry SDK */
+/**
+ * The version of the Sentry SDK
+ * @deprecated Use `SENTRY_SDK_VERSION` `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
 /** The list of integrations enabled in the Sentry SDK (e.g., ["InboundFilters", "BrowserTracing"]) */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS = 'sentry.sdk.integrations';

@@ -1,6 +1,12 @@
+import * as fs from 'fs';
 import { describe, expect, it, vi } from 'vitest';
 import { getBuildPluginOptions } from '../../src/config/getBuildPluginOptions';
 import type { SentryBuildOptions } from '../../src/config/types';
+
+vi.mock('fs', async importOriginal => {
+  const actual = await importOriginal<typeof fs>();
+  return { ...actual, existsSync: vi.fn(actual.existsSync) };
+});
 
 describe('getBuildPluginOptions', () => {
   const mockReleaseName = 'test-release-1.0.0';
@@ -294,6 +300,36 @@ describe('getBuildPluginOptions', () => {
         '**/middleware-react-loadable-manifest.js',
       ]);
       expect(result.reactComponentAnnotation).toBeUndefined();
+    });
+
+    it('includes the immutable chunks directory in after-production-compile-turbopack assets when it exists', () => {
+      vi.mocked(fs.existsSync).mockImplementationOnce(p => p === '/path/to/.next/static/immutable/chunks');
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: baseSentryOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'after-production-compile-turbopack',
+      });
+
+      expect(result.sourcemaps?.assets).toEqual([
+        '/path/to/.next/server',
+        '/path/to/.next/static/chunks',
+        '/path/to/.next/static/immutable/chunks',
+      ]);
+    });
+
+    it('does not include the immutable chunks directory in after-production-compile-turbopack assets when it does not exist', () => {
+      vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: baseSentryOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'after-production-compile-turbopack',
+      });
+
+      expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/server', '/path/to/.next/static/chunks']);
     });
   });
 

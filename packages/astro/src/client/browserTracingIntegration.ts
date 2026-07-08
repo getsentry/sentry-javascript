@@ -11,6 +11,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 /**
  * Returns the value of a meta-tag
@@ -48,6 +49,7 @@ export function browserTracingIntegration(
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.astro',
+              ...(source === 'route' && { [URL_TEMPLATE]: name }),
             },
           });
         }

@@ -9,6 +9,13 @@
  */
 
 import { TraceFlags } from '@opentelemetry/api';
+import {
+  ERROR_TYPE,
+  MESSAGING_DESTINATION_NAME,
+  MESSAGING_OPERATION_NAME,
+  MESSAGING_OPERATION_TYPE,
+  MESSAGING_SYSTEM,
+} from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
 import {
   getTraceData,
@@ -20,15 +27,10 @@ import {
 } from '@sentry/core';
 import type { KafkaMessage, Message } from './kafkajs-types';
 import {
-  ATTR_ERROR_TYPE,
-  ATTR_MESSAGING_DESTINATION_NAME,
   ATTR_MESSAGING_DESTINATION_PARTITION_ID,
   ATTR_MESSAGING_KAFKA_MESSAGE_KEY,
   ATTR_MESSAGING_KAFKA_MESSAGE_TOMBSTONE,
   ATTR_MESSAGING_KAFKA_OFFSET,
-  ATTR_MESSAGING_OPERATION_NAME,
-  ATTR_MESSAGING_OPERATION_TYPE,
-  ATTR_MESSAGING_SYSTEM,
   ERROR_TYPE_VALUE_OTHER,
   MESSAGING_OPERATION_TYPE_VALUE_RECEIVE,
   MESSAGING_OPERATION_TYPE_VALUE_SEND,
@@ -101,10 +103,10 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
     links,
     attributes: {
       ...attributes,
-      [ATTR_MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
-      [ATTR_MESSAGING_DESTINATION_NAME]: topic,
-      [ATTR_MESSAGING_OPERATION_TYPE]: operationType,
-      [ATTR_MESSAGING_OPERATION_NAME]: operationName,
+      [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
+      [MESSAGING_DESTINATION_NAME]: topic,
+      [MESSAGING_OPERATION_TYPE]: operationType,
+      [MESSAGING_OPERATION_NAME]: operationName,
       [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: message?.key ? String(message.key) : undefined,
       [ATTR_MESSAGING_KAFKA_MESSAGE_TOMBSTONE]: message?.key && message.value === null ? true : undefined,
       [ATTR_MESSAGING_KAFKA_OFFSET]: message?.offset,
@@ -121,14 +123,14 @@ export function startProducerSpan(topic: string, message: Message): Span {
     name: `send ${topic}`,
     kind: SPAN_KIND.PRODUCER,
     attributes: {
-      [ATTR_MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
-      [ATTR_MESSAGING_DESTINATION_NAME]: topic,
+      [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
+      [MESSAGING_DESTINATION_NAME]: topic,
       [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: message.key ? String(message.key) : undefined,
       [ATTR_MESSAGING_KAFKA_MESSAGE_TOMBSTONE]: message.key && message.value === null ? true : undefined,
       [ATTR_MESSAGING_DESTINATION_PARTITION_ID]:
         message.partition !== undefined ? String(message.partition) : undefined,
-      [ATTR_MESSAGING_OPERATION_NAME]: 'send',
-      [ATTR_MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_TYPE_VALUE_SEND,
+      [MESSAGING_OPERATION_NAME]: 'send',
+      [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_TYPE_VALUE_SEND,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: PRODUCER_ORIGIN,
     },
   });
@@ -163,7 +165,7 @@ export function endSpansOnPromise<T>(spans: Span[], sendPromise: Promise<T>): Pr
       }
 
       spans.forEach(span => {
-        span.setAttribute(ATTR_ERROR_TYPE, errorType);
+        span.setAttribute(ERROR_TYPE, errorType);
         span.setStatus({
           code: SPAN_STATUS_ERROR,
           message: errorMessage,

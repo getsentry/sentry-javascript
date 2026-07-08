@@ -21,11 +21,9 @@ async function run() {
       prompt: 'Where is the first span?',
     });
 
-    // This span should have input and output prompts attached because telemetry is explicitly enabled.
-    // Vercel AI treats this as recording inputs and outputs by default
-    // but in v7, we do not have access to this, so we do not override data collection settings for this
+    // Recording and inputs explicitly enabled
     await generateText({
-      experimental_telemetry: { isEnabled: true },
+      experimental_telemetry: { isEnabled: true, recordInputs: true, recordOutputs: true },
       model: new MockLanguageModelV3({
         doGenerate: async () => ({
           finishReason: { unified: 'stop', raw: 'stop' },

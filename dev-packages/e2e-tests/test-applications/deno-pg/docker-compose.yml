@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:13
+    restart: always
+    container_name: e2e-tests-deno-pg
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d postgres']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s

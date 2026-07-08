@@ -1,10 +1,16 @@
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('postgresjs auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
+
+  // Under orchestrion (INJECT_ORCHESTRION), the OTel `PostgresJs` integration is
+  // swapped for the diagnostics-channel one, so query spans carry a different
+  // origin. Every other attribute is identical.
+  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.postgresjs' : 'auto.db.postgresjs';
 
   describe('basic', () => {
     const EXPECTED_TRANSACTION = {
@@ -18,7 +24,7 @@ describe('postgresjs auto instrumentation', () => {
             'db.query.text':
               'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
@@ -26,7 +32,7 @@ describe('postgresjs auto instrumentation', () => {
             'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -39,7 +45,7 @@ describe('postgresjs auto instrumentation', () => {
             'db.system.name': 'postgres',
             'db.operation.name': 'INSERT',
             'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES (?, ?)',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'sentry.op': 'db',
             'server.address': 'localhost',
             'server.port': 5444,
@@ -47,7 +53,7 @@ describe('postgresjs auto instrumentation', () => {
           description: 'INSERT INTO "User" ("email", "name") VALUES (?, ?)',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -61,14 +67,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'UPDATE',
             'db.query.text': 'UPDATE "User" SET "name" = ? WHERE "email" = ?',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'UPDATE "User" SET "name" = ? WHERE "email" = ?',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -82,14 +88,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'SELECT',
             'db.query.text': 'SELECT * FROM "User" WHERE "email" = ?',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'SELECT * FROM "User" WHERE "email" = ?',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -106,14 +112,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'SELECT',
             'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1 AND "name" = $2',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'SELECT * FROM "User" WHERE "email" = $1 AND "name" = $2',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -127,14 +133,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'SELECT',
             'db.query.text': 'SELECT * from generate_series(?,?) as x',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'SELECT * from generate_series(?,?) as x',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -148,14 +154,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'DROP TABLE',
             'db.query.text': 'DROP TABLE "User"',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'DROP TABLE "User"',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -171,14 +177,14 @@ describe('postgresjs auto instrumentation', () => {
             'error.type': 'PostgresError',
             'db.query.text': 'SELECT * FROM "User" WHERE "email" = ?',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'SELECT * FROM "User" WHERE "email" = ?',
           op: 'db',
           status: 'internal_error',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -228,6 +234,9 @@ describe('postgresjs auto instrumentation', () => {
             .withDockerCompose({ workingDirectory: [__dirname] })
             .expect({ transaction: EXPECTED_TRANSACTION })
             .expect({ event: EXPECTED_ERROR_EVENT })
+            // The error event is captured via an unhandled rejection processed on a later tick than
+            // the transaction, so the two envelopes can reach the transport in either order.
+            .unordered()
             .start()
             .completed();
         });
@@ -249,7 +258,7 @@ describe('postgresjs auto instrumentation', () => {
               'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
             'custom.requestHook': 'called',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
@@ -257,7 +266,7 @@ describe('postgresjs auto instrumentation', () => {
             'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -267,14 +276,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES (?, ?)',
             'custom.requestHook': 'called',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'INSERT INTO "User" ("email", "name") VALUES (?, ?)',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -284,14 +293,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.query.text': 'SELECT * FROM "User" WHERE "email" = ?',
             'custom.requestHook': 'called',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'SELECT * FROM "User" WHERE "email" = ?',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -301,14 +310,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.query.text': 'DROP TABLE "User"',
             'custom.requestHook': 'called',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'DROP TABLE "User"',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
         }),
       ]),
       extra: expect.objectContaining({
@@ -350,7 +359,7 @@ describe('postgresjs auto instrumentation', () => {
             'db.query.text':
               'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
@@ -358,7 +367,7 @@ describe('postgresjs auto instrumentation', () => {
             'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -367,14 +376,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'INSERT',
             'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES (?, ?)',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'INSERT INTO "User" ("email", "name") VALUES (?, ?)',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -383,14 +392,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'SELECT',
             'db.query.text': 'SELECT * FROM "User" WHERE "email" = ?',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'SELECT * FROM "User" WHERE "email" = ?',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -399,14 +408,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'DELETE',
             'db.query.text': 'DELETE FROM "User" WHERE "email" = ?',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'DELETE FROM "User" WHERE "email" = ?',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
         }),
       ]),
     };
@@ -439,14 +448,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'CREATE TABLE',
             'db.query.text': 'CREATE TABLE "User" ("id" SERIAL NOT NULL, "email" TEXT NOT NULL, PRIMARY KEY ("id"))',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'CREATE TABLE "User" ("id" SERIAL NOT NULL, "email" TEXT NOT NULL, PRIMARY KEY ("id"))',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
         }),
         // sql.unsafe() with $1 placeholders - preserved per OTEL spec
         expect.objectContaining({
@@ -456,14 +465,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'INSERT',
             'db.query.text': 'INSERT INTO "User" ("email") VALUES ($1)',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'INSERT INTO "User" ("email") VALUES ($1)',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -472,14 +481,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'SELECT',
             'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'SELECT * FROM "User" WHERE "email" = $1',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -488,14 +497,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'DROP TABLE',
             'db.query.text': 'DROP TABLE "User"',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.postgresjs',
+            'sentry.origin': ORIGIN,
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'DROP TABLE "User"',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.postgresjs',
+          origin: ORIGIN,
         }),
       ]),
     };

@@ -10,6 +10,11 @@ describe('negative sampling (static)', () => {
     test('records sample_rate outcome for root span/transaction', async () => {
       const runner = createRunner()
         .unignore('client_report')
+        // The `GET /ok` transaction is sent as soon as its span ends, while the negatively-sampled
+        // `/health` outcome only leaves via the client report flushed on `clientReportFlushInterval`.
+        // These two envelopes come from independent flush mechanisms, so their arrival order races —
+        // match unordered instead of asserting a fixed sequence.
+        .unordered()
         .expect({
           transaction: {
             transaction: 'GET /ok',

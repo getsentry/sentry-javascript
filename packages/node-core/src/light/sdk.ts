@@ -28,7 +28,6 @@ import { systemErrorIntegration } from '../integrations/systemError';
 import { defaultStackParser, getSentryRelease } from '../sdk/api';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
-import { isCjs } from '../utils/detection';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { setAsyncLocalStorageAsyncContextStrategy } from './asyncLocalStorageStrategy';
 import { LightNodeClient } from './client';
@@ -120,7 +119,12 @@ function _init(
 
   client.init();
 
-  debug.log(`SDK initialized from ${isCjs() ? 'CommonJS' : 'ESM'} (light mode)`);
+  /*! rollup-include-cjs-only */
+  debug.log(`SDK initialized from CommonJS (light mode)`);
+  /*! rollup-include-cjs-only-end */
+  /*! rollup-include-esm-only */
+  debug.log(`SDK initialized from ESM (light mode)`);
+  /*! rollup-include-esm-only-end */
 
   client.startClientReportTracking();
 

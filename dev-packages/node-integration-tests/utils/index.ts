@@ -55,3 +55,19 @@ export function conditionalTest(allowedVersion: {
 export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
   return body.split('\n').map(e => JSON.parse(e));
 };
+
+/** Returns true if orchestrion is enabled in env vars. */
+export function isOrchestrionEnabled(): boolean {
+  return process.env.INJECT_ORCHESTRION === 'true' || process.env.INJECT_ORCHESTRION === '1';
+}
+
+/**
+ * Narrows a typed span attribute value to a string.
+ *
+ * Streamed span attribute values are a union (`string | number | boolean | string[] | ...`), so
+ * assertions that call string methods (`includes`, `startsWith`, `match`, `length`) need the value
+ * narrowed first. Returns `undefined` if the value is not a string.
+ */
+export function getStringAttributeValue(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}

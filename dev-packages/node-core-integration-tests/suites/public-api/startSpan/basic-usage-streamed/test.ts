@@ -5,12 +5,15 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
-  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
+import {
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_TRACE_LIFECYCLE,
+} from '@sentry/conventions/attributes';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 
@@ -53,14 +56,15 @@ test('sends a streamed span envelope with correct spans for a manually started s
         expect(childSpan).toBeDefined();
         expect(childSpan).toEqual({
           attributes: {
+            [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
               type: 'string',
               value: 'test-child',
             },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
+            [SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
+            [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+            [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+            [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
             [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
             [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { type: 'string', value: 'custom' },
@@ -80,10 +84,11 @@ test('sends a streamed span envelope with correct spans for a manually started s
         expect(inactiveSpan).toBeDefined();
         expect(inactiveSpan).toEqual({
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
+            [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+            [SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
+            [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+            [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+            [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
             [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
             [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { type: 'string', value: 'custom' },
@@ -116,10 +121,11 @@ test('sends a streamed span envelope with correct spans for a manually started s
         expect(manualSpan).toBeDefined();
         expect(manualSpan).toEqual({
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
+            [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+            [SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
+            [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+            [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+            [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
             [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
             [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { type: 'string', value: 'custom' },
@@ -136,16 +142,17 @@ test('sends a streamed span envelope with correct spans for a manually started s
         });
 
         const expectedAttributes: Record<string, unknown> = {
+          [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+          [SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
+          [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
             type: 'array',
             value: expect.arrayContaining(['SpanStreaming']),
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
+          [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+          [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
           [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { type: 'string', value: 'custom' },

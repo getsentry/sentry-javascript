@@ -117,3 +117,123 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     ]),
   });
 });
+
+test('sends a pageload transaction named after the resolved route when a redirect is thrown on initial load', async ({
+  page,
+}) => {
+  const pageloadTxnPromise = waitForTransaction('tanstack-router', async transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/posts/$postId';
+  });
+
+  // Visiting `/redirect` directly throws `redirect({ to: '/posts/$postId', params: { postId: '1' } })`
+  // in `beforeLoad` during the initial pageload, so the pageload span must be renamed to the target route.
+  await page.goto(`/redirect`);
+
+  const pageloadTxn = await pageloadTxnPromise;
+
+  expect(pageloadTxn).toMatchObject({
+    contexts: {
+      trace: {
+        data: {
+          'sentry.source': 'route',
+          'sentry.origin': 'auto.pageload.react.tanstack_router',
+          'sentry.op': 'pageload',
+          'url.path.params.postId': '1',
+        },
+        op: 'pageload',
+        origin: 'auto.pageload.react.tanstack_router',
+      },
+    },
+    transaction: '/posts/$postId',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
+
+test('sends a navigation transaction when a redirect is thrown in beforeLoad', async ({ page }) => {
+  const pageloadTxnPromise = waitForTransaction('tanstack-router', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  const navigationTxnPromise = waitForTransaction('tanstack-router', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  });
+
+  await page.goto(`/`);
+  await pageloadTxnPromise;
+
+  await page.locator('#redirect-link').click();
+
+  const navigationTxn = await navigationTxnPromise;
+
+  // The `/redirect` route throws `redirect({ to: '/posts/$postId', params: { postId: '1' } })` in
+  // `beforeLoad`, so the navigation span must be named after the resolved target route, not `/redirect`.
+  expect(navigationTxn).toMatchObject({
+    contexts: {
+      trace: {
+        data: {
+          'sentry.source': 'route',
+          'sentry.origin': 'auto.navigation.react.tanstack_router',
+          'sentry.op': 'navigation',
+          'url.path.params.postId': '1',
+        },
+        op: 'navigation',
+        origin: 'auto.navigation.react.tanstack_router',
+      },
+    },
+    transaction: '/posts/$postId',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
+
+test('sends a navigation transaction for a normal navigation that happens after a redirect', async ({ page }) => {
+  const pageloadTxnPromise = waitForTransaction('tanstack-router', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto(`/`);
+  await pageloadTxnPromise;
+
+  // First trigger a redirect-driven navigation. Upstream (TanStack/router#3920) this leaves the
+  // router in a state where `onBeforeNavigate` never fires again, which previously killed all
+  // subsequent navigation spans.
+  const redirectTxnPromise = waitForTransaction('tanstack-router', async transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === '/posts/$postId';
+  });
+  await page.locator('#redirect-link').click();
+  await redirectTxnPromise;
+
+  // Now a plain navigation must still produce a navigation span.
+  const navigationTxnPromise = waitForTransaction('tanstack-router', async transactionEvent => {
+    return (
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.contexts?.trace?.data?.['url.path.params.postId'] === '2'
+    );
+  });
+
+  await page.locator('#nav-link').click();
+
+  const navigationTxn = await navigationTxnPromise;
+
+  expect(navigationTxn).toMatchObject({
+    contexts: {
+      trace: {
+        data: {
+          'sentry.source': 'route',
+          'sentry.origin': 'auto.navigation.react.tanstack_router',
+          'sentry.op': 'navigation',
+          'url.path.params.postId': '2',
+        },
+        op: 'navigation',
+        origin: 'auto.navigation.react.tanstack_router',
+      },
+    },
+    transaction: '/posts/$postId',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});

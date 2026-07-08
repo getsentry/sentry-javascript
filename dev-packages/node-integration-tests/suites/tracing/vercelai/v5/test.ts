@@ -18,8 +18,11 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
+import { getStringAttributeValue, isOrchestrionEnabled } from '../../../../utils';
 
-describe('Vercel AI integration (V5)', () => {
+const expectedOrigin = isOrchestrionEnabled() ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
+
+describe('Vercel AI integration (v5)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -46,6 +49,7 @@ describe('Vercel AI integration (V5)', () => {
               expect(firstInvokeAgentSpan!.name).toBe('invoke_agent');
               expect(firstInvokeAgentSpan!.status).toBe('ok');
               expect(firstInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+              expect(firstInvokeAgentSpan!.attributes['sentry.origin'].value).toBe(expectedOrigin);
               expect(firstInvokeAgentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateText');
               expect(firstInvokeAgentSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('mock-model-id');
               expect(firstInvokeAgentSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('mock-model-id');
@@ -92,7 +96,9 @@ describe('Vercel AI integration (V5)', () => {
               const secondGenerateContentSpan = container.items.find(
                 span =>
                   span.name === 'generate_content mock-model-id' &&
-                  span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Second span here!'),
+                  getStringAttributeValue(span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                    'Second span here!',
+                  ),
               );
               expect(secondGenerateContentSpan).toBeDefined();
               expect(secondGenerateContentSpan!.name).toBe('generate_content mock-model-id');
@@ -121,6 +127,7 @@ describe('Vercel AI integration (V5)', () => {
               expect(toolExecutionSpan!.name).toBe('execute_tool getWeather');
               expect(toolExecutionSpan!.status).toBe('ok');
               expect(toolExecutionSpan!.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
+              expect(toolExecutionSpan!.attributes['sentry.origin'].value).toBe(expectedOrigin);
               expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE].value).toBe('getWeather');
               expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE].value).toBe('call-1');
               expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_TYPE_ATTRIBUTE].value).toBe('function');
@@ -169,7 +176,9 @@ describe('Vercel AI integration (V5)', () => {
               const firstGenerateContentSpan = container.items.find(
                 span =>
                   span.name === 'generate_content mock-model-id' &&
-                  span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value?.includes('First span here!'),
+                  getStringAttributeValue(span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                    'First span here!',
+                  ),
               );
               expect(firstGenerateContentSpan).toBeDefined();
               expect(firstGenerateContentSpan!.name).toBe('generate_content mock-model-id');
@@ -200,7 +209,9 @@ describe('Vercel AI integration (V5)', () => {
               const secondGenerateContentSpan = container.items.find(
                 span =>
                   span.name === 'generate_content mock-model-id' &&
-                  span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Second span here!'),
+                  getStringAttributeValue(span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                    'Second span here!',
+                  ),
               );
               expect(secondGenerateContentSpan).toBeDefined();
               expect(secondGenerateContentSpan!.name).toBe('generate_content mock-model-id');
@@ -266,6 +277,9 @@ describe('Vercel AI integration (V5)', () => {
         let errorEvent: Event | undefined;
 
         await createRunner()
+          // The tool error is captured while the tool is running (mid-transaction), so the error event
+          // and the transaction/span envelopes can arrive in either order — assert content, not wire order.
+          .unordered()
           .expect({
             transaction: transaction => {
               transactionEvent = transaction;
@@ -290,6 +304,7 @@ describe('Vercel AI integration (V5)', () => {
               expect(toolSpan!.name).toBe('execute_tool getWeather');
               expect(toolSpan!.status).toBe('error');
               expect(toolSpan!.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
+              expect(toolSpan!.attributes['sentry.origin'].value).toBe(expectedOrigin);
               expect(toolSpan!.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE].value).toBe('getWeather');
             },
           })

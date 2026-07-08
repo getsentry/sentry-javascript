@@ -51,13 +51,16 @@ export function instrumentDurableObjectWithSentry<
   C extends new (state: DurableObjectState, env: E) => T,
 >(optionsCallback: (env: E) => CloudflareOptions, DurableObjectClass: C): C {
   return new Proxy(DurableObjectClass, {
-    construct(target, [ctx, env]) {
+    construct(target, [ctx, env], newTarget) {
       setAsyncLocalStorageAsyncContextStrategy();
       const context = instrumentContext(ctx);
       const options = getFinalOptions(optionsCallback(env), env);
       const instrumentedEnv = instrumentEnv(env, options);
 
-      const obj = new target(context, instrumentedEnv);
+      // Pass `newTarget` so that subclasses of the instrumented class (e.g. the wrapper classes
+      // created by wrangler's local dev tooling or `@cloudflare/vitest-pool-workers`) keep their
+      // own prototype — otherwise subclass methods disappear and `instanceof` checks break.
+      const obj = Reflect.construct(target, [context, instrumentedEnv], newTarget) as T;
 
       // These are the methods that are available on a Durable Object
       // ref: https://developers.cloudflare.com/durable-objects/api/base/

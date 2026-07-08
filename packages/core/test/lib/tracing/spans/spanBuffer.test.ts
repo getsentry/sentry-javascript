@@ -48,6 +48,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan1,
     });
 
@@ -59,6 +60,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan2,
     });
 
@@ -82,6 +84,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan1,
     };
 
@@ -94,6 +97,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan2,
     };
 
@@ -124,6 +128,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan,
     });
 
@@ -137,6 +142,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan,
     });
 
@@ -150,6 +156,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan,
     });
 
@@ -174,6 +181,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan,
     });
 
@@ -198,6 +206,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan1,
     });
 
@@ -209,6 +218,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan2,
     });
 
@@ -232,6 +242,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan1,
     });
 
@@ -243,6 +254,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan2,
     });
 
@@ -275,6 +287,7 @@ describe('SpanBuffer', () => {
         end_timestamp: Date.now() / 1000,
         status: 'ok',
         is_segment: false,
+        attributes: {},
         _segmentSpan: segmentSpan,
         ...overrides,
       };
