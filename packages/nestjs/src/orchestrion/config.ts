@@ -1,4 +1,4 @@
-import type { FunctionKind, InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { FunctionKind, InstrumentationConfig } from '@sentry/server-utils/orchestrion';
 
 /**
  * Wrap an instrumentation that targets nodes via a raw esquery selector
@@ -29,16 +29,18 @@ export const nestjsConfig = [
     module: { name: '@nestjs/core', versionRange: '>=8.0.0 <12', filePath: 'nest-factory.js' },
     functionQuery: { className: 'NestFactoryStatic', methodName: 'create', kind: 'Async' },
   },
+
   {
     // `@nestjs/core/router/router-execution-context.js` exports
     // `class RouterExecutionContext` with a synchronous `create(instance,
     // callback, ...)` that RETURNS the per-request handler. The subscriber
-    // wraps the `callback` arg (-> one handler span) and reassigns the returned
-    // handler (-> request_context span).
+    // wraps the `callback` arg (-> one handler span) and reassigns the
+    // returned handler (-> request_context span).
     channelName: 'routerExecutionContextCreate',
     module: { name: '@nestjs/core', versionRange: '>=8.0.0 <12', filePath: 'router/router-execution-context.js' },
     functionQuery: { className: 'RouterExecutionContext', methodName: 'create', kind: 'Sync' },
   },
+
   astQueryInstrumentation({
     // `@nestjs/common/decorators/core/injectable.decorator.js`:
     //   `function Injectable(options) { return (target) => { ... }; }`
@@ -57,6 +59,7 @@ export const nestjsConfig = [
     astQuery: 'FunctionDeclaration[id.name="Injectable"] ReturnStatement > ArrowFunctionExpression',
     functionQuery: { kind: 'Sync' },
   }),
+
   astQueryInstrumentation({
     // `@nestjs/common/decorators/core/catch.decorator.js`:
     //   `function Catch(...exceptions) { return (target) => { ... }; }`
@@ -70,14 +73,17 @@ export const nestjsConfig = [
     astQuery: 'FunctionDeclaration[id.name="Catch"] ReturnStatement > ArrowFunctionExpression',
     functionQuery: { kind: 'Sync' },
   }),
-  // @nestjs/schedule @Cron/@Interval/@Timeout: `function Cron(...) { return
-  // applyDecorators(...); }` — the returned decorator has no inline arrow to
-  // target, so we match the factory function and reassign `data.result` in `end`
+
+  // @nestjs/schedule @Cron/@Interval/@Timeout:
+  // `function Cron(...) { return applyDecorators(...); }`
+  //
+  // The returned decorator has no inline arrow to target, so we match the
+  // factory function and reassign `data.result` in `end`
   // to wrap the decorator it returns (which rewrites the user handler
   // `descriptor.value` with isolation-scope + error capture). Mirrors
-  // `SentryNestScheduleInstrumentation`, whose supported range (`>=2.0.0`) we
-  // match so opting in doesn't drop coverage the OTel path had. The compiled
-  // `function Cron(...)` declaration is unchanged across 2.x–5.x.
+  // `SentryNestScheduleInstrumentation`, whose supported range (`>=2.0.0`)
+  // we match so opting in doesn't drop coverage the OTel path had. The
+  // compiled `function Cron(...)` declaration is unchanged across 2.x–5.x.
   {
     channelName: 'cronDecorator',
     module: { name: '@nestjs/schedule', versionRange: '>=2.0.0', filePath: 'dist/decorators/cron.decorator.js' },
@@ -109,13 +115,16 @@ export const nestjsConfig = [
     },
     functionQuery: { expressionName: 'OnEvent', kind: 'Sync' },
   },
+
   {
-    // @nestjs/bullmq @Processor: `function Processor(...) { return (target) => {…}; }`
-    // The factory arg carries the queue name, so we match the factory and reassign
-    // `data.result` in `end` to wrap the returned class decorator (which patches
-    // `target.prototype.process`). Mirrors `SentryNestBullMQInstrumentation`
-    // (`>=10.0.0`); the `function Processor(...)` declaration is unchanged across
-    // 10.x–11.x.
+    // @nestjs/bullmq @Processor:
+    // `function Processor(...) { return (target) => {…}; }`
+    // The factory arg carries the queue name, so we match the factory and
+    // reassign `data.result` in `end` to wrap the returned class decorator
+    // (which patches `target.prototype.process`).
+    //
+    // Mirrors `SentryNestBullMQInstrumentation` (`>=10.0.0`); the
+    // `function Processor(...)` declaration is unchanged across 10.x–11.x.
     channelName: 'processorDecorator',
     module: {
       name: '@nestjs/bullmq',

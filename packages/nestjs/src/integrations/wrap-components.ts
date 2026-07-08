@@ -1,130 +1,21 @@
-import type { Span, SpanAttributes } from '@sentry/core';
-import {
-  addNonEnumerableProperty,
-  getActiveSpan,
-  isThenable,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-  startSpan,
-  startSpanManual,
-  withActiveSpan,
-} from '@sentry/core';
-import type { AnyFn } from './nestjs-shared';
-
-const OP_MIDDLEWARE = 'middleware.nestjs';
-const ORIGIN_MIDDLEWARE = 'auto.middleware.orchestrion.nestjs';
-
-/** The class an `@Injectable` decorator is applied to (`ctx.arguments[0]`). */
-export interface InjectableTarget {
-  name?: string;
-  sentryPatchedInjectable?: boolean;
-  __SENTRY_INTERNAL__?: boolean;
-  prototype: {
-    use?: AnyFn;
-    canActivate?: AnyFn;
-    transform?: AnyFn;
-    intercept?: AnyFn;
-  };
-}
-
-/** The class a `@Catch` decorator is applied to (an exception filter). */
-export interface CatchTarget {
-  name?: string;
-  sentryPatchedCatch?: boolean;
-  __SENTRY_INTERNAL__?: boolean;
-  prototype: { catch?: AnyFn };
-}
-
-interface NestCallHandler {
-  handle: AnyFn;
-}
-
-interface SubscriptionLike {
-  add: (teardown: () => void) => void;
-}
-
-interface ObservableLike {
-  subscribe: AnyFn;
-}
+import type { Span } from '@sentry/core';
+import { getActiveSpan, isThenable, startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sentry/core';
+import type { AnyFn } from './helpers';
+import { getMiddlewareSpanOptions, getNextProxy, instrumentObservable, isTargetPatched } from './helpers';
+import type { CallHandler, CatchTarget, InjectableTarget, MinimalNestJsExecutionContext, Observable } from './types';
 
 /**
- * Mark a target class as patched (for the given pass) so it's instrumented only
- * once, and to stay idempotent across repeated subscriptions.
- *
- * The `@Injectable` and `@Catch` passes use *separate* flags on purpose: they
- * wrap disjoint method sets (use/canActivate/transform/intercept vs catch), and
- * a class can be decorated with both (an exception filter that also uses DI).
- * A single shared flag would let whichever channel fired first latch it and
- * block the other pass, dropping that pass's spans regardless of ordering.
+ * Shared span-emitting logic for `@Injectable` (middleware/guard/pipe/interceptor)
+ * and `@Catch` (exception filter) classes. Used by both the OTel decorator wraps
+ * (`SentryNestInstrumentation`) and the orchestrion channel subscriber; only the
+ * span origin differs (via `isOrchestrionInjected()` in `./helpers`).
  */
-function isTargetPatched(target: object, flag: 'sentryPatchedInjectable' | 'sentryPatchedCatch'): boolean {
-  if ((target as Record<string, unknown>)[flag]) {
-    return true;
-  }
-  addNonEnumerableProperty(target, flag, true);
-  return false;
-}
-
-/**
- * Span options for middleware/guard/pipe/interceptor spans
- * name = provided name or class name.
- */
-function getMiddlewareSpanOptions(
-  target: { name?: string },
-  name?: string,
-  componentType?: string,
-): { name: string; attributes: SpanAttributes } {
-  return {
-    name: name ?? target.name ?? 'unknown',
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: OP_MIDDLEWARE,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: componentType ? `${ORIGIN_MIDDLEWARE}.${componentType}` : ORIGIN_MIDDLEWARE,
-    },
-  };
-}
-
-/**
- * Proxy a middleware `next()` so the span ends when `next` is called, then
- * restore the previous active span for the continuation.
- */
-function getNextProxy(next: AnyFn, span: Span, prevSpan: Span | undefined): AnyFn {
-  return new Proxy(next, {
-    apply: (originalNext, thisArgNext, argsNext) => {
-      span.end();
-      if (prevSpan) {
-        return withActiveSpan(prevSpan, () => Reflect.apply(originalNext, thisArgNext, argsNext));
-      }
-      return Reflect.apply(originalNext, thisArgNext, argsNext);
-    },
-  });
-}
-
-/**
- * End the given span when the interceptor's returned observable is
- * unsubscribed (i.e. the response is sent), keeping it active across the
- * subscription.
- */
-function instrumentObservable(observable: ObservableLike, activeSpan: Span | undefined): void {
-  if (!activeSpan) {
-    return;
-  }
-  observable.subscribe = new Proxy(observable.subscribe, {
-    apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
-      return withActiveSpan(activeSpan, () => {
-        const subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe) as SubscriptionLike;
-        subscription.add(() => activeSpan.end());
-        return subscription;
-      });
-    },
-  });
-}
 
 function patchInterceptor(target: InjectableTarget, intercept: AnyFn, seenContexts: WeakSet<object>): AnyFn {
   return new Proxy(intercept, {
     apply: (originalIntercept, thisArg, argsIntercept) => {
-      const context = argsIntercept[0] as object | undefined;
-      const next = argsIntercept[1] as NestCallHandler | undefined;
+      const context = argsIntercept[0] as MinimalNestJsExecutionContext | undefined;
+      const next = argsIntercept[1] as CallHandler | undefined;
       const parentSpan = getActiveSpan();
       let afterSpan: Span | undefined;
 
@@ -141,6 +32,7 @@ function patchInterceptor(target: InjectableTarget, intercept: AnyFn, seenContex
         // `next.handle()` is the boundary between the "before" and "after"
         // interceptor work: end the before-span and open the after-span (once
         // per execution context), which `instrumentObservable` later closes.
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         next.handle = new Proxy(next.handle, {
           apply: (originalHandle, thisArgHandle, argsHandle) => {
             beforeSpan.end();
@@ -172,7 +64,7 @@ function patchInterceptor(target: InjectableTarget, intercept: AnyFn, seenContex
           return returned.then(
             (observable: unknown) => {
               if (afterSpan) {
-                instrumentObservable(observable as ObservableLike, afterSpan);
+                instrumentObservable(observable as Observable<unknown>, afterSpan);
               } else {
                 // `next.handle()` was never called, so nothing ended the
                 // before-span (its `handle` proxy never ran); close it here.
@@ -199,8 +91,8 @@ function patchInterceptor(target: InjectableTarget, intercept: AnyFn, seenContex
         }
 
         // sync interceptor: returns an Observable
-        if (typeof (returned as ObservableLike).subscribe === 'function') {
-          instrumentObservable(returned as ObservableLike, afterSpan);
+        if (typeof (returned as Observable<unknown>).subscribe === 'function') {
+          instrumentObservable(returned as Observable<unknown>, afterSpan);
         }
 
         return returned;
@@ -210,12 +102,10 @@ function patchInterceptor(target: InjectableTarget, intercept: AnyFn, seenContex
 }
 
 /**
- * Port the vendored `@Injectable` instrumentation
- * patch the decorated class's prototype methods so each runtime
+ * Patch an `@Injectable`-decorated class's prototype methods so each runtime
  * invocation opens the corresponding middleware/guard/pipe/interceptor span.
  * The runtime guards (req/res/next, context, value+metadata) avoid false
- * positives on non-middleware classes that happen to expose a same-named
- * method.
+ * positives on non-middleware classes that happen to expose a same-named method.
  */
 export function patchInjectableTarget(target: InjectableTarget, seenContexts: WeakSet<object>): void {
   const proto = target?.prototype;
@@ -235,10 +125,10 @@ export function patchInjectableTarget(target: InjectableTarget, seenContexts: We
         return startSpanManual(getMiddlewareSpanOptions(target), (span: Span) => {
           const nextProxy = getNextProxy(next as AnyFn, span, prevSpan);
           const rest = (argsUse as unknown[]).slice(3);
-          return originalUse.apply(thisArgUse, [req, res, nextProxy, ...rest]);
+          return (originalUse as AnyFn).apply(thisArgUse, [req, res, nextProxy, ...rest]);
         });
       },
-    });
+    }) as InjectableTarget['prototype']['use'];
   }
 
   // guards
@@ -252,7 +142,7 @@ export function patchInjectableTarget(target: InjectableTarget, seenContexts: We
           originalCanActivate.apply(thisArg, args),
         );
       },
-    });
+    }) as InjectableTarget['prototype']['canActivate'];
   }
 
   // pipes
@@ -266,19 +156,23 @@ export function patchInjectableTarget(target: InjectableTarget, seenContexts: We
           originalTransform.apply(thisArg, args),
         );
       },
-    });
+    }) as InjectableTarget['prototype']['transform'];
   }
 
   // interceptors
   if (typeof proto.intercept === 'function') {
-    proto.intercept = patchInterceptor(target, proto.intercept, seenContexts);
+    proto.intercept = patchInterceptor(
+      target,
+      proto.intercept as AnyFn,
+      seenContexts,
+    ) as InjectableTarget['prototype']['intercept'];
   }
 }
 
 /**
- * Port the vendored `@Catch` instrumentation. Patch the exception filter's
- * prototype `catch` so each invocation opens an `exception_filter` span. The
- * runtime guard (exception + host present) avoids false positives.
+ * Patch an exception filter's prototype `catch` so each invocation opens an
+ * `exception_filter` span. The runtime guard (exception + host present) avoids
+ * false positives.
  */
 export function patchCatchTarget(target: CatchTarget): void {
   const proto = target?.prototype;
@@ -300,5 +194,5 @@ export function patchCatchTarget(target: CatchTarget): void {
         originalCatch.apply(thisArg, args),
       );
     },
-  });
+  }) as CatchTarget['prototype']['catch'];
 }

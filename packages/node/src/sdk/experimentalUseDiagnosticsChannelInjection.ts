@@ -1,5 +1,6 @@
 import {
   channelIntegrations,
+  getChannelIntegrations,
   ioredisChannelIntegration,
   redisChannelIntegration,
   detectOrchestrionSetup,
@@ -47,8 +48,10 @@ export function diagnosticsChannelInjectionIntegrations(): typeof channelIntegra
  */
 export function experimentalUseDiagnosticsChannelInjection(): void {
   setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
-    // The registry integrations 1:1 replace the OTel integration of the same name.
-    const integrations = Object.values(channelIntegrations).map(createIntegration => createIntegration());
+    // The registry integrations 1:1 replace the OTel integration of the same name. `getChannelIntegrations()`
+    // includes any externally-injected ones (e.g. `@sentry/nestjs`'s `Nest`), which must have registered
+    // before `init()` runs this loader — `@sentry/nestjs`'s `init()` does so before calling `nodeInit()`.
+    const integrations = getChannelIntegrations().map(createIntegration => createIntegration());
     const replacedOtelIntegrationNames = integrations.map(i => i.name);
 
     return {

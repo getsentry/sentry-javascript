@@ -22,7 +22,7 @@ import {
   onUnhandledRejectionIntegration,
   processSessionIntegration,
 } from '@sentry/node';
-import { channelIntegrations, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
+import { getChannelIntegrations, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
@@ -31,8 +31,8 @@ import type { BunOptions } from './types';
  * The orchestrion channel-subscriber integrations, listening on the diagnostics
  * channels that `@sentry/bun/plugin` injects at build time.
  */
-function getChannelIntegrations(): Integration[] {
-  return Object.values(channelIntegrations).map(integrationFactory => integrationFactory());
+function getChannelIntegrationInstances(): Integration[] {
+  return getChannelIntegrations().map(integrationFactory => integrationFactory());
 }
 
 /**
@@ -53,7 +53,7 @@ function getPerformanceIntegrations(options: Options): Integration[] {
     return autoPerformanceIntegrations;
   }
 
-  const channelIntegrationInstances = getChannelIntegrations();
+  const channelIntegrationInstances = getChannelIntegrationInstances();
   // The OTel integrations these channel subscribers replace, keyed by the name they share with them.
   const replacedOtelIntegrationNames = new Set(channelIntegrationInstances.map(integration => integration.name));
 
