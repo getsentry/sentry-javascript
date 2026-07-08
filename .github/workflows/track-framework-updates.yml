@@ -43,7 +43,7 @@ jobs:
 
       - name: Run Claude digest
         id: digest
-        uses: anthropics/claude-code-action@24492741e0ccfdef4c1d19da8e11e0f373d07494 # v1
+        uses: anthropics/claude-code-action@fad22eb3fa582b7357fc0ea48af6645851b884fd # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
