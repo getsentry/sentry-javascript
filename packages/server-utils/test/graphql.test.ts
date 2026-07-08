@@ -194,9 +194,11 @@ describe('graphqlChannelIntegration', () => {
     const executeSpan = findSpan('query GetHello');
     expect(executeSpan).toBeDefined();
     const json = spanToJSON(executeSpan!);
-    expect(json.origin).toBe('auto.graphql.orchestrion.graphql');
+    expect(json.origin).toBe('auto.graphql.diagnostic_channel');
+    expect(json.op).toBe('graphql');
     expect(json.data['graphql.operation.type']).toBe('query');
     expect(json.data['graphql.operation.name']).toBe('GetHello');
+    expect(json.data['graphql.document']).toBe('query GetHello { hello }');
   });
 
   it('names the execute span by operation type only when the operation is unnamed', async () => {
@@ -207,13 +209,6 @@ describe('graphqlChannelIntegration', () => {
     });
 
     expect(findSpan('query')).toBeDefined();
-  });
-
-  it('renames the parse span for a schema document (no operation)', () => {
-    tracedParse('type Query { hello: String }');
-
-    expect(findSpan('graphql.parseSchema')).toBeDefined();
-    expect(findSpan('graphql.parse')).toBeUndefined();
   });
 
   it('creates resolver spans nested under the execute span when enabled', async () => {
@@ -229,11 +224,13 @@ describe('graphqlChannelIntegration', () => {
     const resolveSpan = findSpan('graphql.resolve hello');
     expect(resolveSpan).toBeDefined();
     expect(spanToJSON(resolveSpan!).parent_span_id).toBe(executeSpanId);
-    // Attribute keys must match the OTel integration verbatim (dashboards/tests key off these).
-    const resolveData = spanToJSON(resolveSpan!).data;
-    expect(resolveData['graphql.field.name']).toBe('hello');
-    expect(resolveData['graphql.field.path']).toBe('hello');
-    expect(resolveData['graphql.parent.name']).toBe('Query');
+    // Resolver spans carry the same origin/op/field attributes as the native subscriber.
+    const resolveJson = spanToJSON(resolveSpan!);
+    expect(resolveJson.origin).toBe('auto.graphql.diagnostic_channel');
+    expect(resolveJson.data['graphql.field.name']).toBe('hello');
+    expect(resolveJson.data['graphql.field.path']).toBe('hello');
+    expect(resolveJson.data['graphql.field.type']).toBe('String');
+    expect(resolveJson.data['graphql.parent.name']).toBe('Query');
   });
 
   it('marks the execute span as errored when the result contains errors', async () => {
@@ -308,28 +305,17 @@ describe('graphqlChannelIntegration', () => {
     expect(spanToJSON(findSpan('query')!).status).toBe('execute failed');
   });
 
-  it('folds operationName into the span attribute when no operation definition resolves', () => {
+  it('falls back to the graphql.execute span name when no operation definition resolves', () => {
     const schema = buildSchema();
     // A fragment-only document has no operation definition, so `getOperation` returns undefined.
     const document = tracedParse('fragment Frag on Query { hello }');
 
-    tracedExecuteStub({ schema, document, operationName: 'Foo' });
+    tracedExecuteStub({ schema, document });
 
     const span = findSpan('graphql.execute');
     expect(span).toBeDefined();
-    expect(spanToJSON(span!).data['graphql.operation.name']).toBe('Operation "Foo" not supported');
-  });
-
-  it('never leaks the $operationName$ placeholder when there is no document', () => {
-    const schema = buildSchema();
-
-    tracedExecuteStub({ schema });
-
-    const span = findSpan('graphql.execute');
-    expect(span).toBeDefined();
-    const name = spanToJSON(span!).data['graphql.operation.name'];
-    expect(name).not.toContain('$operationName$');
-    expect(name).toBe('Operation not supported');
+    expect(spanToJSON(span!).data['graphql.operation.type']).toBeUndefined();
+    expect(spanToJSON(span!).data['graphql.operation.name']).toBeUndefined();
   });
 
   it('does not re-wrap resolvers for a nested execute reusing the same contextValue', async () => {

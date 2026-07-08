@@ -1,16 +1,30 @@
 /*
- * Resolver-span wrapping and GraphQL source extraction. Ported verbatim (minus the OTel tracer) from
- * `@opentelemetry/instrumentation-graphql`'s `utils.ts` (upstream 0.66.0). Span shapes are preserved
- * so resolver spans match the OTel integration's output.
- *
- * These run under the execute channel's `start`: the schema's field resolvers are swapped for
- * span-creating proxies (the "consumer trick" — the transform can't target user resolvers, but
- * `execute` receives the schema, so we mutate it before the wrapped call runs).
+ * Resolver-span wrapping for the orchestrion graphql path. graphql v14–16 publishes no per-field
+ * `resolve` channel (unlike v17's native one), so the schema's field resolvers are swapped for
+ * span-creating proxies under the execute channel's `start` (the "consumer trick" — the transform
+ * can't target user resolvers, but `execute` receives the schema, so we mutate it before the wrapped
+ * call runs). Resolver spans use the same origin/op/field attributes as the native subscriber.
  */
 
+import { WEB_SERVER_GRAPHQL_SPAN_OP } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
-import { AttributeNames, GRAPHQL_DATA_SYMBOL, GRAPHQL_PATCHED_SYMBOL, SpanNames, TokenKind } from './constants';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  withActiveSpan,
+} from '@sentry/core';
+import {
+  GRAPHQL_DATA_SYMBOL,
+  GRAPHQL_FIELD_NAME,
+  GRAPHQL_FIELD_PATH,
+  GRAPHQL_FIELD_TYPE,
+  GRAPHQL_PARENT_NAME,
+  GRAPHQL_PATCHED_SYMBOL,
+  ORIGIN,
+  SPAN_NAME_RESOLVE,
+} from './constants';
 import type {
   DefinitionNode,
   DocumentNode,
@@ -22,14 +36,10 @@ import type {
   GraphQLType,
   GraphQLUnionType,
   GraphqlResolvedConfig,
-  Location,
   Maybe,
   ObjectWithGraphQLData,
   Patched,
-  Token,
 } from './types';
-
-const KINDS_TO_REMOVE: string[] = [TokenKind.FLOAT, TokenKind.STRING, TokenKind.INT, TokenKind.BLOCK_STRING];
 
 function isPromise(value: unknown): value is Promise<unknown> {
   return typeof (value as { then?: unknown } | undefined)?.then === 'function';
@@ -37,60 +47,6 @@ function isPromise(value: unknown): value is Promise<unknown> {
 
 function isObjectLike(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
-}
-
-export function addSpanSource(span: Span, loc?: Location, start?: number, end?: number): void {
-  span.setAttribute(AttributeNames.SOURCE, getSourceFromLocation(loc, start, end));
-}
-
-/**
- * Reconstructs the (redacted) GraphQL source string for a location by walking the token stream, with
- * literal values (strings/numbers) replaced by `*` so query data doesn't leak into span attributes.
- */
-export function getSourceFromLocation(loc?: Location, inputStart?: number, inputEnd?: number): string {
-  let source = '';
-
-  if (!loc?.startToken) {
-    return source;
-  }
-
-  const start = typeof inputStart === 'number' ? inputStart : loc.start;
-  const end = typeof inputEnd === 'number' ? inputEnd : loc.end;
-
-  let next: Token | null = loc.startToken.next;
-  let previousLine = 1;
-  while (next) {
-    if (next.start < start || next.end > end) {
-      next = next.next;
-      previousLine = next?.line ?? previousLine;
-      continue;
-    }
-
-    let value = next.value || next.kind;
-    let space = '';
-    if (KINDS_TO_REMOVE.indexOf(next.kind) >= 0) {
-      value = '*';
-    }
-    if (next.kind === TokenKind.STRING) {
-      value = `"${value}"`;
-    }
-    if (next.kind === TokenKind.EOF) {
-      value = '';
-    }
-
-    if (next.line > previousLine) {
-      source += '\n'.repeat(next.line - previousLine);
-      previousLine = next.line;
-      space = ' '.repeat(next.column - 1);
-    } else if (next.line === next.prev?.line) {
-      space = ' '.repeat(next.start - (next.prev?.end || 0));
-    }
-
-    source += space + value;
-    next = next.next;
-  }
-
-  return source;
 }
 
 /**
@@ -218,33 +174,22 @@ function createFieldIfNotExists(
     return { field: existing, spanAdded: false };
   }
 
-  const field = { span: createResolverSpan(contextValue, info, path, getParentFieldSpan(contextValue, path)) };
+  const field = { span: createResolverSpan(info, path, getParentFieldSpan(contextValue, path)) };
   addField(contextValue, path, field);
   return { field, spanAdded: true };
 }
 
-function createResolverSpan(
-  contextValue: ObjectWithGraphQLData,
-  info: GraphQLResolveInfo,
-  path: string[],
-  parentSpan?: Span,
-): Span {
+function createResolverSpan(info: GraphQLResolveInfo, path: string[], parentSpan?: Span): Span {
   const attributes: SpanAttributes = {
-    [AttributeNames.FIELD_NAME]: info.fieldName,
-    [AttributeNames.FIELD_PATH]: path.join('.'),
-    [AttributeNames.FIELD_TYPE]: info.returnType.toString(),
-    [AttributeNames.PARENT_NAME]: info.parentType.name,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+    [GRAPHQL_FIELD_NAME]: info.fieldName,
+    [GRAPHQL_FIELD_PATH]: path.join('.'),
+    [GRAPHQL_FIELD_TYPE]: info.returnType.toString(),
+    [GRAPHQL_PARENT_NAME]: info.parentType.name,
   };
 
-  const span = startInactiveSpan({ name: `${SpanNames.RESOLVE} ${path.join('.')}`, attributes, parentSpan });
-
-  const document = contextValue[GRAPHQL_DATA_SYMBOL]?.source;
-  const fieldNode = info.fieldNodes.find(node => node.kind === 'Field');
-  if (document && fieldNode) {
-    addSpanSource(span, document.loc, fieldNode.loc?.start, fieldNode.loc?.end);
-  }
-
-  return span;
+  return startInactiveSpan({ name: `${SPAN_NAME_RESOLVE} ${path.join('.')}`, attributes, parentSpan });
 }
 
 function addField(contextValue: ObjectWithGraphQLData, path: string[], field: { span: Span }): void {

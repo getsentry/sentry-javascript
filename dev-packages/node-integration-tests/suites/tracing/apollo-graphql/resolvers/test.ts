@@ -58,11 +58,11 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
     spans: expect.arrayContaining([
       expect.objectContaining({
         description: 'query',
-        origin: 'auto.graphql.orchestrion.graphql',
+        origin: 'auto.graphql.diagnostic_channel',
         data: expect.objectContaining({
           'graphql.operation.type': 'query',
-          'graphql.source': '{hello}',
-          'sentry.origin': 'auto.graphql.orchestrion.graphql',
+          'graphql.document': '{hello}',
+          'sentry.origin': 'auto.graphql.diagnostic_channel',
         }),
       }),
       expect.objectContaining({ description: 'graphql.parse' }),

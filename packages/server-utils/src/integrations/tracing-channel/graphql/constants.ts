@@ -1,40 +1,26 @@
 /*
- * Constants ported from `@opentelemetry/instrumentation-graphql`, kept OTel-free.
- * Span names/attribute names are preserved verbatim so spans match the OTel integration's output
- * (existing tests, dashboards, and the SDK's span-description parsing all key off these).
+ * These mirror the constants in `@sentry/server-utils`'s native graphql subscriber
+ * (`src/graphql/graphql-dc-subscriber.ts`) so the orchestrion path (graphql v14–16) and the native
+ * `diagnostics_channel` path (graphql >= 17) emit identical spans — same origin, span names and
+ * field-attribute keys. `graphql.document`/`graphql.operation.*` and the span `op` come from
+ * `@sentry/conventions` directly and are imported where used.
  */
 
-export const enum SpanNames {
-  EXECUTE = 'graphql.execute',
-  PARSE = 'graphql.parse',
-  RESOLVE = 'graphql.resolve',
-  VALIDATE = 'graphql.validate',
-  SCHEMA_VALIDATE = 'graphql.validateSchema',
-  SCHEMA_PARSE = 'graphql.parseSchema',
-}
+export const ORIGIN = 'auto.graphql.diagnostic_channel';
 
-// graphql `source`/`field.*`/`parent.*` are OTel-specific keys preserved verbatim for span parity.
-// `graphql.operation.{name,type}` and `sentry.graphql.operation` come from `@sentry/conventions/attributes` instead
-export const enum AttributeNames {
-  SOURCE = 'graphql.source',
-  FIELD_NAME = 'graphql.field.name',
-  FIELD_PATH = 'graphql.field.path',
-  FIELD_TYPE = 'graphql.field.type',
-  PARENT_NAME = 'graphql.parent.name',
-}
+export const SPAN_NAME_PARSE = 'graphql.parse';
+export const SPAN_NAME_VALIDATE = 'graphql.validate';
+export const SPAN_NAME_EXECUTE = 'graphql.execute';
+export const SPAN_NAME_RESOLVE = 'graphql.resolve';
 
-export const enum TokenKind {
-  STRING = 'String',
-  INT = 'Int',
-  FLOAT = 'Float',
-  BLOCK_STRING = 'BlockString',
-  EOF = '<EOF>',
-}
+// Field-level resolver-span attributes; not in `@sentry/conventions`.
+export const GRAPHQL_FIELD_NAME = 'graphql.field.name';
+export const GRAPHQL_FIELD_PATH = 'graphql.field.path';
+export const GRAPHQL_FIELD_TYPE = 'graphql.field.type';
+export const GRAPHQL_PARENT_NAME = 'graphql.parent.name';
 
-export const ORIGIN = 'auto.graphql.orchestrion.graphql';
-
-// `Symbol.for` keys are shared with any co-resident OTel graphql instrumentation on purpose: the two
-// paths are mutually exclusive at runtime, and reusing the key keeps nested-execute detection and
-// resolver parenting consistent if both ever load.
+// `Symbol.for` keys shared with any co-resident OTel graphql instrumentation on purpose: the paths are
+// mutually exclusive at runtime, and reusing the key keeps nested-execute detection and resolver
+// parenting consistent if both ever load.
 export const GRAPHQL_DATA_SYMBOL = Symbol.for('opentelemetry.graphql_data');
 export const GRAPHQL_PATCHED_SYMBOL = Symbol.for('opentelemetry.patched');

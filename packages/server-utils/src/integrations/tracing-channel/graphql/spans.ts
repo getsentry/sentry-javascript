@@ -1,29 +1,30 @@
 /*
- * Span builders for the graphql parse/validate/execute channels. Ported from the private methods of
- * `@opentelemetry/instrumentation-graphql`'s `GraphQLInstrumentation` (upstream 0.66.0), with the OTel
- * tracer replaced by the `@sentry/core` span API. Span names/attributes/origin are preserved so the
- * emitted spans are identical to the OTel integration's.
+ * Span builders for the orchestrion graphql channels (v14–16). They emit the same spans as the native
+ * `diagnostics_channel` subscriber (`../../../graphql/graphql-dc-subscriber.ts`, graphql >= 17) by
+ * reusing its `utils` and conventions — only the data source differs: here the payloads are the raw
+ * arguments of the injected `parse`/`validate`/`execute` calls rather than graphql's native events.
  */
 
-import type { Span, SpanAttributeValue } from '@sentry/core';
+import { GRAPHQL_DOCUMENT, GRAPHQL_OPERATION_NAME, GRAPHQL_OPERATION_TYPE } from '@sentry/conventions/attributes';
+import { WEB_SERVER_GRAPHQL_SPAN_OP } from '@sentry/conventions/op';
+import type { Span } from '@sentry/core';
 import {
-  getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
-  spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
+import type { GraphqlDocumentNode } from '../../../graphql/utils';
 import {
-  GRAPHQL_OPERATION_NAME,
-  GRAPHQL_OPERATION_TYPE,
-  SENTRY_GRAPHQL_OPERATION,
-} from '@sentry/conventions/attributes';
-import { GRAPHQL_DATA_SYMBOL, ORIGIN, SpanNames } from './constants';
-import { addSpanSource, getOperation, wrapFields, wrapFieldResolver } from './resolvers';
+  getOperationSpanName,
+  hasResultErrors,
+  redactGraphqlDocument,
+  renameRootSpanWithOperation,
+} from '../../../graphql/utils';
+import { GRAPHQL_DATA_SYMBOL, ORIGIN, SPAN_NAME_EXECUTE, SPAN_NAME_PARSE, SPAN_NAME_VALIDATE } from './constants';
+import { getOperation, wrapFields, wrapFieldResolver } from './resolvers';
 import type {
-  DefinitionNode,
   DocumentNode,
-  ExecutionResult,
   GraphQLFieldResolver,
   GraphQLSchema,
   GraphqlResolvedConfig,
@@ -31,7 +32,29 @@ import type {
   ObjectWithGraphQLData,
 } from './types';
 
-const OPERATION_NOT_SUPPORTED = 'Operation$operationName$not supported';
+const BASE_ATTRIBUTES = {
+  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+} as const;
+
+export function startParseSpan(): Span {
+  return startInactiveSpan({ name: SPAN_NAME_PARSE, attributes: { ...BASE_ATTRIBUTES } });
+}
+
+/** `documentAST` is the 2nd argument to `validate(schema, documentAST, …)`. */
+export function startValidateSpan(documentAST: unknown): Span {
+  return startInactiveSpan({
+    name: SPAN_NAME_VALIDATE,
+    attributes: { ...BASE_ATTRIBUTES, [GRAPHQL_DOCUMENT]: redactGraphqlDocument(documentAST as GraphqlDocumentNode) },
+  });
+}
+
+/** `result` is validation's return value: a (possibly empty) array of errors. */
+export function finalizeValidateSpan(span: Span, result: unknown): void {
+  if (Array.isArray(result) && result.length > 0) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'invalid_argument' });
+  }
+}
 
 /** Positional slots of a `graphql.execute(schema, document, …)` call (v14/v15 legacy signature). */
 const enum ExecuteArg {
@@ -40,35 +63,6 @@ const enum ExecuteArg {
   CONTEXT_VALUE = 3,
   OPERATION_NAME = 5,
   FIELD_RESOLVER = 6,
-}
-
-export function startParseSpan(): Span {
-  return startInactiveSpan({ name: SpanNames.PARSE });
-}
-
-export function finalizeParseSpan(span: Span, result: unknown): void {
-  const document = result as (DocumentNode & ObjectWithGraphQLData) | undefined;
-  if (!document) {
-    return;
-  }
-
-  const operation = getOperation(document);
-  if (!operation) {
-    span.updateName(SpanNames.SCHEMA_PARSE);
-  } else if (document.loc) {
-    addSpanSource(span, document.loc);
-  }
-}
-
-export function startValidateSpan(): Span {
-  return startInactiveSpan({ name: SpanNames.VALIDATE });
-}
-
-export function finalizeValidateSpan(span: Span, documentAST: unknown): void {
-  const document = documentAST as DocumentNode | undefined;
-  if (!document?.loc) {
-    span.updateName(SpanNames.SCHEMA_VALIDATE);
-  }
 }
 
 interface NormalizedExecuteArgs {
@@ -82,14 +76,12 @@ interface NormalizedExecuteArgs {
 }
 
 /**
- * Reads the execute arguments from the live channel `arguments` array. `execute` accepts either a
- * single `ExecutionArgs` object (modern callers, always in v16) or positional args (v14/v15). Both
- * are normalized here; `writeBack` puts mutations onto the correct slot so they reach the real call.
+ * `execute` accepts either a single `ExecutionArgs` object (modern callers, always in v16) or
+ * positional args (v14/v15). Both are normalized here; `writeBack` puts mutations onto the correct
+ * slot so they reach the real call.
  */
 function normalizeExecuteArgs(argsArray: unknown[]): NormalizedExecuteArgs {
-  const isPositional = argsArray.length >= 2;
-
-  if (isPositional) {
+  if (argsArray.length >= 2) {
     return {
       schema: argsArray[ExecuteArg.SCHEMA] as GraphQLSchema | undefined,
       document: argsArray[ExecuteArg.DOCUMENT] as DocumentNode | undefined,
@@ -126,8 +118,7 @@ function normalizeExecuteArgs(argsArray: unknown[]): NormalizedExecuteArgs {
 /**
  * Opens the execute span and, unless resolver spans are disabled, swaps the schema's field resolvers
  * (and the default field resolver) for span-creating proxies — mutating the live `arguments` in place
- * so the wrapped `execute` call runs with them. Always returns a span (matching the OTel integration,
- * which creates an execute span even for an unsupported/absent operation); the caller guards against
+ * so the wrapped `execute` call runs with them. Always returns a span; the caller guards against
  * throws (see `safe` in `index.ts`).
  */
 export function startExecuteSpan(
@@ -137,7 +128,7 @@ export function startExecuteSpan(
   getConfig: () => GraphqlResolvedConfig,
 ): Span {
   const args = normalizeExecuteArgs(argsArray);
-  const { schema, document, operationName } = args;
+  const { schema, document } = args;
   let { contextValue, fieldResolver } = args;
 
   // Skip resolver wrapping when disabled or when a parent execute already set up this context
@@ -158,8 +149,25 @@ export function startExecuteSpan(
     }
   }
 
-  const operation = getOperation(document as DocumentNode, operationName);
-  const span = createExecuteSpan(operation, document, operationName);
+  // v14–16 channels carry only the raw args, so derive the operation from the document (native v17
+  // provides `operationType`/`operationName` on the event directly).
+  const operation = getOperation(document as DocumentNode, args.operationName);
+  const operationType = operation?.operation;
+  const operationName = operation?.name?.value ?? args.operationName ?? undefined;
+
+  const span = startInactiveSpan({
+    name: getOperationSpanName(operationType, operationName || undefined, SPAN_NAME_EXECUTE),
+    attributes: {
+      ...BASE_ATTRIBUTES,
+      [GRAPHQL_OPERATION_TYPE]: operationType,
+      [GRAPHQL_OPERATION_NAME]: operationName || undefined,
+      [GRAPHQL_DOCUMENT]: redactGraphqlDocument(document as GraphqlDocumentNode | undefined),
+    },
+  });
+
+  if (config.useOperationNameForRootSpan && operationType) {
+    renameRootSpanWithOperation(span, operationType, operationName || undefined);
+  }
 
   // The resolver proxies read the execute span (and their own bookkeeping) off this symbol.
   contextValue[GRAPHQL_DATA_SYMBOL] = { source: document, span, fields: {} };
@@ -168,102 +176,9 @@ export function startExecuteSpan(
   return span;
 }
 
-function createExecuteSpan(
-  operation: DefinitionNode | undefined,
-  document: DocumentNode | undefined,
-  executeOperationName: Maybe<string>,
-): Span {
-  const span = startInactiveSpan({
-    name: SpanNames.EXECUTE,
-    attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN },
-  });
-
-  if (operation) {
-    const operationType = operation.operation;
-    const operationName = operation.name?.value;
-
-    if (operationType) {
-      span.setAttribute(GRAPHQL_OPERATION_TYPE, operationType);
-    }
-
-    if (operationName) {
-      span.setAttribute(GRAPHQL_OPERATION_NAME, operationName);
-      span.updateName(`${operationType} ${operationName}`);
-    } else if (operationType) {
-      span.updateName(operationType);
-    }
-  } else {
-    // No operation definition resolved. Mirror the OTel instrumentation: fold the caller-supplied
-    // `operationName` into the placeholder (always replacing it, so the raw `$operationName$` template
-    // never leaks into the attribute).
-    const placeholder = executeOperationName ? ` "${executeOperationName}" ` : ' ';
-    span.setAttribute(GRAPHQL_OPERATION_NAME, OPERATION_NOT_SUPPORTED.replace('$operationName$', placeholder));
+/** `result` is the settled `ExecutionResult`; GraphQL errors surface on `result.errors`, not a throw. */
+export function finalizeExecuteSpan(span: Span, result: unknown): void {
+  if (hasResultErrors(result)) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   }
-
-  if (document?.loc) {
-    addSpanSource(span, document.loc);
-  }
-
-  return span;
-}
-
-/**
- * Applies Sentry-specific mutations from the execution result: marks the execute span errored when
- * the result carries errors, and (when enabled) renames the enclosing root span to include the
- * GraphQL operation name(s). `result` is the settled `ExecutionResult`.
- */
-export function finalizeExecuteSpan(span: Span, result: unknown, config: GraphqlResolvedConfig): void {
-  const executionResult = result as ExecutionResult | undefined;
-  if (!executionResult) {
-    return;
-  }
-
-  if (executionResult.errors?.length && !spanToJSON(span).status) {
-    span.setStatus({ code: SPAN_STATUS_ERROR });
-  }
-
-  if (!config.useOperationNameForRootSpan) {
-    return;
-  }
-
-  const attributes = spanToJSON(span).data;
-  const operationType = attributes[GRAPHQL_OPERATION_TYPE];
-  const operationName = attributes[GRAPHQL_OPERATION_NAME];
-  if (!operationType) {
-    return;
-  }
-
-  const rootSpan = getRootSpan(span);
-  const rootSpanAttributes = spanToJSON(rootSpan).data;
-  const existingOperations = rootSpanAttributes[SENTRY_GRAPHQL_OPERATION] || [];
-  const newOperation = operationName ? `${operationType} ${operationName}` : `${operationType}`;
-
-  // Accumulate every operation seen on the root span, then derive BOTH the attribute and the renamed
-  // suffix from the same value — otherwise a pre-existing string attribute would be merged into an
-  // array but the name would still be formatted from the stale string, omitting the current operation.
-  const operations: SpanAttributeValue = Array.isArray(existingOperations)
-    ? [...(existingOperations as string[]), newOperation]
-    : typeof existingOperations === 'string'
-      ? [existingOperations, newOperation]
-      : newOperation;
-  rootSpan.setAttribute(SENTRY_GRAPHQL_OPERATION, operations);
-
-  if (!spanToJSON(rootSpan).data['original-description']) {
-    rootSpan.setAttribute('original-description', spanToJSON(rootSpan).description);
-  }
-  // Important for e.g. @sentry/aws-serverless because this would otherwise overwrite the name again.
-  rootSpan.updateName(
-    `${spanToJSON(rootSpan).data['original-description']} (${getGraphqlOperationNamesFromAttribute(operations)})`,
-  );
-}
-
-function getGraphqlOperationNamesFromAttribute(attr: SpanAttributeValue): string {
-  if (Array.isArray(attr)) {
-    const sorted = attr.slice().sort((a, b) => `${a}`.localeCompare(`${b}`));
-    if (sorted.length <= 5) {
-      return sorted.join(', ');
-    }
-    return `${sorted.slice(0, 5).join(', ')}, +${sorted.length - 5}`;
-  }
-  return `${attr}`;
 }

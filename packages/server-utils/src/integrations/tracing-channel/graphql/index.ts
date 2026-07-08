@@ -2,11 +2,11 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
 import { DEBUG_BUILD } from '../../../debug-build';
+import type { GraphqlDiagnosticChannelsOptions } from '../../../graphql/graphql-dc-subscriber';
 import { CHANNELS } from '../../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../../tracing-channel';
 import {
   finalizeExecuteSpan,
-  finalizeParseSpan,
   finalizeValidateSpan,
   startExecuteSpan,
   startParseSpan,
@@ -14,38 +14,11 @@ import {
 } from './spans';
 import type { GraphqlResolvedConfig } from './types';
 
-// Same name as the OTel integration by design, so enabling injection swaps this in for it.
+// Same name as the OTel/native integration by design, so enabling injection swaps this in for it.
 const INTEGRATION_NAME = 'Graphql' as const;
 
-export interface GraphqlChannelIntegrationOptions {
-  /**
-   * Do not create spans for resolvers.
-   *
-   * Defaults to true.
-   */
-  ignoreResolveSpans?: boolean;
-
-  /**
-   * Don't create spans for the execution of the default resolver on object properties.
-   *
-   * When a resolver function is not defined on the schema for a field, graphql will
-   * use the default resolver which just looks for a property with that name on the object.
-   * If the property is not a function, it's not very interesting to trace.
-   * This option can reduce noise and number of spans created.
-   *
-   * Defaults to true.
-   */
-  ignoreTrivialResolveSpans?: boolean;
-
-  /**
-   * If this is enabled, a http.server root span containing this span will automatically be renamed to include the operation name.
-   * Set this to `false` if you do not want this behavior, and want to keep the default http.server span name.
-   *
-   * Defaults to true.
-   */
-  useOperationNameForRootSpan?: boolean;
-}
-
+// The context orchestrion's transform attaches to each channel: `arguments` is the live args of the
+// wrapped call, `result` the settled return value.
 interface GraphqlChannelContext {
   arguments: unknown[];
   self?: unknown;
@@ -53,11 +26,11 @@ interface GraphqlChannelContext {
   error?: unknown;
 }
 
-function getOptionsWithDefaults(options: GraphqlChannelIntegrationOptions): GraphqlResolvedConfig {
+function getOptionsWithDefaults(options: GraphqlDiagnosticChannelsOptions): GraphqlResolvedConfig {
   return {
-    ignoreResolveSpans: options.ignoreResolveSpans ?? true,
-    ignoreTrivialResolveSpans: options.ignoreTrivialResolveSpans ?? true,
-    useOperationNameForRootSpan: options.useOperationNameForRootSpan ?? true,
+    ignoreResolveSpans: options.ignoreResolveSpans !== false,
+    ignoreTrivialResolveSpans: options.ignoreTrivialResolveSpans !== false,
+    useOperationNameForRootSpan: options.useOperationNameForRootSpan !== false,
   };
 }
 
@@ -75,7 +48,7 @@ function safe<T>(fn: () => T): T | undefined {
   }
 }
 
-const _graphqlChannelIntegration = ((options: GraphqlChannelIntegrationOptions = {}) => {
+const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) => {
   const config = getOptionsWithDefaults(options);
   const getConfig = (): GraphqlResolvedConfig => config;
 
@@ -86,29 +59,21 @@ const _graphqlChannelIntegration = ((options: GraphqlChannelIntegrationOptions =
         return;
       }
 
-      DEBUG_BUILD &&
-        debug.log(
-          `[orchestrion:graphql] subscribing to channels "${CHANNELS.GRAPHQL_PARSE}", "${CHANNELS.GRAPHQL_VALIDATE}", "${CHANNELS.GRAPHQL_EXECUTE}"`,
-        );
-
       waitForTracingChannelBinding(() => {
-        bindTracingChannelToSpan(
-          diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_PARSE),
-          () => safe(() => startParseSpan()),
-          { beforeSpanEnd: (span, data) => void safe(() => finalizeParseSpan(span, data.result)) },
+        bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_PARSE), () =>
+          safe(() => startParseSpan()),
         );
 
         bindTracingChannelToSpan(
           diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_VALIDATE),
-          () => safe(() => startValidateSpan()),
-          // `documentAST` is the 2nd argument to `validate(schema, documentAST, …)`.
-          { beforeSpanEnd: (span, data) => void safe(() => finalizeValidateSpan(span, data.arguments[1])) },
+          data => safe(() => startValidateSpan(data.arguments[1])),
+          { beforeSpanEnd: (span, data) => void safe(() => finalizeValidateSpan(span, data.result)) },
         );
 
         bindTracingChannelToSpan(
           diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_EXECUTE),
           data => safe(() => startExecuteSpan(data.arguments, data.self, config, getConfig)),
-          { beforeSpanEnd: (span, data) => void safe(() => finalizeExecuteSpan(span, data.result, config)) },
+          { beforeSpanEnd: (span, data) => void safe(() => finalizeExecuteSpan(span, data.result)) },
         );
       });
     },
@@ -116,12 +81,13 @@ const _graphqlChannelIntegration = ((options: GraphqlChannelIntegrationOptions =
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven graphql integration.
+ * EXPERIMENTAL — orchestrion-driven graphql integration for graphql v14–16 (v17 publishes native
+ * `diagnostics_channel` events handled by `@sentry/server-utils`'s graphql integration instead).
  *
- * Subscribes to the `orchestrion:graphql:{parse,validate,execute}` diagnostics channels that the
- * orchestrion code transform injects into `graphql`'s `language/parser.js`, `validation/validate.js`
- * and `execution/execute.js`. Requires the orchestrion runtime hook or bundler plugin to be active —
- * wire that up via `experimentalUseDiagnosticsChannelInjection()`.
+ * Subscribes to the `orchestrion:graphql:{parse,validate,execute}` channels the orchestrion code
+ * transform injects into `graphql`'s `language/parser.js`, `validation/validate.js` and
+ * `execution/execute.js`, emitting spans identical to the native path. Requires the orchestrion
+ * runtime hook or bundler plugin — wire it up via `experimentalUseDiagnosticsChannelInjection()`.
  *
  * @experimental
  */
