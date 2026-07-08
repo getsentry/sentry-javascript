@@ -9,22 +9,14 @@ export const vercelAiConfig = [
   // `streamText` returns its result synchronously (streaming is lazy), so it's
   // `Sync`; the subscriber binds the span via `bindTracingChannelToSpan`, which
   // ends it when the (synchronous) call returns.
-  ...vercelAiEntries('>=6.0.0 <7.0.0', 'generateText', 'generateText', 'Async'),
-  ...vercelAiEntries('>=6.0.0 <7.0.0', 'streamText', 'streamText', 'Sync'),
-  ...vercelAiEntries('>=6.0.0 <7.0.0', 'embed', 'embed', 'Async'),
-  ...vercelAiEntries('>=6.0.0 <7.0.0', 'embedMany', 'embedMany', 'Async'),
+  // Vercel AI v5: same top-level entry points as v6
+  ...vercelAiEntries('>=5.0.0 <7.0.0', 'generateText', 'generateText', 'Async'),
+  ...vercelAiEntries('>=5.0.0 <7.0.0', 'streamText', 'streamText', 'Sync'),
+  ...vercelAiEntries('>=5.0.0 <7.0.0', 'embed', 'embed', 'Async'),
+  ...vercelAiEntries('>=5.0.0 <7.0.0', 'embedMany', 'embedMany', 'Async'),
+  ...vercelAiEntries('>=5.0.0 <7.0.0', 'resolveLanguageModel', 'resolveLanguageModel', 'Sync'),
+  // This only exists in >= v6
   ...vercelAiEntries('>=6.0.0 <7.0.0', 'executeToolCall', 'executeToolCall', 'Async'),
-  ...vercelAiEntries('>=6.0.0 <7.0.0', 'resolveLanguageModel', 'resolveLanguageModel', 'Sync'),
-  // Vercel AI v5: same top-level entry points as v6 and the same
-  // `resolveLanguageModel` chokepoint, so it reuses the same channels and
-  // subscriber. v5 has no per-call `executeToolCall` export (only the batch
-  // `executeTools`) and no `rerank`, so those are omitted — the subscriber
-  // spans v5 tool calls by patching each tool's `execute` instead.
-  ...vercelAiEntries('>=5.0.0 <6.0.0', 'generateText', 'generateText', 'Async'),
-  ...vercelAiEntries('>=5.0.0 <6.0.0', 'streamText', 'streamText', 'Sync'),
-  ...vercelAiEntries('>=5.0.0 <6.0.0', 'embed', 'embed', 'Async'),
-  ...vercelAiEntries('>=5.0.0 <6.0.0', 'embedMany', 'embedMany', 'Async'),
-  ...vercelAiEntries('>=5.0.0 <6.0.0', 'resolveLanguageModel', 'resolveLanguageModel', 'Sync'),
 ] satisfies InstrumentationConfig[];
 
 export const vercelAiChannels = {
