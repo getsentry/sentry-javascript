@@ -1,7 +1,7 @@
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
+import { defineIntegration, extendIntegration } from '@sentry/core';
 import * as dc from 'node:diagnostics_channel';
-import { subscribeRedisDiagnosticChannels, type RedisTracingChannelFactory } from '@sentry/server-utils';
+import { redisIntegration as redisChannelIntegration } from '@sentry/server-utils';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import { isDiagnosticsChannelInjectionEnabled } from '../../../sdk/diagnosticsChannelInjection';
 import { cacheResponseHook, type RedisOptions, setRedisOptions } from './cache';
@@ -41,17 +41,6 @@ export const instrumentRedis = Object.assign(
       instrumentIORedis();
       instrumentRedisModule();
     }
-    // node-redis >= 5.12.0 and ioredis >= 5.11.0 publish via diagnostics_channel.
-    // `bindTracingChannelToSpan` (inside the subscriber) makes the span the active
-    // OTel context via `bindStore`, which needs the Sentry OTel context manager to
-    // be registered — `initOpenTelemetry()` does that after integration `setupOnce`,
-    // so defer to the next tick.
-    // Check this here to ensure this does not fail at runtime for Node <= 18.18.0
-    if (dc.tracingChannel) {
-      waitForTracingChannelBinding(() => {
-        subscribeRedisDiagnosticChannels(dc.tracingChannel as RedisTracingChannelFactory, cacheResponseHook);
-      });
-    }
 
     // todo: implement them gradually
     // new LegacyRedisInstrumentation({}),
@@ -60,13 +49,17 @@ export const instrumentRedis = Object.assign(
 );
 
 const _redisIntegration = ((options: RedisOptions = {}) => {
-  return {
+  // The diagnostics_channel subscription (node-redis >= 5.12.0, ioredis >= 5.11.0) lives in
+  // server-utils so it is shared across server runtimes; we extend it here to also run the vendored
+  // OTel patchers for older client versions. `cacheResponseHook` reads options set in the extension's
+  // `setupOnce` below, but it only runs at command time, by which point those options are set.
+  return extendIntegration(redisChannelIntegration({ responseHook: cacheResponseHook }), {
     name: INTEGRATION_NAME,
     setupOnce() {
       setRedisOptions(options);
       instrumentRedis();
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**

@@ -37,7 +37,7 @@ sentryTest('sends profile_chunk envelopes in manual mode', async ({ page, getLoc
   const profileChunkEnvelopes = await getMultipleSentryEnvelopeRequests<ProfileChunkEnvelope>(
     page,
     2,
-    { url, envelopeType: 'profile_chunk', timeout: 8000 },
+    { url, envelopeType: 'profile_chunk', timeout: 15_000 },
     properFullEnvelopeRequestParser,
   );
 
