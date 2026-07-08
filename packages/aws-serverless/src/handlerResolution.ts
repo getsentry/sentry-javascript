@@ -39,6 +39,10 @@ export interface ResolvedHandlerFile {
  * Resolves the handler module to a concrete file, mirroring the AWS Lambda runtime's
  * probing order: extensionless file, then `.js` (ESM only when the nearest `package.json`
  * declares `"type": "module"`), then `.mjs`, then `.cjs`.
+ *
+ * Extensionless files are always CJS: the runtime `require()`s them unconditionally,
+ * before its `"type": "module"` check (which only affects `.js` files), and Node cannot
+ * `import()` a file without an extension anyway.
  */
 export function resolveHandlerFile(
   taskRoot: string,
