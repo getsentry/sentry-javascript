@@ -337,9 +337,8 @@ jobs:
         run: yarn lint
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
-      - name: Type check cloudflare integration test suites
-        working-directory: dev-packages/cloudflare-integration-tests
-        run: yarn type-check
+      - name: Lint types
+        run: yarn lint:types
 
   job_check_lockfile:
     name: Check lockfile
