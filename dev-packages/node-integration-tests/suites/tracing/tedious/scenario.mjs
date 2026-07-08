@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/node';
+import { waitForConnection } from '@sentry-internal/node-integration-tests';
 import { Connection, Request, TYPES } from 'tedious';
 
 const config = {
@@ -36,26 +37,6 @@ function connect() {
       connection.connect();
     }
   });
-}
-
-/**
- * Retries the initial connection until the DB accepts it. `docker compose up --wait` only blocks on
- * the in-container healthcheck; on busy CI the host port-forward can lag behind, and MSSQL is slow to
- * start accepting connections even after that. Without this, the first `connect()` intermittently
- * rejects with a connection error, `run()` throws, and no transaction is sent — flaking the test.
- */
-async function connectWithRetry(maxWaitMs = 60_000) {
-  const deadline = Date.now() + maxWaitMs;
-  for (;;) {
-    try {
-      return await connect();
-    } catch (err) {
-      if (Date.now() > deadline) {
-        throw err;
-      }
-      await new Promise(r => setTimeout(r, 500));
-    }
-  }
 }
 
 function query(connection, sql, method = 'execSql') {
@@ -104,7 +85,14 @@ function bulkLoad(connection) {
 }
 
 async function run() {
-  const connection = await connectWithRetry();
+  // Gate on the DB actually accepting a connection before opening the span (see `waitForConnection`).
+  // MSSQL is slow to start accepting connections even after the healthcheck passes, so retry a real connect.
+  await waitForConnection(async () => {
+    const probe = await connect();
+    probe.close();
+  });
+
+  const connection = await connect();
 
   await Sentry.startSpan({ name: 'Test Transaction' }, async () => {
     await query(connection, 'SELECT 1 + 1 AS solution');
