@@ -8,6 +8,7 @@ import { openaiChannelIntegration } from '../integrations/tracing-channel/openai
 import { postgresChannelIntegration } from '../integrations/tracing-channel/postgres';
 import { postgresJsChannelIntegration } from '../integrations/tracing-channel/postgres-js';
 import { vercelAiChannelIntegration } from '../integrations/tracing-channel/vercel-ai';
+import { expressChannelIntegration } from '../integrations/tracing-channel/express';
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 export {
@@ -21,6 +22,7 @@ export {
   postgresChannelIntegration,
   postgresJsChannelIntegration,
   vercelAiChannelIntegration,
+  expressChannelIntegration,
 };
 export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/tracing-channel/ioredis';
 export type { PostgresJsChannelIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
@@ -50,4 +52,5 @@ export const channelIntegrations = {
   googleGenAIIntegration: googleGenAIChannelIntegration,
   vercelAiIntegration: vercelAiChannelIntegration,
   hapiIntegration: hapiChannelIntegration,
+  expressIntegration: expressChannelIntegration,
 } as const;
