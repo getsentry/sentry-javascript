@@ -40,6 +40,8 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
         'local',
         'start-lambda',
         '--debug',
+        '--port',
+        String(SAM_PORT),
         '--template',
         SAM_TEMPLATE_FILE,
         '--warm-containers',

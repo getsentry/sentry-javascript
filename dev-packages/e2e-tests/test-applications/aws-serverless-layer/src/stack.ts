@@ -10,7 +10,8 @@ import { globSync } from 'glob';
 const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-layer';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
 const LAYER_DIR = './node_modules/@sentry/aws-serverless/';
-export const SAM_PORT = 3001;
+// Overridable so local runs can dodge other dev servers already bound to 3001.
+export const SAM_PORT = Number(process.env.SAM_PORT) || 3001;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
 function samLambdaArchitecture(): 'arm64' | 'x86_64' {

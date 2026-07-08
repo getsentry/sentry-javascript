@@ -48,6 +48,9 @@
         "default": "./build/npm/esm/awslambda-auto.js"
       }
     },
+    "./run-lambda-handler": {
+      "default": "./build/npm/run-lambda-handler.mjs"
+    },
     "./dist/awslambda-auto": {
       "//": "@deprecated Use `./awslambda-auto` instead",
       "require": {
