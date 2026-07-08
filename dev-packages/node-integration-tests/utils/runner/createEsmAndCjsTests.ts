@@ -1,5 +1,5 @@
 import { exec } from 'child_process';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync } from 'fs';
 import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { basename, join } from 'path';
 import { promisify } from 'util';
@@ -10,43 +10,20 @@ import { isOrchestrionEnabled } from '../../utils';
 const execPromise = promisify(exec);
 
 /**
- * A suite must run sequentially (rather than the concurrent default) if its tests can interfere
- * with each other when their child processes overlap. We auto-detect the two known causes so
- * suites don't have to opt out by hand — and future ones are covered for free:
- *
- * 1. A co-located `docker-compose.yml` — the suite shares a single container (database, broker, …)
- *    across its ESM/CJS runs and test cases, so concurrent runs race on shared external state.
- * 2. `expect.assertions()` / `expect.hasAssertions()` in the suite file — these rely on the
- *    module-global `expect`'s assertion counter, which is shared across concurrently-running tests
- *    (vitest only isolates the counter for the per-test context `expect`, which these suites don't
- *    use). Concurrent siblings would inflate the count and fail the assertion check. Assertions
- *    fired inside I/O callbacks (e.g. a mock server handler) also lose vitest's async context, so
- *    the context-`expect` workaround isn't reliable here — sequential is the correct fix.
- *
- * Suites that share other external state without either marker (e.g. a `MongoMemoryServer` started
- * in `beforeAll`) should pass `sequential: true` explicitly. An explicit `sequential` in `options`
- * always wins over auto-detection.
+ * Resolves defaults shared by all three factories. Notably, suites with a co-located
+ * `docker-compose.yml` share a single container (database, broker, …) across their ESM/CJS runs
+ * and test cases, so running those concurrently risks cross-test interference — we default them
+ * to `sequential`. Suites that share other external state without a compose file (e.g. a
+ * `MongoMemoryServer` or a mock server started in `beforeAll`) should pass `sequential: true`
+ * explicitly. An explicit `sequential` in `options` always wins over the auto-detected default.
  */
-function suiteMustBeSequential(cwd: string): boolean {
-  if (existsSync(join(cwd, 'docker-compose.yml'))) {
-    return true;
-  }
-
-  try {
-    return /expect\.(?:assertions|hasAssertions)\b/.test(readFileSync(join(cwd, 'test.ts'), 'utf8'));
-  } catch {
-    return false;
-  }
-}
-
-/** Resolves defaults shared by all three factories. See {@link suiteMustBeSequential}. */
 function withDefaultOptions<T extends CommonTestOptions>(
   cwd: string,
   options?: T,
 ): T & { injectOrchestrion?: true; sequential?: boolean } {
   return {
     injectOrchestrion: isOrchestrionEnabled() || undefined,
-    sequential: suiteMustBeSequential(cwd) || undefined,
+    sequential: existsSync(join(cwd, 'docker-compose.yml')) || undefined,
     ...options,
   } as T & { injectOrchestrion?: true; sequential?: boolean };
 }
