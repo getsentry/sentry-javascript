@@ -40,7 +40,6 @@ test('Sends a pageload transaction', async ({ page }) => {
             'sentry.source': 'url',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
             'url.path': '/',
-            // no url.template because the route isn't parameterized (sentry.source: 'url')
           }),
         },
       }),
@@ -52,6 +51,8 @@ test('Sends a pageload transaction', async ({ page }) => {
       },
     }),
   );
+
+  expect(transactionEvent.contexts?.trace?.data).not.toHaveProperty('url.template');
 });
 
 test('Should send a transaction for instrumented server actions', async ({ page }) => {

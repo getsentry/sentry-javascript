@@ -66,7 +66,6 @@ test('should create a static transaction when the `app` directory is used and th
           'sentry.source': 'url',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/parameterized\/static$/),
           'url.path': '/parameterized/static',
-          // no url.template because source is url and we didn't paremeterize the route
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -85,6 +84,8 @@ test('should create a static transaction when the `app` directory is used and th
     transaction_info: { source: 'url' },
     type: 'transaction',
   });
+
+  expect(transaction.contexts?.trace?.data).not.toHaveProperty('url.template');
 });
 
 test('should create a partially parameterized transaction when the `app` directory is used', async ({ page }) => {
