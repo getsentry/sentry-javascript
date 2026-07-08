@@ -65,7 +65,7 @@ function getPerformanceIntegrations(options: Options): Integration[] {
 
 /** Get the default integrations for the Bun SDK, excluding performance integrations. */
 export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
-  // We return a copy of the defaultIntegrations here to avoid mutating this
+  // Return a fresh array on each call so callers can safely mutate the result.
   return [
     // Common
     // TODO(v11): Replace with eventFiltersIntegration once we remove the deprecated `inboundFiltersIntegration`
@@ -169,9 +169,7 @@ function _init(
 
   options.transport = options.transport || makeFetchTransport;
 
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrationsImpl(options);
-  }
+  options.defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(options);
 
   return initNode(options);
 }
