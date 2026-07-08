@@ -113,6 +113,6 @@ conditionalTest({ min: 20 })('Mongoose tracing channel Test', () => {
           .completed();
       });
     },
-    { additionalDependencies: { mongoose: '^9.7' } },
+    { additionalDependencies: { mongoose: '^9.7' }, sequential: true },
   );
 });

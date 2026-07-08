@@ -101,46 +101,52 @@ describe('Mongoose experimental Test', () => {
     ]),
   };
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
-    test('should auto-instrument `mongoose` package.', async () => {
-      await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-    });
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario.mjs',
+    'instrument.mjs',
+    (createTestRunner, test) => {
+      test('should auto-instrument `mongoose` package.', async () => {
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+      });
 
-    test('nests the mongodb driver span under the mongoose span', async () => {
-      await createTestRunner()
-        .expect({
-          transaction: event => {
-            const spans = event.spans || [];
-            const mongooseSave = spans.find(span => span.description === 'mongoose.BlogPost.save');
-            expect(mongooseSave).toBeDefined();
-            // the underlying mongodb driver span must be parented to the mongoose span
-            const driverChild = spans.find(
-              span => span.parent_span_id === mongooseSave?.span_id && span.origin === 'auto.db.otel.mongo',
-            );
-            expect(driverChild).toBeDefined();
-          },
-        })
-        .start()
-        .completed();
-    });
+      test('nests the mongodb driver span under the mongoose span', async () => {
+        await createTestRunner()
+          .expect({
+            transaction: event => {
+              const spans = event.spans || [];
+              const mongooseSave = spans.find(span => span.description === 'mongoose.BlogPost.save');
+              expect(mongooseSave).toBeDefined();
+              // the underlying mongodb driver span must be parented to the mongoose span
+              const driverChild = spans.find(
+                span => span.parent_span_id === mongooseSave?.span_id && span.origin === 'auto.db.otel.mongo',
+              );
+              expect(driverChild).toBeDefined();
+            },
+          })
+          .start()
+          .completed();
+      });
 
-    test('parents a query to the span it was built in, not where it executes', async () => {
-      await createTestRunner()
-        .expect({
-          transaction: event => {
-            const spans = event.spans || [];
-            const builder = spans.find(span => span.description === 'query-builder');
-            expect(builder).toBeDefined();
-            // the query was built inside `query-builder` but awaited after it ended, so its exec
-            // span must parent to `query-builder` rather than the active span at exec time
-            const findExec = spans.find(
-              span => span.description === 'mongoose.BlogPost.findOne' && span.parent_span_id === builder?.span_id,
-            );
-            expect(findExec).toBeDefined();
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
+      test('parents a query to the span it was built in, not where it executes', async () => {
+        await createTestRunner()
+          .expect({
+            transaction: event => {
+              const spans = event.spans || [];
+              const builder = spans.find(span => span.description === 'query-builder');
+              expect(builder).toBeDefined();
+              // the query was built inside `query-builder` but awaited after it ended, so its exec
+              // span must parent to `query-builder` rather than the active span at exec time
+              const findExec = spans.find(
+                span => span.description === 'mongoose.BlogPost.findOne' && span.parent_span_id === builder?.span_id,
+              );
+              expect(findExec).toBeDefined();
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { sequential: true },
+  );
 });

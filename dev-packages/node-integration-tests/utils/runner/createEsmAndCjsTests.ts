@@ -9,6 +9,25 @@ import { isOrchestrionEnabled } from '../../utils';
 
 const execPromise = promisify(exec);
 
+/**
+ * Resolves defaults shared by all three factories. Notably, suites with a co-located
+ * `docker-compose.yml` share a single container (database, broker, …) across their ESM/CJS runs
+ * and test cases, so running those concurrently risks cross-test interference — we default them
+ * to `sequential`. Suites that share other external state without a compose file (e.g. a
+ * `MongoMemoryServer` or a mock server started in `beforeAll`) should pass `sequential: true`
+ * explicitly. An explicit `sequential` in `options` always wins over the auto-detected default.
+ */
+function withDefaultOptions<T extends CommonTestOptions>(
+  cwd: string,
+  options?: T,
+): T & { injectOrchestrion?: true; sequential?: boolean } {
+  return {
+    injectOrchestrion: isOrchestrionEnabled() || undefined,
+    sequential: existsSync(join(cwd, 'docker-compose.yml')) || undefined,
+    ...options,
+  } as T & { injectOrchestrion?: true; sequential?: boolean };
+}
+
 interface ScenarioPaths {
   cjs: {
     scenario: string;
@@ -29,6 +48,14 @@ interface CommonTestOptions {
   copyPaths?: string[];
   /** If orchestrion should be injected before any instrument file. */
   injectOrchestrion?: boolean;
+  /**
+   * Run this suite's tests sequentially instead of concurrently. By default the ESM and CJS
+   * runs (and multiple test cases in a single suite) run via `test.concurrent`, since each spawns
+   * its own independent child process and mostly sits idle waiting on it. Set this for suites
+   * whose tests share mutable external state — e.g. a single Docker-backed database container —
+   * where concurrent runs would interfere and flake.
+   */
+  sequential?: boolean;
 }
 
 interface EsmAndCjsTestOptions extends CommonTestOptions {
@@ -51,14 +78,16 @@ export function createEsmAndCjsTests(
   ) => void,
   options?: EsmAndCjsTestOptions,
 ): void {
-  const optionsWithDefaults = {
-    injectOrchestrion: isOrchestrionEnabled() || undefined,
-    ...options,
-  };
+  const optionsWithDefaults = withDefaultOptions(cwd, options);
   const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, optionsWithDefaults);
 
-  const esmTestFn = optionsWithDefaults.failsOnEsm ? wrapTestApi(test.fails, 'esm - fails') : wrapTestApi(test, 'esm');
-  const cjsTestFn = optionsWithDefaults.failsOnCjs ? wrapTestApi(test.fails, 'cjs - fails') : wrapTestApi(test, 'cjs');
+  const baseTest = optionsWithDefaults.sequential ? test : test.concurrent;
+  const esmTestFn = optionsWithDefaults.failsOnEsm
+    ? wrapTestApi(baseTest.fails, 'esm - fails')
+    : wrapTestApi(baseTest, 'esm');
+  const cjsTestFn = optionsWithDefaults.failsOnCjs
+    ? wrapTestApi(baseTest.fails, 'cjs - fails')
+    : wrapTestApi(baseTest, 'cjs');
   const createdRunners = new Set<ReturnType<typeof createRunner>>();
 
   callback(
@@ -106,10 +135,7 @@ export function createEsmTests(
   callback: (createTestRunner: () => ReturnType<typeof createRunner>, testFn: typeof test, cwd: string) => void,
   options?: CommonTestOptions,
 ) {
-  const optionsWithDefaults = {
-    injectOrchestrion: isOrchestrionEnabled() || undefined,
-    ...options,
-  };
+  const optionsWithDefaults = withDefaultOptions(cwd, options);
   const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, optionsWithDefaults);
   const createdRunners = new Set<ReturnType<typeof createRunner>>();
 
@@ -121,7 +147,7 @@ export function createEsmTests(
           .withEnv(optionsWithDefaults.injectOrchestrion ? { INJECT_ORCHESTRION: 'true' } : {})
           .withFlags(...paths.esm.flags),
       ),
-    test,
+    optionsWithDefaults.sequential ? test : (test.concurrent as typeof test),
     tmpDirPath,
   );
 
@@ -138,10 +164,7 @@ export function createCjsTests(
   callback: (createTestRunner: () => ReturnType<typeof createRunner>, testFn: typeof test, cwd: string) => void,
   options?: CommonTestOptions,
 ) {
-  const optionsWithDefaults = {
-    injectOrchestrion: isOrchestrionEnabled() || undefined,
-    ...options,
-  };
+  const optionsWithDefaults = withDefaultOptions(cwd, options);
   const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, optionsWithDefaults);
   const createdRunners = new Set<ReturnType<typeof createRunner>>();
 
@@ -153,7 +176,7 @@ export function createCjsTests(
           .withEnv(optionsWithDefaults.injectOrchestrion ? { INJECT_ORCHESTRION: 'true' } : {})
           .withFlags(...paths.cjs.flags),
       ),
-    test,
+    optionsWithDefaults.sequential ? test : (test.concurrent as typeof test),
     tmpDirPath,
   );
 

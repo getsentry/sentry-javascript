@@ -57,6 +57,6 @@ conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
         await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     },
-    { additionalDependencies: { mongoose: '>=9 <9.7' } },
+    { additionalDependencies: { mongoose: '>=9 <9.7' }, sequential: true },
   );
 });

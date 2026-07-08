@@ -50,6 +50,6 @@ describe('Mongoose v7 Test', () => {
         await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     },
-    { additionalDependencies: { mongoose: '^7' } },
+    { additionalDependencies: { mongoose: '^7' }, sequential: true },
   );
 });

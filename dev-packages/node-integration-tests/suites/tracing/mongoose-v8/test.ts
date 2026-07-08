@@ -64,6 +64,6 @@ describe('Mongoose v8 Test', () => {
         await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     },
-    { additionalDependencies: { mongoose: '^8' } },
+    { additionalDependencies: { mongoose: '^8' }, sequential: true },
   );
 });
