@@ -10,6 +10,7 @@ import { googleGenAiConfig } from './google-genai';
 import { vercelAiConfig } from './vercel-ai';
 import { hapiConfig } from './hapi';
 import { redisConfig } from './redis';
+import { expressConfig } from './express';
 import { graphqlConfig } from './graphql';
 
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
@@ -24,6 +25,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...vercelAiConfig,
   ...hapiConfig,
   ...redisConfig,
+  ...expressConfig,
   ...graphqlConfig,
 ];
 
