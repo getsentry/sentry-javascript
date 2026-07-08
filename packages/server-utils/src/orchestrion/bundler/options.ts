@@ -22,8 +22,7 @@ export function orchestrionTransformOptions(): CodeTransformerOptions {
   return {
     instrumentations: SENTRY_INSTRUMENTATIONS,
     injectDiagnostics: () => {
-      return `globalThis.__SENTRY_ORCHESTRION__ = (globalThis.__SENTRY_ORCHESTRION__ || {});
-globalThis.__SENTRY_ORCHESTRION__.bundler = true;`;
+      return '(globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{}).bundler=true;';
     },
   };
 }
