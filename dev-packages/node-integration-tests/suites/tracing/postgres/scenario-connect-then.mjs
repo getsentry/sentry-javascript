@@ -1,7 +1,11 @@
 import * as Sentry from '@sentry/node';
 import { Client } from 'pg';
+import { waitForPostgres } from './wait-for-postgres.js';
+
+const connectionConfig = { port: 5494, user: 'test', password: 'test', database: 'tests' };
 
 async function run() {
+  await waitForPostgres(connectionConfig);
   await Sentry.startSpan(
     {
       name: 'Test Transaction',
@@ -12,7 +16,7 @@ async function run() {
       // issued from the continuation must still be parented to the active
       // transaction, proving the trace context survives the connect promise.
       new Promise((resolve, reject) => {
-        const client = new Client({ port: 5494, user: 'test', password: 'test', database: 'tests' });
+        const client = new Client(connectionConfig);
         client
           .connect()
           .then(() => client.query('SELECT 1 AS connect_then'))

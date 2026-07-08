@@ -80,6 +80,7 @@ describe('_emitWebVitalSpan', () => {
         'sentry.exclusive_time': 0,
         'browser.web_vital.lcp.value': 100,
         'sentry.transaction': 'test-transaction',
+        'sentry.segment.name': 'test-transaction',
         'user_agent.original': 'test-user-agent',
       },
       startTime: 1.5,
@@ -256,6 +257,7 @@ describe('_sendLcpSpan', () => {
           'browser.web_vital.lcp.size': 50000,
           'browser.web_vital.lcp.report_event': 'pagehide',
           'sentry.transaction': 'test-route',
+          'sentry.segment.name': 'test-route',
         }),
         startTime: 1, // timeOrigin: 1000 / 1000
         parentSpan: mockPageloadSpan,
@@ -348,6 +350,7 @@ describe('_sendClsSpan', () => {
           'browser.web_vital.cls.source.2': '<span>',
           'browser.web_vital.cls.report_event': 'navigation',
           'sentry.transaction': 'test-route',
+          'sentry.segment.name': 'test-route',
         }),
         parentSpan: mockPageloadSpan,
       }),
@@ -414,6 +417,7 @@ describe('_sendInpSpan', () => {
           'sentry.op': 'ui.interaction.click',
           'sentry.exclusive_time': 120,
           'sentry.transaction': 'test-route',
+          'sentry.segment.name': 'test-route',
         }),
       }),
     );
@@ -472,6 +476,7 @@ describe('_sendInpSpan', () => {
         name: 'body > CachedButton',
         attributes: expect.objectContaining({
           'sentry.transaction': 'cached-route',
+          'sentry.segment.name': 'cached-route',
         }),
         parentSpan: mockRootSpan,
       }),

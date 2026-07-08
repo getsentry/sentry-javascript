@@ -1,4 +1,5 @@
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
+import { googleGenAIChannelIntegration } from '../integrations/tracing-channel/google-genai';
 import { graphqlChannelIntegration } from '../integrations/tracing-channel/graphql';
 import { hapiChannelIntegration } from '../integrations/tracing-channel/hapi';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
@@ -11,6 +12,7 @@ import { vercelAiChannelIntegration } from '../integrations/tracing-channel/verc
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 export {
   anthropicChannelIntegration,
+  googleGenAIChannelIntegration,
   graphqlChannelIntegration,
   hapiChannelIntegration,
   ioredisChannelIntegration,
@@ -46,6 +48,7 @@ export const channelIntegrations = {
   lruMemoizerIntegration: lruMemoizerChannelIntegration,
   openaiIntegration: openaiChannelIntegration,
   anthropicIntegration: anthropicChannelIntegration,
+  googleGenAIIntegration: googleGenAIChannelIntegration,
   vercelAiIntegration: vercelAiChannelIntegration,
   hapiIntegration: hapiChannelIntegration,
   graphqlIntegration: graphqlChannelIntegration,

@@ -24,11 +24,38 @@ const BULK_TABLE = 'test_bulk';
 function connect() {
   return new Promise((resolve, reject) => {
     const connection = new Connection(config);
-    connection.on('connect', err => (err ? reject(err) : resolve(connection)));
+    connection.on('connect', err => {
+      if (err) {
+        connection.close();
+        reject(err);
+      } else {
+        resolve(connection);
+      }
+    });
     if (connection.state !== connection.STATE.CONNECTING) {
       connection.connect();
     }
   });
+}
+
+/**
+ * Retries the initial connection until the DB accepts it. `docker compose up --wait` only blocks on
+ * the in-container healthcheck; on busy CI the host port-forward can lag behind, and MSSQL is slow to
+ * start accepting connections even after that. Without this, the first `connect()` intermittently
+ * rejects with a connection error, `run()` throws, and no transaction is sent — flaking the test.
+ */
+async function connectWithRetry(maxWaitMs = 60_000) {
+  const deadline = Date.now() + maxWaitMs;
+  for (;;) {
+    try {
+      return await connect();
+    } catch (err) {
+      if (Date.now() > deadline) {
+        throw err;
+      }
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
 }
 
 function query(connection, sql, method = 'execSql') {
@@ -77,7 +104,7 @@ function bulkLoad(connection) {
 }
 
 async function run() {
-  const connection = await connect();
+  const connection = await connectWithRetry();
 
   await Sentry.startSpan({ name: 'Test Transaction' }, async () => {
     await query(connection, 'SELECT 1 + 1 AS solution');

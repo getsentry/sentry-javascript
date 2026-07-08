@@ -4,6 +4,7 @@ import { ioredisChannels } from './config/ioredis';
 import { pgChannels } from './config/pg';
 import { openaiChannels } from './config/openai';
 import { anthropicAiChannels } from './config/anthropic-ai';
+import { googleGenAiChannels } from './config/google-genai';
 import { vercelAiChannels } from './config/vercel-ai';
 import { hapiChannels } from './config/hapi';
 import { graphqlChannels } from './config/graphql';
@@ -28,6 +29,7 @@ export const CHANNELS = {
   ...pgChannels,
   ...openaiChannels,
   ...anthropicAiChannels,
+  ...googleGenAiChannels,
   ...vercelAiChannels,
   ...hapiChannels,
   ...graphqlChannels,

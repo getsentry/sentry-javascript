@@ -530,7 +530,7 @@ function partsFromTextAndToolCalls(text: unknown, toolCalls: unknown): Array<Rec
   return parts;
 }
 
-function captureToolError(span: Span, data: VercelAiChannelMessage, error: unknown): void {
+export function captureToolError(span: Span, data: VercelAiChannelMessage, error: unknown): void {
   span.setStatus({
     code: SPAN_STATUS_ERROR,
     message: error instanceof Error ? error.message : 'tool_error',
