@@ -125,7 +125,7 @@ export async function observeStreamedSpan(
 }
 
 export function getSpanOp(span: SerializedStreamedSpan): string | undefined {
-  return span.attributes?.['sentry.op']?.type === 'string' ? span.attributes?.['sentry.op']?.value : undefined;
+  return span.attributes['sentry.op']?.type === 'string' ? span.attributes['sentry.op']?.value : undefined;
 }
 
 export function getSpansFromEnvelope(envelope: StreamedSpanEnvelope): SerializedStreamedSpan[] {

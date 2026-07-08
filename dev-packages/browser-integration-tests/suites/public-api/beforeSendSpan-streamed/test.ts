@@ -26,7 +26,7 @@ sentryTest('beforeSendSpan applies changes to streamed span', async ({ getLocalT
       },
     },
   ]);
-  expect(pageloadSpan.attributes?.['sentry.custom_attribute']).toEqual({
+  expect(pageloadSpan.attributes['sentry.custom_attribute']).toEqual({
     type: 'string',
     value: 'customAttributeValue',
   });
