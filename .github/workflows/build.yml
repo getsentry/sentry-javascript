@@ -917,10 +917,14 @@ jobs:
         run: yarn test
 
   job_bundler_plugin_integration_tests:
-    name: Bundler Plugin Integration Tests
+    name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22, 24, 26]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v6
@@ -933,7 +937,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
-          node-version-file: 'package.json'
+          node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
