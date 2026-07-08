@@ -17,15 +17,25 @@ function restoreNativeConsole(): void {
   }
 }
 
+// Re-import the instrumentation modules so each test gets fresh module-scoped state (e.g.
+// `instrumentedLevels`). `vi.resetModules()` does not reset the shared global console, so we also
+// restore the native methods first, ensuring a fresh `instrumentConsole()` never wraps an
+// already-wrapped method.
+async function loadInstrumentationModules() {
+  vi.resetModules();
+  restoreNativeConsole();
+  return {
+    consoleModule: await import('../../../src/instrument/console'),
+    debugLoggerModule: await import('../../../src/utils/debug-logger'),
+  };
+}
+
 describe('addConsoleInstrumentationHandler', () => {
-  let consoleModule: typeof import('../../../src/instrument/console');
-  let debugLoggerModule: typeof import('../../../src/utils/debug-logger');
+  let consoleModule: Awaited<ReturnType<typeof loadInstrumentationModules>>['consoleModule'];
+  let debugLoggerModule: Awaited<ReturnType<typeof loadInstrumentationModules>>['debugLoggerModule'];
 
   beforeEach(async () => {
-    vi.resetModules();
-    restoreNativeConsole();
-    consoleModule = await import('../../../src/instrument/console');
-    debugLoggerModule = await import('../../../src/utils/debug-logger');
+    ({ consoleModule, debugLoggerModule } = await loadInstrumentationModules());
   });
 
   afterEach(() => {
