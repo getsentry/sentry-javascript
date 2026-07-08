@@ -25,7 +25,7 @@ import { getRequestSpanOptions } from './requestSpanOptions';
 import { AWS_HANDLER_HIGHWATERMARK_SYMBOL, AWS_HANDLER_STREAMING_SYMBOL, isStreamingHandler, wrapHandler } from './sdk';
 import { getAwsTraceData, markEventUnhandled } from './utils';
 
-export const lambdaMaxInitInMilliseconds = 10_000;
+const lambdaMaxInitInMilliseconds = 10_000;
 
 // The event truly is `any` from the runtime's point of view; the patched handlers only
 // need the trace-header shape `getAwsTraceData` reads.
