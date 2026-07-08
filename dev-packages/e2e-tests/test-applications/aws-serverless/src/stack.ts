@@ -9,8 +9,6 @@ import { execFileSync } from 'node:child_process';
 
 const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
-// Deliberately not SAM's default 3001, which is popular with dev servers; overridable for
-// local runs where even this port is taken.
 export const SAM_PORT = Number(process.env.SAM_PORT) || 7120;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
