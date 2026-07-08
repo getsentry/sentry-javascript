@@ -9,18 +9,22 @@ export const vercelAiConfig = [
   // `streamText` returns its result synchronously (streaming is lazy), so it's
   // `Sync`; the subscriber binds the span via `bindTracingChannelToSpan`, which
   // ends it when the (synchronous) call returns.
-  ...vercelAiV6Entries('generateText', 'generateText', 'Async'),
-  ...vercelAiV6Entries('streamText', 'streamText', 'Sync'),
-  ...vercelAiV6Entries('embed', 'embed', 'Async'),
-  ...vercelAiV6Entries('embedMany', 'embedMany', 'Async'),
-  ...vercelAiV6Entries('executeToolCall', 'executeToolCall', 'Async'),
-  ...vercelAiV6Entries('resolveLanguageModel', 'resolveLanguageModel', 'Sync'),
+  // Vercel AI v5: same top-level entry points as v6
+  ...vercelAiEntries('>=5.0.0 <7.0.0', 'generateText', 'generateText', 'Async'),
+  ...vercelAiEntries('>=5.0.0 <7.0.0', 'streamText', 'streamText', 'Sync'),
+  ...vercelAiEntries('>=5.0.0 <7.0.0', 'embed', 'embed', 'Async'),
+  ...vercelAiEntries('>=5.0.0 <7.0.0', 'embedMany', 'embedMany', 'Async'),
+  ...vercelAiEntries('>=5.0.0 <7.0.0', 'resolveLanguageModel', 'resolveLanguageModel', 'Sync'),
+  // This only exists in >= v6
+  ...vercelAiEntries('>=6.0.0 <7.0.0', 'executeToolCall', 'executeToolCall', 'Async'),
 ] satisfies InstrumentationConfig[];
 
 export const vercelAiChannels = {
-  // Vercel AI (`ai`) v6: orchestrion injects these so the same channel-based
+  // Vercel AI (`ai`) v5 & v6: orchestrion injects these so the same channel-based
   // integration that consumes `ai`'s native `ai:telemetry` channel (v7) can
-  // also instrument v6. Each maps to a top-level function in `ai`'s bundle.
+  // also instrument v5/v6. Each maps to a top-level function in `ai`'s bundle.
+  // v5 and v6 share the same channel names (the subscriber is version-agnostic);
+  // `VERCEL_AI_EXECUTE_TOOL_CALL` is v6-only (v5 has no `executeToolCall` export).
   VERCEL_AI_GENERATE_TEXT: 'orchestrion:ai:generateText',
   VERCEL_AI_STREAM_TEXT: 'orchestrion:ai:streamText',
   VERCEL_AI_EMBED: 'orchestrion:ai:embed',
@@ -49,10 +53,15 @@ export const vercelAiChannels = {
  * function needs one config entry per file (the app loads whichever matches its
  * module system). This expands a single target into both.
  */
-function vercelAiV6Entries(channelName: string, functionName: string, kind: 'Async' | 'Sync'): InstrumentationConfig[] {
+function vercelAiEntries(
+  versionRange: string,
+  channelName: string,
+  functionName: string,
+  kind: 'Async' | 'Sync',
+): InstrumentationConfig[] {
   return ['dist/index.js', 'dist/index.mjs'].map(filePath => ({
     channelName,
-    module: { name: 'ai', versionRange: '>=6.0.0 <7.0.0', filePath },
+    module: { name: 'ai', versionRange, filePath },
     functionQuery: { functionName, kind },
   }));
 }
