@@ -165,80 +165,68 @@ describe('postgres auto instrumentation (streamed)', () => {
   });
 
   describe('default', () => {
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
-        test('should auto-instrument `pg` package with span streaming enabled', { timeout: 90_000 }, async () => {
-          await createTestRunner()
-            .withDockerCompose({
-              workingDirectory: [__dirname],
-            })
-            .expect({
-              span: container => {
-                const segmentSpan = container.items.find(item => item.is_segment);
-                expect(segmentSpan?.name).toBe('Test Span');
+    createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('should auto-instrument `pg` package with span streaming enabled', { timeout: 90_000 }, async () => {
+        await createTestRunner()
+          .withDockerCompose({
+            workingDirectory: [__dirname],
+          })
+          .expect({
+            span: container => {
+              const segmentSpan = container.items.find(item => item.is_segment);
+              expect(segmentSpan?.name).toBe('Test Span');
 
-                const dbSpans = getDbSpans(container);
-                expect(dbSpans.length).toBe(4);
+              const dbSpans = getDbSpans(container);
+              expect(dbSpans.length).toBe(4);
 
-                expect(dbSpans).toEqual([
-                  expectedDbSpan({ name: 'pg.connect' }),
-                  expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT }),
-                  expectedDbSpan({
-                    name: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
-                    statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
-                  }),
-                  expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"' }),
-                ]);
-              },
-            })
-            .start()
-            .completed();
-        });
-      },
-      { copyPaths: ['wait-for-postgres.js'] },
-    );
+              expect(dbSpans).toEqual([
+                expectedDbSpan({ name: 'pg.connect' }),
+                expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT }),
+                expectedDbSpan({
+                  name: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                  statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                }),
+                expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"' }),
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    });
   });
 
   describe('ignoreConnectSpans', () => {
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario.mjs',
-      'instrument-ignoreConnect.mjs',
-      (createTestRunner, test) => {
-        test("doesn't emit connect spans if ignoreConnectSpans is true", { timeout: 90_000 }, async () => {
-          await createTestRunner()
-            .withDockerCompose({
-              workingDirectory: [__dirname],
-            })
-            .expect({
-              span: container => {
-                const dbSpans = getDbSpans(container);
-                expect(dbSpans.find(span => span.name.includes('connect'))).toBeUndefined();
-                expect(dbSpans.length).toBe(3);
+    createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-ignoreConnect.mjs', (createTestRunner, test) => {
+      test("doesn't emit connect spans if ignoreConnectSpans is true", { timeout: 90_000 }, async () => {
+        await createTestRunner()
+          .withDockerCompose({
+            workingDirectory: [__dirname],
+          })
+          .expect({
+            span: container => {
+              const dbSpans = getDbSpans(container);
+              expect(dbSpans.find(span => span.name.includes('connect'))).toBeUndefined();
+              expect(dbSpans.length).toBe(3);
 
-                // This block passes an explicit `postgresIntegration({ ignoreConnectSpans: true })`, which
-                // survives the orchestrion swap, so query spans keep the OTel origin even under INJECT_ORCHESTRION.
-                const origin = 'auto.db.otel.postgres';
-                expect(dbSpans).toEqual([
-                  expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT, origin }),
-                  expectedDbSpan({
-                    name: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
-                    statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
-                    origin,
-                  }),
-                  expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"', origin }),
-                ]);
-              },
-            })
-            .start()
-            .completed();
-        });
-      },
-      { copyPaths: ['wait-for-postgres.js'] },
-    );
+              // This block passes an explicit `postgresIntegration({ ignoreConnectSpans: true })`, which
+              // survives the orchestrion swap, so query spans keep the OTel origin even under INJECT_ORCHESTRION.
+              const origin = 'auto.db.otel.postgres';
+              expect(dbSpans).toEqual([
+                expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT, origin }),
+                expectedDbSpan({
+                  name: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                  statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                  origin,
+                }),
+                expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"', origin }),
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    });
   });
 
   conditionalTest({ max: 25 })('pg-native', () => {
@@ -288,7 +276,7 @@ describe('postgres auto instrumentation (streamed)', () => {
           },
         );
       },
-      { additionalDependencies: { 'pg-native': '3.7.0', pg: '8.20.0' }, copyPaths: ['wait-for-postgres.js'] },
+      { additionalDependencies: { 'pg-native': '3.7.0', pg: '8.20.0' } },
     );
   });
 });
