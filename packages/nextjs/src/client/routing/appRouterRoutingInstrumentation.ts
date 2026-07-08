@@ -164,11 +164,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
       if (parameterizedPathname) {
         currentRouterPatchingNavigationSpanRef.current.setAttribute(URL_TEMPLATE, parameterizedPathname);
       }
-      setNavigationSpanUrlAttributes(
-        currentRouterPatchingNavigationSpanRef.current,
-        pathname,
-        WINDOW.location.href,
-      );
+      setNavigationSpanUrlAttributes(currentRouterPatchingNavigationSpanRef.current, pathname, WINDOW.location.href);
     } else {
       currentRouterPatchingNavigationSpanRef.current = startBrowserTracingNavigationSpan(
         client,
