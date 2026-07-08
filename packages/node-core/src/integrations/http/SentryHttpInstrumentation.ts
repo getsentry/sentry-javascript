@@ -33,8 +33,8 @@ interface OutgoingHttpRequestInstrumentationOptions {
 
   /**
    * Whether to create spans for outgoing requests (user preference).
-   * This only takes effect if `createSpansForOutgoingRequests` is also enabled.
-   * If `createSpansForOutgoingRequests` is not enabled, this option is ignored.
+   * This only takes effect if `createSpansForOutgoingRequests` is not disabled.
+   * If `createSpansForOutgoingRequests` is explicitly set false, this option is ignored.
    *
    * @default `true`
    */
@@ -50,7 +50,7 @@ interface OutgoingHttpRequestInstrumentationOptions {
   /**
    * @deprecated Use spans option instead.
    *
-   * @default `false`
+   * @default `true`
    */
   createSpansForOutgoingRequests?: boolean;
 
@@ -66,7 +66,7 @@ interface OutgoingHttpRequestInstrumentationOptions {
 
   /**
    * Hooks for outgoing request spans, only called when spans are created for outgoing requests
-   * (i.e. when both `createSpansForOutgoingRequests` and `spans` are enabled).
+   * (i.e. when `spans` is enabled).
    * These mirror the OTEL HttpInstrumentation hooks for backwards compatibility.
    */
   outgoingRequestHook?: (span: Span, request: ClientRequest | HttpClientRequest) => void;
