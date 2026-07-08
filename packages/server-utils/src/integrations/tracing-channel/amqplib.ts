@@ -381,18 +381,26 @@ function ensureChannelState(channel: ChannelLike): void {
   channel[CHANNEL_CONSUME_TIMEOUT_TIMER] = timer;
 
   // End outstanding spans and stop the timer when the channel goes away (replaces patching `emit`).
+  // amqplib emits 'close' after 'error', but we clear in both to avoid leaking the interval (which
+  // pins the channel via its closure) should a version or edge case ever skip the trailing 'close'.
   if (typeof channel.on === 'function') {
     channel.on('close', () => {
       endAllSpansOnChannel(channel, true, END_OP.ChannelClosed, undefined);
-      const activeTimer = channel[CHANNEL_CONSUME_TIMEOUT_TIMER];
-      if (activeTimer) {
-        clearInterval(activeTimer);
-      }
-      channel[CHANNEL_CONSUME_TIMEOUT_TIMER] = undefined;
+      clearConsumeTimeoutTimer(channel);
     });
     channel.on('error', () => {
       endAllSpansOnChannel(channel, true, END_OP.ChannelError, undefined);
+      clearConsumeTimeoutTimer(channel);
     });
+  }
+}
+
+/** Stops and clears the per-channel consume-timeout interval. Idempotent. */
+function clearConsumeTimeoutTimer(channel: ChannelLike): void {
+  const activeTimer = channel[CHANNEL_CONSUME_TIMEOUT_TIMER];
+  if (activeTimer) {
+    clearInterval(activeTimer);
+    channel[CHANNEL_CONSUME_TIMEOUT_TIMER] = undefined;
   }
 }
 
