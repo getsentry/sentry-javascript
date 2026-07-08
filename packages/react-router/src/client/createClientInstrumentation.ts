@@ -18,7 +18,7 @@ import {
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { ClientInstrumentation, InstrumentableRoute, InstrumentableRouter } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
-import { resolveNavigateArg, resolveNavigateUrl } from './utils';
+import { resolveNavigateAbsoluteUrl, resolveNavigateArg } from './utils';
 import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -195,7 +195,7 @@ export function createSentryClientInstrumentation(
                   'navigation.type': 'router.navigate',
                 },
               },
-              { url: getAbsoluteUrl(resolveNavigateUrl(info.to)) },
+              { url: resolveNavigateAbsoluteUrl(info.to, info.currentUrl) },
             );
           }
 

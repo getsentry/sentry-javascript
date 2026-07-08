@@ -50,6 +50,41 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
     });
   });
 
+  test('should resolve relative navigate targets against the current URL', async ({ page }) => {
+    await page.goto(`/performance`);
+    await page.waitForTimeout(1000);
+
+    const navigationTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return (
+        transactionEvent.transaction === '/performance/ssr' && transactionEvent.contexts?.trace?.op === 'navigation'
+      );
+    });
+
+    await page.getByRole('button', { name: 'Relative SSR Navigate' }).click();
+
+    const transaction = await navigationTxPromise;
+
+    expect(transaction).toMatchObject({
+      contexts: {
+        trace: {
+          op: 'navigation',
+          origin: 'auto.navigation.react_router.instrumentation_api',
+          data: {
+            'sentry.source': 'route',
+            'sentry.op': 'navigation',
+            'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
+            'navigation.type': 'router.navigate',
+            'url.template': '/performance/ssr',
+            'url.path': '/performance/ssr',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/ssr$/),
+          },
+        },
+      },
+      transaction: '/performance/ssr',
+      type: 'transaction',
+    });
+  });
+
   test('should parameterize navigation transaction for dynamic routes', async ({ page }) => {
     await page.goto(`/performance`);
     await page.waitForTimeout(1000);

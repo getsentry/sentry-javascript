@@ -1,4 +1,4 @@
-import { getAbsoluteUrl, startBrowserTracingNavigationSpan } from '@sentry/browser';
+import { startBrowserTracingNavigationSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
   debug,
@@ -14,7 +14,7 @@ import {
 import type { DataRouter, RouterState } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { isClientInstrumentationApiUsed } from './createClientInstrumentation';
-import { resolveNavigateArg, resolveNavigateUrl } from './utils';
+import { resolveNavigateAbsoluteUrl, resolveNavigateArg } from './utils';
 import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
@@ -64,7 +64,7 @@ export function instrumentHydratedRouter(): void {
           if (!isClientInstrumentationApiUsed()) {
             maybeCreateNavigationTransaction(
               resolveNavigateArg(args[0]) || '<unknown route>',
-              resolveNavigateUrl(args[0]),
+              resolveNavigateAbsoluteUrl(args[0]),
               'url',
             );
           }
@@ -146,7 +146,7 @@ function maybeCreateNavigationTransaction(name: string, url: string, source: 'ur
         ...(source === 'route' ? { [URL_TEMPLATE]: name } : {}),
       },
     },
-    { url: getAbsoluteUrl(url) },
+    { url },
   );
 }
 

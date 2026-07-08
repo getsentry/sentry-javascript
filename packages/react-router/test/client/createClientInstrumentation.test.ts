@@ -27,7 +27,13 @@ vi.mock('@sentry/core', async () => {
 
 vi.mock('@sentry/browser', () => ({
   startBrowserTracingNavigationSpan: vi.fn().mockReturnValue({ setStatus: vi.fn() }),
-  getAbsoluteUrl: vi.fn((urlOrPath: string) => urlOrPath),
+  getAbsoluteUrl: vi.fn((urlOrPath: string) => {
+    try {
+      return new URL(urlOrPath, 'https://example.com').toString();
+    } catch {
+      return urlOrPath;
+    }
+  }),
 }));
 
 describe('createSentryClientInstrumentation', () => {
@@ -80,6 +86,11 @@ describe('createSentryClientInstrumentation', () => {
     const mockClient = {};
 
     (core.getClient as any).mockReturnValue(mockClient);
+    (globalThis as any).location = {
+      href: 'https://example.com/home',
+      origin: 'https://example.com',
+      pathname: '/home',
+    };
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.router?.({ instrument: mockInstrument });
@@ -104,9 +115,39 @@ describe('createSentryClientInstrumentation', () => {
           'navigation.type': 'router.navigate',
         }),
       },
-      { url: '/about' },
+      { url: 'https://example.com/about' },
     );
     expect(mockCallNavigate).toHaveBeenCalled();
+  });
+
+  it('should resolve relative navigate targets against the current URL', async () => {
+    const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+    const mockInstrument = vi.fn();
+    const mockClient = {};
+
+    (core.getClient as any).mockReturnValue(mockClient);
+    (globalThis as any).location = {
+      href: 'https://example.com/users/123',
+      origin: 'https://example.com',
+      pathname: '/users/123',
+    };
+
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.router?.({ instrument: mockInstrument });
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.navigate(mockCallNavigate, {
+      currentUrl: '/users/123',
+      to: 'settings',
+    });
+
+    expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
+      mockClient,
+      expect.objectContaining({
+        name: 'settings',
+      }),
+      { url: 'https://example.com/users/settings' },
+    );
   });
 
   it('should create navigation span with correct name when `to` is an object', async () => {
@@ -115,6 +156,11 @@ describe('createSentryClientInstrumentation', () => {
     const mockClient = {};
 
     (core.getClient as any).mockReturnValue(mockClient);
+    (globalThis as any).location = {
+      href: 'https://example.com/home',
+      origin: 'https://example.com',
+      pathname: '/home',
+    };
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.router?.({ instrument: mockInstrument });
@@ -140,7 +186,7 @@ describe('createSentryClientInstrumentation', () => {
         }),
       },
       // the destination URL keeps the query string, even though the span name doesn't
-      { url: '/items/123?foo=bar' },
+      { url: 'https://example.com/items/123?foo=bar' },
     );
     expect(mockCallNavigate).toHaveBeenCalled();
   });
@@ -395,7 +441,7 @@ describe('createSentryClientInstrumentation', () => {
               'navigation.type': expectedType,
             }),
           },
-          { url: '/current-page' },
+          { url: 'https://example.com/current-page' },
         );
         expect(mockNavigationSpan.updateName).toHaveBeenCalledWith(destination);
       },
@@ -633,7 +679,7 @@ describe('createSentryClientInstrumentation', () => {
             'navigation.type': 'browser.popstate',
           }),
         },
-        { url: '/current-page' },
+        { url: 'https://example.com/current-page' },
       );
     });
 
@@ -697,7 +743,7 @@ describe('createSentryClientInstrumentation', () => {
             'navigation.type': 'browser.popstate',
           }),
         },
-        { url: '/current-page' },
+        { url: 'https://example.com/current-page' },
       );
     });
   });

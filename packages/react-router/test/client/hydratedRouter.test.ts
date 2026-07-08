@@ -23,7 +23,13 @@ vi.mock('@sentry/core', async () => {
 });
 vi.mock('@sentry/browser', () => ({
   startBrowserTracingNavigationSpan: vi.fn(),
-  getAbsoluteUrl: vi.fn((urlOrPath: string) => urlOrPath),
+  getAbsoluteUrl: vi.fn((urlOrPath: string) => {
+    try {
+      return new URL(urlOrPath, 'https://example.com').toString();
+    } catch {
+      return urlOrPath;
+    }
+  }),
 }));
 
 describe('instrumentHydratedRouter', () => {
@@ -34,6 +40,13 @@ describe('instrumentHydratedRouter', () => {
 
   beforeEach(() => {
     originalRouter = (globalThis as any).__reactRouterDataRouter;
+    (globalThis as any).location = {
+      href: 'https://example.com/foo/bar',
+      origin: 'https://example.com',
+      pathname: '/foo/bar',
+      search: '',
+      hash: '',
+    };
     mockRouter = {
       state: {
         location: { pathname: '/foo/bar' },
@@ -221,7 +234,19 @@ describe('instrumentHydratedRouter', () => {
         name: '/items/123',
       }),
       // the destination URL keeps the query string, even though the span name doesn't
-      { url: '/items/123?foo=bar' },
+      { url: 'https://example.com/items/123?foo=bar' },
+    );
+  });
+
+  it('resolves relative navigate targets against the current URL', () => {
+    instrumentHydratedRouter();
+    mockRouter.navigate('settings');
+    expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        name: 'settings',
+      }),
+      { url: 'https://example.com/foo/settings' },
     );
   });
 
@@ -233,7 +258,7 @@ describe('instrumentHydratedRouter', () => {
       expect.objectContaining({
         name: '-1',
       }),
-      { url: '-1' },
+      { url: 'https://example.com/foo/-1' },
     );
   });
 

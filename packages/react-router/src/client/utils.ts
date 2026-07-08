@@ -1,3 +1,4 @@
+import { getAbsoluteUrl } from '@sentry/browser';
 import { GLOBAL_OBJ } from '@sentry/core';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -41,4 +42,35 @@ export function resolveNavigateUrl(target: unknown): string {
   const path = typeof pathname === 'string' && pathname !== '' ? pathname : WINDOW.location?.pathname || '/';
 
   return `${path}${typeof search === 'string' ? search : ''}${typeof hash === 'string' ? hash : ''}`;
+}
+
+function getNavigateBaseUrl(currentUrl?: string): string {
+  if (typeof WINDOW.location?.href === 'string' && WINDOW.location.href !== '') {
+    return WINDOW.location.href;
+  }
+
+  const path = currentUrl || '/';
+  const origin = WINDOW.location?.origin || 'http://localhost';
+
+  try {
+    return new URL(path, origin).href;
+  } catch {
+    return `${origin}${path.startsWith('/') ? path : `/${path}`}`;
+  }
+}
+
+/**
+ * Resolves a navigate argument to an absolute URL for `url.full`/`url.path`, correctly handling
+ * relative targets (no leading slash) by resolving them against the current URL instead of the
+ * document origin alone.
+ */
+export function resolveNavigateAbsoluteUrl(target: unknown, currentUrl?: string): string {
+  const destination = resolveNavigateUrl(target);
+
+  try {
+    const resolved = new URL(destination, getNavigateBaseUrl(currentUrl));
+    return getAbsoluteUrl(`${resolved.pathname}${resolved.search}${resolved.hash}`);
+  } catch {
+    return getAbsoluteUrl(destination);
+  }
 }
