@@ -48,7 +48,7 @@ interface DockerOptions {
 type VoidFunction = () => void;
 
 type ExpectedEvent = Partial<Event> | ((event: Event) => void);
-type ExpectedTransaction = Partial<TransactionEvent> | ((event: TransactionEvent) => void);
+type ExpectedTransaction = DeepPartial<TransactionEvent> | ((event: TransactionEvent) => void);
 type ExpectedSession = Partial<SerializedSession> | ((event: SerializedSession) => void);
 type ExpectedSessions = Partial<SessionAggregates> | ((event: SessionAggregates) => void);
 type ExpectedCheckIn = Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);

@@ -18,7 +18,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
-import { isOrchestrionEnabled } from '../../../../utils';
+import { getStringAttributeValue, isOrchestrionEnabled } from '../../../../utils';
 
 const expectedOrigin = isOrchestrionEnabled() ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
 
@@ -96,7 +96,9 @@ describe('Vercel AI integration (v5)', () => {
               const secondGenerateContentSpan = container.items.find(
                 span =>
                   span.name === 'generate_content mock-model-id' &&
-                  span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Second span here!'),
+                  getStringAttributeValue(span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                    'Second span here!',
+                  ),
               );
               expect(secondGenerateContentSpan).toBeDefined();
               expect(secondGenerateContentSpan!.name).toBe('generate_content mock-model-id');
@@ -174,7 +176,9 @@ describe('Vercel AI integration (v5)', () => {
               const firstGenerateContentSpan = container.items.find(
                 span =>
                   span.name === 'generate_content mock-model-id' &&
-                  span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value?.includes('First span here!'),
+                  getStringAttributeValue(span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                    'First span here!',
+                  ),
               );
               expect(firstGenerateContentSpan).toBeDefined();
               expect(firstGenerateContentSpan!.name).toBe('generate_content mock-model-id');
@@ -205,7 +209,9 @@ describe('Vercel AI integration (v5)', () => {
               const secondGenerateContentSpan = container.items.find(
                 span =>
                   span.name === 'generate_content mock-model-id' &&
-                  span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Second span here!'),
+                  getStringAttributeValue(span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                    'Second span here!',
+                  ),
               );
               expect(secondGenerateContentSpan).toBeDefined();
               expect(secondGenerateContentSpan!.name).toBe('generate_content mock-model-id');
