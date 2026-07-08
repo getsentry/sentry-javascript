@@ -2,7 +2,6 @@ import * as fs from 'node:fs';
 import { createRequire } from 'node:module';
 import * as path from 'node:path';
 
-
 /** Remove orchestrion-instrumented packages from a `serverExternalPackages` list. */
 export function filterInstrumentedExternals(externals: string[], instrumented: string[]): string[] {
   const set = new Set(instrumented);
