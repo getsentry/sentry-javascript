@@ -6,7 +6,7 @@ export type { FunctionKind, InstrumentationConfig };
 declare global {
   // eslint-disable-next-line no-var
   var __SENTRY_ORCHESTRION__:
-    | { runtime?: boolean; bundler?: boolean; registry?: OrchestrionInstrumentation[] }
+    | { runtime?: boolean; bundler?: boolean; registry?: OrchestrionInstrumentation[]; installed?: string[] }
     | undefined;
 }
 

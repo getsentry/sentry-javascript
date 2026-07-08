@@ -10,7 +10,7 @@ import { AttributeNames, NestType } from './vendored/enums';
  * (app-creation / request-context / request-handler). Used by both the OTel
  * `NestFactory.create` / `RouterExecutionContext.create` wraps (`./vendored`) and
  * the orchestrion channel subscriber; only the span origin differs (via
- * `isOrchestrionInjected()` in `./helpers`).
+ * `isOrchestrionInjected('nestjs')` in `./helpers`).
  */
 
 const NESTJS_COMPONENT = '@nestjs/core';

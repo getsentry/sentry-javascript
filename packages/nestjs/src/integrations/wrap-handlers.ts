@@ -6,7 +6,7 @@ import { getBullMQProcessSpanOptions, getEventSpanOptions, isWrapped, markWrappe
  * Shared span-emitting / error-capturing logic for the `@Cron`/`@Interval`/
  * `@Timeout` (schedule), `@OnEvent` (event), and `@Processor` (bullmq) handlers.
  * Used by both the OTel decorator wraps and the orchestrion channel subscriber;
- * only the span origin differs (via `isOrchestrionInjected()` in `./helpers`).
+ * only the span origin differs (via `isOrchestrionInjected('nestjs')` in `./helpers`).
  */
 
 // Error-capture mechanism types. These do NOT carry an `orchestrion` segment.

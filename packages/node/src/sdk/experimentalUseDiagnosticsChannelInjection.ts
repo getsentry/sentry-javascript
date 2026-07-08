@@ -1,6 +1,7 @@
 import {
   channelIntegrations,
-  getChannelIntegrations,
+  getInjectedOrchestrionInstrumentations,
+  isOrchestrionInjected,
   ioredisChannelIntegration,
   redisChannelIntegration,
   detectOrchestrionSetup,
@@ -48,10 +49,23 @@ export function diagnosticsChannelInjectionIntegrations(): typeof channelIntegra
  */
 export function experimentalUseDiagnosticsChannelInjection(): void {
   setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
-    // The registry integrations 1:1 replace the OTel integration of the same name. `getChannelIntegrations()`
-    // includes any externally-injected ones (e.g. `@sentry/nestjs`'s `Nest`), which must have registered
-    // before `init()` runs this loader — `@sentry/nestjs`'s `init()` does so before calling `nodeInit()`.
-    const integrations = getChannelIntegrations().map(createIntegration => createIntegration());
+    // Install the module hooks FIRST, so `isOrchestrionInjected(name)` below
+    // reflects exactly which instrumentations made it into the transform. This
+    // runs at `resolve()` time, before `init()`'s own `register()` call (a
+    // no-op second time), and before the app imports its instrumented modules.
+    registerDiagnosticsChannelInjection();
+
+    // Each channel integration 1:1 replaces the OTel integration of the same name.
+    // Built-in ones are always in the transform base, so they always replace.
+    // Externally-injected ones (e.g. `@sentry/nestjs`'s `Nest`) only replace their
+    // OTel counterpart when their transform was ACTUALLY installed — otherwise a
+    // bare `@sentry/node/import` hook that froze the transform list before
+    // `@sentry/nestjs` registered would strip the OTel `Nest` and leave nothing.
+    const builtins = Object.values(channelIntegrations).map(createIntegration => createIntegration());
+    const injected = getInjectedOrchestrionInstrumentations()
+      .filter(descriptor => isOrchestrionInjected(descriptor.name))
+      .map(descriptor => descriptor.integration());
+    const integrations = [...builtins, ...injected];
     const replacedOtelIntegrationNames = integrations.map(i => i.name);
 
     return {

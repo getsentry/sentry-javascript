@@ -8,7 +8,7 @@ import type { CallHandler, CatchTarget, InjectableTarget, MinimalNestJsExecution
  * Shared span-emitting logic for `@Injectable` (middleware/guard/pipe/interceptor)
  * and `@Catch` (exception filter) classes. Used by both the OTel decorator wraps
  * (`SentryNestInstrumentation`) and the orchestrion channel subscriber; only the
- * span origin differs (via `isOrchestrionInjected()` in `./helpers`).
+ * span origin differs (via `isOrchestrionInjected('nestjs')` in `./helpers`).
  */
 
 function patchInterceptor(target: InjectableTarget, intercept: AnyFn, seenContexts: WeakSet<object>): AnyFn {

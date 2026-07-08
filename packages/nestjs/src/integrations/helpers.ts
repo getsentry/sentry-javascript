@@ -47,29 +47,32 @@ export function isTargetPatched(target: object, flag: 'sentryPatchedInjectable' 
 
 // The instrumentation path is reflected in the span origin: orchestrion-created
 // spans carry an `orchestrion` segment so they're distinguishable from OTel.
-// Only one path is ever live in a process (the OTel `Nest` integration is
-// swapped out whenever orchestrion is injected), so the global injection flag
-// reliably selects the right origin. Everything else about the span is identical.
+// We key off whether NESTJS SPECIFICALLY was orchestrion-instrumented (not the
+// global injection flag): another library can be orchestrion-injected while Nest
+// still runs via OTel, and vice versa. Whichever path is live for Nest is exactly
+// the one `isOrchestrionInjected('nestjs')` reports, so it picks the matching
+// origin. Everything else about the span is identical.
+const NESTJS = 'nestjs';
 
 /** Origin for middleware/guard/pipe/interceptor/exception_filter spans. */
 function middlewareOrigin(componentType?: string): string {
-  const base = isOrchestrionInjected() ? 'auto.middleware.orchestrion.nestjs' : 'auto.middleware.nestjs';
+  const base = isOrchestrionInjected(NESTJS) ? 'auto.middleware.orchestrion.nestjs' : 'auto.middleware.nestjs';
   return componentType ? `${base}.${componentType}` : base;
 }
 
 /** Origin for the app-creation / request-context / request-handler HTTP spans. */
 export function httpOrigin(): string {
-  return isOrchestrionInjected() ? 'auto.http.orchestrion.nestjs' : 'auto.http.otel.nestjs';
+  return isOrchestrionInjected(NESTJS) ? 'auto.http.orchestrion.nestjs' : 'auto.http.otel.nestjs';
 }
 
 /** Origin for `@OnEvent` spans. */
 function eventOrigin(): string {
-  return isOrchestrionInjected() ? 'auto.event.orchestrion.nestjs' : 'auto.event.nestjs';
+  return isOrchestrionInjected(NESTJS) ? 'auto.event.orchestrion.nestjs' : 'auto.event.nestjs';
 }
 
 /** Origin for BullMQ `@Processor` `process` spans. */
 function bullmqOrigin(): string {
-  return isOrchestrionInjected() ? 'auto.queue.orchestrion.nestjs.bullmq' : 'auto.queue.nestjs.bullmq';
+  return isOrchestrionInjected(NESTJS) ? 'auto.queue.orchestrion.nestjs.bullmq' : 'auto.queue.nestjs.bullmq';
 }
 
 /**

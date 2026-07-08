@@ -21,11 +21,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nestjsChannelIntegration } from '../../src/orchestrion';
 import { nestjsChannels as CHANNELS } from '../../src/orchestrion/config';
 
-// The subscriber only ever runs when orchestrion has injected the channels.
-// `isOrchestrionInjected()` selects the `orchestrion` span origins that the
-// assertions below expect, and so must be true for these tests.
+// The subscriber only ever runs when orchestrion has instrumented `@nestjs/*`.
+// `isOrchestrionInjected('nestjs')` selects the `orchestrion` span origins the
+// assertions below expect, so the `nestjs` instrumentation must be marked installed.
 beforeEach(() => {
-  (globalThis as { __SENTRY_ORCHESTRION__?: unknown }).__SENTRY_ORCHESTRION__ = { runtime: true };
+  (globalThis as { __SENTRY_ORCHESTRION__?: unknown }).__SENTRY_ORCHESTRION__ = {
+    runtime: true,
+    installed: ['nestjs'],
+  };
 });
 afterEach(() => {
   delete (globalThis as { __SENTRY_ORCHESTRION__?: unknown }).__SENTRY_ORCHESTRION__;

@@ -5,11 +5,12 @@ import { pathToFileURL } from 'node:url';
 import { DEBUG_BUILD } from '../../debug-build';
 import { getSentryInstrumentations } from '../config';
 import type { OrchestrionInstrumentation } from '../registry';
+import { getInjectedOrchestrionInstrumentations } from '../registry';
 
 declare global {
   // eslint-disable-next-line no-var
   var __SENTRY_ORCHESTRION__:
-    | { runtime?: boolean; bundler?: boolean; registry?: OrchestrionInstrumentation[] }
+    | { runtime?: boolean; bundler?: boolean; registry?: OrchestrionInstrumentation[]; installed?: string[] }
     | undefined;
 }
 
@@ -124,5 +125,12 @@ export function registerDiagnosticsChannelInjection(): void {
     return;
   }
 
+  // Freeze which externally-injected instrumentations actually made it into the
+  // transform we just installed. The list can't change after this: a later
+  // `registerOrchestrionInstrumentation()` (e.g. `@sentry/nestjs` registering
+  // after a bare `@sentry/node/import` hook already installed) is a no-op for
+  // the transform, so consumers must gate the OTel→channel swap and the span
+  // origin on this snapshot, not on the mutable registry.
+  g.installed = getInjectedOrchestrionInstrumentations().map(i => i.name);
   g.runtime = true;
 }

@@ -5,21 +5,32 @@ import type { OrchestrionInstrumentation } from './registry';
 declare global {
   // eslint-disable-next-line no-var
   var __SENTRY_ORCHESTRION__:
-    | { runtime?: boolean; bundler?: boolean; registry?: OrchestrionInstrumentation[] }
+    | { runtime?: boolean; bundler?: boolean; registry?: OrchestrionInstrumentation[]; installed?: string[] }
     | undefined;
 }
 
 /**
- * Whether orchestrion has injected the diagnostics channels into this process,
- * either by the runtime `--import` hook / init-time registration (`runtime`)
- * or a bundler plugin (`bundler`). Both injectors set a flag on the
- * `globalThis.__SENTRY_ORCHESTRION__` marker.
+ * Whether orchestrion has injected the diagnostics channels into this process.
  *
- * Use this to avoid wiring up channel-subscriber integrations when nothing
- * will ever publish to those channels.
+ * Called with NO argument: `true` if ANY orchestrion injection is active — the
+ * runtime `--import` hook / init-time registration (`runtime`) or a bundler
+ * plugin (`bundler`). Use this to avoid wiring up channel-subscriber
+ * integrations when nothing will ever publish to those channels.
+ *
+ * Called with an instrumentation `name` (a descriptor name, e.g. `'nestjs'`):
+ * `true` only if THAT instrumentation was actually committed to the installed
+ * transform. This is narrower than the no-arg form because the runtime hook
+ * freezes its transform list at first install, so an instrumentation registered
+ * *after* another `--import` hook already installed is NOT active even though the
+ * no-arg form returns true. Use the named form to decide whether an OTel
+ * integration should be swapped for its channel-based counterpart, and (in
+ * shared span logic) whether to emit the orchestrion or the OTel span origin.
  */
-export function isOrchestrionInjected(): boolean {
+export function isOrchestrionInjected(name?: string): boolean {
   const marker = globalThis.__SENTRY_ORCHESTRION__;
+  if (name !== undefined) {
+    return !!marker?.installed?.includes(name);
+  }
   return !!(marker?.runtime || marker?.bundler);
 }
 
