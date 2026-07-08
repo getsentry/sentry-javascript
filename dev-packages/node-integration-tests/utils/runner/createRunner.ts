@@ -17,6 +17,7 @@ import { createBasicSentryServer } from '@sentry-internal/test-utils';
 import { execSync, spawn, spawnSync } from 'child_process';
 import { createHash } from 'crypto';
 import { existsSync } from 'fs';
+import { tmpdir } from 'os';
 import { join } from 'path';
 import { inspect } from 'util';
 import type { DeepPartial } from './../assertions';
@@ -108,6 +109,16 @@ type StartResult = {
     options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean },
   ): Promise<T | undefined>;
 };
+
+// Node's on-disk V8 compile cache (Node 22+) cuts the repeated cost of parsing/compiling the
+// `@sentry/node` + OpenTelemetry module graph that every scenario child loads from scratch. We
+// point all child processes at one shared cache dir, so the first child populates it and the
+// rest reuse it. `NODE_COMPILE_CACHE` is silently ignored on Node < 22, so gating on the
+// parent's major version (the same `node` binary the children run) just avoids creating an
+// unused dir there. A user-set `NODE_COMPILE_CACHE` in the environment takes precedence.
+const NODE_MAJOR = Number(process.versions.node.split('.')[0]);
+const COMPILE_CACHE_ENV: Record<string, string> =
+  NODE_MAJOR >= 22 ? { NODE_COMPILE_CACHE: join(tmpdir(), 'sentry-node-it-compile-cache') } : {};
 
 export const CLEANUP_STEPS = new Set<VoidFunction>();
 
@@ -408,8 +419,13 @@ export function createRunner(...paths: string[]) {
           }
 
           const env = mockServerPort
-            ? { ...process.env, ...withEnv, SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337` }
-            : { ...process.env, ...withEnv };
+            ? {
+                ...COMPILE_CACHE_ENV,
+                ...process.env,
+                ...withEnv,
+                SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337`,
+              }
+            : { ...COMPILE_CACHE_ENV, ...process.env, ...withEnv };
 
           if (process.env.DEBUG) log('starting scenario', testPath, flags, env.SENTRY_DSN);
 
