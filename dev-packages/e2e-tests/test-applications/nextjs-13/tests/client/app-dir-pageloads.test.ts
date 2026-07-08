@@ -27,6 +27,8 @@ test('should create a pageload transaction when the `app` directory is used', as
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
           'sentry.source': 'url',
+          'url.path': '/pageload-transaction',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/pageload-transaction$/),
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -45,4 +47,6 @@ test('should create a pageload transaction when the `app` directory is used', as
     transaction_info: { source: 'url' },
     type: 'transaction',
   });
+
+  expect(transaction.contexts?.trace?.data).not.toHaveProperty('url.template');
 });
