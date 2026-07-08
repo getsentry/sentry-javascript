@@ -46,9 +46,7 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
 
   // Check browser.web_vital.lcp.* attributes
   expect(lcpSpan.attributes['browser.web_vital.lcp.element']?.value).toEqual(expect.stringContaining('body > img'));
-  expect(lcpSpan.attributes['browser.web_vital.lcp.url']?.value).toBe(
-    'https://sentry-test-site.example/my/image.png',
-  );
+  expect(lcpSpan.attributes['browser.web_vital.lcp.url']?.value).toBe('https://sentry-test-site.example/my/image.png');
   expect(lcpSpan.attributes['browser.web_vital.lcp.size']?.value).toEqual(expect.any(Number));
 
   // Check web vital value attribute

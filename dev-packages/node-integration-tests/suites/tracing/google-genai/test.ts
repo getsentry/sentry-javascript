@@ -551,7 +551,7 @@ describe('Google GenAI integration', () => {
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
                 streamingLongContent,
               ),
             );

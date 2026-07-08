@@ -13,8 +13,7 @@ describe('httpIntegration-streamed', () => {
           span: container => {
             const serverSpan = container.items.find(
               item =>
-                item.attributes['sentry.op']?.type === 'string' &&
-                item.attributes['sentry.op'].value === 'http.server',
+                item.attributes['sentry.op']?.type === 'string' && item.attributes['sentry.op'].value === 'http.server',
             );
 
             expect(serverSpan).toBeDefined();

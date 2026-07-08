@@ -252,12 +252,12 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(secondGenerateContentSpan.status).toBe('ok');
               expect(secondGenerateContentSpan.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
               expect(secondGenerateContentSpan.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
-              expect(
-                secondGenerateContentSpan.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value as string,
-              ).toContain('Where is the second span?');
-              expect(
-                secondGenerateContentSpan.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value as string,
-              ).toContain('Second span here!');
+              expect(secondGenerateContentSpan.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value as string).toContain(
+                'Where is the second span?',
+              );
+              expect(secondGenerateContentSpan.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value as string).toContain(
+                'Second span here!',
+              );
 
               const toolInvokeAgentSpan = container.items.find(
                 span =>
@@ -731,8 +731,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(embedSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(10);
 
               const embedManySpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]?.value === '["First input","Second input"]',
+                span => span.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]?.value === '["First input","Second input"]',
               );
               if (embedManyInstrumented) {
                 expect(embedManySpan).toBeDefined();
