@@ -5,11 +5,11 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipMetricsTest, shouldSkipTracingTest, waitForMetrics } from '../../../../utils/helpers';
 
 function getIdentifier(m: SerializedMetric): unknown {
-  return m.attributes['ui.element.identifier']?.value;
+  return m.attributes?.['ui.element.identifier']?.value;
 }
 
 function getPaintType(m: SerializedMetric): unknown {
-  return m.attributes['ui.element.paint_type']?.value;
+  return m.attributes?.['ui.element.paint_type']?.value;
 }
 
 sentryTest(
