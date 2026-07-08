@@ -7,7 +7,9 @@ export type { HttpServerIntegrationOptions } from './integrations/http/httpServe
 export type { HttpServerSpansIntegrationOptions } from './integrations/http/httpServerSpansIntegration';
 
 export {
+  // oxlint-disable-next-line typescript/no-deprecated
   SentryHttpInstrumentation,
+  instrumentHttpOutgoingRequests,
   type SentryHttpInstrumentationOptions,
 } from './integrations/http/SentryHttpInstrumentation';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
