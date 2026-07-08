@@ -1,8 +1,10 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { expect, test } from 'vitest';
+import { test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 
-test('HttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async () => {
+test('HttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async ({
+  expect,
+}) => {
   expect.assertions(11);
 
   const [SERVER_URL, closeTestServer] = await createTestServer()

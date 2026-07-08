@@ -1,10 +1,10 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { describe, expect } from 'vitest';
+import { describe } from 'vitest';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('outgoing fetch', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('outgoing sampled fetch requests without active span are correctly instrumented', async () => {
+    test('outgoing sampled fetch requests without active span are correctly instrumented', async ({ expect }) => {
       expect.assertions(11);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()

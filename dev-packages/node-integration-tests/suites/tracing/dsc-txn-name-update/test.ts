@@ -1,8 +1,8 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { expect, test } from 'vitest';
+import { test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 
-test('adds current transaction name to baggage when the txn name is high-quality', async () => {
+test('adds current transaction name to baggage when the txn name is high-quality', async ({ expect }) => {
   expect.assertions(5);
 
   let traceId: string | undefined;
@@ -60,7 +60,7 @@ test('adds current transaction name to baggage when the txn name is high-quality
   closeTestServer();
 });
 
-test('adds current transaction name to trace envelope header when the txn name is high-quality', async () => {
+test('adds current transaction name to trace envelope header when the txn name is high-quality', async ({ expect }) => {
   expect.assertions(4);
 
   await createRunner(__dirname, 'scenario-events.ts')

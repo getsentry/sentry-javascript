@@ -1,5 +1,5 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { afterAll, describe, expect } from 'vitest';
+import { afterAll, describe } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
 
 describe('outgoing fetch spans - request/response hooks', () => {
@@ -8,7 +8,7 @@ describe('outgoing fetch spans - request/response hooks', () => {
   });
 
   createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('adds requestHook and responseHook attributes to spans of outgoing fetch requests', async () => {
+    test('adds requestHook and responseHook attributes to spans of outgoing fetch requests', async ({ expect }) => {
       expect.assertions(3);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()

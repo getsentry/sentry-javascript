@@ -8,8 +8,6 @@ describe('express user handling', () => {
 
   createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('ignores user from request', async () => {
-      expect.assertions(2);
-
       const runner = createRunner()
         .expect({
           event: event => {

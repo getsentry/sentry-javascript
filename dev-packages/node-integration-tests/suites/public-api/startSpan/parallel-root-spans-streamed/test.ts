@@ -6,8 +6,6 @@ afterAll(() => {
 });
 
 test('sends manually started streamed parallel root spans in root context', async () => {
-  expect.assertions(7);
-
   await createRunner(__dirname, 'scenario.ts')
     .expect({ span: { items: [{ name: 'test_span_1' }] } })
     .expect({

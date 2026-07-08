@@ -1,10 +1,10 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { describe, expect } from 'vitest';
+import { describe } from 'vitest';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('outgoing http requests with tracing & spans disabled', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('outgoing http requests are correctly instrumented with tracing & spans disabled', async () => {
+    test('outgoing http requests are correctly instrumented with tracing & spans disabled', async ({ expect }) => {
       expect.assertions(11);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()

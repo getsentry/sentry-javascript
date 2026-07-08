@@ -1,5 +1,5 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { afterAll, describe, expect } from 'vitest';
+import { afterAll, describe } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
 
 describe('outgoing http spans', () => {
@@ -8,7 +8,7 @@ describe('outgoing http spans', () => {
   });
 
   createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('captures spans for outgoing http requests', async () => {
+    test('captures spans for outgoing http requests', async ({ expect }) => {
       expect.assertions(3);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()

@@ -1,5 +1,5 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { afterAll, describe, expect } from 'vitest';
+import { afterAll, describe } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
 
 describe('streamed outgoing fetch spans', () => {
@@ -8,7 +8,7 @@ describe('streamed outgoing fetch spans', () => {
   });
 
   createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('infers sentry.op for streamed outgoing fetch spans', async () => {
+    test('infers sentry.op for streamed outgoing fetch spans', async ({ expect }) => {
       expect.assertions(2);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()

@@ -1,5 +1,5 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { afterAll, describe, expect } from 'vitest';
+import { afterAll, describe } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
 
 describe('outgoing fetch spans - headers to span attributes', () => {
@@ -8,7 +8,7 @@ describe('outgoing fetch spans - headers to span attributes', () => {
   });
 
   createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('maps configured request & response headers to span attributes', async () => {
+    test('maps configured request & response headers to span attributes', async ({ expect }) => {
       expect.assertions(2);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()

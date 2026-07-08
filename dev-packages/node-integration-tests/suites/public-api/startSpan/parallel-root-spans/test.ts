@@ -6,8 +6,6 @@ afterAll(() => {
 });
 
 test('should send manually started parallel root spans in root context', async () => {
-  expect.assertions(7);
-
   await createRunner(__dirname, 'scenario.ts')
     .expect({ transaction: { transaction: 'test_span_1' } })
     .expect({

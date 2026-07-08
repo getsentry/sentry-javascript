@@ -1,10 +1,10 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { describe, expect } from 'vitest';
+import { describe } from 'vitest';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('outgoing http', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('outgoing sampled http requests are correctly instrumented', async () => {
+    test('outgoing sampled http requests are correctly instrumented', async ({ expect }) => {
       expect.assertions(11);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()

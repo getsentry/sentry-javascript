@@ -5,7 +5,7 @@ import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
 
 describe('OnUncaughtException integration', () => {
-  test('should close process on uncaught error with no additional listeners registered', () =>
+  test('should close process on uncaught error with no additional listeners registered', ({ expect }) =>
     new Promise<void>(done => {
       expect.assertions(3);
 
@@ -19,7 +19,7 @@ describe('OnUncaughtException integration', () => {
       });
     }));
 
-  test('should not close process on uncaught error when additional listeners are registered', () =>
+  test('should not close process on uncaught error when additional listeners are registered', ({ expect }) =>
     new Promise<void>(done => {
       expect.assertions(2);
 
@@ -32,7 +32,7 @@ describe('OnUncaughtException integration', () => {
       });
     }));
 
-  test('should log entire error object to console stderr', () =>
+  test('should log entire error object to console stderr', ({ expect }) =>
     new Promise<void>(done => {
       expect.assertions(2);
 
@@ -49,7 +49,7 @@ describe('OnUncaughtException integration', () => {
     }));
 
   describe('with `exitEvenIfOtherHandlersAreRegistered` set to false', () => {
-    test('should close process on uncaught error with no additional listeners registered', () =>
+    test('should close process on uncaught error with no additional listeners registered', ({ expect }) =>
       new Promise<void>(done => {
         expect.assertions(3);
 
@@ -63,7 +63,7 @@ describe('OnUncaughtException integration', () => {
         });
       }));
 
-    test('should not close process on uncaught error when additional listeners are registered', () =>
+    test('should not close process on uncaught error when additional listeners are registered', ({ expect }) =>
       new Promise<void>(done => {
         expect.assertions(2);
 

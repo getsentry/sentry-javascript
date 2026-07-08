@@ -8,8 +8,6 @@ describe('ContextLines integration - filename with spaces', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario with space.mjs', 'instrument.mjs', (createRunner, test, mode) => {
     test('reads encoded context lines from filenames with spaces', async () => {
-      expect.assertions(1);
-
       await createRunner()
         .expect({
           event: {

@@ -1,10 +1,10 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { describe, expect } from 'vitest';
+import { describe } from 'vitest';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('outgoing http with maxed-out agent sockets', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('injects trace headers into requests queued behind a busy socket', async () => {
+    test('injects trace headers into requests queued behind a busy socket', async ({ expect }) => {
       expect.assertions(5);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()

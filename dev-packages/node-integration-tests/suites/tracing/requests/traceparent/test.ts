@@ -1,10 +1,10 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { describe, expect } from 'vitest';
+import { describe } from 'vitest';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('outgoing traceparent', () => {
   createEsmAndCjsTests(__dirname, 'scenario-fetch.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('outgoing fetch requests should get traceparent headers', async () => {
+    test('outgoing fetch requests should get traceparent headers', async ({ expect }) => {
       expect.assertions(7);
 
       let outgoingSentryTrace: string | undefined;
@@ -39,7 +39,7 @@ describe('outgoing traceparent', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-http.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('outgoing http requests should get traceparent headers', async () => {
+    test('outgoing http requests should get traceparent headers', async ({ expect }) => {
       expect.assertions(5);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()

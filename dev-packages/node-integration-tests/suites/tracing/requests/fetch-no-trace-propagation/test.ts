@@ -1,10 +1,10 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { describe, expect } from 'vitest';
+import { describe } from 'vitest';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('outgoing fetch with tracePropagation disabled', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('does not inject trace headers but still creates breadcrumbs', async () => {
+    test('does not inject trace headers but still creates breadcrumbs', async ({ expect }) => {
       expect.assertions(5);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()

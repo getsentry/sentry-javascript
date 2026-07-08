@@ -9,7 +9,7 @@ describe('onUnhandledRejectionIntegration', () => {
     cleanupChildProcesses();
   });
 
-  test('should show string-type promise rejection warnings by default', () =>
+  test('should show string-type promise rejection warnings by default', ({ expect }) =>
     new Promise<void>(done => {
       expect.assertions(3);
 
@@ -25,7 +25,7 @@ test rejection`);
       });
     }));
 
-  test('should show error-type promise rejection warnings by default', () =>
+  test('should show error-type promise rejection warnings by default', ({ expect }) =>
     new Promise<void>(done => {
       expect.assertions(3);
 
@@ -42,7 +42,7 @@ Error: test rejection
       });
     }));
 
-  test('should not close process on unhandled rejection in strict mode', () =>
+  test('should not close process on unhandled rejection in strict mode', ({ expect }) =>
     new Promise<void>(done => {
       expect.assertions(4);
 
@@ -59,7 +59,7 @@ test rejection`);
       });
     }));
 
-  test('should not close process or warn on unhandled rejection in none mode', () =>
+  test('should not close process or warn on unhandled rejection in none mode', ({ expect }) =>
     new Promise<void>(done => {
       expect.assertions(3);
 
@@ -73,7 +73,7 @@ test rejection`);
       });
     }));
 
-  test('captures exceptions for unhandled rejections', async () => {
+  test('captures exceptions for unhandled rejections', async ({ expect }) => {
     await createRunner(__dirname, 'scenario-warn.ts')
       .expect({
         event: {
@@ -179,7 +179,7 @@ test rejection`);
     expect(transactionEvent!.contexts!.trace!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
   });
 
-  test('should not warn when AI_NoOutputGeneratedError or AbortError is rejected (default ignore)', () =>
+  test('should not warn when AI_NoOutputGeneratedError or AbortError is rejected (default ignore)', ({ expect }) =>
     new Promise<void>(done => {
       expect.assertions(3);
 
@@ -193,7 +193,7 @@ test rejection`);
       });
     }));
 
-  test('should not warn when custom ignored error by name is rejected', () =>
+  test('should not warn when custom ignored error by name is rejected', ({ expect }) =>
     new Promise<void>(done => {
       expect.assertions(3);
 
