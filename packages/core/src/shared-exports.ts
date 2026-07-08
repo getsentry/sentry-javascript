@@ -205,7 +205,13 @@ export {
 } from './tracing/anthropic-ai';
 export { instrumentAsyncIterableStream, instrumentMessageStream } from './tracing/anthropic-ai/streaming';
 export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants';
-export { instrumentGoogleGenAIClient } from './tracing/google-genai';
+export {
+  instrumentGoogleGenAIClient,
+  extractRequestAttributes as extractGoogleGenAIRequestAttributes,
+  addPrivateRequestAttributes as addGoogleGenAIRequestAttributes,
+  addResponseAttributes as addGoogleGenAIResponseAttributes,
+} from './tracing/google-genai';
+export { instrumentStream as instrumentGoogleGenAIStream } from './tracing/google-genai/streaming';
 export { GOOGLE_GENAI_INTEGRATION_NAME } from './tracing/google-genai/constants';
 export type { GoogleGenAIResponse } from './tracing/google-genai/types';
 export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './tracing/langchain';

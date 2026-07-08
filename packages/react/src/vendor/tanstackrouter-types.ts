@@ -22,7 +22,7 @@ export interface VendoredTanstackRouter {
     },
   ) => Array<VendoredTanstackRouterRouteMatch>;
   subscribe(
-    eventType: 'onResolved' | 'onBeforeNavigate',
+    eventType: 'onResolved' | 'onBeforeNavigate' | 'onBeforeLoad',
     callback: (stateUpdate: {
       toLocation: VendoredTanstackRouterLocation;
       fromLocation?: VendoredTanstackRouterLocation;

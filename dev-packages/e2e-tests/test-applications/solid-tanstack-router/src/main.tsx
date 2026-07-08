@@ -1,4 +1,12 @@
-import { Link, Outlet, RouterProvider, createRootRoute, createRoute, createRouter } from '@tanstack/solid-router';
+import {
+  Link,
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  redirect,
+} from '@tanstack/solid-router';
 import * as Sentry from '@sentry/solid';
 import { tanstackRouterBrowserTracingIntegration } from '@sentry/solid/tanstackrouter';
 import { render } from 'solid-js/web';
@@ -22,6 +30,11 @@ const rootRoute = createRootRoute({
         <li>
           <Link to="/posts/$postId" params={{ postId: '2' }} id="nav-link">
             Post 2
+          </Link>
+        </li>
+        <li>
+          <Link to="/redirect" id="redirect-link">
+            Redirect
           </Link>
         </li>
       </ul>
@@ -59,7 +72,15 @@ const postIdRoute = createRoute({
   },
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, postsRoute.addChildren([postIdRoute])]);
+const redirectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'redirect',
+  beforeLoad: () => {
+    throw redirect({ to: '/posts/$postId', params: { postId: '1' }, replace: true });
+  },
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, redirectRoute, postsRoute.addChildren([postIdRoute])]);
 
 const router = createRouter({
   routeTree,

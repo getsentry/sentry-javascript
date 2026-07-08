@@ -84,8 +84,13 @@ export function handleOnSpanStart(span: Span): void {
     addHeadersAsAttributes(headers, rootSpan);
   }
 
-  // We want to fork the isolation scope for incoming requests
-  if (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest' && isRootSpan) {
+  // We want to fork the isolation scope for incoming requests. Root `Middleware.execute` spans need the same
+  // treatment since Next.js 16.3.0-canary.79
+  if (
+    (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest' ||
+      spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute') &&
+    isRootSpan
+  ) {
     const scopes = getCapturedScopesOnSpan(span);
 
     const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
