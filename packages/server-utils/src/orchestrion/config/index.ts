@@ -9,6 +9,7 @@ import { anthropicAiConfig } from './anthropic-ai';
 import { googleGenAiConfig } from './google-genai';
 import { vercelAiConfig } from './vercel-ai';
 import { hapiConfig } from './hapi';
+import { redisConfig } from './redis';
 
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...mysqlConfig,
@@ -21,6 +22,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...googleGenAiConfig,
   ...vercelAiConfig,
   ...hapiConfig,
+  ...redisConfig,
 ];
 
 /**
