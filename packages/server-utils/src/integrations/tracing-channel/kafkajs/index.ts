@@ -4,7 +4,7 @@ import type { IntegrationFn, Span } from '@sentry/core';
 import { debug, defineIntegration } from '@sentry/core';
 import { DEBUG_BUILD } from '../../../debug-build';
 import { CHANNELS } from '../../../orchestrion/channels';
-import { wrapEachBatch, wrapEachMessage } from './consumer';
+import { isWrappedConsumerCallback, wrapEachBatch, wrapEachMessage } from './consumer';
 import { applyErrorToSpans, startProducerSpan } from './spans';
 import type { ConsumerRunConfig, ProducerBatch } from './types';
 
@@ -64,12 +64,13 @@ function subscribeToConsumer(): void {
       if (!config || typeof config !== 'object') {
         return;
       }
-      // Swap the user callbacks for span-creating wrappers before `run` destructures
-      // its config. `run` runs once per consumer, so fresh wrappers here can't double-wrap.
-      if (typeof config.eachMessage === 'function') {
+      // Swap the user callbacks for span-creating wrappers before `run` destructures its config. The
+      // `isWrappedConsumerCallback` guard keeps this idempotent: a config object reused across another
+      // `run` (or a second consumer) must not have its wrapper wrapped again, which would double spans.
+      if (typeof config.eachMessage === 'function' && !isWrappedConsumerCallback(config.eachMessage)) {
         config.eachMessage = wrapEachMessage(config.eachMessage);
       }
-      if (typeof config.eachBatch === 'function') {
+      if (typeof config.eachBatch === 'function' && !isWrappedConsumerCallback(config.eachBatch)) {
         config.eachBatch = wrapEachBatch(config.eachBatch);
       }
     },

@@ -15,9 +15,21 @@ import {
 import { endSpansOnPromise, getHeaderAsString, getLinksFromHeaders, startConsumerSpan } from './spans';
 import type { EachBatchHandler, EachMessageHandler, KafkaMessage } from './types';
 
+// Marks a callback we've already wrapped. A user can reuse one config object across multiple
+// `consumer.run(config)` calls (e.g. a second consumer); without this guard the second `start` would
+// wrap the wrapper and emit duplicate spans per message.
+const consumerCallbackWrapped: unique symbol = Symbol('kafkajs-consumer-callback-wrapped');
+
+type MaybeWrapped = { [consumerCallbackWrapped]?: true };
+
+/** Whether `fn` is a callback this module already wrapped, so callers skip re-wrapping it. */
+export function isWrappedConsumerCallback(fn: unknown): boolean {
+  return typeof fn === 'function' && (fn as MaybeWrapped)[consumerCallbackWrapped] === true;
+}
+
 /** Wraps `eachMessage` so each processed message becomes a consumer span parented to the message's producer. */
 export function wrapEachMessage(original: EachMessageHandler): EachMessageHandler {
-  return function eachMessage(this: unknown, payload) {
+  const wrapped: EachMessageHandler & MaybeWrapped = function eachMessage(this: unknown, payload) {
     const sentryTrace = getHeaderAsString(payload.message.headers, 'sentry-trace');
     const baggage = getHeaderAsString(payload.message.headers, 'baggage');
 
@@ -36,11 +48,13 @@ export function wrapEachMessage(original: EachMessageHandler): EachMessageHandle
       return endSpansOnPromise([span], promise);
     });
   };
+  wrapped[consumerCallbackWrapped] = true;
+  return wrapped;
 }
 
 /** Wraps `eachBatch` so the batch pull becomes a fresh-root receiving span with a process span per message. */
 export function wrapEachBatch(original: EachBatchHandler): EachBatchHandler {
-  return function eachBatch(this: unknown, payload) {
+  const wrapped: EachBatchHandler & MaybeWrapped = function eachBatch(this: unknown, payload) {
     // A batch pull aggregates messages from many producers, so the receiving span is a fresh root
     // trace and each processed message links back to its own producer span. Mirrors the OTel messaging
     // semantic conventions for a topic with multiple consumers.
@@ -75,4 +89,6 @@ export function wrapEachBatch(original: EachBatchHandler): EachBatchHandler {
       return endSpansOnPromise(spans, promise);
     });
   };
+  wrapped[consumerCallbackWrapped] = true;
+  return wrapped;
 }
