@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { filterInstrumentedExternals, getTranspilePackages } from '../../src/config/diagnosticsChannelInjection';
+import {
+  filterInstrumentedExternals,
+  getBundleableInstrumented,
+  getTranspilePackages,
+} from '../../src/config/diagnosticsChannelInjection';
+
+describe('getBundleableInstrumented', () => {
+  it('excludes bundle-unsafe packages (mysql stays external / runtime-hook instrumented)', () => {
+    expect(getBundleableInstrumented(['pg', 'mysql', 'ioredis'])).toEqual(['pg', 'ioredis']);
+  });
+});
 
 describe('filterInstrumentedExternals', () => {
   it('removes orchestrion-instrumented packages, keeps the rest', () => {

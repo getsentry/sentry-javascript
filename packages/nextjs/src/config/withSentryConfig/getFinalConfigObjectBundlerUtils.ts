@@ -1,5 +1,9 @@
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
-import { filterInstrumentedExternals } from '../diagnosticsChannelInjection';
+import {
+  filterInstrumentedExternals,
+  getBundleableInstrumented,
+  ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
+} from '../diagnosticsChannelInjection';
 import { handleRunAfterProductionCompile } from '../handleRunAfterProductionCompile';
 import type { RouteManifest } from '../manifest/types';
 import { constructTurbopackConfig } from '../turbopack';
@@ -232,10 +236,16 @@ export function getServerExternalPackagesPatch(
   useDiagnosticsChannelInjection = false,
 ): Partial<NextConfigObject> {
   // Diagnostics-channel injection needs the instrumented packages bundled (so the code transform
-  // reaches them), so drop them from the external list — the rest stay external for the OTel path.
-  const instrumented = useDiagnosticsChannelInjection ? INSTRUMENTED_MODULE_NAMES : [];
+  // reaches them), so drop them from the external list — except the bundle-unsafe ones, which stay
+  // external and get instrumented by the runtime module hook instead. That hook only works if the
+  // orchestrion machinery itself is external too (bundled, its parser breaks), so add those.
+  const instrumented = useDiagnosticsChannelInjection ? getBundleableInstrumented(INSTRUMENTED_MODULE_NAMES) : [];
   const mergeExternals = (userProvided: string[] | undefined): string[] => {
-    const merged = [...(userProvided || []), ...DEFAULT_SERVER_EXTERNAL_PACKAGES];
+    const merged = [
+      ...(userProvided || []),
+      ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
+      ...(useDiagnosticsChannelInjection ? ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES : []),
+    ];
     return useDiagnosticsChannelInjection ? filterInstrumentedExternals(merged, instrumented) : merged;
   };
 

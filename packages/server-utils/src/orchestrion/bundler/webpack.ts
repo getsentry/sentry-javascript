@@ -11,14 +11,6 @@ import { createRequire } from 'node:module';
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 
-// Sets `globalThis.__SENTRY_ORCHESTRION__.bundler = true` at app boot so the runtime detector can
-// confirm the bundler transform ran. Only the webpack plugin can inject this; the bare loader can't.
-const BUNDLER_MARKER = [
-  'globalThis.__SENTRY_ORCHESTRION__ = (globalThis.__SENTRY_ORCHESTRION__ || {});',
-  'globalThis.__SENTRY_ORCHESTRION__.bundler = true;',
-  '',
-].join('\n');
-
 // Resolve the bundler-plugins package from this module regardless of ESM/CJS output.
 function getOrchestrionRequire(): ReturnType<typeof createRequire> {
   let nodeRequire: ReturnType<typeof createRequire>;
@@ -41,14 +33,18 @@ export function getSentryInstrumentations(): InstrumentationConfig[] {
   return SENTRY_INSTRUMENTATIONS;
 }
 
-/** The code-transform webpack plugin (for `next build --webpack`), pre-fed the instrumentation config. */
+/**
+ * The code-transform webpack plugin (for `next build --webpack`), pre-fed the instrumentation config.
+ *
+ * Intentionally does NOT inject the `__SENTRY_ORCHESTRION__.bundler` marker (unlike the Vite plugin):
+ * in a Next.js build, bundle-unsafe packages (e.g. `mysql`) stay externalized and rely on the runtime
+ * module hook, which `registerDiagnosticsChannelInjection()` skips when the bundler marker is set. The
+ * hybrid setup (bundler transform for bundled deps + runtime hook for external ones) needs both active.
+ */
 export function sentryOrchestrionWebpackPlugin(): unknown {
   const mod = getOrchestrionRequire()('@apm-js-collab/code-transformer-bundler-plugins/webpack') as {
-    default?: (options: { instrumentations: InstrumentationConfig[]; injectDiagnostics?: () => string }) => unknown;
+    default?: (options: { instrumentations: InstrumentationConfig[] }) => unknown;
   };
   const codeTransformerWebpack = mod.default ?? (mod as unknown as NonNullable<typeof mod.default>);
-  return codeTransformerWebpack({
-    instrumentations: SENTRY_INSTRUMENTATIONS,
-    injectDiagnostics: () => BUNDLER_MARKER,
-  });
+  return codeTransformerWebpack({ instrumentations: SENTRY_INSTRUMENTATIONS });
 }

@@ -1,5 +1,10 @@
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
-import { getNextDefaultExternals, getTranspilePackages, makeIsInstalled } from '../diagnosticsChannelInjection';
+import {
+  getBundleableInstrumented,
+  getNextDefaultExternals,
+  getTranspilePackages,
+  makeIsInstalled,
+} from '../diagnosticsChannelInjection';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { getNextjsVersion } from '../util';
 import { setUpBuildTimeVariables } from './buildTime';
@@ -97,7 +102,7 @@ export function getFinalConfigObject(
           new Set([
             ...(incomingUserNextConfigObject.transpilePackages ?? []),
             ...getTranspilePackages({
-              instrumented: INSTRUMENTED_MODULE_NAMES,
+              instrumented: getBundleableInstrumented(INSTRUMENTED_MODULE_NAMES),
               nextDefaultExternals: getNextDefaultExternals(process.cwd()),
               isInstalled: makeIsInstalled(process.cwd()),
             }),

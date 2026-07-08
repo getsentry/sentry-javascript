@@ -2,10 +2,36 @@ import * as fs from 'node:fs';
 import { createRequire } from 'node:module';
 import * as path from 'node:path';
 
+/**
+ * Instrumented packages that MUST stay externalized (and thus get instrumented by the runtime
+ * module hook instead of the build-time loader): Turbopack cannot bundle them correctly.
+ * `mysql` (2.x) corrupts its wire protocol when bundled ("Received packet in the wrong sequence"
+ * during the handshake) — even completely untransformed, so this is a bundling incompatibility,
+ * not a transform issue.
+ */
+export const BUNDLE_UNSAFE_INSTRUMENTED_PACKAGES = ['mysql'];
+
+/**
+ * The orchestrion runtime machinery, which must NOT be bundled: the code transformer's parser
+ * breaks when bundled ("a.parse is not a function"), making the runtime module hook silently
+ * return untransformed sources. Externalizing these keeps the hook running from real
+ * `node_modules`, so externalized instrumented packages (e.g. `mysql`) get transformed on require.
+ */
+export const ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES = [
+  '@apm-js-collab/tracing-hooks',
+  '@apm-js-collab/code-transformer',
+];
+
 /** Remove orchestrion-instrumented packages from a `serverExternalPackages` list. */
 export function filterInstrumentedExternals(externals: string[], instrumented: string[]): string[] {
   const set = new Set(instrumented);
   return externals.filter(name => !set.has(name));
+}
+
+/** The instrumented packages that should be force-bundled (i.e. reached by the build-time loader). */
+export function getBundleableInstrumented(instrumented: string[]): string[] {
+  const unsafe = new Set(BUNDLE_UNSAFE_INSTRUMENTED_PACKAGES);
+  return instrumented.filter(name => !unsafe.has(name));
 }
 
 /**
