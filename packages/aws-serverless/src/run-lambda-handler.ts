@@ -39,7 +39,9 @@ const handlerModule: Record<string, unknown> =
     ? ((await import(pathToFileURL(resolvedFile.file).href)) as Record<string, unknown>)
     : (createRequire(import.meta.url)(resolvedFile.file) as Record<string, unknown>);
 
-// Mirrors the AWS runtime's nested handler resolution, e.g. `index.nested.handler`.
+// Mirrors the AWS runtime's nested handler resolution (`_resolveHandler` in
+// https://github.com/aws/aws-lambda-nodejs-runtime-interface-client/blob/main/src/UserFunction.js),
+// e.g. `index.nested.handler`.
 const originalHandler = parsedHandler.functionPath
   .split('.')
   .reduce<unknown>((nested, key) => (nested as Record<string, unknown> | undefined)?.[key], handlerModule);

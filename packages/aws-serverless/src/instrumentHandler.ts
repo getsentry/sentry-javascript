@@ -78,10 +78,7 @@ function isStreamingHandler<TEvent, TResult>(
   );
 }
 
-function getPatchedHandler(
-  original: Handler | StreamifyHandler,
-  lambdaStartTime: number,
-): Handler | StreamifyHandler {
+function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime: number): Handler | StreamifyHandler {
   let requestHandledBefore = false;
   let requestIsColdStart = true;
 
@@ -138,12 +135,7 @@ function getPatchedHandler(
     };
   }
 
-  return function patchedHandler(
-    this: unknown,
-    event: LambdaEvent,
-    context: Context,
-    callback: Callback,
-  ) {
+  return function patchedHandler(this: unknown, event: LambdaEvent, context: Context, callback: Callback) {
     _onRequest();
 
     const { 'sentry-trace': sentryTrace, baggage } = getAwsTraceData(event, context);
