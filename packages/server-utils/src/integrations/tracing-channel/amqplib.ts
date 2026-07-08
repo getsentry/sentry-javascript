@@ -13,7 +13,14 @@ import {
   timestampInSeconds,
   waitForTracingChannelBinding,
 } from '@sentry/core';
-import { MESSAGING_SYSTEM } from '@sentry/conventions/attributes';
+// eslint-disable-next-line typescript/no-deprecated -- NET_PEER_* emitted alongside SERVER_* for backwards compatibility (TODO(v11): remove)
+import {
+  MESSAGING_SYSTEM,
+  NET_PEER_NAME,
+  NET_PEER_PORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
@@ -38,10 +45,6 @@ const ATTR_MESSAGING_MESSAGE_ID = 'messaging.message_id';
 const ATTR_MESSAGING_CONVERSATION_ID = 'messaging.conversation_id';
 const MESSAGING_DESTINATION_KIND_VALUE_TOPIC = 'topic';
 const MESSAGING_OPERATION_VALUE_PROCESS = 'process';
-// Inlined (rather than imported) because the `@sentry/conventions` exports are deprecated; the SDK
-// has always emitted these legacy `net.*` attributes for amqplib connections.
-const ATTR_NET_PEER_NAME = 'net.peer.name';
-const ATTR_NET_PEER_PORT = 'net.peer.port';
 
 // To prevent reference leaks from un-acked messages, their spans are closed after this timeout. The
 // upstream instrumentation exposed this as the `consumeTimeoutMs` option; the SDK always used the default.
@@ -526,18 +529,34 @@ function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
   if (typeof resolvedUrl === 'object') {
     const connectOptions = resolvedUrl as { protocol?: string; hostname?: string; port?: number };
     const protocol = getProtocol(connectOptions.protocol);
+    const hostname = getHostname(connectOptions.hostname);
+    const port = getPort(connectOptions.port, protocol);
+
     attributes[ATTR_MESSAGING_PROTOCOL] = protocol;
-    attributes[ATTR_NET_PEER_NAME] = getHostname(connectOptions.hostname);
-    attributes[ATTR_NET_PEER_PORT] = getPort(connectOptions.port, protocol);
+    attributes[SERVER_ADDRESS] = hostname;
+    attributes[SERVER_PORT] = port;
+    // TODO(v11): remove deprecated options
+    // eslint-disable-next-line typescript/no-deprecated -- emitted alongside SERVER_ADDRESS/SERVER_PORT for backwards compatibility
+    attributes[NET_PEER_NAME] = hostname;
+    // eslint-disable-next-line typescript/no-deprecated -- emitted alongside SERVER_ADDRESS/SERVER_PORT for backwards compatibility
+    attributes[NET_PEER_PORT] = port;
   } else if (typeof resolvedUrl === 'string') {
     const censoredUrl = censorPassword(resolvedUrl);
     attributes[ATTR_MESSAGING_URL] = censoredUrl;
+
     try {
       const urlParts = new URL(censoredUrl);
       const protocol = getProtocol(urlParts.protocol);
+      const hostname = getHostname(urlParts.hostname);
+      const port = getPort(urlParts.port ? parseInt(urlParts.port, 10) : undefined, protocol);
+
       attributes[ATTR_MESSAGING_PROTOCOL] = protocol;
-      attributes[ATTR_NET_PEER_NAME] = getHostname(urlParts.hostname);
-      attributes[ATTR_NET_PEER_PORT] = getPort(urlParts.port ? parseInt(urlParts.port, 10) : undefined, protocol);
+      attributes[SERVER_ADDRESS] = hostname;
+      attributes[SERVER_PORT] = port;
+      // eslint-disable-next-line typescript/no-deprecated -- emitted alongside SERVER_ADDRESS/SERVER_PORT for backwards compatibility
+      attributes[NET_PEER_NAME] = hostname;
+      // eslint-disable-next-line typescript/no-deprecated -- emitted alongside SERVER_ADDRESS/SERVER_PORT for backwards compatibility
+      attributes[NET_PEER_PORT] = port;
     } catch {
       // best-effort: a malformed url simply yields fewer connection attributes
     }
