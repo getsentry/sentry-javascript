@@ -1,9 +1,13 @@
 import * as Sentry from '@sentry/node';
 import { Client } from 'pg';
+import { waitForPostgres } from './wait-for-postgres.js';
 
-const client = new Client({ port: 5494, user: 'test', password: 'test', database: 'tests' });
+const connectionConfig = { port: 5494, user: 'test', password: 'test', database: 'tests' };
+const client = new Client(connectionConfig);
 
 async function run() {
+  await waitForPostgres(connectionConfig);
+
   // No active span here: `requireParentSpan` means the connect and this query
   // must NOT produce spans.
   await client.connect();

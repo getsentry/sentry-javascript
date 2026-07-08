@@ -1,13 +1,16 @@
 import * as Sentry from '@sentry/node';
 import pg from 'pg';
+import { waitForPostgres } from './wait-for-postgres.js';
 
 const { Pool } = pg;
 
 // The connection string carries credentials so we can assert they are masked
 // out of the `db.connection_string` span attribute.
-const pool = new Pool({ connectionString: 'postgresql://test:test@localhost:5494/tests' });
+const connectionString = 'postgresql://test:test@localhost:5494/tests';
+const pool = new Pool({ connectionString });
 
 async function run() {
+  await waitForPostgres({ connectionString });
   await Sentry.startSpan(
     {
       name: 'Test Transaction',
