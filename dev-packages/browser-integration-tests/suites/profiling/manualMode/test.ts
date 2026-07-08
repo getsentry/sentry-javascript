@@ -31,13 +31,17 @@ sentryTest('sends profile_chunk envelopes in manual mode', async ({ page, getLoc
     sentryTest.skip();
   }
 
+  // JS self-profiling + chunk flush is slow and highly variable under CI load (locally observed ~9–25s),
+  // so give this test headroom beyond the 30s default to avoid hitting the per-test timeout.
+  sentryTest.slow();
+
   const url = await getLocalTestUrl({ testDir: __dirname, responseHeaders: { 'Document-Policy': 'js-profiling' } });
 
   // In manual mode we start and stop once -> expect exactly one chunk
   const profileChunkEnvelopes = await getMultipleSentryEnvelopeRequests<ProfileChunkEnvelope>(
     page,
     2,
-    { url, envelopeType: 'profile_chunk', timeout: 15_000 },
+    { url, envelopeType: 'profile_chunk', timeout: 20_000 },
     properFullEnvelopeRequestParser,
   );
 

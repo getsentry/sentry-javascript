@@ -1,11 +1,17 @@
 import * as Sentry from '@sentry/node';
+import { waitForConnection } from '@sentry-internal/node-integration-tests';
 import { Client } from 'pg';
-import { waitForPostgres } from './wait-for-postgres.js';
 
 const connectionConfig = { port: 5494, user: 'test', password: 'test', database: 'tests' };
 
 async function run() {
-  await waitForPostgres(connectionConfig);
+  // Gate on the DB actually accepting a connection before opening the span (see `waitForConnection`).
+  await waitForConnection(async () => {
+    const probe = new Client(connectionConfig);
+    await probe.connect();
+    await probe.end();
+  });
+
   await Sentry.startSpan(
     {
       name: 'Test Transaction',

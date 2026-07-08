@@ -1,4 +1,4 @@
-import type { Envelope } from '@sentry/core';
+import type { Envelope, TransactionEvent } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { createRunner } from '../../../runner';
@@ -14,7 +14,7 @@ const flushMarkerMatcher = (envelope: Envelope): void => {
 it('instruments sync KV operations on Durable Object storage', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1];
+      const transactionEvent = envelope[1]?.[0]?.[1] as TransactionEvent | undefined;
       const spans = transactionEvent?.spans ?? [];
 
       expect(transactionEvent).toEqual(
