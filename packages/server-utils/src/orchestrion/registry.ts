@@ -48,8 +48,8 @@ export function registerOrchestrionInstrumentation(instrumentation: OrchestrionI
 }
 
 /**
-* The externally-injected orchestrion instrumentations, in registration order.
-*/
+ * The externally-injected orchestrion instrumentations, in registration order.
+ */
 export function getInjectedOrchestrionInstrumentations(): OrchestrionInstrumentation[] {
   return globalThis.__SENTRY_ORCHESTRION__?.registry ?? [];
 }
