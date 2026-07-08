@@ -11,11 +11,15 @@ import { createRequire } from 'node:module';
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 
-// Resolve the bundler-plugins package from this module regardless of ESM/CJS output.
+// Resolve the bundler-plugins package from this module regardless of ESM/CJS output. Both branches
+// go through `createRequire` (rather than aliasing the CJS `require`) so that a bundler consuming
+// this module (e.g. Next.js 13 bundling `@sentry/nextjs` into the server build) doesn't emit a
+// "Critical dependency: require function is used in a way in which dependencies cannot be
+// statically extracted" warning.
 function getOrchestrionRequire(): ReturnType<typeof createRequire> {
   let nodeRequire: ReturnType<typeof createRequire>;
   /*! rollup-include-cjs-only */
-  nodeRequire = require;
+  nodeRequire = createRequire(__filename);
   /*! rollup-include-cjs-only-end */
   /*! rollup-include-esm-only */
   nodeRequire = createRequire(import.meta.url);
