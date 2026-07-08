@@ -55,7 +55,8 @@
   },
   "dependencies": {
     "@sentry/browser": "10.64.0",
-    "@sentry/core": "10.64.0"
+    "@sentry/core": "10.64.0",
+    "@sentry/conventions": "^0.15.1"
   },
   "peerDependencies": {
     "@solidjs/router": "^0.13.4 || ^0.14.0 || ^0.15.0",
