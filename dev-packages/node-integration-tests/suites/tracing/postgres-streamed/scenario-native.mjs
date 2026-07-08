@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/node';
 import pg from 'pg';
+import { waitForPostgres } from './wait-for-postgres.js';
 
 const { native } = pg;
 const { Client } = native;
@@ -7,9 +8,11 @@ const { Client } = native;
 // `pg-native` uses libpq, which resolves `localhost` to IPv6 (`::1`) first and does not
 // fall back to IPv4. Docker Desktop only forwards the mapped port over IPv4, so we connect
 // to the IPv4 loopback explicitly to avoid an `ECONNREFUSED` on `::1`.
-const client = new Client({ host: '127.0.0.1', port: 5495, user: 'test', password: 'test', database: 'tests' });
+const connectionConfig = { host: '127.0.0.1', port: 5495, user: 'test', password: 'test', database: 'tests' };
+const client = new Client(connectionConfig);
 
 async function run() {
+  await waitForPostgres(connectionConfig);
   await Sentry.startSpan(
     {
       name: 'Test Span',

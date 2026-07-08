@@ -4,6 +4,7 @@ import { lruMemoizerConfig } from './lru-memoizer';
 import { ioredisConfig } from './ioredis';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
+import { postgresJsConfig } from './postgres';
 import { anthropicAiConfig } from './anthropic-ai';
 import { googleGenAiConfig } from './google-genai';
 import { vercelAiConfig } from './vercel-ai';
@@ -16,6 +17,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...ioredisConfig,
   ...openaiConfig,
   ...pgConfig,
+  ...postgresJsConfig,
   ...anthropicAiConfig,
   ...googleGenAiConfig,
   ...vercelAiConfig,

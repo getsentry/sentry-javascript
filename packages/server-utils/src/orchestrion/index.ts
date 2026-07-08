@@ -6,6 +6,7 @@ import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/l
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
 import { postgresChannelIntegration } from '../integrations/tracing-channel/postgres';
+import { postgresJsChannelIntegration } from '../integrations/tracing-channel/postgres-js';
 import { vercelAiChannelIntegration } from '../integrations/tracing-channel/vercel-ai';
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
@@ -18,9 +19,11 @@ export {
   mysqlChannelIntegration,
   openaiChannelIntegration,
   postgresChannelIntegration,
+  postgresJsChannelIntegration,
   vercelAiChannelIntegration,
 };
 export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/tracing-channel/ioredis';
+export type { PostgresJsChannelIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
 export { redisChannelIntegration } from '../integrations/tracing-channel/redis';
 export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/tracing-channel/redis';
 
@@ -39,6 +42,7 @@ export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integ
  */
 export const channelIntegrations = {
   postgresIntegration: postgresChannelIntegration,
+  postgresJsIntegration: postgresJsChannelIntegration,
   mysqlIntegration: mysqlChannelIntegration,
   lruMemoizerIntegration: lruMemoizerChannelIntegration,
   openaiIntegration: openaiChannelIntegration,

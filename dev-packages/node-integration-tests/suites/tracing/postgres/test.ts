@@ -84,67 +84,79 @@ describe('postgres auto instrumentation', () => {
       ]),
     };
 
-    createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('should auto-instrument `pg` package', { timeout: 90_000 }, async () => {
-        await createTestRunner()
-          .withDockerCompose({
-            workingDirectory: [__dirname],
-          })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
-      });
-    });
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('should auto-instrument `pg` package', { timeout: 90_000 }, async () => {
+          await createTestRunner()
+            .withDockerCompose({
+              workingDirectory: [__dirname],
+            })
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
+        });
+      },
+      { copyPaths: ['wait-for-postgres.js'] },
+    );
   });
 
   describe('ignoreConnectSpans', () => {
-    createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-ignoreConnect.mjs', (createTestRunner, test) => {
-      test("doesn't emit connect spans if ignoreConnectSpans is true", { timeout: 90_000 }, async () => {
-        await createTestRunner()
-          .withDockerCompose({
-            workingDirectory: [__dirname],
-          })
-          .expect({
-            transaction: txn => {
-              const spanNames = txn.spans?.map(span => span.description);
-              expect(spanNames?.find(name => name?.includes('connect'))).toBeUndefined();
-              expect(txn).toMatchObject({
-                transaction: 'Test Transaction',
-                spans: expect.arrayContaining([
-                  expect.objectContaining({
-                    data: expect.objectContaining({
-                      'db.system': 'postgresql',
-                      'db.name': 'tests',
-                      'db.statement': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
-                      'sentry.origin': 'auto.db.otel.postgres',
-                      'sentry.op': 'db',
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario.mjs',
+      'instrument-ignoreConnect.mjs',
+      (createTestRunner, test) => {
+        test("doesn't emit connect spans if ignoreConnectSpans is true", { timeout: 90_000 }, async () => {
+          await createTestRunner()
+            .withDockerCompose({
+              workingDirectory: [__dirname],
+            })
+            .expect({
+              transaction: txn => {
+                const spanNames = txn.spans?.map(span => span.description);
+                expect(spanNames?.find(name => name?.includes('connect'))).toBeUndefined();
+                expect(txn).toMatchObject({
+                  transaction: 'Test Transaction',
+                  spans: expect.arrayContaining([
+                    expect.objectContaining({
+                      data: expect.objectContaining({
+                        'db.system': 'postgresql',
+                        'db.name': 'tests',
+                        'db.statement': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                        'sentry.origin': 'auto.db.otel.postgres',
+                        'sentry.op': 'db',
+                      }),
+                      description: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                      op: 'db',
+                      status: 'ok',
+                      origin: 'auto.db.otel.postgres',
                     }),
-                    description: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
-                    op: 'db',
-                    status: 'ok',
-                    origin: 'auto.db.otel.postgres',
-                  }),
-                  expect.objectContaining({
-                    data: expect.objectContaining({
-                      'db.system': 'postgresql',
-                      'db.name': 'tests',
-                      'db.statement': 'SELECT * FROM "User"',
-                      'sentry.origin': 'auto.db.otel.postgres',
-                      'sentry.op': 'db',
+                    expect.objectContaining({
+                      data: expect.objectContaining({
+                        'db.system': 'postgresql',
+                        'db.name': 'tests',
+                        'db.statement': 'SELECT * FROM "User"',
+                        'sentry.origin': 'auto.db.otel.postgres',
+                        'sentry.op': 'db',
+                      }),
+                      description: 'SELECT * FROM "User"',
+                      op: 'db',
+                      status: 'ok',
+                      origin: 'auto.db.otel.postgres',
                     }),
-                    description: 'SELECT * FROM "User"',
-                    op: 'db',
-                    status: 'ok',
-                    origin: 'auto.db.otel.postgres',
-                  }),
-                ]),
-              });
-            },
-          })
-          .start()
-          .completed();
-      });
-    });
+                  ]),
+                });
+              },
+            })
+            .start()
+            .completed();
+        });
+      },
+      { copyPaths: ['wait-for-postgres.js'] },
+    );
   });
 
   describe('pool', () => {
@@ -182,21 +194,27 @@ describe('postgres auto instrumentation', () => {
       ]),
     };
 
-    createEsmAndCjsTests(__dirname, 'scenario-pool.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test(
-        'auto-instruments `pg.Pool`, masks connection-string credentials, and handles callback-style queries',
-        { timeout: 90_000 },
-        async () => {
-          await createTestRunner()
-            .withDockerCompose({
-              workingDirectory: [__dirname],
-            })
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .start()
-            .completed();
-        },
-      );
-    });
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-pool.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test(
+          'auto-instruments `pg.Pool`, masks connection-string credentials, and handles callback-style queries',
+          { timeout: 90_000 },
+          async () => {
+            await createTestRunner()
+              .withDockerCompose({
+                workingDirectory: [__dirname],
+              })
+              .expect({ transaction: EXPECTED_TRANSACTION })
+              .start()
+              .completed();
+          },
+        );
+      },
+      { copyPaths: ['wait-for-postgres.js'] },
+    );
   });
 
   describe('connect error', () => {
@@ -249,57 +267,69 @@ describe('postgres auto instrumentation', () => {
       ]),
     };
 
-    createEsmAndCjsTests(__dirname, 'scenario-connect-then.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('parents a query chained off connect() to the active transaction', { timeout: 90_000 }, async () => {
-        await createTestRunner()
-          .withDockerCompose({
-            workingDirectory: [__dirname],
-          })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
-      });
-    });
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-connect-then.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('parents a query chained off connect() to the active transaction', { timeout: 90_000 }, async () => {
+          await createTestRunner()
+            .withDockerCompose({
+              workingDirectory: [__dirname],
+            })
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .start()
+            .completed();
+        });
+      },
+      { copyPaths: ['wait-for-postgres.js'] },
+    );
   });
 
   describe('requireParentSpan', () => {
-    createEsmAndCjsTests(__dirname, 'scenario-no-parent.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('does not instrument queries or connects without an active parent span', { timeout: 90_000 }, async () => {
-        await createTestRunner()
-          .withDockerCompose({
-            workingDirectory: [__dirname],
-          })
-          .expect({
-            transaction: txn => {
-              const descriptions = txn.spans?.map(span => span.description) ?? [];
-              // The unparented connect + query must not have produced spans
-              expect(descriptions).not.toContain('SELECT 1 AS unparented');
-              expect(descriptions.find(name => name?.includes('connect'))).toBeUndefined();
-              // Only the parented query is instrumented
-              expect(txn).toMatchObject({
-                transaction: 'Test Transaction',
-                spans: expect.arrayContaining([
-                  expect.objectContaining({
-                    data: expect.objectContaining({
-                      'db.system': 'postgresql',
-                      'db.name': 'tests',
-                      'db.statement': 'SELECT 2 AS parented',
-                      'sentry.origin': QUERY_ORIGIN,
-                      'sentry.op': 'db',
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-no-parent.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('does not instrument queries or connects without an active parent span', { timeout: 90_000 }, async () => {
+          await createTestRunner()
+            .withDockerCompose({
+              workingDirectory: [__dirname],
+            })
+            .expect({
+              transaction: txn => {
+                const descriptions = txn.spans?.map(span => span.description) ?? [];
+                // The unparented connect + query must not have produced spans
+                expect(descriptions).not.toContain('SELECT 1 AS unparented');
+                expect(descriptions.find(name => name?.includes('connect'))).toBeUndefined();
+                // Only the parented query is instrumented
+                expect(txn).toMatchObject({
+                  transaction: 'Test Transaction',
+                  spans: expect.arrayContaining([
+                    expect.objectContaining({
+                      data: expect.objectContaining({
+                        'db.system': 'postgresql',
+                        'db.name': 'tests',
+                        'db.statement': 'SELECT 2 AS parented',
+                        'sentry.origin': QUERY_ORIGIN,
+                        'sentry.op': 'db',
+                      }),
+                      description: 'SELECT 2 AS parented',
+                      op: 'db',
+                      status: 'ok',
+                      origin: QUERY_ORIGIN,
                     }),
-                    description: 'SELECT 2 AS parented',
-                    op: 'db',
-                    status: 'ok',
-                    origin: QUERY_ORIGIN,
-                  }),
-                ]),
-              });
-            },
-          })
-          .start()
-          .completed();
-      });
-    });
+                  ]),
+                });
+              },
+            })
+            .start()
+            .completed();
+        });
+      },
+      { copyPaths: ['wait-for-postgres.js'] },
+    );
   });
 
   conditionalTest({ max: 25 })('pg-native', () => {
@@ -361,7 +391,7 @@ describe('postgres auto instrumentation', () => {
             .completed();
         });
       },
-      { additionalDependencies: { 'pg-native': '3.7.0', pg: '8.20.0' } },
+      { additionalDependencies: { 'pg-native': '3.7.0', pg: '8.20.0' }, copyPaths: ['wait-for-postgres.js'] },
     );
   });
 
@@ -445,7 +475,7 @@ describe('postgres auto instrumentation', () => {
         },
         // This block enables orchestrion itself via its instrument file, so opt out of the generic
         // INJECT_ORCHESTRION auto-injection to avoid enabling it twice.
-        { injectOrchestrion: false },
+        { injectOrchestrion: false, copyPaths: ['wait-for-postgres.js'] },
       );
     });
 
@@ -495,7 +525,7 @@ describe('postgres auto instrumentation', () => {
           });
         },
         // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
-        { injectOrchestrion: false },
+        { injectOrchestrion: false, copyPaths: ['wait-for-postgres.js'] },
       );
     });
 
@@ -573,7 +603,7 @@ describe('postgres auto instrumentation', () => {
           );
         },
         // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
-        { injectOrchestrion: false },
+        { injectOrchestrion: false, copyPaths: ['wait-for-postgres.js'] },
       );
     });
 
@@ -634,7 +664,7 @@ describe('postgres auto instrumentation', () => {
           );
         },
         // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
-        { injectOrchestrion: false },
+        { injectOrchestrion: false, copyPaths: ['wait-for-postgres.js'] },
       );
     });
   });

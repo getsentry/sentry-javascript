@@ -366,10 +366,15 @@ const NPM_INSTALL_RETRY_DELAY_MS = 2_000;
 async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
   for (let attempt = 1; attempt <= NPM_INSTALL_MAX_RETRIES; attempt++) {
     try {
-      const { stdout, stderr } = await execPromise('npm install --prefer-offline --silent --no-audit --no-fund', {
-        cwd,
-        encoding: 'utf8',
-      });
+      const { stdout, stderr } = await execPromise(
+        // We only use --prefer-offline on the first attempt to try to read from cache
+        // in follow ups we just try to install in any way
+        `npm install ${attempt === 1 ? '--prefer-offline' : ''} --no-audit --no-fund`,
+        {
+          cwd,
+          encoding: 'utf8',
+        },
+      );
 
       if (process.env.DEBUG) {
         // eslint-disable-next-line no-console
@@ -388,8 +393,10 @@ async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
         );
         await new Promise(resolve => setTimeout(resolve, NPM_INSTALL_RETRY_DELAY_MS));
       } else {
+        // oxlint-disable-next-line no-console
+        console.error(error);
         throw new Error(
-          `Failed to install additionalDependencies in tmp dir ${cwd} after ${NPM_INSTALL_MAX_RETRIES} attempts: ${error}`,
+          `Failed to install additionalDependencies in tmp dir ${cwd} after ${NPM_INSTALL_MAX_RETRIES} attempts`,
         );
       }
     }
