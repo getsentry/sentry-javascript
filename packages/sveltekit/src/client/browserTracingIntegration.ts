@@ -9,7 +9,7 @@ import {
   WINDOW,
 } from '@sentry/svelte';
 import { navigating, page } from '$app/stores';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { NAVIGATION_TYPE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 /**
  * A custom `BrowserTracing` integration for SvelteKit.
@@ -123,6 +123,7 @@ function _instrumentNavigations(client: Client): void {
       //   - link (clicking on a link)
       //   - goto (programmatic via goto() or redirect())
       //   - popstate (back/forward navigation)
+      [NAVIGATION_TYPE]: navigation.type,
       'sentry.sveltekit.navigation.type': navigation.type,
       'sentry.sveltekit.navigation.from': parameterizedRouteOrigin || undefined,
       'sentry.sveltekit.navigation.to': parameterizedRouteDestination || undefined,
