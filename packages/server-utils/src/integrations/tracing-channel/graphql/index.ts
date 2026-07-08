@@ -1,7 +1,8 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
+import { debug, defineIntegration, extendIntegration, waitForTracingChannelBinding } from '@sentry/core';
 import { DEBUG_BUILD } from '../../../debug-build';
+import { graphqlIntegration as graphqlNativeIntegration } from '../../../graphql';
 import type { GraphqlDiagnosticChannelsOptions } from '../../../graphql/graphql-dc-subscriber';
 import { CHANNELS } from '../../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../../tracing-channel';
@@ -92,3 +93,17 @@ const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions =
  * @experimental
  */
 export const graphqlChannelIntegration = defineIntegration(_graphqlChannelIntegration);
+
+/**
+ * The complete graphql diagnostics-channel integration: the native subscriber (graphql v17) composed
+ * with the orchestrion subscriber (v14–16), so opting into injection instruments every supported
+ * version via diagnostics channels without the OTel patcher. Reuses the OTel `Graphql` name so
+ * enabling injection swaps this in for it.
+ */
+export const graphqlDiagnosticsChannelIntegration = (options?: GraphqlDiagnosticChannelsOptions) => {
+  const orchestrion = graphqlChannelIntegration(options);
+  return extendIntegration(graphqlNativeIntegration(options), {
+    name: INTEGRATION_NAME,
+    setupOnce: () => orchestrion.setupOnce?.(),
+  });
+};

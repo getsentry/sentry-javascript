@@ -1,9 +1,9 @@
-import { extendIntegration } from '@sentry/core';
-import { graphqlIntegration as graphqlNativeIntegration } from '../graphql';
-import type { GraphqlDiagnosticChannelsOptions } from '../graphql/graphql-dc-subscriber';
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
 import { googleGenAIChannelIntegration } from '../integrations/tracing-channel/google-genai';
-import { graphqlChannelIntegration } from '../integrations/tracing-channel/graphql';
+import {
+  graphqlChannelIntegration,
+  graphqlDiagnosticsChannelIntegration,
+} from '../integrations/tracing-channel/graphql';
 import { hapiChannelIntegration } from '../integrations/tracing-channel/hapi';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
@@ -62,13 +62,5 @@ export const channelIntegrations = {
   vercelAiIntegration: vercelAiChannelIntegration,
   hapiIntegration: hapiChannelIntegration,
   expressIntegration: expressChannelIntegration,
-  // graphql: the native subscriber (v17) composed with the orchestrion subscriber (v14–16), so opting
-  // into injection instruments every supported version via diagnostics channels without the OTel patcher.
-  graphqlIntegration: (options?: GraphqlDiagnosticChannelsOptions) => {
-    const orchestrion = graphqlChannelIntegration(options);
-    return extendIntegration(graphqlNativeIntegration(options), {
-      name: 'Graphql',
-      setupOnce: () => orchestrion.setupOnce?.(),
-    });
-  },
+  graphqlIntegration: graphqlDiagnosticsChannelIntegration,
 } as const;
