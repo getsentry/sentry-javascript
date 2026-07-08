@@ -107,7 +107,10 @@ export class MongooseInstrumentation extends InstrumentationBase<Instrumentation
   protected init(): InstrumentationModuleDefinition {
     const module = new InstrumentationNodeModuleDefinition(
       'mongoose',
-      ['>=5.9.7 <10'],
+      // mongoose >= 9.7.0 publishes via diagnostics_channel and is instrumented by
+      // `subscribeMongooseDiagnosticChannels` instead, so this IITM patcher must not
+      // overlap it — otherwise every operation would emit two mongoose spans.
+      ['>=5.9.7 <9.7.0'],
       this.patch.bind(this),
       this.unpatch.bind(this),
     );

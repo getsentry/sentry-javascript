@@ -23,9 +23,9 @@ import {
   withActiveSpan,
 } from '@sentry/core';
 import { DB_STATEMENT, DB_SYSTEM, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
+import { defaultDbStatementSerializer } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../../../../debug-build';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
-import { defaultDbStatementSerializer } from './redis-common';
 import { ATTR_DB_CONNECTION_STRING, DB_SYSTEM_VALUE_REDIS } from './semconv';
 import type { RedisInstrumentationConfig, RedisResponseCustomAttributeFunction } from './types';
 

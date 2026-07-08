@@ -12,7 +12,7 @@ describe('http.client span with streaming enabled', () => {
         .expect({
           span: span => {
             const httpClientSpan = span.items.find(item =>
-              item.attributes?.['sentry.op']
+              item.attributes['sentry.op']
                 ? item.attributes['sentry.op'].type === 'string' && item.attributes['sentry.op'].value === 'http.client'
                 : false,
             );

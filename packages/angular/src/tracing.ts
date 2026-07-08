@@ -19,6 +19,7 @@ import {
   spanToJSON,
   startBrowserTracingNavigationSpan,
   startInactiveSpan,
+  WINDOW,
 } from '@sentry/browser';
 import type { Integration, Span } from '@sentry/core';
 import { debug, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
@@ -28,6 +29,7 @@ import { filter, tap } from 'rxjs/operators';
 import { ANGULAR_INIT_OP, ANGULAR_OP, ANGULAR_ROUTING_OP } from './constants';
 import { IS_DEBUG_BUILD } from './flags';
 import { runOutsideAngular } from './zone';
+import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 let instrumentationInitialized: boolean;
 
@@ -54,13 +56,38 @@ export function browserTracingIntegration(
 /**
  * This function is extracted to make unit testing easier.
  */
-export function _updateSpanAttributesForParametrizedUrl(route: string, span?: Span): void {
-  const attributes = (span && spanToJSON(span).data) || {};
+export function _updateSpanAttributesForParametrizedUrl(route: string, url: string, span?: Span): void {
+  if (!span) {
+    return;
+  }
 
-  if (span && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
+  const { data: attributes, op } = spanToJSON(span);
+
+  if (!attributes || attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
     span.updateName(route);
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, `auto.${spanToJSON(span).op}.angular`);
+
+    // Angular router gives us relative paths (e.g. `/users/123`). Resolve against the
+    // current origin so that `url.full` contains the absolute URL including protocol and host.
+    const locationOrigin = WINDOW.location?.origin;
+    let urlFull = url;
+    let urlPath = url;
+    if (locationOrigin) {
+      try {
+        const parsed = new URL(url, locationOrigin);
+        urlFull = parsed.href;
+        urlPath = parsed.pathname;
+      } catch {
+        // fall back to the raw string
+      }
+    }
+
+    span.setAttributes({
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${op}.angular`,
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [URL_FULL]: urlFull,
+      [URL_PATH]: urlPath,
+      [URL_TEMPLATE]: route,
+    });
   }
 }
 
@@ -91,13 +118,30 @@ export class TraceService implements OnDestroy {
         // see comment in `_isPageloadOngoing` for rationale
         if (!this._isPageloadOngoing()) {
           runOutsideAngular(() => {
-            startBrowserTracingNavigationSpan(client, {
-              name: strippedUrl,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            // Angular router gives us a relative path; resolve it against the current origin
+            // so the browser tracing integration can set url.full correctly from the start.
+            const locationOrigin = WINDOW.location?.origin;
+            let absoluteUrl: string = navigationEvent.url;
+            if (locationOrigin) {
+              try {
+                absoluteUrl = new URL(navigationEvent.url, locationOrigin).href;
+              } catch {
+                // fall back to relative path
+              }
+            }
+            startBrowserTracingNavigationSpan(
+              client,
+              {
+                name: strippedUrl,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                },
               },
-            });
+              {
+                url: absoluteUrl,
+              },
+            );
           });
         } else {
           // The first time we end up here, we set the pageload flag to false
@@ -149,7 +193,7 @@ export class TraceService implements OnDestroy {
       const activeSpan = getActiveSpan();
       const rootSpan = activeSpan && getRootSpan(activeSpan);
 
-      _updateSpanAttributesForParametrizedUrl(route, rootSpan);
+      _updateSpanAttributesForParametrizedUrl(route, event.urlAfterRedirects, rootSpan);
     }),
   );
 

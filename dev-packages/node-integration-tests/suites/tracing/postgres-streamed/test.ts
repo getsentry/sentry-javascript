@@ -1,8 +1,15 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+
+// Query-span origin depends on which instrumentation is active. Blocks driving the SDK's default
+// integrations get the diagnostics-channel origin when the generic orchestrion run is enabled (via
+// INJECT_ORCHESTRION), since the OTel `Postgres` integration is then swapped for the channel one. Blocks
+// that pass an explicit `postgresIntegration()` (e.g. `ignoreConnectSpans`) keep the OTel origin.
+const QUERY_ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.postgres' : 'auto.db.otel.postgres';
 
 const COMMON_DB_ATTRIBUTES = {
   'db.connection_string': {
@@ -69,27 +76,37 @@ const COMMON_DB_ATTRIBUTES = {
     type: 'string',
     value: 'task',
   },
+  [SENTRY_TRACE_LIFECYCLE]: {
+    type: 'string',
+    value: 'stream',
+  },
 };
 
 /**
  * Builds the expected strict shape of a streamed postgres db span.
  *
- * Query spans carry a `db.statement` and the `auto.db.otel.postgres` origin. The `pg.connect` span
- * has no `db.statement`, and since the pg instrumentation sets no origin on it, it carries the
- * default `manual` origin (written as an attribute on the streamed-span path; the non-streamed/SDK
- * path omits the `manual` default).
+ * Query spans carry a `db.statement` and the query origin (`auto.db.otel.postgres`, or
+ * `auto.db.orchestrion.postgres` under the generic orchestrion run — see `QUERY_ORIGIN`). The
+ * `pg.connect` span has no `db.statement`, and since the pg instrumentation sets no origin on it, it
+ * carries the default `manual` origin (written as an attribute on the streamed-span path; the
+ * non-streamed/SDK path omits the `manual` default).
  *
  * `host` defaults to `localhost`, but the `pg-native` scenarios connect to the IPv4 loopback
  * (`127.0.0.1`) explicitly, so the reported peer name and connection string reflect that.
+ *
+ * `origin` defaults to `QUERY_ORIGIN`; blocks that force the OTel path (explicit `postgresIntegration()`)
+ * pass `auto.db.otel.postgres` explicitly.
  */
 function expectedDbSpan({
   name,
   statement,
   host = 'localhost',
+  origin = QUERY_ORIGIN,
 }: {
   name: string;
   statement?: string;
   host?: string;
+  origin?: string;
 }): unknown {
   const attributes: Record<string, unknown> = {
     ...COMMON_DB_ATTRIBUTES,
@@ -110,7 +127,7 @@ function expectedDbSpan({
     };
     attributes['sentry.origin'] = {
       type: 'string',
-      value: 'auto.db.otel.postgres',
+      value: origin,
     };
   } else {
     attributes['sentry.origin'] = {
@@ -139,7 +156,7 @@ const CREATE_NATIVE_USER_TABLE_STATEMENT =
   'CREATE TABLE "NativeUser" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"));';
 
 function getDbSpans(container: SerializedStreamedSpanContainer): SerializedStreamedSpanContainer['items'] {
-  return container.items.filter(item => item.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db');
+  return container.items.filter(item => item.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db');
 }
 
 describe('postgres auto instrumentation (streamed)', () => {
@@ -192,13 +209,17 @@ describe('postgres auto instrumentation (streamed)', () => {
               expect(dbSpans.find(span => span.name.includes('connect'))).toBeUndefined();
               expect(dbSpans.length).toBe(3);
 
+              // This block passes an explicit `postgresIntegration({ ignoreConnectSpans: true })`, which
+              // survives the orchestrion swap, so query spans keep the OTel origin even under INJECT_ORCHESTRION.
+              const origin = 'auto.db.otel.postgres';
               expect(dbSpans).toEqual([
-                expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT }),
+                expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT, origin }),
                 expectedDbSpan({
                   name: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
                   statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                  origin,
                 }),
-                expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"' }),
+                expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"', origin }),
               ]);
             },
           })

@@ -32,7 +32,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
       const envelope = await pageloadEnvelopePromise;
       const pageloadSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === 'pageload')!;
 
-      expect(pageloadSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]?.value).toBe(1);
+      expect(pageloadSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]?.value).toBe(1);
       expect(Number(envelope[0].trace?.sample_rand)).toBeGreaterThanOrEqual(0);
 
       return { pageloadSpan };
@@ -96,7 +96,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
         const envelope = await customEnvelopePromise;
         const customTrace2Span = envelope[1][0][1].items.find(s => getSpanOp(s) === 'custom')!;
 
-        expect(customTrace2Span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]?.value).toBe(1);
+        expect(customTrace2Span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]?.value).toBe(1);
         expect(customTrace2Span.trace_id).not.toEqual(pageloadSpan.trace_id);
         expect(customTrace2Span.parent_span_id).toBeUndefined();
 
@@ -129,7 +129,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
       const envelope = await navigationEnvelopePromise;
       const navigationSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === 'navigation')!;
 
-      expect(navigationSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]?.value).toBe(1);
+      expect(navigationSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]?.value).toBe(1);
       expect(navigationSpan.trace_id).not.toEqual(customTrace2Span.trace_id);
       expect(navigationSpan.parent_span_id).toBeUndefined();
 

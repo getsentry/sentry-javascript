@@ -73,10 +73,10 @@ describe('spanJsonToSerializedStreamedSpan', () => {
 
     const result = spanJsonToSerializedStreamedSpan(span);
 
-    expect(result.attributes?.['gen_ai.system']).toEqual({ type: 'string', value: 'openai' });
-    expect(result.attributes?.['gen_ai.request.model']).toEqual({ type: 'string', value: 'gpt-4' });
-    expect(result.attributes?.['gen_ai.usage.input_tokens']).toEqual({ type: 'integer', value: 100 });
-    expect(result.attributes?.['gen_ai.usage.output_tokens']).toEqual({ type: 'integer', value: 50 });
+    expect(result.attributes['gen_ai.system']).toEqual({ type: 'string', value: 'openai' });
+    expect(result.attributes['gen_ai.request.model']).toEqual({ type: 'string', value: 'gpt-4' });
+    expect(result.attributes['gen_ai.usage.input_tokens']).toEqual({ type: 'integer', value: 100 });
+    expect(result.attributes['gen_ai.usage.output_tokens']).toEqual({ type: 'integer', value: 50 });
   });
 
   it('carries over links', () => {

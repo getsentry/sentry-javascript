@@ -20,6 +20,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Anthropic integration', () => {
@@ -93,8 +94,15 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording disabled', async () => {
-      await createRunner()
-        .expect({ event: EXPECTED_MODEL_ERROR })
+      const runner = createRunner();
+
+      // The orchestrion path only marks the errored span; unlike the OTel path it does not
+      // capture the handled `error-model` rejection as an event.
+      if (!isOrchestrionEnabled()) {
+        runner.expect({ event: EXPECTED_MODEL_ERROR });
+      }
+
+      await runner
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
         .expect({
           span: container => {
@@ -141,8 +149,15 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording enabled', async () => {
-      await createRunner()
-        .expect({ event: EXPECTED_MODEL_ERROR })
+      const runner = createRunner();
+
+      // The orchestrion path only marks the errored span; unlike the OTel path it does not
+      // capture the handled `error-model` rejection as an event.
+      if (!isOrchestrionEnabled()) {
+        runner.expect({ event: EXPECTED_MODEL_ERROR });
+      }
+
+      await runner
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
         .expect({
           span: container => {
@@ -168,7 +183,9 @@ describe('Anthropic integration', () => {
             expect(completionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(15);
             expect(completionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(25);
             expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(completionSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
+            expect(completionSpan!.attributes['sentry.origin'].value).toBe(
+              isOrchestrionEnabled() ? 'auto.ai.orchestrion.anthropic' : 'auto.ai.anthropic',
+            );
 
             const errorSpan = container.items.find(
               span =>
@@ -563,7 +580,7 @@ describe('Anthropic integration', () => {
                 { role: 'user', content: 'This is a small message that fits within the limit' },
               ]);
               const truncatedSpan = container.items.find(span =>
-                span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.match(
+                getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
                   /^\[\{"role":"user","content":"C+"\}\]$/,
                 ),
               );
@@ -733,7 +750,9 @@ describe('Anthropic integration', () => {
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                streamingLongContent,
+              ),
             );
             expect(chatSpan).toBeDefined();
           },
@@ -757,12 +776,14 @@ describe('Anthropic integration', () => {
               // With explicit enableTruncation: true, content should be truncated despite streaming.
               // Find the chat span by matching the start of the truncated content (the 'A' repeated messages).
               const chatSpan = spans.find(s =>
-                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('[{"role":"user","content":"AAAA'),
+                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
+                  '[{"role":"user","content":"AAAA',
+                ),
               );
               expect(chatSpan).toBeDefined();
-              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
-                streamingLongContent.length,
-              );
+              expect(
+                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value) ?? '').length,
+              ).toBeLessThan(streamingLongContent.length);
             },
           })
           .start()

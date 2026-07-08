@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Instruments ioredis automatically', async ({ baseURL }) => {
-  // This test works as well without orchestrion
   const transactionEventPromise = waitForTransaction('nuxt-4-orchestrion', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /api/db-ioredis'
@@ -21,7 +20,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.otel.redis',
+      origin: 'auto.db.orchestrion.redis',
       description: 'set test-key [1 other arguments]',
       status: 'ok',
       data: expect.objectContaining({
@@ -33,7 +32,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.otel.redis',
+      origin: 'auto.db.orchestrion.redis',
       description: 'get test-key',
       status: 'ok',
       data: expect.objectContaining({

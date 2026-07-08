@@ -35,6 +35,10 @@ sentryTest(
       sentryTest.skip();
     }
 
+    // JS self-profiling + chunk flush is slow and highly variable under CI load (locally observed ~9–25s),
+    // so give this test headroom beyond the 30s default to avoid hitting the per-test timeout.
+    sentryTest.slow();
+
     const url = await getLocalTestUrl({ testDir: __dirname, responseHeaders: { 'Document-Policy': 'js-profiling' } });
 
     // Expect at least 2 chunks because subject creates two separate root spans,
@@ -42,7 +46,7 @@ sentryTest(
     const profileChunkEnvelopes = await getMultipleSentryEnvelopeRequests<ProfileChunkEnvelope>(
       page,
       2,
-      { url, envelopeType: 'profile_chunk', timeout: 5000 },
+      { url, envelopeType: 'profile_chunk', timeout: 20_000 },
       properFullEnvelopeRequestParser,
     );
 

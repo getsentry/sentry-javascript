@@ -36,7 +36,11 @@ import { handleResponseError, messagesFromParams, setMessagesAttribute } from '.
 /**
  * Extract request attributes from method arguments
  */
-function extractRequestAttributes(args: unknown[], methodPath: string, operationName: string): Record<string, unknown> {
+export function extractRequestAttributes(
+  args: unknown[],
+  methodPath: string,
+  operationName: string,
+): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
@@ -73,7 +77,11 @@ function extractRequestAttributes(args: unknown[], methodPath: string, operation
  * Add private request attributes to spans.
  * This is only recorded if recordInputs is true.
  */
-function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>, enableTruncation: boolean): void {
+export function addPrivateRequestAttributes(
+  span: Span,
+  params: Record<string, unknown>,
+  enableTruncation: boolean,
+): void {
   const messages = messagesFromParams(params);
   setMessagesAttribute(span, messages, enableTruncation);
 
@@ -143,7 +151,7 @@ function addMetadataAttributes(span: Span, response: AnthropicAiResponse): void 
 /**
  * Add response attributes to spans
  */
-function addResponseAttributes(span: Span, response: AnthropicAiResponse, recordOutputs?: boolean): void {
+export function addResponseAttributes(span: Span, response: AnthropicAiResponse, recordOutputs?: boolean): void {
   if (!response || typeof response !== 'object') return;
 
   // capture error, do not add attributes if error (they shouldn't exist)

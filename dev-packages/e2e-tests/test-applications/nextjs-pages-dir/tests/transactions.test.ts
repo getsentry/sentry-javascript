@@ -38,6 +38,9 @@ test('Sends a pageload transaction', async ({ page }) => {
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
             'sentry.source': 'route',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
+            'url.path': '/',
+            'url.template': '/',
           }),
         },
       }),
@@ -86,6 +89,9 @@ test('Sends a navigation transaction', async ({ page }) => {
             'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
             'sentry.sample_rate': 1,
             'sentry.source': 'route',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/),
+            'url.path': '/user/5',
+            'url.template': '/user/[id]',
           }),
           links: [
             {
