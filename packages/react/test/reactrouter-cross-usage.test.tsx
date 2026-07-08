@@ -9,6 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '@sentry/core';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { render, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { act } from 'react';
@@ -156,7 +157,8 @@ describe('React Router cross usage of wrappers', () => {
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/second-level/:id/third-level/:id');
-      expect(mockRootSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(URL_TEMPLATE, '/second-level/:id/third-level/:id');
     });
 
     it('works with descendant wildcard routes - navigation', () => {
@@ -278,7 +280,8 @@ describe('React Router cross usage of wrappers', () => {
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/second-level/:id/third-level/:id');
-      expect(mockRootSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(URL_TEMPLATE, '/second-level/:id/third-level/:id');
     });
 
     it('works with descendant wildcard routes - navigation', () => {
@@ -393,7 +396,8 @@ describe('React Router cross usage of wrappers', () => {
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/second-level/:id/third-level/:id');
-      expect(mockRootSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(URL_TEMPLATE, '/second-level/:id/third-level/:id');
     });
 
     it('works with descendant wildcard routes - navigation', () => {
@@ -521,7 +525,8 @@ describe('React Router cross usage of wrappers', () => {
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/second-level/:id/third-level/:id');
-      expect(mockRootSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(URL_TEMPLATE, '/second-level/:id/third-level/:id');
     });
 
     it('works with descendant wildcard routes - navigation', () => {
@@ -642,6 +647,7 @@ describe('React Router cross usage of wrappers', () => {
         name: '/settings',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/settings',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -760,6 +766,7 @@ describe('React Router cross usage of wrappers', () => {
         name: '/user/:id',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/user/:id',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -781,6 +788,7 @@ describe('React Router cross usage of wrappers', () => {
         name: '/user/:id',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/user/:id',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
