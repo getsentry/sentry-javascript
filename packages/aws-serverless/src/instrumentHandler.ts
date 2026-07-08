@@ -138,8 +138,6 @@ function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime
     const { 'sentry-trace': sentryTrace, baggage } = getAwsTraceData(event, context);
 
     return continueTrace({ sentryTrace, baggage }, () =>
-      // Ended manually: the span must stay open until either the Lambda callback fires or a
-      // returned promise settles, whichever happens first.
       startSpanManual(getRequestSpanOptions(event, context, requestIsColdStart), span => {
         // Lambda seems to pass a callback even if handler is of Promise form, so we wrap all the time before calling
         // the handler and see if the result is a Promise or not. In such a case, the callback is usually ignored. If
