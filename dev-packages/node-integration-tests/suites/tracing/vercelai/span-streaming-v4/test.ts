@@ -19,7 +19,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
-import { isOrchestrionEnabled } from '../../../../utils';
+import { getStringAttributeValue, isOrchestrionEnabled } from '../../../../utils';
 
 /**
  * Helper to match a typed attribute value in a SerializedStreamedSpan.
@@ -314,7 +314,9 @@ describe.skipIf(isOrchestrionEnabled())('Vercel AI integration (streaming v4)', 
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+              getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                streamingLongContent,
+              ),
             );
             expect(chatSpan).toBeDefined();
           },
@@ -333,12 +335,14 @@ describe.skipIf(isOrchestrionEnabled())('Vercel AI integration (streaming v4)', 
 
             // With explicit enableTruncation: true, content should be truncated despite streaming.
             const chatSpan = spans.find(s =>
-              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('[{"role":"user","content":"AAAA'),
+              getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
+                '[{"role":"user","content":"AAAA',
+              ),
             );
             expect(chatSpan).toBeDefined();
-            expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
-              streamingLongContent.length,
-            );
+            expect(
+              (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value) ?? '').length,
+            ).toBeLessThan(streamingLongContent.length);
           },
         })
         .start()

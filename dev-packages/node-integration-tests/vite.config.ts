@@ -23,7 +23,7 @@ export default defineConfig({
     // overhead is significantly less.
     pool: 'threads',
     reporters: process.env.DEBUG
-      ? ['default', { summary: false }]
+      ? [['default', { summary: false }]]
       : process.env.GITHUB_ACTIONS
         ? ['dot', 'github-actions']
         : ['verbose'],

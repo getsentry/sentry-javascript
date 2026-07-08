@@ -22,7 +22,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
-import { isOrchestrionEnabled } from '../../../utils';
+import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('OpenAI integration', () => {
@@ -1193,7 +1193,7 @@ describe('OpenAI integration', () => {
             span: container => {
               expect(container.items).toHaveLength(2);
               const truncatedMessageSpan = container.items.find(span =>
-                span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.match(
+                getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
                   /^\[\{"role":"user","content":"C+"\}\]$/,
                 ),
               );
@@ -1651,7 +1651,9 @@ describe('OpenAI integration', () => {
           span: container => {
             expect(container.items).toHaveLength(2);
             const multipleImagesSpan = container.items.find(span =>
-              span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes('https://example.com/image.png'),
+              getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                'https://example.com/image.png',
+              ),
             );
             expect(multipleImagesSpan).toBeDefined();
             expect(multipleImagesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain(
@@ -1675,12 +1677,16 @@ describe('OpenAI integration', () => {
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+              getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                streamingLongContent,
+              ),
             );
             expect(chatSpan).toBeDefined();
 
             const responsesSpan = spans.find(s =>
-              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongString),
+              getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                streamingLongString,
+              ),
             );
             expect(responsesSpan).toBeDefined();
           },
@@ -1704,21 +1710,24 @@ describe('OpenAI integration', () => {
               // With explicit enableTruncation: true, content should be truncated despite streaming.
               // Truncation keeps only the last message (50k 'A's) and crops it to the byte limit.
               const chatSpan = spans.find(s =>
-                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('[{"role":"user","content":"AAAA'),
+                getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
+                  '[{"role":"user","content":"AAAA',
+                ),
               );
               expect(chatSpan).toBeDefined();
-              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
-                streamingLongContent.length,
-              );
+              expect(
+                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value) ?? '').length,
+              ).toBeLessThan(streamingLongContent.length);
 
               // The responses API string input (50k 'B's) should also be truncated.
               const responsesSpan = spans.find(s =>
-                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('BBB'),
+                getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith('BBB'),
               );
               expect(responsesSpan).toBeDefined();
-              expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
-                streamingLongString.length,
-              );
+              expect(
+                (getStringAttributeValue(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value) ?? '')
+                  .length,
+              ).toBeLessThan(streamingLongString.length);
             },
           })
           .start()
