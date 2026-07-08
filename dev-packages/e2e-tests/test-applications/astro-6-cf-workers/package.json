@@ -21,6 +21,11 @@
     "astro": "^6.0.0",
     "wrangler": "^4.72.0"
   },
+  "pnpm": {
+    "overrides": {
+      "@cloudflare/vite-plugin": "1.43.1"
+    }
+  },
   "volta": {
     "node": "24.15.0",
     "extends": "../../package.json"
