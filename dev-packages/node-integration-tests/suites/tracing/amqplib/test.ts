@@ -22,6 +22,9 @@ const expectedProducerSpan = (routingKey: string) =>
       'messaging.protocol_version': '0.9.1',
       'net.peer.name': 'localhost',
       'net.peer.port': 5672,
+      // Only the orchestrion integration emits the current `messaging.operation.type`; the OTel
+      // instrumentation never set it on the producer.
+      ...(isOrchestrionEnabled() ? { 'messaging.operation.type': 'send' } : {}),
       'otel.kind': 'PRODUCER',
       'sentry.op': 'message',
       'sentry.origin': PUBLISHER_ORIGIN,

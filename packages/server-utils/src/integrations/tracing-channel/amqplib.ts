@@ -16,10 +16,16 @@ import {
 // eslint-disable-next-line typescript/no-deprecated -- NET_PEER_* emitted alongside SERVER_* for backwards compatibility (TODO(v11): remove)
 import {
   MESSAGING_SYSTEM,
+  MESSAGING_MESSAGE_ID,
+  MESSAGING_OPERATION_TYPE,
+  MESSAGING_DESTINATION_NAME,
   NET_PEER_NAME,
   NET_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
   SERVER_ADDRESS,
   SERVER_PORT,
+  URL_FULL,
 } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -33,18 +39,26 @@ const PUBLISHER_ORIGIN = 'auto.amqplib.orchestrion.publisher';
 const CONSUMER_ORIGIN = 'auto.amqplib.orchestrion.consumer';
 
 // Legacy messaging semantic-conventions, inlined to keep this integration free of `@opentelemetry/*`
-// deps. These mirror what the vendored OTel amqplib instrumentation has always emitted.
+// deps. These mirror what the vendored OTel amqplib instrumentation has always emitted. We keep
+// emitting them alongside the current `@sentry/conventions` attributes for backwards compatibility.
+// TODO(v11): remove these legacy attributes.
 const ATTR_MESSAGING_OPERATION = 'messaging.operation';
 const ATTR_MESSAGING_DESTINATION = 'messaging.destination';
 const ATTR_MESSAGING_DESTINATION_KIND = 'messaging.destination_kind';
 const ATTR_MESSAGING_RABBITMQ_ROUTING_KEY = 'messaging.rabbitmq.routing_key';
 const ATTR_MESSAGING_PROTOCOL = 'messaging.protocol';
-const ATTR_MESSAGING_PROTOCOL_VERSION = 'messaging.protocol_version';
+const ATTR_MESSAGING_PROTOCOL_VERSION_LEGACY = 'messaging.protocol_version';
 const ATTR_MESSAGING_URL = 'messaging.url';
 const ATTR_MESSAGING_MESSAGE_ID = 'messaging.message_id';
-const ATTR_MESSAGING_CONVERSATION_ID = 'messaging.conversation_id';
+const ATTR_MESSAGING_CONVERSATION_ID_LEGACY = 'messaging.conversation_id';
+
+// TODO(v11): replace with the corresponding attribute from `@sentry/conventions` once it is added there.
+const ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY = 'messaging.rabbitmq.destination.routing_key';
+const ATTR_MESSAGING_CONVERSATION_ID = 'messaging.message.conversation_id';
+
 const MESSAGING_DESTINATION_KIND_VALUE_TOPIC = 'topic';
 const MESSAGING_OPERATION_VALUE_PROCESS = 'process';
+const MESSAGING_OPERATION_VALUE_SEND = 'send';
 
 // To prevent reference leaks from un-acked messages, their spans are closed after this timeout. The
 // upstream instrumentation exposed this as the `consumeTimeoutMs` option; the SDK always used the default.
@@ -449,10 +463,15 @@ function startPublishSpan(data: AmqpChannelContext): Span {
     kind: SPAN_KIND.PRODUCER,
     attributes: {
       ...getStoredConnectionAttributes(data.self),
-      [ATTR_MESSAGING_DESTINATION]: exchange,
-      [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_DESTINATION_KIND_VALUE_TOPIC,
-      [ATTR_MESSAGING_RABBITMQ_ROUTING_KEY]: routingKey,
-      [ATTR_MESSAGING_MESSAGE_ID]: options?.messageId as string | undefined,
+      [ATTR_MESSAGING_DESTINATION]: exchange, // TODO(v11) remove this attribute
+      [MESSAGING_DESTINATION_NAME]: exchange,
+      [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_DESTINATION_KIND_VALUE_TOPIC, // TODO(v11) remove this attribute
+      [ATTR_MESSAGING_RABBITMQ_ROUTING_KEY]: routingKey, // TODO(v11) remove this attribute
+      [ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: routingKey,
+      [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_VALUE_SEND,
+      [ATTR_MESSAGING_MESSAGE_ID]: options?.messageId as string | undefined, // todo(v11) remove this attribute
+      [MESSAGING_MESSAGE_ID]: options?.messageId as string | undefined,
+      [ATTR_MESSAGING_CONVERSATION_ID_LEGACY]: options?.correlationId as string | undefined, // todo(v11) remove this attribute
       [ATTR_MESSAGING_CONVERSATION_ID]: options?.correlationId as string | undefined,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: PUBLISHER_ORIGIN,
     },
@@ -482,11 +501,16 @@ function startConsumeSpan(queue: string, msg: ConsumeMessage, channel: ChannelLi
     kind: SPAN_KIND.CONSUMER,
     attributes: {
       ...getStoredConnectionAttributes(channel),
-      [ATTR_MESSAGING_DESTINATION]: msg.fields?.exchange,
-      [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_DESTINATION_KIND_VALUE_TOPIC,
-      [ATTR_MESSAGING_RABBITMQ_ROUTING_KEY]: msg.fields?.routingKey,
-      [ATTR_MESSAGING_OPERATION]: MESSAGING_OPERATION_VALUE_PROCESS,
-      [ATTR_MESSAGING_MESSAGE_ID]: msg.properties?.messageId as string | undefined,
+      [ATTR_MESSAGING_DESTINATION]: msg.fields?.exchange, // TODO(v11) remove this attribute
+      [MESSAGING_DESTINATION_NAME]: msg.fields?.exchange,
+      [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_DESTINATION_KIND_VALUE_TOPIC, // TODO(v11) remove this attribute
+      [ATTR_MESSAGING_RABBITMQ_ROUTING_KEY]: msg.fields?.routingKey, // TODO(v11) remove this attribute
+      [ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: msg.fields?.routingKey,
+      [ATTR_MESSAGING_OPERATION]: MESSAGING_OPERATION_VALUE_PROCESS, // TODO(v11) remove this attribute
+      [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_VALUE_PROCESS,
+      [ATTR_MESSAGING_MESSAGE_ID]: msg.properties?.messageId as string | undefined, // todo(v11) remove this attribute
+      [MESSAGING_MESSAGE_ID]: msg.properties?.messageId as string | undefined,
+      [ATTR_MESSAGING_CONVERSATION_ID_LEGACY]: msg.properties?.correlationId as string | undefined, // todo(v11) remove this attribute
       [ATTR_MESSAGING_CONVERSATION_ID]: msg.properties?.correlationId as string | undefined,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: CONSUMER_ORIGIN,
     },
@@ -522,7 +546,8 @@ function getConnectionAttributesFromServer(conn: ConnectionLike): SpanAttributes
 function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
   const attributes: SpanAttributes = {
     // The only protocol supported by the instrumented library.
-    [ATTR_MESSAGING_PROTOCOL_VERSION]: '0.9.1',
+    [ATTR_MESSAGING_PROTOCOL_VERSION_LEGACY]: '0.9.1', // TODO(v11): remove this attribute
+    [NETWORK_PROTOCOL_VERSION]: '0.9.1',
   };
 
   const resolvedUrl = url || 'amqp://localhost';
@@ -532,7 +557,9 @@ function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
     const hostname = getHostname(connectOptions.hostname);
     const port = getPort(connectOptions.port, protocol);
 
-    attributes[ATTR_MESSAGING_PROTOCOL] = protocol;
+    attributes[ATTR_MESSAGING_PROTOCOL] = protocol; // TODO(v11) remove this attribute
+    attributes[NETWORK_PROTOCOL_NAME] = protocol;
+
     attributes[SERVER_ADDRESS] = hostname;
     attributes[SERVER_PORT] = port;
     // TODO(v11): remove deprecated options
@@ -542,7 +569,8 @@ function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
     attributes[NET_PEER_PORT] = port;
   } else if (typeof resolvedUrl === 'string') {
     const censoredUrl = censorPassword(resolvedUrl);
-    attributes[ATTR_MESSAGING_URL] = censoredUrl;
+    attributes[ATTR_MESSAGING_URL] = censoredUrl; // todo(v11) remove this attribute
+    attributes[URL_FULL] = censoredUrl;
 
     try {
       const urlParts = new URL(censoredUrl);
@@ -550,7 +578,9 @@ function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
       const hostname = getHostname(urlParts.hostname);
       const port = getPort(urlParts.port ? parseInt(urlParts.port, 10) : undefined, protocol);
 
-      attributes[ATTR_MESSAGING_PROTOCOL] = protocol;
+      attributes[ATTR_MESSAGING_PROTOCOL] = protocol; // TODO(v11) remove this attribute
+      attributes[NETWORK_PROTOCOL_NAME] = protocol;
+
       attributes[SERVER_ADDRESS] = hostname;
       attributes[SERVER_PORT] = port;
       // eslint-disable-next-line typescript/no-deprecated -- emitted alongside SERVER_ADDRESS/SERVER_PORT for backwards compatibility

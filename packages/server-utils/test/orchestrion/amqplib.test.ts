@@ -109,8 +109,14 @@ describe('amqplibChannelIntegration', () => {
         op: 'message',
         attributes: expect.objectContaining({
           'messaging.system': 'rabbitmq',
+          // Legacy attributes (TODO(v11): remove) emitted alongside the current ones.
           'messaging.destination': 'my-exchange',
+          'messaging.destination_kind': 'topic',
           'messaging.rabbitmq.routing_key': 'my-routing-key',
+          // Current `@sentry/conventions` attributes.
+          'messaging.destination.name': 'my-exchange',
+          'messaging.rabbitmq.destination.routing_key': 'my-routing-key',
+          'messaging.operation.type': 'send',
           'messaging.message_id': 'm1',
           'messaging.conversation_id': 'c1',
           'sentry.origin': 'auto.amqplib.orchestrion.publisher',
@@ -165,7 +171,15 @@ describe('amqplibChannelIntegration', () => {
         op: 'message',
         attributes: expect.objectContaining({
           'messaging.system': 'rabbitmq',
+          // Legacy attributes (TODO(v11): remove) emitted alongside the current ones.
+          'messaging.destination': '',
+          'messaging.destination_kind': 'topic',
+          'messaging.rabbitmq.routing_key': 'queue1',
           'messaging.operation': 'process',
+          // Current `@sentry/conventions` attributes.
+          'messaging.destination.name': '',
+          'messaging.rabbitmq.destination.routing_key': 'queue1',
+          'messaging.operation.type': 'process',
           'sentry.origin': 'auto.amqplib.orchestrion.consumer',
         }),
       }),
@@ -401,28 +415,43 @@ describe('amqplibChannelIntegration', () => {
         url: 'amqp://user:secret@rabbit.example.com:5672/vhost',
         expected: {
           'messaging.url': 'amqp://user:***@rabbit.example.com:5672/vhost',
-          'messaging.protocol': 'AMQP',
           'messaging.protocol_version': '0.9.1',
+          // Legacy attributes (TODO(v11): remove) emitted alongside the current ones.
+          'messaging.protocol': 'AMQP',
           'net.peer.name': 'rabbit.example.com',
           'net.peer.port': 5672,
+          // Current `@sentry/conventions` attributes.
+          'network.protocol.name': 'AMQP',
+          'server.address': 'rabbit.example.com',
+          'server.port': 5672,
         },
       },
       {
         name: 'amqps string url defaulting to port 5671',
         url: 'amqps://rabbit.example.com/',
         expected: {
+          // Legacy attributes (TODO(v11): remove) emitted alongside the current ones.
           'messaging.protocol': 'AMQPS',
           'net.peer.name': 'rabbit.example.com',
           'net.peer.port': 5671,
+          // Current `@sentry/conventions` attributes.
+          'network.protocol.name': 'AMQPS',
+          'server.address': 'rabbit.example.com',
+          'server.port': 5671,
         },
       },
       {
         name: 'object connect options',
         url: { protocol: 'amqp', hostname: 'broker.internal', port: 5673 },
         expected: {
+          // Legacy attributes (TODO(v11): remove) emitted alongside the current ones.
           'messaging.protocol': 'AMQP',
           'net.peer.name': 'broker.internal',
           'net.peer.port': 5673,
+          // Current `@sentry/conventions` attributes.
+          'network.protocol.name': 'AMQP',
+          'server.address': 'broker.internal',
+          'server.port': 5673,
         },
       },
     ])('carries $name onto the producer span', ({ url, expected }) => {
