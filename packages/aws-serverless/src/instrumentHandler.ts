@@ -17,15 +17,14 @@
  * limitations under the License.
  */
 import { CLOUD_ACCOUNT_ID, FAAS_COLDSTART, URL_FULL } from '@sentry/conventions/attributes';
-import type { Span, SpanAttributes } from '@sentry/core';
+import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
 import {
   continueTrace,
   debug,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_KIND,
   SPAN_STATUS_ERROR,
-  startInactiveSpan,
-  withActiveSpan,
+  startSpanManual,
 } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import type { Callback, Context, Handler, StreamifyHandler } from 'aws-lambda';
@@ -115,10 +114,9 @@ function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime
       _onRequest();
       const { 'sentry-trace': sentryTrace, baggage } = getAwsTraceData(event, context);
 
-      return continueTrace({ sentryTrace, baggage }, () => {
-        const span = createSpanForRequest(event, context, requestIsColdStart);
-
-        return withActiveSpan(span, () => {
+      return continueTrace({ sentryTrace, baggage }, () =>
+        // Ended manually: completion is signaled by the settled promise, not the return.
+        startSpanManual(getRequestSpanOptions(event, context, requestIsColdStart), span => {
           let maybePromise: Promise<unknown> | undefined;
           try {
             maybePromise = original.apply(this, [event, responseStream, context]) as Promise<unknown> | undefined;
@@ -130,8 +128,8 @@ function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime
           }
 
           return handlePromiseResult(span, maybePromise);
-        });
-      });
+        }),
+      );
     };
   }
 
@@ -140,10 +138,10 @@ function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime
 
     const { 'sentry-trace': sentryTrace, baggage } = getAwsTraceData(event, context);
 
-    return continueTrace({ sentryTrace, baggage }, () => {
-      const span = createSpanForRequest(event, context, requestIsColdStart);
-
-      return withActiveSpan(span, () => {
+    return continueTrace({ sentryTrace, baggage }, () =>
+      // Ended manually: the span must stay open until either the Lambda callback fires or a
+      // returned promise settles, whichever happens first.
+      startSpanManual(getRequestSpanOptions(event, context, requestIsColdStart), span => {
         // Lambda seems to pass a callback even if handler is of Promise form, so we wrap all the time before calling
         // the handler and see if the result is a Promise or not. In such a case, the callback is usually ignored. If
         // the handler happened to both call the callback and complete a returned Promise, whichever happens first will
@@ -161,14 +159,14 @@ function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime
         }
 
         return handlePromiseResult(span, maybePromise);
-      });
-    });
+      }),
+    );
   };
 }
 
-function createSpanForRequest(event: unknown, context: Context, requestIsColdStart: boolean): Span {
-  // The span is created within the surrounding `continueTrace`, so it continues the incoming trace.
-  return startInactiveSpan({
+function getRequestSpanOptions(event: unknown, context: Context, requestIsColdStart: boolean): StartSpanOptions {
+  // The span is started within the surrounding `continueTrace`, so it continues the incoming trace.
+  return {
     name: context.functionName,
     op: 'function.aws.lambda',
     forceTransaction: true,
@@ -181,7 +179,7 @@ function createSpanForRequest(event: unknown, context: Context, requestIsColdSta
       [FAAS_COLDSTART]: requestIsColdStart,
       ...extractOtherEventFields(event),
     },
-  });
+  };
 }
 
 function captureLambdaError(err: Error | string): void {
