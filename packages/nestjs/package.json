@@ -38,6 +38,11 @@
         "types": "./setup.d.ts",
         "default": "./build/cjs/setup.js"
       }
+    },
+    "./import": {
+      "import": {
+        "default": "./build/import.mjs"
+      }
     }
   },
   "publishConfig": {
@@ -48,7 +53,8 @@
     "@opentelemetry/instrumentation": "^0.220.0",
     "@sentry/conventions": "^0.15.1",
     "@sentry/core": "10.64.0",
-    "@sentry/node": "10.64.0"
+    "@sentry/node": "10.64.0",
+    "@sentry/server-utils": "10.64.0"
   },
   "devDependencies": {
     "@nestjs/common": "^10.0.0",

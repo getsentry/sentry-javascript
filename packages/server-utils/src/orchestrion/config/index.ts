@@ -13,8 +13,16 @@ import { hapiConfig } from './hapi';
 import { redisConfig } from './redis';
 import { expressConfig } from './express';
 import { graphqlConfig } from './graphql';
-import { nestjsConfig } from './nestjs';
+import { getInjectedOrchestrionInstrumentations } from '../registry';
 
+/**
+ * The built-in orchestrion code-transform configs shipped by `@sentry/server-utils`.
+ *
+ * Framework packages that own their own instrumentation (e.g. `@sentry/nestjs`)
+ * are NOT here — they inject via the registry (runtime) or the bundler plugin's
+ * `instrumentations` option (build time). Use {@link getSentryInstrumentations}
+ * to get the built-ins merged with any injected ones.
+ */
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...mysqlConfig,
   ...lruMemoizerConfig,
@@ -30,19 +38,31 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...redisConfig,
   ...expressConfig,
   ...graphqlConfig,
-  ...nestjsConfig,
 ];
 
 /**
- * The unique set of package names instrumented by `SENTRY_INSTRUMENTATIONS`
- * (e.g. `['mysql']`).
+ * The built-in configs merged with any externally-injected ones (see the
+ * registry). This is the list the runtime hook feeds to the code transform.
+ */
+export function getSentryInstrumentations(): InstrumentationConfig[] {
+  return [...SENTRY_INSTRUMENTATIONS, ...getInjectedOrchestrionInstrumentations().flatMap(i => i.configs)];
+}
+
+/** The unique set of instrumented package names for the given configs. */
+export function instrumentedModuleNames(configs: InstrumentationConfig[]): string[] {
+  return Array.from(new Set(configs.map(i => i.module.name)));
+}
+
+/**
+ * The unique set of package names instrumented by the built-in
+ * `SENTRY_INSTRUMENTATIONS` (e.g. `['mysql']`).
  *
  * Bundler plugins MUST ensure these are actually bundled rather than
  * externalized: an externalized dependency is resolved from `node_modules` at
  * runtime and never passes through the code transform's `onLoad`, so its
  * diagnostics_channel calls are silently never injected.
  */
-export const INSTRUMENTED_MODULE_NAMES: string[] = Array.from(new Set(SENTRY_INSTRUMENTATIONS.map(i => i.module.name)));
+export const INSTRUMENTED_MODULE_NAMES: string[] = instrumentedModuleNames(SENTRY_INSTRUMENTATIONS);
 
 /**
  * Returns `external` with any instrumented packages removed, so a bundler that
@@ -54,11 +74,12 @@ export const INSTRUMENTED_MODULE_NAMES: string[] = Array.from(new Set(SENTRY_INS
  * (Vite uses an `ssr.noExternal` allowlist instead, so it consumes
  * `INSTRUMENTED_MODULE_NAMES` directly rather than this helper.)
  */
-export function withoutInstrumentedExternals(external: readonly string[] | undefined): string[] | undefined {
+export function withoutInstrumentedExternals(
+  external: readonly string[] | undefined,
+  names: string[] = INSTRUMENTED_MODULE_NAMES,
+): string[] | undefined {
   if (!external) {
     return undefined;
   }
-  return external.filter(
-    entry => !INSTRUMENTED_MODULE_NAMES.some(name => entry === name || entry.startsWith(`${name}/`)),
-  );
+  return external.filter(entry => !names.some(name => entry === name || entry.startsWith(`${name}/`)));
 }

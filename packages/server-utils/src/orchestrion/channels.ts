@@ -12,7 +12,6 @@ import { hapiChannels } from './config/hapi';
 import { redisChannels } from './config/redis';
 import { expressChannels } from './config/express';
 import { graphqlChannels } from './config/graphql';
-import { nestjsChannels } from './config/nestjs';
 
 /**
  * Fully-qualified `diagnostics_channel` names that orchestrion publishes to.
@@ -42,7 +41,6 @@ export const CHANNELS = {
   ...redisChannels,
   ...expressChannels,
   ...graphqlChannels,
-  ...nestjsChannels,
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
