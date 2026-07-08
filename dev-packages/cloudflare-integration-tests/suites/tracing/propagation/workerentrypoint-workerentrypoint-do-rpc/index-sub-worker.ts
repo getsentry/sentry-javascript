@@ -1,13 +1,12 @@
 import * as Sentry from '@sentry/cloudflare';
 import { DurableObject, WorkerEntrypoint } from 'cloudflare:workers';
-import type { RpcTarget } from 'cloudflare:workers';
 
 interface Env {
   SENTRY_DSN: string;
   MY_DURABLE_OBJECT: DurableObjectNamespace<MyDurableObjectBase>;
 }
 
-class MyDurableObjectBase extends DurableObject<Env> implements RpcTarget {
+class MyDurableObjectBase extends DurableObject<Env> {
   async computeAnswer(): Promise<number> {
     return 42;
   }
@@ -22,13 +21,13 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
   MyDurableObjectBase,
 );
 
-class MySubWorkerEntrypointBase extends WorkerEntrypoint<Env> {
+class MySubWorkerEntrypointBase extends WorkerEntrypoint {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === '/call-do') {
-      const id = this.env.MY_DURABLE_OBJECT.idFromName('test');
-      const stub = this.env.MY_DURABLE_OBJECT.get(id);
+      const id = (this.env as Env).MY_DURABLE_OBJECT.idFromName('test');
+      const stub = (this.env as Env).MY_DURABLE_OBJECT.get(id);
       const result = await stub.computeAnswer();
       return new Response(`The answer is ${result}`);
     }
