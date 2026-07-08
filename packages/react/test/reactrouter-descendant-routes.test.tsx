@@ -136,7 +136,10 @@ describe('React Router Descendant Routes', () => {
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/projects/:projectId/views/:viewId/:detailId');
       expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(URL_TEMPLATE, '/projects/:projectId/views/:viewId/:detailId');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(
+        URL_TEMPLATE,
+        '/projects/:projectId/views/:viewId/:detailId',
+      );
     });
 
     it('works with descendant wildcard routes - navigation', () => {
@@ -325,7 +328,10 @@ describe('React Router Descendant Routes', () => {
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/projects/:projectId/views/:viewId/:detailId');
       expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(URL_TEMPLATE, '/projects/:projectId/views/:viewId/:detailId');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(
+        URL_TEMPLATE,
+        '/projects/:projectId/views/:viewId/:detailId',
+      );
     });
 
     it('works with descendant wildcard routes - navigation', () => {
