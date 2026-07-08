@@ -13,15 +13,15 @@ describe('httpIntegration-streamed', () => {
           span: container => {
             const serverSpan = container.items.find(
               item =>
-                item.attributes?.['sentry.op']?.type === 'string' &&
+                item.attributes['sentry.op']?.type === 'string' &&
                 item.attributes['sentry.op'].value === 'http.server',
             );
 
             expect(serverSpan).toBeDefined();
             expect(serverSpan?.is_segment).toBe(true);
             expect(serverSpan?.name).toBe('GET /test');
-            expect(serverSpan?.attributes?.['sentry.source']).toEqual({ type: 'string', value: 'route' });
-            expect(serverSpan?.attributes?.['sentry.span.source']).toEqual({ type: 'string', value: 'route' });
+            expect(serverSpan?.attributes['sentry.source']).toEqual({ type: 'string', value: 'route' });
+            expect(serverSpan?.attributes['sentry.span.source']).toEqual({ type: 'string', value: 'route' });
           },
         })
         .start();

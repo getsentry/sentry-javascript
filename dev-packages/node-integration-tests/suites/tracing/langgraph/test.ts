@@ -324,7 +324,7 @@ describe('LangGraph integration', () => {
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
                 streamingLongContent,
               ),
             );
@@ -349,7 +349,7 @@ describe('LangGraph integration', () => {
 
               // With explicit enableTruncation: true, content should be truncated despite streaming.
               const chatSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
+getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
                   '[{"role":"user","content":"AAAA',
                 ),
               );

@@ -1677,14 +1677,14 @@ describe('OpenAI integration', () => {
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
                 streamingLongContent,
               ),
             );
             expect(chatSpan).toBeDefined();
 
             const responsesSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
                 streamingLongString,
               ),
             );
@@ -1710,7 +1710,7 @@ describe('OpenAI integration', () => {
               // With explicit enableTruncation: true, content should be truncated despite streaming.
               // Truncation keeps only the last message (50k 'A's) and crops it to the byte limit.
               const chatSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
+getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
                   '[{"role":"user","content":"AAAA',
                 ),
               );
@@ -1721,7 +1721,7 @@ describe('OpenAI integration', () => {
 
               // The responses API string input (50k 'B's) should also be truncated.
               const responsesSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith('BBB'),
+                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith('BBB'),
               );
               expect(responsesSpan).toBeDefined();
               expect(

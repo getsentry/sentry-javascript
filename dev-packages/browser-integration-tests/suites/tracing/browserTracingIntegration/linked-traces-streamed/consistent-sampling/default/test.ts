@@ -21,7 +21,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
       const pageloadSampleRand = Number(envelope[0].trace?.sample_rand);
       const pageloadSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === 'pageload')!;
 
-      expect(pageloadSpan.attributes?.['sentry.sample_rate']?.value).toBe(1);
+      expect(pageloadSpan.attributes['sentry.sample_rate']?.value).toBe(1);
       expect(Number.isNaN(pageloadSampleRand)).toBe(false);
       expect(pageloadSampleRand).toBeGreaterThanOrEqual(0);
       expect(pageloadSampleRand).toBeLessThanOrEqual(1);
@@ -101,7 +101,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
 
       const pageloadSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === 'pageload')!;
 
-      expect(pageloadSpan.attributes?.['sentry.sample_rate']?.value).toBe(1);
+      expect(pageloadSpan.attributes['sentry.sample_rate']?.value).toBe(1);
 
       return { pageloadSpan, pageloadSampleRand };
     });
@@ -125,8 +125,8 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
 
       expect(fetchTraceSampleRand).toBe(pageloadSampleRand);
 
-      expect(fetchTraceSpan.attributes?.['sentry.sample_rate']?.value).toEqual(
-        pageloadSpan.attributes?.['sentry.sample_rate']?.value,
+      expect(fetchTraceSpan.attributes['sentry.sample_rate']?.value).toEqual(
+        pageloadSpan.attributes['sentry.sample_rate']?.value,
       );
       expect(fetchTraceSpan.trace_id).not.toEqual(pageloadSpan.trace_id);
 

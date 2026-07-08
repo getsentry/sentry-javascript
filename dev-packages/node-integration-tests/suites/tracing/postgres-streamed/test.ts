@@ -156,7 +156,7 @@ const CREATE_NATIVE_USER_TABLE_STATEMENT =
   'CREATE TABLE "NativeUser" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"));';
 
 function getDbSpans(container: SerializedStreamedSpanContainer): SerializedStreamedSpanContainer['items'] {
-  return container.items.filter(item => item.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db');
+  return container.items.filter(item => item.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db');
 }
 
 describe('postgres auto instrumentation (streamed)', () => {

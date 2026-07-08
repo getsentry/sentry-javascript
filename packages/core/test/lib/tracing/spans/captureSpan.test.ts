@@ -397,7 +397,7 @@ describe('captureSpan', () => {
     });
 
     expect(serializedChild.is_segment).toBe(false);
-    expect(serializedChild.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]).toBeUndefined();
+    expect(serializedChild.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]).toBeUndefined();
   });
 
   describe('client hooks', () => {

@@ -551,7 +551,7 @@ describe('Google GenAI integration', () => {
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
                 streamingLongContent,
               ),
             );
@@ -577,7 +577,7 @@ describe('Google GenAI integration', () => {
               // With explicit enableTruncation: true, content should be truncated despite streaming.
               // Find the chat span by matching the start of the truncated content (the 'A' repeated messages).
               const chatSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
+                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
                   '[{"role":"user","parts":[{"text":"AAAA',
                 ),
               );

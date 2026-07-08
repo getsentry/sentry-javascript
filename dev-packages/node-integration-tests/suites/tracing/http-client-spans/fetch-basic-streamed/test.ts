@@ -23,7 +23,7 @@ describe('streamed outgoing fetch spans', () => {
           span: container => {
             const httpClientSpan = container.items.find(
               item =>
-                item.attributes?.['sentry.op']?.type === 'string' &&
+                item.attributes['sentry.op']?.type === 'string' &&
                 item.attributes['sentry.op'].value === 'http.client',
             );
 
