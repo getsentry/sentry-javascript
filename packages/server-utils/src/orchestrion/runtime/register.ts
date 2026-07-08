@@ -3,11 +3,14 @@ import { createRequire } from 'node:module';
 import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { DEBUG_BUILD } from '../../debug-build';
-import { SENTRY_INSTRUMENTATIONS } from '../config';
+import { getSentryInstrumentations } from '../config';
+import type { OrchestrionInstrumentation } from '../registry';
 
 declare global {
   // eslint-disable-next-line no-var
-  var __SENTRY_ORCHESTRION__: { runtime?: boolean; bundler?: boolean } | undefined;
+  var __SENTRY_ORCHESTRION__:
+    | { runtime?: boolean; bundler?: boolean; registry?: OrchestrionInstrumentation[] }
+    | undefined;
 }
 
 /**
@@ -76,7 +79,7 @@ export function registerDiagnosticsChannelInjection(): void {
         resolve: unknown;
         load: unknown;
       };
-      initialize({ instrumentations: SENTRY_INSTRUMENTATIONS });
+      initialize({ instrumentations: getSentryInstrumentations() });
       mod.registerHooks({ resolve, load });
       DEBUG_BUILD && debug.log('[orchestrion] registered diagnostics-channel injection via Module.registerHooks()');
     } else if (typeof mod.register === 'function' && !globalAny.Bun && !globalAny.Deno) {
@@ -93,7 +96,7 @@ export function registerDiagnosticsChannelInjection(): void {
 
       mod.register('@apm-js-collab/tracing-hooks/hook.mjs', {
         parentURL,
-        data: { instrumentations: SENTRY_INSTRUMENTATIONS },
+        data: { instrumentations: getSentryInstrumentations() },
       });
 
       // ALSO patch `Module.prototype._compile` for the CJS side: when an ESM
@@ -104,7 +107,7 @@ export function registerDiagnosticsChannelInjection(): void {
       const ModulePatch = nodeRequire('@apm-js-collab/tracing-hooks') as new (opts: { instrumentations: unknown }) => {
         patch: () => void;
       };
-      new ModulePatch({ instrumentations: SENTRY_INSTRUMENTATIONS }).patch();
+      new ModulePatch({ instrumentations: getSentryInstrumentations() }).patch();
       DEBUG_BUILD && debug.log('[orchestrion] registered diagnostics-channel injection via Module.register()');
     } else {
       DEBUG_BUILD &&

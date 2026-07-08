@@ -17,9 +17,19 @@ import {
   setAsyncContextStrategy,
   spanToJSON,
 } from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nestjsChannelIntegration } from '../../src/orchestrion';
-import { CHANNELS } from '../../src/orchestrion/channels';
+import { nestjsChannels as CHANNELS } from '../../src/orchestrion/config';
+
+// The subscriber only ever runs when orchestrion has injected the channels.
+// `isOrchestrionInjected()` selects the `orchestrion` span origins that the
+// assertions below expect, and so must be true for these tests.
+beforeEach(() => {
+  (globalThis as { __SENTRY_ORCHESTRION__?: unknown }).__SENTRY_ORCHESTRION__ = { runtime: true };
+});
+afterEach(() => {
+  delete (globalThis as { __SENTRY_ORCHESTRION__?: unknown }).__SENTRY_ORCHESTRION__;
+});
 
 // Mirrors harness in `tracing-channel.test.ts`: `bindTracingChannelToSpan`
 // only creates/ends spans when an async-context binding is available, so the

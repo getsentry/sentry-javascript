@@ -15,7 +15,8 @@ type UnknownPlugin = any;
 
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
 import MagicString from 'magic-string';
-import { INSTRUMENTED_MODULE_NAMES, SENTRY_INSTRUMENTATIONS } from '../config';
+import { instrumentedModuleNames, SENTRY_INSTRUMENTATIONS } from '../config';
+import type { OrchestrionInstrumentation } from '../registry';
 
 // `vite` types live in the package's ESM-only subpath; under Node16 module
 // resolution with TS treating @sentry/server-utils as CJS, importing them produces a
@@ -42,6 +43,10 @@ import { INSTRUMENTED_MODULE_NAMES, SENTRY_INSTRUMENTATIONS } from '../config';
  *   2. The upstream `@apm-js-collab/code-transformer-bundler-plugins/vite`
  *      plugin, fed our central `SENTRY_INSTRUMENTATIONS` config.
  *
+ * A framework SDK that owns its own instrumentation can inject its
+ * `OrchestrionInstrumentation` descriptor via the `instrumentations` option, which is merged
+ * with the built-in configs.
+ *
  * @example
  * ```ts
  * // vite.config.ts
@@ -49,15 +54,18 @@ import { INSTRUMENTED_MODULE_NAMES, SENTRY_INSTRUMENTATIONS } from '../config';
  * export default { plugins: [sentryOrchestrionPlugin()] };
  * ```
  */
-export function sentryOrchestrionPlugin(): UnknownPlugin[] {
-  const codeTransformerPlugins = codeTransformer({ instrumentations: SENTRY_INSTRUMENTATIONS });
+export function sentryOrchestrionPlugin(options?: {
+  instrumentations?: OrchestrionInstrumentation[];
+}): UnknownPlugin[] {
+  const instrumentations = [...SENTRY_INSTRUMENTATIONS, ...(options?.instrumentations ?? []).flatMap(i => i.configs)];
+  const codeTransformerPlugins = codeTransformer({ instrumentations });
   const codeTransformerArray: UnknownPlugin[] = Array.isArray(codeTransformerPlugins)
     ? codeTransformerPlugins
     : [codeTransformerPlugins];
-  return [bundlerMarkerPlugin(), ...codeTransformerArray];
+  return [bundlerMarkerPlugin(instrumentedModuleNames(instrumentations)), ...codeTransformerArray];
 }
 
-function bundlerMarkerPlugin(): UnknownPlugin {
+function bundlerMarkerPlugin(moduleNames: string[]): UnknownPlugin {
   const banner = [
     'globalThis.__SENTRY_ORCHESTRION__ = (globalThis.__SENTRY_ORCHESTRION__ || {});',
     'globalThis.__SENTRY_ORCHESTRION__.bundler = true;',
@@ -75,7 +83,7 @@ function bundlerMarkerPlugin(): UnknownPlugin {
       // diagnostics_channel calls never get injected. Vite merges array
       // `noExternal` entries with the user's config, so we don't overwrite
       // their additions.
-      return { ssr: { noExternal: INSTRUMENTED_MODULE_NAMES } };
+      return { ssr: { noExternal: moduleNames } };
     },
     renderChunk(code: string, chunk: { isEntry: boolean }): { code: string; map: unknown } | null {
       if (!chunk.isEntry) return null;

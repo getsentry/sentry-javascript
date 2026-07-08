@@ -10,7 +10,6 @@ import { vercelAiChannels } from './config/vercel-ai';
 import { hapiChannels } from './config/hapi';
 import { redisChannels } from './config/redis';
 import { expressChannels } from './config/express';
-import { nestjsChannels } from './config/nestjs';
 
 /**
  * Fully-qualified `diagnostics_channel` names that orchestrion publishes to.
@@ -38,7 +37,6 @@ export const CHANNELS = {
   ...hapiChannels,
   ...redisChannels,
   ...expressChannels,
-  ...nestjsChannels,
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
