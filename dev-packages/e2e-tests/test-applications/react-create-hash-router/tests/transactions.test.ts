@@ -171,21 +171,21 @@ test('Captures a parameterized path pageload transaction', async ({ page }) => {
   const transactionEvent = await transactionEventPromise;
 
   expect(transactionEvent).toMatchObject({
-      transaction: '/v2/post/:post',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
-      },
-      contexts: {
-        trace: {
-          data: {
-            'url.template': '/v2/post/:post',
-            'url.path': '/',
-            'url.full': 'http://localhost:3030/#/v2/post/1',
-          },
+    transaction: '/v2/post/:post',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v2/post/:post',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v2/post/1',
         },
       },
-    });
+    },
+  });
 });
 
 test('Captures a parameterized path pageload transaction for nested route', async ({ page }) => {
@@ -198,21 +198,21 @@ test('Captures a parameterized path pageload transaction for nested route', asyn
   const transactionEvent = await transactionEventPromise;
 
   expect(transactionEvent).toMatchObject({
-      transaction: '/v2/post/:post/featured',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
-      },
-      contexts: {
-        trace: {
-          data: {
-            'url.template': '/v2/post/:post/featured',
-            'url.path': '/',
-            'url.full': 'http://localhost:3030/#/v2/post/1/featured',
-          },
+    transaction: '/v2/post/:post/featured',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v2/post/:post/featured',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v2/post/1/featured',
         },
       },
-    });
+    },
+  });
 });
 
 test('Captures a parameterized path pageload transaction for deeply nested route', async ({ page }) => {
@@ -225,21 +225,21 @@ test('Captures a parameterized path pageload transaction for deeply nested route
   const transactionEvent = await transactionEventPromise;
 
   expect(transactionEvent).toMatchObject({
-      transaction: '/v1/post/:post/edit',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
-      },
-      contexts: {
-        trace: {
-          data: {
-            'url.template': '/v1/post/:post/edit',
-            'url.path': '/',
-            'url.full': 'http://localhost:3030/#/v1/post/1/edit',
-          },
+    transaction: '/v1/post/:post/edit',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v1/post/:post/edit',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v1/post/1/edit',
         },
       },
-    });
+    },
+  });
 });
 
 test('Captures a parameterized path pageload transaction for nested route with absolute path', async ({ page }) => {
@@ -252,21 +252,21 @@ test('Captures a parameterized path pageload transaction for nested route with a
   const transactionEvent = await transactionEventPromise;
 
   expect(transactionEvent).toMatchObject({
-      transaction: '/v2/post/:post/related',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
-      },
-      contexts: {
-        trace: {
-          data: {
-            'url.template': '/v2/post/:post/related',
-            'url.path': '/',
-            'url.full': 'http://localhost:3030/#/v2/post/1/related',
-          },
+    transaction: '/v2/post/:post/related',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v2/post/:post/related',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v2/post/1/related',
         },
       },
-    });
+    },
+  });
 });
 
 test('Captures a parameterized path navigation transaction', async ({ page }) => {
@@ -281,21 +281,21 @@ test('Captures a parameterized path navigation transaction', async ({ page }) =>
   const transactionEvent = await transactionEventPromise;
 
   expect(transactionEvent).toMatchObject({
-      transaction: '/v2/post/:post',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
-      },
-      contexts: {
-        trace: {
-          data: {
-            'url.template': '/v2/post/:post',
-            'url.path': '/',
-            'url.full': 'http://localhost:3030/#/v2/post/1',
-          },
+    transaction: '/v2/post/:post',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v2/post/:post',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v2/post/1',
         },
       },
-    });
+    },
+  });
 });
 
 test('Captures a parameterized path navigation transaction for nested route', async ({ page }) => {
@@ -310,21 +310,21 @@ test('Captures a parameterized path navigation transaction for nested route', as
   const transactionEvent = await transactionEventPromise;
 
   expect(transactionEvent).toMatchObject({
-      transaction: '/v2/post/:post/featured',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
-      },
-      contexts: {
-        trace: {
-          data: {
-            'url.template': '/v2/post/:post/featured',
-            'url.path': '/',
-            'url.full': 'http://localhost:3030/#/v2/post/1/featured',
-          },
+    transaction: '/v2/post/:post/featured',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v2/post/:post/featured',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v2/post/1/featured',
         },
       },
-    });
+    },
+  });
 });
 
 test('Captures a parameterized path navigation transaction for deeply nested route', async ({ page }) => {
@@ -339,21 +339,21 @@ test('Captures a parameterized path navigation transaction for deeply nested rou
   const transactionEvent = await transactionEventPromise;
 
   expect(transactionEvent).toMatchObject({
-      transaction: '/v1/post/:post/edit',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
-      },
-      contexts: {
-        trace: {
-          data: {
-            'url.template': '/v1/post/:post/edit',
-            'url.path': '/',
-            'url.full': 'http://localhost:3030/#/v1/post/1/edit',
-          },
+    transaction: '/v1/post/:post/edit',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v1/post/:post/edit',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v1/post/1/edit',
         },
       },
-    });
+    },
+  });
 });
 
 test('Captures a parameterized path navigation transaction for nested route with absolute path', async ({ page }) => {
@@ -368,21 +368,21 @@ test('Captures a parameterized path navigation transaction for nested route with
   const transactionEvent = await transactionEventPromise;
 
   expect(transactionEvent).toMatchObject({
-      transaction: '/v2/post/:post/related',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
-      },
-      contexts: {
-        trace: {
-          data: {
-            'url.template': '/v2/post/:post/related',
-            'url.path': '/',
-            'url.full': 'http://localhost:3030/#/v2/post/1/related',
-          },
+    transaction: '/v2/post/:post/related',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v2/post/:post/related',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v2/post/1/related',
         },
       },
-    });
+    },
+  });
 });
 
 test('Captures a parameterized path pageload transaction for group route', async ({ page }) => {
