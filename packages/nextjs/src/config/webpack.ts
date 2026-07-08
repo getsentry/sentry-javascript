@@ -433,8 +433,6 @@ export function constructWebpackConfigFunction({
 
     // Orchestrion code-transform loader
     if (isServer && userSentryOptions._experimental?.useDiagnosticsChannelInjection) {
-      // stops the webpack build from failing on pg's optional (uninstalled) pg-native native binding now that we bundle pg.
-      newConfig.plugins.push(new buildContext.webpack.IgnorePlugin({ resourceRegExp: /^pg-native$/ }));
       newConfig.plugins.push(sentryOrchestrionWebpackPlugin() as WebpackPluginInstance);
     }
 

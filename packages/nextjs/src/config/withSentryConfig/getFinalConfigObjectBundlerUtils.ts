@@ -1,7 +1,6 @@
-import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
 import {
+  BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
   filterInstrumentedExternals,
-  getBundleableInstrumented,
   ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
 } from '../diagnosticsChannelInjection';
 import { handleRunAfterProductionCompile } from '../handleRunAfterProductionCompile';
@@ -235,18 +234,20 @@ export function getServerExternalPackagesPatch(
   nextMajor: number | undefined,
   useDiagnosticsChannelInjection = false,
 ): Partial<NextConfigObject> {
-  // Diagnostics-channel injection needs the instrumented packages bundled (so the code transform
-  // reaches them), so drop them from the external list — except the bundle-unsafe ones, which stay
-  // external and get instrumented by the runtime module hook instead. That hook only works if the
-  // orchestrion machinery itself is external too (bundled, its parser breaks), so add those.
-  const instrumented = useDiagnosticsChannelInjection ? getBundleableInstrumented(INSTRUMENTED_MODULE_NAMES) : [];
+  // Diagnostics-channel injection: drop the verified bundle-safe instrumented packages from OUR
+  // defaults so the build-time loader transforms them. Everything else — the user's own externals,
+  // Next's defaults, the rest of our defaults — stays external and is instrumented by the runtime
+  // module hook on require. That hook only works if the orchestrion machinery itself is external
+  // too (bundled, its parser breaks), so add those packages to the external list.
   const mergeExternals = (userProvided: string[] | undefined): string[] => {
-    const merged = [
+    const defaults = useDiagnosticsChannelInjection
+      ? filterInstrumentedExternals(DEFAULT_SERVER_EXTERNAL_PACKAGES, BUNDLE_SAFE_INSTRUMENTED_PACKAGES)
+      : DEFAULT_SERVER_EXTERNAL_PACKAGES;
+    return [
       ...(userProvided || []),
-      ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
+      ...defaults,
       ...(useDiagnosticsChannelInjection ? ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES : []),
     ];
-    return useDiagnosticsChannelInjection ? filterInstrumentedExternals(merged, instrumented) : merged;
   };
 
   if (nextMajor && nextMajor >= 15) {

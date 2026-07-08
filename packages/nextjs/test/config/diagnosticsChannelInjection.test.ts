@@ -1,46 +1,50 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
   filterInstrumentedExternals,
-  getBundleableInstrumented,
-  getTranspilePackages,
 } from '../../src/config/diagnosticsChannelInjection';
-
-describe('getBundleableInstrumented', () => {
-  it('excludes bundle-unsafe packages (mysql stays external / runtime-hook instrumented)', () => {
-    expect(getBundleableInstrumented(['pg', 'mysql', 'ioredis'])).toEqual(['pg', 'ioredis']);
-  });
-});
+import { getServerExternalPackagesPatch } from '../../src/config/withSentryConfig/getFinalConfigObjectBundlerUtils';
 
 describe('filterInstrumentedExternals', () => {
-  it('removes orchestrion-instrumented packages, keeps the rest', () => {
+  it('removes the given packages, keeps the rest', () => {
     expect(
       filterInstrumentedExternals(['express', 'pg', 'pg-pool', 'ioredis', 'mongodb'], ['pg', 'pg-pool', 'ioredis']),
     ).toEqual(['express', 'mongodb']);
   });
 
-  it('is a no-op with an empty instrumented list', () => {
+  it('is a no-op with an empty bundle list', () => {
     expect(filterInstrumentedExternals(['express', 'pg'], [])).toEqual(['express', 'pg']);
   });
 });
 
-describe('getTranspilePackages', () => {
-  it('returns installed instrumented packages that Next externalizes by default', () => {
-    const result = getTranspilePackages({
-      instrumented: ['pg', 'pg-pool', 'ioredis', 'mysql', 'openai'],
-      nextDefaultExternals: ['pg', 'pg-pool', 'mysql', 'mysql2'],
-      isInstalled: name => name !== 'mysql', // pretend mysql is not installed
-    });
-    // ioredis/openai aren't Next-default-external → not needed; mysql not installed → excluded
-    expect(result.sort()).toEqual(['pg', 'pg-pool']);
+describe('getServerExternalPackagesPatch (diagnostics-channel injection)', () => {
+  it('keeps everything external except the bundle-safe allowlist, and adds the runtime machinery', () => {
+    const patch = getServerExternalPackagesPatch({}, 16, true);
+    const externals = patch.serverExternalPackages ?? [];
+
+    // Only the verified bundle-safe packages leave the external list (→ build-time loader).
+    for (const name of BUNDLE_SAFE_INSTRUMENTED_PACKAGES) {
+      expect(externals).not.toContain(name);
+    }
+    // Other instrumented packages stay external (→ runtime module hook).
+    expect(externals).toContain('mysql');
+    expect(externals).toContain('pg');
+    expect(externals).toContain('pg-pool');
+    // The orchestrion machinery must be external for the runtime hook to work.
+    expect(externals).toContain('@apm-js-collab/tracing-hooks');
+    expect(externals).toContain('@apm-js-collab/code-transformer');
   });
 
-  it('returns nothing when none of the instrumented packages are Next-default-external', () => {
-    expect(
-      getTranspilePackages({
-        instrumented: ['ioredis', 'openai'],
-        nextDefaultExternals: ['pg', 'mysql'],
-        isInstalled: () => true,
-      }),
-    ).toEqual([]);
+  it('respects user-provided externals even for bundle-safe packages', () => {
+    const patch = getServerExternalPackagesPatch({ serverExternalPackages: ['ioredis'] }, 16, true);
+    expect(patch.serverExternalPackages).toContain('ioredis');
+  });
+
+  it('is unchanged with the flag off', () => {
+    const patch = getServerExternalPackagesPatch({}, 16, false);
+    const externals = patch.serverExternalPackages ?? [];
+    expect(externals).toContain('ioredis');
+    expect(externals).toContain('mysql');
+    expect(externals).not.toContain('@apm-js-collab/tracing-hooks');
   });
 });
