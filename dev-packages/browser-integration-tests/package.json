@@ -12,7 +12,7 @@
     "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && npx playwright install --with-deps || echo 'Skipping browser installation'",
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "type-check": "tsc",
+    "lint:types": "tsc --noEmit",
     "postinstall": "yarn install-browsers",
     "pretest": "yarn clean && yarn type-check",
     "test": "yarn test:all --project='chromium'",

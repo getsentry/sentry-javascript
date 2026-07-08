@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/node';
+import { waitForConnection } from '@sentry-internal/node-integration-tests';
 import mysql from 'mysql2/promise';
 
 const CONNECT_CONFIG = {
@@ -8,31 +9,20 @@ const CONNECT_CONFIG = {
   port: 3308,
 };
 
-// `docker compose up --wait` gates on the healthcheck, but MySQL keeps finalizing
-// for a short window afterwards and drops early handshakes ("server closed the
-// connection"). Retry the initial connect so the suite doesn't flake on that window.
-// The connect happens outside an active span, so the subscriber leaves it
-// uninstrumented and no connect transaction is emitted.
-async function connectWithRetry(attempts = 15, delayMs = 500) {
-  let lastError;
-  for (let attempt = 0; attempt < attempts; attempt++) {
-    try {
-      return await mysql.createConnection(CONNECT_CONFIG);
-    } catch (error) {
-      lastError = error;
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
-  }
-
-  throw lastError;
-}
-
 async function run() {
   // Yield a microtick so the DC subscriber (deferred via Promise.resolve().then)
   // is registered before mysql2 publishes on its native TracingChannels.
   await Promise.resolve();
 
-  const connection = await connectWithRetry();
+  // Gate on the DB actually accepting a connection before opening the span (see `waitForConnection`).
+  // MySQL keeps finalizing for a short window after the healthcheck passes and drops early handshakes,
+  // so this retries a real connect. It runs outside an active span, so the connect stays uninstrumented.
+  await waitForConnection(async () => {
+    const probe = await mysql.createConnection(CONNECT_CONFIG);
+    await probe.end();
+  });
+
+  const connection = await mysql.createConnection(CONNECT_CONFIG);
 
   await Sentry.startSpan(
     {

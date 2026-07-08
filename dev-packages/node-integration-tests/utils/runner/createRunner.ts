@@ -48,7 +48,7 @@ interface DockerOptions {
 type VoidFunction = () => void;
 
 type ExpectedEvent = Partial<Event> | ((event: Event) => void);
-type ExpectedTransaction = Partial<TransactionEvent> | ((event: TransactionEvent) => void);
+type ExpectedTransaction = DeepPartial<TransactionEvent> | ((event: TransactionEvent) => void);
 type ExpectedSession = Partial<SerializedSession> | ((event: SerializedSession) => void);
 type ExpectedSessions = Partial<SessionAggregates> | ((event: SessionAggregates) => void);
 type ExpectedCheckIn = Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
@@ -254,6 +254,12 @@ export function createRunner(...paths: string[]) {
       let hasExited = false;
       let child: ReturnType<typeof spawn> | undefined;
 
+      // Resolved the moment `complete()` runs, so `completed()` can await the result directly
+      // instead of polling — see the comment on `waitForEvent`.
+      const completedDeferred = createDeferred();
+      // Resolved once the scenario reports its server port, so `makeRequest` can await it directly.
+      const portReady = createDeferred();
+
       function complete(error?: Error): void {
         if (isComplete) {
           return;
@@ -262,6 +268,7 @@ export function createRunner(...paths: string[]) {
         isComplete = true;
         completeError = error || undefined;
         child?.kill();
+        completedDeferred.resolve();
       }
 
       /**
@@ -479,6 +486,7 @@ export function createRunner(...paths: string[]) {
             if (cleanedLine.startsWith('{"port":')) {
               const { port } = JSON.parse(cleanedLine) as { port: number };
               scenarioServerPort = port;
+              portReady.resolve();
               return;
             }
 
@@ -516,7 +524,7 @@ export function createRunner(...paths: string[]) {
       return {
         completed: async function (): Promise<void> {
           try {
-            await waitFor(() => isComplete, 120_000, 'Timed out waiting for test to complete');
+            await waitForEvent(completedDeferred.promise, 120_000, 'Timed out waiting for test to complete');
           } catch (e) {
             // On timeout, dump the captured child output (same info `DEBUG=1` would have streamed live)
             // so CI failures are diagnosable without re-running locally with DEBUG enabled.
@@ -548,7 +556,7 @@ export function createRunner(...paths: string[]) {
           options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
           try {
-            await waitFor(() => scenarioServerPort !== undefined, 10_000, 'Timed out waiting for server port');
+            await waitForEvent(portReady.promise, 10_000, 'Timed out waiting for server port');
           } catch (e) {
             complete(e as Error);
             return;
@@ -668,15 +676,35 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   return close;
 }
 
-/** Promise only resolves when fn returns true */
-async function waitFor(fn: () => boolean, timeout = 10_000, message = 'Timed out waiting'): Promise<void> {
-  let remaining = timeout;
-  while (fn() === false) {
-    await new Promise<void>(resolve => setTimeout(resolve, 100));
-    remaining -= 100;
-    if (remaining < 0) {
-      throw new Error(message);
-    }
+interface Deferred {
+  promise: Promise<void>;
+  resolve: () => void;
+}
+
+/** A promise plus its resolver, so producers can signal completion without polling. */
+function createDeferred(): Deferred {
+  let resolve!: () => void;
+  const promise = new Promise<void>(res => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
+/**
+ * Resolves as soon as `event` resolves, or rejects with `message` after `timeout` ms. This
+ * replaces the previous 100ms-granularity polling loop: `complete()` (and the server-port
+ * parser) resolve their deferred synchronously the instant they have a result, so tests no
+ * longer wait up to a full poll tick after the child is actually done.
+ */
+async function waitForEvent(event: Promise<void>, timeout: number, message: string): Promise<void> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), timeout);
+  });
+  try {
+    await Promise.race([event, timeoutPromise]);
+  } finally {
+    clearTimeout(timer!);
   }
 }
 

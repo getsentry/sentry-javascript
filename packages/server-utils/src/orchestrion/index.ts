@@ -6,7 +6,9 @@ import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/l
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
 import { postgresChannelIntegration } from '../integrations/tracing-channel/postgres';
+import { postgresJsChannelIntegration } from '../integrations/tracing-channel/postgres-js';
 import { vercelAiChannelIntegration } from '../integrations/tracing-channel/vercel-ai';
+import { expressChannelIntegration } from '../integrations/tracing-channel/express';
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 export {
@@ -18,9 +20,14 @@ export {
   mysqlChannelIntegration,
   openaiChannelIntegration,
   postgresChannelIntegration,
+  postgresJsChannelIntegration,
   vercelAiChannelIntegration,
+  expressChannelIntegration,
 };
 export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/tracing-channel/ioredis';
+export type { PostgresJsChannelIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
+export { redisChannelIntegration } from '../integrations/tracing-channel/redis';
+export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/tracing-channel/redis';
 
 /**
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
@@ -31,12 +38,13 @@ export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../i
  * `diagnosticsChannelInjectionIntegrations()` map — picks it up automatically, so there's no separate
  * list to keep in sync.
  *
- * NOTE: `ioredisChannelIntegration` is intentionally NOT here. It only partially replaces the
- * composite OTel `Redis` integration and needs the node SDK's redis cache `responseHook` (which
- * can't live in `server-utils`), so `@sentry/node` wires it up separately.
+ * NOTE: `ioredisChannelIntegration` and `redisChannelIntegration` are intentionally NOT here. They
+ * only partially replace the composite OTel `Redis` integration and need the node SDK's redis cache
+ * `responseHook` (which can't live in `server-utils`), so `@sentry/node` wires them up separately.
  */
 export const channelIntegrations = {
   postgresIntegration: postgresChannelIntegration,
+  postgresJsIntegration: postgresJsChannelIntegration,
   mysqlIntegration: mysqlChannelIntegration,
   lruMemoizerIntegration: lruMemoizerChannelIntegration,
   openaiIntegration: openaiChannelIntegration,
@@ -44,4 +52,5 @@ export const channelIntegrations = {
   googleGenAIIntegration: googleGenAIChannelIntegration,
   vercelAiIntegration: vercelAiChannelIntegration,
   hapiIntegration: hapiChannelIntegration,
+  expressIntegration: expressChannelIntegration,
 } as const;

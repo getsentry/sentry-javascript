@@ -408,7 +408,10 @@ export function createRunner(...paths: string[]) {
           expected: Expected | Expected[],
           options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
-          const expectations = Array.isArray(expected) ? expected : [expected];
+          // `Expected` includes `Envelope`, which is itself an array, so `Array.isArray` can't
+          // distinguish a single `Envelope` from an `Expected[]`. Callers pass expectation
+          // callbacks (or an array of them), so the narrowed value is always `Expected[]`.
+          const expectations = (Array.isArray(expected) ? expected : [expected]) as Expected[];
           const envelopePromises = expectations.map(e => waitForEnvelope(e));
           const result = await this.makeRequest<T>(method, path, options);
           await Promise.all(envelopePromises);

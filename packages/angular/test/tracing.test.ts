@@ -8,6 +8,8 @@ import {
 import { describe, it } from 'vitest';
 import { browserTracingIntegration, init, TraceDirective } from '../src/index';
 import { _updateSpanAttributesForParametrizedUrl, getParameterizedRouteFromSnapshot } from '../src/tracing';
+import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { expect } from 'vitest';
 
 describe('browserTracingIntegration', () => {
   it('implements required hooks', () => {
@@ -73,18 +75,23 @@ describe('Angular Tracing', () => {
     it('change the span name to route name if the the source is `url`', async () => {
       init({ integrations: [browserTracingIntegration()] });
 
-      const route = 'sample-route';
+      const route = '/users/:id/';
+      const url = '/users/123/';
       const span = new SentrySpan({ name: 'initial-span-name' });
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
 
-      _updateSpanAttributesForParametrizedUrl(route, span);
+      _updateSpanAttributesForParametrizedUrl(route, url, span);
 
       expect(spanToJSON(span)).toEqual(
         expect.objectContaining({
-          data: {
+          data: expect.objectContaining({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.undefined.angular',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          },
+            [URL_TEMPLATE]: route,
+            // URL_FULL is resolved against jsdom's http://localhost origin
+            [URL_FULL]: expect.stringContaining('/users/123/'),
+            [URL_PATH]: '/users/123/',
+          }),
           description: route,
         }),
       );
@@ -93,11 +100,12 @@ describe('Angular Tracing', () => {
     it('does not change the span name if the source is something other than `url`', async () => {
       init({ integrations: [browserTracingIntegration()] });
 
-      const route = 'sample-route';
+      const route = '/users/:id/';
+      const url = '/users/123/';
       const span = new SentrySpan({ name: 'initial-span-name' });
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'sample-source');
 
-      _updateSpanAttributesForParametrizedUrl(route, span);
+      _updateSpanAttributesForParametrizedUrl(route, url, span);
 
       expect(spanToJSON(span)).toEqual(
         expect.objectContaining({
