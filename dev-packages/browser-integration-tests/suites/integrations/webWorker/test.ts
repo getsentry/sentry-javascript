@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequest } from '../../../utils/helpers';
 
 sentryTest('Assigns web worker debug IDs when using webWorkerIntegration', async ({ getLocalTestUrl, page }) => {
   const bundle = process.env.PW_BUNDLE;
@@ -11,18 +11,23 @@ sentryTest('Assigns web worker debug IDs when using webWorkerIntegration', async
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page, url);
-
-  page.route('**/worker.js', route => {
-    route.fulfill({
+  // `init.js` creates the worker at page load, so the route must be registered before navigating.
+  await page.route('**/worker.js', route => {
+    return route.fulfill({
       path: `${__dirname}/assets/worker.js`,
     });
   });
 
-  const button = page.locator('#errWorker');
-  await button.click();
+  const errorEventPromise = waitForErrorRequest(
+    page,
+    event => !!event.exception?.values?.[0]?.value?.includes('Worker error for testing'),
+  );
 
-  const errorEvent = await errorEventPromise;
+  await page.goto(url);
+
+  await page.locator('#errWorker').click();
+
+  const errorEvent = envelopeRequestParser<Event>(await errorEventPromise);
 
   expect(errorEvent.debug_meta?.images).toBeDefined();
 
@@ -45,20 +50,24 @@ sentryTest('Captures unhandled rejections from web workers', async ({ getLocalTe
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page, url);
-
-  page.route('**/worker.js', route => {
-    route.fulfill({
+  // `init.js` creates the worker at page load, so the route must be registered before navigating.
+  await page.route('**/worker.js', route => {
+    return route.fulfill({
       path: `${__dirname}/assets/worker.js`,
     });
   });
 
-  const button = page.locator('#rejectionWorker');
-  await button.click();
+  const errorEventPromise = waitForErrorRequest(
+    page,
+    event => !!event.exception?.values?.[0]?.value?.includes('Worker unhandled rejection'),
+  );
 
-  const errorEvent = await errorEventPromise;
+  await page.goto(url);
 
-  // Verify the unhandled rejection was captured
+  await page.locator('#rejectionWorker').click();
+
+  const errorEvent = envelopeRequestParser<Event>(await errorEventPromise);
+
   expect(errorEvent.exception?.values?.[0]?.value).toContain('Worker unhandled rejection');
   expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe('auto.browser.web_worker.onunhandledrejection');
   expect(errorEvent.exception?.values?.[0]?.mechanism?.handled).toBe(false);

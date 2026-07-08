@@ -17,7 +17,7 @@ vi.mock('@sentry/node', async importOriginal => {
 const getTraceMetaTagsSpy = vi
   .fn()
   .mockReturnValue(
-    '<meta name="sentry-trace" content="abc123-def456-1"/>\n<meta name="baggage" content="sentry-trace_id=abc123"/>',
+    '<meta name="sentry-trace" content="abc123-def456-1"/><meta name="baggage" content="sentry-trace_id=abc123"/>',
   );
 
 vi.mock('@sentry/core', async importOriginal => {
@@ -84,6 +84,12 @@ describe('wrapFetchWithSentry', () => {
     expect(html).toContain('<meta name="sentry-trace" content="abc123-def456-1"/>');
     expect(html).toContain('<meta name="baggage" content="sentry-trace_id=abc123"/>');
     expect(html).toContain('<meta charset="utf-8"/>');
+
+    // No whitespace text node may appear directly after `<head>` or between the injected tags —
+    // React 19 whole-document hydration rejects unexpected text nodes in `<head>` (#21915).
+    expect(html).toContain(
+      '<head><meta name="sentry-trace" content="abc123-def456-1"/><meta name="baggage" content="sentry-trace_id=abc123"/>',
+    );
   });
 
   it('does not inject meta tags into non-HTML responses', async () => {

@@ -2,7 +2,7 @@ import type { ErrorEvent, Event, TransactionEvent, TransportMakeRequestResponse 
 import { setTimeout } from '@sentry/browser-utils';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isTransactionEvent } from '../util/eventUtils';
-import { addTraceIdToContext } from './util/addTraceIdToContext';
+import { addSegmentDetailsToContext } from './util/addSegmentDetailsToContext';
 
 type AfterSendEventCallback = (event: Event, sendResponse: TransportMakeRequestResponse) => void;
 
@@ -33,10 +33,7 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
 }
 
 function handleTransactionEvent(replay: ReplayContainer, event: TransactionEvent): void {
-  const traceId = event.contexts?.trace?.trace_id;
-  if (traceId) {
-    addTraceIdToContext(replay, traceId);
-  }
+  addSegmentDetailsToContext(replay, event.contexts?.trace?.trace_id, event.transaction);
 }
 
 function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {

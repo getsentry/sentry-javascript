@@ -22,6 +22,9 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { isOrchestrionEnabled } from '../../../utils';
+
+const EXPECTED_ORIGIN = isOrchestrionEnabled() ? 'auto.ai.orchestrion.google_genai' : 'auto.ai.google_genai';
 
 describe('Google GenAI integration', () => {
   afterAll(() => {
@@ -47,7 +50,7 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.status).toBe('ok');
             expect(chatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
-            expect(chatSpan!.attributes['sentry.origin'].value).toBe('auto.ai.google_genai');
+            expect(chatSpan!.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
             expect(chatSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
             expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(8);
@@ -439,7 +442,7 @@ describe('Google GenAI integration', () => {
             for (const span of successfulSpans) {
               expect(span.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
               expect(span.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
-              expect(span.attributes['sentry.origin'].value).toBe('auto.ai.google_genai');
+              expect(span.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
               expect(span.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
               expect(span.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('text-embedding-004');
               expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]).toBeUndefined();

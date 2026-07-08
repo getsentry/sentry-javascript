@@ -1,3 +1,14 @@
+import { mysqlChannels } from './config/mysql';
+import { lruMemoizerChannels } from './config/lru-memoizer';
+import { ioredisChannels } from './config/ioredis';
+import { pgChannels } from './config/pg';
+import { postgresJsChannels } from './config/postgres';
+import { openaiChannels } from './config/openai';
+import { anthropicAiChannels } from './config/anthropic-ai';
+import { googleGenAiChannels } from './config/google-genai';
+import { vercelAiChannels } from './config/vercel-ai';
+import { hapiChannels } from './config/hapi';
+
 /**
  * Fully-qualified `diagnostics_channel` names that orchestrion publishes to.
  *
@@ -12,20 +23,16 @@
  * they don't drift apart and silently stop firing.
  */
 export const CHANNELS = {
-  MYSQL_QUERY: 'orchestrion:mysql:query',
-  LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',
-  IOREDIS_COMMAND: 'orchestrion:ioredis:command',
-  IOREDIS_CONNECT: 'orchestrion:ioredis:connect',
-  PG_QUERY: 'orchestrion:pg:query',
-  PG_CONNECT: 'orchestrion:pg:connect',
-  PGPOOL_CONNECT: 'orchestrion:pg-pool:connect',
-  OPENAI_CHAT: 'orchestrion:openai:chat',
-  OPENAI_RESPONSES: 'orchestrion:openai:responses',
-  OPENAI_EMBEDDINGS: 'orchestrion:openai:embeddings',
-  OPENAI_CONVERSATIONS: 'orchestrion:openai:conversations',
-  ANTHROPIC_CHAT: 'orchestrion:@anthropic-ai/sdk:chat',
-  ANTHROPIC_MODELS: 'orchestrion:@anthropic-ai/sdk:models',
-  ANTHROPIC_MESSAGES_STREAM: 'orchestrion:@anthropic-ai/sdk:messages-stream',
+  ...mysqlChannels,
+  ...lruMemoizerChannels,
+  ...ioredisChannels,
+  ...pgChannels,
+  ...postgresJsChannels,
+  ...openaiChannels,
+  ...anthropicAiChannels,
+  ...googleGenAiChannels,
+  ...vercelAiChannels,
+  ...hapiChannels,
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

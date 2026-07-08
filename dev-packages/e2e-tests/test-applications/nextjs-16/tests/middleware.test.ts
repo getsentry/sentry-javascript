@@ -7,6 +7,10 @@ test('Should create a transaction for middleware', async ({ request }) => {
     return transactionEvent?.transaction === 'middleware GET';
   });
 
+  const routeTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
+    return transactionEvent?.transaction === 'GET /api/endpoint-behind-middleware';
+  });
+
   const response = await request.get('/api/endpoint-behind-middleware');
   expect(await response.json()).toStrictEqual({ name: 'John Doe' });
 
@@ -20,6 +24,12 @@ test('Should create a transaction for middleware', async ({ request }) => {
   // Assert that isolation scope works properly
   expect(middlewareTransaction.tags?.['my-isolated-tag']).toBe(true);
   expect(middlewareTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+
+  // Tags set in middleware must not leak into other requests' events (e.g. via a shared scope when the middleware
+  // runs in a detached context - https://github.com/vercel/next.js/pull/95306)
+  const routeTransaction = await routeTransactionPromise;
+  expect(routeTransaction.tags?.['my-isolated-tag']).not.toBeDefined();
+  expect(routeTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 });
 
 test('Faulty middlewares', async ({ request }) => {

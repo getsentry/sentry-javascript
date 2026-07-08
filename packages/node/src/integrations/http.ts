@@ -13,12 +13,7 @@ import type {
   HttpServerIntegrationOptions,
   HttpServerSpansIntegrationOptions,
 } from '@sentry/node-core';
-import {
-  generateInstrumentOnce,
-  httpServerIntegration,
-  httpServerSpansIntegration,
-  SentryHttpInstrumentation,
-} from '@sentry/node-core';
+import { httpServerIntegration, httpServerSpansIntegration, instrumentHttpOutgoingRequests } from '@sentry/node-core';
 
 const INTEGRATION_NAME = 'Http' as const;
 
@@ -158,12 +153,9 @@ interface HttpOptions {
   };
 }
 
-export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
-  `${INTEGRATION_NAME}.sentry`,
-  options => {
-    return new SentryHttpInstrumentation(options);
-  },
-);
+export const instrumentSentryHttp = Object.assign(instrumentHttpOutgoingRequests, {
+  id: `${INTEGRATION_NAME}.sentry`,
+});
 
 /**
  * The http integration instruments Node's internal http and https modules.
@@ -231,7 +223,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       // breadcrumbs & trace propagation. It uses the diagnostic channels on
       // node versions that support it, falling back to monkey-patching when
       // needed.
-      instrumentSentryHttp(sentryHttpInstrumentationOptions);
+      instrumentHttpOutgoingRequests(sentryHttpInstrumentationOptions);
     },
     processEvent(event) {
       // Always run this, even if spans are disabled
