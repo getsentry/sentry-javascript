@@ -13,7 +13,7 @@ import {
   getAbsoluteUrl,
 } from '@sentry/react';
 import { maybeParameterizeRoute } from './parameterization';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 /**
  * Strips trailing slash from a pathname, unless it's the root path.
@@ -21,6 +21,13 @@ import { URL_TEMPLATE } from '@sentry/conventions/attributes';
  */
 function stripTrailingSlash(pathname: string): string {
   return pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+}
+
+function setNavigationSpanUrlAttributes(span: Span, urlPath: string, urlOrPath: string): void {
+  span.setAttributes({
+    [URL_PATH]: urlPath,
+    [URL_FULL]: getAbsoluteUrl(urlOrPath),
+  });
 }
 
 export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplete-app-router-transaction';
@@ -125,6 +132,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
         ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
       });
+      setNavigationSpanUrlAttributes(currentNavigationSpan, unparameterizedPathname, normalizedHref);
       currentRouterPatchingNavigationSpanRef.current = undefined;
     } else {
       startBrowserTracingNavigationSpan(
@@ -156,6 +164,11 @@ export function appRouterInstrumentNavigation(client: Client): void {
       if (parameterizedPathname) {
         currentRouterPatchingNavigationSpanRef.current.setAttribute(URL_TEMPLATE, parameterizedPathname);
       }
+      setNavigationSpanUrlAttributes(
+        currentRouterPatchingNavigationSpanRef.current,
+        pathname,
+        WINDOW.location.href,
+      );
     } else {
       currentRouterPatchingNavigationSpanRef.current = startBrowserTracingNavigationSpan(
         client,
@@ -261,6 +274,11 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
 
           const parameterizedPathname = maybeParameterizeRoute(transactionName);
 
+          const navigationUrl =
+            routerFunctionName === 'back' || routerFunctionName === 'forward'
+              ? undefined
+              : getAbsoluteUrl(normalizedHref);
+
           currentNavigationSpanRef.current = startBrowserTracingNavigationSpan(
             client,
             {
@@ -271,7 +289,7 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
                 ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
               },
             },
-            { url: getAbsoluteUrl(normalizedHref) },
+            navigationUrl ? { url: navigationUrl } : undefined,
           );
 
           return target.apply(thisArg, argArray);
