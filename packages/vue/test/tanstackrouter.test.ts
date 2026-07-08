@@ -45,6 +45,17 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
         });
         return result;
       }),
+      stringifySearch: vi.fn((search: Record<string, unknown>) => {
+        const params = new URLSearchParams();
+        Object.entries(search).forEach(([key, value]) => {
+          if (value != null) {
+            params.set(key, String(value));
+          }
+        });
+        const serialized = params.toString();
+
+        return serialized ? `?${serialized}` : '';
+      }),
     } as AnyRouter['options'],
     matchRoutes: vi.fn(() => mockMatchedRoutes),
     subscribe: vi.fn(() => vi.fn()), // Return an unsubscribe function
@@ -175,13 +186,17 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
     });
 
     expect(startBrowserTracingNavigationSpanSpy).toHaveBeenCalledTimes(1);
-    expect(startBrowserTracingNavigationSpanSpy).toHaveBeenCalledWith(mockClient, {
-      name: '/test/:id',
-      attributes: expect.objectContaining({
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue.tanstack_router',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      }),
-    });
+    expect(startBrowserTracingNavigationSpanSpy).toHaveBeenCalledWith(
+      mockClient,
+      {
+        name: '/test/:id',
+        attributes: expect.objectContaining({
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue.tanstack_router',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        }),
+      },
+      { url: expect.any(String) },
+    );
   });
 
   it('skips navigation span creation on the initial pageload (no fromLocation)', () => {
@@ -281,10 +296,14 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
 
     expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/redirected/:id');
     expect(mockNavigationSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
-      'url.path.parameter.id': '789',
-      'params.id': '789',
-    });
+    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        'url.path': '/redirected/789',
+        'url.full': expect.any(String),
+        'url.path.parameter.id': '789',
+        'params.id': '789',
+      }),
+    );
   });
 
   it('reuses the in-flight span across a redirect chain instead of starting a second span', () => {
