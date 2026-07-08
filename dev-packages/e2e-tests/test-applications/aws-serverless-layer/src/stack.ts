@@ -91,7 +91,9 @@ export class LocalLambdaStack extends Stack {
     }
   }
 
-  static async waitForStack(timeout = 60000, port = SAM_PORT) {
+  // Generous timeout: with `--warm-containers EAGER`, SAM boots every function container
+  // before the endpoint responds, which can take well over a minute on slow CI runners.
+  static async waitForStack(timeout = 180000, port = SAM_PORT) {
     const startTime = Date.now();
     const maxWaitTime = timeout;
 

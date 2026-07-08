@@ -81,7 +81,8 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
         removeDockerNetwork();
       }
     },
-    { scope: 'worker', auto: true },
+    // Own timeout so slow SAM stack startup does not eat into the first test's budget.
+    { scope: 'worker', auto: true, timeout: 240_000 },
   ],
   lambdaClient: async ({}, use) => {
     const lambdaClient = new LambdaClient({
