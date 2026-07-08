@@ -115,7 +115,6 @@ function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime
       const { 'sentry-trace': sentryTrace, baggage } = getAwsTraceData(event, context);
 
       return continueTrace({ sentryTrace, baggage }, () =>
-        // Ended manually: completion is signaled by the settled promise, not the return.
         startSpanManual(getRequestSpanOptions(event, context, requestIsColdStart), span => {
           let maybePromise: Promise<unknown> | undefined;
           try {
