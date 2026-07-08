@@ -36,15 +36,17 @@
 import type * as Babel from '@babel/core';
 import type { PluginObj, PluginPass } from '@babel/core';
 
-import { DEFAULT_IGNORED_ELEMENTS, KNOWN_INCOMPATIBLE_PLUGINS } from './constants';
-
-const webComponentName = 'data-sentry-component';
-const webElementName = 'data-sentry-element';
-const webSourceFileName = 'data-sentry-source-file';
-
-const nativeComponentName = 'dataSentryComponent';
-const nativeElementName = 'dataSentryElement';
-const nativeSourceFileName = 'dataSentrySourceFile';
+import {
+  getComponentAnnotationAttributes,
+  NATIVE_COMPONENT_NAME,
+  NATIVE_ELEMENT_NAME,
+  NATIVE_SOURCE_FILE_NAME,
+  WEB_COMPONENT_NAME,
+  WEB_ELEMENT_NAME,
+  WEB_SOURCE_FILE_NAME,
+  type ComponentAnnotationAttributeNames,
+} from './component-annotation';
+import { KNOWN_INCOMPATIBLE_PLUGINS } from './constants';
 
 const SENTRY_LABEL_ATTRIBUTE = 'sentry-label';
 const MAX_LABEL_LENGTH = 64;
@@ -86,7 +88,7 @@ interface JSXProcessingContext {
   /** Source file name (optional) */
   sourceFileName?: string;
   /** Array of attribute names [component, element, sourceFile] */
-  attributeNames: string[];
+  attributeNames: ComponentAnnotationAttributeNames;
   /** Array of component names to ignore */
   ignoredComponents: string[];
   /** Fragment context for identifying React fragments */
@@ -327,65 +329,25 @@ function applyAttributes(
   componentName: string,
 ): void {
   const { t, attributeNames, ignoredComponents, fragmentContext, sourceFileName } = context;
-  const [componentAttributeName, elementAttributeName, sourceFileAttributeName] = attributeNames;
 
   // e.g., Raw JSX text like the `A` in `<h1>a</h1>`
   if (!openingElement.node) {
     return;
   }
 
-  // Check if this is a React fragment - if so, skip attribute addition entirely
-  const isFragment = isReactFragment(t, openingElement, fragmentContext);
-  if (isFragment) {
-    return;
-  }
-
   if (!openingElement.node.attributes) openingElement.node.attributes = [];
   const elementName = getPathName(t, openingElement);
 
-  const isAnIgnoredComponent = ignoredComponents.some(
-    ignoredComponent => ignoredComponent === componentName || ignoredComponent === elementName,
-  );
-
-  // Add a stable attribute for the element name but only for non-DOM names
-  let isAnIgnoredElement = false;
-  if (!isAnIgnoredComponent && !hasAttributeWithName(openingElement, elementAttributeName)) {
-    if (DEFAULT_IGNORED_ELEMENTS.includes(elementName)) {
-      isAnIgnoredElement = true;
-    } else {
-      // Always add element attribute for non-ignored elements
-      if (elementAttributeName) {
-        openingElement.node.attributes.push(
-          t.jSXAttribute(t.jSXIdentifier(elementAttributeName), t.stringLiteral(elementName)),
-        );
-      }
-    }
-  }
-
-  // Add a stable attribute for the component name (absent for non-root elements)
-  if (componentName && !isAnIgnoredComponent && !hasAttributeWithName(openingElement, componentAttributeName)) {
-    if (componentAttributeName) {
-      openingElement.node.attributes.push(
-        t.jSXAttribute(t.jSXIdentifier(componentAttributeName), t.stringLiteral(componentName)),
-      );
-    }
-  }
-
-  // Add a stable attribute for the source file name
-  // Updated condition: add source file for elements that have either:
-  // 1. A component name (root elements), OR
-  // 2. An element name that's not ignored (child elements)
-  if (
-    sourceFileName &&
-    !isAnIgnoredComponent &&
-    (componentName || !isAnIgnoredElement) &&
-    !hasAttributeWithName(openingElement, sourceFileAttributeName)
-  ) {
-    if (sourceFileAttributeName) {
-      openingElement.node.attributes.push(
-        t.jSXAttribute(t.jSXIdentifier(sourceFileAttributeName), t.stringLiteral(sourceFileName)),
-      );
-    }
+  for (const [name, value] of getComponentAnnotationAttributes({
+    attributeNames,
+    componentName,
+    elementName,
+    existingAttributes: getExistingAttributeNames(openingElement),
+    ignoredComponents,
+    isFragment: isReactFragment(t, openingElement, fragmentContext),
+    sourceFileName,
+  })) {
+    openingElement.node.attributes.push(t.jSXAttribute(t.jSXIdentifier(name), t.stringLiteral(value)));
   }
 }
 
@@ -434,12 +396,12 @@ function isKnownIncompatiblePluginFromState(state: AnnotationPluginPass): boolea
   });
 }
 
-function attributeNamesFromState(state: AnnotationPluginPass): [string, string, string] {
+function attributeNamesFromState(state: AnnotationPluginPass): ComponentAnnotationAttributeNames {
   if (state.opts.native) {
-    return [nativeComponentName, nativeElementName, nativeSourceFileName];
+    return [NATIVE_COMPONENT_NAME, NATIVE_ELEMENT_NAME, NATIVE_SOURCE_FILE_NAME];
   }
 
-  return [webComponentName, webElementName, webSourceFileName];
+  return [WEB_COMPONENT_NAME, WEB_ELEMENT_NAME, WEB_SOURCE_FILE_NAME];
 }
 
 function collectFragmentContext(programPath: Babel.NodePath): FragmentContext {
@@ -592,21 +554,16 @@ function isReactFragment(
   return false;
 }
 
-function hasAttributeWithName(
-  openingElement: Babel.NodePath<Babel.types.JSXOpeningElement>,
-  name: string | undefined | null,
-): boolean {
-  if (!name) {
-    return false;
-  }
+function getExistingAttributeNames(openingElement: Babel.NodePath<Babel.types.JSXOpeningElement>): Set<string> {
+  const names = new Set<string>();
 
-  return openingElement.node.attributes.some(node => {
-    if (node.type === 'JSXAttribute') {
-      return node.name.name === name;
+  openingElement.node.attributes.forEach(node => {
+    if (node.type === 'JSXAttribute' && typeof node.name.name === 'string') {
+      names.add(node.name.name);
     }
-
-    return false;
   });
+
+  return names;
 }
 
 function getPathName(t: typeof Babel.types, path: Babel.NodePath): string {
