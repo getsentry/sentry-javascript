@@ -1,6 +1,9 @@
+import { isObjectLike } from '@sentry/core';
 import type { SourceMap } from 'magic-string';
 
 import type { ComponentAnnotationAttribute } from '../babel-plugin/component-annotation';
+
+export { isObjectLike };
 
 export type AstNode = {
   type: string;
@@ -64,12 +67,8 @@ export type ComponentAnnotationTransformResult =
   | null
   | undefined;
 
-export function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
 export function isAstNode(value: unknown): value is AstNode {
-  return isObject(value) && typeof value.type === 'string';
+  return isObjectLike(value) && typeof value.type === 'string';
 }
 
 export function walkAst(node: unknown, visit: (node: AstNode) => void): void {

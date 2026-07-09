@@ -13,7 +13,7 @@ import type {
   JSXOpeningElementNode,
   JSXRootNode,
 } from './component-annotation-vite-ast';
-import { isAstNode, isObject } from './component-annotation-vite-ast';
+import { isAstNode, isObjectLike } from './component-annotation-vite-ast';
 
 const UNKNOWN_ELEMENT_NAME = 'unknown';
 const WEB_ATTRIBUTE_NAMES = [WEB_ELEMENT_NAME, WEB_COMPONENT_NAME, WEB_SOURCE_FILE_NAME] as const;
@@ -37,7 +37,7 @@ export function isJSXRoot(value: unknown): value is JSXRootNode {
 }
 
 export function getStringName(node: unknown): string | null {
-  return isObject(node) && typeof node.name === 'string' ? node.name : null;
+  return isObjectLike(node) && typeof node.name === 'string' ? node.name : null;
 }
 
 export function getJSXName(name: unknown): string {
@@ -92,7 +92,7 @@ export function isReactFragment(openingElement: JSXOpeningElementNode, fragmentC
     return true;
   }
 
-  if (isObject(openingElement.name) && openingElement.name.type === 'JSXMemberExpression') {
+  if (isObjectLike(openingElement.name) && openingElement.name.type === 'JSXMemberExpression') {
     const objectName = getJSXName(openingElement.name.object);
     const propertyName = getJSXName(openingElement.name.property);
 
