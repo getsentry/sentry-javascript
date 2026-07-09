@@ -8,6 +8,7 @@ import { postgresJsConfig } from './postgres';
 import { anthropicAiConfig } from './anthropic-ai';
 import { googleGenAiConfig } from './google-genai';
 import { vercelAiConfig } from './vercel-ai';
+import { amqplibConfig } from './amqplib';
 import { hapiConfig } from './hapi';
 import { redisConfig } from './redis';
 import { expressConfig } from './express';
@@ -24,6 +25,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...googleGenAiConfig,
   ...vercelAiConfig,
   ...hapiConfig,
+  ...amqplibConfig,
   ...redisConfig,
   ...expressConfig,
   ...graphqlConfig,
