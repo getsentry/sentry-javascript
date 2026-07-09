@@ -13,6 +13,7 @@ export const vercelAiConfig = [
   // The majority of entrypoints are present in all versions we support
   ...vercelAiEntries('>=4.0.0 <7.0.0', 'generateText', 'generateText', 'Async'),
   ...vercelAiEntries('>=4.0.0 <7.0.0', 'streamText', 'streamText', 'Sync'),
+  ...vercelAiEntries('>=4.0.0 <7.0.0', 'generateObject', 'generateObject', 'Async'),
   ...vercelAiEntries('>=4.0.0 <7.0.0', 'embed', 'embed', 'Async'),
   ...vercelAiEntries('>=4.0.0 <7.0.0', 'embedMany', 'embedMany', 'Async'),
 
@@ -32,6 +33,7 @@ export const vercelAiChannels = {
   // `VERCEL_AI_RESOLVE_LANGUAGE_MODEL` is v5/v6-only (v4 has no such chokepoint).
   VERCEL_AI_GENERATE_TEXT: 'orchestrion:ai:generateText',
   VERCEL_AI_STREAM_TEXT: 'orchestrion:ai:streamText',
+  VERCEL_AI_GENERATE_OBJECT: 'orchestrion:ai:generateObject',
   VERCEL_AI_EMBED: 'orchestrion:ai:embed',
   VERCEL_AI_EMBED_MANY: 'orchestrion:ai:embedMany',
   VERCEL_AI_EXECUTE_TOOL_CALL: 'orchestrion:ai:executeToolCall',

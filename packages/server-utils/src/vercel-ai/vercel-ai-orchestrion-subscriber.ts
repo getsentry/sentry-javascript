@@ -130,6 +130,7 @@ export function subscribeVercelAiOrchestrionChannels(
   try {
     bindOperation(tracingChannel, CHANNELS.VERCEL_AI_GENERATE_TEXT, buildTextMessage('generateText'), options);
     bindOperation(tracingChannel, CHANNELS.VERCEL_AI_STREAM_TEXT, buildTextMessage('streamText'), options);
+    bindOperation(tracingChannel, CHANNELS.VERCEL_AI_GENERATE_OBJECT, buildTextMessage('generateObject'), options);
     bindOperation(
       tracingChannel,
       CHANNELS.VERCEL_AI_EMBED,
@@ -609,7 +610,7 @@ function patchToolExecute(
   };
 }
 
-function buildTextMessage(type: 'generateText' | 'streamText'): MessageBuilder {
+function buildTextMessage(type: 'generateText' | 'streamText' | 'generateObject'): MessageBuilder {
   return (options, telemetry) => ({
     type,
     event: {

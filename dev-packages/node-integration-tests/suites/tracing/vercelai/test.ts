@@ -715,4 +715,51 @@ describe('Vercel AI integration (v4)', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-generate-object.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('captures generateObject spans with schema attributes', async () => {
+      await createRunner()
+        .expect({ transaction: { transaction: 'main' } })
+        .expect({
+          span: container => {
+            expect(container.items).toHaveLength(2);
+
+            // generateObject (invoke_agent)
+            const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent');
+            expect(invokeAgentSpan).toBeDefined();
+            expect(invokeAgentSpan!.status).toBe('ok');
+            expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(invokeAgentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateObject');
+            expect(invokeAgentSpan!.attributes['sentry.origin'].value).toBe(expectedOrigin);
+            expect(invokeAgentSpan!.attributes['gen_ai.operation.name'].value).toBe('invoke_agent');
+            expect(invokeAgentSpan!.attributes['gen_ai.response.model'].value).toBe('mock-model-id');
+            expect(invokeAgentSpan!.attributes['gen_ai.usage.input_tokens'].value).toBe(15);
+            expect(invokeAgentSpan!.attributes['gen_ai.usage.output_tokens'].value).toBe(25);
+            expect(invokeAgentSpan!.attributes['gen_ai.usage.total_tokens'].value).toBe(40);
+            // The JSON schema attribute is derived from the SDK's Zod schema by the OTel span processor;
+            // the channel subscriber does not reconstruct it, so assert it only in OTel mode.
+            if (!orchestrion) {
+              expect(invokeAgentSpan!.attributes['gen_ai.request.schema']).toBeDefined();
+            }
+
+            // generateObject.doGenerate (generate_content)
+            const generateContentSpan = container.items.find(span => span.name === 'generate_content mock-model-id');
+            expect(generateContentSpan).toBeDefined();
+            expect(generateContentSpan!.status).toBe('ok');
+            expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(generateContentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateObject.doGenerate');
+            expect(generateContentSpan!.attributes['sentry.origin'].value).toBe(expectedOrigin);
+            expect(generateContentSpan!.attributes['gen_ai.operation.name'].value).toBe('generate_content');
+            expect(generateContentSpan!.attributes['gen_ai.system'].value).toBe('mock-provider');
+            expect(generateContentSpan!.attributes['gen_ai.request.model'].value).toBe('mock-model-id');
+            expect(generateContentSpan!.attributes['gen_ai.response.model'].value).toBe('mock-model-id');
+            expect(generateContentSpan!.attributes['gen_ai.usage.input_tokens'].value).toBe(15);
+            expect(generateContentSpan!.attributes['gen_ai.usage.output_tokens'].value).toBe(25);
+            expect(generateContentSpan!.attributes['gen_ai.usage.total_tokens'].value).toBe(40);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

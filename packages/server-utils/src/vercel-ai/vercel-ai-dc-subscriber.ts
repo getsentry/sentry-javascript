@@ -102,7 +102,14 @@ const invokeAgentSpanByCallId = new Map<string, Span>();
 
 // Only top-level operations own the `callId` → operationId mapping; `step`/`languageModelCall`/
 // `executeTool` share the parent's `callId`, so they must not clear it.
-const ROOT_OPERATION_TYPES = new Set<ChannelEventType>(['generateText', 'streamText', 'embed', 'embedMany', 'rerank']);
+const ROOT_OPERATION_TYPES = new Set<ChannelEventType>([
+  'generateText',
+  'streamText',
+  'generateObject',
+  'embed',
+  'embedMany',
+  'rerank',
+]);
 
 /** Drop the per-operation `callId` maps once the owning top-level operation settles (success or error). */
 export function clearOperationId(data: VercelAiChannelMessage): void {
@@ -171,6 +178,7 @@ function resolveToolDescription(callId: string | undefined, toolName: string, to
 export type ChannelEventType =
   | 'generateText'
   | 'streamText'
+  | 'generateObject'
   | 'step'
   | 'languageModelCall'
   | 'executeTool'
@@ -388,6 +396,10 @@ export function createSpanFromMessage(
   switch (type) {
     case 'generateText':
     case 'streamText':
+    case 'generateObject':
+      // `generateObject` builds the same `invoke_agent` span as `generateText` (non-streaming); its
+      // distinct `ai.generateObject` operationId rides on `event.operationId`. The JSON-schema attribute
+      // the OTel path derives from the SDK's Zod schema is not reconstructed on the channel path.
       return buildInvokeAgentSpan(event, baseAttributes, recordInputs, enableTruncation, callId, type === 'streamText');
     case 'languageModelCall':
       return buildModelCallSpan(event, baseAttributes, recordInputs, enableTruncation, callId, modelId);
