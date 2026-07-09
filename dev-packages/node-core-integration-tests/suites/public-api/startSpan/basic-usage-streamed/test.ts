@@ -13,6 +13,7 @@ import {
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
@@ -65,6 +66,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
             [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
+            [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
             [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
             [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { type: 'string', value: 'custom' },
