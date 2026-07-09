@@ -201,9 +201,7 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
     await forwardNavPromise;
 
     const backNavPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return (
-        transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'navigation'
-      );
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'navigation';
     });
 
     await page.getByRole('button', { name: 'History Back Navigate' }).click();
