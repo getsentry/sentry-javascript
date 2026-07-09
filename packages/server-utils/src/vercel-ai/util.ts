@@ -49,6 +49,8 @@ export function safeStringify(value: unknown): string {
 interface StreamChunk {
   type?: unknown;
   delta?: unknown;
+  // v4 text-delta chunks carry the text on `textDelta`; v5+ uses `delta`.
+  textDelta?: unknown;
   id?: unknown;
   modelId?: unknown;
   toolCallId?: unknown;
@@ -154,12 +156,26 @@ function accumulateChunk(state: StreamedModelCallResult, chunk: unknown): string
   if (!isObjectLike(chunk)) {
     return undefined;
   }
-  const { type, delta, id, modelId, toolCallId, toolName, input, args, finishReason, usage, providerMetadata } =
-    chunk as StreamChunk;
+  const {
+    type,
+    delta,
+    textDelta,
+    id,
+    modelId,
+    toolCallId,
+    toolName,
+    input,
+    args,
+    finishReason,
+    usage,
+    providerMetadata,
+  } = chunk as StreamChunk;
 
   switch (type) {
-    case 'text-delta':
-      return typeof delta === 'string' ? delta : undefined;
+    case 'text-delta': {
+      const textChunk = delta ?? textDelta;
+      return typeof textChunk === 'string' ? textChunk : undefined;
+    }
     case 'tool-call':
       state.toolCalls.push({ toolCallId, toolName, input: input ?? args });
 

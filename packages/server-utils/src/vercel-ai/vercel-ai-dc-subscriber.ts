@@ -323,8 +323,8 @@ function enrichInvokeAgentFromStream(
 
   const usage = isObjectLike(final.usage) ? final.usage : undefined;
   if (usage) {
-    const input = tokenCount(usage.inputTokens) ?? tokenCount(usage.tokens);
-    const output = tokenCount(usage.outputTokens);
+    const input = tokenCount(usage.inputTokens) ?? tokenCount(usage.promptTokens) ?? tokenCount(usage.tokens);
+    const output = tokenCount(usage.outputTokens) ?? tokenCount(usage.completionTokens);
     addTokensToSpan(span, GEN_AI_USAGE_INPUT_TOKENS, input);
     addTokensToSpan(span, GEN_AI_USAGE_OUTPUT_TOKENS, output);
     addTokensToSpan(span, GEN_AI_USAGE_TOTAL_TOKENS, tokenCount(usage.totalTokens) ?? sum(input, output));
@@ -521,11 +521,12 @@ export function enrichSpanOnEnd(
   }
 
   // `languageModelCall` results report usage as `{ total }` objects; top-level/step results report
-  // flat numbers. `tokenCount` handles both.
+  // flat numbers. `tokenCount` handles both. v4 names tokens `promptTokens`/`completionTokens`
+  // (v5+ uses `inputTokens`/`outputTokens`); the fallbacks are `undefined`-inert on v5+.
   const usage = isObjectLike(result.usage) ? result.usage : undefined;
   if (usage) {
-    const inputTokens = tokenCount(usage.inputTokens) ?? tokenCount(usage.tokens);
-    const outputTokens = tokenCount(usage.outputTokens);
+    const inputTokens = tokenCount(usage.inputTokens) ?? tokenCount(usage.promptTokens) ?? tokenCount(usage.tokens);
+    const outputTokens = tokenCount(usage.outputTokens) ?? tokenCount(usage.completionTokens);
     const totalTokens = tokenCount(usage.totalTokens) ?? sum(inputTokens, outputTokens);
     if (inputTokens !== undefined) {
       span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, inputTokens);
