@@ -1,5 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { SpanAttributeValue } from '../../types/span';
+import { stringify } from '../../utils/string';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
@@ -27,7 +28,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { isContentMedia, stripInlineMediaFromSingleMessage } from '../ai/mediaStripping';
-import { extractSystemInstructions, getJsonString, getTruncatedJsonString } from '../ai/utils';
+import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -51,19 +52,6 @@ const setNumberIfDefined = (target: Record<string, SpanAttributeValue>, key: str
 };
 
 /**
- * Converts a value to a string. Avoids double-quoted JSON strings where a plain
- * string is desired, but still handles objects/arrays safely.
- */
-function asString(v: unknown): string {
-  if (typeof v === 'string') return v;
-  try {
-    return JSON.stringify(v);
-  } catch {
-    return String(v);
-  }
-}
-
-/**
  * Converts message content to a string, stripping inline media (base64 images, audio, etc.)
  * from multimodal content before stringification so downstream media stripping can't miss it.
  *
@@ -78,7 +66,7 @@ function asString(v: unknown): string {
  * ])
  * // => '[{"type":"text","text":"What color?"},{"type":"image_url","image_url":{"url":"[Blob substitute]"}}]'
  *
- * // Without this, asString() would JSON.stringify the raw array and the base64 blob
+ * // Without this, stringification would JSON.stringify the raw array and the base64 blob
  * // would end up in span attributes, since downstream stripping only works on objects.
  */
 function normalizeContent(v: unknown): string {
@@ -92,7 +80,7 @@ function normalizeContent(v: unknown): string {
       return String(v);
     }
   }
-  return asString(v);
+  return stringify(v, String);
 }
 
 /**
@@ -264,9 +252,9 @@ function baseRequestAttributes(
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue> {
   return {
-    [GEN_AI_SYSTEM_ATTRIBUTE]: asString(system ?? 'langchain'),
+    [GEN_AI_SYSTEM_ATTRIBUTE]: stringify(system ?? 'langchain', String),
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: asString(modelName),
+    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: stringify(modelName, String),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     ...extractCommonRequestAttributes(serialized, invocationParams, langSmithMetadata),
   };
@@ -299,7 +287,7 @@ export function extractLLMRequestAttributes(
     setIfDefined(
       attrs,
       GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-      enableTruncation ? getTruncatedJsonString(messages) : getJsonString(messages),
+      enableTruncation ? getTruncatedJsonString(messages) : stringify(messages),
     );
   }
 
@@ -343,7 +331,7 @@ export function extractChatModelRequestAttributes(
     setIfDefined(
       attrs,
       GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-      enableTruncation ? getTruncatedJsonString(filteredMessages) : getJsonString(filteredMessages),
+      enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
     );
   }
 
@@ -378,7 +366,7 @@ function addToolCallsAttributes(generations: LangChainMessage[][], attrs: Record
   }
 
   if (toolCalls.length > 0) {
-    setIfDefined(attrs, GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, asString(toolCalls));
+    setIfDefined(attrs, GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, stringify(toolCalls, String));
   }
 }
 
@@ -466,7 +454,7 @@ export function extractLlmResponseAttributes(
       .filter((r): r is string => typeof r === 'string');
 
     if (finishReasons.length > 0) {
-      setIfDefined(attrs, GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE, asString(finishReasons));
+      setIfDefined(attrs, GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE, stringify(finishReasons, String));
     }
 
     // Tool calls metadata (names, IDs) are not PII, so capture them regardless of recordOutputs
@@ -479,7 +467,7 @@ export function extractLlmResponseAttributes(
         .filter(t => typeof t === 'string');
 
       if (texts.length > 0) {
-        setIfDefined(attrs, GEN_AI_RESPONSE_TEXT_ATTRIBUTE, asString(texts));
+        setIfDefined(attrs, GEN_AI_RESPONSE_TEXT_ATTRIBUTE, stringify(texts, String));
       }
     }
   }
@@ -506,7 +494,7 @@ export function extractLlmResponseAttributes(
   // Stop reason: v1 stores this in message.response_metadata.finish_reason
   const stopReason = llmOutput?.stop_reason ?? v1Message?.response_metadata?.finish_reason;
   if (stopReason) {
-    setIfDefined(attrs, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE, asString(stopReason));
+    setIfDefined(attrs, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE, stringify(stopReason, String));
   }
 
   return attrs;
