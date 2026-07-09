@@ -156,14 +156,21 @@ interface AmqpConnectContext {
 
 const NOOP = (): void => {};
 
+// Guards against subscribing to the amqplib channels more than once in a process. Core dedupes
+// `setupOnce` by integration *name*, which is not enough here: the Deno SDK wraps this integration
+// under a different name (`DenoAmqplib`) via `extendIntegration`, so adding both would otherwise run
+// the subscribe logic twice and emit duplicate spans for every operation.
+let subscribed = false;
+
 const _amqplibChannelIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
+      if (!diagnosticsChannel.tracingChannel || subscribed) {
         return;
       }
+      subscribed = true;
 
       DEBUG_BUILD && debug.log('[orchestrion:amqplib] subscribing to amqplib tracing channels');
 
