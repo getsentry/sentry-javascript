@@ -8,9 +8,13 @@ import {
 } from '../server/instrumentServer';
 
 export * from '@sentry/react';
-// Optional browser features are no longer star-exported through `@sentry/react`.
-// Re-export them so the cloudflare entry keeps the historical surface.
+// Optional browser features and Redux are no longer star-exported through
+// `@sentry/react`. Re-export them so the cloudflare entry keeps the historical surface.
 export * from '@sentry/react/optional-browser-api';
+// `uiProfiler` is on both `@sentry/react` and `optional-browser-api`; dual
+// `export *` would omit the name under ESM rules, so re-export it explicitly.
+export { uiProfiler } from '@sentry/react';
+export { createReduxEnhancer } from '@sentry/react/redux';
 
 export { captureRemixErrorBoundaryError } from '../client/errors';
 export { withSentry } from '../client/performance';

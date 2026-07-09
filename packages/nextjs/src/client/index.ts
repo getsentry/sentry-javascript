@@ -22,6 +22,9 @@ export * from '@sentry/react';
 // historical surface (including `createReduxEnhancer`, which is dual-declared
 // against the client SDK in `index.types.ts`).
 export * from '@sentry/react/optional-browser-api';
+// `uiProfiler` is on both `@sentry/react` and `optional-browser-api`; dual
+// `export *` would omit the name under ESM rules, so re-export it explicitly.
+export { uiProfiler } from '@sentry/react';
 export { createReduxEnhancer } from '@sentry/react/redux';
 export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';

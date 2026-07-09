@@ -6,6 +6,9 @@ export * from '@sentry/react';
 // `@sentry/react`. Re-export them so `import * as Sentry from '@sentry/gatsby'`
 // keeps the historical surface (including `createReduxEnhancer`).
 export * from '@sentry/react/optional-browser-api';
+// `uiProfiler` is on both `@sentry/react` and `optional-browser-api`; dual
+// `export *` would omit the name under ESM rules, so re-export it explicitly.
+export { uiProfiler } from '@sentry/react';
 export { createReduxEnhancer } from '@sentry/react/redux';
 
 export { init } from './sdk';

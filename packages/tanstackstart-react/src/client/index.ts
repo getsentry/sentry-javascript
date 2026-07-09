@@ -14,6 +14,9 @@ export * from '@sentry/react';
 // keeps the historical surface (including `tanstackRouterBrowserTracingIntegration`,
 // which is dual-declared against the client SDK in `index.types.ts`).
 export * from '@sentry/react/optional-browser-api';
+// `uiProfiler` is on both `@sentry/react` and `optional-browser-api`; dual
+// `export *` would omit the name under ESM rules, so re-export it explicitly.
+export { uiProfiler } from '@sentry/react';
 export { tanstackRouterBrowserTracingIntegration } from '@sentry/react/tanstackrouter';
 
 export { init } from './sdk';

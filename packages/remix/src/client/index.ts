@@ -5,9 +5,14 @@ import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
 
 export * from '@sentry/react';
-// Optional browser features are no longer star-exported through `@sentry/react`.
-// Re-export them so `import * as Sentry from '@sentry/remix'` keeps the historical surface.
+// Optional browser features and Redux are no longer star-exported through
+// `@sentry/react`. Re-export them so `import * as Sentry from '@sentry/remix'`
+// keeps the historical surface.
 export * from '@sentry/react/optional-browser-api';
+// `uiProfiler` is on both `@sentry/react` and `optional-browser-api`; dual
+// `export *` would omit the name under ESM rules, so re-export it explicitly.
+export { uiProfiler } from '@sentry/react';
+export { createReduxEnhancer } from '@sentry/react/redux';
 
 export { init } from './sdk';
 export { captureRemixErrorBoundaryError } from './errors';

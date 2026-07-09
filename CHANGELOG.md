@@ -24,8 +24,9 @@
   import { createReduxEnhancer } from '@sentry/react/redux';
   ```
 
-  `@sentry/nextjs` and `@sentry/gatsby` re-export `optional-browser-api` and `createReduxEnhancer` so
-  `import * as Sentry from '@sentry/nextjs'` (and Gatsby) keeps the previous surface for those symbols.
+  Framework SDKs (`@sentry/nextjs`, `@sentry/gatsby`, `@sentry/remix`, `@sentry/tanstackstart-react`)
+  re-export `optional-browser-api` (and `createReduxEnhancer` on nextjs/gatsby/remix) so
+  `import * as Sentry from '@sentry/…'` keeps the previous surface for those symbols.
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
