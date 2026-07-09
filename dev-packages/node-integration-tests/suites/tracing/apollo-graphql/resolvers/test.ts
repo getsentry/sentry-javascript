@@ -49,4 +49,43 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
         .completed();
     });
   });
+
+  // Same behavior on the diagnostics-channel path: passing the channel integration explicitly (see
+  // instrument-dc.mjs) must carry `ignoreResolveSpans: false` through — the explicit instance wins over
+  // the swapped-in default — and emit resolve spans with the orchestrion origin.
+  const EXPECTED_ORCHESTRION_TRANSACTION = {
+    transaction: 'Test Transaction (query)',
+    spans: expect.arrayContaining([
+      expect.objectContaining({
+        description: 'query',
+        origin: 'auto.graphql.diagnostic_channel',
+        data: expect.objectContaining({
+          'graphql.operation.type': 'query',
+          'graphql.document': '{hello}',
+          'sentry.origin': 'auto.graphql.diagnostic_channel',
+        }),
+      }),
+      expect.objectContaining({ description: 'graphql.parse' }),
+      expect.objectContaining({ description: 'graphql.validate' }),
+      expect.objectContaining({
+        description: 'graphql.resolve hello',
+        data: expect.objectContaining({
+          'graphql.field.name': 'hello',
+          'graphql.field.path': 'hello',
+          'graphql.field.type': 'String',
+          'graphql.parent.name': 'Query',
+        }),
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-query.mjs', 'instrument-dc.mjs', (createTestRunner, test) => {
+    test('emits resolve spans via diagnostics-channel injection when configured explicitly', async () => {
+      await createTestRunner()
+        .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
+        .expect({ transaction: EXPECTED_ORCHESTRION_TRANSACTION })
+        .start()
+        .completed();
+    });
+  });
 });

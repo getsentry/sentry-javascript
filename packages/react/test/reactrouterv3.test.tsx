@@ -10,6 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '@sentry/core';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { render } from '@testing-library/react';
 import * as React from 'react';
 import { act } from 'react';
@@ -104,6 +105,7 @@ describe('browserTracingReactRouterV3', () => {
       name: '/',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [URL_TEMPLATE]: '/',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
       },
@@ -140,6 +142,7 @@ describe('browserTracingReactRouterV3', () => {
       name: '/about',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [URL_TEMPLATE]: '/about',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
       },
@@ -153,6 +156,7 @@ describe('browserTracingReactRouterV3', () => {
       name: '/features',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [URL_TEMPLATE]: '/features',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
       },
@@ -194,6 +198,7 @@ describe('browserTracingReactRouterV3', () => {
       name: '/users/:userid',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [URL_TEMPLATE]: '/users/:userid',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
       },
@@ -209,6 +214,7 @@ describe('browserTracingReactRouterV3', () => {
       name: '/teams/:teamId/details',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [URL_TEMPLATE]: '/teams/:teamId/details',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
       },

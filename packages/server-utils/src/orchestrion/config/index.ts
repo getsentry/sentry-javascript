@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import { uniq } from '@sentry/core';
 import { mysqlConfig } from './mysql';
 import { lruMemoizerConfig } from './lru-memoizer';
 import { ioredisConfig } from './ioredis';
@@ -8,9 +9,11 @@ import { postgresJsConfig } from './postgres';
 import { anthropicAiConfig } from './anthropic-ai';
 import { googleGenAiConfig } from './google-genai';
 import { vercelAiConfig } from './vercel-ai';
+import { amqplibConfig } from './amqplib';
 import { hapiConfig } from './hapi';
 import { redisConfig } from './redis';
 import { expressConfig } from './express';
+import { graphqlConfig } from './graphql';
 
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...mysqlConfig,
@@ -23,8 +26,10 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...googleGenAiConfig,
   ...vercelAiConfig,
   ...hapiConfig,
+  ...amqplibConfig,
   ...redisConfig,
   ...expressConfig,
+  ...graphqlConfig,
 ];
 
 /**
@@ -36,7 +41,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
  * runtime and never passes through the code transform's `onLoad`, so its
  * diagnostics_channel calls are silently never injected.
  */
-export const INSTRUMENTED_MODULE_NAMES: string[] = Array.from(new Set(SENTRY_INSTRUMENTATIONS.map(i => i.module.name)));
+export const INSTRUMENTED_MODULE_NAMES: string[] = uniq(SENTRY_INSTRUMENTATIONS.map(i => i.module.name));
 
 /**
  * Returns `external` with any instrumented packages removed, so a bundler that

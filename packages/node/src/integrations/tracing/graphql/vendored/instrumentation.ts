@@ -367,7 +367,7 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     });
   }
 
-  private _createExecuteSpan(operation: DefinitionNode | undefined, processedArgs: ExecutionArgs): Span {
+  private _createExecuteSpan(operation: DefinitionNode | undefined, processedArgs: OtelExecutionArgs): Span {
     const span = startInactiveSpan({
       name: SpanNames.EXECUTE,
       attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN },

@@ -13,6 +13,7 @@ import { getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLo
 import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { hasManifest, maybeParameterizeRemixRoute } from './remixRouteParameterization';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
@@ -103,6 +104,7 @@ export function startPageloadSpan(client: Client): void {
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+      ...(source === 'route' && { [URL_TEMPLATE]: spanName }),
     },
   };
 
@@ -126,6 +128,7 @@ function startNavigationSpan(matches: RouteMatch<string>[], location: ReturnType
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+      ...(source === 'route' && { [URL_TEMPLATE]: name }),
     },
   };
 
@@ -182,6 +185,9 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
           if (transaction) {
             transaction.updateName(name);
             transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+            if (source === 'route') {
+              transaction.setAttribute(URL_TEMPLATE, name);
+            }
           }
         }
       }

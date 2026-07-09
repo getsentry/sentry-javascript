@@ -15,6 +15,12 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/',
+          'url.path': '/',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
+        },
       },
     },
     transaction: '/',
@@ -46,6 +52,12 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
       trace: {
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/user/:id',
+          'url.path': '/user/5',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/),
+        },
       },
     },
     transaction: '/user/:id',

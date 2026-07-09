@@ -26,6 +26,11 @@ test('capture a distributed pageload trace', async ({ page }) => {
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.sveltekit',
+        data: {
+          'url.path': '/users/123xyz',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/123xyz$/),
+          'url.template': '/users/[id]',
+        },
       },
     },
   });
@@ -88,6 +93,11 @@ test('capture a distributed navigation trace', async ({ page }) => {
       trace: {
         op: 'navigation',
         origin: 'auto.navigation.sveltekit',
+        data: {
+          'url.path': '/users',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users$/),
+          'url.template': '/users',
+        },
       },
     },
   });
@@ -139,6 +149,11 @@ test('record client-side universal load fetch span and trace', async ({ page }) 
       trace: {
         op: 'navigation',
         origin: 'auto.navigation.sveltekit',
+        data: {
+          'url.path': '/universal-load-fetch',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/universal-load-fetch$/),
+          'url.template': '/universal-load-fetch',
+        },
       },
     },
   });
@@ -212,6 +227,11 @@ test('captures a navigation transaction directly after pageload', async ({ page 
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.sveltekit',
+        data: {
+          'url.path': '/',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
+          'url.template': '/',
+        },
       },
     },
   });
@@ -228,6 +248,9 @@ test('captures a navigation transaction directly after pageload', async ({ page 
           'sentry.sveltekit.navigation.from': '/',
           'sentry.sveltekit.navigation.to': '/users/[id]',
           'sentry.sveltekit.navigation.type': 'link',
+          'url.path': '/users/123abc',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/123abc$/),
+          'url.template': '/users/[id]',
         },
       },
     },
@@ -290,6 +313,9 @@ test('captures one navigation transaction per redirect', async ({ page }) => {
           'sentry.sveltekit.navigation.from': '/',
           'sentry.sveltekit.navigation.to': '/redirect1',
           'sentry.sample_rate': 1,
+          'url.path': '/redirect1',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/redirect1$/),
+          'url.template': '/redirect1',
         },
       },
     },
@@ -327,6 +353,9 @@ test('captures one navigation transaction per redirect', async ({ page }) => {
           'sentry.sveltekit.navigation.from': '/',
           'sentry.sveltekit.navigation.to': '/redirect2',
           'sentry.sample_rate': 1,
+          'url.path': '/redirect2',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/redirect2$/),
+          'url.template': '/redirect2',
         },
       },
     },
@@ -364,6 +393,9 @@ test('captures one navigation transaction per redirect', async ({ page }) => {
           'sentry.sveltekit.navigation.from': '/',
           'sentry.sveltekit.navigation.to': '/users/[id]',
           'sentry.sample_rate': 1,
+          'url.path': '/users/789',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/789$/),
+          'url.template': '/users/[id]',
         },
       },
     },

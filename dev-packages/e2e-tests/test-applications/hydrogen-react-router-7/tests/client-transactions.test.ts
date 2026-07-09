@@ -14,11 +14,21 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
 });
 
 test('Sends a navigation transaction to Sentry', async ({ page }) => {
+  // Wait for the initial pageload transaction first. This ensures the client SDK and router are fully
+  // hydrated before we click the link. Clicking before hydration completes makes the `<Link>` behave
+  // like a plain anchor, triggering a full page navigation (a `pageload` transaction) instead of a
+  // client-side `navigation` one, which makes this test flaky.
+  const pageloadTransactionPromise = waitForTransaction('hydrogen-react-router-7', transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/';
+  });
+
   const transactionPromise = waitForTransaction('hydrogen-react-router-7', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === '/user/:id';
   });
 
   await page.goto('/');
+
+  await pageloadTransactionPromise;
 
   const linkElement = page.locator('id=navigation');
   await linkElement.click();
