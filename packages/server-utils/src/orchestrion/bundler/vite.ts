@@ -1,5 +1,6 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
 import { INSTRUMENTED_MODULE_NAMES } from '../config';
+import type { PluginOptions } from './options';
 import { orchestrionTransformOptions } from './options';
 
 /**
@@ -16,9 +17,9 @@ import { orchestrionTransformOptions } from './options';
  * export default { plugins: [sentryOrchestrionPlugin()] };
  * ```
  */
-export function sentryOrchestrionPlugin(): ReturnType<typeof codeTransformer> {
+export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
   return {
-    ...codeTransformer(orchestrionTransformOptions()),
+    ...codeTransformer(orchestrionTransformOptions(options)),
     config(): { ssr: { noExternal: string[] } } {
       // Force-bundle every instrumented package so the code transform actually
       // sees its source. Vite externalizes dependencies in SSR builds by

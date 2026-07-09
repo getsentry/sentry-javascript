@@ -1,4 +1,5 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/webpack';
+import type { PluginOptions } from './options';
 import { orchestrionTransformOptions } from './options';
 
 /**
@@ -14,6 +15,6 @@ import { orchestrionTransformOptions } from './options';
  * export default { plugins: [sentryOrchestrionPlugin()] };
  * ```
  */
-export function sentryOrchestrionPlugin(): ReturnType<typeof codeTransformer> {
-  return codeTransformer(orchestrionTransformOptions());
+export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
+  return codeTransformer(orchestrionTransformOptions(options));
 }

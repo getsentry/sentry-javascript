@@ -1,5 +1,6 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/rollup';
 import { withoutInstrumentedExternals } from '../config';
+import type { PluginOptions } from './options';
 import { orchestrionTransformOptions } from './options';
 
 /**
@@ -15,9 +16,9 @@ import { orchestrionTransformOptions } from './options';
  * export default { plugins: [sentryOrchestrionPlugin()] };
  * ```
  */
-export function sentryOrchestrionPlugin(): ReturnType<typeof codeTransformer> {
+export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
   return {
-    ...codeTransformer(orchestrionTransformOptions()),
+    ...codeTransformer(orchestrionTransformOptions(options)),
     // The `options` hook runs before the build starts and can rewrite the
     // resolved input options. Rollup's `external` may be a string, RegExp,
     // function, or array of `string | RegExp`; `withoutInstrumentedExternals`

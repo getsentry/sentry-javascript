@@ -1,5 +1,6 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/esbuild';
 import { withoutInstrumentedExternals } from '../config';
+import type { PluginOptions } from './options';
 import { orchestrionTransformOptions } from './options';
 
 // Minimal shape of esbuild's `PluginBuild` that we touch, so we don't depend on
@@ -27,8 +28,8 @@ interface EsbuildPluginBuild {
  * await esbuild.build({ plugins: [sentryOrchestrionPlugin()] });
  * ```
  */
-export function sentryOrchestrionPlugin(): ReturnType<typeof codeTransformer> {
-  const transformer = codeTransformer(orchestrionTransformOptions()) as unknown as {
+export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
+  const transformer = codeTransformer(orchestrionTransformOptions(options)) as unknown as {
     setup: (build: EsbuildPluginBuild) => void;
   };
 
