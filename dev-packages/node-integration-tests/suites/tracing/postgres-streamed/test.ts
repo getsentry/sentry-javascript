@@ -242,7 +242,7 @@ describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingD
                   expect(segmentSpan?.name).toBe('Test Span');
 
                   const dbSpans = getDbSpans(container);
-                  expect(dbSpans.length).toBe(4);
+                  expect(dbSpans.length).toBe(5);
 
                   expect(dbSpans).toEqual([
                     expectedDbSpan({ name: 'pg.connect', host: '127.0.0.1' }),
@@ -259,6 +259,11 @@ describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingD
                     expectedDbSpan({
                       name: 'SELECT * FROM "NativeUser"',
                       statement: 'SELECT * FROM "NativeUser"',
+                      host: '127.0.0.1',
+                    }),
+                    expectedDbSpan({
+                      name: 'DROP TABLE "NativeUser"',
+                      statement: 'DROP TABLE "NativeUser"',
                       host: '127.0.0.1',
                     }),
                   ]);
