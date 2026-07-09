@@ -810,6 +810,16 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Free up disk space
+        # The full suite pulls several DB docker images (mssql alone is ~1.5GB) and installs
+        # per-suite node_modules concurrently, which can exhaust the ~14GB free on the default
+        # runner and fail unrelated suites with ENOSPC. Reclaim the large preinstalled toolchains
+        # this job never uses to give the run headroom. `df` brackets it so a future squeeze is
+        # visible in the logs.
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
