@@ -35,6 +35,7 @@ import {
   getClient,
   getProviderMetadataAttributes,
   getTruncatedJsonString,
+  isObject,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   shouldEnableTruncation,
   SPAN_STATUS_ERROR,
@@ -49,7 +50,6 @@ import {
   asNumber,
   asString,
   isReadableStream,
-  isRecord,
   safeStringify,
   type StreamedModelCallResult,
   sum,
@@ -134,7 +134,7 @@ function recordToolDescriptions(callId: string | undefined, tools: unknown): voi
   }
   let descriptions = toolDescriptionsByCallId.get(callId);
   for (const tool of tools) {
-    if (isRecord(tool) && typeof tool.name === 'string' && typeof tool.description === 'string') {
+    if (isObject(tool) && typeof tool.name === 'string' && typeof tool.description === 'string') {
       descriptions = descriptions ?? new Map();
       if (!descriptions.has(tool.name)) {
         descriptions.set(tool.name, tool.description);
@@ -157,12 +157,12 @@ function resolveToolDescription(callId: string | undefined, toolName: string, to
     return fromMap;
   }
   if (Array.isArray(tools)) {
-    const match = tools.find(tool => isRecord(tool) && tool.name === toolName);
-    return isRecord(match) ? asString(match.description) : undefined;
+    const match = tools.find(tool => isObject(tool) && tool.name === toolName);
+    return isObject(match) ? asString(match.description) : undefined;
   }
-  if (isRecord(tools)) {
+  if (isObject(tools)) {
     const tool = tools[toolName];
-    return isRecord(tool) ? asString(tool.description) : undefined;
+    return isObject(tool) ? asString(tool.description) : undefined;
   }
   return undefined;
 }
@@ -253,7 +253,7 @@ function deferStreamedModelCallEnd(
   options: VercelAiChannelOptions,
   end: (error?: unknown) => void,
 ): boolean {
-  if (data.type !== 'languageModelCall' || !isRecord(data.result)) {
+  if (data.type !== 'languageModelCall' || !isObject(data.result)) {
     return false;
   }
   const result = data.result;
@@ -321,7 +321,7 @@ function enrichInvokeAgentFromStream(
     return;
   }
 
-  const usage = isRecord(final.usage) ? final.usage : undefined;
+  const usage = isObject(final.usage) ? final.usage : undefined;
   if (usage) {
     const input = tokenCount(usage.inputTokens) ?? tokenCount(usage.tokens);
     const output = tokenCount(usage.outputTokens);
@@ -471,7 +471,7 @@ function buildModelCallSpan(
 }
 
 function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): Span {
-  const toolCall = isRecord(event.toolCall) ? event.toolCall : {};
+  const toolCall = isObject(event.toolCall) ? event.toolCall : {};
   const toolName = asString(toolCall.toolName);
   const toolCallId = asString(event.toolCallId) ?? asString(toolCall.toolCallId);
   const toolInput = toolCall.input ?? toolCall.args;
@@ -500,7 +500,7 @@ export function enrichSpanOnEnd(
   channelOptions: VercelAiChannelOptions,
 ): void {
   const { type, result } = data;
-  if (!isRecord(result)) {
+  if (!isObject(result)) {
     return;
   }
 
@@ -513,7 +513,7 @@ export function enrichSpanOnEnd(
     // From V5 on, tool errors are not rejected (so the `error` channel verb never fires) — they
     // surface as `tool-error` content on the resolved result. Mirror the OTel path by marking the
     // span and capturing the error.
-    const output = isRecord(result.output) ? result.output : undefined;
+    const output = isObject(result.output) ? result.output : undefined;
     if (output?.type === 'tool-error') {
       captureToolError(span, data, output.error);
     }
@@ -522,7 +522,7 @@ export function enrichSpanOnEnd(
 
   // `languageModelCall` results report usage as `{ total }` objects; top-level/step results report
   // flat numbers. `tokenCount` handles both.
-  const usage = isRecord(result.usage) ? result.usage : undefined;
+  const usage = isObject(result.usage) ? result.usage : undefined;
   if (usage) {
     const inputTokens = tokenCount(usage.inputTokens) ?? tokenCount(usage.tokens);
     const outputTokens = tokenCount(usage.outputTokens);
@@ -545,7 +545,7 @@ export function enrichSpanOnEnd(
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, safeStringify([finishReason]));
   }
 
-  const response = isRecord(result.response) ? result.response : undefined;
+  const response = isObject(result.response) ? result.response : undefined;
   const responseId = asString(response?.id) ?? asString(result.responseId);
   if (responseId) {
     span.setAttribute(GEN_AI_RESPONSE_ID, responseId);
@@ -596,12 +596,12 @@ function getFinishReason(result: Record<string, unknown>): string | undefined {
   if (typeof finishReason === 'string') {
     return finishReason;
   }
-  return isRecord(finishReason) ? asString(finishReason.unified) : undefined;
+  return isObject(finishReason) ? asString(finishReason.unified) : undefined;
 }
 
 /** Reads a token count that may be a plain number or a `{ total }` object (model-call usage). */
 function tokenCount(value: unknown): number | undefined {
-  return asNumber(value) ?? (isRecord(value) ? asNumber(value.total) : undefined);
+  return asNumber(value) ?? (isObject(value) ? asNumber(value.total) : undefined);
 }
 
 function buildOutputMessages(
@@ -627,7 +627,7 @@ function toolCallPart(toolCall: Record<string, unknown>): Record<string, unknown
 function partsFromContent(content: unknown[]): Array<Record<string, unknown>> {
   const parts: Array<Record<string, unknown>> = [];
   for (const item of content) {
-    if (!isRecord(item)) {
+    if (!isObject(item)) {
       continue;
     }
     if (item.type === 'text' && typeof item.text === 'string') {
@@ -646,7 +646,7 @@ function partsFromTextAndToolCalls(text: unknown, toolCalls: unknown): Array<Rec
   }
   if (Array.isArray(toolCalls)) {
     for (const toolCall of toolCalls) {
-      if (isRecord(toolCall)) {
+      if (isObject(toolCall)) {
         parts.push(toolCallPart(toolCall));
       }
     }
@@ -660,7 +660,7 @@ export function captureToolError(span: Span, data: VercelAiChannelMessage, error
     message: error instanceof Error ? error.message : 'tool_error',
   });
 
-  const toolCall = isRecord(data.event.toolCall) ? data.event.toolCall : {};
+  const toolCall = isObject(data.event.toolCall) ? data.event.toolCall : {};
   const toolName = asString(toolCall.toolName);
   const toolCallId = asString(data.event.toolCallId) ?? asString(toolCall.toolCallId);
 

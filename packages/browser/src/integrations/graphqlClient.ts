@@ -1,6 +1,7 @@
 import type { Client, IntegrationFn } from '@sentry/core/browser';
 import {
   defineIntegration,
+  isObject,
   isString,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -215,9 +216,6 @@ export function parseGraphQLQuery(query: string): GraphQLOperation {
 /**
  * Helper to safely check if a value is a non-null object
  */
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 /**
  * Type guard to check if a request is a standard GraphQL request

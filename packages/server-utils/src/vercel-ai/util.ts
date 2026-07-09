@@ -1,5 +1,7 @@
 /** Shared, state-free helpers for the Vercel AI (`ai`) channel subscribers, plus the streamed model-call tap. */
 
+import { isObject } from '@sentry/core';
+
 /** Narrow to a string, or `undefined` for anything else. */
 export function asString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
@@ -13,11 +15,6 @@ export function asNumber(value: unknown): number | undefined {
 /** Add two optional numbers, treating a missing operand as `0` but returning `undefined` when both are absent. */
 export function sum(a: number | undefined, b: number | undefined): number | undefined {
   return a === undefined && b === undefined ? undefined : (a ?? 0) + (b ?? 0);
-}
-
-/** Narrow to a non-null object (records and arrays alike). */
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 /** Stringify a value, passing strings through and falling back to a placeholder on circular/unserializable input. */
@@ -78,7 +75,7 @@ export interface StreamedModelCallResult {
 /** A minimal structural check — the streamed model call exposes a web `ReadableStream` on `result.stream`. */
 export function isReadableStream(value: unknown): value is ReadableStream<unknown> {
   return (
-    isRecord(value) &&
+    isObject(value) &&
     typeof (value as { pipeThrough?: unknown }).pipeThrough === 'function' &&
     typeof (value as { getReader?: unknown }).getReader === 'function'
   );
@@ -154,7 +151,7 @@ export function tapModelCallStream(
  * accumulate it (kept out of `state` until the end to avoid re-joining on every chunk).
  */
 function accumulateChunk(state: StreamedModelCallResult, chunk: unknown): string | undefined {
-  if (!isRecord(chunk)) {
+  if (!isObject(chunk)) {
     return undefined;
   }
   const { type, delta, id, modelId, toolCallId, toolName, input, args, finishReason, usage, providerMetadata } =
