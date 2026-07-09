@@ -1,4 +1,5 @@
 import {
+  isObject,
   captureException,
   debug,
   flushIfServerless,
@@ -263,7 +264,7 @@ function normalizeKey(key: unknown, prefix: string): string {
   }
 
   // Handles an object with a key property
-  if (typeof key === 'object' && key !== null && 'key' in key) {
+  if (isObject(key) && 'key' in key) {
     return `${prefix}${key.key}`;
   }
 

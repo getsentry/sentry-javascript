@@ -1,4 +1,5 @@
 import type { INode } from '@sentry/rrweb-snapshot';
+import { isObject } from '@sentry/core';
 
 const INTERACTIVE_SELECTOR = 'button,a';
 
@@ -34,5 +35,5 @@ export function getTargetNode(event: Node | { target: EventTarget | null }): Nod
 }
 
 function isEventWithTarget(event: unknown): event is { target: EventTarget | null } {
-  return typeof event === 'object' && !!event && 'target' in event;
+  return isObject(event) && 'target' in event;
 }

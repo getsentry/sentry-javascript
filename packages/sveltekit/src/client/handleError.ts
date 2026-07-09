@@ -1,4 +1,4 @@
-import { consoleSandbox } from '@sentry/core';
+import { isObject, consoleSandbox } from '@sentry/core';
 import { captureException } from '@sentry/svelte';
 import type { HandleClientError } from '@sveltejs/kit';
 
@@ -58,10 +58,7 @@ function is4xxError(input: SafeHandleServerErrorInput): boolean {
   // SvelteKit __data.json requests return HTTP 200 with errors embedded in JSON,
   // so get_status() may resolve to 500 for a deserialized plain error object.
   // Fall back to checking input.error.status directly.
-  const errorStatus =
-    typeof input.error === 'object' && input.error !== null
-      ? (input.error as Record<string, unknown>)['status']
-      : undefined;
+  const errorStatus = isObject(input.error) ? (input.error as Record<string, unknown>)['status'] : undefined;
 
   return typeof errorStatus === 'number' && errorStatus >= 400 && errorStatus < 500;
 }
