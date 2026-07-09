@@ -48,6 +48,9 @@
         "default": "./build/npm/esm/awslambda-auto.js"
       }
     },
+    "./run-lambda-handler": {
+      "default": "./build/npm/run-lambda-handler.mjs"
+    },
     "./dist/awslambda-auto": {
       "//": "@deprecated Use `./awslambda-auto` instead",
       "require": {
@@ -118,6 +121,8 @@
         "outputs": [
           "{projectRoot}/build/npm/esm",
           "{projectRoot}/build/npm/cjs",
+          "{projectRoot}/build/npm/run-lambda-handler.mjs",
+          "{projectRoot}/build/npm/run-lambda-handler.mjs.map",
           "{projectRoot}/build/lambda-extension"
         ],
         "cache": true

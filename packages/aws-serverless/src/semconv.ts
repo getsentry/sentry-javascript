@@ -24,13 +24,17 @@
 /**
  * The execution ID of the current function execution.
  *
- * @deprecated Removed from the stable semantic conventions; not present in `@sentry/conventions`, so vendored here.
+ * Removed from the stable semantic conventions; not present in `@sentry/conventions`, so vendored here.
+ *
+ * todo(v11): migrate to `faas.invocation_id`
  */
 export const ATTR_FAAS_EXECUTION = 'faas.execution';
 
 /**
  * The unique ID of the single function that this runtime instance executes.
  *
- * @deprecated Removed from the stable semantic conventions; not present in `@sentry/conventions`, so vendored here.
+ * Removed from the stable semantic conventions; not present in `@sentry/conventions`, so vendored here.
+ *
+ * todo(v11): migrate to `cloud.resource_id`
  */
 export const ATTR_FAAS_ID = 'faas.id';
