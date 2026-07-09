@@ -9,6 +9,7 @@ import { googleGenAiChannels } from './config/google-genai';
 import { vercelAiChannels } from './config/vercel-ai';
 import { amqplibChannels } from './config/amqplib';
 import { hapiChannels } from './config/hapi';
+import { koaChannels } from './config/koa';
 import { redisChannels } from './config/redis';
 import { expressChannels } from './config/express';
 import { graphqlChannels } from './config/graphql';
@@ -38,6 +39,7 @@ export const CHANNELS = {
   ...vercelAiChannels,
   ...amqplibChannels,
   ...hapiChannels,
+  ...koaChannels,
   ...redisChannels,
   ...expressChannels,
   ...graphqlChannels,
