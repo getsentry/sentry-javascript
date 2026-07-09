@@ -12,7 +12,7 @@ import {
   spanToJSON,
   startSpan,
 } from '@sentry/core';
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 
@@ -21,11 +21,11 @@ const INTEGRATION_NAME = 'Koa' as const;
 
 const ORIGIN = 'auto.http.orchestrion.koa';
 
-// koa-specific span attributes emitted by the vendored OTel instrumentation.
-// These have no `@sentry/conventions` equivalent, so both the OTel and
-// orchestrion paths emit the same set — only the origin differs between them.
-// todo(v11) use exported attributes from semantic conventions
+// `koa.type` (a layer's role) has no `@sentry/conventions` equivalent, so it stays
+// the canonical attribute — kept in sync with the OTel koa integration so spans are
+// identical across both code paths.
 const ATTR_KOA_TYPE = 'koa.type';
+// TODO(v11): remove this attribute.
 const ATTR_KOA_NAME = 'koa.name';
 
 const LAYER_TYPE = {
@@ -230,7 +230,7 @@ function getMiddlewareMetadata(
   if (isRouter) {
     return {
       attributes: {
-        [ATTR_KOA_NAME]: layerPath?.toString(),
+        [ATTR_KOA_NAME]: layerPath?.toString(), // TODO(v11): remove, replaced by http.route
         [ATTR_KOA_TYPE]: LAYER_TYPE.ROUTER,
         [HTTP_ROUTE]: layerPath?.toString(),
       },
@@ -239,8 +239,9 @@ function getMiddlewareMetadata(
   }
   return {
     attributes: {
-      [ATTR_KOA_NAME]: layer.name || 'middleware',
+      [ATTR_KOA_NAME]: layer.name || 'middleware', // TODO(v11): remove, replaced by code.function.name
       [ATTR_KOA_TYPE]: LAYER_TYPE.MIDDLEWARE,
+      [CODE_FUNCTION_NAME]: layer.name || 'middleware',
     },
     name: `middleware - ${layer.name}`,
   };

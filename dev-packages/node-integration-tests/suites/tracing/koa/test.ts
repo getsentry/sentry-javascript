@@ -52,6 +52,7 @@ describe('koa auto-instrumentation', () => {
                 data: expect.objectContaining({
                   'koa.type': 'middleware',
                   'koa.name': 'simpleMiddleware',
+                  'code.function.name': 'simpleMiddleware',
                   'sentry.op': 'middleware.koa',
                   'sentry.origin': origin,
                 }),
