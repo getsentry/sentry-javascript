@@ -24,12 +24,16 @@ export default defineConfig({
         },
       },
       shared: ['react', 'react-dom'],
+      dts: false,
     }),
   ],
   build: {
     target: 'esnext',
     minify: false,
     envPrefix: ['PUBLIC_'],
+    rollupOptions: {
+      external: ['vite/module-runner'],
+    },
   },
   envPrefix: ['PUBLIC_'],
   preview: { port: 3030 },
