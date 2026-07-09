@@ -3,14 +3,6 @@ import { withoutInstrumentedExternals } from '../config';
 import type { PluginOptions } from './options';
 import { orchestrionTransformOptions } from './options';
 
-// Minimal shape of esbuild's `PluginBuild` that we touch, so we don't depend on
-// the `esbuild` types. The upstream transform reads more off `build`
-// (`onStart`/`onLoad`/`onEnd`), but we only forward `build` through to it and
-// mutate `initialOptions.external`.
-interface EsbuildPluginBuild {
-  initialOptions: { external?: string[] };
-}
-
 /**
  * esbuild plugin that runs the orchestrion code transform on the bundled output.
  *
@@ -29,13 +21,11 @@ interface EsbuildPluginBuild {
  * ```
  */
 export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
-  const transformer = codeTransformer(orchestrionTransformOptions(options)) as unknown as {
-    setup: (build: EsbuildPluginBuild) => void;
-  };
+  const transformer = codeTransformer(orchestrionTransformOptions(options));
 
   return {
     name: 'sentry-orchestrion',
-    setup(build: EsbuildPluginBuild): void {
+    async setup(build): Promise<void> {
       // Strip instrumented packages from an `external` denylist so esbuild
       // bundles them and the transform's `onLoad` actually sees their source;
       // an externalized dependency is resolved from `node_modules` at runtime
@@ -43,7 +33,7 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType
       // `initialOptions` inside `setup` is respected by esbuild — the upstream
       // plugin sets `initialOptions.metafile` the same way.
       build.initialOptions.external = withoutInstrumentedExternals(build.initialOptions.external);
-      transformer.setup(build);
+      await transformer.setup(build);
     },
   };
 }

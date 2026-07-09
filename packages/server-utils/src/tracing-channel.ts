@@ -1,7 +1,14 @@
 import type { TracingChannel, TracingChannelSubscribers } from 'node:diagnostics_channel';
 import type { AsyncLocalStorage } from 'node:async_hooks';
 import type { ExclusiveEventHintOrCaptureContext, Span } from '@sentry/core';
-import { debug, captureException, SPAN_STATUS_ERROR, getAsyncContextStrategy, getMainCarrier } from '@sentry/core';
+import {
+  debug,
+  captureException,
+  SPAN_STATUS_ERROR,
+  getAsyncContextStrategy,
+  getMainCarrier,
+  getActiveSpan,
+} from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { ERROR_TYPE } from '@sentry/conventions/attributes';
 
@@ -58,6 +65,12 @@ export interface TracingChannelLifeCycleOptions<TData extends object = object> {
     /** Ends the span: `end()` on success, `end(error)` on failure. Idempotent. */
     end: (error?: unknown) => void;
   }) => boolean;
+
+  /**
+   * Apply span/scope binding only if there is a parent span, similar to returning `undefined` in the `getSpan` callback.
+   * If you need to perform some conditional checking on the parent span before deciding, do it in the `getSpan` callback.
+   */
+  requiresParentSpan?: boolean;
 }
 
 /** Returned by {@link bindTracingChannelToSpan}: the bound channel plus a teardown handle. */
@@ -90,7 +103,7 @@ export function bindTracingChannelToSpan<TData extends object>(
   getSpan: (data: TracingChannelPayloadWithSpan<TData>) => Span | undefined,
   opts?: TracingChannelLifeCycleOptions<TData>,
 ): TracingChannelBindingHandle<TData> {
-  const handle = bindSpanToChannelStore(channel, getSpan);
+  const handle = bindSpanToChannelStore(channel, getSpan, opts);
 
   const beforeSpanEnd = opts?.beforeSpanEnd;
   const deferSpanEnd = opts?.deferSpanEnd;
@@ -191,6 +204,7 @@ export function bindTracingChannelToSpan<TData extends object>(
 function bindSpanToChannelStore<TData extends object>(
   channel: TracingChannel<TData, TData>,
   getSpan: (data: TracingChannelPayloadWithSpan<TData>) => Span | undefined,
+  opts?: Pick<TracingChannelLifeCycleOptions, 'requiresParentSpan'>,
 ): TracingChannelBindingHandle<TData> {
   // Grabs the tracing channel binding defined by the AsyncContext strategy implementation
   const binding = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.();
@@ -219,7 +233,8 @@ function bindSpanToChannelStore<TData extends object>(
     // callback-style channels (see `_sentryCallerStore`).
     data._sentryCallerStore = asyncLocalStorage.getStore();
 
-    const span = getSpan(data);
+    const shouldGetSpan = !opts?.requiresParentSpan || getActiveSpan();
+    const span = shouldGetSpan ? getSpan(data) : undefined;
     if (!span) {
       // Leave the active context untouched so nested operations keep parenting to the enclosing span.
       return data._sentryCallerStore as TData;
