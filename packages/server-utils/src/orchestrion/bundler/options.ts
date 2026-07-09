@@ -20,7 +20,7 @@ export type PluginOptions = {
  */
 export function orchestrionTransformOptions(options: PluginOptions): Parameters<typeof codeTransformer>[0] {
   return {
-    instrumentations: [SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])],
+    instrumentations: [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])],
     injectDiagnostics: () => {
       return '(globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{}).bundler=true;';
     },
