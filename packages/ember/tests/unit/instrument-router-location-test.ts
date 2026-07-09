@@ -1,8 +1,5 @@
 import type { EmberRouterMain } from '@sentry/ember/addon/types';
-import {
-  _getLocationURL,
-  _getRouteUrlAttributes,
-} from '@sentry/ember/utils/instrumentEmberAppInstanceForPerformance';
+import { _getLocationURL, _getRouteUrlAttributes } from '@sentry/ember/utils/instrumentEmberAppInstanceForPerformance';
 import { setupTest } from 'ember-qunit';
 import { module, test } from 'qunit';
 import type { SentryTestContext } from '../helpers/setup-sentry';

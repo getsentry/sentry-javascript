@@ -102,10 +102,7 @@ function buildUrlTemplate(path: string, params: Record<string, unknown> = {}): s
 }
 
 // Only exported for testing
-export function _getRouteUrlAttributes(
-  url: string,
-  params: Record<string, unknown> = {},
-): Record<string, string> {
+export function _getRouteUrlAttributes(url: string, params: Record<string, unknown> = {}): Record<string, string> {
   const path = getUrlPathFromEmberLocation(url);
 
   return {
