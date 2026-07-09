@@ -119,6 +119,15 @@ module('Unit | Utility | instrument-router-location', function (hooks) {
 
     assert.strictEqual(result['url.path'], '/tracing');
     assert.strictEqual(result['url.template'], '/tracing');
-    assert.ok(result['url.full']?.includes('/tracing'), 'url.full includes the path');
+    assert.ok(result['url.full']?.includes('/#/tracing'), 'url.full preserves the hash fragment');
+  });
+
+  test('_getRouteUrlAttributes sources url.full from an explicit fullUrl', function (this: SentryTestContext, assert) {
+    // Mirrors `routeDidChange`, where the route path (`currentURL`) has no hash but the location URL does.
+    const result = _getRouteUrlAttributes('/tracing', {}, '/#/tracing');
+
+    assert.strictEqual(result['url.path'], '/tracing');
+    assert.strictEqual(result['url.template'], '/tracing');
+    assert.ok(result['url.full']?.includes('/#/tracing'), 'url.full preserves the hash fragment from fullUrl');
   });
 });

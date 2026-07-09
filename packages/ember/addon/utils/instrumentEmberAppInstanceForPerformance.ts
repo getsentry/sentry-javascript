@@ -102,12 +102,18 @@ function buildUrlTemplate(path: string, params: Record<string, unknown> = {}): s
 }
 
 // Only exported for testing
-export function _getRouteUrlAttributes(url: string, params: Record<string, unknown> = {}): Record<string, string> {
+export function _getRouteUrlAttributes(
+  url: string,
+  params: Record<string, unknown> = {},
+  fullUrl: string = url,
+): Record<string, string> {
   const path = getUrlPathFromEmberLocation(url);
 
+  // `url.full` is derived from the unstripped URL so that hash-location apps keep their `#/...`
+  // fragment (e.g. `https://host/#/tracing`), which would otherwise be lost by `getUrlPathFromEmberLocation`.
   return {
     [URL_PATH]: path,
-    [URL_FULL]: getAbsoluteUrl(path),
+    [URL_FULL]: getAbsoluteUrl(fullUrl),
     [URL_TEMPLATE]: buildUrlTemplate(path, params),
   };
 }
@@ -214,7 +220,10 @@ function _instrumentEmberRouter(
     const url = routerService.currentURL ?? _getLocationURL(location);
     if (url) {
       const routeInfo = routerService.recognize(url);
-      activeRootSpan.setAttributes(_getRouteUrlAttributes(url, routeInfo.params ?? transition.to?.params));
+      // `currentURL` is the normalized route path and never includes the hash fragment, so we source
+      // `url.full` from the location URL (which preserves `#/...` for hash-location apps) when available.
+      const fullUrl = _getLocationURL(location) || url;
+      activeRootSpan.setAttributes(_getRouteUrlAttributes(url, routeInfo.params ?? transition.to?.params, fullUrl));
     }
 
     if (disableRunloopPerformance) {
