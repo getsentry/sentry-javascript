@@ -27,6 +27,12 @@ const mockNavigationSpan = {
   setAttributes: vi.fn(),
 };
 
+const mockPageloadSpan = {
+  updateName: vi.fn(),
+  setAttribute: vi.fn(),
+  setAttributes: vi.fn(),
+};
+
 describe('tanstackRouterBrowserTracingIntegration', () => {
   const mockMatchedRoutes = [
     {
@@ -72,6 +78,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     startBrowserTracingNavigationSpanSpy.mockReturnValue(mockNavigationSpan as any);
+    startBrowserTracingPageLoadSpanSpy.mockReturnValue(mockPageloadSpan as any);
 
     // Mock window.location
     vi.stubGlobal('window', {
@@ -128,6 +135,43 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
     integration.afterAllSetup(mockClient as any);
 
     expect(startBrowserTracingPageLoadSpanSpy).not.toHaveBeenCalled();
+  });
+
+  it('updates pageload span URL attributes on redirect to the same route template', () => {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
+      instrumentPageLoad: true,
+      instrumentNavigation: false,
+    });
+
+    integration.afterAllSetup(mockClient as any);
+
+    const onResolvedCallback = getSubscribeCallback('onResolved');
+    expect(onResolvedCallback).toBeDefined();
+
+    (mockRouter.matchRoutes as any).mockReturnValueOnce([
+      {
+        routeId: '/test/:id',
+        pathname: '/test/456',
+        params: { id: '456' },
+      },
+    ]);
+
+    onResolvedCallback({
+      toLocation: {
+        pathname: '/test/456',
+        search: {},
+      },
+    });
+
+    expect(mockPageloadSpan.setAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        [URL_TEMPLATE]: '/test/:id',
+        'url.path': '/test/456',
+        'url.full': expect.any(String),
+        'url.path.parameter.id': '456',
+        'params.id': '456',
+      }),
+    );
   });
 
   const getSubscribeCallback = (eventType: string): ((...args: any[]) => void) =>
