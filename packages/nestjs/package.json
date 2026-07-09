@@ -38,11 +38,6 @@
         "types": "./setup.d.ts",
         "default": "./build/cjs/setup.js"
       }
-    },
-    "./import": {
-      "import": {
-        "default": "./build/import.mjs"
-      }
     }
   },
   "publishConfig": {

@@ -3,15 +3,11 @@ import { createRequire } from 'node:module';
 import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { DEBUG_BUILD } from '../../debug-build';
-import { getSentryInstrumentations } from '../config';
-import type { OrchestrionInstrumentation } from '../registry';
-import { getInjectedOrchestrionInstrumentations } from '../registry';
+import { SENTRY_INSTRUMENTATIONS } from '../config';
 
 declare global {
   // eslint-disable-next-line no-var
-  var __SENTRY_ORCHESTRION__:
-    | { runtime?: boolean; bundler?: boolean; registry?: OrchestrionInstrumentation[]; installed?: string[] }
-    | undefined;
+  var __SENTRY_ORCHESTRION__: { runtime?: boolean; bundler?: boolean } | undefined;
 }
 
 /**
@@ -80,7 +76,7 @@ export function registerDiagnosticsChannelInjection(): void {
         resolve: unknown;
         load: unknown;
       };
-      initialize({ instrumentations: getSentryInstrumentations() });
+      initialize({ instrumentations: SENTRY_INSTRUMENTATIONS });
       mod.registerHooks({ resolve, load });
       DEBUG_BUILD && debug.log('[orchestrion] registered diagnostics-channel injection via Module.registerHooks()');
     } else if (typeof mod.register === 'function' && !globalAny.Bun && !globalAny.Deno) {
@@ -97,7 +93,7 @@ export function registerDiagnosticsChannelInjection(): void {
 
       mod.register('@apm-js-collab/tracing-hooks/hook.mjs', {
         parentURL,
-        data: { instrumentations: getSentryInstrumentations() },
+        data: { instrumentations: SENTRY_INSTRUMENTATIONS },
       });
 
       // ALSO patch `Module.prototype._compile` for the CJS side: when an ESM
@@ -108,7 +104,7 @@ export function registerDiagnosticsChannelInjection(): void {
       const ModulePatch = nodeRequire('@apm-js-collab/tracing-hooks') as new (opts: { instrumentations: unknown }) => {
         patch: () => void;
       };
-      new ModulePatch({ instrumentations: getSentryInstrumentations() }).patch();
+      new ModulePatch({ instrumentations: SENTRY_INSTRUMENTATIONS }).patch();
       DEBUG_BUILD && debug.log('[orchestrion] registered diagnostics-channel injection via Module.register()');
     } else {
       DEBUG_BUILD &&
@@ -125,12 +121,5 @@ export function registerDiagnosticsChannelInjection(): void {
     return;
   }
 
-  // Freeze which externally-injected instrumentations actually made it into the
-  // transform we just installed. The list can't change after this: a later
-  // `registerOrchestrionInstrumentation()` (e.g. `@sentry/nestjs` registering
-  // after a bare `@sentry/node/import` hook already installed) is a no-op for
-  // the transform, so consumers must gate the OTel→channel swap and the span
-  // origin on this snapshot, not on the mutable registry.
-  g.installed = getInjectedOrchestrionInstrumentations().map(i => i.name);
   g.runtime = true;
 }

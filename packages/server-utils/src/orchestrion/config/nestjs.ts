@@ -1,4 +1,4 @@
-import type { FunctionKind, InstrumentationConfig } from '@sentry/server-utils/orchestrion';
+import type { FunctionKind, InstrumentationConfig } from '@apm-js-collab/code-transformer';
 
 /**
  * Wrap an instrumentation that targets nodes via a raw esquery selector
@@ -17,6 +17,15 @@ function astQueryInstrumentation(config: {
   return config as unknown as InstrumentationConfig;
 }
 
+/**
+ * NOTE: the code-transform config (and the channel names below) live here in
+ * `@sentry/server-utils` so they're always installed whenever orchestrion is
+ * enabled. The listener lives in `@sentry/nestjs` (which imports
+ * {@link nestjsChannels} from here to subscribe). This deliberate split means
+ * there's no per-instrumentation opt-in dance: if orchestrion is on,
+ * `@nestjs/*` is transformed, so `@sentry/nestjs` can pick its path from the
+ * global flag.
+ */
 export const nestjsConfig = [
   {
     // `@nestjs/core/nest-factory.js` exports `class NestFactoryStatic` with an
@@ -29,18 +38,16 @@ export const nestjsConfig = [
     module: { name: '@nestjs/core', versionRange: '>=8.0.0 <12', filePath: 'nest-factory.js' },
     functionQuery: { className: 'NestFactoryStatic', methodName: 'create', kind: 'Async' },
   },
-
   {
     // `@nestjs/core/router/router-execution-context.js` exports
     // `class RouterExecutionContext` with a synchronous `create(instance,
     // callback, ...)` that RETURNS the per-request handler. The subscriber
-    // wraps the `callback` arg (-> one handler span) and reassigns the
-    // returned handler (-> request_context span).
+    // wraps the `callback` arg (-> one handler span) and reassigns the returned
+    // handler (-> request_context span).
     channelName: 'routerExecutionContextCreate',
     module: { name: '@nestjs/core', versionRange: '>=8.0.0 <12', filePath: 'router/router-execution-context.js' },
     functionQuery: { className: 'RouterExecutionContext', methodName: 'create', kind: 'Sync' },
   },
-
   astQueryInstrumentation({
     // `@nestjs/common/decorators/core/injectable.decorator.js`:
     //   `function Injectable(options) { return (target) => { ... }; }`
@@ -59,7 +66,6 @@ export const nestjsConfig = [
     astQuery: 'FunctionDeclaration[id.name="Injectable"] ReturnStatement > ArrowFunctionExpression',
     functionQuery: { kind: 'Sync' },
   }),
-
   astQueryInstrumentation({
     // `@nestjs/common/decorators/core/catch.decorator.js`:
     //   `function Catch(...exceptions) { return (target) => { ... }; }`
@@ -73,17 +79,15 @@ export const nestjsConfig = [
     astQuery: 'FunctionDeclaration[id.name="Catch"] ReturnStatement > ArrowFunctionExpression',
     functionQuery: { kind: 'Sync' },
   }),
-
   // @nestjs/schedule @Cron/@Interval/@Timeout:
   // `function Cron(...) { return applyDecorators(...); }`
-  //
   // The returned decorator has no inline arrow to target, so we match the
-  // factory function and reassign `data.result` in `end`
-  // to wrap the decorator it returns (which rewrites the user handler
-  // `descriptor.value` with isolation-scope + error capture). Mirrors
-  // `SentryNestScheduleInstrumentation`, whose supported range (`>=2.0.0`)
-  // we match so opting in doesn't drop coverage the OTel path had. The
-  // compiled `function Cron(...)` declaration is unchanged across 2.x–5.x.
+  // factory function and reassign `data.result` in `end` to wrap the
+  // decorator it returns (which rewrites the user handler `descriptor.value`
+  // with isolation-scope + error capture).
+  // Mirrors `SentryNestScheduleInstrumentation`, whose supported range we
+  // match so opting in doesn't drop coverage the OTel path had. The compiled
+  // `function Cron(...)` declaration is unchanged across 2.x–5.x.
   {
     channelName: 'cronDecorator',
     module: { name: '@nestjs/schedule', versionRange: '>=2.0.0', filePath: 'dist/decorators/cron.decorator.js' },
@@ -100,12 +104,14 @@ export const nestjsConfig = [
     functionQuery: { functionName: 'Timeout', kind: 'Sync' },
   },
   {
-    // @nestjs/event-emitter @OnEvent: `const OnEvent = (event, options) => {
-    //   const decoratorFactory = (t, k, d) => {…}; return decoratorFactory; }`
+    // @nestjs/event-emitter @OnEvent:
+    // `const OnEvent = (event, options) => {
+    //   const decoratorFactory = (t, k, d) => {...}; return decoratorFactory;
+    // }`
     // `OnEvent` is an arrow assigned to a const, so `expressionName`. `end`
-    // reassigns `data.result` to wrap the returned decorator, which rewrites the
-    // handler to open an `event.nestjs` span. Mirrors
-    // `SentryNestEventInstrumentation` (`>=2.0.0`); the `const OnEvent = (…) =>`
+    // reassigns `data.result` to wrap the returned decorator, which rewrites
+    // the handler to open an `event.nestjs` span.
+    // Mirrors `SentryNestEventInstrumentation`; the `const OnEvent = (...) =>`
     // shape is unchanged across 2.x–3.x.
     channelName: 'onEventDecorator',
     module: {
@@ -115,16 +121,15 @@ export const nestjsConfig = [
     },
     functionQuery: { expressionName: 'OnEvent', kind: 'Sync' },
   },
-
   {
     // @nestjs/bullmq @Processor:
-    // `function Processor(...) { return (target) => {…}; }`
+    // `function Processor(...) { return (target) => {...}; }`
     // The factory arg carries the queue name, so we match the factory and
     // reassign `data.result` in `end` to wrap the returned class decorator
     // (which patches `target.prototype.process`).
-    //
-    // Mirrors `SentryNestBullMQInstrumentation` (`>=10.0.0`); the
-    // `function Processor(...)` declaration is unchanged across 10.x–11.x.
+    // Mirrors `SentryNestBullMQInstrumentation`; the `function Processor(...)`
+    // declaration is unchanged across
+    // 10.x–11.x.
     channelName: 'processorDecorator',
     module: {
       name: '@nestjs/bullmq',

@@ -1,7 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration, startInactiveSpan, waitForTracingChannelBinding } from '@sentry/core';
+import { debug, startInactiveSpan, waitForTracingChannelBinding } from '@sentry/core';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
+import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion';
 import { DEBUG_BUILD } from '../debug-build';
 import type { AnyFn } from '../integrations/helpers';
 import { isWrapped, markWrapped } from '../integrations/helpers';
@@ -18,11 +18,6 @@ import {
   wrapScheduleHandler,
 } from '../integrations/wrap-handlers';
 import { getAppCreationSpanOptions, wrapRequestContextHandler, wrapRouteHandler } from '../integrations/wrap-route';
-import { nestjsChannels as CHANNELS } from './config';
-
-// NOTE: this uses the same name as the OTel integration by design.
-// When enabled, the OTel 'Nest' integration is omitted from the default set.
-const INTEGRATION_NAME = 'Nest';
 
 const NOOP = (): void => {};
 
@@ -112,116 +107,110 @@ function subscribeFactoryDecorator(channelName: string, wrap: (decorator: AnyFn,
   });
 }
 
-const _nestjsChannelIntegration = (() => {
-  return {
-    name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing
-      // in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      DEBUG_BUILD && debug.log('[orchestrion:nestjs] subscribing to @nestjs channels');
-
-      // App-creation span: `bindTracingChannelToSpan` opens the span on
-      // `start`, makes it the active context for the bootstrap, and ends it
-      // on `asyncEnd` (or `end` if `create` throws synchronously).
-      //
-      // `captureError: false`: a failed bootstrap surfaces to the caller.
-      // We just annotate the span.
-      //
-      // `bindTracingChannelToSpan` uses `bindStore`, which needs the
-      // async-context binding registered after integration `setupOnce`; defer
-      // until it's available. Only this bind is deferred (it fires at
-      // `NestFactory.create`, so a retry tick is fine); the plain `.subscribe`
-      // calls below stay synchronous because the decorator channels fire at
-      // module-load time, which a deferred subscription could miss.
-      waitForTracingChannelBinding(() => {
-        bindTracingChannelToSpan(
-          diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_APP_CREATION),
-          data => {
-            const moduleCls = data.arguments?.[0] as { name?: string } | undefined;
-            return startInactiveSpan(getAppCreationSpanOptions(data.moduleVersion, moduleCls?.name));
-          },
-          { captureError: false },
-        );
-      });
-
-      // request_context + request_handler. `RouterExecutionContext.create`
-      // runs once per route at setup: it receives `(instance, callback, ...)`
-      // and RETURNS the per-request handler. `start` wraps the callback arg
-      // (-> handler span per call) and `end` reassigns `data.result` to
-      // replace the returned handler (-> request_context span per request).
-      const routerMeta = new WeakMap<object, { instanceName: string; callbackName: string; moduleVersion?: string }>();
-      diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_ROUTER_CONTEXT).subscribe({
-        start(data) {
-          const instance = data.arguments?.[0] as { constructor?: { name?: string } } | undefined;
-          const callback = data.arguments?.[1];
-          routerMeta.set(data, {
-            instanceName: instance?.constructor?.name || 'UnnamedInstance',
-            callbackName: typeof callback === 'function' ? callback.name : '',
-            moduleVersion: data.moduleVersion,
-          });
-          if (typeof callback === 'function') {
-            data.arguments[1] = wrapRouteHandler(callback as AnyFn, data.moduleVersion);
-          }
-        },
-        end(data) {
-          const handler = data.result;
-          const meta = routerMeta.get(data);
-          if (typeof handler === 'function' && meta && !isWrapped(handler as AnyFn)) {
-            data.result = wrapRequestContextHandler(
-              handler as AnyFn,
-              meta.instanceName,
-              meta.callbackName,
-              meta.moduleVersion,
-            );
-          }
-          routerMeta.delete(data);
-        },
-        asyncStart: NOOP,
-        asyncEnd: NOOP,
-        error(data) {
-          routerMeta.delete(data);
-        },
-      });
-
-      // @Injectable (middleware/guard/pipe/interceptor) and @Catch
-      // (exception filter): both decorators share the
-      // `(target) => {...}` inner-arrow shape.
-      const seenInterceptorContexts = new WeakSet<object>();
-      subscribeDecoratorChannel<InjectableTarget>(CHANNELS.NESTJS_INJECTABLE, target =>
-        patchInjectableTarget(target, seenInterceptorContexts),
-      );
-      subscribeDecoratorChannel<CatchTarget>(CHANNELS.NESTJS_CATCH, patchCatchTarget);
-
-      // @Cron/@Interval/@Timeout (schedule), @OnEvent (event), @Processor (bullmq).
-      subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_CRON, decorator =>
-        makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_CRON)),
-      );
-      subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_INTERVAL, decorator =>
-        makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_INTERVAL)),
-      );
-      subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_TIMEOUT, decorator =>
-        makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_TIMEOUT)),
-      );
-      subscribeFactoryDecorator(CHANNELS.NESTJS_ONEVENT, (decorator, data) =>
-        makeMethodDecorator(decorator, handler => wrapEventHandler(handler, data.arguments?.[0])),
-      );
-      subscribeFactoryDecorator(CHANNELS.NESTJS_PROCESSOR, (decorator, data) =>
-        makeProcessorDecorator(decorator, extractQueueName(data.arguments?.[0])),
-      );
-    },
-  };
-}) satisfies IntegrationFn;
-
 /**
- * EXPERIMENTAL orchestrion-driven NestJS integration.
+ * Subscribe to the diagnostics_channels the orchestrion code transform
+ * injects into `@nestjs/*` modules.
  *
- * Subscribes to the diagnostics_channels the orchestrion code transform
- * injects into `@nestjs/*` (see `./config`). Requires the orchestrion runtime
- * hook or bundler plugin to be active. Shares all span-emitting logic with
- * the OTel path (`../integrations/wrappers`)
+ * Opens the same spans as the OTel `Nest` instrumentation, only with
+ * different origin.
+ *
+ * Called from `nestIntegration`'s `setupOnce` when orchestrion is active
+ * (`isOrchestrionInjected()`); requires the runtime hook or bundler plugin.
  */
-export const nestjsChannelIntegration = defineIntegration(_nestjsChannelIntegration);
+export function subscribeToNestChannels(): void {
+  // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
+  if (!diagnosticsChannel.tracingChannel) {
+    return;
+  }
+
+  DEBUG_BUILD && debug.log('[orchestrion:nestjs] subscribing to @nestjs channels');
+
+  // App-creation span: `bindTracingChannelToSpan` opens the span on
+  // `start`, makes it the active context for the bootstrap, and ends it
+  // on `asyncEnd` (or `end` if `create` throws synchronously).
+  //
+  // `captureError: false`: a failed bootstrap surfaces to the caller.
+  // We just annotate the span.
+  //
+  // `bindTracingChannelToSpan` uses `bindStore`, which needs the
+  // async-context binding registered after integration `setupOnce`; defer
+  // until it's available. Only this bind is deferred (it fires at
+  // `NestFactory.create`, so a retry tick is fine); the plain `.subscribe`
+  // calls below stay synchronous because the decorator channels fire at
+  // module-load time, which a deferred subscription could miss.
+  waitForTracingChannelBinding(() => {
+    bindTracingChannelToSpan(
+      diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_APP_CREATION),
+      data => {
+        const moduleCls = data.arguments?.[0] as { name?: string } | undefined;
+        return startInactiveSpan(getAppCreationSpanOptions(data.moduleVersion, moduleCls?.name));
+      },
+      { captureError: false },
+    );
+  });
+
+  // request_context + request_handler. `RouterExecutionContext.create`
+  // runs once per route at setup: it receives `(instance, callback, ...)`
+  // and RETURNS the per-request handler. `start` wraps the callback arg
+  // (-> handler span per call) and `end` reassigns `data.result` to
+  // replace the returned handler (-> request_context span per request).
+  const routerMeta = new WeakMap<object, { instanceName: string; callbackName: string; moduleVersion?: string }>();
+  diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_ROUTER_CONTEXT).subscribe({
+    start(data) {
+      const instance = data.arguments?.[0] as { constructor?: { name?: string } } | undefined;
+      const callback = data.arguments?.[1];
+      routerMeta.set(data, {
+        instanceName: instance?.constructor?.name || 'UnnamedInstance',
+        callbackName: typeof callback === 'function' ? callback.name : '',
+        moduleVersion: data.moduleVersion,
+      });
+      if (typeof callback === 'function') {
+        data.arguments[1] = wrapRouteHandler(callback as AnyFn, data.moduleVersion);
+      }
+    },
+    end(data) {
+      const handler = data.result;
+      const meta = routerMeta.get(data);
+      if (typeof handler === 'function' && meta && !isWrapped(handler as AnyFn)) {
+        data.result = wrapRequestContextHandler(
+          handler as AnyFn,
+          meta.instanceName,
+          meta.callbackName,
+          meta.moduleVersion,
+        );
+      }
+      routerMeta.delete(data);
+    },
+    asyncStart: NOOP,
+    asyncEnd: NOOP,
+    error(data) {
+      routerMeta.delete(data);
+    },
+  });
+
+  // @Injectable (middleware/guard/pipe/interceptor) and @Catch
+  // (exception filter): both decorators share the
+  // `(target) => {...}` inner-arrow shape.
+  const seenInterceptorContexts = new WeakSet<object>();
+  subscribeDecoratorChannel<InjectableTarget>(CHANNELS.NESTJS_INJECTABLE, target =>
+    patchInjectableTarget(target, seenInterceptorContexts),
+  );
+  subscribeDecoratorChannel<CatchTarget>(CHANNELS.NESTJS_CATCH, patchCatchTarget);
+
+  // @Cron/@Interval/@Timeout (schedule), @OnEvent (event), @Processor (bullmq).
+  subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_CRON, decorator =>
+    makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_CRON)),
+  );
+  subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_INTERVAL, decorator =>
+    makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_INTERVAL)),
+  );
+  subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_TIMEOUT, decorator =>
+    makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_TIMEOUT)),
+  );
+  subscribeFactoryDecorator(CHANNELS.NESTJS_ONEVENT, (decorator, data) =>
+    makeMethodDecorator(decorator, handler => wrapEventHandler(handler, data.arguments?.[0])),
+  );
+  subscribeFactoryDecorator(CHANNELS.NESTJS_PROCESSOR, (decorator, data) =>
+    makeProcessorDecorator(decorator, extractQueueName(data.arguments?.[0])),
+  );
+}

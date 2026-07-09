@@ -22,7 +22,7 @@ import {
   onUnhandledRejectionIntegration,
   processSessionIntegration,
 } from '@sentry/node';
-import { getChannelIntegrations, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
+import { channelIntegrations, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
@@ -32,7 +32,7 @@ import type { BunOptions } from './types';
  * channels that `@sentry/bun/plugin` injects at build time.
  */
 function getChannelIntegrationInstances(): Integration[] {
-  return getChannelIntegrations().map(integrationFactory => integrationFactory());
+  return Object.values(channelIntegrations).map(integrationFactory => integrationFactory());
 }
 
 /**

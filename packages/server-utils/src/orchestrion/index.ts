@@ -1,6 +1,4 @@
 import { amqplibChannelIntegration } from '../integrations/tracing-channel/amqplib';
-import type { IntegrationFn } from '@sentry/core';
-import { getInjectedOrchestrionInstrumentations } from './registry';
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
 import { googleGenAIChannelIntegration } from '../integrations/tracing-channel/google-genai';
 import {
@@ -18,8 +16,9 @@ import { vercelAiChannelIntegration } from '../integrations/tracing-channel/verc
 import { expressChannelIntegration } from '../integrations/tracing-channel/express';
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
-export { registerOrchestrionInstrumentation, getInjectedOrchestrionInstrumentations } from './registry';
-export type { OrchestrionInstrumentation, InstrumentationConfig, FunctionKind } from './registry';
+// The `@nestjs/*` channel names live here alongside their transform config; the
+// listener that subscribes to them lives in `@sentry/nestjs`, which imports this.
+export { nestjsChannels } from './config/nestjs';
 export {
   amqplibChannelIntegration,
   anthropicChannelIntegration,
@@ -61,8 +60,9 @@ export type * from '../integrations/tracing-channel/graphql/graphql-types';
  * composite OTel `Redis` integration and needs the node SDK's redis cache `responseHook` (which
  * can't live in `server-utils`), so `@sentry/node` wires it up separately.
  *
- * Framework packages that own their own channel integration (e.g. `@sentry/nestjs`'s `Nest`) are
- * NOT here either: they inject via the registry, and {@link getChannelIntegrations} merges them in.
+ * Framework SDKs that own their own channel listener (e.g. `@sentry/nestjs`'s `Nest`) are NOT here
+ * either: their transform config is still in `SENTRY_INSTRUMENTATIONS`, but the listener lives in
+ * their package and picks the channel-vs-OTel path itself at `setupOnce`, so it needs no central swap.
  */
 export const channelIntegrations = {
   postgresIntegration: postgresChannelIntegration,
@@ -78,12 +78,3 @@ export const channelIntegrations = {
   expressIntegration: expressChannelIntegration,
   graphqlIntegration: graphqlDiagnosticsChannelIntegration,
 } as const;
-
-/**
- * The built-in channel-integration factories merged with any externally-injected ones (see the
- * registry). Each 1:1 replaces the OTel integration of the same `name`. This is the list the Node
- * SDK's opt-in helper instantiates and swaps in for the matching OTel integrations.
- */
-export function getChannelIntegrations(): IntegrationFn[] {
-  return [...Object.values(channelIntegrations), ...getInjectedOrchestrionInstrumentations().map(i => i.integration)];
-}

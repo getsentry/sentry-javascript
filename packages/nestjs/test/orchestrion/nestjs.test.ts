@@ -18,17 +18,14 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { nestjsChannelIntegration } from '../../src/orchestrion';
-import { nestjsChannels as CHANNELS } from '../../src/orchestrion/config';
+import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion';
+import { subscribeToNestChannels } from '../../src/orchestrion/subscriber';
 
 // The subscriber only ever runs when orchestrion has instrumented `@nestjs/*`.
-// `isOrchestrionInjected('nestjs')` selects the `orchestrion` span origins the
-// assertions below expect, so the `nestjs` instrumentation must be marked installed.
+// `isOrchestrionInjected()` selects the `orchestrion` span origins the assertions
+// below expect, so the marker must be set.
 beforeEach(() => {
-  (globalThis as { __SENTRY_ORCHESTRION__?: unknown }).__SENTRY_ORCHESTRION__ = {
-    runtime: true,
-    installed: ['nestjs'],
-  };
+  (globalThis as { __SENTRY_ORCHESTRION__?: unknown }).__SENTRY_ORCHESTRION__ = { runtime: true };
 });
 afterEach(() => {
   delete (globalThis as { __SENTRY_ORCHESTRION__?: unknown }).__SENTRY_ORCHESTRION__;
@@ -116,7 +113,7 @@ interface NestFactoryCreateData {
   error?: unknown;
 }
 
-describe('nestjsChannelIntegration: app_creation', () => {
+describe('NestJS orchestrion subscriber: app_creation', () => {
   afterEach(() => {
     setAsyncContextStrategy(undefined);
     getCurrentScope().clear();
@@ -148,7 +145,7 @@ describe('nestjsChannelIntegration: app_creation', () => {
   it('opens a "Create Nest App" span with the OTel-compatible op/origin/attributes', async () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     const { getSpan } = captureSpan();
     const channel = tracingChannel<NestFactoryCreateData>(CHANNELS.NESTJS_APP_CREATION);
@@ -175,7 +172,7 @@ describe('nestjsChannelIntegration: app_creation', () => {
   it('omits optional attributes when version/module are absent', async () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     const { getSpan } = captureSpan();
     const channel = tracingChannel<NestFactoryCreateData>(CHANNELS.NESTJS_APP_CREATION);
@@ -198,7 +195,7 @@ interface RouterCreateData {
   error?: unknown;
 }
 
-describe('nestjsChannelIntegration: request_context / request_handler', () => {
+describe('NestJS orchestrion subscriber: request_context / request_handler', () => {
   afterEach(() => {
     setAsyncContextStrategy(undefined);
     getCurrentScope().clear();
@@ -227,7 +224,7 @@ describe('nestjsChannelIntegration: request_context / request_handler', () => {
   it('opens a request_context span (named Controller.method) with OTel-compatible attributes', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     class CatsController {}
     const instance = new CatsController();
@@ -271,7 +268,7 @@ describe('nestjsChannelIntegration: request_context / request_handler', () => {
   it('wraps the callback arg into a request_handler span, preserving its name', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     class CatsController {}
     const instance = new CatsController();
@@ -304,7 +301,7 @@ describe('nestjsChannelIntegration: request_context / request_handler', () => {
   it('nests the request_handler span under the request_context span', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     class CatsController {}
     const instance = new CatsController();
@@ -330,7 +327,7 @@ describe('nestjsChannelIntegration: request_context / request_handler', () => {
   });
 });
 
-describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/interceptor)', () => {
+describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/interceptor)', () => {
   afterEach(() => {
     setAsyncContextStrategy(undefined);
     getCurrentScope().clear();
@@ -350,7 +347,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
   it('middleware: opens a span on `use`, ended when `next()` is called', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     let spanInside: ReturnType<typeof getActiveSpan>;
     class LoggerMiddleware {
@@ -376,7 +373,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
   it('guard: wraps `canActivate` in a span and preserves its return value', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     let spanInside: ReturnType<typeof getActiveSpan>;
     class AuthGuard {
@@ -397,7 +394,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
   it('pipe: wraps `transform` in a span and preserves its return value', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     let spanInside: ReturnType<typeof getActiveSpan>;
     class ParseIntPipe {
@@ -418,7 +415,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
   it('interceptor: opens a before-span (ended at next.handle) and instruments the returned observable', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     // Minimal rxjs-like observable whose subscription records teardown fns.
     const teardowns: Array<() => void> = [];
@@ -460,7 +457,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
   it('async interceptor that awaits before next.handle(): still instruments the after-span', async () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     const teardowns: Array<() => void> = [];
     const observable = {
@@ -496,7 +493,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
   it('async interceptor that never calls next.handle(): ends the before-span, no after-span', async () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     const teardowns: Array<() => void> = [];
     const observable = {
@@ -530,7 +527,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
   it('sync interceptor that short-circuits without next.handle(): ends the before-span', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     const teardowns: Array<() => void> = [];
     const observable = {
@@ -565,7 +562,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
   it('skips targets flagged __SENTRY_INTERNAL__', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     class InternalGuard {
       public canActivate(_ctx: unknown): boolean {
@@ -581,7 +578,7 @@ describe('nestjsChannelIntegration: @Injectable (middleware/guard/pipe/intercept
   });
 });
 
-describe('nestjsChannelIntegration: @Catch (exception filter)', () => {
+describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
   afterEach(() => {
     setAsyncContextStrategy(undefined);
     getCurrentScope().clear();
@@ -599,7 +596,7 @@ describe('nestjsChannelIntegration: @Catch (exception filter)', () => {
   it('wraps `catch` in an exception_filter span and preserves its return value', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     let spanInside: ReturnType<typeof getActiveSpan>;
     class HttpExceptionFilter {
@@ -622,7 +619,7 @@ describe('nestjsChannelIntegration: @Catch (exception filter)', () => {
   it('does not open a span when exception or host is absent', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     let spanInside: ReturnType<typeof getActiveSpan> = undefined;
     class HttpExceptionFilter {
@@ -653,7 +650,7 @@ describe('nestjsChannelIntegration: @Catch (exception filter)', () => {
   it('still wraps `catch` when the @Injectable channel fired first (dual @Injectable @Catch filter)', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     let spanInside: ReturnType<typeof getActiveSpan>;
     class HttpExceptionFilter {
@@ -677,7 +674,7 @@ describe('nestjsChannelIntegration: @Catch (exception filter)', () => {
   it('still wraps `catch` when the @Catch channel fired first (dual @Injectable @Catch filter)', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     let spanInside: ReturnType<typeof getActiveSpan>;
     class HttpExceptionFilter {
@@ -705,7 +702,7 @@ describe('nestjsChannelIntegration: @Catch (exception filter)', () => {
     it(`wraps BOTH canActivate and catch when the ${order} channel fired first`, () => {
       installTestAsyncContextStrategy();
       initTestClient();
-      nestjsChannelIntegration().setupOnce!();
+      subscribeToNestChannels();
 
       let guardSpan: ReturnType<typeof getActiveSpan>;
       let filterSpan: ReturnType<typeof getActiveSpan>;
@@ -737,7 +734,7 @@ describe('nestjsChannelIntegration: @Catch (exception filter)', () => {
   }
 });
 
-describe('nestjsChannelIntegration: schedule / event / bullmq', () => {
+describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
   afterEach(() => {
     setAsyncContextStrategy(undefined);
     getCurrentScope().clear();
@@ -759,7 +756,7 @@ describe('nestjsChannelIntegration: schedule / event / bullmq', () => {
   it('schedule @Cron: wraps the handler with isolation scope + error capture, preserving name', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
     const captureSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
 
     let originalCalled = false;
@@ -788,7 +785,7 @@ describe('nestjsChannelIntegration: schedule / event / bullmq', () => {
   it('schedule @Interval: captures async (rejected) errors with the interval mechanism', async () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
     const captureSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
 
     const wrappedDecorator = driveFactory(CHANNELS.NESTJS_SCHEDULE_INTERVAL, [1000], (_t, _k, d) => d);
@@ -809,7 +806,7 @@ describe('nestjsChannelIntegration: schedule / event / bullmq', () => {
   it('event @OnEvent: opens an event.nestjs transaction named from the event', async () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     const wrappedDecorator = driveFactory(CHANNELS.NESTJS_ONEVENT, ['user.created'], (_t, _k, d) => d);
 
@@ -834,7 +831,7 @@ describe('nestjsChannelIntegration: schedule / event / bullmq', () => {
   it('bullmq @Processor: patches `process` into a queue.process transaction (string queue name)', async () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     let originalCalled = false;
     const wrappedDecorator = driveFactory(CHANNELS.NESTJS_PROCESSOR, ['emails'], () => {
@@ -868,7 +865,7 @@ describe('nestjsChannelIntegration: schedule / event / bullmq', () => {
   it('bullmq @Processor: derives the queue name from an options object', () => {
     installTestAsyncContextStrategy();
     initTestClient();
-    nestjsChannelIntegration().setupOnce!();
+    subscribeToNestChannels();
 
     const wrappedDecorator = driveFactory(CHANNELS.NESTJS_PROCESSOR, [{ name: 'reports' }], () => undefined);
 

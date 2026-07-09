@@ -38,11 +38,10 @@ type UnknownPlugin = any;
 // module system.
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/bun';
 import {
-  instrumentedModuleNames,
+  INSTRUMENTED_MODULE_NAMES,
   SENTRY_INSTRUMENTATIONS,
   withoutInstrumentedExternals,
 } from '@sentry/server-utils/orchestrion/config';
-import type { OrchestrionInstrumentation } from '@sentry/server-utils/orchestrion';
 
 const BUNDLER_MARKER_BANNER =
   ';(globalThis.__SENTRY_ORCHESTRION__=(globalThis.__SENTRY_ORCHESTRION__||{})).bundler=true;';
@@ -62,25 +61,18 @@ interface BunPluginBuilder {
  *
  * Pass the result to `Bun.build({ plugins: [...] })`.
  *
- * A framework SDK that owns its own instrumentation can inject its
- * `OrchestrionInstrumentation` descriptor via the `instrumentations` option, merged with the
- * built-in configs.
- *
  * @example
  * ```ts
  * import { sentryBunPlugin } from '@sentry/bun/plugin';
  * await Bun.build({ entrypoints: ['./app.ts'], plugins: [sentryBunPlugin()] });
  * ```
  */
-export function sentryBunPlugin(options?: { instrumentations?: OrchestrionInstrumentation[] }): UnknownPlugin {
-  const instrumentations = [...SENTRY_INSTRUMENTATIONS, ...(options?.instrumentations ?? []).flatMap(i => i.configs)];
-  const moduleNames = instrumentedModuleNames(instrumentations);
-
+export function sentryBunPlugin(): UnknownPlugin {
   // Typed upstream as an esbuild `Plugin`, but Bun passes its own
   // `PluginBuilder` (which has the `onLoad` the transform uses) to `setup`.
   // Cast to the Bun-compatible shape so we can forward Bun's builder to its
   // `setup`.
-  const transformer = codeTransformer({ instrumentations }) as unknown as {
+  const transformer = codeTransformer({ instrumentations: SENTRY_INSTRUMENTATIONS }) as unknown as {
     setup: (build: BunPluginBuilder) => void;
   };
 
@@ -99,7 +91,7 @@ export function sentryBunPlugin(options?: { instrumentations?: OrchestrionInstru
         // the transform's `onLoad`, so its diagnostics_channel calls would
         // be silently never injected. Bun has no runtime fallback here, so
         // bundling is the only injection path.
-        build.config.external = withoutInstrumentedExternals(build.config.external, moduleNames);
+        build.config.external = withoutInstrumentedExternals(build.config.external);
 
         // A blanket externalization strategy like `packages: 'external'` or
         // `'*'` in `external` externalizes instrumented packages too, and
@@ -121,7 +113,7 @@ export function sentryBunPlugin(options?: { instrumentations?: OrchestrionInstru
           console.warn(
             `[Sentry] This Bun build externalizes all dependencies (${blanketExternal}), so Sentry ` +
               'cannot instrument bundled libraries. Instrumentation will be missing for any of ' +
-              `these packages your app uses: ${moduleNames.join(', ')}. To instrument them, ` +
+              `these packages your app uses: ${INSTRUMENTED_MODULE_NAMES.join(', ')}. To instrument them, ` +
               'externalize only the specific packages you need external instead of all of them.',
           );
         }
