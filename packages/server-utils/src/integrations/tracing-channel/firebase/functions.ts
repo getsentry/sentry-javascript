@@ -1,3 +1,4 @@
+import { FAAS_NAME, FAAS_TRIGGER } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
 import {
   captureException,
@@ -53,8 +54,8 @@ function wrapHandler(handler: Handler, triggerType: string): Handler {
 
     const attributes: SpanAttributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: FUNCTIONS_ORIGIN,
-      'faas.name': functionName,
-      'faas.trigger': triggerType,
+      [FAAS_NAME]: functionName,
+      [FAAS_TRIGGER]: triggerType,
       'faas.provider': 'firebase',
     };
 

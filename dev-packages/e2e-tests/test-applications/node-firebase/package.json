@@ -11,7 +11,8 @@
     "test": "playwright test",
     "clean": "npx rimraf node_modules **/node_modules pnpm-lock.yaml **/dist *-debug.log test-results",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm firebase emulators:exec --project demo-functions 'pnpm test' && E2E_ORCHESTRION=true pnpm firebase emulators:exec --project demo-functions 'pnpm test tests/transactions.test.ts'"
+    "test:assert": "pnpm firebase emulators:exec --project demo-functions 'pnpm test'",
+    "test:assert:orchestrion": "E2E_ORCHESTRION=true pnpm test:assert"
   },
   "dependencies": {
     "@types/node": "^22.13.14",
@@ -26,5 +27,13 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "assert-command": "pnpm test:assert:orchestrion",
+        "label": "node-firebase (Orchestrion)"
+      }
+    ]
   }
 }
