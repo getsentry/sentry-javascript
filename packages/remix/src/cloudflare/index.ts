@@ -8,6 +8,9 @@ import {
 } from '../server/instrumentServer';
 
 export * from '@sentry/react';
+// Optional browser features are no longer star-exported through `@sentry/react`.
+// Re-export them so the cloudflare entry keeps the historical surface.
+export * from '@sentry/react/optional-browser-api';
 
 export { captureRemixErrorBoundaryError } from '../client/errors';
 export { withSentry } from '../client/performance';

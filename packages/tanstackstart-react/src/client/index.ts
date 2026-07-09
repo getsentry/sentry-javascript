@@ -9,6 +9,12 @@ import type {
 import type { CreateSentryTunnelRouteOptions } from '../server/tunnelRoute';
 
 export * from '@sentry/react';
+// Optional browser features and router helpers are no longer star-exported through
+// `@sentry/react`. Re-export them so `import * as Sentry from '@sentry/tanstackstart-react'`
+// keeps the historical surface (including `tanstackRouterBrowserTracingIntegration`,
+// which is dual-declared against the client SDK in `index.types.ts`).
+export * from '@sentry/react/optional-browser-api';
+export { tanstackRouterBrowserTracingIntegration } from '@sentry/react/tanstackrouter';
 
 export { init } from './sdk';
 

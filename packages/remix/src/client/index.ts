@@ -5,6 +5,9 @@ import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
 
 export * from '@sentry/react';
+// Optional browser features are no longer star-exported through `@sentry/react`.
+// Re-export them so `import * as Sentry from '@sentry/remix'` keeps the historical surface.
+export * from '@sentry/react/optional-browser-api';
 
 export { init } from './sdk';
 export { captureRemixErrorBoundaryError } from './errors';
