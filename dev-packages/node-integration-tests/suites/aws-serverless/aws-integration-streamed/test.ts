@@ -1,6 +1,11 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+
+// See the non-streamed `aws-integration` suite: only the origin differs between the OTel and
+// orchestrion diagnostics-channel runs.
+const ORIGIN = isOrchestrionEnabled() ? 'auto.aws.orchestrion.aws-sdk' : 'auto.otel.aws';
 
 // The aws-sdk instrumentation creates spans by patching the underlying smithy middleware stack. The
 // patch target differs between aws-sdk versions, so we run the exact same assertions against both:
@@ -49,7 +54,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
     name: 'S3.PutObject',
     status: 'ok',
     attributes: expect.objectContaining({
-      'sentry.origin': { value: 'auto.otel.aws', type: 'string' },
+      'sentry.origin': { value: ORIGIN, type: 'string' },
       'sentry.op': { value: 'rpc', type: 'string' },
       'rpc.system': { value: 'aws-api', type: 'string' },
       'rpc.method': { value: 'PutObject', type: 'string' },

@@ -39,15 +39,24 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
 
-  // When the app opted into diagnostics-channel injection (via
-  // `experimentalUseDiagnosticsChannelInjection()`) AND span recording is
-  // enabled, swap the channel-based integrations in place of OTel equivalents
-  // so the two don't both instrument the same library.
-  //
-  // Every channel-based integration we ship today is a 1:1 replacement for an
-  // OTel performance/tracing integration and produces nothing but spans (those
-  // only come from `getAutoPerformanceIntegrations()` above), so it's gated on
-  // span recording.
+  return applyDiagnosticsChannelInjectionIntegrations(integrations, options);
+}
+
+/**
+ * When the app opted into diagnostics-channel injection (via
+ * `experimentalUseDiagnosticsChannelInjection()`) AND span recording is enabled, swap the
+ * channel-based integrations in place of their OTel equivalents so the two don't both instrument the
+ * same library. Otherwise returns `integrations` unchanged.
+ *
+ * Every channel-based integration we ship today is a 1:1 replacement for an OTel performance/tracing
+ * integration and produces nothing but spans, so this is gated on span recording. Exported so SDKs
+ * that build their own default-integration set (e.g. `@sentry/aws-serverless`) can apply the same
+ * swap instead of duplicating this logic.
+ */
+export function applyDiagnosticsChannelInjectionIntegrations(
+  integrations: Integration[],
+  options: Options,
+): Integration[] {
   if (isDiagnosticsChannelInjectionEnabled() && hasSpansEnabled(options)) {
     const diagnosticsChannelInjection = resolveDiagnosticsChannelInjection();
     if (diagnosticsChannelInjection) {

@@ -1,4 +1,5 @@
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
+import { awsChannelIntegration } from '../integrations/tracing-channel/aws-sdk';
 import { googleGenAIChannelIntegration } from '../integrations/tracing-channel/google-genai';
 import {
   graphqlChannelIntegration,
@@ -17,6 +18,7 @@ import { expressChannelIntegration } from '../integrations/tracing-channel/expre
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 export {
   anthropicChannelIntegration,
+  awsChannelIntegration,
   googleGenAIChannelIntegration,
   graphqlChannelIntegration,
   hapiChannelIntegration,
@@ -63,4 +65,5 @@ export const channelIntegrations = {
   hapiIntegration: hapiChannelIntegration,
   expressIntegration: expressChannelIntegration,
   graphqlIntegration: graphqlDiagnosticsChannelIntegration,
+  awsIntegration: awsChannelIntegration,
 } as const;

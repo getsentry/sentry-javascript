@@ -29,6 +29,9 @@ const NODE_EXPORTS_IGNORE = [
   // factories for that same Node-runtime-only opt-in, so it isn't surfaced
   // through the framework / serverless SDKs either.
   'diagnosticsChannelInjectionIntegrations',
+  // Helper for SDKs that build their own default-integration set (e.g. aws-serverless)
+  // to apply the diagnostics-channel integration swap; not surfaced elsewhere.
+  'applyDiagnosticsChannelInjectionIntegrations',
   // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
   '_INTERNAL_normalizeCollectionInterval',
 ];

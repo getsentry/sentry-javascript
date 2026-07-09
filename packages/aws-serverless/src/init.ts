@@ -1,7 +1,11 @@
 import type { Integration, Options } from '@sentry/core';
 import { applySdkMetadata, debug, getSDKSource } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrationsWithoutPerformance, initWithoutDefaultIntegrations } from '@sentry/node';
+import {
+  applyDiagnosticsChannelInjectionIntegrations,
+  getDefaultIntegrationsWithoutPerformance,
+  initWithoutDefaultIntegrations,
+} from '@sentry/node';
 import { envToBool } from '@sentry/node-core';
 import { DEBUG_BUILD } from './debug-build';
 import { awsIntegration } from './integration/aws';
@@ -49,8 +53,11 @@ function shouldDisableLayerExtensionForProxy(): boolean {
  */
 // NOTE: in awslambda-auto.ts, we also call the original `getDefaultIntegrations` from `@sentry/node` to load performance integrations.
 // If at some point we need to filter a node integration out for good, we need to make sure to also filter it out there.
-export function getDefaultIntegrations(_options: Options): Integration[] {
-  return [...getDefaultIntegrationsWithoutPerformance(), awsIntegration(), awsLambdaIntegration()];
+export function getDefaultIntegrations(options: Options): Integration[] {
+  const integrations = [...getDefaultIntegrationsWithoutPerformance(), awsIntegration(), awsLambdaIntegration()];
+  // If the app opted into diagnostics-channel injection, swap the OTel `Aws` integration for its
+  // channel-based equivalent (registered in `@sentry/server-utils`). No-op otherwise.
+  return applyDiagnosticsChannelInjectionIntegrations(integrations, options);
 }
 
 export interface AwsServerlessOptions extends NodeOptions {
