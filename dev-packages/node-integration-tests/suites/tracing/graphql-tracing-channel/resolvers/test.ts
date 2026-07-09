@@ -59,4 +59,26 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
     },
     { additionalDependencies: { graphql: '^17' } },
   );
+
+  // With `ignoreTrivialResolveSpans: false`, graphql's default property resolver is no longer skipped,
+  // so the `user.name` field (which has no explicit resolver) also gets a `graphql.resolve` span.
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario.mjs',
+    'instrument-trivial.mjs',
+    (createTestRunner, test) => {
+      test('emits a span for the trivial default resolver when ignoreTrivialResolveSpans is false', async () => {
+        await createTestRunner()
+          .expect({
+            transaction: event => {
+              const spans = event.spans || [];
+              expect(spans.find(span => span.description === 'graphql.resolve user.name')).toBeDefined();
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { graphql: '^17' } },
+  );
 });

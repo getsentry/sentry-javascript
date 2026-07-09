@@ -3,6 +3,10 @@
 
   "include": ["suites/**/*.ts", "*.ts"],
 
+  // `suites/prisma` imports a Prisma-generated client (`./generated`) that only exists after codegen,
+  // so it can't be type-checked as part of the static suite check.
+  "exclude": ["suites/prisma/**"],
+
   "compilerOptions": {
     // Although this seems wrong to include `DOM` here, it's necessary to make
     // global fetch available in tests in lower Node versions.

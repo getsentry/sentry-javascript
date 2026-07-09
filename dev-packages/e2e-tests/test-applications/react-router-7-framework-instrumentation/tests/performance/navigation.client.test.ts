@@ -39,6 +39,50 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
             'sentry.op': 'navigation',
             'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
             'navigation.type': 'router.navigate',
+            'url.template': '/performance/ssr',
+            'url.path': '/performance/ssr',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/ssr$/),
+          },
+        },
+      },
+      transaction: '/performance/ssr',
+      type: 'transaction',
+    });
+  });
+
+  test('should resolve relative navigate targets against the current URL', async ({ page }) => {
+    // Wait for the pageload transaction so we know the client has hydrated and the router is
+    // instrumented before triggering the relative navigation (avoids a brittle fixed sleep).
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
+    await page.goto(`/performance`);
+    await pageloadTxPromise;
+
+    const navigationTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return (
+        transactionEvent.transaction === '/performance/ssr' && transactionEvent.contexts?.trace?.op === 'navigation'
+      );
+    });
+
+    await page.getByRole('button', { name: 'Relative SSR Navigate' }).click();
+
+    const transaction = await navigationTxPromise;
+
+    expect(transaction).toMatchObject({
+      contexts: {
+        trace: {
+          op: 'navigation',
+          origin: 'auto.navigation.react_router.instrumentation_api',
+          data: {
+            'sentry.source': 'route',
+            'sentry.op': 'navigation',
+            'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
+            'navigation.type': 'router.navigate',
+            'url.template': '/performance/ssr',
+            'url.path': '/performance/ssr',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/ssr$/),
           },
         },
       },
@@ -69,6 +113,9 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
           origin: 'auto.navigation.react_router.instrumentation_api',
           data: {
             'sentry.source': 'route',
+            'url.template': '/performance/with/:param',
+            'url.path': '/performance/with/sentry',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),
           },
         },
       },

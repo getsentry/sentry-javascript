@@ -14,5 +14,5 @@ sentryTest('finishes streamed pageload span when the page goes background', asyn
 
   // TODO: Is this what we want?
   expect(pageloadSpan.status).toBe('ok');
-  expect(pageloadSpan.attributes?.['sentry.cancellation_reason']?.value).toBe('document.hidden');
+  expect(pageloadSpan.attributes['sentry.cancellation_reason']?.value).toBe('document.hidden');
 });

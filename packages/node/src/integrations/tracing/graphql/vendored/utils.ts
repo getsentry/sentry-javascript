@@ -239,7 +239,9 @@ export function wrapFields(
     }
 
     if (field.resolve) {
-      field.resolve = wrapFieldResolver(getConfig, field.resolve);
+      // The shared structural types narrow the resolver context to `ObjectWithGraphQLData`; cast back
+      // to the field's own resolver type (behavior is unchanged — this is a type-only adjustment).
+      field.resolve = wrapFieldResolver(getConfig, field.resolve) as GraphQLFieldResolver;
     }
 
     if (field.type) {
@@ -254,7 +256,8 @@ export function wrapFields(
 function unwrapType(type: GraphQLOutputType): readonly GraphQLObjectType[] {
   // unwrap wrapping types (non-nullable and list types)
   if ('ofType' in type) {
-    return unwrapType(type.ofType);
+    // The structural index signature widens `ofType` to `unknown`, so narrow it back explicitly.
+    return unwrapType(type.ofType as GraphQLOutputType);
   }
 
   // unwrap union types

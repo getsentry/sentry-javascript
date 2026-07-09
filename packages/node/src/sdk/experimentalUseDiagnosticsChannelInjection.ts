@@ -1,6 +1,7 @@
 import {
   channelIntegrations,
   ioredisChannelIntegration,
+  redisChannelIntegration,
   detectOrchestrionSetup,
 } from '@sentry/server-utils/orchestrion';
 import type { RegisterDiagnosticsChannelInjectionOptions } from '@sentry/server-utils/orchestrion/register';
@@ -57,12 +58,14 @@ export function experimentalUseDiagnosticsChannelInjection(
     const replacedOtelIntegrationNames = integrations.map(i => i.name);
 
     return {
-      // ioredis is wired here rather than in the shared `channelIntegrations` registry: it needs
-      // the node redis cache `responseHook`, and it only partially replaces the composite OTel
-      // `Redis` integration (which also covers node-redis and ioredis >=5.11 native diagnostics_channel).
-      // So it's added to the integration set but kept OUT of `replacedOtelIntegrationNames` — `Redis`
-      // must stay; its ioredis <5.11 monkey-patch is gated off in `redisIntegration` instead.
-      integrations: [...integrations, ioredisChannelIntegration({ responseHook: cacheResponseHook })],
+      // ioredis and redis are wired separately (not in `channelIntegrations`): they need the node
+      // redis cache `responseHook` and only partially replace the composite OTel `Redis` integration,
+      // so they're kept OUT of `replacedOtelIntegrationNames` — `Redis` must stay (batch + >=5.11 native DC).
+      integrations: [
+        ...integrations,
+        ioredisChannelIntegration({ responseHook: cacheResponseHook }),
+        redisChannelIntegration({ responseHook: cacheResponseHook }),
+      ],
       replacedOtelIntegrationNames,
       register: () => registerDiagnosticsChannelInjection(options),
       detect: detectOrchestrionSetup,

@@ -27,7 +27,8 @@ export default Sentry.withSentry(
             content: [{ type: 'text', text: 'Hello from mock AI!' }],
             warnings: [],
           }),
-        }),
+          // The mock result shape differs from this `ai` version's LanguageModelV3 result type; cast to the mock's expected config.
+        } as unknown as ConstructorParameters<typeof MockLanguageModelV3>[0]),
         prompt: 'Where is the first span?',
       });
 

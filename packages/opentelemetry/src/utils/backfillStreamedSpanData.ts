@@ -7,6 +7,7 @@ import {
   spanKindToName,
 } from '@sentry/core';
 import { inferSpanData } from './parseSpanDescription';
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 
 /**
  * Backfill op, source, name and data on a streamed span JSON from OTel semantic conventions.
@@ -30,6 +31,11 @@ export function backfillStreamedSpanDataFromOtel(spanJSON: StreamedSpanJSON, hin
   safeSetSpanJSONAttributes(spanJSON, {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+    // If nothing in the chain previously set an origin, we now default it to 'manual'
+    // For transactions, this is done in the SpanExporter.
+    // TODO (v11): Remove this again once we fully moved away from OTel's TracerProvider.
+    // at this point, we use `SentrySpan` everywhere, which defaults its origin to 'manual'.
+    [SENTRY_ORIGIN]: 'manual',
     ...data,
   });
 

@@ -12,7 +12,7 @@ test('should create a parameterized streamed span when the `app` directory is us
 
   expect(span.name).toBe('/parameterized/:one');
   expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
-  expect(span.attributes?.['sentry.source']?.value).toBe('route');
+  expect(span.attributes['sentry.source']?.value).toBe('route');
 });
 
 test('should create a static streamed span when the `app` directory is used and the route is not parameterized', async ({
@@ -28,7 +28,7 @@ test('should create a static streamed span when the `app` directory is used and 
 
   expect(span.name).toBe('/parameterized/static');
   expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
-  expect(span.attributes?.['sentry.source']?.value).toBe('url');
+  expect(span.attributes['sentry.source']?.value).toBe('url');
 });
 
 test('should create a partially parameterized streamed span when the `app` directory is used', async ({ page }) => {
@@ -42,7 +42,7 @@ test('should create a partially parameterized streamed span when the `app` direc
 
   expect(span.name).toBe('/parameterized/:one/beep');
   expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
-  expect(span.attributes?.['sentry.source']?.value).toBe('route');
+  expect(span.attributes['sentry.source']?.value).toBe('route');
 });
 
 test('should create a nested parameterized streamed span when the `app` directory is used.', async ({ page }) => {
@@ -56,5 +56,5 @@ test('should create a nested parameterized streamed span when the `app` director
 
   expect(span.name).toBe('/parameterized/:one/beep/:two');
   expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
-  expect(span.attributes?.['sentry.source']?.value).toBe('route');
+  expect(span.attributes['sentry.source']?.value).toBe('route');
 });

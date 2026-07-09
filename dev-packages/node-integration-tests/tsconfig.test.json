@@ -3,13 +3,21 @@
 
   "include": ["suites/**/*.ts", "vite.config.ts"],
 
+  // `prisma.config.ts` files are consumed by the Prisma CLI, not the tests. Their runtime config
+  // shape (e.g. the `datasource` field) intentionally differs from `@prisma/config`'s exported
+  // types, so type-checking them here would produce false positives without protecting test code.
+  "exclude": ["suites/**/prisma.config.ts"],
+
   "compilerOptions": {
     // Although this seems wrong to include `DOM` here, it's necessary to make
     // global fetch available in tests in lower Node versions.
     "lib": ["DOM", "es2020"],
     // should include all types from `./tsconfig.json` plus types for all test frameworks used
-    "types": ["node"]
+    "types": ["node"],
 
-    // other package-specific, test-specific options
+    // Test assertions routinely index into span attributes/arrays that are known to exist at that
+    // point (e.g. `span.attributes[KEY].value`); requiring `!` on every such access adds noise
+    // without catching real bugs in test code.
+    "noUncheckedIndexedAccess": false
   }
 }

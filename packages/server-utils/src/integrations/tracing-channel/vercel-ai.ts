@@ -2,7 +2,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration, waitForTracingChannelBinding } from '@sentry/core';
 import { vercelAiIntegration as baseVercelAiIntegration } from '../../vercel-ai';
 import * as dc from 'node:diagnostics_channel';
-import { subscribeVercelAiOrchestrionChannels } from '../../vercel-ai/vercel-ai-orchestrion-v6-subscriber';
+import { subscribeVercelAiOrchestrionChannels } from '../../vercel-ai/vercel-ai-orchestrion-subscriber';
 
 type VercelAiOptions = Parameters<typeof baseVercelAiIntegration>[0];
 
@@ -35,6 +35,6 @@ const _vercelAiChannelIntegration = ((options: VercelAiOptions = {}) => {
 /**
  * Auto-instrument the `ai` SDK. Supported are:
  * - v7 via native `ai:telemetry` tracing channel
- * - v6 via orchestrion `orchestrion:ai:*` channels
+ * - v5 & v6 via orchestrion `orchestrion:ai:*` channels
  */
 export const vercelAiChannelIntegration = defineIntegration(_vercelAiChannelIntegration);

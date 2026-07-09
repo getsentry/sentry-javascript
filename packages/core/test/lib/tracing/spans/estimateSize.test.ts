@@ -16,13 +16,14 @@ describe('estimateSerializedSpanSizeInBytes', () => {
       end_timestamp: 1740000001.456,
       status: 'ok',
       is_segment: true,
+      attributes: {},
     };
 
     const estimate = estimateSerializedSpanSizeInBytes(span);
     const actual = JSON.stringify(span).length;
 
     expect(estimate).toBe(184);
-    expect(actual).toBe(196);
+    expect(actual).toBe(212);
 
     expect(estimate).toBeLessThanOrEqual(actual * 1.2);
     expect(estimate).toBeGreaterThanOrEqual(actual * 0.8);
@@ -38,13 +39,14 @@ describe('estimateSerializedSpanSizeInBytes', () => {
       end_timestamp: 1740000000.05,
       status: 'ok',
       is_segment: false,
+      attributes: {},
     };
 
     const estimate = estimateSerializedSpanSizeInBytes(span);
     const actual = JSON.stringify(span).length;
 
     expect(estimate).toBe(172);
-    expect(actual).toBe(222);
+    expect(actual).toBe(238);
 
     expect(estimate).toBeLessThanOrEqual(actual * 1.1);
     expect(estimate).toBeGreaterThanOrEqual(actual * 0.7);
@@ -152,6 +154,7 @@ describe('estimateSerializedSpanSizeInBytes', () => {
       end_timestamp: 1740000001.0,
       status: 'ok',
       is_segment: true,
+      attributes: {},
       links: [
         {
           trace_id: 'b2c3d4e5f607189a0b1c2d3e4f506070',

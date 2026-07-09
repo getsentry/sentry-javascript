@@ -11,7 +11,7 @@ test('beforeSendSpan applies changes to streamed span', async () => {
         const customChildSpan = spans.find(s => s.name === 'customChildSpanName');
 
         expect(customChildSpan).toBeDefined();
-        expect(customChildSpan!.attributes?.['sentry.custom_attribute']).toEqual({
+        expect(customChildSpan!.attributes['sentry.custom_attribute']).toEqual({
           type: 'string',
           value: 'customAttributeValue',
         });

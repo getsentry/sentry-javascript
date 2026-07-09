@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/node';
+import { waitForConnection } from '@sentry-internal/node-integration-tests';
 import { Connection, Request, TYPES } from 'tedious';
 
 const config = {
@@ -24,7 +25,14 @@ const BULK_TABLE = 'test_bulk';
 function connect() {
   return new Promise((resolve, reject) => {
     const connection = new Connection(config);
-    connection.on('connect', err => (err ? reject(err) : resolve(connection)));
+    connection.on('connect', err => {
+      if (err) {
+        connection.close();
+        reject(err);
+      } else {
+        resolve(connection);
+      }
+    });
     if (connection.state !== connection.STATE.CONNECTING) {
       connection.connect();
     }
@@ -77,6 +85,13 @@ function bulkLoad(connection) {
 }
 
 async function run() {
+  // Gate on the DB actually accepting a connection before opening the span (see `waitForConnection`).
+  // MSSQL is slow to start accepting connections even after the healthcheck passes, so retry a real connect.
+  await waitForConnection(async () => {
+    const probe = await connect();
+    probe.close();
+  });
+
   const connection = await connect();
 
   await Sentry.startSpan({ name: 'Test Transaction' }, async () => {
