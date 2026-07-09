@@ -12,6 +12,7 @@ import { amqplibConfig } from './amqplib';
 import { hapiConfig } from './hapi';
 import { redisConfig } from './redis';
 import { expressConfig } from './express';
+import { graphqlConfig } from './graphql';
 
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...mysqlConfig,
@@ -27,6 +28,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...amqplibConfig,
   ...redisConfig,
   ...expressConfig,
+  ...graphqlConfig,
 ];
 
 /**

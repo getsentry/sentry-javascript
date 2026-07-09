@@ -11,6 +11,7 @@ import { amqplibChannels } from './config/amqplib';
 import { hapiChannels } from './config/hapi';
 import { redisChannels } from './config/redis';
 import { expressChannels } from './config/express';
+import { graphqlChannels } from './config/graphql';
 
 /**
  * Fully-qualified `diagnostics_channel` names that orchestrion publishes to.
@@ -39,6 +40,7 @@ export const CHANNELS = {
   ...hapiChannels,
   ...redisChannels,
   ...expressChannels,
+  ...graphqlChannels,
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

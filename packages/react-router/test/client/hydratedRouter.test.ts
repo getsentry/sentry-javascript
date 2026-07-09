@@ -23,6 +23,13 @@ vi.mock('@sentry/core', async () => {
 });
 vi.mock('@sentry/browser', () => ({
   startBrowserTracingNavigationSpan: vi.fn(),
+  getAbsoluteUrl: vi.fn((urlOrPath: string) => {
+    try {
+      return new URL(urlOrPath, 'https://example.com').toString();
+    } catch {
+      return urlOrPath;
+    }
+  }),
 }));
 
 describe('instrumentHydratedRouter', () => {
@@ -33,6 +40,13 @@ describe('instrumentHydratedRouter', () => {
 
   beforeEach(() => {
     originalRouter = (globalThis as any).__reactRouterDataRouter;
+    (globalThis as any).location = {
+      href: 'https://example.com/foo/bar',
+      origin: 'https://example.com',
+      pathname: '/foo/bar',
+      search: '',
+      hash: '',
+    };
     mockRouter = {
       state: {
         location: { pathname: '/foo/bar' },
@@ -94,7 +108,10 @@ describe('instrumentHydratedRouter', () => {
     (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
     callback(newState);
     expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/:id');
-    expect(mockNavigationSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      'url.template': '/foo/:id',
+    });
   });
 
   it('does not overwrite pageload origin when the pageload is still active', () => {
@@ -112,11 +129,14 @@ describe('instrumentHydratedRouter', () => {
     (core.getActiveSpan as any).mockReturnValue(mockPageloadSpan);
     callback(newState);
     // Subscribe callback must not touch the navigation span, and must not write `origin` on the
-    // pageload — only `source` via the single-attribute setter. The pageload origin was already
-    // set by trySubscribe.
+    // pageload — only `source`/`url.template` via the attribute setter. The pageload origin was
+    // already set by trySubscribe.
     expect(mockNavigationSpan.setAttribute).not.toHaveBeenCalled();
     expect(mockNavigationSpan.setAttributes).not.toHaveBeenCalled();
-    expect(mockPageloadSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    expect(mockPageloadSpan.setAttributes).toHaveBeenLastCalledWith({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      'url.template': '/foo/:id',
+    });
   });
 
   it('skips the subscribe heuristic when the API is active and a route hook already set source:route', () => {
@@ -165,7 +185,10 @@ describe('instrumentHydratedRouter', () => {
     callback(newState);
 
     expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/:id');
-    expect(mockNavigationSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      'url.template': '/foo/:id',
+    });
 
     delete (globalThis as any).__sentryReactRouterClientInstrumentationUsed;
   });
@@ -210,6 +233,20 @@ describe('instrumentHydratedRouter', () => {
       expect.objectContaining({
         name: '/items/123',
       }),
+      // the destination URL keeps the query string, even though the span name doesn't
+      { url: 'https://example.com/items/123?foo=bar' },
+    );
+  });
+
+  it('resolves relative navigate targets against the current URL', () => {
+    instrumentHydratedRouter();
+    mockRouter.navigate('settings');
+    expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        name: 'settings',
+      }),
+      { url: 'https://example.com/foo/bar/settings' },
     );
   });
 
@@ -221,6 +258,7 @@ describe('instrumentHydratedRouter', () => {
       expect.objectContaining({
         name: '-1',
       }),
+      { url: 'https://example.com/foo/bar/-1' },
     );
   });
 

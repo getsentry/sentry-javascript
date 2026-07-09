@@ -1,6 +1,10 @@
 import { amqplibChannelIntegration } from '../integrations/tracing-channel/amqplib';
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
 import { googleGenAIChannelIntegration } from '../integrations/tracing-channel/google-genai';
+import {
+  graphqlChannelIntegration,
+  graphqlDiagnosticsChannelIntegration,
+} from '../integrations/tracing-channel/graphql';
 import { hapiChannelIntegration } from '../integrations/tracing-channel/hapi';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
@@ -16,6 +20,7 @@ export {
   amqplibChannelIntegration,
   anthropicChannelIntegration,
   googleGenAIChannelIntegration,
+  graphqlChannelIntegration,
   hapiChannelIntegration,
   ioredisChannelIntegration,
   lruMemoizerChannelIntegration,
@@ -30,6 +35,10 @@ export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../i
 export type { PostgresJsChannelIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
 export { redisChannelIntegration } from '../integrations/tracing-channel/redis';
 export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/tracing-channel/redis';
+
+// The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s
+// vendored OTel graphql instrumentation (re-exported from here so the two can't drift).
+export type * from '../integrations/tracing-channel/graphql/graphql-types';
 
 /**
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
@@ -56,4 +65,5 @@ export const channelIntegrations = {
   amqplibIntegration: amqplibChannelIntegration,
   hapiIntegration: hapiChannelIntegration,
   expressIntegration: expressChannelIntegration,
+  graphqlIntegration: graphqlDiagnosticsChannelIntegration,
 } as const;
