@@ -11,20 +11,36 @@ const CONSUMER_ORIGIN = isOrchestrionEnabled() ? 'auto.amqplib.orchestrion.consu
 
 // Each scenario uses its own queue name to keep them isolated on the shared broker, so the
 // expected producer span is parameterized by the routing key (queue name) it publishes to.
+// The scenarios all publish via `sendToQueue`, which delegates to `publish('', queue, ...)` — i.e. the
+// default (empty) exchange with the queue name as the routing key.
 const expectedProducerSpan = (routingKey: string) =>
   expect.objectContaining({
     op: 'message',
     data: expect.objectContaining({
       'messaging.system': 'rabbitmq',
+      // Legacy messaging attributes emitted by both the OTel and orchestrion integrations.
+      'messaging.destination': '',
+      'messaging.destination_kind': 'topic',
       'messaging.rabbitmq.routing_key': routingKey,
       'messaging.url': 'amqp://sentry:***@localhost:5672/',
       'messaging.protocol': 'AMQP',
       'messaging.protocol_version': '0.9.1',
       'net.peer.name': 'localhost',
       'net.peer.port': 5672,
-      // Only the orchestrion integration emits the current `messaging.operation.type`; the OTel
-      // instrumentation never set it on the producer.
-      ...(isOrchestrionEnabled() ? { 'messaging.operation.type': 'send' } : {}),
+      // Current `@sentry/conventions` attributes are only emitted by the orchestrion integration; the
+      // vendored OTel instrumentation never set them.
+      ...(isOrchestrionEnabled()
+        ? {
+            'messaging.operation.type': 'send',
+            'messaging.destination.name': '',
+            'messaging.rabbitmq.destination.routing_key': routingKey,
+            'network.protocol.name': 'AMQP',
+            'network.protocol.version': '0.9.1',
+            'server.address': 'localhost',
+            'server.port': 5672,
+            'url.full': 'amqp://sentry:***@localhost:5672/',
+          }
+        : {}),
       'otel.kind': 'PRODUCER',
       'sentry.op': 'message',
       'sentry.origin': PUBLISHER_ORIGIN,
@@ -36,7 +52,20 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
   op: 'message',
   data: expect.objectContaining({
     'messaging.system': 'rabbitmq',
+    // Legacy messaging attributes emitted by both the OTel and orchestrion integrations. The consumer
+    // reads the default exchange ('') off the delivered message and the queue name as the routing key.
+    'messaging.destination': '',
+    'messaging.destination_kind': 'topic',
     'messaging.rabbitmq.routing_key': 'queue1',
+    'messaging.operation': 'process',
+    // Current `@sentry/conventions` attributes are only emitted by the orchestrion integration.
+    ...(isOrchestrionEnabled()
+      ? {
+          'messaging.destination.name': '',
+          'messaging.rabbitmq.destination.routing_key': 'queue1',
+          'messaging.operation.type': 'process',
+        }
+      : {}),
     'otel.kind': 'CONSUMER',
     'sentry.op': 'message',
     'sentry.origin': CONSUMER_ORIGIN,
