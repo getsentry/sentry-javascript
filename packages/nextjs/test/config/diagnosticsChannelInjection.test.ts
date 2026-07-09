@@ -3,7 +3,9 @@ import {
   BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
   filterInstrumentedExternals,
 } from '../../src/config/diagnosticsChannelInjection';
+import { setUpBuildTimeVariables } from '../../src/config/withSentryConfig/buildTime';
 import { getServerExternalPackagesPatch } from '../../src/config/withSentryConfig/getFinalConfigObjectBundlerUtils';
+import type { NextConfigObject } from '../../src/config/types';
 
 describe('filterInstrumentedExternals', () => {
   it('removes the given packages, keeps the rest', () => {
@@ -46,5 +48,26 @@ describe('getServerExternalPackagesPatch (diagnostics-channel injection)', () =>
     expect(externals).toContain('ioredis');
     expect(externals).toContain('mysql');
     expect(externals).not.toContain('@apm-js-collab/tracing-hooks');
+  });
+});
+
+describe('setUpBuildTimeVariables (diagnostics-channel injection)', () => {
+  it('injects the flag marker and the tracing-hooks location', () => {
+    const nextConfig: NextConfigObject = {};
+    setUpBuildTimeVariables(nextConfig, { _experimental: { useDiagnosticsChannelInjection: true } }, undefined);
+
+    expect(nextConfig.env).toMatchObject({
+      _sentryUseDiagnosticsChannelInjection: 'true',
+      // The runtime module hook joins subpaths onto this, so it must be an absolute directory.
+      _sentryOrchestrionTracingHooksDir: expect.stringMatching(/@apm-js-collab[/+]tracing-hooks/),
+    });
+  });
+
+  it('injects neither with the flag off', () => {
+    const nextConfig: NextConfigObject = {};
+    setUpBuildTimeVariables(nextConfig, {}, undefined);
+
+    expect(nextConfig.env).not.toHaveProperty('_sentryUseDiagnosticsChannelInjection');
+    expect(nextConfig.env).not.toHaveProperty('_sentryOrchestrionTracingHooksDir');
   });
 });

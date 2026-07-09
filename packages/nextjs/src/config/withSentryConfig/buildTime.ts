@@ -1,6 +1,7 @@
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getTracingHooksDirectory } from '@sentry/server-utils/orchestrion/webpack';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 
 /**
@@ -53,6 +54,9 @@ export function setUpBuildTimeVariables(
   // Marker read by the server SDK to warn if the runtime opt-in call is missing.
   if (userSentryOptions._experimental?.useDiagnosticsChannelInjection) {
     buildTimeVariables._sentryUseDiagnosticsChannelInjection = 'true';
+    // Resolved here (where the SDK is a real on-disk package) and inlined, because the runtime
+    // module hook can't resolve the bare specifier from a bundled server chunk under pnpm.
+    buildTimeVariables._sentryOrchestrionTracingHooksDir = getTracingHooksDirectory();
   }
 
   if (basePath) {
