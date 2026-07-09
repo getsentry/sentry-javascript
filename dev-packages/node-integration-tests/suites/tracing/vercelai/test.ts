@@ -24,8 +24,6 @@ import {
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
 
-// In orchestrion mode the `ai` SDK is instrumented via the diagnostics-channel subscriber
-// (`auto.vercelai.channel`); otherwise via the OTel span processor (`auto.vercelai.otel`).
 const orchestrion = isOrchestrionEnabled();
 const expectedOrigin = orchestrion ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
 

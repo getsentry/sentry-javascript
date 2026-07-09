@@ -30,9 +30,6 @@ function attr(value: unknown) {
   return expect.objectContaining({ value });
 }
 
-// In orchestrion mode the `ai` SDK is instrumented via the diagnostics-channel subscriber
-// (`auto.vercelai.channel`); otherwise via the OTel span processor (`auto.vercelai.otel`). The
-// `vercel.ai.*` pipeline attributes are OTel-processor-only, so they aren't asserted here.
 const expectedOrigin = isOrchestrionEnabled() ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
 
 // v4's OTel path serializes tool-call arguments from the provider's raw JSON string (whitespace
