@@ -94,8 +94,10 @@ async function annotateWithViteParser(
     lang: idWithoutQueryAndHash.endsWith('.jsx') ? 'jsx' : 'tsx',
   });
 
+  // Fall through to the Babel fallback (return undefined, not null) when the parser yields an
+  // unexpected result, mirroring the catch path — null would suppress Babel and drop annotations.
   if (!isAstNode(ast)) {
-    return null;
+    return undefined;
   }
 
   const insertions = collectViteComponentAnnotationInsertions(
