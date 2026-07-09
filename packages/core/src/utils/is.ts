@@ -123,12 +123,12 @@ export function isPlainObject(wat: unknown): wat is Record<string, unknown> {
  * Checks whether given value is a non-null object (i.e. `typeof` is `'object'` and it is not `null`).
  * Unlike {@link isPlainObject}, this also accepts arrays and class instances - it only rules out
  * `null`, primitives, and functions.
- * {@link isObject}.
+ * {@link isObjectLike}.
  *
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isObject(wat: unknown): wat is Record<PropertyKey, unknown> {
+export function isObjectLike(wat: unknown): wat is Record<PropertyKey, unknown> {
   return typeof wat === 'object' && wat !== null;
 }
 

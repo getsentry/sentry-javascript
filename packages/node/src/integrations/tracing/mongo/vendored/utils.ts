@@ -11,7 +11,7 @@
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
-  isObject,
+  isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_KIND,
   SPAN_STATUS_ERROR,
@@ -61,7 +61,7 @@ function scrubStatement(value: unknown): unknown {
 }
 
 function isCommandObj(value: Record<string, unknown> | unknown): value is Record<string, unknown> {
-  return isObject(value) && !isBuffer(value);
+  return isObjectLike(value) && !isBuffer(value);
 }
 
 function isBuffer(value: unknown): boolean {

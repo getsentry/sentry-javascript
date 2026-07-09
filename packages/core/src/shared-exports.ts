@@ -270,7 +270,7 @@ export {
   isErrorEvent,
   isEvent,
   isInstanceOf,
-  isObject,
+  isObjectLike,
   isParameterizedString,
   isPlainObject,
   isPrimitive,

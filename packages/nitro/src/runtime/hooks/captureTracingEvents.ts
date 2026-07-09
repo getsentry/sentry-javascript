@@ -1,6 +1,6 @@
 import * as dc from 'node:diagnostics_channel';
 import {
-  isObject,
+  isObjectLike,
   getActiveSpan,
   getClient,
   getHttpSpanDetailsFromUrlObject,
@@ -47,7 +47,7 @@ export function captureTracingEvents(): void {
  * and may or may not be a Response for h3.
  */
 function getResponseStatusCode(result: unknown): number | undefined {
-  if (isObject(result) && 'status' in result && typeof result.status === 'number') {
+  if (isObjectLike(result) && 'status' in result && typeof result.status === 'number') {
     return result.status;
   }
   return undefined;
@@ -251,7 +251,7 @@ function setParameterizedRouteAttributes(span: Span, event: H3TracingRequestEven
 
   const params = event.context?.params;
 
-  if (isObject(params)) {
+  if (isObjectLike(params)) {
     Object.entries(params).forEach(([key, value]) => {
       // Based on this convention: https://getsentry.github.io/sentry-conventions/generated/attributes/url.html#urlpathparameterkey
       rootSpan.setAttributes({

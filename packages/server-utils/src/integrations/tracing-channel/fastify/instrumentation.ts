@@ -18,7 +18,7 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { HTTP_REQUEST_METHOD, HTTP_RESPONSE_STATUS_CODE, HTTP_ROUTE, URL_PATH } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
-  isObject,
+  isObjectLike,
   debug,
   getActiveSpan,
   getIsolationScope,
@@ -89,7 +89,7 @@ function getRequestRouteConfig(request: any): { otel?: boolean } | undefined {
  * so we accept either shape.
  */
 function isFastifyRequest(arg: any): boolean {
-  return isObject(arg) && !!arg.method && !!arg.url && (!!arg.routeOptions || 'routerPath' in arg);
+  return isObjectLike(arg) && !!arg.method && !!arg.url && (!!arg.routeOptions || 'routerPath' in arg);
 }
 
 /**

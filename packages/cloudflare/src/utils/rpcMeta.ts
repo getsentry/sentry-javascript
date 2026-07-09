@@ -1,4 +1,4 @@
-import { getTraceData, isObject, type SerializedTraceData } from '@sentry/core';
+import { getTraceData, isObjectLike, type SerializedTraceData } from '@sentry/core';
 
 /**
  * Key used to identify Sentry RPC metadata in a trailing argument.
@@ -12,10 +12,10 @@ interface SentryRpcMeta {
 }
 
 function isSentryRpcMeta(value: unknown): value is SentryRpcMeta {
-  if (!isObject(value) || !(SENTRY_RPC_META_KEY in value)) {
+  if (!isObjectLike(value) || !(SENTRY_RPC_META_KEY in value)) {
     return false;
   }
-  return isObject(value[SENTRY_RPC_META_KEY]);
+  return isObjectLike(value[SENTRY_RPC_META_KEY]);
 }
 
 /**

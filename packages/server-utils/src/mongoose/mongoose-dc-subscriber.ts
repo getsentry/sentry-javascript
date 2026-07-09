@@ -10,7 +10,7 @@ import {
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import {
-  isObject,
+  isObjectLike,
   debug,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -183,7 +183,7 @@ function redactValue(value: unknown, depth: number): unknown {
     return value.map(item => redactValue(item, depth + 1));
   }
 
-  if (isObject(value)) {
+  if (isObjectLike(value)) {
     const out: Record<string, unknown> = {};
     for (const key of Object.keys(value as Record<string, unknown>)) {
       out[key] = redactValue((value as Record<string, unknown>)[key], depth + 1);

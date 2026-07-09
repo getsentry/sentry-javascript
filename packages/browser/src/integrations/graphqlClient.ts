@@ -1,7 +1,7 @@
 import type { Client, IntegrationFn } from '@sentry/core/browser';
 import {
   defineIntegration,
-  isObject,
+  isObjectLike,
   isString,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -221,7 +221,7 @@ export function parseGraphQLQuery(query: string): GraphQLOperation {
  * Type guard to check if a request is a standard GraphQL request
  */
 function isStandardRequest(payload: unknown): payload is GraphQLStandardRequest {
-  return isObject(payload) && typeof payload.query === 'string';
+  return isObjectLike(payload) && typeof payload.query === 'string';
 }
 
 /**
@@ -229,10 +229,10 @@ function isStandardRequest(payload: unknown): payload is GraphQLStandardRequest 
  */
 function isPersistedRequest(payload: unknown): payload is GraphQLPersistedRequest {
   return (
-    isObject(payload) &&
+    isObjectLike(payload) &&
     typeof payload.operationName === 'string' &&
-    isObject(payload.extensions) &&
-    isObject(payload.extensions.persistedQuery) &&
+    isObjectLike(payload.extensions) &&
+    isObjectLike(payload.extensions.persistedQuery) &&
     typeof payload.extensions.persistedQuery.sha256Hash === 'string' &&
     typeof payload.extensions.persistedQuery.version === 'number'
   );

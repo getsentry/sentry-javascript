@@ -1,7 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
 import {
-  isObject,
+  isObjectLike,
   bindScopeToEmitter,
   debug,
   defineIntegration,
@@ -209,7 +209,7 @@ function extractQueryConfig(args: unknown[]): { text: string; name?: unknown } |
   if (typeof arg0 === 'string') {
     return { text: arg0 };
   }
-  if (isObject(arg0) && typeof (arg0 as { text?: unknown }).text === 'string') {
+  if (isObjectLike(arg0) && typeof (arg0 as { text?: unknown }).text === 'string') {
     const obj = arg0 as { text: string; name?: unknown };
     return { text: obj.text, name: obj.name };
   }

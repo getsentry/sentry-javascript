@@ -1,5 +1,5 @@
 import type { AstNode, FragmentContext } from './component-annotation-vite-ast';
-import { isAstNode, isObject, walkAst } from './component-annotation-vite-ast';
+import { isAstNode, isObjectLike, walkAst } from './component-annotation-vite-ast';
 import { getStringName } from './component-annotation-vite-jsx';
 
 export function collectFragmentContext(ast: AstNode): FragmentContext {
@@ -17,7 +17,7 @@ export function collectFragmentContext(ast: AstNode): FragmentContext {
 }
 
 function collectFragmentAliasesFromImport(node: AstNode, context: FragmentContext): void {
-  if (node.type !== 'ImportDeclaration' || !isObject(node.source)) {
+  if (node.type !== 'ImportDeclaration' || !isObjectLike(node.source)) {
     return;
   }
 
@@ -29,7 +29,7 @@ function collectFragmentAliasesFromImport(node: AstNode, context: FragmentContex
   const specifiers = Array.isArray(node.specifiers) ? node.specifiers : [];
 
   for (const specifier of specifiers) {
-    if (!isAstNode(specifier) || !isObject(specifier.local)) {
+    if (!isAstNode(specifier) || !isObjectLike(specifier.local)) {
       continue;
     }
 
@@ -47,7 +47,7 @@ function collectFragmentAliasesFromImport(node: AstNode, context: FragmentContex
 }
 
 function collectFragmentAliasesFromVariableDeclarator(node: AstNode, context: FragmentContext): void {
-  if (node.type !== 'VariableDeclarator' || !isObject(node.id) || !isObject(node.init)) {
+  if (node.type !== 'VariableDeclarator' || !isObjectLike(node.id) || !isObjectLike(node.init)) {
     return;
   }
 
@@ -108,7 +108,7 @@ function collectFragmentAliasFromObjectPattern(
 function isImportedReactFragment(specifier: AstNode): boolean {
   return (
     specifier.type === 'ImportSpecifier' &&
-    isObject(specifier.imported) &&
+    isObjectLike(specifier.imported) &&
     getStringName(specifier.imported) === 'Fragment'
   );
 }
@@ -116,8 +116,8 @@ function isImportedReactFragment(specifier: AstNode): boolean {
 function isReactFragmentMemberExpression(init: Record<string, unknown>, context: FragmentContext): boolean {
   return (
     init.type === 'MemberExpression' &&
-    isObject(init.object) &&
-    isObject(init.property) &&
+    isObjectLike(init.object) &&
+    isObjectLike(init.property) &&
     context.reactNamespaceAliases.has(getStringName(init.object) ?? '') &&
     getStringName(init.property) === 'Fragment'
   );
@@ -125,10 +125,10 @@ function isReactFragmentMemberExpression(init: Record<string, unknown>, context:
 
 function isFragmentObjectPatternProperty(property: unknown): property is { value: unknown } {
   return (
-    isObject(property) &&
+    isObjectLike(property) &&
     (property.type === 'Property' || property.type === 'ObjectProperty') &&
-    isObject(property.key) &&
+    isObjectLike(property.key) &&
     getStringName(property.key) === 'Fragment' &&
-    isObject(property.value)
+    isObjectLike(property.value)
   );
 }

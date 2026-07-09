@@ -1,6 +1,6 @@
 import type { IntegrationFn } from '@sentry/core';
 import {
-  isObject,
+  isObjectLike,
   captureException,
   debug,
   defineIntegration,
@@ -40,7 +40,7 @@ function isHonoError(err: unknown): err is HonoError {
   if (err instanceof Error) {
     return true;
   }
-  return isObject(err) && 'status' in (err as Record<string, unknown>);
+  return isObjectLike(err) && 'status' in (err as Record<string, unknown>);
 }
 
 // Vendored from https://github.com/honojs/hono/blob/d3abeb1f801aaa1b334285c73da5f5f022dbcadb/src/helper/route/index.ts#L58-L59

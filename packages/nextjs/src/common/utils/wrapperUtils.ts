@@ -1,5 +1,5 @@
 import {
-  isObject,
+  isObjectLike,
   captureException,
   getActiveSpan,
   getCurrentScope,
@@ -119,7 +119,7 @@ export function maybeExtractSynchronousParamsAndSearchParams(props: unknown): {
   searchParams: Record<string, string> | undefined;
 } {
   let params =
-    isObject(props) && 'params' in props
+    isObjectLike(props) && 'params' in props
       ? (props.params as Record<string, string> | Promise<Record<string, string>> | undefined)
       : undefined;
   if (isThenable(params)) {
@@ -127,7 +127,7 @@ export function maybeExtractSynchronousParamsAndSearchParams(props: unknown): {
   }
 
   let searchParams =
-    isObject(props) && 'searchParams' in props
+    isObjectLike(props) && 'searchParams' in props
       ? (props.searchParams as Record<string, string> | Promise<Record<string, string>> | undefined)
       : undefined;
   if (isThenable(searchParams)) {

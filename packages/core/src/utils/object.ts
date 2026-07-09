@@ -2,7 +2,7 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { WrappedFunction } from '../types/wrappedfunction';
 import { debug } from './debug-logger';
-import { isError, isEvent, isObject, isPrimitive } from './is';
+import { isError, isEvent, isObjectLike, isPrimitive } from './is';
 
 /**
  * Replace a method in an object with a wrapped version of itself.
@@ -158,7 +158,7 @@ export function convertToPlainObject<V>(value: V): Record<string, unknown> | V {
 
 /** Filters out all but an object's own properties */
 function getOwnProperties(obj: unknown): { [key: string]: unknown } {
-  if (isObject(obj)) {
+  if (isObjectLike(obj)) {
     return Object.fromEntries(Object.entries(obj));
   }
   return {};

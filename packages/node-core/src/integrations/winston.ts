@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { LogSeverityLevel } from '@sentry/core';
-import { debug, isObject } from '@sentry/core';
+import { debug, isObjectLike } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureLog } from '../logs/capture';
 
@@ -88,7 +88,7 @@ export function createSentryWinstonTransport<TransportStreamInstance extends obj
           this.emit('logged', info);
         });
 
-        if (!isObject(info)) {
+        if (!isObjectLike(info)) {
           return;
         }
 

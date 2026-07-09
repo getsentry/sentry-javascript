@@ -2,7 +2,7 @@
  * Method configuration and request processing for MCP server instrumentation
  */
 
-import { isObject } from '../../utils/is';
+import { isObjectLike } from '../../utils/is';
 import {
   MCP_PROMPT_NAME_ATTRIBUTE,
   MCP_REQUEST_ARGUMENT,
@@ -89,7 +89,7 @@ export function getRequestArguments(method: string, params: Record<string, unkno
 
   if (config.captureArguments && config.argumentsField && params?.[config.argumentsField]) {
     const argumentsObj = params[config.argumentsField];
-    if (isObject(argumentsObj)) {
+    if (isObjectLike(argumentsObj)) {
       for (const [key, value] of Object.entries(argumentsObj as Record<string, unknown>)) {
         args[`${MCP_REQUEST_ARGUMENT}.${key.toLowerCase()}`] = JSON.stringify(value);
       }

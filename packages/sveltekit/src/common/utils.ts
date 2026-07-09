@@ -1,5 +1,5 @@
 import type { HttpError, Redirect } from '@sveltejs/kit';
-import { isObject } from '@sentry/core';
+import { isObjectLike } from '@sentry/core';
 
 export const WRAPPED_MODULE_SUFFIX = '?sentry-auto-wrap';
 
@@ -62,5 +62,5 @@ export function isRedirect(error: unknown): error is Redirect {
  * Determines if a thrown "error" is a HttpError
  */
 export function isHttpError(err: unknown): err is HttpError {
-  return isObject(err) && 'status' in err && 'body' in err;
+  return isObjectLike(err) && 'status' in err && 'body' in err;
 }

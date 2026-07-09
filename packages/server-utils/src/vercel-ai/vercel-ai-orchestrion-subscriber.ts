@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import type { Span } from '@sentry/core';
-import { debug, getActiveSpan, isObject, SPAN_STATUS_ERROR, withActiveSpan } from '@sentry/core';
+import { debug, getActiveSpan, isObjectLike, SPAN_STATUS_ERROR, withActiveSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '../tracing-channel';
@@ -202,8 +202,8 @@ function bindOperation(
   // the returned span the active async context for the operation's duration — that active span is what
   // `resolveModelCallParent` reads. It also sets `data._sentrySpan`, so we don't here.
   const buildOperationSpan = (data: TracingChannelPayloadWithSpan<OrchestrionContext>): Span | undefined => {
-    const callOptions = isObject(data.arguments[0]) ? data.arguments[0] : {};
-    const telemetry = isObject(callOptions.experimental_telemetry) ? callOptions.experimental_telemetry : {};
+    const callOptions = isObjectLike(data.arguments[0]) ? data.arguments[0] : {};
+    const telemetry = isObjectLike(callOptions.experimental_telemetry) ? callOptions.experimental_telemetry : {};
     // `isEnabled === false` means the user opted out — emit no span. But `isEnabled` is also `false` on
     // the telemetry object we swap in to suppress native spans, so don't mistake our own object for a
     // user opt-out (which would drop the span on a call whose options we already neutralized).
@@ -231,7 +231,7 @@ function bindOperation(
       recordingBySpan.set(span, recording(telemetry));
       // v5 has no `executeToolCall` channel, so patch each tool's `execute` to emit the tool-call span.
       // Inert on v6 (guarded inside `patchToolExecute` when the parent is `executeToolCall`'s own span).
-      if (isObject(callOptions.tools)) {
+      if (isObjectLike(callOptions.tools)) {
         patchOperationTools(callOptions.tools, options);
       }
     }
@@ -307,11 +307,11 @@ function deferStreamTextOperationEnd(
 
 /** A `StreamTextResult` exposes its aggregates as promises (`totalUsage`/`usage`); a settled result does not. */
 function isStreamingResult(result: unknown): result is Record<string, PromiseLike<unknown> | undefined> {
-  return isObject(result) && (isThenable(result.totalUsage) || isThenable(result.usage));
+  return isObjectLike(result) && (isThenable(result.totalUsage) || isThenable(result.usage));
 }
 
 function isThenable(value: unknown): boolean {
-  return isObject(value) && typeof value.then === 'function';
+  return isObjectLike(value) && typeof value.then === 'function';
 }
 
 /**
@@ -350,7 +350,7 @@ function subscribeResolveLanguageModel(
   tracingChannel<OrchestrionContext>(channelName).subscribe({
     end(rawCtx) {
       const ctx = rawCtx as OrchestrionContext;
-      if (!isObject(ctx.result)) {
+      if (!isObjectLike(ctx.result)) {
         return;
       }
       const model = ctx.result as PatchableModel;
@@ -416,7 +416,7 @@ function patchModelMethod(
       return Promise.resolve(original.apply(this, args));
     }
 
-    const callArgs = isObject(args[0]) ? args[0] : {};
+    const callArgs = isObjectLike(args[0]) ? args[0] : {};
     // Carry the operation's `callId` so the shared core can name the span after it
     // (`ai.generateText.doGenerate` / `ai.streamText.doStream`).
     const callId = callIdBySpan.get(parent);
@@ -463,7 +463,7 @@ function patchModelMethod(
         // usage/finish/output only arrive as the stream drains. Tap it (same helper as the v7 path) and
         // defer ending this model-call span until then. The parent `invoke_agent` span is enriched
         // separately by `deferStreamTextOperationEnd`, which awaits the operation's own result promises.
-        if (method === 'doStream' && isObject(value) && isReadableStream(value.stream)) {
+        if (method === 'doStream' && isObjectLike(value) && isReadableStream(value.stream)) {
           value.stream = tapModelCallStream(
             value.stream,
             final => {
@@ -511,7 +511,7 @@ function patchOperationTools(tools: Record<string, unknown>, options: VercelAiCh
   // the user's `ai` call. Instrumentation must never do that — degrade to no tool span instead.
   try {
     for (const [toolName, tool] of Object.entries(tools)) {
-      if (isObject(tool)) {
+      if (isObjectLike(tool)) {
         patchToolExecute(toolName, tool as PatchableTool, tools, options);
       }
     }
@@ -542,7 +542,7 @@ function patchToolExecute(
     }
 
     // v5 passes `{ toolCallId, messages, abortSignal, ... }` as the second argument to `execute`.
-    const callOptions = isObject(rest[0]) ? rest[0] : {};
+    const callOptions = isObjectLike(rest[0]) ? rest[0] : {};
     const message: VercelAiChannelMessage = {
       type: 'executeTool',
       event: {
@@ -629,5 +629,5 @@ function modelFields(model: unknown): { provider?: string; modelId?: string } {
 }
 
 function modelField(model: unknown, field: 'modelId' | 'provider'): string | undefined {
-  return isObject(model) ? asString(model[field]) : undefined;
+  return isObjectLike(model) ? asString(model[field]) : undefined;
 }

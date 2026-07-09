@@ -1,6 +1,6 @@
 import type { Span } from '@sentry/core';
 import {
-  isObject,
+  isObjectLike,
   getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
@@ -46,7 +46,7 @@ function getErrorMessage(exit: Exit.Exit<unknown, unknown>): string | undefined 
   const cause = exit.cause as unknown;
 
   // Effect v4: cause.reasons is an array of Reason objects
-  if (isObject(cause) && 'reasons' in cause && Array.isArray((cause as { reasons: unknown }).reasons)) {
+  if (isObjectLike(cause) && 'reasons' in cause && Array.isArray((cause as { reasons: unknown }).reasons)) {
     const reasons = (cause as { reasons: Array<{ _tag?: string; error?: unknown; defect?: unknown }> }).reasons;
     for (const reason of reasons) {
       if (reason._tag === 'Fail' && reason.error !== undefined) {
@@ -60,7 +60,7 @@ function getErrorMessage(exit: Exit.Exit<unknown, unknown>): string | undefined 
   }
 
   // Effect v3: cause has _tag directly
-  if (isObject(cause) && '_tag' in cause) {
+  if (isObjectLike(cause) && '_tag' in cause) {
     const v3Cause = cause as { _tag: string; error?: unknown; defect?: unknown };
     if (v3Cause._tag === 'Fail') {
       return String(v3Cause.error);
@@ -188,7 +188,7 @@ const isEffectV4 = (() => {
     const testExit = Exit.fail('test') as unknown as { cause?: unknown };
     const cause = testExit.cause;
     // v4 causes have 'reasons' array, v3 causes have '_tag' directly
-    if (isObject(cause) && 'reasons' in cause) {
+    if (isObjectLike(cause) && 'reasons' in cause) {
       return true;
     }
     return false;

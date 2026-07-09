@@ -1,7 +1,7 @@
 import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type { PropagationContext, Span, SpanAttributes } from '@sentry/core';
 import {
-  isObject,
+  isObjectLike,
   debug,
   getActiveSpan,
   getClient,
@@ -31,7 +31,7 @@ export function commonObjectToPropagationContext(
   commonObject: unknown,
   propagationContext: PropagationContext,
 ): PropagationContext {
-  if (isObject(commonObject)) {
+  if (isObjectLike(commonObject)) {
     const memoPropagationContext = commonPropagationContextMap.get(commonObject);
     if (memoPropagationContext) {
       return memoPropagationContext;
@@ -54,7 +54,7 @@ const commonIsolationScopeMap = new WeakMap<object, Scope>();
  * @returns the shared isolation scope.
  */
 export function commonObjectToIsolationScope(commonObject: unknown): Scope {
-  if (isObject(commonObject)) {
+  if (isObjectLike(commonObject)) {
     const memoIsolationScope = commonIsolationScopeMap.get(commonObject);
     if (memoIsolationScope) {
       return memoIsolationScope;

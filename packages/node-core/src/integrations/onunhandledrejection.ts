@@ -5,7 +5,7 @@ import {
   defineIntegration,
   getClient,
   isMatchingPattern,
-  isObject,
+  isObjectLike,
   withActiveSpan,
 } from '@sentry/core';
 import { logAndExitProcess } from '../utils/errorhandling';
@@ -54,7 +54,7 @@ export const onUnhandledRejectionIntegration = defineIntegration(_onUnhandledRej
 /** Extract error info safely */
 function extractErrorInfo(reason: unknown): { name: string; message: string } {
   // Check if reason is an object (including Error instances, not just plain objects)
-  if (!isObject(reason)) {
+  if (!isObjectLike(reason)) {
     return { name: '', message: String(reason ?? '') };
   }
 
@@ -101,7 +101,7 @@ export function makeUnhandledPromiseHandler(
 
     // this can be set in places where we cannot reliably get access to the active span/error
     // when the error bubbles up to this handler, we can use this to set the active span
-    const activeSpanForError = isObject(reason)
+    const activeSpanForError = isObjectLike(reason)
       ? (reason as { _sentry_active_span?: Span })._sentry_active_span
       : undefined;
 
@@ -142,7 +142,7 @@ function handleRejection(reason: unknown, mode: UnhandledRejectionMode): void {
   if (mode === 'warn') {
     consoleSandbox(() => {
       console.warn(rejectionWarning);
-      console.error(isObject(reason) && 'stack' in reason ? reason.stack : reason);
+      console.error(isObjectLike(reason) && 'stack' in reason ? reason.stack : reason);
     });
   } else if (mode === 'strict') {
     consoleSandbox(() => {

@@ -6,7 +6,7 @@ import {
   isJSXRoot,
   toAttributeInsertions,
 } from './component-annotation-vite-jsx';
-import { isAstNode, isObject, walkAst } from './component-annotation-vite-ast';
+import { isAstNode, isObjectLike, walkAst } from './component-annotation-vite-ast';
 import { collectFragmentContext } from './component-annotation-vite-fragments';
 
 type ComponentJSXRoots = { name: string; roots: JSXRootNode[] };
@@ -35,7 +35,7 @@ function getJSXRootsFromReturnArgument(argument: unknown): JSXRootNode[] {
     return [argument];
   }
 
-  if (isObject(argument) && argument.type === 'ConditionalExpression') {
+  if (isObjectLike(argument) && argument.type === 'ConditionalExpression') {
     return [argument.consequent, argument.alternate].filter(isJSXRoot);
   }
 
@@ -49,7 +49,7 @@ function getReturnedJSXFromFunction(functionNode: AstNode): JSXRootNode[] {
     return [body];
   }
 
-  if (!isObject(body) || body.type !== 'BlockStatement') {
+  if (!isObjectLike(body) || body.type !== 'BlockStatement') {
     return [];
   }
 
@@ -58,7 +58,7 @@ function getReturnedJSXFromFunction(functionNode: AstNode): JSXRootNode[] {
     return isAstNode(statement) && statement.type === 'ReturnStatement';
   });
 
-  return isObject(returnStatement) ? getJSXRootsFromReturnArgument(returnStatement.argument) : [];
+  return isObjectLike(returnStatement) ? getJSXRootsFromReturnArgument(returnStatement.argument) : [];
 }
 
 function pushFunctionComponent(components: ComponentJSXRoots[], nameNode: unknown, functionNode: AstNode): void {
@@ -76,12 +76,12 @@ function collectComponentJSXRoots(ast: AstNode): ComponentJSXRoots[] {
   const components: ComponentJSXRoots[] = [];
 
   walkAst(ast, node => {
-    if (node.type === 'FunctionDeclaration' && isObject(node.id)) {
+    if (node.type === 'FunctionDeclaration' && isObjectLike(node.id)) {
       pushFunctionComponent(components, node.id, node);
       return;
     }
 
-    if (node.type === 'VariableDeclarator' && isObject(node.id)) {
+    if (node.type === 'VariableDeclarator' && isObjectLike(node.id)) {
       if (isAstNode(node.init) && node.init.type === 'ArrowFunctionExpression') {
         pushFunctionComponent(components, node.id, node.init);
       }
@@ -119,20 +119,20 @@ function pushClassComponent(components: ComponentJSXRoots[], node: AstNode): voi
 }
 
 function getClassRenderMethodBody(node: AstNode): AstNode | null {
-  if (!isObject(node.body) || !Array.isArray(node.body.body)) {
+  if (!isObjectLike(node.body) || !Array.isArray(node.body.body)) {
     return null;
   }
 
   const renderMethod = node.body.body.find(member => {
     return (
-      isObject(member) &&
-      isObject(member.key) &&
+      isObjectLike(member) &&
+      isObjectLike(member.key) &&
       getStringName(member.key) === 'render' &&
-      (isObject(member.value) || isObject(member.body))
+      (isObjectLike(member.value) || isObjectLike(member.body))
     );
   });
 
-  if (!isObject(renderMethod)) {
+  if (!isObjectLike(renderMethod)) {
     return null;
   }
 

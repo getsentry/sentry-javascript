@@ -1,4 +1,4 @@
-import { isObject, _INTERNAL_safeDateNow, captureCheckIn } from '@sentry/core';
+import { isObjectLike, _INTERNAL_safeDateNow, captureCheckIn } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 import type { VercelCronsConfig } from '../types';
 
@@ -75,7 +75,7 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
         throw e;
       }
 
-      if (isObject(maybePromiseResult) && 'then' in maybePromiseResult) {
+      if (isObjectLike(maybePromiseResult) && 'then' in maybePromiseResult) {
         Promise.resolve(maybePromiseResult).then(
           () => {
             captureCheckIn({

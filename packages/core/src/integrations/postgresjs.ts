@@ -7,7 +7,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { SPAN_STATUS_ERROR, startSpanManual } from '../tracing';
 import type { Span } from '../types/span';
 import { debug } from '../utils/debug-logger';
-import { isObject } from '../utils/is';
+import { isObjectLike } from '../utils/is';
 import { getActiveSpan } from '../utils/spanUtils';
 
 const SQL_OPERATION_REGEX = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i;
@@ -90,7 +90,7 @@ function _instrumentSqlInstance(
     apply(target, thisArg, argumentsList: unknown[]) {
       const query = Reflect.apply(target, thisArg, argumentsList);
 
-      if (isObject(query) && 'handle' in query) {
+      if (isObjectLike(query) && 'handle' in query) {
         _wrapSingleQueryHandle(query as { handle: unknown; strings?: string[] }, proxiedSql, options);
       }
 
@@ -143,7 +143,7 @@ function _wrapQueryMethod(
   return function (this: unknown, ...args: unknown[]): unknown {
     const query = Reflect.apply(original, target, args);
 
-    if (isObject(query) && 'handle' in query) {
+    if (isObjectLike(query) && 'handle' in query) {
       _wrapSingleQueryHandle(query as { handle: unknown; strings?: string[] }, proxiedSql, options);
     }
 

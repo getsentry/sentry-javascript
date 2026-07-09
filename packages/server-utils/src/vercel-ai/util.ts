@@ -1,6 +1,6 @@
 /** Shared, state-free helpers for the Vercel AI (`ai`) channel subscribers, plus the streamed model-call tap. */
 
-import { isObject } from '@sentry/core';
+import { isObjectLike } from '@sentry/core';
 
 /** Narrow to a string, or `undefined` for anything else. */
 export function asString(value: unknown): string | undefined {
@@ -75,7 +75,7 @@ export interface StreamedModelCallResult {
 /** A minimal structural check — the streamed model call exposes a web `ReadableStream` on `result.stream`. */
 export function isReadableStream(value: unknown): value is ReadableStream<unknown> {
   return (
-    isObject(value) &&
+    isObjectLike(value) &&
     typeof (value as { pipeThrough?: unknown }).pipeThrough === 'function' &&
     typeof (value as { getReader?: unknown }).getReader === 'function'
   );
@@ -151,7 +151,7 @@ export function tapModelCallStream(
  * accumulate it (kept out of `state` until the end to avoid re-joining on every chunk).
  */
 function accumulateChunk(state: StreamedModelCallResult, chunk: unknown): string | undefined {
-  if (!isObject(chunk)) {
+  if (!isObjectLike(chunk)) {
     return undefined;
   }
   const { type, delta, id, modelId, toolCallId, toolName, input, args, finishReason, usage, providerMetadata } =

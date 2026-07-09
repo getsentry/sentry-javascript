@@ -9,7 +9,7 @@
 import { WEB_SERVER_GRAPHQL_SPAN_OP } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
-  isObject,
+  isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -104,7 +104,11 @@ export function wrapFieldResolver(
 
     // Mirror graphql's own "trivial resolver" check: a default resolver that just reads a
     // non-function property is not worth a span.
-    if (config.ignoreTrivialResolveSpans && isDefaultResolver && (isObject(source) || typeof source === 'function')) {
+    if (
+      config.ignoreTrivialResolveSpans &&
+      isDefaultResolver &&
+      (isObjectLike(source) || typeof source === 'function')
+    ) {
       const property = (source as Record<string, unknown>)[info.fieldName];
       if (typeof property !== 'function') {
         return fieldResolver.call(this, source, args, contextValue, info);

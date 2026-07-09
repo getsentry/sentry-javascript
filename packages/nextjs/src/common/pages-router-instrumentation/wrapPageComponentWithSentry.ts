@@ -1,5 +1,5 @@
 import {
-  isObject,
+  isObjectLike,
   addNonEnumerableProperty,
   captureException,
   extractTraceparentData,
@@ -19,7 +19,7 @@ interface ClassComponent {
 }
 
 function storeCapturedEventIdOnError(error: unknown, eventId: string | undefined): void {
-  if (isObject(error)) {
+  if (isObjectLike(error)) {
     addNonEnumerableProperty(error as Record<string, unknown>, '__sentry_event_id__', eventId);
   }
 }
@@ -40,7 +40,9 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
           const scope = getCurrentScope();
           // We extract the sentry trace data that is put in the component props by datafetcher wrappers
           const sentryTraceData =
-            isObject(this.props) && '_sentryTraceData' in this.props && typeof this.props._sentryTraceData === 'string'
+            isObjectLike(this.props) &&
+            '_sentryTraceData' in this.props &&
+            typeof this.props._sentryTraceData === 'string'
               ? this.props._sentryTraceData
               : undefined;
 

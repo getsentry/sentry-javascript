@@ -23,7 +23,7 @@ import type {
   Token,
 } from './graphql-types';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { isObject, SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import { isObjectLike, SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { AllowedOperationTypes, SpanNames, TokenKind } from './enum';
 import { AttributeNames } from './enums/AttributeNames';
 import { OTEL_GRAPHQL_DATA_SYMBOL, OTEL_PATCHED_SYMBOL } from './symbols';
@@ -317,7 +317,11 @@ export function wrapFieldResolver<TSource = any, TContext = any, TArgs = any>(
 
     // follows what graphql is doing to decide if this is a trivial resolver
     // for which we don't need to create a resolve span
-    if (config.ignoreTrivialResolveSpans && isDefaultResolver && (isObject(source) || typeof source === 'function')) {
+    if (
+      config.ignoreTrivialResolveSpans &&
+      isDefaultResolver &&
+      (isObjectLike(source) || typeof source === 'function')
+    ) {
       const property = (source as any)[info.fieldName];
       // a function execution is not trivial and should be recorder.
       // property which is not a function is just a value and we don't want a "resolve" span for it

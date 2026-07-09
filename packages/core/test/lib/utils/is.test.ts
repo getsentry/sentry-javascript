@@ -5,7 +5,7 @@ import {
   isError,
   isErrorEvent,
   isInstanceOf,
-  isObject,
+  isObjectLike,
   isPlainObject,
   isPrimitive,
   isThenable,
@@ -194,7 +194,7 @@ describe('isPlainObject', () => {
   });
 });
 
-describe('isObject', () => {
+describe('isObjectLike', () => {
   class MyClass {
     public foo: string = 'bar';
   }
@@ -217,6 +217,6 @@ describe('isObject', () => {
     [42, false],
     [() => undefined, false],
   ])('%s is %s', (value, expected) => {
-    expect(isObject(value)).toBe(expected);
+    expect(isObjectLike(value)).toBe(expected);
   });
 });

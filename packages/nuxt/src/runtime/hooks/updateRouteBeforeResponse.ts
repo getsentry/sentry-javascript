@@ -1,4 +1,4 @@
-import { isObject, debug, getActiveSpan, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { isObjectLike, debug, getActiveSpan, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { H3Event } from 'h3';
 
 type MatchedRoute = { path?: string; route?: string };
@@ -46,7 +46,7 @@ export function updateRouteBeforeResponse(event: EventWithMatchedRoute): void {
 
     const params = event.context?.params;
 
-    if (isObject(params)) {
+    if (isObjectLike(params)) {
       Object.entries(params).forEach(([key, value]) => {
         // Based on this convention: https://getsentry.github.io/sentry-conventions/generated/attributes/url.html#urlpathparameterkey
         rootSpan.setAttributes({

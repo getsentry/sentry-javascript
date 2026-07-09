@@ -1,5 +1,5 @@
 import type { Breadcrumb, XhrBreadcrumbData } from '@sentry/core';
-import { isObject } from '@sentry/core';
+import { isObjectLike } from '@sentry/core';
 import type { NetworkMetaWarning, XhrHint } from '@sentry/browser-utils';
 import { getBodyString, parseXhrResponseHeaders, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -170,7 +170,7 @@ export function _parseXhrResponse(
       return [body.body.outerHTML];
     }
 
-    if (responseType === 'json' && isObject(body)) {
+    if (responseType === 'json' && isObjectLike(body)) {
       return [JSON.stringify(body)];
     }
 
@@ -192,7 +192,7 @@ function _getBodySize(
   responseType: XMLHttpRequest['responseType'],
 ): number | undefined {
   try {
-    const bodyStr = responseType === 'json' && isObject(body) ? JSON.stringify(body) : body;
+    const bodyStr = responseType === 'json' && isObjectLike(body) ? JSON.stringify(body) : body;
     return getBodySize(bodyStr);
   } catch {
     return undefined;

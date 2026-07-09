@@ -2,7 +2,7 @@
 import { getClient } from '../currentScopes';
 import type { HandlerDataFetch } from '../types/instrument';
 import type { WebFetchHeaders } from '../types/webfetchapi';
-import { isError, isObject, isRequest } from '../utils/is';
+import { isError, isObjectLike, isRequest } from '../utils/is';
 import { addNonEnumerableProperty, fill } from '../utils/object';
 import { supportsNativeFetch } from '../utils/supports';
 import { timestampInSeconds } from '../utils/time';
@@ -226,7 +226,7 @@ function streamHandler(response: Response): void {
 }
 
 function hasProp<T extends string>(obj: unknown, prop: T): obj is Record<string, string> {
-  return isObject(obj) && !!(obj as Record<string, string>)[prop];
+  return isObjectLike(obj) && !!(obj as Record<string, string>)[prop];
 }
 
 function getUrlFromResource(resource: FetchResource): string {

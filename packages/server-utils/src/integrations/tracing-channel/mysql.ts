@@ -1,7 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Scope } from '@sentry/core';
 import {
-  isObject,
+  isObjectLike,
   bindScopeToEmitter,
   debug,
   defineIntegration,
@@ -133,7 +133,7 @@ function extractSql(firstArg: unknown): string | undefined {
   if (typeof firstArg === 'string') {
     return firstArg;
   }
-  if (isObject(firstArg) && 'sql' in firstArg) {
+  if (isObjectLike(firstArg) && 'sql' in firstArg) {
     const sql = (firstArg as { sql?: unknown }).sql;
     return typeof sql === 'string' ? sql : undefined;
   }
