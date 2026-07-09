@@ -52,7 +52,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles }) => {
     //#endregion
 
     //# sourceMappingURL=shared-module.js.map",
-      "shared-module.js.map": "{"version":3,"file":"shared-module.js","names":[],"sources":["../../src/shared-module.js"],"sourcesContent":["// This is a shared module that is used by multiple HTML pages\\nexport function greet(name) {\\n  // eslint-disable-next-line no-console\\n  console.log(\`Hello, \${String(name)}!\`);\\n}\\n\\nexport const VERSION = \\"1.0.0\\";\\n\\n// Side effect: greet on load\\ngreet(\\"World\\");\\n"],"mappings":";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AACA,SAAgB,MAAM,MAAM;AAE1B,SAAQ,IAAI,UAAU,OAAO,KAAK,CAAC,GAAG;;AAMxC,MAAM,QAAQ"}",
+      "shared-module.js.map": "{"version":3,"file":"shared-module.js","names":[],"sources":["../../src/shared-module.js"],"sourcesContent":["// This is a shared module that is used by multiple HTML pages\\nexport function greet(name) {\\n  // eslint-disable-next-line no-console\\n  console.log(\`Hello, \${String(name)}!\`);\\n}\\n\\nexport const VERSION = \\"1.0.0\\";\\n\\n// Side effect: greet on load\\ngreet(\\"World\\");\\n"],"mappings":";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AACA,SAAgB,MAAM,MAAM;CAE1B,QAAQ,IAAI,UAAU,OAAO,IAAI,EAAE,EAAE;AACvC;AAKA,MAAM,OAAO"}",
       "src/vite-mpa-index.html": "<!doctype html>
     <html lang="en">
       <head>

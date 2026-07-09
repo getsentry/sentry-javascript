@@ -33,14 +33,14 @@ const instrumentRedisModule = generateInstrumentOnce(`${INTEGRATION_NAME}.Redis`
  */
 export const instrumentRedis = Object.assign(
   (): void => {
-    // When diagnostics-channel injection is opted in, orchestrion owns ioredis
-    // `<5.11.0`, so skip the OTel ioredis monkey-patch to avoid double instrumentation.
-    // On Node without `tracingChannel` (<18.19) orchestrion can't run, so keep the
-    // OTel patch there — otherwise ioredis `<5.11.0` would not be traced at all.
+    // When diagnostics-channel injection is opted in, orchestrion fully owns the older
+    // ioredis (`<5.11.0`) and redis/node-redis (`<5.12.0`) ranges — commands, connect, and
+    // batches — so skip both OTel monkey-patches to avoid double instrumentation. On Node
+    // without `tracingChannel` (<18.19) orchestrion can't run, so keep the OTel patches there.
     if (!isDiagnosticsChannelInjectionEnabled() || !dc.tracingChannel) {
       instrumentIORedis();
+      instrumentRedisModule();
     }
-    instrumentRedisModule();
 
     // todo: implement them gradually
     // new LegacyRedisInstrumentation({}),

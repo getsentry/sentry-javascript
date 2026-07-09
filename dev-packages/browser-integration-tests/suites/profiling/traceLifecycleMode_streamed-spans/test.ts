@@ -22,15 +22,15 @@ sentryTest(
     const rootSpan = spans.find(s => s.name === 'root-fibonacci');
     expect(rootSpan).toBeDefined();
 
-    expect(rootSpan!.attributes?.['thread.id']).toEqual({ type: 'string', value: '0' });
-    expect(rootSpan!.attributes?.['thread.name']).toEqual({ type: 'string', value: 'main' });
+    expect(rootSpan!.attributes['thread.id']).toEqual({ type: 'string', value: '0' });
+    expect(rootSpan!.attributes['thread.name']).toEqual({ type: 'string', value: 'main' });
 
     const childSpans = spans.filter(s => s.name === 'child-span-1' || s.name === 'child-span-2');
     expect(childSpans.length).toBeGreaterThanOrEqual(1);
 
     for (const child of childSpans) {
-      expect(child.attributes?.['thread.id']).toEqual({ type: 'string', value: '0' });
-      expect(child.attributes?.['thread.name']).toEqual({ type: 'string', value: 'main' });
+      expect(child.attributes['thread.id']).toEqual({ type: 'string', value: '0' });
+      expect(child.attributes['thread.name']).toEqual({ type: 'string', value: 'main' });
     }
   },
 );

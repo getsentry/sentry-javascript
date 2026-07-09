@@ -617,7 +617,7 @@ export function waitForStreamedSpans(
  * ```
  */
 export function getSpanOp(span: SerializedStreamedSpan): string | undefined {
-  return span.attributes?.['sentry.op']?.type === 'string' ? span.attributes['sentry.op'].value : undefined;
+  return span.attributes['sentry.op']?.type === 'string' ? span.attributes['sentry.op'].value : undefined;
 }
 
 const TEMP_FILE_PREFIX = 'event-proxy-server-';

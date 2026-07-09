@@ -815,7 +815,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(
     hook: 'beforeStartNavigationSpan',
-    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean }) => void,
+    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean; url?: string }) => void,
   ): () => void;
 
   /**
@@ -824,7 +824,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(
     hook: 'startNavigationSpan',
-    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean }) => void,
+    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean; url?: string }) => void,
   ): () => void;
 
   /**
@@ -1100,7 +1100,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(
     hook: 'beforeStartNavigationSpan',
     options: StartSpanOptions,
-    navigationOptions?: { isRedirect?: boolean },
+    navigationOptions?: { isRedirect?: boolean; url?: string },
   ): void;
 
   /**
@@ -1109,7 +1109,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(
     hook: 'startNavigationSpan',
     options: StartSpanOptions,
-    navigationOptions?: { isRedirect?: boolean },
+    navigationOptions?: { isRedirect?: boolean; url?: string },
   ): void;
 
   /**

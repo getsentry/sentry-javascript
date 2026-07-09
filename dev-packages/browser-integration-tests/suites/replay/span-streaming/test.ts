@@ -33,7 +33,7 @@ sentryTest(
     expect(pageloadSpan).toBeDefined();
 
     // Span attribute: sentry.replay_id
-    expect(pageloadSpan!.attributes?.['sentry.replay_id']).toEqual({
+    expect(pageloadSpan!.attributes['sentry.replay_id']).toEqual({
       type: 'string',
       value: replay.session?.id,
     });

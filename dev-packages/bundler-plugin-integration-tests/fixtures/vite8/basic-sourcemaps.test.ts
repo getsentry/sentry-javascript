@@ -18,7 +18,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, runFileInNode }) => {
     //#endregion
 
     //# sourceMappingURL=basic.js.map",
-      "basic.js.map": "{"version":3,"file":"basic.js","names":[],"sources":["../../src/basic.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"hello world\\");\\n"],"mappings":";;;;;;;;;AACA,QAAQ,IAAI,cAAc"}",
+      "basic.js.map": "{"version":3,"file":"basic.js","names":[],"sources":["../../src/basic.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"hello world\\");\\n"],"mappings":";;;;;;;;;AACA,QAAQ,IAAI,aAAa"}",
       "sentry-cli-mock.json": "["releases","new","CURRENT_SHA"],
     ["releases","set-commits","CURRENT_SHA","--auto","--ignore-missing"],
     ["releases","finalize","CURRENT_SHA"],

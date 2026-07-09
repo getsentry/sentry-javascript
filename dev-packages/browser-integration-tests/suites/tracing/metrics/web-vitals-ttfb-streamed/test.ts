@@ -27,10 +27,10 @@ sentryTest(
     // This seems to happen somewhat randomly, so we handle it.
     const responseStart = await page.evaluate("performance.getEntriesByType('navigation')[0].responseStart;");
     if (responseStart !== 0) {
-      expect(pageloadSpan.attributes?.['browser.web_vital.ttfb.value']?.type).toMatch(/^(double)|(integer)$/);
-      expect(pageloadSpan.attributes?.['browser.web_vital.ttfb.value']?.value).toBeGreaterThan(0);
+      expect(pageloadSpan.attributes['browser.web_vital.ttfb.value']?.type).toMatch(/^(double)|(integer)$/);
+      expect(pageloadSpan.attributes['browser.web_vital.ttfb.value']?.value).toBeGreaterThan(0);
     }
 
-    expect(pageloadSpan.attributes?.['browser.web_vital.ttfb.request_time']?.type).toMatch(/^(double)|(integer)$/);
+    expect(pageloadSpan.attributes['browser.web_vital.ttfb.request_time']?.type).toMatch(/^(double)|(integer)$/);
   },
 );
