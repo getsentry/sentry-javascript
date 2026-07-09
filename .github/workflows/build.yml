@@ -810,16 +810,23 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Free up disk space
+      - name: Free up disk space if low
         # The full suite pulls several DB docker images (mssql alone is ~1.5GB) and installs
-        # per-suite node_modules concurrently, which can exhaust the ~14GB free on the default
-        # runner and fail unrelated suites with ENOSPC. Reclaim the large preinstalled toolchains
-        # this job never uses to give the run headroom. `df` brackets it so a future squeeze is
-        # visible in the logs.
+        # per-suite node_modules concurrently. Most hosted runners now have ~90GB free, where that
+        # fits comfortably, but part of the fleet still ships with far less free space and those
+        # runners fail unrelated suites with ENOSPC. Only reclaim the large preinstalled toolchains
+        # (a slow ~30-60s `rm` of the Android SDK etc.) when free space is actually low, so healthy
+        # runners skip it and pay nothing. `df` is logged either way so a future squeeze is visible.
         run: |
           df -h /
-          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
-          df -h /
+          avail_kb=$(df -k --output=avail / | tail -1)
+          if [ "$avail_kb" -lt $((40 * 1024 * 1024)) ]; then
+            echo "Low disk space (<40GB free) — reclaiming unused toolchains"
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+            df -h /
+          else
+            echo "Sufficient disk space — skipping cleanup"
+          fi
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
