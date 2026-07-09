@@ -1,3 +1,4 @@
+import { uniq } from '@sentry/core';
 import type { Plugin } from 'vite';
 
 type AutoInstrumentMiddlewareOptions = {
@@ -179,7 +180,7 @@ export function arrayToObjectShorthand(contents: string): string | null {
   }
 
   // Deduplicate to avoid invalid syntax like { foo, foo }
-  const uniqueItems = [...new Set(items)];
+  const uniqueItems = uniq(items);
 
   return `{ ${uniqueItems.join(', ')} }`;
 }
