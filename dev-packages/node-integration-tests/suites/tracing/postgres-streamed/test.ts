@@ -215,7 +215,7 @@ describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingD
                   origin,
                 }),
                 expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"', origin }),
-                expectedDbSpan({ name: 'DROP TABLE "User"', statement: 'DROP TABLE "User"' }),
+                expectedDbSpan({ name: 'DROP TABLE "User"', statement: 'DROP TABLE "User"', origin }),
               ]);
             },
           })
