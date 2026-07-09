@@ -71,7 +71,7 @@ function wrapHandler(handler: Handler, triggerType: string): Handler {
     return startSpanManual(
       {
         name: `firebase.function.${triggerType}`,
-        op: 'http.request',
+        op: 'function.firebase',
         kind: SPAN_KIND.SERVER,
         attributes,
       },
