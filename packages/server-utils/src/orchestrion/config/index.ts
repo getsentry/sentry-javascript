@@ -11,6 +11,7 @@ import { vercelAiConfig } from './vercel-ai';
 import { hapiConfig } from './hapi';
 import { redisConfig } from './redis';
 import { expressConfig } from './express';
+import { graphqlConfig } from './graphql';
 
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...mysqlConfig,
@@ -25,6 +26,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...hapiConfig,
   ...redisConfig,
   ...expressConfig,
+  ...graphqlConfig,
 ];
 
 /**
