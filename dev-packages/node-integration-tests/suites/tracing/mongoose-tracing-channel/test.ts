@@ -112,6 +112,47 @@ conditionalTest({ min: 20 })('Mongoose tracing channel Test', () => {
           .start()
           .completed();
       });
+
+      test('omits db.query.text for the empty-filter cursor and does not treat the cursor batchSize as a batch', async () => {
+        await createTestRunner()
+          .expect({
+            transaction: event => {
+              const spans = event.spans || [];
+              // the `.find().cursor()` iteration runs with no filter, so there is no query text to emit
+              const cursorFind = spans.find(span => span.description === 'mongoose.blogposts.find');
+              expect(cursorFind).toBeDefined();
+              expect(cursorFind?.data?.['db.query.text']).toBeUndefined();
+              // a cursor's `batchSize` is a fetch-tuning option, not a batch-operation size
+              expect(cursorFind?.data?.['db.operation.batch.size']).toBeUndefined();
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { mongoose: '^9.7' } },
+  );
+
+  // A failed operation must flag the mongoose channel span as errored. mongodb error statuses map to
+  // `internal_error` through the OTel pipeline (same as the postgres/redis suites).
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-error.mjs',
+    'instrument.mjs',
+    (createTestRunner, test) => {
+      test('flags the mongoose channel span as errored when the operation fails', async () => {
+        await createTestRunner()
+          .expect({
+            transaction: event => {
+              const spans = event.spans || [];
+              const aggregateSpan = spans.find(span => span.description === 'mongoose.blogposts.aggregate');
+              expect(aggregateSpan).toBeDefined();
+              expect(aggregateSpan?.status).toBe('internal_error');
+            },
+          })
+          .start()
+          .completed();
+      });
     },
     { additionalDependencies: { mongoose: '^9.7' } },
   );

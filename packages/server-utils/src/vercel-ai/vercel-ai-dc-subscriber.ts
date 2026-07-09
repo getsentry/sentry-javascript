@@ -45,6 +45,16 @@ import {
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { bindTracingChannelToSpan } from '../tracing-channel';
+import {
+  asNumber,
+  asString,
+  isReadableStream,
+  isRecord,
+  safeStringify,
+  type StreamedModelCallResult,
+  sum,
+  tapModelCallStream,
+} from './util';
 
 /**
  * The single tracing channel the `ai` package (>= 7) publishes all telemetry lifecycle events to
@@ -84,6 +94,12 @@ const operationIdByCallId = new Map<string, { operationId: string; isStream: boo
 // (which sources descriptions from the recorded `available_tools`).
 const toolDescriptionsByCallId = new Map<string, Map<string, string>>();
 
+// A streamed `streamText` operation's own channel result is always `undefined` (the SDK exposes the
+// stream only on the model call), so its `invoke_agent` span can't be enriched from the channel. We
+// key the span by `callId` and enrich it as each streamed model call drains — the model calls flush
+// before the operation's own span ends. The running token sum lives on the span's own attributes.
+const invokeAgentSpanByCallId = new Map<string, Span>();
+
 // Only top-level operations own the `callId` → operationId mapping; `step`/`languageModelCall`/
 // `executeTool` share the parent's `callId`, so they must not clear it.
 const ROOT_OPERATION_TYPES = new Set<ChannelEventType>(['generateText', 'streamText', 'embed', 'embedMany', 'rerank']);
@@ -108,6 +124,7 @@ export function clearOperationId(data: VercelAiChannelMessage): void {
 export function clearOperationCallId(callId: string): void {
   operationIdByCallId.delete(callId);
   toolDescriptionsByCallId.delete(callId);
+  invokeAgentSpanByCallId.delete(callId);
 }
 
 /** Record tool name → description from an event's `tools`, so tool spans can backfill the description. */
@@ -192,8 +209,6 @@ export interface VercelAiChannelOptions {
   enableTruncation?: boolean;
 }
 
-let subscribed = false;
-
 /**
  * Subscribe Sentry span handlers to the `ai` SDK's native telemetry tracing channel (`ai:telemetry`,
  * available in `ai` >= 7) and emit fully-formed `gen_ai.*` spans directly — no OpenTelemetry span
@@ -204,17 +219,12 @@ let subscribed = false;
  *
  * Safe to always call: on `ai` versions that don't publish to the channel (e.g. < 7) nothing is
  * ever emitted and this is inert, so there is no double-instrumentation against the OTel-based
- * patcher. Idempotent.
+ * patcher. The integration's `setupOnce` guarantees this runs a single time.
  */
 export function subscribeVercelAiTracingChannel(
   tracingChannel: VercelAiTracingChannelFactory,
   options: VercelAiChannelOptions = {},
 ): void {
-  if (subscribed) {
-    return;
-  }
-  subscribed = true;
-
   bindTracingChannelToSpan(
     tracingChannel<VercelAiChannelMessage>(AI_SDK_TELEMETRY_TRACING_CHANNEL),
     data => createSpanFromMessage(data, options),
@@ -225,8 +235,117 @@ export function subscribeVercelAiTracingChannel(
         enrichSpanOnEnd(span, data, options);
         clearOperationId(data);
       },
+      // A streamed model call resolves before its stream is drained, so we tap the stream, keep the
+      // span open, and end it (via `end`) once the final usage/finish/output chunks arrive.
+      deferSpanEnd: ({ data, end }) => deferStreamedModelCallEnd(data, options, end),
     },
   );
+}
+
+/**
+ * When a `languageModelCall` resolves to a live `ReadableStream`, defer ending its span: swap in a
+ * passthrough that forwards chunks to the SDK untouched while aggregating usage/finish/output, then
+ * enrich and end the span once the stream settles. Returns `false` for anything that isn't a streamed
+ * model call so the helper ends the span as usual.
+ */
+function deferStreamedModelCallEnd(
+  data: VercelAiChannelMessage,
+  options: VercelAiChannelOptions,
+  end: (error?: unknown) => void,
+): boolean {
+  if (data.type !== 'languageModelCall' || !isRecord(data.result)) {
+    return false;
+  }
+  const result = data.result;
+  const stream = result.stream;
+  if (!isReadableStream(stream)) {
+    return false;
+  }
+
+  const callId = asString(data.event.callId);
+  const { recordOutputs } = getRecordingOptions(data.event, options);
+  result.stream = tapModelCallStream(
+    stream,
+    final => {
+      // Reshape the aggregate into the result `enrichSpanOnEnd` expects, then let `end` run it (it calls
+      // `beforeSpanEnd`). Enriching the model-call span and the parent from the same aggregate keeps
+      // streamed and non-streamed spans identical.
+      data.result = { ...result, ...streamedResultToChannelResult(final) };
+      end();
+      enrichInvokeAgentFromStream(callId, final, recordOutputs);
+    },
+    error => end(error),
+  );
+
+  return true;
+}
+
+/** Map the tapped stream aggregate onto the `languageModelCall` result shape `enrichSpanOnEnd` reads. */
+export function streamedResultToChannelResult(final: StreamedModelCallResult): Record<string, unknown> {
+  const content: Array<Record<string, unknown>> = [];
+  if (final.text) {
+    content.push({ type: 'text', text: final.text });
+  }
+  for (const toolCall of final.toolCalls) {
+    content.push({ type: 'tool-call', ...toolCall });
+  }
+
+  return {
+    content,
+    ...(final.usage !== undefined ? { usage: final.usage } : {}),
+    ...(final.finishReason !== undefined ? { finishReason: final.finishReason } : {}),
+    ...(final.providerMetadata !== undefined ? { providerMetadata: final.providerMetadata } : {}),
+    ...(final.responseId || final.responseModel
+      ? {
+          response: {
+            ...(final.responseId ? { id: final.responseId } : {}),
+            ...(final.responseModel ? { modelId: final.responseModel } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
+/**
+ * Propagate a streamed model call's usage (summed across the operation's model calls) and output onto
+ * the enclosing `invoke_agent` span, which has no channel result of its own. Runs before that span ends
+ * because the operation's completion promise settles only after every model-call stream has drained.
+ */
+function enrichInvokeAgentFromStream(
+  callId: string | undefined,
+  final: StreamedModelCallResult,
+  recordOutputs: boolean,
+): void {
+  const span = callId ? invokeAgentSpanByCallId.get(callId) : undefined;
+  if (!span) {
+    return;
+  }
+
+  const usage = isRecord(final.usage) ? final.usage : undefined;
+  if (usage) {
+    const input = tokenCount(usage.inputTokens) ?? tokenCount(usage.tokens);
+    const output = tokenCount(usage.outputTokens);
+    addTokensToSpan(span, GEN_AI_USAGE_INPUT_TOKENS, input);
+    addTokensToSpan(span, GEN_AI_USAGE_OUTPUT_TOKENS, output);
+    addTokensToSpan(span, GEN_AI_USAGE_TOTAL_TOKENS, tokenCount(usage.totalTokens) ?? sum(input, output));
+  }
+
+  if (recordOutputs) {
+    const parts = partsFromTextAndToolCalls(final.text, final.toolCalls);
+    const outputMessages = buildOutputMessages(parts, getFinishReason({ finishReason: final.finishReason }));
+    if (outputMessages) {
+      span.setAttribute(GEN_AI_OUTPUT_MESSAGES, outputMessages);
+    }
+  }
+}
+
+/** Add `value` into a span's numeric token attribute, using the span itself as the running sum. */
+function addTokensToSpan(span: Span, attribute: string, value: number | undefined): void {
+  if (value === undefined) {
+    return;
+  }
+  const current = spanToJSON(span).data[attribute];
+  span.setAttribute(attribute, (typeof current === 'number' ? current : 0) + value);
 }
 
 /**
@@ -315,13 +434,18 @@ function buildInvokeAgentSpan(
   if (callId) {
     operationIdByCallId.set(callId, { operationId, isStream });
   }
-  return startGenAiSpan(GEN_AI_INVOKE_AGENT_SPAN_OP, functionId, {
+  const span = startGenAiSpan(GEN_AI_INVOKE_AGENT_SPAN_OP, functionId, {
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     [GEN_AI_RESPONSE_STREAMING]: isStream,
     ...(functionId ? { [GEN_AI_FUNCTION_ID]: functionId } : {}),
     ...(recordInputs ? buildInputMessageAttributes(event, enableTruncation) : {}),
   });
+  if (isStream && callId) {
+    invokeAgentSpanByCallId.set(callId, span);
+  }
+
+  return span;
 }
 
 function buildModelCallSpan(
@@ -619,31 +743,4 @@ function buildInputMessageAttributes(
   }
 
   return attributes;
-}
-
-function asString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
-function asNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && !isNaN(value) ? value : undefined;
-}
-
-function sum(a: number | undefined, b: number | undefined): number | undefined {
-  return a === undefined && b === undefined ? undefined : (a ?? 0) + (b ?? 0);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function safeStringify(value: unknown): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return '[unserializable]';
-  }
 }

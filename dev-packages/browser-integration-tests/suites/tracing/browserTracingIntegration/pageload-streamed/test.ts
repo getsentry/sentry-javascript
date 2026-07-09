@@ -14,6 +14,8 @@ import {
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
+  URL_FULL,
+  URL_PATH,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -83,7 +85,11 @@ sentryTest(
           type: 'string',
           value: expect.any(String),
         },
-        'url.full': {
+        [URL_FULL]: {
+          type: 'string',
+          value: expect.any(String),
+        },
+        [URL_PATH]: {
           type: 'string',
           value: expect.any(String),
         },

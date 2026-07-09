@@ -46,6 +46,7 @@
   },
   "dependencies": {
     "@sentry/browser-utils": "10.64.0",
+    "@sentry/conventions": "^0.15.1",
     "@sentry/feedback": "10.64.0",
     "@sentry/replay": "10.64.0",
     "@sentry/replay-canvas": "10.64.0",

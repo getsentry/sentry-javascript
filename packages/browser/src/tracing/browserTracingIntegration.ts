@@ -24,6 +24,7 @@ import {
   GLOBAL_OBJ,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
+  isURLObjectRelative,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -51,6 +52,7 @@ import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integratio
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -416,7 +418,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
   let _pageloadSpan: Span | undefined;
 
   /** Create routing idle transaction. */
-  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true): void {
+  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true, url?: string): void {
     const isPageloadSpan = startSpanOptions.op === 'pageload';
 
     const initialSpanName = startSpanOptions.name;
@@ -424,14 +426,23 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       ? beforeStartSpan(startSpanOptions)
       : startSpanOptions;
 
-    const attributes = finalStartSpanOptions.attributes || {};
+    // For navigations, `url` is the destination URL, so we use it to reflect the post-navigation location.
+    // For pageloads (and manual navigation spans without a URL) we fall back to the current location.
+    const urlObject = parseStringToURLObject(url || getLocationHref());
+
+    const attributes = {
+      ...(urlObject?.pathname && { [URL_PATH]: urlObject.pathname }),
+      ...(urlObject && !isURLObjectRelative(urlObject) && { [URL_FULL]: urlObject.href }),
+      ...finalStartSpanOptions.attributes,
+    };
 
     // If `finalStartSpanOptions.name` is different than `startSpanOptions.name`
     // it is because `beforeStartSpan` set a custom name. Therefore we set the source to 'custom'.
     if (initialSpanName !== finalStartSpanOptions.name) {
       attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'custom';
-      finalStartSpanOptions.attributes = attributes;
     }
+
+    finalStartSpanOptions.attributes = attributes;
 
     if (!makeActive) {
       // We want to ensure this has 0s duration
@@ -563,6 +574,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
               ...startSpanOptions,
             },
             false,
+            navigationOptions.url,
           );
           return;
         }
@@ -593,13 +605,18 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           normalizedRequest: undefined,
         });
 
-        _createRouteSpan(client, {
-          op: 'navigation',
-          ...startSpanOptions,
-          // Navigation starts a new trace and is NOT parented under any active interaction (e.g. ui.action.click)
-          parentSpan: null,
-          forceTransaction: true,
-        });
+        _createRouteSpan(
+          client,
+          {
+            op: 'navigation',
+            ...startSpanOptions,
+            // Navigation starts a new trace and is NOT parented under any active interaction (e.g. ui.action.click)
+            parentSpan: null,
+            forceTransaction: true,
+          },
+          true,
+          navigationOptions?.url,
+        );
       });
 
       client.on('startPageLoadSpan', (startSpanOptions, traceOptions = {}) => {
@@ -779,8 +796,8 @@ export function startBrowserTracingNavigationSpan(
   options?: { url?: string; isRedirect?: boolean },
 ): Span | undefined {
   const { url, isRedirect } = options || {};
-  client.emit('beforeStartNavigationSpan', spanOptions, { isRedirect });
-  client.emit('startNavigationSpan', spanOptions, { isRedirect });
+  client.emit('beforeStartNavigationSpan', spanOptions, { isRedirect, url });
+  client.emit('startNavigationSpan', spanOptions, { isRedirect, url });
 
   const scope = getCurrentScope();
   scope.setTransactionName(spanOptions.name);

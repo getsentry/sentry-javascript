@@ -8,7 +8,6 @@ import type { IntegrationFn, Span } from '@sentry/core';
 import {
   debug,
   defineIntegration,
-  getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   waitForTracingChannelBinding,
@@ -96,10 +95,6 @@ const _ioredisChannelIntegration = ((options: IORedisChannelIntegrationOptions =
         bindTracingChannelToSpan(
           commandChannel,
           data => {
-            // ioredis' `requireParentSpan` default: only create a span under an active span.
-            if (!getActiveSpan()) {
-              return undefined;
-            }
             const command = data.arguments?.[0] as RedisCommand | undefined;
             if (!command || typeof command !== 'object') {
               return undefined;
@@ -113,6 +108,8 @@ const _ioredisChannelIntegration = ((options: IORedisChannelIntegrationOptions =
             });
           },
           {
+            // ioredis' `requireParentSpan` default: only create a span under an active span.
+            requiresParentSpan: true,
             beforeSpanEnd(span, data) {
               if ('error' in data || !responseHook) {
                 return;
@@ -125,17 +122,18 @@ const _ioredisChannelIntegration = ((options: IORedisChannelIntegrationOptions =
           },
         );
 
-        bindTracingChannelToSpan(connectChannel, data => {
-          if (!getActiveSpan()) {
-            return undefined;
-          }
-          const { host, port } = getConnectionOptions(data.self);
-          return startInactiveSpan({
-            name: 'connect',
-            op: 'db',
-            attributes: { ...connectionAttributes(host, port), [DB_STATEMENT]: 'connect' },
-          });
-        });
+        bindTracingChannelToSpan(
+          connectChannel,
+          data => {
+            const { host, port } = getConnectionOptions(data.self);
+            return startInactiveSpan({
+              name: 'connect',
+              op: 'db',
+              attributes: { ...connectionAttributes(host, port), [DB_STATEMENT]: 'connect' },
+            });
+          },
+          { requiresParentSpan: true },
+        );
       });
     },
   };

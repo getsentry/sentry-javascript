@@ -35,28 +35,26 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
   const lcpSpan = await lcpSpanPromise;
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(lcpSpan.attributes?.['sentry.op']).toEqual({ type: 'string', value: 'ui.webvital.lcp' });
-  expect(lcpSpan.attributes?.['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.lcp' });
-  expect(lcpSpan.attributes?.['sentry.exclusive_time']).toEqual({ type: 'integer', value: 0 });
-  expect(lcpSpan.attributes?.['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
+  expect(lcpSpan.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.webvital.lcp' });
+  expect(lcpSpan.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.lcp' });
+  expect(lcpSpan.attributes['sentry.exclusive_time']).toEqual({ type: 'integer', value: 0 });
+  expect(lcpSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
 
   // Check the LCP span carries the transaction/segment name it belongs to
-  expect(lcpSpan.attributes?.['sentry.transaction']).toEqual({ type: 'string', value: '/index.html' });
-  expect(lcpSpan.attributes?.['sentry.segment.name']).toEqual({ type: 'string', value: '/index.html' });
+  expect(lcpSpan.attributes['sentry.transaction']).toEqual({ type: 'string', value: '/index.html' });
+  expect(lcpSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: '/index.html' });
 
   // Check browser.web_vital.lcp.* attributes
-  expect(lcpSpan.attributes?.['browser.web_vital.lcp.element']?.value).toEqual(expect.stringContaining('body > img'));
-  expect(lcpSpan.attributes?.['browser.web_vital.lcp.url']?.value).toBe(
-    'https://sentry-test-site.example/my/image.png',
-  );
-  expect(lcpSpan.attributes?.['browser.web_vital.lcp.size']?.value).toEqual(expect.any(Number));
+  expect(lcpSpan.attributes['browser.web_vital.lcp.element']?.value).toEqual(expect.stringContaining('body > img'));
+  expect(lcpSpan.attributes['browser.web_vital.lcp.url']?.value).toBe('https://sentry-test-site.example/my/image.png');
+  expect(lcpSpan.attributes['browser.web_vital.lcp.size']?.value).toEqual(expect.any(Number));
 
   // Check web vital value attribute
-  expect(lcpSpan.attributes?.['browser.web_vital.lcp.value']?.type).toMatch(/^(double)|(integer)$/);
-  expect(lcpSpan.attributes?.['browser.web_vital.lcp.value']?.value).toBeGreaterThan(0);
+  expect(lcpSpan.attributes['browser.web_vital.lcp.value']?.type).toMatch(/^(double)|(integer)$/);
+  expect(lcpSpan.attributes['browser.web_vital.lcp.value']?.value).toBeGreaterThan(0);
 
   // Check pageload span id is present
-  expect(lcpSpan.attributes?.['sentry.pageload.span_id']?.value).toBe(pageloadSpan.span_id);
+  expect(lcpSpan.attributes['sentry.pageload.span_id']?.value).toBe(pageloadSpan.span_id);
 
   // Span should have meaningful duration (navigation start -> LCP event)
   expect(lcpSpan.end_timestamp).toBeGreaterThan(lcpSpan.start_timestamp);

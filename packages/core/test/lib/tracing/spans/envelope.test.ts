@@ -22,6 +22,7 @@ function createMockSerializedSpan(overrides: Partial<SerializedStreamedSpan> = {
     end_timestamp: 1713859201,
     status: 'ok',
     is_segment: false,
+    attributes: {},
     ...overrides,
   };
 }
