@@ -11,10 +11,16 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
 } from '@sentry/core';
-import type { DataRouter, RouterState } from 'react-router';
+import type { DataRouter } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { isClientInstrumentationApiUsed } from './createClientInstrumentation';
-import { resolveNavigateAbsoluteUrl, resolveNavigateArg, updateNavigationSpanUrlFromLocation } from './utils';
+import {
+  finalizeNavigationSpanFromRouterState,
+  getParameterizedRoute,
+  normalizePathname,
+  resolveNavigateAbsoluteUrl,
+  resolveNavigateArg,
+} from './utils';
 import { URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
@@ -80,7 +86,7 @@ export function instrumentHydratedRouter(): void {
 
                 if (navigationSpan) {
                   const finalizeNumericNavigation = (): void => {
-                    updateNavigationSpanDestination(navigationSpan, router.state);
+                    finalizeNavigationSpanFromRouterState(navigationSpan, router.state);
                   };
 
                   if (result != null && typeof (result as Promise<unknown>).then === 'function') {
@@ -185,25 +191,6 @@ function maybeCreateNavigationTransaction(name: string, url: string, source: 'ur
   );
 }
 
-function updateNavigationSpanDestination(span: Span, routerState: RouterState): void {
-  updateNavigationSpanUrlFromLocation(span);
-
-  if (!WINDOW.location) {
-    return;
-  }
-
-  const { pathname } = WINDOW.location;
-
-  if (
-    routerState.navigation?.state === 'idle' &&
-    normalizePathname(routerState.location.pathname) === normalizePathname(pathname)
-  ) {
-    const parameterizedRoute = getParameterizedRoute(routerState);
-    span.updateName(parameterizedRoute);
-    span.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: parameterizedRoute });
-  }
-}
-
 function getActiveRootSpan(): Span | undefined {
   const activeSpan = getActiveSpan();
   if (!activeSpan) {
@@ -216,19 +203,4 @@ function getActiveRootSpan(): Span | undefined {
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
-}
-
-function getParameterizedRoute(routerState: RouterState): string {
-  const lastMatch = routerState.matches[routerState.matches.length - 1];
-  return normalizePathname(lastMatch?.route.path ?? routerState.location.pathname);
-}
-
-function normalizePathname(pathname: string): string {
-  // Ensure it starts with a single slash
-  let normalized = pathname.startsWith('/') ? pathname : `/${pathname}`;
-  // Remove trailing slash unless it's the root
-  if (normalized.length > 1 && normalized.endsWith('/')) {
-    normalized = normalized.slice(0, -1);
-  }
-  return normalized;
 }

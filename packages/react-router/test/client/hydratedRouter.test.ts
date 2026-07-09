@@ -316,6 +316,43 @@ describe('instrumentHydratedRouter', () => {
     });
   });
 
+  it('parameterizes numeric navigation via subscribe when router state is stale on sync finalize', () => {
+    mockRouter.navigate = vi.fn().mockImplementation(() => {
+      (globalThis as any).location.pathname = '/foo';
+      return undefined;
+    });
+
+    instrumentHydratedRouter();
+    mockRouter.navigate(-1);
+
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo');
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledTimes(1);
+    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+      'url.path': '/foo',
+      'url.full': 'https://example.com/foo',
+    });
+
+    (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
+    (core.spanToJSON as any).mockImplementation((span: any) => ({
+      description: '/foo/bar',
+      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
+      data: { 'url.path': '/foo' },
+    }));
+
+    const callback = mockRouter.subscribe.mock.calls[0][0];
+    callback({
+      location: { pathname: '/foo' },
+      matches: [{ route: { path: '/foo/:id' } }],
+      navigation: { state: 'idle' },
+    });
+
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/:id');
+    expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      'url.template': '/foo/:id',
+    });
+  });
+
   it('does not create navigation span for navigate(0)', () => {
     instrumentHydratedRouter();
     mockRouter.navigate(0);

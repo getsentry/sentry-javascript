@@ -18,7 +18,12 @@ import {
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { ClientInstrumentation, InstrumentableRoute, InstrumentableRouter } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
-import { resolveNavigateAbsoluteUrl, resolveNavigateArg, updateNavigationSpanUrlFromLocation } from './utils';
+import {
+  resolveNavigateAbsoluteUrl,
+  resolveNavigateArg,
+  finalizeNavigationSpanFromHydratedRouter,
+  updateNavigationSpanUrlFromLocation,
+} from './utils';
 import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -161,7 +166,7 @@ export function createSentryClientInstrumentation(
               const result = await callNavigate();
 
               if (navigationSpan && WINDOW.location) {
-                updateNavigationSpanUrlFromLocation(navigationSpan);
+                finalizeNavigationSpanFromHydratedRouter(navigationSpan);
               }
 
               if (result.status === 'error' && result.error instanceof Error) {

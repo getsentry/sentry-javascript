@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveNavigateAbsoluteUrl, updateNavigationSpanUrlFromLocation } from '../../src/client/utils';
+import {
+  finalizeNavigationSpanFromRouterState,
+  resolveNavigateAbsoluteUrl,
+  updateNavigationSpanUrlFromLocation,
+} from '../../src/client/utils';
 
 vi.mock('@sentry/browser', () => ({
   getAbsoluteUrl: vi.fn((urlOrPath: string) => {
@@ -116,5 +120,61 @@ describe('updateNavigationSpanUrlFromLocation', () => {
       'url.path': '/foo',
       'url.full': 'https://example.com/foo?bar=1#section',
     });
+  });
+});
+
+describe('finalizeNavigationSpanFromRouterState', () => {
+  const originalLocation = globalThis.location;
+
+  beforeEach(() => {
+    (globalThis as any).location = {
+      href: 'https://example.com/performance/',
+      origin: 'https://example.com',
+      pathname: '/performance/',
+      search: '',
+      hash: '',
+    };
+  });
+
+  afterEach(() => {
+    if (originalLocation) {
+      (globalThis as any).location = originalLocation;
+    } else {
+      delete (globalThis as any).location;
+    }
+  });
+
+  it('parameterizes index-route navigations after numeric back', () => {
+    const span = { updateName: vi.fn(), setAttributes: vi.fn() } as any;
+
+    finalizeNavigationSpanFromRouterState(span, {
+      location: { pathname: '/performance/' },
+      matches: [{ route: { path: '' } }],
+      navigation: { state: 'idle' },
+    } as any);
+
+    expect(span.updateName).toHaveBeenLastCalledWith('/performance');
+    expect(span.setAttributes).toHaveBeenLastCalledWith({
+      'sentry.source': 'route',
+      'url.template': '/performance',
+    });
+  });
+
+  it('sets url attributes but skips parameterization when router state is stale', () => {
+    const span = { updateName: vi.fn(), setAttributes: vi.fn() } as any;
+
+    finalizeNavigationSpanFromRouterState(span, {
+      location: { pathname: '/performance/ssr' },
+      matches: [{ route: { path: '/performance/ssr' } }],
+      navigation: { state: 'idle' },
+    } as any);
+
+    expect(span.updateName).toHaveBeenCalledWith('/performance/');
+    expect(span.updateName).toHaveBeenCalledTimes(1);
+    expect(span.setAttributes).toHaveBeenCalledWith({
+      'url.path': '/performance/',
+      'url.full': 'https://example.com/performance/',
+    });
+    expect(span.setAttributes).toHaveBeenCalledTimes(1);
   });
 });
