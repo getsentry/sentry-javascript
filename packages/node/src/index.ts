@@ -46,6 +46,7 @@ export {
   getDefaultIntegrations,
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
+  applyDiagnosticsChannelInjectionIntegrations,
 } from './sdk';
 export {
   experimentalUseDiagnosticsChannelInjection,
