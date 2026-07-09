@@ -14,7 +14,7 @@ import type {
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
-import { execSync, spawn, spawnSync } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { createHash } from 'crypto';
 import { existsSync } from 'fs';
 import { tmpdir } from 'os';
@@ -40,10 +40,6 @@ export interface DockerOptions {
    * The working directory to run docker compose in
    */
   workingDirectory: string[];
-  /**
-   * The command to run after docker compose is up
-   */
-  setupCommand?: string;
 }
 
 type VoidFunction = () => void;
@@ -696,16 +692,6 @@ export async function runDockerCompose(options: DockerOptions): Promise<VoidFunc
     throw new Error(
       `docker compose up --wait failed (exit ${result.status})\n${stderr}${stdout}\n--- container logs ---\n${logs}`,
     );
-  }
-
-  if (options.setupCommand) {
-    try {
-      // Prepend local node_modules/.bin to PATH so additionalDependencies binaries take precedence
-      const env = { ...process.env, PATH: `${cwd}/node_modules/.bin:${process.env.PATH}` };
-      execSync(options.setupCommand, { cwd, stdio: 'inherit', env });
-    } catch (e) {
-      log('Error running docker setup command', e);
-    }
   }
 
   return close;

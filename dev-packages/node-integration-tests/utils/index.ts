@@ -37,7 +37,7 @@ export function conditionalTest(allowedVersion: {
   min?: number;
   max?: number;
 }): typeof describe | typeof describe.skip {
-  return describe.skipIf(() => !matchesNodeVersion(allowedVersion));
+  return describe.skipIf(!matchesNodeVersion(allowedVersion));
 }
 
 function matchesNodeVersion({ min, max }: { min?: number; max?: number }): boolean {
