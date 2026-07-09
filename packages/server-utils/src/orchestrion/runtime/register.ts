@@ -9,12 +9,10 @@ export interface RegisterDiagnosticsChannelInjectionOptions {
   /**
    * Absolute directory of the `@apm-js-collab/tracing-hooks` package (forward slashes).
    *
-   * By default the package is loaded via its bare specifier, which bundlers and Node resolve
-   * normally. When SDK code is bundled into an app's server build, that resolution starts at the
-   * emitted chunk and fails under isolated installs (pnpm) — framework SDKs (e.g.
-   * `@sentry/nextjs`) resolve the package at build time and pass its location here instead.
-   * Loading then goes through an opaque `createRequire`, keeping the absolute path out of the
-   * bundler's static analysis.
+   * Needed when SDK code is bundled into an app's server build: the default bare-specifier
+   * require then resolves from the emitted chunk, which fails under isolated installs (pnpm).
+   * Framework SDKs (e.g. `@sentry/nextjs`) resolve the package at build time and pass its
+   * location here; it is loaded through an opaque `createRequire` that bundlers can't trace.
    */
   tracingHooksDir?: string;
 }
