@@ -52,12 +52,48 @@
       "require": {
         "default": "./build/cjs/preload.js"
       }
+    },
+    "./bundler-plugins/vite": {
+      "import": {
+        "types": "./build/types/bundler-plugins/vite.d.ts",
+        "default": "./build/esm/bundler-plugins/vite.js"
+      }
+    },
+    "./bundler-plugins/rollup": {
+      "import": {
+        "types": "./build/types/bundler-plugins/rollup.d.ts",
+        "default": "./build/esm/bundler-plugins/rollup.js"
+      }
+    },
+    "./bundler-plugins/webpack": {
+      "import": {
+        "types": "./build/types/bundler-plugins/webpack.d.ts",
+        "default": "./build/esm/bundler-plugins/webpack.js"
+      }
+    },
+    "./bundler-plugins/esbuild": {
+      "import": {
+        "types": "./build/types/bundler-plugins/esbuild.d.ts",
+        "default": "./build/esm/bundler-plugins/esbuild.js"
+      }
     }
   },
   "typesVersions": {
     "<5.0": {
       "build/types/index.d.ts": [
         "build/types-ts3.8/index.d.ts"
+      ],
+      "bundler-plugins/vite": [
+        "build/types-ts3.8/bundler-plugins/vite.d.ts"
+      ],
+      "bundler-plugins/rollup": [
+        "build/types-ts3.8/bundler-plugins/rollup.d.ts"
+      ],
+      "bundler-plugins/webpack": [
+        "build/types-ts3.8/bundler-plugins/webpack.d.ts"
+      ],
+      "bundler-plugins/esbuild": [
+        "build/types-ts3.8/bundler-plugins/esbuild.d.ts"
       ]
     }
   },
@@ -68,6 +104,7 @@
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/instrumentation": "^0.220.0",
     "@opentelemetry/sdk-trace-base": "^2.9.0",
+    "@sentry/bundler-plugins": "10.64.0",
     "@sentry/conventions": "^0.15.1",
     "@sentry/core": "10.64.0",
     "@sentry/node-core": "10.64.0",

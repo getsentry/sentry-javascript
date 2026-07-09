@@ -9,7 +9,18 @@ export default [
   ...makeOtelLoaders('./build', 'otel', { injectDiagnosticsChannel: true }),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/index.ts', 'src/init.ts', 'src/preload.ts'],
+      entrypoints: [
+        'src/index.ts',
+        'src/init.ts',
+        'src/preload.ts',
+        // Combined Sentry bundler plugins + orchestrion code transform, exposed
+        // ESM-only via the `@sentry/node/bundler-plugins/*` subpath exports
+        // (they import the ESM-only `@sentry/server-utils/orchestrion/*` plugins).
+        'src/bundler-plugins/vite.ts',
+        'src/bundler-plugins/rollup.ts',
+        'src/bundler-plugins/webpack.ts',
+        'src/bundler-plugins/esbuild.ts',
+      ],
       packageSpecificConfig: {
         external: [/^@sentry\/opentelemetry/],
         output: {
