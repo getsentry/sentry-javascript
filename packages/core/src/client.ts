@@ -43,7 +43,7 @@ import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
-import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
+import { isObject, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
 import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
@@ -91,11 +91,11 @@ function _makeDoNotSendEventError(message: string): DoNotSendEventError {
 }
 
 function _isInternalError(error: unknown): error is InternalError {
-  return !!error && typeof error === 'object' && INTERNAL_ERROR_SYMBOL in error;
+  return isObject(error) && INTERNAL_ERROR_SYMBOL in error;
 }
 
 function _isDoNotSendEventError(error: unknown): error is DoNotSendEventError {
-  return !!error && typeof error === 'object' && DO_NOT_SEND_EVENT_SYMBOL in error;
+  return isObject(error) && DO_NOT_SEND_EVENT_SYMBOL in error;
 }
 
 /**

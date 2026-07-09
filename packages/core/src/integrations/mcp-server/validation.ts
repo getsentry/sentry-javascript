@@ -6,6 +6,7 @@
 
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
+import { isObject } from '../../utils/is';
 import type { JsonRpcNotification, JsonRpcRequest, JsonRpcResponse } from './types';
 
 /**
@@ -15,10 +16,9 @@ import type { JsonRpcNotification, JsonRpcRequest, JsonRpcResponse } from './typ
  */
 export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
   return (
-    typeof message === 'object' &&
-    message !== null &&
+    isObject(message) &&
     'jsonrpc' in message &&
-    (message as JsonRpcRequest).jsonrpc === '2.0' &&
+    message.jsonrpc === '2.0' &&
     'method' in message &&
     'id' in message
   );
@@ -31,10 +31,9 @@ export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
  */
 export function isJsonRpcNotification(message: unknown): message is JsonRpcNotification {
   return (
-    typeof message === 'object' &&
-    message !== null &&
+    isObject(message) &&
     'jsonrpc' in message &&
-    (message as JsonRpcNotification).jsonrpc === '2.0' &&
+    message.jsonrpc === '2.0' &&
     'method' in message &&
     !('id' in message)
   );
@@ -47,10 +46,9 @@ export function isJsonRpcNotification(message: unknown): message is JsonRpcNotif
  */
 export function isJsonRpcResponse(message: unknown): message is JsonRpcResponse {
   return (
-    typeof message === 'object' &&
-    message !== null &&
+    isObject(message) &&
     'jsonrpc' in message &&
-    (message as { jsonrpc: string }).jsonrpc === '2.0' &&
+    message.jsonrpc === '2.0' &&
     'id' in message &&
     ('result' in message || 'error' in message)
   );
@@ -66,8 +64,7 @@ export function isJsonRpcResponse(message: unknown): message is JsonRpcResponse 
  */
 export function validateMcpServerInstance(instance: unknown): boolean {
   if (
-    typeof instance === 'object' &&
-    instance !== null &&
+    isObject(instance) &&
     'connect' in instance &&
     (('tool' in instance && 'resource' in instance && 'prompt' in instance) ||
       ('registerTool' in instance && 'registerResource' in instance && 'registerPrompt' in instance))
@@ -84,5 +81,5 @@ export function validateMcpServerInstance(instance: unknown): boolean {
  * @returns True if the item is a valid content item, false otherwise
  */
 export function isValidContentItem(item: unknown): item is Record<string, unknown> {
-  return item != null && typeof item === 'object';
+  return isObject(item);
 }

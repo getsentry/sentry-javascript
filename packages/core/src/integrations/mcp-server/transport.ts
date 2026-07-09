@@ -7,6 +7,7 @@
 
 import { getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { startInactiveSpan, withActiveSpan } from '../../tracing';
+import { isObject } from '../../utils/is';
 import { fill } from '../../utils/object';
 import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
 import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForRequest } from './correlation';
@@ -170,7 +171,7 @@ export function wrapTransportError(transport: MCPTransport): void {
  */
 function captureJsonRpcErrorResponse(errorResponse: unknown): void {
   try {
-    if (errorResponse && typeof errorResponse === 'object' && 'code' in errorResponse && 'message' in errorResponse) {
+    if (isObject(errorResponse) && 'code' in errorResponse && 'message' in errorResponse) {
       const jsonRpcError = errorResponse as { code: number; message: string; data?: unknown };
 
       const isServerError =
