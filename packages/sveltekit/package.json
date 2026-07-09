@@ -53,6 +53,7 @@
   "dependencies": {
     "@sentry/cloudflare": "10.64.0",
     "@sentry/core": "10.64.0",
+    "@sentry/conventions": "^0.15.1",
     "@sentry/node": "10.64.0",
     "@sentry/svelte": "10.64.0",
     "@sentry/vite-plugin": "^5.3.0",
