@@ -178,6 +178,12 @@ jobs:
       changed_browser_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/browser-integration-tests') }}
+      changed_cloudflare_integration:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/cloudflare-integration-tests') }}
+      changed_bundler_plugin_integration:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/bundler-plugin-integration-tests') }}
       changed_aws_serverless:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/aws-serverless') }}
@@ -896,6 +902,7 @@ jobs:
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests
     needs: [job_get_metadata, job_build]
+    if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -919,6 +926,7 @@ jobs:
   job_bundler_plugin_integration_tests:
     name: Bundler Plugin Integration Tests
     needs: [job_get_metadata, job_build]
+    if: needs.job_build.outputs.changed_bundler_plugin_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
