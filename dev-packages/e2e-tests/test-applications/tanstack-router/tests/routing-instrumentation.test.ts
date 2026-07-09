@@ -130,6 +130,41 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
   });
 });
 
+test('sends a pageload transaction with resolved URL attrs after same-route redirect on initial load', async ({
+  page,
+}) => {
+  const pageloadTxnPromise = waitForTransaction('tanstack-router', async transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/posts/$postId';
+  });
+
+  // `/posts/999` matches `/posts/$postId` initially, then `beforeLoad` redirects to `/posts/2`.
+  await page.goto(`/posts/999`);
+
+  const pageloadTxn = await pageloadTxnPromise;
+
+  expect(pageloadTxn).toMatchObject({
+    contexts: {
+      trace: {
+        data: {
+          'sentry.source': 'route',
+          'sentry.origin': 'auto.pageload.react.tanstack_router',
+          'sentry.op': 'pageload',
+          'url.path.params.postId': '2',
+          'url.template': '/posts/$postId',
+          'url.path': '/posts/2',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/2$/),
+        },
+        op: 'pageload',
+        origin: 'auto.pageload.react.tanstack_router',
+      },
+    },
+    transaction: '/posts/$postId',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
+
 test('sends a pageload transaction named after the resolved route when a redirect is thrown on initial load', async ({
   page,
 }) => {

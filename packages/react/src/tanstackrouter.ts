@@ -59,6 +59,21 @@ export function tanstackRouterBrowserTracingIntegration(
         return lastMatch?.routeId !== '__root__' ? lastMatch : undefined;
       };
 
+      const applyRouteMatch = (
+        span: NonNullable<ReturnType<typeof startBrowserTracingPageLoadSpan>>,
+        match: VendoredTanstackRouterRouteMatch | undefined,
+        toLocation: TanstackRouterLocation,
+        fallbackName: string,
+      ): void => {
+        span.updateName(match ? match.routeId : fallbackName);
+        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, match ? 'route' : 'url');
+        span.setAttributes({
+          ...(match && { [URL_TEMPLATE]: match.routeId }),
+          ...locationToSpanUrlAttributes(castRouterInstance, toLocation),
+          ...routeMatchToParamSpanAttributes(match),
+        });
+      };
+
       const initialWindowLocation = WINDOW.location;
       if (instrumentPageLoad && initialWindowLocation) {
         const routeMatch = resolveRouteMatch(
@@ -84,16 +99,9 @@ export function tanstackRouterBrowserTracingIntegration(
           if (!pageloadSpan) {
             return;
           }
-          const resolvedMatch = resolveRouteMatch(onResolvedArgs.toLocation.pathname, onResolvedArgs.toLocation.search);
-          if (resolvedMatch && resolvedMatch.routeId !== routeMatch?.routeId) {
-            pageloadSpan.updateName(resolvedMatch.routeId);
-            pageloadSpan.setAttributes({
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-              [URL_TEMPLATE]: resolvedMatch.routeId,
-              ...locationToSpanUrlAttributes(castRouterInstance, onResolvedArgs.toLocation),
-              ...routeMatchToParamSpanAttributes(resolvedMatch),
-            });
-          }
+          const { toLocation } = onResolvedArgs;
+          const resolvedMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
+          applyRouteMatch(pageloadSpan, resolvedMatch, toLocation, toLocation.pathname);
         });
       }
 
@@ -103,21 +111,6 @@ export function tanstackRouterBrowserTracingIntegration(
         // A redirect chain emits one `onBeforeLoad` per load but a single `onResolved`, so we start the
         // span on the first `onBeforeLoad`, rename it on later ones, and clear it on `onResolved`.
         let inFlightNavigationSpan: ReturnType<typeof startBrowserTracingNavigationSpan> | undefined;
-
-        const applyRouteMatch = (
-          span: NonNullable<typeof inFlightNavigationSpan>,
-          match: VendoredTanstackRouterRouteMatch | undefined,
-          toLocation: TanstackRouterLocation,
-          fallbackName: string,
-        ): void => {
-          span.updateName(match ? match.routeId : fallbackName);
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, match ? 'route' : 'url');
-          span.setAttributes({
-            ...(match && { [URL_TEMPLATE]: match.routeId }),
-            ...locationToSpanUrlAttributes(castRouterInstance, toLocation),
-            ...routeMatchToParamSpanAttributes(match),
-          });
-        };
 
         castRouterInstance.subscribe('onBeforeLoad', onBeforeLoadArgs => {
           const { toLocation, fromLocation } = onBeforeLoadArgs;

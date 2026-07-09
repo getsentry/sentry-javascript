@@ -25,6 +25,7 @@ const mockStartBrowserTracingNavigationSpan = vi.fn();
 const mockRootSpan = {
   updateName: vi.fn(),
   setAttribute: vi.fn(),
+  setAttributes: vi.fn(),
   getSpanJSON() {
     return { op: 'pageload' };
   },
@@ -243,8 +244,12 @@ describe('browserTracingReactRouterV4', () => {
     });
     expect(mockRootSpan.updateName).toHaveBeenCalledTimes(2);
     expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/users/:userid');
-    expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-    expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(URL_TEMPLATE, '/users/:userid');
+    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [URL_TEMPLATE]: '/users/:userid',
+      }),
+    );
   });
 
   it('normalizes nested transaction names with custom Route', () => {
@@ -284,8 +289,12 @@ describe('browserTracingReactRouterV4', () => {
     });
     expect(mockRootSpan.updateName).toHaveBeenCalledTimes(2);
     expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/organizations/:orgid/v1/:teamid');
-    expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-    expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(URL_TEMPLATE, '/organizations/:orgid/v1/:teamid');
+    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [URL_TEMPLATE]: '/organizations/:orgid/v1/:teamid',
+      }),
+    );
 
     act(() => {
       history.push('/organizations/543');
@@ -303,8 +312,12 @@ describe('browserTracingReactRouterV4', () => {
     });
     expect(mockRootSpan.updateName).toHaveBeenCalledTimes(3);
     expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/organizations/:orgid');
-    expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-    expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(URL_TEMPLATE, '/organizations/:orgid');
+    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [URL_TEMPLATE]: '/organizations/:orgid',
+      }),
+    );
   });
 
   it('matches with route object', () => {
