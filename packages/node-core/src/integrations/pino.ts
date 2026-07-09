@@ -6,6 +6,7 @@ import {
   captureException,
   captureMessage,
   defineIntegration,
+  isObject,
   severityLevelFromString,
   withScope,
 } from '@sentry/core';
@@ -235,12 +236,12 @@ interface PinoIntegrationFunction {
  */
 export const pinoIntegration = Object.assign(_pinoIntegration, {
   trackLogger(logger: unknown): void {
-    if (logger && typeof logger === 'object' && 'levels' in logger) {
+    if (isObject(logger) && 'levels' in logger) {
       (logger as Pino)[SENTRY_TRACK_SYMBOL] = 'track';
     }
   },
   untrackLogger(logger: unknown): void {
-    if (logger && typeof logger === 'object' && 'levels' in logger) {
+    if (isObject(logger) && 'levels' in logger) {
       (logger as Pino)[SENTRY_TRACK_SYMBOL] = 'ignore';
     }
   },

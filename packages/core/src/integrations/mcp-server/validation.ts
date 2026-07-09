@@ -16,11 +16,7 @@ import type { JsonRpcNotification, JsonRpcRequest, JsonRpcResponse } from './typ
  */
 export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
   return (
-    isObject(message) &&
-    'jsonrpc' in message &&
-    message.jsonrpc === '2.0' &&
-    'method' in message &&
-    'id' in message
+    isObject(message) && 'jsonrpc' in message && message.jsonrpc === '2.0' && 'method' in message && 'id' in message
   );
 }
 
@@ -31,11 +27,7 @@ export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
  */
 export function isJsonRpcNotification(message: unknown): message is JsonRpcNotification {
   return (
-    isObject(message) &&
-    'jsonrpc' in message &&
-    message.jsonrpc === '2.0' &&
-    'method' in message &&
-    !('id' in message)
+    isObject(message) && 'jsonrpc' in message && message.jsonrpc === '2.0' && 'method' in message && !('id' in message)
   );
 }
 
