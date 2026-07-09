@@ -25,6 +25,8 @@
  * The execution ID of the current function execution.
  *
  * Removed from the stable semantic conventions; not present in `@sentry/conventions`, so vendored here.
+ *
+ * todo(v11): migrate to `faas.invocation_id`
  */
 export const ATTR_FAAS_EXECUTION = 'faas.execution';
 
