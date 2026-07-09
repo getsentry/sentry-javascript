@@ -1,4 +1,5 @@
 import * as SentryBrowser from '@sentry/browser';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { AnyRouter } from '@tanstack/vue-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -302,6 +303,72 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
         'url.full': expect.any(String),
         'url.path.parameter.id': '789',
         'params.id': '789',
+      }),
+    );
+  });
+
+  it('clears url.template when a redirect hop no longer matches a route', () => {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
+      instrumentNavigation: true,
+      instrumentPageLoad: false,
+    });
+
+    integration.afterAllSetup(mockClient as any);
+
+    const onBeforeLoadCallback = getSubscribeCallback('onBeforeLoad');
+
+    // First hop matches a parameterized route and sets url.template.
+    onBeforeLoadCallback({
+      toLocation: { pathname: '/test/456', search: {}, state: 'state-1' },
+      fromLocation: { pathname: '/test/123', search: {}, state: 'state-0' },
+    });
+
+    // Redirect continuation lands on a URL with no route match.
+    (mockRouter.matchRoutes as any).mockReturnValueOnce([{ routeId: '__root__', params: {} }]);
+
+    onBeforeLoadCallback({
+      toLocation: { pathname: '/unknown/path', search: {}, state: 'state-2' },
+      fromLocation: { pathname: '/test/456', search: {}, state: 'state-1' },
+    });
+
+    expect(mockNavigationSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+    expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        [URL_TEMPLATE]: undefined,
+        'url.path': '/unknown/path',
+        'url.full': expect.any(String),
+      }),
+    );
+  });
+
+  it('clears url.template on onResolved when the final destination does not match a route', () => {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
+      instrumentNavigation: true,
+      instrumentPageLoad: false,
+    });
+
+    integration.afterAllSetup(mockClient as any);
+
+    const onBeforeLoadCallback = getSubscribeCallback('onBeforeLoad');
+    const onResolvedCallback = getSubscribeCallback('onResolved');
+
+    onBeforeLoadCallback({
+      toLocation: { pathname: '/test/456', search: {}, state: 'state-1' },
+      fromLocation: { pathname: '/test/123', search: {}, state: 'state-0' },
+    });
+
+    (mockRouter.matchRoutes as any).mockReturnValueOnce([{ routeId: '__root__', params: {} }]);
+
+    onResolvedCallback({
+      toLocation: { pathname: '/unknown/path', search: {} },
+    });
+
+    expect(mockNavigationSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+    expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        [URL_TEMPLATE]: undefined,
+        'url.path': '/unknown/path',
+        'url.full': expect.any(String),
       }),
     );
   });

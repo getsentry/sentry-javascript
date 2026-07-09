@@ -117,7 +117,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
           span.updateName(match ? match.routeId : fallbackName);
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, match ? 'route' : 'url');
           span.setAttributes({
-            ...(match && { [URL_TEMPLATE]: match.routeId }),
+            [URL_TEMPLATE]: match?.routeId,
             ...locationToSpanUrlAttributes(router, toLocation),
             ...routeMatchToParamSpanAttributes(match),
           });
@@ -166,9 +166,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
           }
           const { toLocation } = onResolvedArgs as TanstackRouterSubscribeArgs;
           const resolvedMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
-          if (resolvedMatch) {
-            applyRouteMatch(span, resolvedMatch, toLocation, WINDOW.location?.pathname || toLocation.pathname);
-          }
+          applyRouteMatch(span, resolvedMatch, toLocation, WINDOW.location?.pathname || toLocation.pathname);
         });
       }
     },
