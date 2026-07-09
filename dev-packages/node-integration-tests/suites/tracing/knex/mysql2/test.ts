@@ -1,7 +1,7 @@
 import { describe, expect } from 'vitest';
-import { createEsmAndCjsTests } from '../../../../utils/runner';
+import { createEsmAndCjsTests, describeWithDockerCompose } from '../../../../utils/runner';
 
-describe('knex auto instrumentation', () => {
+describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__dirname] }, () => {
   // Update this if another knex version is installed
   const KNEX_VERSION = '2.5.1';
 
@@ -62,11 +62,7 @@ describe('knex auto instrumentation', () => {
           ]),
         };
 
-        await createRunner()
-          .withDockerCompose({ workingDirectory: [__dirname] })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+        await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     });
   });

@@ -1,7 +1,7 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 // The span origin depends on which instrumentation is active. These blocks drive the SDK's default
 // integrations, so when the generic orchestrion run is enabled (via INJECT_ORCHESTRION) the OTel
@@ -73,7 +73,7 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
   status: 'ok',
 });
 
-describe('amqplib auto-instrumentation', () => {
+describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [__dirname] }, () => {
   afterAll(async () => {
     cleanupChildProcesses();
   });
@@ -93,9 +93,6 @@ describe('amqplib auto-instrumentation', () => {
           const receivedTransactions: TransactionEvent[] = [];
 
           await createTestRunner()
-            .withDockerCompose({
-              workingDirectory: [__dirname],
-            })
             .expect({
               transaction: (transaction: TransactionEvent) => {
                 receivedTransactions.push(transaction);
@@ -145,9 +142,6 @@ describe('amqplib auto-instrumentation', () => {
           const receivedTransactions: TransactionEvent[] = [];
 
           await createTestRunner()
-            .withDockerCompose({
-              workingDirectory: [__dirname],
-            })
             .expect({
               transaction: (transaction: TransactionEvent) => {
                 receivedTransactions.push(transaction);
@@ -194,9 +188,6 @@ describe('amqplib auto-instrumentation', () => {
           { timeout: 60_000 },
           async () => {
             await createTestRunner()
-              .withDockerCompose({
-                workingDirectory: [__dirname],
-              })
               .expect({
                 transaction: (transaction: TransactionEvent) => {
                   expect(transaction.transaction).toBe('root span');

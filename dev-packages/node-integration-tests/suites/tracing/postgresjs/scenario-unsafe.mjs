@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node';
 import postgres from 'postgres';
-import { waitForPostgres } from './wait-for-postgres.js';
+import { waitForConnection } from '@sentry-internal/node-integration-tests';
 
 // Test with plain object options
 const sql = postgres({ port: 5444, user: 'test', password: 'test', database: 'test_db' });
@@ -13,13 +13,14 @@ async function run() {
     },
     async () => {
       try {
-        await waitForPostgres(sql);
+        await waitForConnection(() => sql`SELECT 1`);
         // Test sql.unsafe() - this was not being instrumented before the fix
         await sql.unsafe('CREATE TABLE "User" ("id" SERIAL NOT NULL, "email" TEXT NOT NULL, PRIMARY KEY ("id"))');
 
-        await sql.unsafe('INSERT INTO "User" ("email") VALUES ($1)', ['test@example.com']);
+        const email = `${crypto.randomUUID()}@domain.com`;
+        await sql.unsafe('INSERT INTO "User" ("email") VALUES ($1)', [email]);
 
-        await sql.unsafe('SELECT * FROM "User" WHERE "email" = $1', ['test@example.com']);
+        await sql.unsafe('SELECT * FROM "User" WHERE "email" = $1', [email]);
 
         await sql.unsafe('DROP TABLE "User"');
 

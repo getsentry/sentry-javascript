@@ -35,7 +35,7 @@ import {
   assertSpanEnvelopeHeader,
 } from './../assertions';
 
-interface DockerOptions {
+export interface DockerOptions {
   /**
    * The working directory to run docker compose in
    */
@@ -646,7 +646,7 @@ export function createRunner(...paths: string[]) {
  *
  * Returns a function that can be called to docker compose down
  */
-async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
+export async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   const cwd = join(...options.workingDirectory);
 
   // Docker Compose derives the project name from the compose file's directory

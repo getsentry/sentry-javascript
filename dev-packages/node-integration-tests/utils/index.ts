@@ -37,13 +37,15 @@ export function conditionalTest(allowedVersion: {
   min?: number;
   max?: number;
 }): typeof describe | typeof describe.skip {
+  return describe.skipIf(() => !matchesNodeVersion(allowedVersion));
+}
+
+function matchesNodeVersion({ min, max }: { min?: number; max?: number }): boolean {
   if (!NODE_VERSION) {
-    return describe.skip;
+    return false;
   }
 
-  return NODE_VERSION < (allowedVersion.min || -Infinity) || NODE_VERSION > (allowedVersion.max || Infinity)
-    ? describe.skip
-    : describe;
+  return !(NODE_VERSION < (min || -Infinity) || NODE_VERSION > (max || Infinity));
 }
 
 /**

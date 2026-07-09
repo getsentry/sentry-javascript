@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node';
 import postgres from 'postgres';
-import { waitForPostgres } from './wait-for-postgres.js';
+import { waitForConnection } from '@sentry-internal/node-integration-tests';
 
 const sql = postgres({ port: 5444, user: 'test', password: 'test', database: 'test_db' });
 
@@ -12,23 +12,23 @@ async function run() {
     },
     async () => {
       try {
-        await waitForPostgres(sql);
+        await waitForConnection(() => sql`SELECT 1`);
         await sql`
           CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"));
         `;
 
+        const email = `${crypto.randomUUID()}@domain.com`;
         await sql`
-          INSERT INTO "User" ("email", "name") VALUES ('Foo', 'bar@baz.com');
+          INSERT INTO "User" ("email", "name") VALUES (${email}, 'tim');
         `;
 
         await sql`
-          SELECT * FROM "User" WHERE "email" = 'bar@baz.com';
+          SELECT * FROM "User" WHERE "email" = ${email};
         `;
-
+      } finally {
         await sql`
           DROP TABLE "User";
         `;
-      } finally {
         await sql.end();
       }
     },

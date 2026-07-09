@@ -22,22 +22,19 @@ async function run() {
       try {
         await client.connect();
 
-        await client
-          .query(
-            'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"));',
-          )
-          .catch(() => {
-            // if this is not a fresh database, the table might already exist
-          });
+        await client.query(
+          'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"));',
+        );
 
-        await client.query('INSERT INTO "User" ("email", "name") VALUES ($1, $2)', ['tim', 'tim@domain.com']);
+        const email = `${crypto.randomUUID()}@domain.com`;
+        await client.query('INSERT INTO "User" ("email", "name") VALUES ($1, $2)', [email, 'tim']);
         await client.query('SELECT * FROM "User"');
 
         // A named (prepared) query records its name as the `db.postgresql.plan` attribute
         await client.query({
           name: 'select-user-by-email',
           text: 'SELECT * FROM "User" WHERE "email" = $1',
-          values: ['tim'],
+          values: [email],
         });
 
         // A failing query should still produce an errored span
@@ -45,6 +42,7 @@ async function run() {
           // swallow: we only care about the span it produces
         });
       } finally {
+        await client.query('DROP TABLE "User"');
         await client.end();
       }
     },
