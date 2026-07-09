@@ -9,7 +9,6 @@ import {
   _INTERNAL_setPostgresOperationName,
   debug,
   defineIntegration,
-  getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_KIND,
   SPAN_STATUS_ERROR,
@@ -257,13 +256,10 @@ const _postgresJsChannelIntegration = ((options: PostgresJsChannelIntegrationOpt
               return undefined;
             }
 
-            // Opt out of: re-entrant `handle()` calls (then/catch/finally re-invoke
-            // it, guarded by `executed`), queries already wrapped by the portable
-            // `instrumentPostgresJsSql`, and (by default) queries with no parent span.
+            // Opt out of re-entrant `handle()` calls (then/catch/finally re-invoke it, guarded by
+            // `executed`) and queries already wrapped by the portable `instrumentPostgresJsSql`. The
+            // parent-span requirement is applied via `requiresParentSpan` below.
             if (query.executed === true || (query as Record<symbol, unknown>)[QUERY_FROM_INSTRUMENTED_SQL]) {
-              return undefined;
-            }
-            if (requireParentSpan !== false && !getActiveSpan()) {
               return undefined;
             }
 
@@ -306,6 +302,7 @@ const _postgresJsChannelIntegration = ((options: PostgresJsChannelIntegrationOpt
             return span;
           },
           {
+            requiresParentSpan: requireParentSpan !== false,
             deferSpanEnd({ data }) {
               // `handle` is async: its promise settles on dispatch (asyncEnd), long
               // before the query does. The resolve/reject wrappers own the ending.

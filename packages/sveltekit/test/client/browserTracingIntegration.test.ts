@@ -10,6 +10,7 @@ import { writable } from 'svelte/store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { navigating, page } from '$app/stores';
 import { browserTracingIntegration } from '../../src/client';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 // we have to overwrite the global mock from `vitest.setup.ts` here to reset the
 // `navigating` store for each test.
@@ -41,6 +42,7 @@ describe('browserTracingIntegration', () => {
         ...txnCtx,
         updateName: vi.fn(),
         setAttribute: vi.fn(),
+        setAttributes: vi.fn(),
       };
       return createdRootSpan as Span;
     });
@@ -52,6 +54,7 @@ describe('browserTracingIntegration', () => {
         ...txnCtx,
         updateName: vi.fn(),
         setAttribute: vi.fn(),
+        setAttributes: vi.fn(),
       };
       return createdRootSpan as Span;
     });
@@ -125,7 +128,10 @@ describe('browserTracingIntegration', () => {
     // This should update the transaction name with the parameterized route:
     expect(createdRootSpan?.updateName).toHaveBeenCalledTimes(1);
     expect(createdRootSpan?.updateName).toHaveBeenCalledWith('testRoute');
-    expect(createdRootSpan?.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    expect(createdRootSpan?.setAttributes).toHaveBeenCalledWith({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [URL_TEMPLATE]: 'testRoute',
+    });
   });
 
   it("doesn't start a pageload span if `instrumentPageLoad` is false", () => {
@@ -196,23 +202,28 @@ describe('browserTracingIntegration', () => {
     // eslint-disable-next-line typescript/no-deprecated
     navigating.set({
       from: { route: { id: '/users' }, url: { pathname: '/users' } },
-      to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
+      to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762', href: 'https://sentry-test.io/users/7762' } },
       type: 'link',
     });
 
     // This should update the transaction name with the parameterized route:
     expect(startBrowserTracingNavigationSpanSpy).toHaveBeenCalledTimes(1);
-    expect(startBrowserTracingNavigationSpanSpy).toHaveBeenCalledWith(fakeClient, {
-      name: '/users/[id]',
-      op: 'navigation',
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        'sentry.sveltekit.navigation.from': '/users',
-        'sentry.sveltekit.navigation.to': '/users/[id]',
-        'sentry.sveltekit.navigation.type': 'link',
+    expect(startBrowserTracingNavigationSpanSpy).toHaveBeenCalledWith(
+      fakeClient,
+      {
+        name: '/users/[id]',
+        op: 'navigation',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/users/[id]',
+          'sentry.sveltekit.navigation.from': '/users',
+          'sentry.sveltekit.navigation.to': '/users/[id]',
+          'sentry.sveltekit.navigation.type': 'link',
+        },
       },
-    });
+      { url: 'https://sentry-test.io/users/7762' },
+    );
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith({
       op: 'ui.sveltekit.routing',
@@ -267,20 +278,28 @@ describe('browserTracingIntegration', () => {
       // eslint-disable-next-line typescript/no-deprecated
       navigating.set({
         from: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
-        to: { route: { id: '/users/[id]' }, url: { pathname: '/users/223412' } },
+        to: {
+          route: { id: '/users/[id]' },
+          url: { pathname: '/users/223412', href: 'https://sentry-test.io/users/223412' },
+        },
       });
 
       expect(startBrowserTracingNavigationSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startBrowserTracingNavigationSpanSpy).toHaveBeenCalledWith(fakeClient, {
-        name: '/users/[id]',
-        op: 'navigation',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
-          'sentry.sveltekit.navigation.from': '/users/[id]',
-          'sentry.sveltekit.navigation.to': '/users/[id]',
+      expect(startBrowserTracingNavigationSpanSpy).toHaveBeenCalledWith(
+        fakeClient,
+        {
+          name: '/users/[id]',
+          op: 'navigation',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
+            [URL_TEMPLATE]: '/users/[id]',
+            'sentry.sveltekit.navigation.from': '/users/[id]',
+            'sentry.sveltekit.navigation.to': '/users/[id]',
+          },
         },
-      });
+        { url: 'https://sentry-test.io/users/223412' },
+      );
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         op: 'ui.sveltekit.routing',

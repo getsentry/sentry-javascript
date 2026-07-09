@@ -595,6 +595,136 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(generateContent).toBeDefined();
               expect(generateContent.parent_span_id).toBe(invokeAgent.span_id);
               expect(generateContent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamText.doStream');
+
+              // The stream's final usage/finish/output arrive only as the stream drains, after the
+              // channel already resolved the model call. Tapping the stream recovers them onto the
+              // model-call span on every path (v7 channel, v6 OTel, v6 orchestrion).
+              expect(generateContent.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(10);
+              expect(generateContent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]?.value).toBe(20);
+              expect(generateContent.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]?.value).toBe(30);
+              expect(generateContent.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]?.value).toBe('["stop"]');
+              expect(generateContent.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value).toBe(
+                '[{"role":"assistant","parts":[{"type":"text","content":"Stream response!"}],"finish_reason":"stop"}]',
+              );
+
+              // The summed usage and output also land on the parent invoke_agent span, whose own
+              // channel result is otherwise undefined for a stream.
+              expect(invokeAgent.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(10);
+              expect(invokeAgent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]?.value).toBe(20);
+              expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]?.value).toBe(30);
+              expect(invokeAgent.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value).toBe(
+                '[{"role":"assistant","parts":[{"type":"text","content":"Stream response!"}],"finish_reason":"stop"}]',
+              );
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-stream-tools.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('captures usage, tool calls and output across a multi-step streamText', async () => {
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              const invokeAgent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+              )!;
+              expect(invokeAgent).toBeDefined();
+              expect(invokeAgent.status).toBe('ok');
+              expect(invokeAgent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamText');
+              // Usage is summed across the two streamed model calls (10+15, 20+25, 30+40).
+              expect(invokeAgent.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(25);
+              expect(invokeAgent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]?.value).toBe(45);
+              expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]?.value).toBe(70);
+
+              const generateContents = container.items.filter(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+              );
+              expect(generateContents).toHaveLength(2);
+              generateContents.forEach(span => expect(span.parent_span_id).toBe(invokeAgent.span_id));
+
+              // The step that streamed a tool call: tool-call output part + tool-calls finish reason.
+              const toolStep = generateContents.find(
+                span => span.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]?.value === '["tool-calls"]',
+              )!;
+              expect(toolStep).toBeDefined();
+              expect(toolStep.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(10);
+              expect(toolStep.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]?.value).toBe(20);
+              const toolStepOutput = toolStep.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value as string;
+              expect(toolStepOutput).toContain('"type":"tool_call"');
+              expect(toolStepOutput).toContain('getWeather');
+
+              // The step that streamed the final answer text.
+              const textStep = generateContents.find(
+                span => span.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]?.value === '["stop"]',
+              )!;
+              expect(textStep).toBeDefined();
+              expect(textStep.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(15);
+              expect(textStep.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value).toContain('Sunny, 72°F.');
+
+              // A tool span is emitted for the streamed tool call. Its parent and recorded input/output
+              // vary by path during stream consumption (tool i/o is covered by the non-stream scenario
+              // and the v7 path), so here we just assert the span exists with the right name/status.
+              const executeTool = container.items.find(span => span.name === 'execute_tool getWeather')!;
+              expect(executeTool).toBeDefined();
+              expect(executeTool.status).toBe('ok');
+              expect(executeTool.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE]?.value).toBe('getWeather');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-stream-structured-output.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('captures streamed structured output (streamText with experimental_output)', async () => {
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              const invokeAgent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+              )!;
+              expect(invokeAgent).toBeDefined();
+              expect(invokeAgent.status).toBe('ok');
+              expect(invokeAgent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamText');
+              expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]?.value).toBe(30);
+
+              const generateContent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+              )!;
+              expect(generateContent).toBeDefined();
+              expect(generateContent.parent_span_id).toBe(invokeAgent.span_id);
+              expect(generateContent.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(12);
+              expect(generateContent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]?.value).toBe(18);
+              expect(generateContent.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]?.value).toBe('["stop"]');
+              // The streamed JSON object is accumulated from the text deltas and captured as the
+              // model's output text (embedded as an escaped JSON string in the output message).
+              const output = generateContent.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value as string;
+              expect(output).toContain('San Francisco');
+              expect(output).toContain('sunny');
             },
           })
           .start()

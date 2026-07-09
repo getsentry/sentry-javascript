@@ -21,7 +21,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, runFileInNode }) => {
     //#endregion
 
     //# sourceMappingURL=index.js.map",
-      "index.js.map": "{"version":3,"file":"index.js","names":[],"sources":["../../src/import.js","../../src/index.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"I am import!\\");\\n\\nexport {};\\n","import \\"./import\\";\\n\\n// eslint-disable-next-line no-console\\nconsole.log(\\"I am index!\\");\\n"],"mappings":";;;;;;;;;AACA,QAAQ,IAAI,eAAe;;;ACE3B,QAAQ,IAAI,cAAc"}",
+      "index.js.map": "{"version":3,"file":"index.js","names":[],"sources":["../../src/import.js","../../src/index.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"I am import!\\");\\n\\nexport {};\\n","import \\"./import\\";\\n\\n// eslint-disable-next-line no-console\\nconsole.log(\\"I am index!\\");\\n"],"mappings":";;;;;;;;;AACA,QAAQ,IAAI,cAAc;;;ACE1B,QAAQ,IAAI,aAAa"}",
     }
   `);
 
