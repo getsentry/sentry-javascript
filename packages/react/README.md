@@ -16,11 +16,12 @@ This package is a wrapper around `@sentry/browser`, with added functionality rel
 
 The default `@sentry/react` entry is intentionally **tree-shakeable**: it re-exports core error monitoring and common
 tracing APIs, but **not** optional heavy browser features (Session Replay, User Feedback UI, AI instrumenters, feature
-flag integrations, …). Import those from `@sentry/browser` or the dedicated packages when you need them:
+flag integrations, …) or router/Redux helpers. Import those from a dedicated entry when you need them:
 
 ```javascript
 import * as Sentry from '@sentry/react';
 import { replayIntegration } from '@sentry/browser';
+// or: import { replayIntegration } from '@sentry/react/optional-browser-api';
 // or: import { replayIntegration } from '@sentry/replay';
 
 Sentry.init({
@@ -29,11 +30,19 @@ Sentry.init({
 });
 ```
 
-Router-specific integrations are on subpaths so they can be code-split:
+Router and Redux integrations are on package subpaths so they can be code-split:
 
 ```javascript
 import { tanstackRouterBrowserTracingIntegration } from '@sentry/react/tanstackrouter';
+import { createReduxEnhancer } from '@sentry/react/redux';
+import { reactRouterV6BrowserTracingIntegration } from '@sentry/react/reactrouterv6';
 ```
+
+**Breaking change:** symbols that previously came from the `@sentry/react` root
+(`replayIntegration`, `feedbackIntegration`, router helpers, `createReduxEnhancer`, …) must now be imported from
+`@sentry/browser`, `@sentry/react/optional-browser-api`, or the matching subpath above. Framework SDKs
+(`@sentry/nextjs`, `@sentry/gatsby`) still re-export the optional browser surface and `createReduxEnhancer` so
+`import * as Sentry from '@sentry/nextjs'` keeps working for those symbols.
 
 To use this SDK, call `Sentry.init(options)` before you mount your React component.
 

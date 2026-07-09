@@ -16,10 +16,13 @@ import { removeIsrSsgTraceMetaTags } from './routing/isrRoutingTracing';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
-// Optional browser features are no longer star-exported through `@sentry/react`
-// (so the React entry tree-shakes under Rolldown dynamic imports). Re-export them
-// here so `import * as Sentry from '@sentry/nextjs'` keeps the historical surface.
+// Optional browser features and Redux are no longer star-exported through
+// `@sentry/react` (so the React entry tree-shakes under Rolldown dynamic imports).
+// Re-export them here so `import * as Sentry from '@sentry/nextjs'` keeps the
+// historical surface (including `createReduxEnhancer`, which is dual-declared
+// against the client SDK in `index.types.ts`).
 export * from '@sentry/react/optional-browser-api';
+export { createReduxEnhancer } from '@sentry/react/redux';
 export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 

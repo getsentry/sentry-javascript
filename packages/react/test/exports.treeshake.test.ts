@@ -47,6 +47,10 @@ describe('@sentry/react export surface (tree-shaking)', () => {
     const optional = await import('../src/optional-browser-api');
     expect(optional.uiProfiler).toBeDefined();
     expect(typeof optional.browserProfilingIntegration).toBe('function');
+    expect(typeof optional.featureFlagsIntegration).toBe('function');
+    // Type-only export is erased at runtime; the value companion is what consumers use
+    // with getIntegrationByName<FeatureFlagsIntegration>(...).
+    expect(optional).toHaveProperty('featureFlagsIntegration');
   });
 
   it('does not export router integrations from the root entry', () => {

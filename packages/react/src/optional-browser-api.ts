@@ -63,6 +63,7 @@ export {
 } from '@sentry/browser';
 
 export type {
+  FeatureFlagsIntegration,
   ReplayBreadcrumbFrame,
   ReplayBreadcrumbFrameEvent,
   ReplayEventType,

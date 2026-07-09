@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### Important Changes
+
+- **ref(react, browser): make `@sentry/react` tree-shakeable by default ([#22168](https://github.com/getsentry/sentry-javascript/pull/22168))**
+
+  The `@sentry/react` root entry no longer star-exports the full `@sentry/browser` surface. Optional/heavy features
+  (Session Replay, Feedback, AI instrumenters, feature-flag integrations, browser profiling, …) and React
+  Router/Redux helpers are off the root export list so bundlers that materialize a dynamic `import('@sentry/react')`
+  namespace (e.g. Rolldown when destructuring) do not pull them into the critical path.
+
+  **Migration** — import optional browser APIs from `@sentry/browser`, `@sentry/react/optional-browser-api`, or a
+  dedicated package; import router/Redux helpers from package subpaths:
+
+  ```ts
+  // Before
+  import { replayIntegration, tanstackRouterBrowserTracingIntegration, createReduxEnhancer } from '@sentry/react';
+
+  // After
+  import { replayIntegration } from '@sentry/browser'; // or @sentry/react/optional-browser-api / @sentry/replay
+  import { tanstackRouterBrowserTracingIntegration } from '@sentry/react/tanstackrouter';
+  import { createReduxEnhancer } from '@sentry/react/redux';
+  ```
+
+  `@sentry/nextjs` and `@sentry/gatsby` re-export `optional-browser-api` and `createReduxEnhancer` so
+  `import * as Sentry from '@sentry/nextjs'` (and Gatsby) keeps the previous surface for those symbols.
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 Work in this release was contributed by @martijnwalraven. Thank you for your contribution!
