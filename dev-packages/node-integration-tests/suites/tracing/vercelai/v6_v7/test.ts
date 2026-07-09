@@ -894,10 +894,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
       // (like `embedMany`, it's dispatched via a path the channel never sees), so the channel-based
       // integration can't surface it on v7. v4/v5/v6 use orchestrion, which injects the `generateObject`
       // channel directly — v6 is exercised here, v4 in the base suite.
-      if (version === '7') {
-        return;
-      }
-      test('creates spans for generateObject', async () => {
+      test.skipIf(version === '7')('creates spans for generateObject', async () => {
         await createRunner()
           .expect({ transaction: { transaction: 'main' } })
           .expect({
