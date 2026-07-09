@@ -94,6 +94,10 @@ export {
   opera11StackLineParser,
   winjsStackLineParser,
   makeFetchTransport,
+  // Manual UI profiling API (pairs with browserProfilingIntegration from
+  // optional-browser-api / @sentry/browser). Was on the pre-curation public
+  // surface via export * from @sentry/browser.
+  uiProfiler,
   // Scope helpers
   metrics,
   onLoad,

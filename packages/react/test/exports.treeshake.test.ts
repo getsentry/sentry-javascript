@@ -21,6 +21,10 @@ describe('@sentry/react export surface (tree-shaking)', () => {
     expect(typeof SentryReact.thirdPartyErrorFilterIntegration).toBe('function');
     expect(typeof SentryReact.ErrorBoundary).toBe('function');
     expect(typeof SentryReact.reactErrorHandler).toBe('function');
+    // Public API previously re-exported via export * from @sentry/browser
+    expect(SentryReact.uiProfiler).toBeDefined();
+    expect(typeof SentryReact.uiProfiler.startProfiler).toBe('function');
+    expect(typeof SentryReact.uiProfiler.stopProfiler).toBe('function');
   });
 
   it('does not export optional heavy browser features from the root entry', () => {
