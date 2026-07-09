@@ -20,7 +20,11 @@ export {
   getFeedback,
   sendFeedback,
   // Optional integrations
+  // uiProfiler is also on the root surface; re-export here so
+  // `import { uiProfiler, browserProfilingIntegration } from '@sentry/react/optional-browser-api'`
+  // keeps working for manual UI profiling setups.
   browserProfilingIntegration,
+  uiProfiler,
   contextLinesIntegration,
   createConsolaReporter,
   diagnoseSdkConnectivity,

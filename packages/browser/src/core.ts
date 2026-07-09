@@ -15,6 +15,7 @@ export * from './exports';
 
 export { cultureContextIntegration } from './integrations/culturecontext';
 export { normalizeStringifyValue } from './normalizeStringifyValue';
+export { getAbsoluteUrl } from '@sentry/browser-utils';
 
 // --- Tracing (commonly used; still tree-shakeable if unused) ---
 export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';

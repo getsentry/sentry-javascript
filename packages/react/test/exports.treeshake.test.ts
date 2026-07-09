@@ -25,6 +25,7 @@ describe('@sentry/react export surface (tree-shaking)', () => {
     expect(SentryReact.uiProfiler).toBeDefined();
     expect(typeof SentryReact.uiProfiler.startProfiler).toBe('function');
     expect(typeof SentryReact.uiProfiler.stopProfiler).toBe('function');
+    expect(typeof SentryReact.getAbsoluteUrl).toBe('function');
   });
 
   it('does not export optional heavy browser features from the root entry', () => {
@@ -40,6 +41,12 @@ describe('@sentry/react export surface (tree-shaking)', () => {
     expect(root.launchDarklyIntegration).toBeUndefined();
     expect(root.browserProfilingIntegration).toBeUndefined();
     expect(root.diagnoseSdkConnectivity).toBeUndefined();
+  });
+
+  it('re-exports uiProfiler from optional-browser-api with browserProfilingIntegration', async () => {
+    const optional = await import('../src/optional-browser-api');
+    expect(optional.uiProfiler).toBeDefined();
+    expect(typeof optional.browserProfilingIntegration).toBe('function');
   });
 
   it('does not export router integrations from the root entry', () => {

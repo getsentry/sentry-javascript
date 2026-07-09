@@ -98,6 +98,7 @@ export {
   // optional-browser-api / @sentry/browser). Was on the pre-curation public
   // surface via export * from @sentry/browser.
   uiProfiler,
+  getAbsoluteUrl,
   // Scope helpers
   metrics,
   onLoad,
