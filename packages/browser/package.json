@@ -32,12 +32,31 @@
         "import": "./build/npm/esm/prod/index.js",
         "require": "./build/npm/cjs/prod/index.js"
       }
+    },
+    "./core": {
+      "types": "./build/npm/types/core.d.ts",
+      "react-native": "./build/npm/esm/prod/core.js",
+      "development": {
+        "import": "./build/npm/esm/dev/core.js",
+        "require": "./build/npm/cjs/dev/core.js"
+      },
+      "production": {
+        "import": "./build/npm/esm/prod/core.js",
+        "require": "./build/npm/cjs/prod/core.js"
+      },
+      "default": {
+        "import": "./build/npm/esm/prod/core.js",
+        "require": "./build/npm/cjs/prod/core.js"
+      }
     }
   },
   "typesVersions": {
     "<5.0": {
       "build/npm/types/index.d.ts": [
         "build/npm/types-ts3.8/index.d.ts"
+      ],
+      "core": [
+        "build/npm/types-ts3.8/core.d.ts"
       ]
     }
   },
@@ -69,7 +88,7 @@
     "build:bundle:watch": "rollup -c rollup.bundle.config.mjs --watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
+    "circularDepCheck": "madge --circular src/index.ts && madge --circular src/core.ts",
     "clean": "rimraf build coverage .rpt2_cache sentry-browser-*.tgz",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",

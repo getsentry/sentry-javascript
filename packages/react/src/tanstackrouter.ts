@@ -25,8 +25,25 @@ interface TanstackRouterLocation {
  *
  * The minimum compatible version of `@tanstack/react-router` is `1.64.0`.
  *
+ * Import from `@sentry/react/tanstackrouter` (not the package root) so this code is not
+ * part of the main `@sentry/react` export list. That keeps dynamic
+ * `import('@sentry/react')` namespaces tree-shakeable.
+ *
  * @param router A TanStack Router `Router` instance that should be used for routing instrumentation.
  * @param options Sentry browser tracing configuration.
+ *
+ * @example
+ * ```ts
+ * import { init, addIntegration } from '@sentry/react';
+ * import { tanstackRouterBrowserTracingIntegration } from '@sentry/react/tanstackrouter';
+ *
+ * init({ dsn: '...' });
+ *
+ * // Safe to defer: only the tanstack subpath is loaded
+ * void import('@sentry/react/tanstackrouter').then(({ tanstackRouterBrowserTracingIntegration }) => {
+ *   addIntegration(tanstackRouterBrowserTracingIntegration(router));
+ * });
+ * ```
  */
 export function tanstackRouterBrowserTracingIntegration(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -12,8 +12,28 @@
 
 ## General
 
-This package is a wrapper around `@sentry/browser`, with added functionality related to React. All methods available in
-`@sentry/browser` can be imported from `@sentry/react`.
+This package is a wrapper around `@sentry/browser`, with added functionality related to React.
+
+The default `@sentry/react` entry is intentionally **tree-shakeable**: it re-exports core error monitoring and common
+tracing APIs, but **not** optional heavy browser features (Session Replay, User Feedback UI, AI instrumenters, feature
+flag integrations, …). Import those from `@sentry/browser` or the dedicated packages when you need them:
+
+```javascript
+import * as Sentry from '@sentry/react';
+import { replayIntegration } from '@sentry/browser';
+// or: import { replayIntegration } from '@sentry/replay';
+
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [replayIntegration()],
+});
+```
+
+Router-specific integrations are on subpaths so they can be code-split:
+
+```javascript
+import { tanstackRouterBrowserTracingIntegration } from '@sentry/react/tanstackrouter';
+```
 
 To use this SDK, call `Sentry.init(options)` before you mount your React component.
 

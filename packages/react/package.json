@@ -10,7 +10,8 @@
     "node": ">=18"
   },
   "files": [
-    "/build"
+    "/build",
+    "/*.d.ts"
   ],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
@@ -29,6 +30,86 @@
       "require": {
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
+      }
+    },
+    "./optional-browser-api": {
+      "import": {
+        "types": "./optional-browser-api.d.ts",
+        "default": "./build/esm/optional-browser-api.js"
+      },
+      "require": {
+        "types": "./optional-browser-api.d.ts",
+        "default": "./build/cjs/optional-browser-api.js"
+      }
+    },
+    "./tanstackrouter": {
+      "import": {
+        "types": "./tanstackrouter.d.ts",
+        "default": "./build/esm/tanstackrouter.js"
+      },
+      "require": {
+        "types": "./tanstackrouter.d.ts",
+        "default": "./build/cjs/tanstackrouter.js"
+      }
+    },
+    "./redux": {
+      "import": {
+        "types": "./redux.d.ts",
+        "default": "./build/esm/redux.js"
+      },
+      "require": {
+        "types": "./redux.d.ts",
+        "default": "./build/cjs/redux.js"
+      }
+    },
+    "./reactrouterv3": {
+      "import": {
+        "types": "./reactrouterv3.d.ts",
+        "default": "./build/esm/reactrouterv3.js"
+      },
+      "require": {
+        "types": "./reactrouterv3.d.ts",
+        "default": "./build/cjs/reactrouterv3.js"
+      }
+    },
+    "./reactrouter": {
+      "import": {
+        "types": "./reactrouter.d.ts",
+        "default": "./build/esm/reactrouter.js"
+      },
+      "require": {
+        "types": "./reactrouter.d.ts",
+        "default": "./build/cjs/reactrouter.js"
+      }
+    },
+    "./reactrouterv6": {
+      "import": {
+        "types": "./reactrouterv6.d.ts",
+        "default": "./build/esm/reactrouterv6.js"
+      },
+      "require": {
+        "types": "./reactrouterv6.d.ts",
+        "default": "./build/cjs/reactrouterv6.js"
+      }
+    },
+    "./reactrouterv7": {
+      "import": {
+        "types": "./reactrouterv7.d.ts",
+        "default": "./build/esm/reactrouterv7.js"
+      },
+      "require": {
+        "types": "./reactrouterv7.d.ts",
+        "default": "./build/cjs/reactrouterv7.js"
+      }
+    },
+    "./reactrouter.compat": {
+      "import": {
+        "types": "./reactrouter.compat.d.ts",
+        "default": "./build/esm/reactrouter.compat.js"
+      },
+      "require": {
+        "types": "./reactrouter.compat.d.ts",
+        "default": "./build/cjs/reactrouter.compat.js"
       }
     }
   },
@@ -82,7 +163,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
+    "circularDepCheck": "madge --circular src/index.ts && madge --circular src/tanstackrouter.ts && madge --circular src/redux.ts",
     "clean": "rimraf build coverage sentry-react-*.tgz",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",

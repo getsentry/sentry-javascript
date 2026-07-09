@@ -4,6 +4,8 @@ export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     // packages with bundles have a different build directory structure
     hasBundles: true,
+    // `core` is a slim entry used by framework SDKs for tree-shakeable re-exports.
+    entrypoints: ['src/index.ts', 'src/core.ts'],
     packageSpecificConfig: {
       output: {
         // set exports to 'named' or 'auto' so that rollup doesn't warn

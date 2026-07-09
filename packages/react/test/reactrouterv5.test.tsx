@@ -16,7 +16,8 @@ import { act } from 'react';
 import { matchPath, Route, Router, Switch } from 'react-router-5';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { BrowserClient, reactRouterV5BrowserTracingIntegration, withSentryRouting } from '../src';
+import { BrowserClient } from '../src';
+import { reactRouterV5BrowserTracingIntegration, withSentryRouting } from '../src/reactrouter';
 import type { RouteConfig } from '../src/reactrouter';
 
 const mockStartBrowserTracingPageLoadSpan = vi.fn();

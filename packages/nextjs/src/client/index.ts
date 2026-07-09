@@ -16,6 +16,10 @@ import { removeIsrSsgTraceMetaTags } from './routing/isrRoutingTracing';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
+// Optional browser features are no longer star-exported through `@sentry/react`
+// (so the React entry tree-shakes under Rolldown dynamic imports). Re-export them
+// here so `import * as Sentry from '@sentry/nextjs'` keeps the historical surface.
+export * from '@sentry/react/optional-browser-api';
 export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 

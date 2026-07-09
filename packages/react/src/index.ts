@@ -1,41 +1,34 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-export * from '@sentry/browser';
+
+/**
+ * @sentry/react public entry — tree-shakeable by default.
+ *
+ * Deliberately does **not** use `export * from '@sentry/browser'`. That star-export
+ * put every optional browser feature (Session Replay, Feedback UI, AI SDKs, feature
+ * flags, …) on this module's export list. Bundlers that materialize the full
+ * namespace for `import('@sentry/react')` (Rolldown when destructuring the result)
+ * then shipped hundreds of KB of unused code on the critical path.
+ *
+ * Optional browser features: import from `@sentry/browser` or the dedicated package.
+ * Router-specific integrations: import from a subpath, e.g.
+ * `@sentry/react/tanstackrouter`.
+ */
+
+export * from './browser-api';
 
 export { init } from './sdk';
 export { captureReactException, reactErrorHandler } from './error';
 export { Profiler, withProfiler, useProfiler } from './profiler';
 export type { ErrorBoundaryProps, FallbackRender } from './errorboundary';
 export { ErrorBoundary, withErrorBoundary } from './errorboundary';
-export { createReduxEnhancer } from './redux';
-export { reactRouterV3BrowserTracingIntegration } from './reactrouterv3';
-export { tanstackRouterBrowserTracingIntegration } from './tanstackrouter';
-export {
-  withSentryRouting,
-  reactRouterV4BrowserTracingIntegration,
-  reactRouterV5BrowserTracingIntegration,
-} from './reactrouter';
-/* oxlint-disable typescript/no-deprecated -- Intentional re-exports for backwards compatibility */
-export {
-  reactRouterV6BrowserTracingIntegration,
-  withSentryReactRouterV6Routing,
-  wrapUseRoutesV6,
-  wrapCreateBrowserRouterV6,
-  wrapCreateMemoryRouterV6,
-} from './reactrouterv6';
-export {
-  reactRouterV7BrowserTracingIntegration,
-  withSentryReactRouterV7Routing,
-  wrapCreateBrowserRouterV7,
-  wrapCreateMemoryRouterV7,
-  wrapUseRoutesV7,
-} from './reactrouterv7';
-/* oxlint-enable typescript/no-deprecated */
-export {
-  reactRouterBrowserTracingIntegration,
-  wrapReactRouterRouting,
-  wrapCreateBrowserRouter,
-  wrapCreateMemoryRouter,
-  wrapUseRoutes,
-} from './reactrouter.compat';
+
+// Router / Redux integrations live on subpaths so they are not part of this
+// entry's export list (see package.json "exports"). Re-exporting them here would
+// re-introduce the tree-shaking hole for dynamic `import('@sentry/react')`.
+//
+//   import { tanstackRouterBrowserTracingIntegration } from '@sentry/react/tanstackrouter';
+//   import { createReduxEnhancer } from '@sentry/react/redux';
+//   import { reactRouterV6BrowserTracingIntegration } from '@sentry/react/reactrouterv6';
+//   …
