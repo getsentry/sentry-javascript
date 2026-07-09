@@ -811,12 +811,8 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Free up disk space if low
-        # The full suite pulls several DB docker images (mssql alone is ~1.5GB) and installs
-        # per-suite node_modules concurrently. Most hosted runners now have ~90GB free, where that
-        # fits comfortably, but part of the fleet still ships with far less free space and those
-        # runners fail unrelated suites with ENOSPC. Only reclaim the large preinstalled toolchains
-        # (a slow ~30-60s `rm` of the Android SDK etc.) when free space is actually low, so healthy
-        # runners skip it and pay nothing. `df` is logged either way so a future squeeze is visible.
+        # The full suite pulls several DB docker images (mssql alone is ~1.5GB)
+        # Available disk space is not consistent, if we detect low space this cleans up some unused toolchains
         run: |
           df -h /
           avail_kb=$(df -k --output=avail / | tail -1)
