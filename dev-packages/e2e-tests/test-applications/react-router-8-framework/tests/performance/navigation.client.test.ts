@@ -10,8 +10,12 @@ test.describe('client - navigation performance', () => {
       );
     });
 
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
     await page.goto(`/performance`); // pageload
-    await page.waitForTimeout(1000); // give it a sec before navigation
+    await pageloadTxPromise;
     await page.getByRole('link', { name: 'SSR Page' }).click(); // navigation
 
     const transaction = await navigationPromise;
@@ -67,8 +71,12 @@ test.describe('client - navigation performance', () => {
       );
     });
 
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
     await page.goto(`/performance`); // pageload
-    await page.waitForTimeout(1000); // give it a sec before navigation
+    await pageloadTxPromise;
     await page.getByRole('link', { name: 'Object Navigate' }).click(); // navigation with object to
 
     const transaction = await txPromise;
@@ -97,8 +105,12 @@ test.describe('client - navigation performance', () => {
       return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'navigation';
     });
 
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
     await page.goto(`/performance`); // pageload
-    await page.waitForTimeout(1000); // give it a sec before navigation
+    await pageloadTxPromise;
     await page.getByRole('link', { name: 'Search Only Navigate' }).click(); // navigation with search-only object to
 
     const transaction = await txPromise;
@@ -129,8 +141,12 @@ test.describe('client - navigation performance', () => {
       );
     });
 
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
     await page.goto(`/performance`); // pageload
-    await page.waitForTimeout(1000); // give it a sec before navigation
+    await pageloadTxPromise;
     await page.getByRole('link', { name: 'With Param Page' }).click(); // navigation
 
     const transaction = await txPromise;
@@ -175,6 +191,55 @@ test.describe('client - navigation performance', () => {
         ],
       },
       tags: { runtime: 'browser' },
+    });
+  });
+
+  test('should create navigation transaction for navigate(-1) with correct url attributes', async ({ page }) => {
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
+    await page.goto(`/performance`);
+    await pageloadTxPromise;
+
+    const forwardNavPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return (
+        transactionEvent.transaction === '/performance/ssr' && transactionEvent.contexts?.trace?.op === 'navigation'
+      );
+    });
+
+    await page.getByRole('link', { name: 'SSR Page' }).click();
+    await forwardNavPromise;
+
+    const backNavPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return (
+        transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'navigation'
+      );
+    });
+
+    await page.getByRole('button', { name: 'History Back Navigate' }).click();
+
+    const transaction = await backNavPromise;
+
+    expect(transaction).toMatchObject({
+      contexts: {
+        trace: {
+          op: 'navigation',
+          origin: 'auto.navigation.react_router',
+          data: {
+            'sentry.source': 'route',
+            'sentry.op': 'navigation',
+            'sentry.origin': 'auto.navigation.react_router',
+            'url.template': '/performance',
+            // react-router-serve 301-redirects the bare index route to a trailing slash
+            'url.path': '/performance/',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/$/),
+          },
+        },
+      },
+      transaction: '/performance',
+      type: 'transaction',
+      transaction_info: { source: 'route' },
     });
   });
 });

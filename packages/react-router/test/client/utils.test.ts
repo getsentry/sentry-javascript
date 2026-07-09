@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveNavigateAbsoluteUrl } from '../../src/client/utils';
+import { resolveNavigateAbsoluteUrl, updateNavigationSpanUrlFromLocation } from '../../src/client/utils';
 
 vi.mock('@sentry/browser', () => ({
   getAbsoluteUrl: vi.fn((urlOrPath: string) => {
@@ -82,5 +82,39 @@ describe('resolveNavigateAbsoluteUrl', () => {
     };
 
     expect(resolveNavigateAbsoluteUrl('ssr')).toBe('https://example.com/performance/ssr');
+  });
+});
+
+describe('updateNavigationSpanUrlFromLocation', () => {
+  const originalLocation = globalThis.location;
+
+  beforeEach(() => {
+    (globalThis as any).location = {
+      href: 'https://example.com/foo?bar=1#section',
+      origin: 'https://example.com',
+      pathname: '/foo',
+      search: '?bar=1',
+      hash: '#section',
+    };
+  });
+
+  afterEach(() => {
+    if (originalLocation) {
+      (globalThis as any).location = originalLocation;
+    } else {
+      delete (globalThis as any).location;
+    }
+  });
+
+  it('updates span name and url attributes from location', () => {
+    const span = { updateName: vi.fn(), setAttributes: vi.fn() } as any;
+
+    updateNavigationSpanUrlFromLocation(span);
+
+    expect(span.updateName).toHaveBeenCalledWith('/foo');
+    expect(span.setAttributes).toHaveBeenCalledWith({
+      'url.path': '/foo',
+      'url.full': 'https://example.com/foo?bar=1#section',
+    });
   });
 });

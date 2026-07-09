@@ -1,5 +1,7 @@
 import { getAbsoluteUrl } from '@sentry/browser';
+import type { Span } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/core';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -82,4 +84,22 @@ export function resolveNavigateAbsoluteUrl(target: unknown, currentUrl?: string)
   } catch {
     return getAbsoluteUrl(destination);
   }
+}
+
+/**
+ * Updates a navigation span's name and `url.path`/`url.full` from the current `location`.
+ */
+export function updateNavigationSpanUrlFromLocation(span: Span): void {
+  if (!WINDOW.location) {
+    return;
+  }
+
+  const { pathname, search = '', hash = '' } = WINDOW.location;
+  const destinationUrl = getAbsoluteUrl(`${pathname}${search}${hash}`);
+
+  span.updateName(pathname);
+  span.setAttributes({
+    [URL_PATH]: pathname,
+    [URL_FULL]: destinationUrl,
+  });
 }
