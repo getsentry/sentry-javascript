@@ -33,7 +33,7 @@ describe('resolveNavigateAbsoluteUrl', () => {
   });
 
   it('resolves relative string targets against the current URL', () => {
-    expect(resolveNavigateAbsoluteUrl('settings')).toBe('https://example.com/users/settings');
+    expect(resolveNavigateAbsoluteUrl('settings')).toBe('https://example.com/users/123/settings');
   });
 
   it('resolves absolute string targets from the origin', () => {
@@ -49,16 +49,16 @@ describe('resolveNavigateAbsoluteUrl', () => {
       hash: '',
     };
 
-    expect(resolveNavigateAbsoluteUrl('../settings')).toBe('https://example.com/users/settings');
+    expect(resolveNavigateAbsoluteUrl('../settings')).toBe('https://example.com/users/123/settings');
   });
 
   it('resolves relative pathname in a To object against the current URL', () => {
-    expect(resolveNavigateAbsoluteUrl({ pathname: 'settings' })).toBe('https://example.com/users/settings');
+    expect(resolveNavigateAbsoluteUrl({ pathname: 'settings' })).toBe('https://example.com/users/123/settings');
   });
 
   it('preserves search and hash from a To object', () => {
     expect(resolveNavigateAbsoluteUrl({ pathname: 'settings', search: '?foo=bar', hash: '#section' })).toBe(
-      'https://example.com/users/settings?foo=bar#section',
+      'https://example.com/users/123/settings?foo=bar#section',
     );
   });
 
@@ -69,6 +69,18 @@ describe('resolveNavigateAbsoluteUrl', () => {
   it('uses currentUrl as fallback when location.href is unavailable', () => {
     (globalThis as any).location = { origin: 'https://example.com' };
 
-    expect(resolveNavigateAbsoluteUrl('settings', '/users/123')).toBe('https://example.com/users/settings');
+    expect(resolveNavigateAbsoluteUrl('settings', '/users/123')).toBe('https://example.com/users/123/settings');
+  });
+
+  it('resolves a relative target on a path without a trailing slash as a child segment', () => {
+    (globalThis as any).location = {
+      href: 'https://example.com/performance',
+      origin: 'https://example.com',
+      pathname: '/performance',
+      search: '',
+      hash: '',
+    };
+
+    expect(resolveNavigateAbsoluteUrl('ssr')).toBe('https://example.com/performance/ssr');
   });
 });

@@ -246,7 +246,7 @@ describe('instrumentHydratedRouter', () => {
       expect.objectContaining({
         name: 'settings',
       }),
-      { url: 'https://example.com/foo/settings' },
+      { url: 'https://example.com/foo/bar/settings' },
     );
   });
 
@@ -258,7 +258,7 @@ describe('instrumentHydratedRouter', () => {
       expect.objectContaining({
         name: '-1',
       }),
-      { url: 'https://example.com/foo/-1' },
+      { url: 'https://example.com/foo/bar/-1' },
     );
   });
 

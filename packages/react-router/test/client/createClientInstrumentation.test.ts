@@ -146,7 +146,7 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'settings',
       }),
-      { url: 'https://example.com/users/settings' },
+      { url: 'https://example.com/users/123/settings' },
     );
   });
 

@@ -45,18 +45,27 @@ export function resolveNavigateUrl(target: unknown): string {
 }
 
 function getNavigateBaseUrl(currentUrl?: string): string {
-  if (typeof WINDOW.location?.href === 'string' && WINDOW.location.href !== '') {
-    return WINDOW.location.href;
-  }
-
-  const path = currentUrl || '/';
   const origin = WINDOW.location?.origin || 'http://localhost';
 
-  try {
-    return new URL(path, origin).href;
-  } catch {
-    return `${origin}${path.startsWith('/') ? path : `/${path}`}`;
+  // Prefer the live pathname, but fall back to the hook-provided `currentUrl` (which may be a full
+  // URL or a bare path) when `location` is unavailable (e.g. SSR/non-browser environments).
+  let pathname = WINDOW.location?.pathname;
+  if (!pathname && currentUrl) {
+    try {
+      pathname = new URL(currentUrl, origin).pathname;
+    } catch {
+      pathname = currentUrl.startsWith('/') ? currentUrl : `/${currentUrl}`;
+    }
   }
+  pathname = pathname || '/';
+
+  // React Router resolves relative navigate targets against the current path treated as a
+  // *directory* (it appends segments), whereas the WHATWG `URL` parser treats the last path
+  // segment as a file and drops it. Enforce a trailing slash so relative resolution matches
+  // React Router, e.g. `navigate('ssr')` from `/performance` -> `/performance/ssr` (not `/ssr`).
+  const directory = pathname.endsWith('/') ? pathname : `${pathname}/`;
+
+  return `${origin}${directory}`;
 }
 
 /**

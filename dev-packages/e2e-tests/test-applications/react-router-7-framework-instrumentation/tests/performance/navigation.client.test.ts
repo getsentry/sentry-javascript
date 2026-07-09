@@ -51,8 +51,14 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
   });
 
   test('should resolve relative navigate targets against the current URL', async ({ page }) => {
+    // Wait for the pageload transaction so we know the client has hydrated and the router is
+    // instrumented before triggering the relative navigation (avoids a brittle fixed sleep).
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
     await page.goto(`/performance`);
-    await page.waitForTimeout(1000);
+    await pageloadTxPromise;
 
     const navigationTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return (
