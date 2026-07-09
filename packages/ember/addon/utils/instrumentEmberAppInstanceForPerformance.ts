@@ -180,9 +180,12 @@ function _instrumentEmberRouter(
 
     activeRootSpan?.end();
 
-    const targetUrl =
-      (transition as TransitionWithIntent).intent?.url ?? _getLocationURL(location);
-    const urlAttributes = _getRouteUrlAttributes(targetUrl, transition.to?.params);
+    // Only `intent.url` reliably reflects the *destination* URL at `routeWillChange` time. The
+    // router's location still points at the current (pre-transition) route here, so falling back to
+    // it would tag the navigation span with the previous route's `url.*` attributes. When we don't
+    // have a trustworthy target URL, we omit them and let `routeDidChange` set them from `currentURL`.
+    const targetUrl = (transition as TransitionWithIntent).intent?.url;
+    const urlAttributes = targetUrl ? _getRouteUrlAttributes(targetUrl, transition.to?.params) : {};
 
     activeRootSpan = startBrowserTracingNavigationSpan(client, {
       name: `route:${toRoute}`,
