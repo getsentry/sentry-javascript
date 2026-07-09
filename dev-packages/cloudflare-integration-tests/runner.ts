@@ -20,7 +20,9 @@ process.on('exit', cleanupChildProcesses);
 
 // Wrangler can report "Ready" before it can actually handle requests.
 // This retries fetch on connection errors and transient 500 responses to handle this race condition.
-async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 10, retryDelayMs = 200): Promise<Response> {
+// The budget (maxRetries * retryDelayMs) must cover the "ready-but-not-serving" window, which can be
+// several seconds on a loaded CI runner — hence a generous default.
+async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 25, retryDelayMs = 200): Promise<Response> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const res = await fetch(url, init);
