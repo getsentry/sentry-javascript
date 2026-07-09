@@ -13,6 +13,7 @@ import {
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
+  experimentalUseDiagnosticsChannelInjection as nodeExperimentalUseDiagnosticsChannelInjection,
   getDefaultIntegrations,
   httpIntegration,
   init as nodeInit,
@@ -47,7 +48,24 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
   _sentryUseDiagnosticsChannelInjection?: string;
+  _sentryOrchestrionTracingHooksDir?: string;
 };
+
+/**
+ * EXPERIMENTAL: Next.js-aware variant of `Sentry.experimentalUseDiagnosticsChannelInjection()`
+ * from `@sentry/node` (see its docs for behavior and caveats).
+ *
+ * Next.js bundles the SDK into the server build, from where the runtime module hook can't resolve
+ * the `@apm-js-collab/tracing-hooks` bare specifier under isolated installs (pnpm). This variant
+ * points the hook at the package location that `withSentryConfig` resolved at build time.
+ *
+ * @experimental May change or be removed in any release.
+ */
+export function experimentalUseDiagnosticsChannelInjection(): void {
+  const tracingHooksDir =
+    process.env._sentryOrchestrionTracingHooksDir || globalWithInjectedValues._sentryOrchestrionTracingHooksDir;
+  nodeExperimentalUseDiagnosticsChannelInjection(tracingHooksDir ? { tracingHooksDir } : undefined);
+}
 
 // Call at module level so `next build` prerender workers still register the runner without `init`
 prepareSafeIdGeneratorContext();

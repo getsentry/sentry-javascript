@@ -1,30 +1,41 @@
 import { debug } from '@sentry/core';
 import { createRequire } from 'node:module';
 import * as Module from 'node:module';
-import { isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { DEBUG_BUILD } from '../../debug-build';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 
-/**
- * Where to load `@apm-js-collab/tracing-hooks` from. When this module is bundled into an app's
- * server build, the bare specifier resolves relative to the emitted chunk — which fails under
- * isolated installs (pnpm) where the package isn't linked at the app root. Build tooling (e.g.
- * `withSentryConfig`) therefore inlines the package's real location as a build-time env value,
- * which takes precedence; unbundled SDK code resolves the bare specifier from its real
- * `node_modules` location just fine.
- */
-function getTracingHooksSpecifier(subpath?: string): string {
-  const dir = process.env._sentryOrchestrionTracingHooksDir;
-  if (dir) {
-    return subpath ? `${dir}/${subpath}` : dir;
-  }
-  return subpath ? `@apm-js-collab/tracing-hooks/${subpath}` : '@apm-js-collab/tracing-hooks';
+export interface RegisterDiagnosticsChannelInjectionOptions {
+  /**
+   * Absolute directory of the `@apm-js-collab/tracing-hooks` package (forward slashes).
+   *
+   * By default the package is loaded via its bare specifier, which bundlers and Node resolve
+   * normally. When SDK code is bundled into an app's server build, that resolution starts at the
+   * emitted chunk and fails under isolated installs (pnpm) — framework SDKs (e.g.
+   * `@sentry/nextjs`) resolve the package at build time and pass its location here instead.
+   * Loading then goes through an opaque `createRequire`, keeping the absolute path out of the
+   * bundler's static analysis.
+   */
+  tracingHooksDir?: string;
 }
 
 declare global {
   // eslint-disable-next-line no-var
   var __SENTRY_ORCHESTRION__: { runtime?: boolean; bundler?: boolean } | undefined;
+}
+
+/** `Module.registerHooks` only became stable in Node 24.13 / 25.1 and Deno 2.8. */
+function hasStableSyncModuleHooks(denoVersionString: string | undefined): boolean {
+  const parseVersion = (v: string): number[] => v.split('.').map(n => parseInt(n, 10));
+  const nodeVersion = parseVersion(process.versions.node ?? '0.0.0');
+  const denoVersion = parseVersion(denoVersionString ?? '0.0.0');
+  return (
+    (nodeVersion[0] ?? 0) > 25 ||
+    (nodeVersion[0] === 25 && (nodeVersion[1] ?? 0) >= 1) ||
+    (nodeVersion[0] === 24 && (nodeVersion[1] ?? 0) >= 13) ||
+    (denoVersion[0] ?? 0) > 2 ||
+    (denoVersion[0] === 2 && (denoVersion[1] ?? 0) >= 8)
+  );
 }
 
 /**
@@ -42,7 +53,7 @@ declare global {
  * Idempotent via `globalThis.__SENTRY_ORCHESTRION__` — a no-op if the runtime
  * `--import` hook or a bundler plugin already injected the channels.
  */
-export function registerDiagnosticsChannelInjection(): void {
+export function registerDiagnosticsChannelInjection(options?: RegisterDiagnosticsChannelInjectionOptions): void {
   const g = (globalThis.__SENTRY_ORCHESTRION__ ??= {});
 
   // Already injected (runtime --import hook or bundler plugin) — nothing to do.
@@ -51,27 +62,32 @@ export function registerDiagnosticsChannelInjection(): void {
   }
 
   const globalAny = globalThis as { Bun?: unknown; Deno?: { version?: { deno?: string } } };
-  const parseVersion = (v: string): number[] => v.split('.').map(n => parseInt(n, 10));
-  const nodeVersion = parseVersion(process.versions.node ?? '0.0.0');
-  const denoVersion = parseVersion(globalAny.Deno?.version?.deno ?? '0.0.0');
-  // `Module.registerHooks` only became stable in Node 24.13 / 25.1 and Deno 2.8.
-  const stableSyncHooks =
-    (nodeVersion[0] ?? 0) > 25 ||
-    (nodeVersion[0] === 25 && (nodeVersion[1] ?? 0) >= 1) ||
-    (nodeVersion[0] === 24 && (nodeVersion[1] ?? 0) >= 13) ||
-    (denoVersion[0] ?? 0) > 2 ||
-    (denoVersion[0] === 2 && (denoVersion[1] ?? 0) >= 8);
+  const stableSyncHooks = hasStableSyncModuleHooks(globalAny.Deno?.version?.deno);
 
-  // Both branches use `createRequire` (never alias the CJS `require`): bundlers statically trace
-  // aliased `require` calls, and e.g. Turbopack would try to resolve the injected absolute
-  // tracing-hooks path at build time. `createRequire` stays a true runtime require.
+  let thisModuleUrl: string;
+  /*! rollup-include-cjs-only */
+  thisModuleUrl = pathToFileURL(__filename).href;
+  /*! rollup-include-cjs-only-end */
+  /*! rollup-include-esm-only */
+  thisModuleUrl = import.meta.url;
+  /*! rollup-include-esm-only-end */
+
+  // Default: bare specifiers via a plain (aliased) `require`, so bundlers see and resolve them
+  // like any other dependency. Override: with `tracingHooksDir`, absolute paths are loaded through
+  // `createRequire`, which bundlers leave as a true runtime require — they must not statically
+  // resolve these (Turbopack fails the build on an absolute request, and the machinery breaks when
+  // bundled anyway). `createRequire` rather than ignore-comments because webpack only honors
+  // `webpackIgnore` on `import()`, not `require()` (it compiles the call to a broken module stub).
   let nodeRequire: (specifier: string) => unknown;
   /*! rollup-include-cjs-only */
-  nodeRequire = createRequire(__filename);
+  nodeRequire = require;
   /*! rollup-include-cjs-only-end */
   /*! rollup-include-esm-only */
   nodeRequire = createRequire(import.meta.url);
   /*! rollup-include-esm-only-end */
+
+  const tracingHooksDir = options?.tracingHooksDir;
+  const requireFromHooksDir = tracingHooksDir ? createRequire(thisModuleUrl) : undefined;
 
   // `Module.registerHooks` / `Module.register` are newer than the @types/node
   // we build against, hence the cast.
@@ -91,7 +107,11 @@ export function registerDiagnosticsChannelInjection(): void {
       // We require() the module here so that we can synchronously load it,
       // including from a CommonJS Sentry build, without bundlers pulling in.
       // All versions in stableSyncHooks support this.
-      const { initialize, resolve, load } = nodeRequire(getTracingHooksSpecifier('hook-sync.mjs')) as {
+      const { initialize, resolve, load } = (
+        requireFromHooksDir
+          ? requireFromHooksDir(`${tracingHooksDir}/hook-sync.mjs`)
+          : nodeRequire('@apm-js-collab/tracing-hooks/hook-sync.mjs')
+      ) as {
         initialize: (opts: { instrumentations: unknown }) => void;
         resolve: unknown;
         load: unknown;
@@ -103,20 +123,14 @@ export function registerDiagnosticsChannelInjection(): void {
       // `Module.register` + the `_compile` patch is Node 18.19–24.12 / 25.0
       // path. Bun/Deno are excluded: they don't support this combination and
       // must use the stable `registerHooks` path above (or none at all).
-      let parentURL: string;
-      /*! rollup-include-cjs-only */
-      parentURL = pathToFileURL(__filename).href;
-      /*! rollup-include-cjs-only-end */
-      /*! rollup-include-esm-only */
-      parentURL = import.meta.url;
-      /*! rollup-include-esm-only-end */
-
       // `Module.register` resolves ESM-style: a bare package specifier is resolved against
-      // `parentURL`, but a filesystem path (the injected override) is not a valid ESM specifier
-      // and must be passed as a file:// URL.
-      const hookSpecifier = getTracingHooksSpecifier('hook.mjs');
-      mod.register(isAbsolute(hookSpecifier) ? pathToFileURL(hookSpecifier).href : hookSpecifier, {
-        parentURL,
+      // `parentURL`, but a filesystem path (the `tracingHooksDir` override) is not a valid ESM
+      // specifier and must be passed as a file:// URL.
+      const hookSpecifier = tracingHooksDir
+        ? pathToFileURL(`${tracingHooksDir}/hook.mjs`).href
+        : '@apm-js-collab/tracing-hooks/hook.mjs';
+      mod.register(hookSpecifier, {
+        parentURL: thisModuleUrl,
         data: { instrumentations: SENTRY_INSTRUMENTATIONS },
       });
 
@@ -125,7 +139,11 @@ export function registerDiagnosticsChannelInjection(): void {
       // are resolved through the CJS machinery and never reach the ESM
       // register hook, so without this patch the file we want to instrument
       // loads untransformed.
-      const ModulePatch = nodeRequire(getTracingHooksSpecifier()) as new (opts: { instrumentations: unknown }) => {
+      const ModulePatch = (
+        requireFromHooksDir && tracingHooksDir
+          ? requireFromHooksDir(tracingHooksDir)
+          : nodeRequire('@apm-js-collab/tracing-hooks')
+      ) as new (opts: { instrumentations: unknown }) => {
         patch: () => void;
       };
       new ModulePatch({ instrumentations: SENTRY_INSTRUMENTATIONS }).patch();

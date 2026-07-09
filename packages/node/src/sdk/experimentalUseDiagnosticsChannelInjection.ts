@@ -3,6 +3,7 @@ import {
   ioredisChannelIntegration,
   detectOrchestrionSetup,
 } from '@sentry/server-utils/orchestrion';
+import type { RegisterDiagnosticsChannelInjectionOptions } from '@sentry/server-utils/orchestrion/register';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import { cacheResponseHook } from '../integrations/tracing/redis/cache';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
@@ -44,7 +45,12 @@ export function diagnosticsChannelInjectionIntegrations(): typeof channelIntegra
  *
  * @experimental May change or be removed in any release.
  */
-export function experimentalUseDiagnosticsChannelInjection(): void {
+export function experimentalUseDiagnosticsChannelInjection(
+  // Forwarded to `registerDiagnosticsChannelInjection()`; framework SDKs whose bundlers compile
+  // the SDK into the app (e.g. `@sentry/nextjs`) use it to point the runtime module hook at the
+  // tracing-hooks package location resolved at build time. Plain Node apps don't need it.
+  options?: RegisterDiagnosticsChannelInjectionOptions,
+): void {
   setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
     // The registry integrations 1:1 replace the OTel integration of the same name.
     const integrations = Object.values(channelIntegrations).map(createIntegration => createIntegration());
@@ -58,7 +64,7 @@ export function experimentalUseDiagnosticsChannelInjection(): void {
       // must stay; its ioredis <5.11 monkey-patch is gated off in `redisIntegration` instead.
       integrations: [...integrations, ioredisChannelIntegration({ responseHook: cacheResponseHook })],
       replacedOtelIntegrationNames,
-      register: registerDiagnosticsChannelInjection,
+      register: () => registerDiagnosticsChannelInjection(options),
       detect: detectOrchestrionSetup,
     };
   });
