@@ -1,0 +1,25 @@
+import { SPAN_KIND } from '@sentry/core';
+import { ATTR_AWS_STEP_FUNCTIONS_ACTIVITY_ARN, ATTR_AWS_STEP_FUNCTIONS_STATE_MACHINE_ARN } from '../constants';
+import type { NormalizedRequest } from '../types';
+import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
+
+export class StepFunctionsServiceExtension implements ServiceExtension {
+  public requestPreSpanHook(request: NormalizedRequest): RequestMetadata {
+    const stateMachineArn = request.commandInput?.stateMachineArn;
+    const activityArn = request.commandInput?.activityArn;
+    const spanAttributes: Record<string, unknown> = {};
+
+    if (stateMachineArn) {
+      spanAttributes[ATTR_AWS_STEP_FUNCTIONS_STATE_MACHINE_ARN] = stateMachineArn;
+    }
+
+    if (activityArn) {
+      spanAttributes[ATTR_AWS_STEP_FUNCTIONS_ACTIVITY_ARN] = activityArn;
+    }
+
+    return {
+      spanAttributes,
+      spanKind: SPAN_KIND.CLIENT,
+    };
+  }
+}
