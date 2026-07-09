@@ -34,5 +34,7 @@ export const ATTR_FAAS_EXECUTION = 'faas.execution';
  * The unique ID of the single function that this runtime instance executes.
  *
  * Removed from the stable semantic conventions; not present in `@sentry/conventions`, so vendored here.
+ *
+ * todo(v11): migrate to `cloud.resource_id`
  */
 export const ATTR_FAAS_ID = 'faas.id';
