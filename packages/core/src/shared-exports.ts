@@ -121,6 +121,7 @@ export { getTraceData } from './utils/traceData';
 export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
+export { uniq } from './utils/array';
 export { makeWeakRef, derefWeakRef } from './utils/weakRef';
 export type { MaybeWeakRef } from './utils/weakRef';
 export { shouldIgnoreSpan } from './utils/should-ignore-span';
