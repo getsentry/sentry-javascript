@@ -8,6 +8,7 @@
  */
 
 import { TextMapGetter, TextMapSetter, context, propagation, diag } from '@opentelemetry/api';
+import { uniq } from '@sentry/core';
 import type { SQS, SNS } from '../aws-sdk.types';
 
 // https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-quotas.html
@@ -72,7 +73,5 @@ export const addPropagationFieldsToAttributeNames = (
   messageAttributeNames: string[] = [],
   propagationFields: string[],
 ) => {
-  return messageAttributeNames.length
-    ? Array.from(new Set([...messageAttributeNames, ...propagationFields]))
-    : propagationFields;
+  return messageAttributeNames.length ? uniq([...messageAttributeNames, ...propagationFields]) : propagationFields;
 };

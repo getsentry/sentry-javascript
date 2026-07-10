@@ -7,10 +7,12 @@ import { openaiChannels } from './config/openai';
 import { anthropicAiChannels } from './config/anthropic-ai';
 import { googleGenAiChannels } from './config/google-genai';
 import { vercelAiChannels } from './config/vercel-ai';
+import { amqplibChannels } from './config/amqplib';
 import { hapiChannels } from './config/hapi';
 import { redisChannels } from './config/redis';
 import { expressChannels } from './config/express';
 import { graphqlChannels } from './config/graphql';
+import { kafkajsChannels } from './config/kafkajs';
 
 /**
  * Fully-qualified `diagnostics_channel` names that orchestrion publishes to.
@@ -35,10 +37,12 @@ export const CHANNELS = {
   ...anthropicAiChannels,
   ...googleGenAiChannels,
   ...vercelAiChannels,
+  ...amqplibChannels,
   ...hapiChannels,
   ...redisChannels,
   ...expressChannels,
   ...graphqlChannels,
+  ...kafkajsChannels,
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

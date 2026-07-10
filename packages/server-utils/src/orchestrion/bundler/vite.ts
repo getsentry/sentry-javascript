@@ -1,5 +1,5 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
-import { INSTRUMENTED_MODULE_NAMES } from '../config';
+import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { orchestrionTransformOptions } from './options';
 
@@ -28,7 +28,7 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType
       // diagnostics_channel calls never get injected. Vite merges array
       // `noExternal` entries with the user's config, so we don't overwrite
       // their additions.
-      return { ssr: { noExternal: INSTRUMENTED_MODULE_NAMES } };
+      return { ssr: { noExternal: instrumentedModuleNames(options.instrumentations) } };
     },
   };
 }

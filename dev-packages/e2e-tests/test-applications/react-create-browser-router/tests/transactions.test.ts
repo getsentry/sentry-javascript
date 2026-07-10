@@ -31,6 +31,9 @@ test('Captures a pageload transaction', async ({ page }) => {
         'sentry.origin': 'auto.pageload.react.reactrouter_v6',
         'sentry.sample_rate': 1,
         'sentry.source': 'route',
+        'url.template': '/',
+        'url.path': '/',
+        'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
       }),
       op: 'pageload',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -58,6 +61,9 @@ test('Captures a navigation transaction', async ({ page }) => {
       'sentry.origin': 'auto.navigation.react.reactrouter_v6',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
+      'url.template': '/user/:id',
+      'url.path': '/user/5',
+      'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/),
     }),
     links: [
       {
@@ -106,6 +112,9 @@ test('Captures a lazy pageload transaction', async ({ page }) => {
       'sentry.origin': 'auto.pageload.react.reactrouter_v6',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
+      'url.template': '/lazy-loaded-user/:id/:innerId',
+      'url.path': '/lazy-loaded-user/5/foo',
+      'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/lazy-loaded-user\/5\/foo$/),
     }),
     op: 'pageload',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -159,6 +168,9 @@ test('Captures a lazy navigation transaction', async ({ page }) => {
       'sentry.origin': 'auto.navigation.react.reactrouter_v6',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
+      'url.template': '/lazy-loaded-user/:id/:innerId',
+      'url.path': '/lazy-loaded-user/5/foo',
+      'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/lazy-loaded-user\/5\/foo$/),
     }),
     links: [
       {

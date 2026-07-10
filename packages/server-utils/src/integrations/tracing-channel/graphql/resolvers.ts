@@ -9,6 +9,7 @@
 import { WEB_SERVER_GRAPHQL_SPAN_OP } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
+  isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -43,10 +44,6 @@ import type {
 
 function isPromise(value: unknown): value is Promise<unknown> {
   return typeof (value as { then?: unknown } | undefined)?.then === 'function';
-}
-
-function isObjectLike(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 /**

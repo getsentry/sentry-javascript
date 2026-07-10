@@ -11,6 +11,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core/browser';
 import type { Location } from './types';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 // Many of the types below had to be mocked out to prevent typescript issues
 // these types are required for correct functionality.
@@ -68,6 +69,7 @@ export function reactRouterV3BrowserTracingIntegration(
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+                ...(source === 'route' && { [URL_TEMPLATE]: localName }),
               },
             });
           },
@@ -88,6 +90,7 @@ export function reactRouterV3BrowserTracingIntegration(
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+                    ...(source === 'route' && { [URL_TEMPLATE]: localName }),
                   },
                 });
               },

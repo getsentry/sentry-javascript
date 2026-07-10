@@ -2,8 +2,10 @@
   "extends": "./tsconfig.json",
 
   // We don't ship this in the npm package (it exists purely for controlling what ends up in the AWS lambda layer), so
-  // no need to build types for it
-  "exclude": ["src/index.awslambda.ts", "scripts/**/*"],
+  // no need to build types for it.
+  // `run-lambda-handler.ts` is built as a standalone ESM-only artifact with no type
+  // output; its top-level await is not compilable under the repo-wide `module: commonjs`.
+  "exclude": ["src/index.awslambda.ts", "src/run-lambda-handler.ts", "scripts/**/*"],
 
   "compilerOptions": {
     "declaration": true,

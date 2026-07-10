@@ -10,7 +10,7 @@ type NextRewrite = {
   destination: string;
 };
 
-interface WebpackPluginInstance {
+export interface WebpackPluginInstance {
   [index: string]: unknown;
   apply: (compiler: unknown) => void;
 }
@@ -765,6 +765,19 @@ export type SentryBuildOptions = {
       enabled?: boolean;
       ignoredComponents?: string[];
     };
+    /**
+     * EXPERIMENTAL: Wire up orchestrion diagnostics-channel instrumentation at build time.
+     *
+     * When enabled, `withSentryConfig` injects the orchestrion code-transform loader for bundled
+     * server packages and keeps the remaining instrumented packages external so the runtime module
+     * hook picks them up. You must still call `Sentry.experimentalUseDiagnosticsChannelInjection()`
+     * in your server config to record spans.
+     *
+     * Turbopack support requires Next.js 16+; the webpack path works on earlier versions.
+     *
+     * @experimental May change or be removed in any release.
+     */
+    useDiagnosticsChannelInjection?: boolean;
   }>;
 
   /**

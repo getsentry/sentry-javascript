@@ -1,6 +1,7 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import type { SerializedTraceData } from '@sentry/core';
 import {
+  isObjectLike,
   captureException,
   continueTrace,
   getClient,
@@ -34,7 +35,7 @@ function resolveOriginalStorage(
   context: ExecutionContext | InstrumentedDurableObjectState | undefined,
   thisArg: unknown,
 ): DurableObjectStorage | undefined {
-  if (thisArg && typeof thisArg === 'object' && 'ctx' in thisArg) {
+  if (isObjectLike(thisArg) && 'ctx' in thisArg) {
     const doCtx = (thisArg as { ctx: InstrumentedDurableObjectState }).ctx;
     if (doCtx?.originalStorage) {
       return doCtx.originalStorage;
