@@ -246,7 +246,10 @@ export function withElysia<T extends AnyElysia>(app: T, options: ElysiaHandlerOp
   // Use .trace() ONLY for span creation. The trace API is observational —
   // callbacks fire after phases complete, so they can't reliably mutate
   // response headers or capture errors. All SDK logic stays in real hooks.
-  const traceHandler: TraceHandler = lifecycle => {
+  // The app is typed as `AnyElysia`, whose `Singleton` is `any`; `.trace()` expects the handler's
+  // singleton to match, and `TraceHandler`'s generics are invariant, so the annotation has to use `any` too.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const traceHandler: TraceHandler<{}, any> = lifecycle => {
     const rootSpan = rootSpanForRequest.get(lifecycle.context.request);
 
     const phases: [string, TraceListener][] = [
