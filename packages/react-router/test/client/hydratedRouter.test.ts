@@ -250,16 +250,141 @@ describe('instrumentHydratedRouter', () => {
     );
   });
 
-  it('creates navigation transaction with correct name when navigate is called with a number', () => {
+  it('parameterizes relative navigation via subscribe when url.path matches destination', () => {
+    instrumentHydratedRouter();
+    mockRouter.navigate('settings');
+
+    (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
+    (core.spanToJSON as any).mockImplementation((span: any) => ({
+      description: 'settings',
+      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
+      data: { 'url.path': '/foo/bar/settings' },
+    }));
+
+    const callback = mockRouter.subscribe.mock.calls[0][0];
+    callback({
+      location: { pathname: '/foo/bar/settings' },
+      matches: [{ route: { path: '/foo/bar/settings' } }],
+      navigation: { state: 'idle' },
+    });
+
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/bar/settings');
+    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      'url.template': '/foo/bar/settings',
+    });
+  });
+
+  it('creates navigation transaction with current pathname when navigate is called with a number', () => {
     instrumentHydratedRouter();
     mockRouter.navigate(-1);
     expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        name: '-1',
+        name: '/foo/bar',
       }),
-      { url: 'https://example.com/foo/bar/-1' },
+      { url: 'https://example.com/foo/bar' },
     );
+  });
+
+  it('updates navigation span to destination pathname after numeric navigate completes', async () => {
+    const navigateResult = Promise.resolve();
+    mockRouter.navigate = vi.fn().mockImplementation(() => {
+      (globalThis as any).location.pathname = '/foo';
+      mockRouter.state = {
+        location: { pathname: '/foo' },
+        matches: [{ route: { path: '/foo/:id' } }],
+        navigation: { state: 'idle' },
+      };
+      return navigateResult;
+    });
+
+    instrumentHydratedRouter();
+    mockRouter.navigate(-1);
+
+    await navigateResult;
+
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo');
+    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+      'url.path': '/foo',
+      'url.full': 'https://example.com/foo',
+    });
+    expect(mockNavigationSpan.updateName).toHaveBeenLastCalledWith('/foo/:id');
+    expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      'url.template': '/foo/:id',
+    });
+  });
+
+  it('finalizes navigation span even when numeric navigate rejects', async () => {
+    let rejectNavigate!: (reason?: unknown) => void;
+    const navigateResult = new Promise<void>((_, reject) => {
+      rejectNavigate = reject;
+    });
+    mockRouter.navigate = vi.fn().mockImplementation(() => {
+      (globalThis as any).location.pathname = '/foo';
+      mockRouter.state = {
+        location: { pathname: '/foo' },
+        matches: [{ route: { path: '/foo/:id' } }],
+        navigation: { state: 'idle' },
+      };
+      return navigateResult;
+    });
+
+    instrumentHydratedRouter();
+    mockRouter.navigate(-1);
+
+    rejectNavigate(new Error('navigation failed'));
+    await navigateResult.catch(() => undefined);
+
+    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+      'url.path': '/foo',
+      'url.full': 'https://example.com/foo',
+    });
+    expect(mockNavigationSpan.updateName).toHaveBeenLastCalledWith('/foo/:id');
+  });
+
+  it('parameterizes numeric navigation via subscribe when router state is stale on sync finalize', () => {
+    mockRouter.navigate = vi.fn().mockImplementation(() => {
+      (globalThis as any).location.pathname = '/foo';
+      return undefined;
+    });
+
+    instrumentHydratedRouter();
+    mockRouter.navigate(-1);
+
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo');
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledTimes(1);
+    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+      'url.path': '/foo',
+      'url.full': 'https://example.com/foo',
+    });
+
+    (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
+    (core.spanToJSON as any).mockImplementation((span: any) => ({
+      description: '/foo/bar',
+      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
+      data: { 'url.path': '/foo' },
+    }));
+
+    const callback = mockRouter.subscribe.mock.calls[0][0];
+    callback({
+      location: { pathname: '/foo' },
+      matches: [{ route: { path: '/foo/:id' } }],
+      navigation: { state: 'idle' },
+    });
+
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/:id');
+    expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      'url.template': '/foo/:id',
+    });
+  });
+
+  it('does not create navigation span for navigate(0)', () => {
+    instrumentHydratedRouter();
+    mockRouter.navigate(0);
+    expect(browser.startBrowserTracingNavigationSpan).not.toHaveBeenCalled();
   });
 
   it('creates navigation span when client instrumentation API is not enabled', () => {
