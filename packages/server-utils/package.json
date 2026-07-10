@@ -39,12 +39,11 @@
     },
     "./orchestrion/vite": {
       "types": "./build/types/orchestrion/bundler/vite.d.ts",
-      "import": "./build/esm/orchestrion/bundler/vite.js"
+      "default": "./build/esm/orchestrion/bundler/vite.js"
     },
     "./orchestrion/webpack": {
       "types": "./build/types/orchestrion/bundler/webpack.d.ts",
-      "import": "./build/esm/orchestrion/bundler/webpack.js",
-      "require": "./build/cjs/orchestrion/bundler/webpack.js"
+      "default": "./build/esm/orchestrion/bundler/webpack.js"
     },
     "./orchestrion/import-hook": {
       "import": "./build/orchestrion/import-hook.mjs"

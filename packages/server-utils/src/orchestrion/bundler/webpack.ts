@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
-import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
+import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/webpack';
 
 // Both branches use `createRequire` (never alias the CJS `require`) so bundlers consuming this
 // module don't emit a "Critical dependency" warning.
