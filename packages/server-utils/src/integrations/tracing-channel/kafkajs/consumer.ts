@@ -1,7 +1,13 @@
 /*
- * Span-creating wrappers for the kafkajs consumer callbacks, ported from the vendored OTel
- * instrumentation's `_getConsumerEachMessagePatch`/`_getConsumerEachBatchPatch`. The `run` channel's
- * `start` subscriber swaps the user's `eachMessage`/`eachBatch` for these before the original runs.
+ * Copyright The OpenTelemetry Authors, Aspecto
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * NOTICE from the Sentry authors:
+ * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-kafkajs
+ * - Upstream version: @opentelemetry/instrumentation-kafkajs@0.27.0
+ * - Span-creating wrappers for the consumer callbacks (`_getConsumerEachMessagePatch`/
+ *   `_getConsumerEachBatchPatch`), migrated to the `@sentry/core` span API. The `run` channel's `start`
+ *   subscriber swaps the user's `eachMessage`/`eachBatch` for these before the original runs.
  */
 
 import { MESSAGING_BATCH_MESSAGE_COUNT } from '@sentry/conventions/attributes';
@@ -18,7 +24,7 @@ import type { EachBatchHandler, EachMessageHandler, KafkaMessage } from './types
 // Marks a callback we've already wrapped. A user can reuse one config object across multiple
 // `consumer.run(config)` calls (e.g. a second consumer); without this guard the second `start` would
 // wrap the wrapper and emit duplicate spans per message.
-const consumerCallbackWrapped: unique symbol = Symbol('kafkajs-consumer-callback-wrapped');
+const consumerCallbackWrapped: unique symbol = Symbol('sentry-kafkajs-consumer-callback-wrapped');
 
 type MaybeWrapped = { [consumerCallbackWrapped]?: true };
 

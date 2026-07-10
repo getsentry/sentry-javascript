@@ -1,8 +1,13 @@
 /*
- * Span builders for the kafkajs orchestrion subscriber, ported from the vendored OTel instrumentation
- * (`@sentry/node`'s `integrations/tracing/kafka/vendored/utils.ts`) and migrated to the `@sentry/core`
- * span API. Kept byte-identical in span name/attributes for parity with the OTel integration this
- * replaces; only the origin changes to `auto.kafkajs.orchestrion.*` to mark the injection path.
+ * Copyright The OpenTelemetry Authors, Aspecto
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * NOTICE from the Sentry authors:
+ * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-kafkajs
+ * - Upstream version: @opentelemetry/instrumentation-kafkajs@0.27.0
+ * - Span builders migrated to the `@sentry/core` span API. Kept byte-identical in span name/attributes
+ *   for parity with the OTel integration this replaces; only the origin changes to
+ *   `auto.kafkajs.orchestrion.*` to mark the injection path.
  */
 
 import {
