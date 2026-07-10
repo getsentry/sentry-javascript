@@ -174,6 +174,62 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
     );
   });
 
+  it('clears url.template on pageload onResolved when the final destination does not match a route', () => {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
+      instrumentPageLoad: true,
+      instrumentNavigation: false,
+    });
+
+    integration.afterAllSetup(mockClient as any);
+
+    const onResolvedCallback = getSubscribeCallback('onResolved');
+    expect(onResolvedCallback).toBeDefined();
+
+    // A redirect during pageload lands on a URL that no longer matches a route.
+    (mockRouter.matchRoutes as any).mockReturnValueOnce([{ routeId: '__root__', params: {} }]);
+
+    onResolvedCallback({
+      toLocation: { pathname: '/unknown/path', search: {} },
+    });
+
+    expect(mockPageloadSpan.updateName).toHaveBeenCalledWith('/unknown/path');
+    expect(mockPageloadSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+    expect(mockPageloadSpan.setAttributes).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        [URL_TEMPLATE]: undefined,
+        'url.path': '/unknown/path',
+        'url.full': expect.any(String),
+      }),
+    );
+  });
+
+  it('unsubscribes the pageload onResolved handler after the first resolution', () => {
+    const unsubscribe = vi.fn();
+    (mockRouter.subscribe as any).mockImplementation((eventType: string) => {
+      if (eventType === 'onResolved') {
+        return unsubscribe;
+      }
+      return vi.fn();
+    });
+
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
+      instrumentPageLoad: true,
+      instrumentNavigation: false,
+    });
+
+    integration.afterAllSetup(mockClient as any);
+
+    const onResolvedCallback = getSubscribeCallback('onResolved');
+    expect(onResolvedCallback).toBeDefined();
+
+    onResolvedCallback({ toLocation: { pathname: '/test/456', search: {} } });
+
+    // The handler must detach itself so later resolutions (e.g. subsequent navigations)
+    // don't touch the pageload span again.
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(mockPageloadSpan.updateName).toHaveBeenCalledTimes(1);
+  });
+
   const getSubscribeCallback = (eventType: string): ((...args: any[]) => void) =>
     (mockRouter.subscribe as any).mock.calls.find(
       (call: [string, (...args: any[]) => void]) => call[0] === eventType,
