@@ -84,9 +84,6 @@ export function registerDiagnosticsChannelInjection(options?: RegisterDiagnostic
   nodeRequire = createRequire(import.meta.url);
   /*! rollup-include-esm-only-end */
 
-  const tracingHooksDir = options?.tracingHooksDir;
-  const requireFromHooksDir = tracingHooksDir ? createRequire(thisModuleUrl) : undefined;
-
   // `Module.registerHooks` / `Module.register` are newer than the @types/node
   // we build against, hence the cast.
   const mod = Module as unknown as {
@@ -105,11 +102,7 @@ export function registerDiagnosticsChannelInjection(options?: RegisterDiagnostic
       // We require() the module here so that we can synchronously load it,
       // including from a CommonJS Sentry build, without bundlers pulling in.
       // All versions in stableSyncHooks support this.
-      const { initialize, resolve, load } = (
-        requireFromHooksDir
-          ? requireFromHooksDir(`${tracingHooksDir}/hook-sync.mjs`)
-          : nodeRequire('@apm-js-collab/tracing-hooks/hook-sync.mjs')
-      ) as {
+      const { initialize, resolve, load } = nodeRequire('@apm-js-collab/tracing-hooks/hook-sync.mjs') as {
         initialize: (opts: { instrumentations: unknown }) => void;
         resolve: unknown;
         load: unknown;
@@ -124,10 +117,7 @@ export function registerDiagnosticsChannelInjection(options?: RegisterDiagnostic
       // `Module.register` resolves ESM-style: a bare package specifier is resolved against
       // `parentURL`, but a filesystem path (the `tracingHooksDir` override) is not a valid ESM
       // specifier and must be passed as a file:// URL.
-      const hookSpecifier = tracingHooksDir
-        ? pathToFileURL(`${tracingHooksDir}/hook.mjs`).href
-        : '@apm-js-collab/tracing-hooks/hook.mjs';
-      mod.register(hookSpecifier, {
+      mod.register('@apm-js-collab/tracing-hooks/hook.mjs', {
         parentURL: thisModuleUrl,
         data: { instrumentations: SENTRY_INSTRUMENTATIONS },
       });
