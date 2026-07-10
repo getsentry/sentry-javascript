@@ -2,12 +2,12 @@ import { getAbsoluteUrl } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
-import type { RouterState } from 'react-router';
+import type { DataRouter, RouterState } from 'react-router';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __reactRouterDataRouter?: { state: RouterState };
+  __reactRouterDataRouter?: DataRouter;
 };
 
 /**

@@ -6,6 +6,7 @@ import {
   getClient,
   getRootSpan,
   GLOBAL_OBJ,
+  isThenable,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -84,15 +85,19 @@ export function instrumentHydratedRouter(): void {
 
                 const result = originalNav(...args);
 
+                // Numeric navigations (`navigate(-1)`/`navigate(1)`) don't carry a destination
+                // path, so we can only resolve the real URL/route once the router has settled.
                 if (navigationSpan) {
-                  const finalizeNumericNavigation = (): void => {
-                    finalizeNavigationSpanFromRouterState(navigationSpan, router.state);
-                  };
-
-                  if (result != null && typeof (result as Promise<unknown>).then === 'function') {
-                    void (result as Promise<unknown>).then(finalizeNumericNavigation);
+                  // Finalize from the (updated) router state after navigation completes, in both
+                  // the resolve and reject paths, so a rejected navigation still ends up with the
+                  // correct URL attributes instead of the placeholder start pathname.
+                  if (isThenable(result)) {
+                    result.then(
+                      () => finalizeNavigationSpanFromRouterState(navigationSpan, router.state),
+                      () => finalizeNavigationSpanFromRouterState(navigationSpan, router.state),
+                    );
                   } else {
-                    finalizeNumericNavigation();
+                    finalizeNavigationSpanFromRouterState(navigationSpan, router.state);
                   }
                 }
 

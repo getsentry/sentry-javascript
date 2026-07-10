@@ -316,6 +316,34 @@ describe('instrumentHydratedRouter', () => {
     });
   });
 
+  it('finalizes navigation span even when numeric navigate rejects', async () => {
+    let rejectNavigate!: (reason?: unknown) => void;
+    const navigateResult = new Promise<void>((_, reject) => {
+      rejectNavigate = reject;
+    });
+    mockRouter.navigate = vi.fn().mockImplementation(() => {
+      (globalThis as any).location.pathname = '/foo';
+      mockRouter.state = {
+        location: { pathname: '/foo' },
+        matches: [{ route: { path: '/foo/:id' } }],
+        navigation: { state: 'idle' },
+      };
+      return navigateResult;
+    });
+
+    instrumentHydratedRouter();
+    mockRouter.navigate(-1);
+
+    rejectNavigate(new Error('navigation failed'));
+    await navigateResult.catch(() => undefined);
+
+    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+      'url.path': '/foo',
+      'url.full': 'https://example.com/foo',
+    });
+    expect(mockNavigationSpan.updateName).toHaveBeenLastCalledWith('/foo/:id');
+  });
+
   it('parameterizes numeric navigation via subscribe when router state is stale on sync finalize', () => {
     mockRouter.navigate = vi.fn().mockImplementation(() => {
       (globalThis as any).location.pathname = '/foo';
