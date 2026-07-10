@@ -65,7 +65,7 @@
     "@sentry/server-utils": "10.65.0"
   },
   "peerDependencies": {
-    "@cloudflare/workers-types": "^4.x"
+    "@cloudflare/workers-types": "^4.x || ^5.x"
   },
   "peerDependenciesMeta": {
     "@cloudflare/workers-types": {
@@ -73,7 +73,7 @@
     }
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "4.20250922.0",
+    "@cloudflare/workers-types": "5.20260710.1",
     "@types/node": "^18.19.1",
     "wrangler": "4.61.0"
   },
