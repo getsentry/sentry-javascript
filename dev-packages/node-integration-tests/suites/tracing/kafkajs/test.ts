@@ -1,6 +1,10 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
+
+const producerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.orchestrion.producer' : 'auto.kafkajs.otel.producer';
+const consumerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.orchestrion.consumer' : 'auto.kafkajs.otel.consumer';
 
 describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
@@ -24,10 +28,10 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
             receivedTransactions.push(transaction);
 
             const producer = receivedTransactions.find(
-              t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.kafkajs.otel.producer',
+              t => t.contexts?.trace?.data?.['sentry.origin'] === producerOrigin,
             );
             const consumer = receivedTransactions.find(
-              t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.kafkajs.otel.consumer',
+              t => t.contexts?.trace?.data?.['sentry.origin'] === consumerOrigin,
             );
 
             expect(producer).toBeDefined();
@@ -56,7 +60,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                   'messaging.destination.name': 'test-topic',
                   'otel.kind': 'PRODUCER',
                   'sentry.op': 'message',
-                  'sentry.origin': 'auto.kafkajs.otel.producer',
+                  'sentry.origin': producerOrigin,
                 }),
               }),
             );
@@ -70,7 +74,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                   'messaging.destination.name': 'test-topic',
                   'otel.kind': 'CONSUMER',
                   'sentry.op': 'message',
-                  'sentry.origin': 'auto.kafkajs.otel.consumer',
+                  'sentry.origin': consumerOrigin,
                 }),
               }),
             );
@@ -96,7 +100,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                   'messaging.destination.name': 'invalid topic name',
                   'otel.kind': 'PRODUCER',
                   'sentry.op': 'message',
-                  'sentry.origin': 'auto.kafkajs.otel.producer',
+                  'sentry.origin': producerOrigin,
                   'error.type': 'KafkaJSNonRetriableError',
                 }),
               }),

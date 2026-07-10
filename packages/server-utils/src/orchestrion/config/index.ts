@@ -14,6 +14,7 @@ import { hapiConfig } from './hapi';
 import { redisConfig } from './redis';
 import { expressConfig } from './express';
 import { graphqlConfig } from './graphql';
+import { kafkajsConfig } from './kafkajs';
 
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...mysqlConfig,
@@ -30,6 +31,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...redisConfig,
   ...expressConfig,
   ...graphqlConfig,
+  ...kafkajsConfig,
 ];
 
 /**

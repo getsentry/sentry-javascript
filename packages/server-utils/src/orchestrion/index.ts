@@ -7,6 +7,7 @@ import {
 } from '../integrations/tracing-channel/graphql';
 import { hapiChannelIntegration } from '../integrations/tracing-channel/hapi';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
+import { kafkajsChannelIntegration } from '../integrations/tracing-channel/kafkajs';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
@@ -23,6 +24,7 @@ export {
   graphqlChannelIntegration,
   hapiChannelIntegration,
   ioredisChannelIntegration,
+  kafkajsChannelIntegration,
   lruMemoizerChannelIntegration,
   mysqlChannelIntegration,
   openaiChannelIntegration,
@@ -66,4 +68,5 @@ export const channelIntegrations = {
   hapiIntegration: hapiChannelIntegration,
   expressIntegration: expressChannelIntegration,
   graphqlIntegration: graphqlDiagnosticsChannelIntegration,
+  kafkajsIntegration: kafkajsChannelIntegration,
 } as const;
