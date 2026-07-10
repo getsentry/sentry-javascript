@@ -41,6 +41,11 @@
       "types": "./build/types/orchestrion/bundler/vite.d.ts",
       "import": "./build/esm/orchestrion/bundler/vite.js"
     },
+    "./orchestrion/webpack": {
+      "types": "./build/types/orchestrion/bundler/webpack.d.ts",
+      "import": "./build/esm/orchestrion/bundler/webpack.js",
+      "require": "./build/cjs/orchestrion/bundler/webpack.js"
+    },
     "./orchestrion/import-hook": {
       "import": "./build/orchestrion/import-hook.mjs"
     }
@@ -61,6 +66,9 @@
       ],
       "orchestrion/vite": [
         "build/types-ts3.8/orchestrion/bundler/vite.d.ts"
+      ],
+      "orchestrion/webpack": [
+        "build/types-ts3.8/orchestrion/bundler/webpack.d.ts"
       ]
     },
     "*": {
@@ -75,6 +83,9 @@
       ],
       "orchestrion/vite": [
         "build/types/orchestrion/bundler/vite.d.ts"
+      ],
+      "orchestrion/webpack": [
+        "build/types/orchestrion/bundler/webpack.d.ts"
       ]
     }
   },

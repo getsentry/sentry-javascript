@@ -1,3 +1,8 @@
+import {
+  BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
+  filterInstrumentedExternals,
+  ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
+} from '../diagnosticsChannelInjection';
 import { handleRunAfterProductionCompile } from '../handleRunAfterProductionCompile';
 import type { RouteManifest } from '../manifest/types';
 import { constructTurbopackConfig } from '../turbopack';
@@ -227,23 +232,32 @@ export function maybeEnableTurbopackSourcemaps(
 export function getServerExternalPackagesPatch(
   incomingUserNextConfigObject: NextConfigObject,
   nextMajor: number | undefined,
+  useDiagnosticsChannelInjection = false,
 ): Partial<NextConfigObject> {
+  // Diagnostics-channel injection: only bundle-safe packages leave OUR defaults (→ build-time
+  // loader); everything else stays external (→ runtime module hook), including the orchestrion
+  // machinery itself, which breaks when bundled.
+  const mergeExternals = (userProvided: string[] | undefined): string[] => {
+    const defaults = useDiagnosticsChannelInjection
+      ? filterInstrumentedExternals(DEFAULT_SERVER_EXTERNAL_PACKAGES, BUNDLE_SAFE_INSTRUMENTED_PACKAGES)
+      : DEFAULT_SERVER_EXTERNAL_PACKAGES;
+    return [
+      ...(userProvided || []),
+      ...defaults,
+      ...(useDiagnosticsChannelInjection ? ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES : []),
+    ];
+  };
+
   if (nextMajor && nextMajor >= 15) {
-    return {
-      serverExternalPackages: [
-        ...(incomingUserNextConfigObject.serverExternalPackages || []),
-        ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
-      ],
-    };
+    return { serverExternalPackages: mergeExternals(incomingUserNextConfigObject.serverExternalPackages) };
   }
 
   return {
     experimental: {
       ...incomingUserNextConfigObject.experimental,
-      serverComponentsExternalPackages: [
-        ...(incomingUserNextConfigObject.experimental?.serverComponentsExternalPackages || []),
-        ...DEFAULT_SERVER_EXTERNAL_PACKAGES,
-      ],
+      serverComponentsExternalPackages: mergeExternals(
+        incomingUserNextConfigObject.experimental?.serverComponentsExternalPackages,
+      ),
     },
   };
 }
