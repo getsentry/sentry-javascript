@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
+import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/webpack';
 
 // Both branches use `createRequire` (never alias the CJS `require`) so bundlers consuming this
 // module don't emit a "Critical dependency" warning.
@@ -46,10 +47,6 @@ export function getSentryInstrumentations(): InstrumentationConfig[] {
  * does NOT inject the `__SENTRY_ORCHESTRION__.bundler` marker — that would disable the runtime
  * module hook, which externalized packages still need (hybrid setup).
  */
-export function sentryOrchestrionWebpackPlugin(): unknown {
-  const mod = getOrchestrionRequire()('@apm-js-collab/code-transformer-bundler-plugins/webpack') as {
-    default?: (options: { instrumentations: InstrumentationConfig[] }) => unknown;
-  };
-  const codeTransformerWebpack = mod.default ?? (mod as unknown as NonNullable<typeof mod.default>);
-  return codeTransformerWebpack({ instrumentations: SENTRY_INSTRUMENTATIONS });
+export function sentryOrchestrionWebpackPlugin(): ReturnType<typeof codeTransformer> {
+  return codeTransformer({ instrumentations: SENTRY_INSTRUMENTATIONS });
 }

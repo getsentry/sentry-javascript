@@ -94,7 +94,7 @@ export function makeBaseNPMConfig(options = {}) {
       // (We don't need it, so why waste the bytes?)
       freeze: false,
 
-      interop: 'esModule',
+      interop: 'auto',
     },
 
     treeshake: {
