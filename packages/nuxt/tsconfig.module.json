@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/module.ts", "src/runtime/**/*"],
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
+    "outDir": "build/module",
+    "rootDir": "src"
+  }
+}
