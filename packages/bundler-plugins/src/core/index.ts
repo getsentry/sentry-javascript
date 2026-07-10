@@ -1,9 +1,36 @@
-import { transformAsync } from '@babel/core';
-import componentNameAnnotatePlugin, { experimentalComponentNameAnnotatePlugin } from '../babel-plugin';
 import SentryCli from '@sentry/cli';
 import { debug } from '@sentry/core';
 import * as fs from 'fs';
 import { CodeInjection, containsOnlyImports, stripQueryAndHashFromPath } from './utils';
+import type { transformAsync as babelTransformAsync } from '@babel/core';
+import type componentNameAnnotatePlugin from '../babel-plugin';
+import type { experimentalComponentNameAnnotatePlugin } from '../babel-plugin';
+
+type BabelTransformAsync = typeof babelTransformAsync;
+type BabelParserPlugins = NonNullable<NonNullable<Parameters<BabelTransformAsync>[1]>['parserOpts']>['plugins'];
+type BabelAnnotationRuntime = {
+  transformAsync: BabelTransformAsync;
+  componentNameAnnotatePlugin: typeof componentNameAnnotatePlugin;
+  experimentalComponentNameAnnotatePlugin: typeof experimentalComponentNameAnnotatePlugin;
+};
+
+let babelAnnotationRuntimePromise: Promise<BabelAnnotationRuntime> | undefined;
+
+function loadBabelAnnotationRuntime(): Promise<BabelAnnotationRuntime> {
+  if (!babelAnnotationRuntimePromise) {
+    babelAnnotationRuntimePromise = Promise.all([import('@babel/core'), import('../babel-plugin')]).then(
+      ([babel, babelPlugin]) => {
+        return {
+          transformAsync: babel.transformAsync,
+          componentNameAnnotatePlugin: babelPlugin.default,
+          experimentalComponentNameAnnotatePlugin: babelPlugin.experimentalComponentNameAnnotatePlugin,
+        };
+      },
+    );
+  }
+
+  return babelAnnotationRuntimePromise;
+}
 
 /**
  * Determines whether the Sentry CLI binary is in its expected location.
@@ -61,8 +88,6 @@ export { globFiles } from './glob';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createComponentNameAnnotateHooks(ignoredComponents: string[], injectIntoHtml: boolean) {
-  type ParserPlugins = NonNullable<NonNullable<Parameters<typeof transformAsync>[1]>['parserOpts']>['plugins'];
-
   return {
     async transform(this: void, code: string, id: string) {
       // id may contain query and hash which will trip up our file extension logic below
@@ -77,13 +102,15 @@ export function createComponentNameAnnotateHooks(ignoredComponents: string[], in
         return null;
       }
 
-      const parserPlugins: ParserPlugins = [];
+      const parserPlugins: BabelParserPlugins = [];
       if (idWithoutQueryAndHash.endsWith('.jsx')) {
         parserPlugins.push('jsx');
       } else if (idWithoutQueryAndHash.endsWith('.tsx')) {
         parserPlugins.push('jsx', 'typescript');
       }
 
+      const { transformAsync, componentNameAnnotatePlugin, experimentalComponentNameAnnotatePlugin } =
+        await loadBabelAnnotationRuntime();
       const plugin = injectIntoHtml ? experimentalComponentNameAnnotatePlugin : componentNameAnnotatePlugin;
 
       try {

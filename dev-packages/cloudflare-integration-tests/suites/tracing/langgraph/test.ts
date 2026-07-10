@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import type { SerializedStreamedSpan } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
@@ -29,12 +30,14 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
       expect(container).toBeDefined();
 
       expect(container.items).toHaveLength(2);
-      expect(container.items.map(span => span.name).sort()).toEqual([
+      expect(container.items.map((span: SerializedStreamedSpan) => span.name).sort()).toEqual([
         'create_agent weather_assistant',
         'invoke_agent weather_assistant',
       ]);
 
-      const createAgentSpan = container.items.find(span => span.name === 'create_agent weather_assistant');
+      const createAgentSpan = container.items.find(
+        (span: SerializedStreamedSpan) => span.name === 'create_agent weather_assistant',
+      );
       expect(createAgentSpan).toBeDefined();
       expect(createAgentSpan!.status).toBe('ok');
       expect(createAgentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
@@ -48,7 +51,9 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
         value: 'weather_assistant',
       });
 
-      const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent weather_assistant');
+      const invokeAgentSpan = container.items.find(
+        (span: SerializedStreamedSpan) => span.name === 'invoke_agent weather_assistant',
+      );
       expect(invokeAgentSpan).toBeDefined();
       expect(invokeAgentSpan!.status).toBe('ok');
       expect(invokeAgentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({

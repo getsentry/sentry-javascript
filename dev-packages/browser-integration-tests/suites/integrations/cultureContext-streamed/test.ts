@@ -15,7 +15,7 @@ sentryTest('cultureContextIntegration captures locale, timezone, and calendar', 
 
   const pageloadSpan = spans.find(s => getSpanOp(s) === 'pageload');
 
-  expect(pageloadSpan!.attributes?.['culture.locale']).toEqual({ type: 'string', value: expect.any(String) });
-  expect(pageloadSpan!.attributes?.['culture.timezone']).toEqual({ type: 'string', value: expect.any(String) });
-  expect(pageloadSpan!.attributes?.['culture.calendar']).toEqual({ type: 'string', value: expect.any(String) });
+  expect(pageloadSpan!.attributes['culture.locale']).toEqual({ type: 'string', value: expect.any(String) });
+  expect(pageloadSpan!.attributes['culture.timezone']).toEqual({ type: 'string', value: expect.any(String) });
+  expect(pageloadSpan!.attributes['culture.calendar']).toEqual({ type: 'string', value: expect.any(String) });
 });

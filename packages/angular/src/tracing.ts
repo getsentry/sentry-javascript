@@ -19,15 +19,17 @@ import {
   spanToJSON,
   startBrowserTracingNavigationSpan,
   startInactiveSpan,
+  getAbsoluteUrl,
 } from '@sentry/browser';
 import type { Integration, Span } from '@sentry/core';
-import { debug, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
+import { debug, parseStringToURLObject, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 import { ANGULAR_INIT_OP, ANGULAR_OP, ANGULAR_ROUTING_OP } from './constants';
 import { IS_DEBUG_BUILD } from './flags';
 import { runOutsideAngular } from './zone';
+import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 let instrumentationInitialized: boolean;
 
@@ -54,13 +56,25 @@ export function browserTracingIntegration(
 /**
  * This function is extracted to make unit testing easier.
  */
-export function _updateSpanAttributesForParametrizedUrl(route: string, span?: Span): void {
-  const attributes = (span && spanToJSON(span).data) || {};
+export function _updateSpanAttributesForParametrizedUrl(route: string, url: string, span?: Span): void {
+  if (!span) {
+    return;
+  }
 
-  if (span && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
+  const { data: attributes, op } = spanToJSON(span);
+
+  if (!attributes || attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
     span.updateName(route);
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, `auto.${spanToJSON(span).op}.angular`);
+
+    const absoluteUrl = getAbsoluteUrl(url);
+
+    span.setAttributes({
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${op}.angular`,
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [URL_FULL]: absoluteUrl,
+      [URL_PATH]: parseStringToURLObject(absoluteUrl)?.pathname,
+      [URL_TEMPLATE]: route,
+    });
   }
 }
 
@@ -91,13 +105,19 @@ export class TraceService implements OnDestroy {
         // see comment in `_isPageloadOngoing` for rationale
         if (!this._isPageloadOngoing()) {
           runOutsideAngular(() => {
-            startBrowserTracingNavigationSpan(client, {
-              name: strippedUrl,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            startBrowserTracingNavigationSpan(
+              client,
+              {
+                name: strippedUrl,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                },
               },
-            });
+              {
+                url: getAbsoluteUrl(navigationEvent.url),
+              },
+            );
           });
         } else {
           // The first time we end up here, we set the pageload flag to false
@@ -149,7 +169,7 @@ export class TraceService implements OnDestroy {
       const activeSpan = getActiveSpan();
       const rootSpan = activeSpan && getRootSpan(activeSpan);
 
-      _updateSpanAttributesForParametrizedUrl(route, rootSpan);
+      _updateSpanAttributesForParametrizedUrl(route, event.urlAfterRedirects, rootSpan);
     }),
   );
 

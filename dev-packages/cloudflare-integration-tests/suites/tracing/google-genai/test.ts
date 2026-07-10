@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import type { SerializedStreamedSpan } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
@@ -29,13 +30,13 @@ it('traces Google GenAI chat creation and message sending', async ({ signal }) =
       const container = envelope[1]?.[1]?.[1] as any;
       expect(container).toBeDefined();
       expect(container.items).toHaveLength(3);
-      expect(container.items.map(span => span.name).sort()).toEqual([
+      expect(container.items.map((span: SerializedStreamedSpan) => span.name).sort()).toEqual([
         'chat gemini-1.5-pro',
         'embeddings text-embedding-004',
         'generate_content gemini-1.5-flash',
       ]);
 
-      const chatSpan = container.items.find(span => span.name === 'chat gemini-1.5-pro');
+      const chatSpan = container.items.find((span: SerializedStreamedSpan) => span.name === 'chat gemini-1.5-pro');
       expect(chatSpan).toBeDefined();
       expect(chatSpan!.status).toBe('ok');
       expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
@@ -50,7 +51,9 @@ it('traces Google GenAI chat creation and message sending', async ({ signal }) =
       expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 12 });
       expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 20 });
 
-      const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');
+      const generateContentSpan = container.items.find(
+        (span: SerializedStreamedSpan) => span.name === 'generate_content gemini-1.5-flash',
+      );
       expect(generateContentSpan).toBeDefined();
       expect(generateContentSpan!.status).toBe('ok');
       expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
@@ -95,7 +98,9 @@ it('traces Google GenAI chat creation and message sending', async ({ signal }) =
         value: 20,
       });
 
-      const embeddingsSpan = container.items.find(span => span.name === 'embeddings text-embedding-004');
+      const embeddingsSpan = container.items.find(
+        (span: SerializedStreamedSpan) => span.name === 'embeddings text-embedding-004',
+      );
       expect(embeddingsSpan).toBeDefined();
       expect(embeddingsSpan!.status).toBe('ok');
       expect(embeddingsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({

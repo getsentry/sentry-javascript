@@ -40,7 +40,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "10.64.0"
+    "@sentry/core": "10.64.0",
+    "@sentry/conventions": "^0.15.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

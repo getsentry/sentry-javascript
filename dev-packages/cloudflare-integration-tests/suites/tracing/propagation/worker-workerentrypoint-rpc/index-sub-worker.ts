@@ -5,7 +5,7 @@ interface Env {
   SENTRY_DSN: string;
 }
 
-class MySubWorkerEntrypointBase extends WorkerEntrypoint<Env> {
+class MySubWorkerEntrypointBase extends WorkerEntrypoint {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 

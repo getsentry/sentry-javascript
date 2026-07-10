@@ -99,12 +99,13 @@ export function validateProfile(
     expect(frame).toHaveProperty('function');
     expect(typeof frame.function).toBe('string');
 
-    // Some browser functions (fetch, setTimeout, clearTimeout) may not have file locations
-    if (frame.function !== 'fetch' && frame.function !== 'setTimeout' && frame.function !== 'clearTimeout') {
-      expect(frame).toHaveProperty('abs_path');
+    // Native/built-in frames (fetch, setTimeout, removeEventListener, Promise callbacks, …) have no
+    // source location. The sampler can capture any of them, so rather than exempting a hardcoded list of
+    // names, only validate location metadata for frames that actually carry a source path.
+    if (frame.abs_path !== undefined) {
+      expect(typeof frame.abs_path).toBe('string');
       expect(frame).toHaveProperty('lineno');
       expect(frame).toHaveProperty('colno');
-      expect(typeof frame.abs_path).toBe('string');
       expect(typeof frame.lineno).toBe('number');
       expect(typeof frame.colno).toBe('number');
     }

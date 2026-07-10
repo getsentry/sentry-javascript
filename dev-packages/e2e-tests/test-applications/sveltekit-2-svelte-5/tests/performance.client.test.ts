@@ -36,6 +36,11 @@ test.describe('client-specific performance events', () => {
           op: 'navigation',
           origin: 'auto.navigation.sveltekit',
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          data: {
+            'url.path': '/nav1',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/nav1$/),
+            'url.template': '/nav1',
+          },
         },
       },
     });
@@ -49,6 +54,11 @@ test.describe('client-specific performance events', () => {
           op: 'navigation',
           origin: 'auto.navigation.sveltekit',
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          data: {
+            'url.path': '/',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
+            'url.template': '/',
+          },
         },
       },
     });
@@ -62,6 +72,11 @@ test.describe('client-specific performance events', () => {
           op: 'navigation',
           origin: 'auto.navigation.sveltekit',
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          data: {
+            'url.path': '/nav2',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/nav2$/),
+            'url.template': '/nav2',
+          },
         },
       },
     });

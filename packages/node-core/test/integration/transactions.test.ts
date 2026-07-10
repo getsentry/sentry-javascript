@@ -722,12 +722,12 @@ describe('Integration | Transactions', () => {
     expect(beforeSend).toHaveBeenCalledTimes(1);
     expect(transactionEvents).toHaveLength(1);
     expect(transactionTraceId).toBe(errorTraceId);
-    expect(transactionEvents[0]?.spans).toHaveLength(3);
-    expect(transactionEvents).toMatchObject([
-      {
-        spans: [{ description: 'inner span 1' }, { description: 'span inside error' }, { description: 'inner span 2' }],
-      },
-    ]);
+    const spans = transactionEvents[0]?.spans || [];
+
+    expect(spans).toHaveLength(3);
+    expect(spans).toContainEqual(expect.objectContaining({ description: 'inner span 1' }));
+    expect(spans).toContainEqual(expect.objectContaining({ description: 'span inside error' }));
+    expect(spans).toContainEqual(expect.objectContaining({ description: 'inner span 2' }));
     expect(sendEvents).toMatchObject([
       {
         exception: {

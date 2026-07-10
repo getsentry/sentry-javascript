@@ -1,7 +1,7 @@
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
+import { defineIntegration, extendIntegration } from '@sentry/core';
 import * as dc from 'node:diagnostics_channel';
-import { subscribeRedisDiagnosticChannels, type RedisTracingChannelFactory } from '@sentry/server-utils';
+import { redisIntegration as redisChannelIntegration } from '@sentry/server-utils';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import { isDiagnosticsChannelInjectionEnabled } from '../../../sdk/diagnosticsChannelInjection';
 import { cacheResponseHook, type RedisOptions, setRedisOptions } from './cache';
@@ -33,24 +33,13 @@ const instrumentRedisModule = generateInstrumentOnce(`${INTEGRATION_NAME}.Redis`
  */
 export const instrumentRedis = Object.assign(
   (): void => {
-    // When diagnostics-channel injection is opted in, orchestrion owns ioredis
-    // `<5.11.0`, so skip the OTel ioredis monkey-patch to avoid double instrumentation.
-    // On Node without `tracingChannel` (<18.19) orchestrion can't run, so keep the
-    // OTel patch there — otherwise ioredis `<5.11.0` would not be traced at all.
+    // When diagnostics-channel injection is opted in, orchestrion fully owns the older
+    // ioredis (`<5.11.0`) and redis/node-redis (`<5.12.0`) ranges — commands, connect, and
+    // batches — so skip both OTel monkey-patches to avoid double instrumentation. On Node
+    // without `tracingChannel` (<18.19) orchestrion can't run, so keep the OTel patches there.
     if (!isDiagnosticsChannelInjectionEnabled() || !dc.tracingChannel) {
       instrumentIORedis();
-    }
-    instrumentRedisModule();
-    // node-redis >= 5.12.0 and ioredis >= 5.11.0 publish via diagnostics_channel.
-    // `bindTracingChannelToSpan` (inside the subscriber) makes the span the active
-    // OTel context via `bindStore`, which needs the Sentry OTel context manager to
-    // be registered — `initOpenTelemetry()` does that after integration `setupOnce`,
-    // so defer to the next tick.
-    // Check this here to ensure this does not fail at runtime for Node <= 18.18.0
-    if (dc.tracingChannel) {
-      waitForTracingChannelBinding(() => {
-        subscribeRedisDiagnosticChannels(dc.tracingChannel as RedisTracingChannelFactory, cacheResponseHook);
-      });
+      instrumentRedisModule();
     }
 
     // todo: implement them gradually
@@ -60,13 +49,17 @@ export const instrumentRedis = Object.assign(
 );
 
 const _redisIntegration = ((options: RedisOptions = {}) => {
-  return {
+  // The diagnostics_channel subscription (node-redis >= 5.12.0, ioredis >= 5.11.0) lives in
+  // server-utils so it is shared across server runtimes; we extend it here to also run the vendored
+  // OTel patchers for older client versions. `cacheResponseHook` reads options set in the extension's
+  // `setupOnce` below, but it only runs at command time, by which point those options are set.
+  return extendIntegration(redisChannelIntegration({ responseHook: cacheResponseHook }), {
     name: INTEGRATION_NAME,
     setupOnce() {
       setRedisOptions(options);
       instrumentRedis();
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**

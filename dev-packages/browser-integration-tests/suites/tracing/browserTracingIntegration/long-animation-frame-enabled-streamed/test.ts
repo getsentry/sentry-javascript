@@ -30,7 +30,7 @@ sentryTest(
     expect(uiSpans.length).toBeGreaterThanOrEqual(1);
 
     const topLevelUISpan = uiSpans.find(
-      s => s.attributes?.['browser.script.invoker']?.value === 'https://sentry-test-site.example/path/to/script.js',
+      s => s.attributes['browser.script.invoker']?.value === 'https://sentry-test-site.example/path/to/script.js',
     )!;
 
     expect(topLevelUISpan).toEqual(
@@ -83,7 +83,7 @@ sentryTest('captures long animation frame span for event listener.', async ({ br
   expect(uiSpans.length).toBeGreaterThanOrEqual(2);
 
   const eventListenerUISpan = uiSpans.find(
-    s => s.attributes?.['browser.script.invoker']?.value === 'BUTTON#clickme.onclick',
+    s => s.attributes['browser.script.invoker']?.value === 'BUTTON#clickme.onclick',
   )!;
 
   expect(eventListenerUISpan).toEqual(

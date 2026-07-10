@@ -17,7 +17,7 @@ test('sends manually started streamed parallel root spans outside of root contex
         expect(traceId).toMatch(/^[0-9a-f]{32}$/);
         expect(spanContainer.items[0]!.parent_span_id).toBeUndefined();
 
-        const trace1Id = spanContainer.items[0]!.attributes?.spanIdTraceId?.value;
+        const trace1Id = spanContainer.items[0]!.attributes.spanIdTraceId?.value;
         expect(trace1Id).toMatch(/^[0-9a-f]{32}$/);
 
         // Different trace ID as the first span

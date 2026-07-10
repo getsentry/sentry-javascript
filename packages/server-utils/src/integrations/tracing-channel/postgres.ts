@@ -1,10 +1,10 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
 import {
+  isObjectLike,
   bindScopeToEmitter,
   debug,
   defineIntegration,
-  getActiveSpan,
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_KIND,
@@ -121,12 +121,6 @@ function subscribeQueryLikeChannel(
   bindTracingChannelToSpan(
     diagnosticsChannel.tracingChannel<PgChannelContext>(channelName),
     data => {
-      // Only instrument when there's an active span; returning `undefined` opts this call out entirely,
-      // leaving the active context untouched (e.g. connects issued during app startup).
-      if (!getActiveSpan()) {
-        return undefined;
-      }
-
       // Capture the caller's scope while still synchronously inside the call, for the streamed path:
       // pg dispatches a `Submittable` emitter's events outside the original async scope, so `deferSpanEnd`
       // replays this scope onto that emitter.
@@ -143,6 +137,9 @@ function subscribeQueryLikeChannel(
     // `query` can return a streamable `Submittable`, so only it defers.
     deferStreamedResult
       ? {
+          // Only instrument under an active span, leaving the context untouched otherwise
+          // (e.g. connects issued during app startup).
+          requiresParentSpan: true,
           // Streamable `Submittable` (e.g. `client.query(new Query())`)
           // returns an emitter that orchestrion stores on `ctx.result` while
           // firing no async events; the query isn't done until the emitter
@@ -169,7 +166,7 @@ function subscribeQueryLikeChannel(
             return true;
           },
         }
-      : undefined,
+      : { requiresParentSpan: true },
   );
 }
 
@@ -212,7 +209,7 @@ function extractQueryConfig(args: unknown[]): { text: string; name?: unknown } |
   if (typeof arg0 === 'string') {
     return { text: arg0 };
   }
-  if (arg0 && typeof arg0 === 'object' && typeof (arg0 as { text?: unknown }).text === 'string') {
+  if (isObjectLike(arg0) && typeof (arg0 as { text?: unknown }).text === 'string') {
     const obj = arg0 as { text: string; name?: unknown };
     return { text: obj.text, name: obj.name };
   }
