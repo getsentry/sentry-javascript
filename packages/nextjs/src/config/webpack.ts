@@ -433,7 +433,7 @@ export function constructWebpackConfigFunction({
 
     // Orchestrion code-transform loader — Node server runtime only, never the edge compilation
     if (runtime === 'server' && userSentryOptions._experimental?.useDiagnosticsChannelInjection) {
-      newConfig.plugins.push(sentryOrchestrionWebpackPlugin() as WebpackPluginInstance);
+      newConfig.plugins.push(sentryOrchestrionWebpackPlugin() as unknown as WebpackPluginInstance);
     }
 
     return newConfig;
