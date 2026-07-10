@@ -1,4 +1,11 @@
 import * as Sentry from '@sentry/react';
+import { replayIntegration } from '@sentry/react/optional-browser-api';
+import {
+  reactRouterBrowserTracingIntegration,
+  wrapReactRouterRouting,
+  wrapUseRoutes,
+  wrapCreateBrowserRouter,
+} from '@sentry/react/reactrouter.compat';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import {
@@ -15,13 +22,13 @@ import {
 } from 'react-router-dom';
 import Index from './pages/Index';
 
-const replay = Sentry.replayIntegration();
+const replay = replayIntegration();
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
-    Sentry.reactRouterBrowserTracingIntegration({
+    reactRouterBrowserTracingIntegration({
       useEffect: React.useEffect,
       useLocation,
       useNavigationType,
@@ -43,9 +50,9 @@ Sentry.init({
   tunnel: 'http://localhost:3031',
 });
 
-const SentryRoutes = Sentry.wrapReactRouterRouting(Routes);
-const sentryUseRoutes = Sentry.wrapUseRoutes(useRoutes);
-const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouter(createBrowserRouter);
+const SentryRoutes = wrapReactRouterRouting(Routes);
+const sentryUseRoutes = wrapUseRoutes(useRoutes);
+const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createBrowserRouter);
 
 const DetailsRoutes = () =>
   sentryUseRoutes([

@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { tanstackRouterBrowserTracingIntegration } from '@sentry/react/tanstackrouter';
 import {
   Link,
   Outlet,
@@ -96,7 +97,7 @@ declare const __APP_DSN__: string;
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: __APP_DSN__,
-  integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
+  integrations: [tanstackRouterBrowserTracingIntegration(router)],
   // We recommend adjusting this value in production, or using tracesSampler
   // for finer control
   tracesSampleRate: 1.0,

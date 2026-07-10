@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { replayIntegration } from '@sentry/react/optional-browser-api';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
@@ -19,7 +20,7 @@ if (import.meta.env.MODE === 'tracing-replay') {
     dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
     release: 'lighthouse-fixture',
     environment: 'qa',
-    integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
+    integrations: [Sentry.browserTracingIntegration(), replayIntegration()],
     tracesSampleRate: 1.0,
     replaysSessionSampleRate: 1.0,
     replaysOnErrorSampleRate: 1.0,

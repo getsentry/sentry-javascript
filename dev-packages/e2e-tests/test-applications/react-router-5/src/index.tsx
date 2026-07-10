@@ -1,4 +1,6 @@
 import * as Sentry from '@sentry/react';
+import { replayIntegration } from '@sentry/react/optional-browser-api';
+import { reactRouterV5BrowserTracingIntegration, withSentryRouting } from '@sentry/react/reactrouter';
 import { createBrowserHistory } from 'history';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -6,7 +8,7 @@ import { Route, Router, Switch } from 'react-router-dom';
 import Index from './pages/Index';
 import User from './pages/User';
 
-const replay = Sentry.replayIntegration();
+const replay = replayIntegration();
 
 const history = createBrowserHistory();
 
@@ -15,7 +17,7 @@ Sentry.init({
   dsn:
     process.env.REACT_APP_E2E_TEST_DSN ||
     'https://3b6c388182fb435097f41d181be2b2ba@o4504321058471936.ingest.sentry.io/4504321066008576',
-  integrations: [Sentry.reactRouterV5BrowserTracingIntegration({ history }), replay],
+  integrations: [reactRouterV5BrowserTracingIntegration({ history }), replay],
   // We recommend adjusting this value in production, or using tracesSampler
   // for finer control
   tracesSampleRate: 1.0,
@@ -28,7 +30,7 @@ Sentry.init({
 });
 
 // Create Custom Sentry Route component
-export const SentryRoute = Sentry.withSentryRouting(Route);
+export const SentryRoute = withSentryRouting(Route);
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(

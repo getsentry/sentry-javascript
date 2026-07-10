@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { reactRouterV7BrowserTracingIntegration, wrapCreateBrowserRouterV7 } from '@sentry/react/reactrouterv7';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import {
@@ -81,7 +82,7 @@ Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
-    Sentry.reactRouterV7BrowserTracingIntegration({
+    reactRouterV7BrowserTracingIntegration({
       useEffect: React.useEffect,
       useLocation,
       useNavigationType,
@@ -102,7 +103,7 @@ Sentry.init({
   tunnel: 'http://localhost:3031',
 });
 
-const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV7(createBrowserRouter);
+const sentryCreateBrowserRouter = wrapCreateBrowserRouterV7(createBrowserRouter);
 
 const router = sentryCreateBrowserRouter(
   [

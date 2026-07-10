@@ -1,4 +1,6 @@
 import * as Sentry from '@sentry/react';
+import { replayIntegration } from '@sentry/react/optional-browser-api';
+import { reactRouterV7BrowserTracingIntegration, withSentryReactRouterV7Routing } from '@sentry/react/reactrouterv7';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import {
@@ -14,13 +16,13 @@ import Index from './pages/Index';
 import SSE from './pages/SSE';
 import User from './pages/User';
 
-const replay = Sentry.replayIntegration();
+const replay = replayIntegration();
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
   integrations: [
-    Sentry.reactRouterV7BrowserTracingIntegration({
+    reactRouterV7BrowserTracingIntegration({
       useEffect: React.useEffect,
       useLocation,
       useNavigationType,
@@ -43,7 +45,7 @@ Sentry.init({
   dataCollection: { userInfo: true },
 });
 
-const SentryRoutes = Sentry.withSentryReactRouterV7Routing(Routes);
+const SentryRoutes = withSentryReactRouterV7Routing(Routes);
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(

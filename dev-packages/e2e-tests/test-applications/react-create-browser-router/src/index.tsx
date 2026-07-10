@@ -1,4 +1,6 @@
 import * as Sentry from '@sentry/react';
+import { replayIntegration } from '@sentry/react/optional-browser-api';
+import { reactRouterV6BrowserTracingIntegration, wrapCreateBrowserRouterV6 } from '@sentry/react/reactrouterv6';
 import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import {
@@ -12,13 +14,13 @@ import {
 import Index from './pages/Index';
 import User from './pages/User';
 
-const replay = Sentry.replayIntegration();
+const replay = replayIntegration();
 
 Sentry.init({
   // environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
-    Sentry.reactRouterV6BrowserTracingIntegration({
+    reactRouterV6BrowserTracingIntegration({
       useEffect: React.useEffect,
       useLocation,
       useNavigationType,
@@ -41,7 +43,7 @@ Sentry.init({
   debug: !!process.env.DEBUG,
 });
 
-const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV6(createBrowserRouter);
+const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
 const LazyLoadedUser = lazy(() => import('./pages/LazyLoadedUser'));
 
 const router = sentryCreateBrowserRouter(
