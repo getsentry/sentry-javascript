@@ -28,8 +28,8 @@
   "scripts": {
     "build": "react-router build",
     "test:build-latest": "pnpm install && pnpm add react-router@latest && pnpm add @react-router/node@latest && pnpm add @react-router/serve@latest && pnpm build",
-    "dev": "NODE_OPTIONS='--import ./instrument.mjs' react-router dev",
-    "start": "NODE_ENV=production NODE_OPTIONS='--import ./instrument.mjs' react-router-serve ./build/server/index.js",
+    "dev": "react-router dev",
+    "start": "NODE_ENV=production react-router-serve ./build/server/index.js",
     "proxy": "node start-event-proxy.mjs",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
