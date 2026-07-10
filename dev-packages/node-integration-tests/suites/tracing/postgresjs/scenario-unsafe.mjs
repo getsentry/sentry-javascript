@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/node';
+import { uuid4 } from '@sentry/core/server';
 import postgres from 'postgres';
 import { waitForConnection } from '@sentry-internal/node-integration-tests';
 
@@ -17,7 +18,7 @@ async function run() {
         // Test sql.unsafe() - this was not being instrumented before the fix
         await sql.unsafe('CREATE TABLE "User" ("id" SERIAL NOT NULL, "email" TEXT NOT NULL, PRIMARY KEY ("id"))');
 
-        const email = `${crypto.randomUUID()}@domain.com`;
+        const email = `${uuid4()}@domain.com`;
         await sql.unsafe('INSERT INTO "User" ("email") VALUES ($1)', [email]);
 
         await sql.unsafe('SELECT * FROM "User" WHERE "email" = $1', [email]);

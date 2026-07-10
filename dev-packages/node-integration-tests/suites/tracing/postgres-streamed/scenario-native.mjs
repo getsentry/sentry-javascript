@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/node';
+import { uuid4 } from '@sentry/core/server';
 import { waitForConnection } from '@sentry-internal/node-integration-tests';
 import pg from 'pg';
 
@@ -32,7 +33,7 @@ async function run() {
           'CREATE TABLE "NativeUser" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"));',
         );
 
-        const email = `${crypto.randomUUID()}@domain.com`;
+        const email = `${uuid4()}@domain.com`;
         await client.query('INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)', [email, 'tim']);
         await client.query('SELECT * FROM "NativeUser"');
       } finally {
