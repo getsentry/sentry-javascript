@@ -1,8 +1,8 @@
 import type { TransactionEvent } from '@sentry/core';
-import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { afterAll, expect } from 'vitest';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-describe('kafkajs', () => {
+describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -14,9 +14,6 @@ describe('kafkajs', () => {
       const receivedTransactions: TransactionEvent[] = [];
 
       await createRunner()
-        .withDockerCompose({
-          workingDirectory: [__dirname],
-        })
         .expect({
           transaction: (transaction: TransactionEvent) => {
             receivedTransactions.push(transaction);
@@ -87,9 +84,6 @@ describe('kafkajs', () => {
   createEsmAndCjsTests(__dirname, 'scenario-error.mjs', 'instrument.mjs', (createRunner, test) => {
     test('marks the producer span as errored when a send fails', { timeout: 90_000 }, async () => {
       await createRunner()
-        .withDockerCompose({
-          workingDirectory: [__dirname],
-        })
         .expect({
           transaction: (transaction: TransactionEvent) => {
             expect(transaction.transaction).toBe('send invalid topic name');

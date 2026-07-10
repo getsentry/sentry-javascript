@@ -3,7 +3,7 @@ import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 // Query-span origin depends on which instrumentation is active. Blocks driving the SDK's default
 // integrations get the diagnostics-channel origin when the generic orchestrion run is enabled (via
@@ -159,7 +159,7 @@ function getDbSpans(container: SerializedStreamedSpanContainer): SerializedStrea
   return container.items.filter(item => item.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db');
 }
 
-describe('postgres auto instrumentation (streamed)', () => {
+describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -168,16 +168,13 @@ describe('postgres auto instrumentation (streamed)', () => {
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('should auto-instrument `pg` package with span streaming enabled', { timeout: 90_000 }, async () => {
         await createTestRunner()
-          .withDockerCompose({
-            workingDirectory: [__dirname],
-          })
           .expect({
             span: container => {
               const segmentSpan = container.items.find(item => item.is_segment);
               expect(segmentSpan?.name).toBe('Test Span');
 
               const dbSpans = getDbSpans(container);
-              expect(dbSpans.length).toBe(4);
+              expect(dbSpans.length).toBe(5);
 
               expect(dbSpans).toEqual([
                 expectedDbSpan({ name: 'pg.connect' }),
@@ -187,6 +184,7 @@ describe('postgres auto instrumentation (streamed)', () => {
                   statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
                 }),
                 expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"' }),
+                expectedDbSpan({ name: 'DROP TABLE "User"', statement: 'DROP TABLE "User"' }),
               ]);
             },
           })
@@ -200,14 +198,11 @@ describe('postgres auto instrumentation (streamed)', () => {
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-ignoreConnect.mjs', (createTestRunner, test) => {
       test("doesn't emit connect spans if ignoreConnectSpans is true", { timeout: 90_000 }, async () => {
         await createTestRunner()
-          .withDockerCompose({
-            workingDirectory: [__dirname],
-          })
           .expect({
             span: container => {
               const dbSpans = getDbSpans(container);
               expect(dbSpans.find(span => span.name.includes('connect'))).toBeUndefined();
-              expect(dbSpans.length).toBe(3);
+              expect(dbSpans.length).toBe(4);
 
               // This block passes an explicit `postgresIntegration({ ignoreConnectSpans: true })`, which
               // survives the orchestrion swap, so query spans keep the OTel origin even under INJECT_ORCHESTRION.
@@ -220,6 +215,7 @@ describe('postgres auto instrumentation (streamed)', () => {
                   origin,
                 }),
                 expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"', origin }),
+                expectedDbSpan({ name: 'DROP TABLE "User"', statement: 'DROP TABLE "User"', origin }),
               ]);
             },
           })
@@ -240,16 +236,13 @@ describe('postgres auto instrumentation (streamed)', () => {
           { timeout: 120_000 },
           async () => {
             await createTestRunner()
-              .withDockerCompose({
-                workingDirectory: [__dirname],
-              })
               .expect({
                 span: container => {
                   const segmentSpan = container.items.find(item => item.is_segment);
                   expect(segmentSpan?.name).toBe('Test Span');
 
                   const dbSpans = getDbSpans(container);
-                  expect(dbSpans.length).toBe(4);
+                  expect(dbSpans.length).toBe(5);
 
                   expect(dbSpans).toEqual([
                     expectedDbSpan({ name: 'pg.connect', host: '127.0.0.1' }),
@@ -266,6 +259,11 @@ describe('postgres auto instrumentation (streamed)', () => {
                     expectedDbSpan({
                       name: 'SELECT * FROM "NativeUser"',
                       statement: 'SELECT * FROM "NativeUser"',
+                      host: '127.0.0.1',
+                    }),
+                    expectedDbSpan({
+                      name: 'DROP TABLE "NativeUser"',
+                      statement: 'DROP TABLE "NativeUser"',
                       host: '127.0.0.1',
                     }),
                   ]);
