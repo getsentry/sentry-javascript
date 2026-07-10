@@ -28,6 +28,9 @@ test('Captures a pageload transaction', async ({ page }) => {
         'sentry.origin': 'auto.pageload.react.reactrouter_v6',
         'sentry.sample_rate': 1,
         'sentry.source': 'route',
+        'url.template': '/user/:id',
+        'url.path': '/',
+        'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
       }),
       op: 'pageload',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -55,6 +58,9 @@ test('Captures a navigation transaction', async ({ page }) => {
       'sentry.origin': 'auto.navigation.react.reactrouter_v6',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
+      'url.template': '/user/:id',
+      'url.path': '/',
+      'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
     }),
     links: [
       {

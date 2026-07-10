@@ -1,7 +1,7 @@
-import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { afterAll, expect } from 'vitest';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-describe('mysql2 auto instrumentation', () => {
+describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -59,11 +59,7 @@ describe('mysql2 auto instrumentation', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('should auto-instrument `mysql` package without connection.connect()', { timeout: 75_000 }, async () => {
-      await createTestRunner()
-        .withDockerCompose({ workingDirectory: [__dirname] })
-        .expect({ transaction: EXPECTED_TRANSACTION })
-        .start()
-        .completed();
+      await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
     });
   });
 });

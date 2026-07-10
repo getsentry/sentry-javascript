@@ -1,3 +1,4 @@
+import { isObjectLike } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { isD1Database, isDurableObjectNamespace, isJSRPC, isQueue, isR2Bucket } from '../../utils/isBinding';
 import { instrumentD1 } from './instrumentD1';
@@ -9,7 +10,7 @@ import { instrumentQueueProducer } from './instrumentQueueProducer';
 import { instrumentR2Bucket } from './instrumentR2';
 
 function isProxyable(item: unknown): item is object {
-  return item !== null && (typeof item === 'object' || typeof item === 'function');
+  return isObjectLike(item) || typeof item === 'function';
 }
 
 const instrumentedBindings = new WeakMap<object, unknown>();

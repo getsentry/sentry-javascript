@@ -4,7 +4,6 @@ services:
   db:
     image: postgres:13
     restart: always
-    container_name: integration-tests-postgres
     ports:
       - '5494:5432'
     environment:

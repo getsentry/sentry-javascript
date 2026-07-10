@@ -5,6 +5,7 @@ import {
   isError,
   isErrorEvent,
   isInstanceOf,
+  isObjectLike,
   isPlainObject,
   isPrimitive,
   isThenable,
@@ -190,5 +191,32 @@ describe('isPlainObject', () => {
     [{ ...new MyClass() }, true],
   ])('%s is %s', (value, expected) => {
     expect(isPlainObject(value)).toBe(expected);
+  });
+});
+
+describe('isObjectLike', () => {
+  class MyClass {
+    public foo: string = 'bar';
+  }
+
+  it.each([
+    [{}, true],
+    [{ aha: 'yes' }, true],
+    [[], true],
+    [[1, 2, 3], true],
+    [new MyClass(), true],
+    [new Date(), true],
+    [/regex/, true],
+    [null, false],
+    [undefined, false],
+    [true, false],
+    [false, false],
+    ['', false],
+    ['foo', false],
+    [0, false],
+    [42, false],
+    [() => undefined, false],
+  ])('%s is %s', (value, expected) => {
+    expect(isObjectLike(value)).toBe(expected);
   });
 });

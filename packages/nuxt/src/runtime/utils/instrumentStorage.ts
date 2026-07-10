@@ -1,4 +1,5 @@
 import {
+  isObjectLike,
   captureException,
   debug,
   flushIfServerless,
@@ -210,13 +211,6 @@ function normalizeMethodName(methodName: string): string {
 }
 
 /**
- * Checks if the value is empty, used for cache hit detection.
- */
-function isEmptyValue(value: unknown): value is null | undefined {
-  return value === null || value === undefined;
-}
-
-/**
  * Creates the span start options for the storage method.
  */
 function createSpanStartOptions(
@@ -263,11 +257,11 @@ function normalizeKey(key: unknown, prefix: string): string {
   }
 
   // Handles an object with a key property
-  if (typeof key === 'object' && key !== null && 'key' in key) {
+  if (isObjectLike(key) && 'key' in key) {
     return `${prefix}${key.key}`;
   }
 
-  return `${prefix}${isEmptyValue(key) ? '' : String(key)}`;
+  return `${prefix}${key == null ? '' : String(key)}`;
 }
 
 const CACHED_FN_HANDLERS_RE = /^nitro:(functions|handlers):/i;
@@ -280,7 +274,7 @@ const CACHED_FN_HANDLERS_RE = /^nitro:(functions|handlers):/i;
  */
 function isCacheHit(key: unknown, value: unknown): boolean {
   try {
-    const isEmpty = isEmptyValue(value);
+    const isEmpty = value == null;
     // Empty value means no cache hit either way
     // Or if key doesn't match the cached function or handler patterns, we can return the empty value check
     if (isEmpty || typeof key !== 'string' || !CACHED_FN_HANDLERS_RE.test(key)) {
@@ -301,7 +295,7 @@ function validateCacheEntry(
   key: string,
   entry: CacheEntry | CacheEntry<ResponseCacheEntry & { status: number }>,
 ): boolean {
-  if (isEmptyValue(entry.value)) {
+  if (entry.value == null) {
     return false;
   }
 
