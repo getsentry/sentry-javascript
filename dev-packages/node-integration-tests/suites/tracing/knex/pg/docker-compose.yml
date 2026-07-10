@@ -4,7 +4,6 @@ services:
   db_postgres:
     image: postgres:13
     restart: always
-    container_name: integration-tests-knex-postgres
     ports:
       - '5445:5432'
     environment:
