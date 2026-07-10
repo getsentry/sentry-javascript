@@ -102,7 +102,14 @@ const invokeAgentSpanByCallId = new Map<string, Span>();
 
 // Only top-level operations own the `callId` → operationId mapping; `step`/`languageModelCall`/
 // `executeTool` share the parent's `callId`, so they must not clear it.
-const ROOT_OPERATION_TYPES = new Set<ChannelEventType>(['generateText', 'streamText', 'embed', 'embedMany', 'rerank']);
+const ROOT_OPERATION_TYPES = new Set<ChannelEventType>([
+  'generateText',
+  'streamText',
+  'generateObject',
+  'embed',
+  'embedMany',
+  'rerank',
+]);
 
 /** Drop the per-operation `callId` maps once the owning top-level operation settles (success or error). */
 export function clearOperationId(data: VercelAiChannelMessage): void {
@@ -171,6 +178,7 @@ function resolveToolDescription(callId: string | undefined, toolName: string, to
 export type ChannelEventType =
   | 'generateText'
   | 'streamText'
+  | 'generateObject'
   | 'step'
   | 'languageModelCall'
   | 'executeTool'
@@ -323,8 +331,8 @@ function enrichInvokeAgentFromStream(
 
   const usage = isObjectLike(final.usage) ? final.usage : undefined;
   if (usage) {
-    const input = tokenCount(usage.inputTokens) ?? tokenCount(usage.tokens);
-    const output = tokenCount(usage.outputTokens);
+    const input = tokenCount(usage.inputTokens) ?? tokenCount(usage.promptTokens) ?? tokenCount(usage.tokens);
+    const output = tokenCount(usage.outputTokens) ?? tokenCount(usage.completionTokens);
     addTokensToSpan(span, GEN_AI_USAGE_INPUT_TOKENS, input);
     addTokensToSpan(span, GEN_AI_USAGE_OUTPUT_TOKENS, output);
     addTokensToSpan(span, GEN_AI_USAGE_TOTAL_TOKENS, tokenCount(usage.totalTokens) ?? sum(input, output));
@@ -388,6 +396,10 @@ export function createSpanFromMessage(
   switch (type) {
     case 'generateText':
     case 'streamText':
+    case 'generateObject':
+      // `generateObject` builds the same `invoke_agent` span as `generateText` (non-streaming); its
+      // distinct `ai.generateObject` operationId rides on `event.operationId`. The JSON-schema attribute
+      // the OTel path derives from the SDK's Zod schema is not reconstructed on the channel path.
       return buildInvokeAgentSpan(event, baseAttributes, recordInputs, enableTruncation, callId, type === 'streamText');
     case 'languageModelCall':
       return buildModelCallSpan(event, baseAttributes, recordInputs, enableTruncation, callId, modelId);
@@ -521,11 +533,12 @@ export function enrichSpanOnEnd(
   }
 
   // `languageModelCall` results report usage as `{ total }` objects; top-level/step results report
-  // flat numbers. `tokenCount` handles both.
+  // flat numbers. `tokenCount` handles both. v4 names tokens `promptTokens`/`completionTokens`
+  // (v5+ uses `inputTokens`/`outputTokens`); the fallbacks are `undefined`-inert on v5+.
   const usage = isObjectLike(result.usage) ? result.usage : undefined;
   if (usage) {
-    const inputTokens = tokenCount(usage.inputTokens) ?? tokenCount(usage.tokens);
-    const outputTokens = tokenCount(usage.outputTokens);
+    const inputTokens = tokenCount(usage.inputTokens) ?? tokenCount(usage.promptTokens) ?? tokenCount(usage.tokens);
+    const outputTokens = tokenCount(usage.outputTokens) ?? tokenCount(usage.completionTokens);
     const totalTokens = tokenCount(usage.totalTokens) ?? sum(inputTokens, outputTokens);
     if (inputTokens !== undefined) {
       span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, inputTokens);

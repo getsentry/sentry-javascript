@@ -18,30 +18,34 @@ import {
 import { asString, isReadableStream, tapModelCallStream } from './util';
 
 /**
- * v5 & v6 channel adapter for the Vercel AI (`ai`) SDK.
+ * v4, v5 & v6 channel adapter for the Vercel AI (`ai`) SDK.
  *
  * `ai` >= 7 publishes a normalized `ai:telemetry` tracing channel natively
- * (consumed by `subscribeVercelAiTracingChannel`). v5/v6 have no such channel, so
+ * (consumed by `subscribeVercelAiTracingChannel`). v4/v5/v6 have no such channel, so
  * orchestrion injects `orchestrion:ai:*` channels around the top-level
  * functions (see `orchestrion/config/index.ts`). The injected channels carry only the
  * wrapped call's `{ arguments, result, error }` — NOT v7's normalized `event`
  * object — so this adapter reconstructs an equivalent {@link VercelAiChannelMessage}
- * from v5/v6's argument/result shapes and delegates to the SAME span-building core
+ * from each version's argument/result shapes and delegates to the SAME span-building core
  * (`createSpanFromMessage` / `enrichSpanOnEnd`) the v7 subscriber uses, so the
- * emitted spans are identical between v5, v6 and v7.
+ * emitted spans are identical between v4, v5, v6 and v7. The shared core reads both v4-style
+ * (`promptTokens`/`completionTokens`) and v5+-style (`inputTokens`/`outputTokens`) token names.
  *
  * The model call (`languageModelCall` / `generate_content` span) has no
- * injectable definition in `ai`, so we instead wrap `resolveLanguageModel` (the
- * single chokepoint every model call flows through, present in both v5 and v6)
- * and monkey-patch `doGenerate`/`doStream` on the returned model.
+ * injectable definition in `ai`. On v5/v6 we wrap `resolveLanguageModel` (the
+ * single chokepoint every model call flows through) and monkey-patch
+ * `doGenerate`/`doStream` on the returned model. v4 has no `resolveLanguageModel`
+ * — the passed `LanguageModelV1` (`specificationVersion: 'v1'`) is called directly —
+ * so we patch its `doGenerate`/`doStream` at the operation start instead (see
+ * `buildOperationSpan`), gated on `'v1'` so it never touches v5/v6 models.
  *
  * Tool-call spans differ by version: v6 exposes a per-call `executeToolCall`
- * function orchestrion wraps into its own channel. v5 has no such export (only a
+ * function orchestrion wraps into its own channel. v4/v5 have no such export (only a
  * batch `executeTools`), so instead we monkey-patch each tool's `execute` from
  * the operation's `tools`. On v6 that patch is inert: `executeToolCall` runs
  * `execute` inside its own tool-call span (the active async context), so the
- * patch sees that span as its parent and skips — only v5 (where the parent is
- * the enclosing `invoke_agent` span) emits the patched span, so v6 never
+ * patch sees that span as its parent and skips — only v4/v5 (where the parent is
+ * the enclosing `invoke_agent` span) emit the patched span, so v6 never
  * double-counts tool spans.
  */
 
@@ -126,6 +130,7 @@ export function subscribeVercelAiOrchestrionChannels(
   try {
     bindOperation(tracingChannel, CHANNELS.VERCEL_AI_GENERATE_TEXT, buildTextMessage('generateText'), options);
     bindOperation(tracingChannel, CHANNELS.VERCEL_AI_STREAM_TEXT, buildTextMessage('streamText'), options);
+    bindOperation(tracingChannel, CHANNELS.VERCEL_AI_GENERATE_OBJECT, buildTextMessage('generateObject'), options);
     bindOperation(
       tracingChannel,
       CHANNELS.VERCEL_AI_EMBED,
@@ -233,6 +238,15 @@ function bindOperation(
       // Inert on v6 (guarded inside `patchToolExecute` when the parent is `executeToolCall`'s own span).
       if (isObjectLike(callOptions.tools)) {
         patchOperationTools(callOptions.tools, options);
+      }
+      // v4 has no `resolveLanguageModel` chokepoint — the passed `LanguageModelV1`
+      // (`specificationVersion: 'v1'`) is called directly — so patch its `doGenerate`/`doStream`
+      // here, at the operation start, instead. v5/v6 models are `'v2'` and are patched via
+      // `resolveLanguageModel`, so restricting to `'v1'` keeps this strictly additive and avoids
+      // double-patching. Embedding models are also `'v1'` but expose no `doGenerate`/`doStream`, so
+      // the patch is a no-op for `embed`/`embedMany`.
+      if (isObjectLike(callOptions.model) && callOptions.model.specificationVersion === 'v1') {
+        patchModelMethods(callOptions.model as PatchableModel, options);
       }
     }
     return span;
@@ -353,15 +367,10 @@ function subscribeResolveLanguageModel(
       if (!isObjectLike(ctx.result)) {
         return;
       }
-      const model = ctx.result as PatchableModel;
       // Patch the model's `doGenerate`/`doStream` once. The model call recovers its parent from the
       // active async context at call time (the operation span `bindTracingChannelToSpan` bound), which
       // propagates into the model call for `streamText` too, so there is nothing to capture on the model here.
-      if (!model[PATCHED]) {
-        model[PATCHED] = true;
-        patchModelMethod(model, 'doGenerate', options);
-        patchModelMethod(model, 'doStream', options);
-      }
+      patchModelMethods(ctx.result as PatchableModel, options);
     },
     start() {
       /* no-op */
@@ -400,6 +409,20 @@ function resolveModelCallParent(): Span | undefined {
   return active && operationSpans.has(active) ? active : undefined;
 }
 
+/**
+ * Idempotently patch a resolved model's `doGenerate`/`doStream` so each invocation emits a
+ * `languageModelCall` span. Shared by the v5/v6 `resolveLanguageModel` path and the v4 path (which
+ * patches the passed model at the operation start, as v4 has no `resolveLanguageModel`).
+ */
+function patchModelMethods(model: PatchableModel, options: VercelAiChannelOptions): void {
+  if (model[PATCHED]) {
+    return;
+  }
+  model[PATCHED] = true;
+  patchModelMethod(model, 'doGenerate', options);
+  patchModelMethod(model, 'doStream', options);
+}
+
 function patchModelMethod(
   model: PatchableModel,
   method: 'doGenerate' | 'doStream',
@@ -426,7 +449,9 @@ function patchModelMethod(
         callId,
         provider: model.provider,
         modelId: model.modelId,
-        tools: callArgs.tools,
+        // v4 nests the tool list under `mode.tools` (the `LanguageModelV1` call shape); v5+ passes a
+        // top-level `tools` array. Reading both keeps `available_tools` populated on the model-call span.
+        tools: callArgs.tools ?? (isObjectLike(callArgs.mode) ? callArgs.mode.tools : undefined),
         messages: callArgs.prompt,
         // Inherit the enclosing operation's per-call recording flags so inputs/tools/outputs are recorded on
         // the model-call span whenever they are on the parent `invoke_agent` span.
@@ -585,7 +610,7 @@ function patchToolExecute(
   };
 }
 
-function buildTextMessage(type: 'generateText' | 'streamText'): MessageBuilder {
+function buildTextMessage(type: 'generateText' | 'streamText' | 'generateObject'): MessageBuilder {
   return (options, telemetry) => ({
     type,
     event: {
@@ -594,6 +619,10 @@ function buildTextMessage(type: 'generateText' | 'streamText'): MessageBuilder {
       functionId: asString(telemetry.functionId),
       ...modelFields(options.model),
       maxRetries: options.maxRetries,
+      // The `ai` SDK takes the system prompt as a top-level `system` option (all of v4/v5/v6); the
+      // shared core lifts `event.instructions` into the system-instructions attribute, matching v7's
+      // native channel (which carries it as a distinct field rather than inside the messages array).
+      instructions: asString(options.system),
       // Normalize to the message-array shape the shared core (and v7's channel) expects: a bare string
       // `prompt` becomes a single user message, matching the SDK's own normalization.
       messages: normalizePromptMessages(options),

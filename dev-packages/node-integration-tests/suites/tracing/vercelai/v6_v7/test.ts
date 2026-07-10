@@ -884,4 +884,55 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
       },
     },
   );
+
+  createEsmTests(
+    __dirname,
+    'scenario-generate-object.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      // ai v7's native `ai:telemetry` channel does not publish a top-level `generateObject` operation
+      // (like `embedMany`, it's dispatched via a path the channel never sees), so the channel-based
+      // integration can't surface it on v7. v4/v5/v6 use orchestrion, which injects the `generateObject`
+      // channel directly — v6 is exercised here, v4 in the base suite.
+      test.skipIf(version === '7')('creates spans for generateObject', async () => {
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              // Every emitted gen_ai span carries the version-appropriate origin.
+              container.items
+                .filter(s => String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .forEach(s => expect(s.attributes['sentry.origin']?.value).toBe(expectedOrigin));
+
+              const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent');
+              expect(invokeAgentSpan).toBeDefined();
+              expect(invokeAgentSpan!.status).toBe('ok');
+              expect(invokeAgentSpan!.attributes['sentry.op']?.value).toBe('gen_ai.invoke_agent');
+              expect(invokeAgentSpan!.attributes['vercel.ai.operationId']?.value).toBe('ai.generateObject');
+              expect(invokeAgentSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
+              expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(15);
+              expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]?.value).toBe(25);
+              expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]?.value).toBe(40);
+
+              const generateContentSpan = container.items.find(span => span.name === 'generate_content mock-model-id');
+              expect(generateContentSpan).toBeDefined();
+              expect(generateContentSpan!.status).toBe('ok');
+              expect(generateContentSpan!.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(generateContentSpan!.attributes['vercel.ai.operationId']?.value).toBe(
+                'ai.generateObject.doGenerate',
+              );
+              expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
+              expect(generateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(15);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
 });
