@@ -480,11 +480,30 @@ export function createRunner(...paths: string[]) {
             }
           });
 
-          child.on('close', () => {
+          child.on('close', (code, signal) => {
             hasExited = true;
 
             if (ensureNoErrorOutput) {
               complete();
+              return;
+            }
+
+            // A scenario that still owes envelopes but has already exited will never deliver them.
+            // Without this, `completed()` blocks until the vitest test timeout and reports an opaque
+            // "Test timed out", hiding the real failure (e.g. the scenario threw before sending its
+            // transaction — an unhandled rejection exits the process with no envelope). Complete with
+            // the exit status and how far we got so the failure is fast and diagnosable; the captured
+            // child output is dumped by `completed()`. In the success path `complete()` has already
+            // run (so `isComplete` short-circuits this), server-style tests are killed by `complete()`
+            // first, and tests that expect no envelopes drive completion some other way.
+            if (!isComplete && expectedEnvelopeCount > 0) {
+              const how = signal ? `signal ${signal}` : `code ${code ?? 'unknown'}`;
+              complete(
+                new Error(
+                  `Scenario exited (${how}) after ${envelopeCount}/${expectedEnvelopeCount} expected ` +
+                    'envelope(s), before the test completed.',
+                ),
+              );
             }
           });
 
