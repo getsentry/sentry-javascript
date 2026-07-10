@@ -20,7 +20,7 @@
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "ioredis": "5.10.1",
     "mysql": "^2.18.1",
-    "next": "16.2.3",
+    "next": "16.2.10",
     "pg": "^8.13.1",
     "react": "19.1.0",
     "react-dom": "19.1.0"

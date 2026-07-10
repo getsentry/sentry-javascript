@@ -20,12 +20,3 @@ allow-ghsas:
   - GHSA-v2wj-q39q-566r
   # esbuil, used in browser bundler plugin E2E tests
   - GHSA-gv7w-rqvm-qjhr
-  # next@16.2.3, pinned across the nextjs-16-* E2E test apps (only flagged when a
-  # new app's package.json is added, since dependency review scans added manifests)
-  - GHSA-8h8q-6873-q5fj
-  - GHSA-36qx-fr4f-26g5
-  - GHSA-267c-6grr-h53f
-  - GHSA-492v-c6pp-mqqv
-  - GHSA-c4j6-fc7j-m34r
-  - GHSA-mg66-mrh9-m8jx
-  - GHSA-26hh-7cqf-hhc6
