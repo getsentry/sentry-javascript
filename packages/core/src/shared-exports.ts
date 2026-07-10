@@ -242,7 +242,7 @@ export type { GoogleGenAIIstrumentedMethod } from './tracing/google-genai/types'
 export { SpanBuffer } from './tracing/spans/spanBuffer';
 export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
 export { spanStreamingIntegration } from './integrations/spanStreaming';
-export type { FeatureFlag } from './utils/featureFlags';
+export type { FeatureFlag } from './types/featureFlag';
 export {
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
@@ -250,6 +250,13 @@ export {
   _INTERNAL_FLAG_BUFFER_SIZE,
   _INTERNAL_MAX_FLAGS_PER_SPAN,
 } from './utils/featureFlags';
+export {
+  _INTERNAL_copyExperimentsFromScopeToEvent,
+  _INTERNAL_insertExperimentsToScope,
+  _INTERNAL_addExperimentToActiveSpan,
+  _INTERNAL_EXPERIMENT_BUFFER_SIZE,
+  _INTERNAL_MAX_EXPERIMENTS_PER_SPAN,
+} from './utils/experiments';
 export { applyAggregateErrorsToEvent } from './utils/aggregate-errors';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './utils/breadcrumb-log-level';
 export { dsnFromString, dsnToString, makeDsn } from './utils/dsn';

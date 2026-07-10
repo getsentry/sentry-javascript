@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentScope } from '../../../src/currentScopes';
+import { type FeatureFlag } from '../../../src/types/featureFlag';
 import { debug } from '../../../src/utils/debug-logger';
 import {
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
   _INTERNAL_insertToFlagBuffer,
-  type FeatureFlag,
 } from '../../../src/utils/featureFlags';
 
 import * as currentScopeModule from '../../../src/currentScopes';

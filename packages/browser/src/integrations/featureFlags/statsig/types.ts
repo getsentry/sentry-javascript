@@ -3,13 +3,19 @@ export type FeatureGate = {
   readonly value: boolean;
 };
 
-type EventNameToEventDataMap = {
+export type Experiment = {
+  readonly name: string;
+  // readonly value: Record<string, unknown>;
+  readonly groupName: string;
+};
+
+export type EventNameToEventDataMap = {
+  experiment_evaluation: { experiment: Experiment };
   gate_evaluation: { gate: FeatureGate };
 };
 
+export type EventName = keyof EventNameToEventDataMap;
+
 export interface StatsigClient {
-  on(
-    event: keyof EventNameToEventDataMap,
-    callback: (data: EventNameToEventDataMap[keyof EventNameToEventDataMap]) => void,
-  ): void;
+  on<T extends EventName>(event: T, callback: (data: EventNameToEventDataMap[T]) => void): void;
 }

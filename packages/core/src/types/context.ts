@@ -1,4 +1,5 @@
-import type { FeatureFlag } from '../utils/featureFlags';
+import type { Experiment } from '../types/experiment';
+import type { FeatureFlag } from '../types/featureFlag';
 import type { SpanLinkJSON } from './link';
 import type { Primitive } from './misc';
 import type { SpanOrigin } from './span';
@@ -16,6 +17,7 @@ export interface Contexts extends Record<string, Context | undefined> {
   state?: StateContext;
   profile?: ProfileContext;
   flags?: FeatureFlagContext;
+  experiments?: ExperimentContext;
 }
 
 export interface StateContext extends Record<string, unknown> {
@@ -138,4 +140,8 @@ export interface MissingInstrumentationContext extends Record<string, unknown> {
  */
 export interface FeatureFlagContext extends Record<string, unknown> {
   values: FeatureFlag[];
+}
+
+export interface ExperimentContext extends Record<string, unknown> {
+  values: Experiment[];
 }
