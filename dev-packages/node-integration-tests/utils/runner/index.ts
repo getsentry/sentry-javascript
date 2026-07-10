@@ -2,6 +2,7 @@ import { cleanupChildProcesses } from './createRunner';
 
 export { createRunner } from './createRunner';
 export { createEsmAndCjsTests, createEsmTests, createCjsTests } from './createEsmAndCjsTests';
+export { describeWithDockerCompose } from './describeWithDockerCompose';
 export { cleanupChildProcesses };
 
 // Backup call to cleanup everything leftover on process exit

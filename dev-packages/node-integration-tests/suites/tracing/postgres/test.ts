@@ -1,8 +1,8 @@
 import { afterAll, describe, expect } from 'vitest';
 import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-describe('postgres auto instrumentation', () => {
+describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -86,13 +86,7 @@ describe('postgres auto instrumentation', () => {
 
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('should auto-instrument `pg` package', { timeout: 90_000 }, async () => {
-        await createTestRunner()
-          .withDockerCompose({
-            workingDirectory: [__dirname],
-          })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     });
   });
@@ -101,9 +95,6 @@ describe('postgres auto instrumentation', () => {
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-ignoreConnect.mjs', (createTestRunner, test) => {
       test("doesn't emit connect spans if ignoreConnectSpans is true", { timeout: 90_000 }, async () => {
         await createTestRunner()
-          .withDockerCompose({
-            workingDirectory: [__dirname],
-          })
           .expect({
             transaction: txn => {
               const spanNames = txn.spans?.map(span => span.description);
@@ -187,13 +178,7 @@ describe('postgres auto instrumentation', () => {
         'auto-instruments `pg.Pool`, masks connection-string credentials, and handles callback-style queries',
         { timeout: 90_000 },
         async () => {
-          await createTestRunner()
-            .withDockerCompose({
-              workingDirectory: [__dirname],
-            })
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .start()
-            .completed();
+          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
         },
       );
     });
@@ -251,13 +236,7 @@ describe('postgres auto instrumentation', () => {
 
     createEsmAndCjsTests(__dirname, 'scenario-connect-then.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('parents a query chained off connect() to the active transaction', { timeout: 90_000 }, async () => {
-        await createTestRunner()
-          .withDockerCompose({
-            workingDirectory: [__dirname],
-          })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     });
   });
@@ -266,9 +245,6 @@ describe('postgres auto instrumentation', () => {
     createEsmAndCjsTests(__dirname, 'scenario-no-parent.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('does not instrument queries or connects without an active parent span', { timeout: 90_000 }, async () => {
         await createTestRunner()
-          .withDockerCompose({
-            workingDirectory: [__dirname],
-          })
           .expect({
             transaction: txn => {
               const descriptions = txn.spans?.map(span => span.description) ?? [];
@@ -352,13 +328,7 @@ describe('postgres auto instrumentation', () => {
       'instrument.mjs',
       (createTestRunner, test) => {
         test('should auto-instrument `pg-native` package', { timeout: 120_000 }, async () => {
-          await createTestRunner()
-            .withDockerCompose({
-              workingDirectory: [__dirname],
-            })
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .start()
-            .completed();
+          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
         });
       },
       { additionalDependencies: { 'pg-native': '3.7.0', pg: '8.20.0' } },
@@ -436,11 +406,7 @@ describe('postgres auto instrumentation', () => {
         'instrument-orchestrion.mjs',
         (createTestRunner, test) => {
           test('auto-instruments `pg` via diagnostics channels', { timeout: 90_000 }, async () => {
-            await createTestRunner()
-              .withDockerCompose({ workingDirectory: [__dirname] })
-              .expect({ transaction: EXPECTED_TRANSACTION })
-              .start()
-              .completed();
+            await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
           });
         },
         // This block enables orchestrion itself via its instrument file, so opt out of the generic
@@ -487,11 +453,7 @@ describe('postgres auto instrumentation', () => {
         'instrument-orchestrion.mjs',
         (createTestRunner, test) => {
           test('auto-instruments `pg.Pool` and handles callback-style queries', { timeout: 90_000 }, async () => {
-            await createTestRunner()
-              .withDockerCompose({ workingDirectory: [__dirname] })
-              .expect({ transaction: EXPECTED_TRANSACTION })
-              .start()
-              .completed();
+            await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
           });
         },
         // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
@@ -542,7 +504,6 @@ describe('postgres auto instrumentation', () => {
             { timeout: 90_000 },
             async () => {
               await createTestRunner()
-                .withDockerCompose({ workingDirectory: [__dirname] })
                 .expect({
                   transaction: txn => {
                     const descriptions = txn.spans?.map(span => span.description) ?? [];
@@ -588,7 +549,6 @@ describe('postgres auto instrumentation', () => {
             { timeout: 90_000 },
             async () => {
               await createTestRunner()
-                .withDockerCompose({ workingDirectory: [__dirname] })
                 .expect({
                   transaction: txn => {
                     const spanNames = txn.spans?.map(span => span.description);

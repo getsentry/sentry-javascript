@@ -19,10 +19,10 @@ import {
   spanToJSON,
   startBrowserTracingNavigationSpan,
   startInactiveSpan,
-  WINDOW,
+  getAbsoluteUrl,
 } from '@sentry/browser';
 import type { Integration, Span } from '@sentry/core';
-import { debug, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
+import { debug, parseStringToURLObject, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
@@ -66,26 +66,13 @@ export function _updateSpanAttributesForParametrizedUrl(route: string, url: stri
   if (!attributes || attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
     span.updateName(route);
 
-    // Angular router gives us relative paths (e.g. `/users/123`). Resolve against the
-    // current origin so that `url.full` contains the absolute URL including protocol and host.
-    const locationOrigin = WINDOW.location?.origin;
-    let urlFull = url;
-    let urlPath = url;
-    if (locationOrigin) {
-      try {
-        const parsed = new URL(url, locationOrigin);
-        urlFull = parsed.href;
-        urlPath = parsed.pathname;
-      } catch {
-        // fall back to the raw string
-      }
-    }
+    const absoluteUrl = getAbsoluteUrl(url);
 
     span.setAttributes({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${op}.angular`,
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      [URL_FULL]: urlFull,
-      [URL_PATH]: urlPath,
+      [URL_FULL]: absoluteUrl,
+      [URL_PATH]: parseStringToURLObject(absoluteUrl)?.pathname,
       [URL_TEMPLATE]: route,
     });
   }
@@ -118,17 +105,6 @@ export class TraceService implements OnDestroy {
         // see comment in `_isPageloadOngoing` for rationale
         if (!this._isPageloadOngoing()) {
           runOutsideAngular(() => {
-            // Angular router gives us a relative path; resolve it against the current origin
-            // so the browser tracing integration can set url.full correctly from the start.
-            const locationOrigin = WINDOW.location?.origin;
-            let absoluteUrl: string = navigationEvent.url;
-            if (locationOrigin) {
-              try {
-                absoluteUrl = new URL(navigationEvent.url, locationOrigin).href;
-              } catch {
-                // fall back to relative path
-              }
-            }
             startBrowserTracingNavigationSpan(
               client,
               {
@@ -139,7 +115,7 @@ export class TraceService implements OnDestroy {
                 },
               },
               {
-                url: absoluteUrl,
+                url: getAbsoluteUrl(navigationEvent.url),
               },
             );
           });

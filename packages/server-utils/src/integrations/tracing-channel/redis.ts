@@ -14,6 +14,7 @@ import {
 } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
+  isObjectLike,
   debug,
   defineIntegration,
   getActiveSpan,
@@ -110,7 +111,7 @@ function runResponseHook(
 // deriving the wire arguments, mirroring `@redis/client`'s `transformCommandArguments`.
 function stripCommandOptions(args: unknown[]): unknown[] {
   const first = args[0];
-  if (first && typeof first === 'object' && Object.getOwnPropertySymbols(first).length > 0) {
+  if (isObjectLike(first) && Object.getOwnPropertySymbols(first).length > 0) {
     return args.slice(1);
   }
   return args;

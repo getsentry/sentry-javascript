@@ -25,6 +25,10 @@ interface CommonTestOptions {
    * `additionalDependencies` to install in the tmp dir.
    */
   additionalDependencies?: Record<string, string>;
+  /**
+   * A command to run once in the tmp dir after `additionalDependencies` are installed.
+   */
+  afterSetupCommand?: string;
   /** Copy these files/dirs into the tmp dir. */
   copyPaths?: string[];
   /** If orchestrion should be injected before any instrument file. */
@@ -303,6 +307,11 @@ experimentalUseDiagnosticsChannelInjection();`,
         // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
         await npmInstallWithRetry(tmpDirPath, deps);
       }
+    }
+
+    if (options?.afterSetupCommand) {
+      const env = { ...process.env, PATH: `${join(tmpDirPath, 'node_modules', '.bin')}:${process.env.PATH}` };
+      await execPromise(options.afterSetupCommand, { cwd: tmpDirPath, env });
     }
   }
 

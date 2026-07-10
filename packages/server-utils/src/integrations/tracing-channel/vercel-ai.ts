@@ -35,6 +35,6 @@ const _vercelAiChannelIntegration = ((options: VercelAiOptions = {}) => {
 /**
  * Auto-instrument the `ai` SDK. Supported are:
  * - v7 via native `ai:telemetry` tracing channel
- * - v5 & v6 via orchestrion `orchestrion:ai:*` channels
+ * - v4, v5 & v6 via orchestrion `orchestrion:ai:*` channels
  */
 export const vercelAiChannelIntegration = defineIntegration(_vercelAiChannelIntegration);

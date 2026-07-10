@@ -4,7 +4,6 @@ services:
   db:
     image: redis:latest
     restart: always
-    container_name: integration-tests-redis-dc
     ports:
       - '6381:6379'
     healthcheck:
