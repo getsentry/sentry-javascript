@@ -245,7 +245,7 @@ function bindOperation(
       // `resolveLanguageModel`, so restricting to `'v1'` keeps this strictly additive and avoids
       // double-patching. Embedding models are also `'v1'` but expose no `doGenerate`/`doStream`, so
       // the patch is a no-op for `embed`/`embedMany`.
-      if (isRecord(callOptions.model) && callOptions.model.specificationVersion === 'v1') {
+      if (isObjectLike(callOptions.model) && callOptions.model.specificationVersion === 'v1') {
         patchModelMethods(callOptions.model as PatchableModel, options);
       }
     }
@@ -451,7 +451,7 @@ function patchModelMethod(
         modelId: model.modelId,
         // v4 nests the tool list under `mode.tools` (the `LanguageModelV1` call shape); v5+ passes a
         // top-level `tools` array. Reading both keeps `available_tools` populated on the model-call span.
-        tools: callArgs.tools ?? (isRecord(callArgs.mode) ? callArgs.mode.tools : undefined),
+        tools: callArgs.tools ?? (isObjectLike(callArgs.mode) ? callArgs.mode.tools : undefined),
         messages: callArgs.prompt,
         // Inherit the enclosing operation's per-call recording flags so inputs/tools/outputs are recorded on
         // the model-call span whenever they are on the parent `invoke_agent` span.
