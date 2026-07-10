@@ -418,7 +418,7 @@ describe('createSentryClientInstrumentation', () => {
           return { status: 'success', error: undefined };
         });
         const mockInstrument = vi.fn();
-        const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn() };
+        const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn(), setAttributes: vi.fn() };
         const mockClient = {};
 
         (core.getClient as any).mockReturnValue(mockClient);
@@ -444,6 +444,10 @@ describe('createSentryClientInstrumentation', () => {
           { url: 'https://example.com/current-page' },
         );
         expect(mockNavigationSpan.updateName).toHaveBeenCalledWith(destination);
+        expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+          'url.path': destination,
+          'url.full': `https://example.com${destination}`,
+        });
       },
     );
 
@@ -463,6 +467,30 @@ describe('createSentryClientInstrumentation', () => {
       expect(mockCallNavigate).toHaveBeenCalled();
     });
 
+    it('should update url.path and url.full after numeric navigate completes', async () => {
+      const mockCallNavigate = vi.fn().mockImplementation(async () => {
+        (globalThis as any).location.pathname = '/previous-page';
+        return { status: 'success', error: undefined };
+      });
+      const mockInstrument = vi.fn();
+      const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn(), setAttributes: vi.fn() };
+      const mockClient = {};
+
+      (core.getClient as any).mockReturnValue(mockClient);
+      (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
+
+      const instrumentation = createSentryClientInstrumentation();
+      instrumentation.router?.({ instrument: mockInstrument });
+      const hooks = mockInstrument.mock.calls[0]![0];
+
+      await hooks.navigate(mockCallNavigate, { currentUrl: '/current-page', to: -1 });
+
+      expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+        'url.path': '/previous-page',
+        'url.full': 'https://example.com/previous-page',
+      });
+    });
+
     it('should set error status on span for failed numeric navigation', async () => {
       const mockError = new Error('Navigation failed');
       const mockCallNavigate = vi.fn().mockImplementation(async () => {
@@ -470,7 +498,7 @@ describe('createSentryClientInstrumentation', () => {
         return { status: 'error', error: mockError };
       });
       const mockInstrument = vi.fn();
-      const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn() };
+      const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn(), setAttributes: vi.fn() };
 
       (core.getClient as any).mockReturnValue({});
       (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
@@ -489,7 +517,7 @@ describe('createSentryClientInstrumentation', () => {
 
     it('should set navigate hook invoked flag for numeric navigations but NOT for navigate(0)', async () => {
       const mockInstrument = vi.fn();
-      const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn() };
+      const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn(), setAttributes: vi.fn() };
 
       (core.getClient as any).mockReturnValue({});
       (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
@@ -700,6 +728,7 @@ describe('createSentryClientInstrumentation', () => {
       const mockNavigationSpan = {
         setStatus: vi.fn(),
         updateName: vi.fn(),
+        setAttributes: vi.fn(),
         isRecording: vi.fn().mockReturnValue(true),
       };
 
@@ -721,7 +750,10 @@ describe('createSentryClientInstrumentation', () => {
 
       // Only ONE span created (not two - no duplicate from popstate)
       expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
-      expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/previous-page');
+      expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith({
+        'url.path': '/previous-page',
+        'url.full': 'https://example.com/previous-page',
+      });
     });
 
     it('should create new span on popstate when no numeric navigation is in progress', () => {
