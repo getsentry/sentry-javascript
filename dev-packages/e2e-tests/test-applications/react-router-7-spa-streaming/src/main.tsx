@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { replayIntegration } from '@sentry/react/optional-browser-api';
+import { replayIntegration, spanStreamingIntegration } from '@sentry/react/optional-browser-api';
 import { reactRouterV7BrowserTracingIntegration, withSentryReactRouterV7Routing } from '@sentry/react/reactrouterv7';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -30,7 +30,7 @@ Sentry.init({
       matchRoutes,
       trackFetchStreamPerformance: true,
     }),
-    Sentry.spanStreamingIntegration(),
+    spanStreamingIntegration(),
     replay,
   ],
   // We recommend adjusting this value in production, or using tracesSampler
