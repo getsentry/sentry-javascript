@@ -23,7 +23,7 @@ import type {
   Token,
 } from './graphql-types';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import { isObjectLike, SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { AllowedOperationTypes, SpanNames, TokenKind } from './enum';
 import { AttributeNames } from './enums/AttributeNames';
 import { OTEL_GRAPHQL_DATA_SYMBOL, OTEL_PATCHED_SYMBOL } from './symbols';
@@ -35,11 +35,6 @@ const OPERATION_VALUES = Object.values(AllowedOperationTypes);
 // https://github.com/graphql/graphql-js/blob/main/src/jsutils/isPromise.ts
 export const isPromise = (value: any): value is Promise<unknown> => {
   return typeof value?.then === 'function';
-};
-
-// https://github.com/graphql/graphql-js/blob/main/src/jsutils/isObjectLike.ts
-const isObjectLike = (value: unknown): value is { [key: string]: unknown } => {
-  return typeof value == 'object' && value !== null;
 };
 
 export function addSpanSource(span: Span, loc?: Location, start?: number, end?: number): void {

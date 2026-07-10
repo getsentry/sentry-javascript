@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import { uniq } from '@sentry/core';
 import { mysqlConfig } from './mysql';
 import { lruMemoizerConfig } from './lru-memoizer';
 import { ioredisConfig } from './ioredis';
@@ -8,10 +9,12 @@ import { postgresJsConfig } from './postgres';
 import { anthropicAiConfig } from './anthropic-ai';
 import { googleGenAiConfig } from './google-genai';
 import { vercelAiConfig } from './vercel-ai';
+import { amqplibConfig } from './amqplib';
 import { hapiConfig } from './hapi';
 import { redisConfig } from './redis';
 import { expressConfig } from './express';
 import { graphqlConfig } from './graphql';
+import { kafkajsConfig } from './kafkajs';
 
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...mysqlConfig,
@@ -24,9 +27,11 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...googleGenAiConfig,
   ...vercelAiConfig,
   ...hapiConfig,
+  ...amqplibConfig,
   ...redisConfig,
   ...expressConfig,
   ...graphqlConfig,
+  ...kafkajsConfig,
 ];
 
 /**
@@ -41,7 +46,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
  * externalized and their transform never runs.
  */
 export function instrumentedModuleNames(instrumentations: InstrumentationConfig[] = []): string[] {
-  return Array.from(new Set([...SENTRY_INSTRUMENTATIONS, ...instrumentations].map(i => i.module.name)));
+  return uniq([...SENTRY_INSTRUMENTATIONS, ...instrumentations].map(i => i.module.name));
 }
 
 /** The instrumented module names from the default Sentry config, with no custom additions. */

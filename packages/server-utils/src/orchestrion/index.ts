@@ -1,3 +1,4 @@
+import { amqplibChannelIntegration } from '../integrations/tracing-channel/amqplib';
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
 import { googleGenAIChannelIntegration } from '../integrations/tracing-channel/google-genai';
 import {
@@ -6,6 +7,7 @@ import {
 } from '../integrations/tracing-channel/graphql';
 import { hapiChannelIntegration } from '../integrations/tracing-channel/hapi';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
+import { kafkajsChannelIntegration } from '../integrations/tracing-channel/kafkajs';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
@@ -16,11 +18,13 @@ import { expressChannelIntegration } from '../integrations/tracing-channel/expre
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 export {
+  amqplibChannelIntegration,
   anthropicChannelIntegration,
   googleGenAIChannelIntegration,
   graphqlChannelIntegration,
   hapiChannelIntegration,
   ioredisChannelIntegration,
+  kafkajsChannelIntegration,
   lruMemoizerChannelIntegration,
   mysqlChannelIntegration,
   openaiChannelIntegration,
@@ -60,7 +64,9 @@ export const channelIntegrations = {
   anthropicIntegration: anthropicChannelIntegration,
   googleGenAIIntegration: googleGenAIChannelIntegration,
   vercelAiIntegration: vercelAiChannelIntegration,
+  amqplibIntegration: amqplibChannelIntegration,
   hapiIntegration: hapiChannelIntegration,
   expressIntegration: expressChannelIntegration,
   graphqlIntegration: graphqlDiagnosticsChannelIntegration,
+  kafkajsIntegration: kafkajsChannelIntegration,
 } as const;

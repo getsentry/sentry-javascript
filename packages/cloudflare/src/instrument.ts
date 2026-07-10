@@ -3,6 +3,8 @@
 // separately for workers and Durable Objects, but they share the same global scope.
 // The WeakMap stores original -> instrumented mappings so we can retrieve the
 // instrumented version even if we only have a reference to the original.
+import { isObjectLike } from '@sentry/core';
+
 const GLOBAL_KEY = '__SENTRY_INSTRUMENTED_MAP__' as const;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,7 +22,7 @@ function getInstrumentedMap(): WeakMap<any, any> {
  * WeakMap keys must be objects or non-registered symbols.
  */
 function isWeakMapKey(value: unknown): value is object {
-  return (typeof value === 'object' && value !== null) || typeof value === 'function';
+  return isObjectLike(value) || typeof value === 'function';
 }
 
 /**

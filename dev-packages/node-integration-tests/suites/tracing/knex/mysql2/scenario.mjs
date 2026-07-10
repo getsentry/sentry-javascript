@@ -40,6 +40,7 @@ async function run() {
 
         await mysql2Client('User').insert({ name: 'jane', email: 'jane@domain.com' });
         await mysql2Client('User').select('*');
+        await mysql2Client.schema.dropTable('User');
       } finally {
         await mysql2Client.destroy();
       }

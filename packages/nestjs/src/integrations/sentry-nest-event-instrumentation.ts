@@ -5,7 +5,7 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
 } from '@opentelemetry/instrumentation';
-import { captureException, SDK_VERSION, startSpan, withIsolationScope } from '@sentry/core';
+import { isObjectLike, captureException, SDK_VERSION, startSpan, withIsolationScope } from '@sentry/core';
 import { getEventSpanOptions } from './helpers';
 import type { OnEventTarget } from './types';
 
@@ -103,7 +103,7 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
               if (Array.isArray(eventData)) {
                 eventName = eventData
                   .map((data: unknown) => {
-                    if (data && typeof data === 'object' && 'event' in data && data.event) {
+                    if (isObjectLike(data) && 'event' in data && data.event) {
                       return eventNameFromEvent(data.event);
                     }
                     return '';

@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/e2e-tests",
-  "version": "10.64.0",
+  "version": "10.65.0",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.19.1",
-    "dotenv": "16.0.3",
+    "dotenv": "17.4.2",
     "esbuild": "0.28.1",
     "eslint-plugin-regexp": "^3.1.0",
     "glob": "^13.0.6",

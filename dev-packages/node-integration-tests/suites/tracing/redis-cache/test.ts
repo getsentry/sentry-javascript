@@ -1,8 +1,8 @@
 import { afterAll, describe, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-describe('redis cache auto instrumentation', () => {
+describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -42,11 +42,7 @@ describe('redis cache auto instrumentation', () => {
 
     createEsmAndCjsTests(__dirname, 'scenario-ioredis.mjs', 'instrument-ioredis.mjs', (createTestRunner, test) => {
       test('should not add cache spans when key is not prefixed', { timeout: 60_000 }, async () => {
-        await createTestRunner()
-          .withDockerCompose({ workingDirectory: [__dirname] })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     });
   });
@@ -145,11 +141,7 @@ describe('redis cache auto instrumentation', () => {
 
     createEsmAndCjsTests(__dirname, 'scenario-ioredis.mjs', 'instrument-ioredis.mjs', (createTestRunner, test) => {
       test('should create cache spans for prefixed keys (ioredis)', { timeout: 60_000 }, async () => {
-        await createTestRunner()
-          .withDockerCompose({ workingDirectory: [__dirname] })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     });
   });
@@ -285,7 +277,6 @@ describe('redis cache auto instrumentation', () => {
     createEsmAndCjsTests(__dirname, 'scenario-redis-4.mjs', 'instrument-redis-4.mjs', (createTestRunner, test) => {
       test('should create cache spans for prefixed keys (redis-4)', async () => {
         await createTestRunner()
-          .withDockerCompose({ workingDirectory: [__dirname] })
           .expect({ transaction: EXPECTED_REDIS_CONNECT })
           .expect({ transaction: EXPECTED_TRANSACTION })
           .start()
@@ -428,7 +419,6 @@ describe('redis cache auto instrumentation', () => {
     createEsmAndCjsTests(__dirname, 'scenario-redis-5.mjs', 'instrument-redis-5.mjs', (createTestRunner, test) => {
       test('should create cache spans for prefixed keys (redis-5)', async () => {
         await createTestRunner()
-          .withDockerCompose({ workingDirectory: [__dirname] })
           .expect({ transaction: EXPECTED_REDIS_CONNECT })
           .expect({ transaction: EXPECTED_TRANSACTION })
           .start()
