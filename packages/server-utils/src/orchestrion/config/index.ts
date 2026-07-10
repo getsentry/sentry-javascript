@@ -1,37 +1,65 @@
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
 import { uniq } from '@sentry/core';
-import { mysqlConfig } from './mysql';
-import { lruMemoizerConfig } from './lru-memoizer';
+import { amqplibConfig } from './amqplib';
+import { anthropicAiConfig } from './anthropic-ai';
+import { dataloaderConfig } from './dataloader';
+import { expressConfig } from './express';
+import { firebaseConfig } from './firebase';
+import { genericPoolConfig } from './generic-pool';
+import { googleGenAiConfig } from './google-genai';
+import { graphqlConfig } from './graphql';
+import { hapiConfig } from './hapi';
 import { ioredisConfig } from './ioredis';
+import { kafkajsConfig } from './kafkajs';
+import { knexConfig } from './knex';
+import { langchainConfig } from './langchain';
+import { langgraphConfig } from './langgraph';
+import { lruMemoizerConfig } from './lru-memoizer';
+import { mongodbConfig } from './mongodb';
+import { mongooseConfig } from './mongoose';
+import { mysqlConfig } from './mysql';
+import { mysql2Config } from './mysql2';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { postgresJsConfig } from './postgres';
-import { anthropicAiConfig } from './anthropic-ai';
-import { googleGenAiConfig } from './google-genai';
-import { vercelAiConfig } from './vercel-ai';
-import { amqplibConfig } from './amqplib';
-import { hapiConfig } from './hapi';
+import { prismaConfig } from './prisma';
+import { reactRouterConfig } from './react-router';
 import { redisConfig } from './redis';
-import { expressConfig } from './express';
-import { graphqlConfig } from './graphql';
-import { kafkajsConfig } from './kafkajs';
+import { remixConfig } from './remix';
+import { tediousConfig } from './tedious';
+import { vercelAiConfig } from './vercel-ai';
 
+// Kept sorted alphabetically by module so concurrent additions insert at different
+// points rather than all appending to the end (fewer merge conflicts).
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
-  ...mysqlConfig,
-  ...lruMemoizerConfig,
+  ...amqplibConfig,
+  ...anthropicAiConfig,
+  ...dataloaderConfig,
+  ...expressConfig,
+  ...firebaseConfig,
+  ...genericPoolConfig,
+  ...googleGenAiConfig,
+  ...graphqlConfig,
+  ...hapiConfig,
   ...ioredisConfig,
+  ...kafkajsConfig,
+  ...knexConfig,
+  ...langchainConfig,
+  ...langgraphConfig,
+  ...lruMemoizerConfig,
+  ...mongodbConfig,
+  ...mongooseConfig,
+  ...mysqlConfig,
+  ...mysql2Config,
   ...openaiConfig,
   ...pgConfig,
   ...postgresJsConfig,
-  ...anthropicAiConfig,
-  ...googleGenAiConfig,
-  ...vercelAiConfig,
-  ...hapiConfig,
-  ...amqplibConfig,
+  ...prismaConfig,
+  ...reactRouterConfig,
   ...redisConfig,
-  ...expressConfig,
-  ...graphqlConfig,
-  ...kafkajsConfig,
+  ...remixConfig,
+  ...tediousConfig,
+  ...vercelAiConfig,
 ];
 
 /**
