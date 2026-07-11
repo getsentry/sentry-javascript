@@ -42,6 +42,15 @@ export default [
           exports: 'named',
           // set preserveModules to true because we don't want to bundle everything into one file.
           preserveModules: true,
+          // `@apm-js-collab/code-transformer-bundler-plugins` ships CJS entries as bare
+          // `module.exports = fn` with no `__esModule`/`.default`. The repo default
+          // `interop: 'esModule'` assumes ESM-shaped externals and would dereference a nonexistent
+          // `.default`, so a default import compiles to `codeTransformer.default(...)` → "not a
+          // function". Use 'auto' for just these so Rollup emits its interop helper. Scoped here (not
+          // repo-wide) because 'auto' also turns `import * as x` into a copy, which breaks in-place
+          // monkey-patching that other packages (e.g. the OTel fs instrumentation) depend on.
+          interop: id =>
+            id?.startsWith('@apm-js-collab/code-transformer-bundler-plugins') ? 'auto' : 'esModule',
         },
       },
     }),

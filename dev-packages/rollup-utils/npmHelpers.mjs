@@ -94,7 +94,12 @@ export function makeBaseNPMConfig(options = {}) {
       // (We don't need it, so why waste the bytes?)
       freeze: false,
 
-      interop: 'auto',
+      // Assume externals are ESM-shaped (`__esModule` + `.default`), which our own `@sentry/*`
+      // packages satisfy via `esModule: 'if-default-prop'`. This keeps `import * as x` a live
+      // reference to the real module rather than an `_interopNamespace` copy — instrumentation code
+      // relies on that to monkey-patch modules like `fs` in place. Packages that pull in bare-CJS
+      // third-party deps (no `.default`) override this per-module (see server-utils).
+      interop: 'esModule',
     },
 
     treeshake: {
