@@ -49,8 +49,7 @@ export default [
           // function". Use 'auto' for just these so Rollup emits its interop helper. Scoped here (not
           // repo-wide) because 'auto' also turns `import * as x` into a copy, which breaks in-place
           // monkey-patching that other packages (e.g. the OTel fs instrumentation) depend on.
-          interop: id =>
-            id?.startsWith('@apm-js-collab/code-transformer-bundler-plugins') ? 'auto' : 'esModule',
+          interop: id => (id?.startsWith('@apm-js-collab/code-transformer-bundler-plugins') ? 'auto' : 'esModule'),
         },
       },
     }),
