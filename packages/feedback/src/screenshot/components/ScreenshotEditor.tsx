@@ -1,3 +1,4 @@
+// oxlint-disable max-lines
 import type { FeedbackInternalOptions, FeedbackModalIntegration } from '@sentry/core';
 import type { ComponentType, h as hType, VNode } from 'preact';
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -5,6 +6,7 @@ import type * as Hooks from 'preact/hooks';
 import { DOCUMENT, WINDOW } from '../../constants';
 import IconCloseFactory from './IconClose';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
+import { ScreenshotFallback } from './ScreenshotFallback';
 import ToolbarFactory from './Toolbar';
 import { useTakeScreenshotFactory } from './useTakeScreenshot';
 
@@ -29,6 +31,11 @@ interface FactoryParams {
    * Needed to set nonce and id values for editor specific styles
    */
   options: FeedbackInternalOptions;
+
+  onScreenshotStart: () => void;
+  onScreenshotCaptured: () => void;
+  onFileSelected: (file: File) => void;
+  onReset: () => void;
 }
 
 interface Props {
@@ -117,6 +124,10 @@ export function ScreenshotEditorFactory({
   outputBuffer,
   dialog,
   options,
+  onScreenshotStart,
+  onScreenshotCaptured,
+  onFileSelected,
+  onReset,
 }: FactoryParams): ComponentType<Props> {
   const useTakeScreenshot = useTakeScreenshotFactory({ hooks });
   const Toolbar = ToolbarFactory({ h });
@@ -328,11 +339,19 @@ export function ScreenshotEditorFactory({
     );
   };
 
-  return function Wrapper({ onError }: Props): VNode {
+  return function Wrapper(_props: Props): VNode {
     const [screenshot, setScreenshot] = hooks.useState<undefined | Screenshot>();
+    const [captureFailed, setCaptureFailed] = hooks.useState(false);
+
+    hooks.useEffect(() => {
+      onReset();
+      return onReset;
+    }, []);
 
     useTakeScreenshot({
       onBeforeScreenshot: hooks.useCallback(() => {
+        onScreenshotStart();
+        setCaptureFailed(false);
         dialogStyle.display = 'none';
       }, []),
       onScreenshot: hooks.useCallback((screenshotVideo: HTMLVideoElement, dpi: number) => {
@@ -344,6 +363,7 @@ export function ScreenshotEditorFactory({
           ctx.drawImage(screenshotVideo, 0, 0, canvas.width, canvas.height);
 
           setScreenshot({ canvas, dpi });
+          onScreenshotCaptured();
         });
 
         // The output buffer, we only need to set the width/height on this once, it stays the same forever
@@ -353,14 +373,18 @@ export function ScreenshotEditorFactory({
       onAfterScreenshot: hooks.useCallback(() => {
         dialogStyle.display = 'block';
       }, []),
-      onError: hooks.useCallback(error => {
+      onError: hooks.useCallback(_error => {
         dialogStyle.display = 'block';
-        onError(error);
+        setCaptureFailed(true);
       }, []),
     });
 
     if (screenshot) {
       return <ScreenshotEditor screenshot={screenshot} />;
+    }
+
+    if (captureFailed) {
+      return <ScreenshotFallback options={options} onFileSelected={onFileSelected} />;
     }
 
     return <div />;

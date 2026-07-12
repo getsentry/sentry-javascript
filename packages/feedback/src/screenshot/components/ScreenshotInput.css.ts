@@ -101,6 +101,17 @@ export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleEleme
 .editor__rect:hover button {
   opacity: 1;
 }
+
+.screenshot-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 15px;
+}
+
+.screenshot-fallback__input {
+  color: var(--foreground);
+}
 `;
 
   if (styleNonce) {
