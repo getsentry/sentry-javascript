@@ -13,7 +13,9 @@ function envelopeItem(envelope: Envelope): Record<string, unknown> {
 function findRateLimitSpans(envelope: Envelope): Array<Record<string, unknown>> {
   if (envelopeItemType(envelope) !== 'transaction') return [];
   const spans = (envelopeItem(envelope).spans as Array<Record<string, unknown>>) || [];
-  return spans.filter(s => s.origin === 'auto.faas.cloudflare.rate_limit');
+  return spans.filter(
+    s => (s.data as Record<string, unknown> | undefined)?.['sentry.origin'] === 'auto.faas.cloudflare.rate_limit',
+  );
 }
 
 it('instruments an allowed rate limiter call automatically via env', async ({ signal }) => {
