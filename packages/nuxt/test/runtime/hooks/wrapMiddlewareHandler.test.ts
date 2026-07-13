@@ -47,6 +47,7 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
         httpHeaders: { request: true, response: true },
         httpBodies: [],
         queryParams: true,
+        graphQL: { document: true, variables: true },
         genAI: { inputs: false, outputs: false },
         stackFrameVariables: true,
         frameContextLines: 5,

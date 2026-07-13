@@ -51,6 +51,17 @@ export interface DataCollection {
   queryParams?: CollectBehavior;
 
   /**
+   * Controls collection of GraphQL operation data.
+   * - `document`: collect the GraphQL document (query/mutation source).
+   * - `variables`: collect the variables passed to GraphQL operations.
+   * @default { document: true, variables: true }
+   */
+  graphQL?: {
+    document?: boolean;
+    variables?: boolean;
+  };
+
+  /**
    * Controls generative AI input/output recording.
    * @default { inputs: true, outputs: true }
    */
@@ -77,5 +88,6 @@ export interface DataCollection {
  */
 export type ResolvedDataCollection = Required<DataCollection> & {
   httpHeaders: Required<NonNullable<DataCollection['httpHeaders']>>;
+  graphQL: Required<NonNullable<DataCollection['graphQL']>>;
   genAI: Required<NonNullable<DataCollection['genAI']>>;
 };
