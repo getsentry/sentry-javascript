@@ -5,6 +5,13 @@
  */
 
 export { graphqlIntegration } from './graphql';
+export {
+  getV3CommandOperation,
+  getV3SpanAttributes,
+  getV4SpanAttributes,
+  startMongoSpan,
+} from './mongodb/mongodb-span';
+export type { MongodbNamespace, MongoV3Topology } from './mongodb/mongodb-span';
 export { mongooseIntegration } from './mongoose';
 export { mysql2Integration } from './mysql2';
 export { instrumentPrisma, prismaIntegration } from './prisma';

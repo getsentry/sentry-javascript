@@ -13,6 +13,7 @@ import { ioredisChannelIntegration } from '../integrations/tracing-channel/iored
 import { kafkajsChannelIntegration } from '../integrations/tracing-channel/kafkajs';
 import { knexChannelIntegration } from '../integrations/tracing-channel/knex';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
+import { mongodbChannelIntegration } from '../integrations/tracing-channel/mongodb';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { mysql2ChannelIntegration } from '../integrations/tracing-channel/mysql2';
 import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
@@ -38,6 +39,7 @@ export {
   kafkajsChannelIntegration,
   knexChannelIntegration,
   lruMemoizerChannelIntegration,
+  mongodbChannelIntegration,
   mysqlChannelIntegration,
   mysql2ChannelIntegration,
   openaiChannelIntegration,
@@ -81,6 +83,7 @@ export type * from '../integrations/tracing-channel/graphql/graphql-types';
 export const channelIntegrations = {
   postgresIntegration: postgresChannelIntegration,
   postgresJsIntegration: postgresJsChannelIntegration,
+  mongoIntegration: mongodbChannelIntegration,
   mysqlIntegration: mysqlChannelIntegration,
   mysql2Integration: mysql2ChannelIntegration,
   genericPoolIntegration: genericPoolChannelIntegration,
