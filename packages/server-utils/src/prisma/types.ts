@@ -7,20 +7,25 @@
  * - Upstream version: @prisma/instrumentation-contract@7.8.0
  * - Trimmed to the members the SDK's tracing helper relies on (dropped the unused `EngineTrace`,
  *   `EngineTraceEvent`, and `LogLevel` types)
+ * - Replaced the `@opentelemetry/api` `SpanOptions` dependency with Sentry's own span types, so this
+ *   package does not need to depend on OpenTelemetry
  */
 
-import type { SpanOptions } from '@opentelemetry/api';
-import type { Span } from '@sentry/core';
+import type { Span, SpanAttributes, SpanKindValue, SpanLink, SpanTimeInput } from '@sentry/core';
 
 export type SpanCallback<R> = (span?: Span, parentSpan?: Span) => R;
 
-export interface ExtendedSpanOptions extends SpanOptions {
+export interface ExtendedSpanOptions {
   /** The name of the span */
   name: string;
   /* Internal spans are not shown unless PRISMA_SHOW_ALL_TRACES=true env var is set */
   internal?: boolean;
   /** Whether it propagates context (?=true) */
   active?: boolean;
+  attributes?: SpanAttributes;
+  kind?: SpanKindValue;
+  links?: SpanLink[];
+  startTime?: SpanTimeInput;
 }
 
 export type EngineSpanId = string;
