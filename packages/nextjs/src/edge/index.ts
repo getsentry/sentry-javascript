@@ -1,11 +1,8 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import { context } from '@opentelemetry/api';
 import {
   applySdkMetadata,
-  getCapturedScopesOnSpan,
-  getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getRootSpan,
@@ -14,10 +11,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  setCapturedScopesOnSpan,
   spanToJSON,
 } from '@sentry/core';
-import { getScopesFromContext } from '@sentry/opentelemetry';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -25,6 +20,8 @@ import { ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
+import { maybeForkIsolationScopeForRootSpan } from '../common/utils/forkIsolationScopeForRootSpan';
+import { getNormalizedRequestFromAttributes } from '../common/utils/getNormalizedRequestFromAttributes';
 import { isBuild } from '../common/utils/isBuild';
 import { flushSafelyWithTimeout, isCloudflareWaitUntilAvailable, waitUntil } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
@@ -101,6 +98,25 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   const client = vercelEdgeInit(opts);
 
+  // Next.js's OTel instrumentation samples root spans before the Sentry middleware wrapper can set
+  // `normalizedRequest` on the isolation scope. Seed it from span attributes so `tracesSampler` has access.
+  client?.on('beforeSampling', ({ spanAttributes }) => {
+    const spanType = spanAttributes[ATTR_NEXT_SPAN_TYPE];
+    if (spanType !== 'Middleware.execute' && spanType !== 'BaseServer.handleRequest') {
+      return;
+    }
+
+    const isolationScope = getIsolationScope();
+    if (isolationScope.getScopeData().sdkProcessingMetadata?.normalizedRequest) {
+      return;
+    }
+
+    const normalizedRequest = getNormalizedRequestFromAttributes(spanAttributes);
+    if (normalizedRequest) {
+      isolationScope.setSDKProcessingMetadata({ normalizedRequest });
+    }
+  });
+
   client?.on('spanStart', span => {
     const spanAttributes = spanToJSON(span).data;
     const rootSpan = getRootSpan(span);
@@ -120,19 +136,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     }
 
     // We want to fork the isolation scope for incoming requests
-    if (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest' && isRootSpan) {
-      const scopes = getCapturedScopesOnSpan(span);
-
-      const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
-      const scope = scopes.scope || getCurrentScope();
-
-      const currentScopesPointer = getScopesFromContext(context.active());
-      if (currentScopesPointer) {
-        currentScopesPointer.isolationScope = isolationScope;
-      }
-
-      setCapturedScopesOnSpan(span, scope, isolationScope);
-    }
+    maybeForkIsolationScopeForRootSpan(span, spanAttributes);
 
     if (isRootSpan) {
       // todo: check if we can set request headers for edge on sdkProcessingMetadata
