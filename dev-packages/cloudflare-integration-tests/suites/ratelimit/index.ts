@@ -6,6 +6,10 @@ interface Env {
   MY_RATE_LIMITER: RateLimit;
 }
 
+function json(data: unknown): Response {
+  return new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json' } });
+}
+
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
@@ -15,9 +19,16 @@ export default Sentry.withSentry(
     async fetch(request, env) {
       const url = new URL(request.url);
 
-      if (url.pathname === '/ratelimit/limit') {
-        const outcome = await env.MY_RATE_LIMITER.limit({ key: 'test-key' });
-        return new Response(JSON.stringify(outcome));
+      if (url.pathname === '/ratelimit/allowed') {
+        const outcome = await env.MY_RATE_LIMITER.limit({ key: 'allowed-key' });
+        return json(outcome);
+      }
+
+      if (url.pathname === '/ratelimit/blocked') {
+        // The binding's limit is 1, so the second call within the period is rate limited.
+        await env.MY_RATE_LIMITER.limit({ key: 'blocked-key' });
+        const outcome = await env.MY_RATE_LIMITER.limit({ key: 'blocked-key' });
+        return json(outcome);
       }
 
       return new Response('not found', { status: 404 });

@@ -1,6 +1,7 @@
 import type { RateLimit } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { MockInstance } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentRateLimit } from '../../../src/instrumentations/worker/instrumentRateLimit';
 
 function createMockRateLimit(success = true): RateLimit {
@@ -10,11 +11,15 @@ function createMockRateLimit(success = true): RateLimit {
 }
 
 describe('instrumentRateLimit', () => {
+  let startSpanSpy: MockInstance;
+
   beforeEach(() => {
-    vi.clearAllMocks();
+    startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
   });
 
-  const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   describe('limit', () => {
     test('forwards the call and returns the outcome', async () => {
@@ -36,21 +41,18 @@ describe('instrumentRateLimit', () => {
       expect(outcome).toEqual({ success: false });
     });
 
-    test('starts a span with correct attributes', async () => {
+    test('starts a span with the binding name and origin', async () => {
       const wrapped = instrumentRateLimit(createMockRateLimit(true), 'MY_RATE_LIMITER');
       await wrapped.limit({ key: 'user-123' });
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          op: 'ratelimit',
+        {
           name: 'rate_limit MY_RATE_LIMITER',
-          attributes: expect.objectContaining({
-            'cloudflare.rate_limit.binding': 'MY_RATE_LIMITER',
-            'sentry.op': 'ratelimit',
+          attributes: {
             'sentry.origin': 'auto.faas.cloudflare.rate_limit',
-          }),
-        }),
+          },
+        },
         expect.any(Function),
       );
     });
@@ -59,19 +61,7 @@ describe('instrumentRateLimit', () => {
       const wrapped = instrumentRateLimit(createMockRateLimit(true), 'MY_RATE_LIMITER');
       await wrapped.limit({ key: 'super-secret-user-id' });
 
-      const attributes = startSpanSpy.mock.calls[0]![0].attributes!;
-      expect(JSON.stringify(attributes)).not.toContain('super-secret-user-id');
-    });
-
-    test('records the outcome success on the span', async () => {
-      const setAttribute = vi.fn();
-      startSpanSpy.mockImplementationOnce(((_options: unknown, callback: (span: unknown) => unknown) =>
-        callback({ setAttribute })) as unknown as typeof SentryCore.startSpan);
-
-      const wrapped = instrumentRateLimit(createMockRateLimit(false), 'MY_RATE_LIMITER');
-      await wrapped.limit({ key: 'user-123' });
-
-      expect(setAttribute).toHaveBeenCalledWith('cloudflare.rate_limit.success', false);
+      expect(JSON.stringify(startSpanSpy.mock.calls[0]![0])).not.toContain('super-secret-user-id');
     });
   });
 

@@ -10,39 +10,52 @@ function envelopeItem(envelope: Envelope): Record<string, unknown> {
   return envelope[1][0]![1] as Record<string, unknown>;
 }
 
-function findSpans(envelope: Envelope, description: string): Array<Record<string, unknown>> {
+function findRateLimitSpans(envelope: Envelope): Array<Record<string, unknown>> {
   if (envelopeItemType(envelope) !== 'transaction') return [];
-  const tx = envelopeItem(envelope);
-  const spans = (tx.spans as Array<Record<string, unknown>>) || [];
-  return spans.filter(s => s.description === description);
+  const spans = (envelopeItem(envelope).spans as Array<Record<string, unknown>>) || [];
+  return spans.filter(s => s.origin === 'auto.faas.cloudflare.rate_limit');
 }
 
-function spanData(span: Record<string, unknown>): Record<string, unknown> {
-  return span.data as Record<string, unknown>;
-}
-
-it('emits a ratelimit span with the binding name and success outcome', async ({ signal }) => {
+it('instruments an allowed rate limiter call automatically via env', async ({ signal }) => {
   const runner = createRunner(__dirname)
+    .ignore('event')
     .expect((envelope: Envelope) => {
-      const spans = findSpans(envelope, 'rate_limit MY_RATE_LIMITER');
-      expect(spans).toHaveLength(1);
-      const data = spanData(spans[0]!);
-      expect({
-        op: spans[0]!.op,
-        description: spans[0]!.description,
-        'cloudflare.rate_limit.binding': data['cloudflare.rate_limit.binding'],
-        'cloudflare.rate_limit.success': data['cloudflare.rate_limit.success'],
-        'sentry.origin': data['sentry.origin'],
-      }).toEqual({
-        op: 'ratelimit',
-        description: 'rate_limit MY_RATE_LIMITER',
-        'cloudflare.rate_limit.binding': 'MY_RATE_LIMITER',
-        'cloudflare.rate_limit.success': true,
-        'sentry.origin': 'auto.faas.cloudflare.rate_limit',
-      });
+      expect(envelopeItemType(envelope)).toBe('transaction');
+      const event = envelopeItem(envelope);
+
+      expect(event.spans).toEqual([
+        {
+          data: {
+            'sentry.origin': 'auto.faas.cloudflare.rate_limit',
+          },
+          description: 'rate_limit MY_RATE_LIMITER',
+          origin: 'auto.faas.cloudflare.rate_limit',
+          parent_span_id: expect.any(String),
+          span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          trace_id: expect.any(String),
+        },
+      ]);
     })
     .start(signal);
 
-  await runner.makeRequest('get', '/ratelimit/limit');
+  const response = await runner.makeRequest('get', '/ratelimit/allowed');
+  expect(response).toEqual({ success: true });
+  await runner.completed();
+});
+
+it('instruments a rate-limited call automatically via env', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .ignore('event')
+    .expect((envelope: Envelope) => {
+      expect(envelopeItemType(envelope)).toBe('transaction');
+      // Both `limit()` calls on the blocked endpoint are instrumented.
+      expect(findRateLimitSpans(envelope)).toHaveLength(2);
+    })
+    .start(signal);
+
+  const response = await runner.makeRequest('get', '/ratelimit/blocked');
+  expect(response).toEqual({ success: false });
   await runner.completed();
 });

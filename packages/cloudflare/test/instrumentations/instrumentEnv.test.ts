@@ -271,7 +271,7 @@ describe('instrumentEnv', () => {
     expect(outcome).toEqual({ success: true });
     expect(limit).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ op: 'ratelimit', name: 'rate_limit MY_RATE_LIMITER' }),
+      expect.objectContaining({ name: 'rate_limit MY_RATE_LIMITER' }),
       expect.any(Function),
     );
   });
