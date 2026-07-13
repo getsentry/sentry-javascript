@@ -47,14 +47,7 @@ import {
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { bindTracingChannelToSpan } from '../tracing-channel';
-import {
-  asNumber,
-  asString,
-  isReadableStream,
-  type StreamedModelCallResult,
-  sum,
-  tapModelCallStream,
-} from './util';
+import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum, tapModelCallStream } from './util';
 
 /**
  * The single tracing channel the `ai` package (>= 7) publishes all telemetry lifecycle events to
@@ -476,9 +469,7 @@ function buildModelCallSpan(
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     ...(recordInputs ? buildInputMessageAttributes(event, enableTruncation) : {}),
-    ...(recordInputs && Array.isArray(event.tools)
-      ? { [GEN_AI_REQUEST_AVAILABLE_TOOLS]: stringify(event.tools) }
-      : {}),
+    ...(recordInputs && Array.isArray(event.tools) ? { [GEN_AI_REQUEST_AVAILABLE_TOOLS]: stringify(event.tools) } : {}),
   });
 }
 
