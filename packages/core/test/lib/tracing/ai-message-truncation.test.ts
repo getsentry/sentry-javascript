@@ -618,7 +618,7 @@ describe('getTruncatedJsonString', () => {
     circular.self = circular;
 
     expect(getTruncatedJsonString(circular)).toBe('[unserializable]');
-    expect(() => getTruncatedJsonString([circular])).not.toThrow();
+    expect(getTruncatedJsonString([circular])).toBe('[unserializable]');
   });
 
   it('serializes normal values as before', () => {
