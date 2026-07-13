@@ -42,6 +42,7 @@ export function resolveDataCollectionOptions(options: {
       response: dc.httpHeaders?.response ?? base.httpHeaders.response,
     },
     httpBodies: dc.httpBodies ?? base.httpBodies,
+    // oxlint-disable-next-line typescript/no-deprecated
     urlQueryParams: dc.urlQueryParams ?? dc.queryParams ?? base.urlQueryParams,
     genAI: {
       inputs: dc.genAI?.inputs ?? base.genAI.inputs,
