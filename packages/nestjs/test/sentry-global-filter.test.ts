@@ -237,4 +237,52 @@ describe('SentryGlobalFilter', () => {
       expect(mockCaptureException).not.toHaveBeenCalled();
     });
   });
+
+  describe('WebSocket context', () => {
+    let mockEmit: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      mockEmit = vi.fn();
+      vi.mocked(mockArgumentsHost.getType).mockReturnValue('ws');
+      vi.mocked(mockArgumentsHost.switchToWs).mockReturnValue({
+        getClient: () => ({ emit: mockEmit }),
+        getData: vi.fn(),
+        getPattern: vi.fn(),
+      });
+    });
+
+    it('captures unexpected errors and emits a generic error response', () => {
+      const error = new Error('Test WebSocket error');
+
+      filter.catch(error, mockArgumentsHost);
+
+      expect(mockCaptureException).toHaveBeenCalledWith(error, {
+        mechanism: {
+          handled: false,
+          type: 'auto.ws.nestjs.global_filter',
+        },
+      });
+      expect(mockLoggerError).toHaveBeenCalledWith(error.message, error.stack);
+      expect(mockEmit).toHaveBeenCalledWith('exception', {
+        status: 'error',
+        message: 'Internal server error',
+      });
+    });
+
+    it('does not capture expected WebSocket exceptions and emits their response', () => {
+      isExpectedErrorMock.mockReturnValueOnce(true);
+      const exception = {
+        getError: () => 'Expected WebSocket exception',
+        initMessage: vi.fn(),
+      };
+
+      filter.catch(exception, mockArgumentsHost);
+
+      expect(mockCaptureException).not.toHaveBeenCalled();
+      expect(mockEmit).toHaveBeenCalledWith('exception', {
+        status: 'error',
+        message: 'Expected WebSocket exception',
+      });
+    });
+  });
 });
