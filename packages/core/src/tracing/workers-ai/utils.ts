@@ -101,13 +101,7 @@ export function addRequestAttributes(
   if (operationName === 'embeddings') {
     const text = params.text;
 
-    if (text == null) {
-      return;
-    }
-    if (typeof text === 'string' && text.length === 0) {
-      return;
-    }
-    if (Array.isArray(text) && text.length === 0) {
+    if (text == null || (typeof text === 'string' && text.length === 0) || (Array.isArray(text) && text.length === 0)) {
       return;
     }
 
@@ -116,10 +110,8 @@ export function addRequestAttributes(
   }
 
   const src = params.messages ?? params.prompt;
-  if (src == null) {
-    return;
-  }
-  if (Array.isArray(src) && src.length === 0) {
+
+  if (src == null || (Array.isArray(src) && src.length === 0)) {
     return;
   }
 
@@ -144,12 +136,12 @@ export function addRequestAttributes(
  * Record the response attributes (token usage, response text, tool calls) on the span.
  */
 export function addResponseAttributes(span: Span, result: unknown, recordOutputs: boolean): void {
-  if (!result || typeof result !== 'object') {
-    return;
-  }
-
-  // Raw `Response` objects (from `returnRawResponse`/`websocket`) cannot be introspected without consuming them.
-  if (typeof Response !== 'undefined' && result instanceof Response) {
+  if (
+    !result ||
+    typeof result !== 'object' ||
+    // Raw `Response` objects (from `returnRawResponse`/`websocket`) cannot be introspected without consuming them.
+    (typeof Response !== 'undefined' && result instanceof Response)
+  ) {
     return;
   }
 

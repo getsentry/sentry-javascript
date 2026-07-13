@@ -2,16 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { instrumentWorkersAiClient } from '../../../src/tracing/workers-ai';
 
 describe('instrumentWorkersAiClient', () => {
-  it('returns an already-instrumented client as-is instead of double-wrapping', () => {
-    const client = { run: vi.fn().mockResolvedValue({ response: 'ok' }) };
-
-    const instrumented = instrumentWorkersAiClient(client);
-    const instrumentedTwice = instrumentWorkersAiClient(instrumented);
-
-    expect(instrumented).not.toBe(client);
-    expect(instrumentedTwice).toBe(instrumented);
-  });
-
   it('passes through non-run methods bound to the original client', () => {
     class FakeAi {
       #internal = 'secret';

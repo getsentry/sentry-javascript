@@ -96,10 +96,6 @@ function instrumentRun(
   };
 }
 
-// Guards against double-wrapping when a binding instrumented via the automatic
-// env instrumentation in `@sentry/cloudflare` is additionally wrapped manually.
-const instrumentedClients = new WeakSet<object>();
-
 /**
  * Instrument a Cloudflare Workers AI binding (`env.AI`) with Sentry tracing.
  *
@@ -116,10 +112,6 @@ const instrumentedClients = new WeakSet<object>();
  * ```
  */
 export function instrumentWorkersAiClient<T extends object>(client: T, options?: WorkersAiOptions): T {
-  if (instrumentedClients.has(client)) {
-    return client;
-  }
-
   const resolvedOptions = resolveAIRecordingOptions(options);
 
   const instrumented = new Proxy(client, {
@@ -135,6 +127,5 @@ export function instrumentWorkersAiClient<T extends object>(client: T, options?:
     },
   }) as T;
 
-  instrumentedClients.add(instrumented);
   return instrumented;
 }
