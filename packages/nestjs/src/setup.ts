@@ -153,10 +153,6 @@ class SentryGlobalFilter extends BaseExceptionFilter {
     }
 
     if (contextType === 'ws') {
-      if (exception instanceof HttpException) {
-        throw exception;
-      }
-
       if (!isExpectedError(exception)) {
         captureException(exception, {
           mechanism: {

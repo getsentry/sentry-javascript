@@ -288,5 +288,19 @@ describe('SentryGlobalFilter', () => {
         message: 'Expected WebSocket exception',
       });
     });
+
+    it('does not capture HTTP exceptions and emits a generic error response', () => {
+      isExpectedErrorMock.mockReturnValueOnce(true);
+      const exception = new HttpException('Bad request', HttpStatus.BAD_REQUEST);
+
+      filter.catch(exception, mockArgumentsHost);
+
+      expect(mockCaptureException).not.toHaveBeenCalled();
+      expect(mockLoggerError).toHaveBeenCalledWith(exception.message, exception.stack);
+      expect(mockEmit).toHaveBeenCalledWith('exception', {
+        status: 'error',
+        message: 'Internal server error',
+      });
+    });
   });
 });
