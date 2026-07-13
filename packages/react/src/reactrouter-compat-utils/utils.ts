@@ -181,20 +181,11 @@ export function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location
 }
 
 /**
- * Reconstructs a descendant route name that preserves the parent path prefix.
+ * Recovers the parent prefix for descendant `<Routes>` names.
  *
- * `allRoutes` is a single flat set mixing every mounted `<Routes>` subtree together, which loses the
- * parent→descendant nesting. When a descendant `<Routes>` has non-wildcard nested children (e.g. `:id`
- * with an `index` and a `:sub` child), that orphaned subtree can match the full location with a higher
- * React Router specificity score than the descendant-parent route (e.g. `child/*`) that actually anchors
- * it. Name resolution then reconstructs from the orphan and drops the parent prefix, producing e.g.
- * `/:id/:sub` for `/child/abc123` instead of `/child/:id` (see issue #22194).
- *
- * This helper detects the descendant-parent route that anchors the location and, if the already-resolved
- * `currentName` does not preserve that parent's prefix, rebuilds the name as `<parent prefix>/<remaining>`.
- * When the resolved name already starts with the parent prefix (the common, correct case), it returns
- * `undefined` so the original name is kept — leaving concrete routes and wildcard-descendant chains
- * untouched.
+ * `allRoutes` flattens every mounted `<Routes>` into one set, so an orphaned descendant subtree can
+ * outscore the `.../*` route that anchors the location and drop its prefix (e.g. `/:id/:sub` instead of `/child/:id`).
+ * Matching only the descendant-parent routes recovers the true anchor.
  */
 function reconstructNameFromDescendantParent(
   location: Location,
@@ -202,36 +193,26 @@ function reconstructNameFromDescendantParent(
   currentName: string | undefined,
 ): string | undefined {
   const descendantParents = allRoutes.filter(routeIsDescendant);
-  if (descendantParents.length === 0) {
+  if (!descendantParents.length) {
     return undefined;
   }
 
-  // Match against descendant-parent routes only, so an orphaned descendant subtree can't outrank the
-  // route that actually anchors the location.
   const matchedParents = _matchRoutes(descendantParents, location) as RouteMatch[] | null;
   const parentMatch = matchedParents?.[matchedParents.length - 1];
-
-  // Only reconstruct when the parent consumes a splat remainder we can recurse into.
   if (!parentMatch || !pickSplat(parentMatch)) {
     return undefined;
   }
 
   const parentTemplate = trimSlash(trimWildcard(parentMatch.route.path || ''));
 
-  // Only reconstruct from a descendant parent whose leading segment is static (e.g. `child/*`). React
-  // Router matches static segments literally, so such a parent is guaranteed to anchor at the true root
-  // of the location. Descendant parents with a dynamic leading segment (e.g. a nested `:projectId/*`)
-  // have relative paths that can mis-anchor when matched against the absolute location, so we leave the
-  // existing wildcard-descendant reconstruction (which handles those chains) untouched.
-  const leadingSegment = parentTemplate.split('/')[0];
-  if (!leadingSegment || leadingSegment.startsWith(':')) {
+  // Only a static leading segment (e.g. `child/*`) has a fixed position in the absolute URL; dynamic
+  // leads (`:projectId/*`) are relative and stay with the existing wildcard-rebuild path.
+  if (!parentTemplate || parentTemplate.startsWith(':')) {
     return undefined;
   }
 
   const expectedPrefix = prefixWithSlash(parentTemplate);
-
-  // If the resolved name already carries the parent prefix, it's correctly anchored - keep it.
-  if (currentName && (currentName === expectedPrefix || currentName.startsWith(`${expectedPrefix}/`))) {
+  if (currentName === expectedPrefix || currentName?.startsWith(`${expectedPrefix}/`)) {
     return undefined;
   }
 
@@ -242,11 +223,7 @@ function reconstructNameFromDescendantParent(
     { pathname: remainingPathname },
   );
 
-  if (!remainingName) {
-    return undefined;
-  }
-
-  return prefixWithSlash(trimSlash(trimSlash(parentTemplate) + prefixWithSlash(remainingName)));
+  return remainingName ? prefixWithSlash(`${parentTemplate}${prefixWithSlash(remainingName)}`) : undefined;
 }
 
 /**
