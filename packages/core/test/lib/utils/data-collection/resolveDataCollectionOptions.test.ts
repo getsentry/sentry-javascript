@@ -7,7 +7,7 @@ describe('resolveDataCollectionOptions', () => {
     cookies: true,
     httpHeaders: { request: true, response: true },
     httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
-    queryParams: true,
+    urlQueryParams: true,
     genAI: { inputs: true, outputs: true },
     stackFrameVariables: true,
     frameContextLines: 5,
@@ -44,7 +44,7 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.cookies).toBe(true);
       expect(result.httpHeaders).toEqual({ request: true, response: true });
       expect(result.httpBodies).toEqual(['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']);
-      expect(result.queryParams).toBe(true);
+      expect(result.urlQueryParams).toBe(true);
       expect(result.genAI).toEqual({ inputs: true, outputs: true });
     });
 
@@ -86,7 +86,7 @@ describe('resolveDataCollectionOptions', () => {
       // Everything else is spec default
       expect(result.cookies).toBe(true);
       expect(result.httpHeaders).toEqual({ request: true, response: true });
-      expect(result.queryParams).toBe(true);
+      expect(result.urlQueryParams).toBe(true);
       expect(result.genAI).toEqual({ inputs: true, outputs: true });
       expect(result.stackFrameVariables).toBe(true);
       expect(result.frameContextLines).toBe(5);
@@ -124,14 +124,14 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.cookies).toEqual({ deny: ['x-custom'] });
     });
 
-    it('supports turning off query params', () => {
+    it('supports turning off URL query params', () => {
       const result = resolveDataCollectionOptions({
         dataCollection: {
-          queryParams: false,
+          urlQueryParams: false,
         },
       });
 
-      expect(result.queryParams).toBe(false);
+      expect(result.urlQueryParams).toBe(false);
     });
   });
 
@@ -146,12 +146,44 @@ describe('resolveDataCollectionOptions', () => {
       expect(result).toHaveProperty('httpHeaders.request');
       expect(result).toHaveProperty('httpHeaders.response');
       expect(result).toHaveProperty('httpBodies');
-      expect(result).toHaveProperty('queryParams');
+      expect(result).toHaveProperty('urlQueryParams');
       expect(result).toHaveProperty('genAI');
       expect(result).toHaveProperty('genAI.inputs');
       expect(result).toHaveProperty('genAI.outputs');
       expect(result).toHaveProperty('stackFrameVariables');
       expect(result).toHaveProperty('frameContextLines');
+    });
+  });
+
+  describe('deprecated queryParams alias', () => {
+    it('honors deprecated queryParams when urlQueryParams is not set', () => {
+      expect(resolveDataCollectionOptions({ dataCollection: { queryParams: false } }).urlQueryParams).toBe(false);
+
+      expect(
+        resolveDataCollectionOptions({ dataCollection: { queryParams: { deny: ['token'] } } }).urlQueryParams,
+      ).toEqual({ deny: ['token'] });
+    });
+
+    it('prefers urlQueryParams over the deprecated queryParams when both are set', () => {
+      // new field wins, even when it is the "off" value
+      expect(
+        resolveDataCollectionOptions({ dataCollection: { urlQueryParams: false, queryParams: true } }).urlQueryParams,
+      ).toBe(false);
+
+      expect(
+        resolveDataCollectionOptions({ dataCollection: { urlQueryParams: true, queryParams: false } }).urlQueryParams,
+      ).toBe(true);
+    });
+
+    it('falls back to the default when neither is set', () => {
+      // dataCollection provided → spec default (collect)
+      expect(resolveDataCollectionOptions({ dataCollection: {} }).urlQueryParams).toBe(true);
+    });
+
+    it('does not leak the deprecated queryParams key into the resolved output', () => {
+      const result = resolveDataCollectionOptions({ dataCollection: { queryParams: false } });
+      expect(result).not.toHaveProperty('queryParams');
+      expect(Object.keys(result)).toHaveLength(8);
     });
   });
 });

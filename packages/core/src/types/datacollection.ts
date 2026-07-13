@@ -44,11 +44,14 @@ export interface DataCollection {
    */
   httpBodies?: HttpBodyCollectionTarget[];
 
+  /** @deprecated Use `urlQueryParams` instead. */
+  queryParams?: CollectBehavior;
+
   /**
-   * Controls query parameter collection and sensitive value filtering.
+   * Controls URL query parameter collection and sensitive value filtering.
    * @default true
    */
-  queryParams?: CollectBehavior;
+  urlQueryParams?: CollectBehavior;
 
   /**
    * Controls generative AI input/output recording.
@@ -75,7 +78,8 @@ export interface DataCollection {
 /**
  * Fully resolved `DataCollection` with all defaults applied.
  */
-export type ResolvedDataCollection = Required<DataCollection> & {
+// todo(v11): change `Omit<DataCollection, 'queryParams'>` to just `DataCollection`
+export type ResolvedDataCollection = Required<Omit<DataCollection, 'queryParams'>> & {
   httpHeaders: Required<NonNullable<DataCollection['httpHeaders']>>;
   genAI: Required<NonNullable<DataCollection['genAI']>>;
 };

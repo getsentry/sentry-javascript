@@ -63,7 +63,7 @@ describe('sentryMiddleware', () => {
             cookies: true,
             httpHeaders: { request: true, response: true },
             httpBodies: [],
-            queryParams: true,
+            urlQueryParams: true,
             genAI: { inputs: false, outputs: false },
             stackFrameVariables: true,
             frameContextLines: 5,

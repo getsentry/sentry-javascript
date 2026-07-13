@@ -6,7 +6,7 @@ const DEFAULTS: ResolvedDataCollection = {
   cookies: true,
   httpHeaders: { request: true, response: true },
   httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
-  queryParams: true,
+  urlQueryParams: true,
   genAI: { inputs: true, outputs: true },
   stackFrameVariables: true,
   frameContextLines: 5,
@@ -42,7 +42,7 @@ export function resolveDataCollectionOptions(options: {
       response: dc.httpHeaders?.response ?? base.httpHeaders.response,
     },
     httpBodies: dc.httpBodies ?? base.httpBodies,
-    queryParams: dc.queryParams ?? base.queryParams,
+    urlQueryParams: dc.urlQueryParams ?? dc.queryParams ?? base.urlQueryParams,
     genAI: {
       inputs: dc.genAI?.inputs ?? base.genAI.inputs,
       outputs: dc.genAI?.outputs ?? base.genAI.outputs,
