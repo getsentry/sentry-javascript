@@ -2,6 +2,7 @@
   "name": "remix-orchestrion",
   "private": true,
   "sideEffects": false,
+  "type": "module",
   "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
   "scripts": {
     "build": "remix vite:build",

@@ -8,7 +8,6 @@ export default defineConfig({
   plugins: [
     remix({
       ignoredRouteFiles: ['**/.*'],
-      serverModuleFormat: 'cjs',
     }),
     sentryRemixVitePlugin(),
     // Runs the orchestrion code transform over the SSR server bundle and
