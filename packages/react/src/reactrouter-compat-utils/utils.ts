@@ -181,6 +181,75 @@ export function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location
 }
 
 /**
+ * Reconstructs a descendant route name that preserves the parent path prefix.
+ *
+ * `allRoutes` is a single flat set mixing every mounted `<Routes>` subtree together, which loses the
+ * parent→descendant nesting. When a descendant `<Routes>` has non-wildcard nested children (e.g. `:id`
+ * with an `index` and a `:sub` child), that orphaned subtree can match the full location with a higher
+ * React Router specificity score than the descendant-parent route (e.g. `child/*`) that actually anchors
+ * it. Name resolution then reconstructs from the orphan and drops the parent prefix, producing e.g.
+ * `/:id/:sub` for `/child/abc123` instead of `/child/:id` (see issue #22194).
+ *
+ * This helper detects the descendant-parent route that anchors the location and, if the already-resolved
+ * `currentName` does not preserve that parent's prefix, rebuilds the name as `<parent prefix>/<remaining>`.
+ * When the resolved name already starts with the parent prefix (the common, correct case), it returns
+ * `undefined` so the original name is kept — leaving concrete routes and wildcard-descendant chains
+ * untouched.
+ */
+function reconstructNameFromDescendantParent(
+  location: Location,
+  allRoutes: RouteObject[],
+  currentName: string | undefined,
+): string | undefined {
+  const descendantParents = allRoutes.filter(routeIsDescendant);
+  if (descendantParents.length === 0) {
+    return undefined;
+  }
+
+  // Match against descendant-parent routes only, so an orphaned descendant subtree can't outrank the
+  // route that actually anchors the location.
+  const matchedParents = _matchRoutes(descendantParents, location) as RouteMatch[] | null;
+  const parentMatch = matchedParents?.[matchedParents.length - 1];
+
+  // Only reconstruct when the parent consumes a splat remainder we can recurse into.
+  if (!parentMatch || !pickSplat(parentMatch)) {
+    return undefined;
+  }
+
+  const parentTemplate = trimSlash(trimWildcard(parentMatch.route.path || ''));
+
+  // Only reconstruct from a descendant parent whose leading segment is static (e.g. `child/*`). React
+  // Router matches static segments literally, so such a parent is guaranteed to anchor at the true root
+  // of the location. Descendant parents with a dynamic leading segment (e.g. a nested `:projectId/*`)
+  // have relative paths that can mis-anchor when matched against the absolute location, so we leave the
+  // existing wildcard-descendant reconstruction (which handles those chains) untouched.
+  const leadingSegment = parentTemplate.split('/')[0];
+  if (!leadingSegment || leadingSegment.startsWith(':')) {
+    return undefined;
+  }
+
+  const expectedPrefix = prefixWithSlash(parentTemplate);
+
+  // If the resolved name already carries the parent prefix, it's correctly anchored - keep it.
+  if (currentName && (currentName === expectedPrefix || currentName.startsWith(`${expectedPrefix}/`))) {
+    return undefined;
+  }
+
+  const remainingPathname =
+    stripBasenameFromPathname(location.pathname, prefixWithSlash(parentMatch.pathnameBase)) || '/';
+  const remainingName = rebuildRoutePathFromAllRoutes(
+    allRoutes.filter(route => route !== parentMatch.route),
+    { pathname: remainingPathname },
+  );
+
+  if (!remainingName) {
+    return undefined;
+  }
+
+  return prefixWithSlash(trimSlash(trimSlash(parentTemplate) + prefixWithSlash(remainingName)));
+}
+
+/**
  * Checks if the current location is inside a descendant route (route with splat parameter).
  */
 export function locationIsInsideDescendantRoute(location: Location, routes: RouteObject[]): boolean {
@@ -301,6 +370,13 @@ export function resolveRouteNameAndSource(
 
   if (!isInDescendantRoute || !name) {
     [name, source] = getNormalizedName(routes, location, branches, basename);
+  }
+
+  // Guard against orphaned descendant subtrees stealing the transaction name: if the location is
+  // anchored by a descendant-parent route (`.../*`) whose prefix was dropped, reconstruct with it.
+  const anchoredName = reconstructNameFromDescendantParent(location, allRoutes, name);
+  if (anchoredName) {
+    return [anchoredName, 'route'];
   }
 
   return [name || location.pathname, source];

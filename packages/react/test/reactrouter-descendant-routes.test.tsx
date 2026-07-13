@@ -88,6 +88,139 @@ describe('React Router Descendant Routes', () => {
   });
 
   describe('withSentryReactRouterV6Routing', () => {
+    it('keeps the parent path prefix for descendant routes with non-wildcard nested children - pageload', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      // A descendant <SentryRoutes> whose matched route (`:id` via its index) sits above further nested
+      // non-wildcard child routes (`:sub`). The nested subtree must not steal the transaction name from
+      // the `child/*` parent (see issue #22194).
+      const ChildRouter = () => (
+        <SentryRoutes>
+          <Route path=":id">
+            <Route index element={<div id="child">Child</div>} />
+            <Route path=":sub">
+              <Route index element={<div>Sub</div>} />
+            </Route>
+          </Route>
+        </SentryRoutes>
+      );
+
+      const { container } = render(
+        <MemoryRouter initialEntries={['/child/abc123']}>
+          <SentryRoutes>
+            <Route path="child/*" element={<ChildRouter />} />
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(container.innerHTML).toContain('Child');
+
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/child/:id');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(URL_TEMPLATE, '/child/:id');
+    });
+
+    it('keeps the parent path prefix for descendant routes with non-wildcard nested children - navigation', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      const ChildRouter = () => (
+        <SentryRoutes>
+          <Route path=":id">
+            <Route index element={<div id="child">Child</div>} />
+            <Route path=":sub">
+              <Route index element={<div>Sub</div>} />
+            </Route>
+          </Route>
+        </SentryRoutes>
+      );
+
+      const { container } = render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route index element={<Navigate to="/child/abc123" />} />
+            <Route path="child/*" element={<ChildRouter />} />
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(container.innerHTML).toContain('Child');
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/child/:id',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/child/:id',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it('prefers a concrete sibling route over a descendant wildcard parent', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      const ChildRouter = () => (
+        <SentryRoutes>
+          <Route path=":id">
+            <Route index element={<div id="child">Child</div>} />
+            <Route path=":sub">
+              <Route index element={<div>Sub</div>} />
+            </Route>
+          </Route>
+        </SentryRoutes>
+      );
+
+      const { container } = render(
+        <MemoryRouter initialEntries={['/child/settings']}>
+          <SentryRoutes>
+            <Route path="child/settings" element={<div id="settings">Settings</div>} />
+            <Route path="child/*" element={<ChildRouter />} />
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(container.innerHTML).toContain('Settings');
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/child/settings');
+    });
+
     it('works with descendant wildcard routes - pageload', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
