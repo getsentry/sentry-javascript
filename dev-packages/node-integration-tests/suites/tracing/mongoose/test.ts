@@ -5,6 +5,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 
 describe('Mongoose experimental Test', () => {
   const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongoose' : 'auto.db.otel.mongoose';
+  const driverOrigin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongo' : 'auto.db.otel.mongo';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -117,7 +118,7 @@ describe('Mongoose experimental Test', () => {
             expect(mongooseSave).toBeDefined();
             // the underlying mongodb driver span must be parented to the mongoose span
             const driverChild = spans.find(
-              span => span.parent_span_id === mongooseSave?.span_id && span.origin === 'auto.db.otel.mongo',
+              span => span.parent_span_id === mongooseSave?.span_id && span.origin === driverOrigin,
             );
             expect(driverChild).toBeDefined();
           },

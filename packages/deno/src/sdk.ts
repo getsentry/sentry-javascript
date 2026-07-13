@@ -25,6 +25,7 @@ import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
 import { denoAmqplibIntegration } from './integrations/amqplib';
 import { denoKoaIntegration } from './integrations/koa';
+import { denoMongoIntegration } from './integrations/mongo';
 import { denoMongooseIntegration } from './integrations/mongoose';
 import { denoMysqlIntegration } from './integrations/mysql';
 import { denoPostgresIntegration } from './integrations/postgres';
@@ -67,6 +68,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
       ? [
           denoAmqplibIntegration(),
           denoKoaIntegration(),
+          denoMongoIntegration(),
           denoMongooseIntegration(),
           denoMysqlIntegration(),
           denoPostgresIntegration(),
