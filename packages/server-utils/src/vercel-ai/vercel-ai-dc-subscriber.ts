@@ -26,7 +26,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL_SPAN_OP, GEN_AI_INVOKE_AGENT_SPAN_OP } from '@sentry/conventions/op';
-import type { Span } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   captureException,
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
@@ -415,10 +415,8 @@ export function createSpanFromMessage(
   }
 }
 
-type Attributes = Record<string, string | number | boolean>;
-
 /** Start a `gen_ai.<operation>` span named `<operation> <suffix>` (or just `<operation>` when no suffix). */
-function startGenAiSpan(operation: string, suffix: string | undefined, attributes: Attributes): Span {
+function startGenAiSpan(operation: string, suffix: string | undefined, attributes: SpanAttributes): Span {
   return startInactiveSpan({
     name: suffix ? `${operation} ${suffix}` : operation,
     op: `gen_ai.${operation}`,
@@ -428,7 +426,7 @@ function startGenAiSpan(operation: string, suffix: string | undefined, attribute
 
 function buildInvokeAgentSpan(
   event: Record<string, unknown>,
-  baseAttributes: Attributes,
+  baseAttributes: SpanAttributes,
   recordInputs: boolean,
   enableTruncation: boolean,
   callId: string | undefined,
@@ -455,7 +453,7 @@ function buildInvokeAgentSpan(
 
 function buildModelCallSpan(
   event: Record<string, unknown>,
-  baseAttributes: Attributes,
+  baseAttributes: SpanAttributes,
   recordInputs: boolean,
   enableTruncation: boolean,
   callId: string | undefined,
@@ -726,8 +724,8 @@ function resolveRecording(integrationOption: unknown, perCallOption: unknown, gl
 function buildInputMessageAttributes(
   event: Record<string, unknown>,
   enableTruncation: boolean,
-): Record<string, string | number> {
-  const attributes: Record<string, string | number> = {};
+): Record<string, string | number | undefined> {
+  const attributes: Record<string, string | number | undefined> = {};
 
   // `ai` >= 7 forbids system messages in `messages`/`prompt` and exposes the system prompt as a
   // separate `instructions` field. The OTel path lifts the system message out of the prompt into

@@ -7,7 +7,8 @@ export { escapeStringForRegex } from '../vendor/escapeStringForRegex';
  * Coerce a value to a string without ever throwing. Strings pass through unchanged (so an
  * already-serialized value isn't double-encoded and a plain string isn't wrapped in quotes);
  * anything else is `JSON.stringify`-ed, falling back to `fallback` if that throws (e.g. on
- * circular references or `BigInt`).
+ * circular references or `BigInt`). Returns `undefined` for values `JSON.stringify` itself drops
+ * (top-level `undefined`, functions, symbols), matching `JSON.stringify`'s own runtime behavior.
  *
  * @param value the value to stringify
  * @param fallback returned when serialization throws, or, if a function, called with `value` to
@@ -16,7 +17,7 @@ export { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 export function stringify(
   value: unknown,
   fallback: string | ((value: unknown) => string) = '[unserializable]',
-): string {
+): string | undefined {
   if (typeof value === 'string') {
     return value;
   }

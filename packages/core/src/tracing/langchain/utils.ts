@@ -38,7 +38,7 @@ import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from '
  * We keep this tiny helper because call sites are repetitive and easy to miswrite.
  * It also preserves falsy-but-valid values like `0` and `""`.
  */
-const setIfDefined = (target: Record<string, SpanAttributeValue>, key: string, value: unknown): void => {
+const setIfDefined = (target: Record<string, SpanAttributeValue | undefined>, key: string, value: unknown): void => {
   if (value != null) target[key] = value as SpanAttributeValue;
 };
 
@@ -46,7 +46,11 @@ const setIfDefined = (target: Record<string, SpanAttributeValue>, key: string, v
  * Like `setIfDefined`, but converts the value with `Number()` and skips only when the
  * result is `NaN`. This ensures numeric 0 makes it through (unlike truthy checks).
  */
-const setNumberIfDefined = (target: Record<string, SpanAttributeValue>, key: string, value: unknown): void => {
+const setNumberIfDefined = (
+  target: Record<string, SpanAttributeValue | undefined>,
+  key: string,
+  value: unknown,
+): void => {
   const n = Number(value);
   if (!Number.isNaN(n)) target[key] = n;
 };
@@ -69,7 +73,7 @@ const setNumberIfDefined = (target: Record<string, SpanAttributeValue>, key: str
  * // Without this, stringification would JSON.stringify the raw array and the base64 blob
  * // would end up in span attributes, since downstream stripping only works on objects.
  */
-function normalizeContent(v: unknown): string {
+function normalizeContent(v: unknown): string | undefined {
   if (Array.isArray(v)) {
     try {
       const stripped = v.map(part =>
@@ -136,7 +140,9 @@ export function getInvocationParams(tags?: string[] | Record<string, unknown>): 
  * @param messages Mixed LangChain messages
  * @returns Array of normalized `{ role, content }`
  */
-export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<{ role: string; content: string }> {
+export function normalizeLangChainMessages(
+  messages: LangChainMessage[],
+): Array<{ role: string; content: string | undefined }> {
   return messages.map(message => {
     // 1) Prefer _getType() when present
     const maybeGetType = (message as { _getType?: () => string })._getType;
@@ -250,7 +256,7 @@ function baseRequestAttributes(
   serialized: LangChainSerialized,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
-): Record<string, SpanAttributeValue> {
+): Record<string, SpanAttributeValue | undefined> {
   return {
     [GEN_AI_SYSTEM_ATTRIBUTE]: stringify(system ?? 'langchain', String),
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
@@ -275,7 +281,7 @@ export function extractLLMRequestAttributes(
   enableTruncation: boolean,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
-): Record<string, SpanAttributeValue> {
+): Record<string, SpanAttributeValue | undefined> {
   const system = langSmithMetadata?.ls_provider;
   const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
 
@@ -310,7 +316,7 @@ export function extractChatModelRequestAttributes(
   enableTruncation: boolean,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
-): Record<string, SpanAttributeValue> {
+): Record<string, SpanAttributeValue | undefined> {
   const system = langSmithMetadata?.ls_provider ?? llm.id?.[2];
   const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
 
