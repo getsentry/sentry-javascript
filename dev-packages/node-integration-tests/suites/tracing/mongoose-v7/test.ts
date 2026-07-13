@@ -1,9 +1,11 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongoose 7 so the `contextCaptureFunctions7` version branch is exercised against a real mongoose.
 describe('Mongoose v7 Test', () => {
+  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongoose' : 'auto.db.otel.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -27,7 +29,7 @@ describe('Mongoose v7 Test', () => {
       }),
       description: `mongoose.BlogPost.${operation}`,
       op: 'db',
-      origin: 'auto.db.otel.mongoose',
+      origin,
     });
 
   const EXPECTED_TRANSACTION = {

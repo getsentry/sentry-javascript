@@ -16,18 +16,11 @@ import {
   type InstrumentationModuleDefinition,
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
-import { DB_OPERATION, DB_SYSTEM } from '@sentry/conventions/attributes';
-import type { Span, SpanAttributes } from '@sentry/core';
-import {
-  getActiveSpan,
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
-  startInactiveSpan,
-  withActiveSpan,
-} from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { getActiveSpan, SDK_VERSION, withActiveSpan } from '@sentry/core';
+import { startMongooseLegacySpan } from '@sentry/server-utils';
 import type * as mongoose from './mongoose-types';
-import { getAttributesFromCollection, handleCallbackResponse, handlePromiseResponse } from './utils';
+import { handleCallbackResponse, handlePromiseResponse } from './utils';
 
 const PACKAGE_NAME = '@sentry/instrumentation-mongoose';
 const ORIGIN = 'auto.db.otel.mongoose';
@@ -190,7 +183,13 @@ export class MongooseInstrumentation extends InstrumentationBase<Instrumentation
     return (originalAggregate: Function) => {
       return function exec(this: any, callback?: Function) {
         const parentSpan = this[_STORED_PARENT_SPAN];
-        const span = self._startSpan(this._model.collection, this._model?.modelName, 'aggregate', parentSpan);
+        const span = startMongooseLegacySpan({
+          collection: this._model.collection,
+          modelName: this._model?.modelName,
+          operation: 'aggregate',
+          origin: ORIGIN,
+          parentSpan,
+        });
 
         return self._handleResponse(span, originalAggregate, this, arguments, callback);
       };
@@ -207,7 +206,13 @@ export class MongooseInstrumentation extends InstrumentationBase<Instrumentation
         }
 
         const parentSpan = this[_STORED_PARENT_SPAN];
-        const span = self._startSpan(this.mongooseCollection, this.model.modelName, this.op, parentSpan);
+        const span = startMongooseLegacySpan({
+          collection: this.mongooseCollection,
+          modelName: this.model.modelName,
+          operation: this.op,
+          origin: ORIGIN,
+          parentSpan,
+        });
 
         return self._handleResponse(span, originalExec, this, arguments, callback);
       };
@@ -218,7 +223,12 @@ export class MongooseInstrumentation extends InstrumentationBase<Instrumentation
     const self = this;
     return (originalOnModelFunction: Function) => {
       return function method(this: any, options?: any, callback?: Function) {
-        const span = self._startSpan(this.constructor.collection, this.constructor.modelName, op);
+        const span = startMongooseLegacySpan({
+          collection: this.constructor.collection,
+          modelName: this.constructor.modelName,
+          operation: op,
+          origin: ORIGIN,
+        });
 
         if (options instanceof Function) {
           // oxlint-disable-next-line no-param-reassign
@@ -243,7 +253,12 @@ export class MongooseInstrumentation extends InstrumentationBase<Instrumentation
           actualCallback = options;
         }
 
-        const span = self._startSpan(this.constructor.collection, this.constructor.modelName, op);
+        const span = startMongooseLegacySpan({
+          collection: this.constructor.collection,
+          modelName: this.constructor.modelName,
+          operation: op,
+          origin: ORIGIN,
+        });
 
         const result = self._handleResponse(span, originalMethod, this, arguments, actualCallback);
 
@@ -266,7 +281,12 @@ export class MongooseInstrumentation extends InstrumentationBase<Instrumentation
           callback = options;
         }
 
-        const span = self._startSpan(this.collection, this.modelName, op);
+        const span = startMongooseLegacySpan({
+          collection: this.collection,
+          modelName: this.modelName,
+          operation: op,
+          origin: ORIGIN,
+        });
 
         return self._handleResponse(span, original, this, arguments, callback);
       };
@@ -295,24 +315,6 @@ export class MongooseInstrumentation extends InstrumentationBase<Instrumentation
         return original.apply(this, arguments);
       };
     };
-  }
-
-  private _startSpan(collection: mongoose.Collection, modelName: string, operation: string, parentSpan?: Span): Span {
-    const attributes: SpanAttributes = {
-      ...getAttributesFromCollection(collection),
-      // oxlint-disable-next-line typescript/no-deprecated
-      [DB_OPERATION]: operation,
-      // oxlint-disable-next-line typescript/no-deprecated
-      [DB_SYSTEM]: 'mongoose', // keep for backwards compatibility
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-    };
-
-    return startInactiveSpan({
-      name: `mongoose.${modelName}.${operation}`,
-      kind: SPAN_KIND.CLIENT,
-      attributes,
-      parentSpan,
-    });
   }
 
   private _handleResponse(span: Span, exec: Function, originalThis: any, args: IArguments, callback?: Function) {
