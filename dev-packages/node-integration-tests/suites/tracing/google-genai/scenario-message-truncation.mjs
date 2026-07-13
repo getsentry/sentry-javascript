@@ -1,47 +1,39 @@
-import { instrumentGoogleGenAIClient } from '@sentry/core';
+import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/node';
+import express from 'express';
 
-class MockGoogleGenerativeAI {
-  constructor(config) {
-    this.apiKey = config.apiKey;
+function startMockGoogleGenAIServer() {
+  const app = express();
+  app.use(express.json({ limit: '10mb' }));
 
-    this.models = {
-      generateContent: this._generateContent.bind(this),
-    };
-  }
-
-  async _generateContent() {
-    await new Promise(resolve => setTimeout(resolve, 10));
-
-    return {
-      response: {
-        text: () => 'Response to truncated messages',
-        usageMetadata: {
-          promptTokenCount: 10,
-          candidatesTokenCount: 15,
-          totalTokenCount: 25,
+  app.post('/v1beta/models/:model\\:generateContent', (req, res) => {
+    res.send({
+      candidates: [
+        {
+          content: { parts: [{ text: 'Response to truncated messages' }], role: 'model' },
+          finishReason: 'stop',
+          index: 0,
         },
-        candidates: [
-          {
-            content: {
-              parts: [{ text: 'Response to truncated messages' }],
-              role: 'model',
-            },
-            finishReason: 'STOP',
-          },
-        ],
-      },
-    };
-  }
+      ],
+      usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 15, totalTokenCount: 25 },
+    });
+  });
+
+  return new Promise(resolve => {
+    const server = app.listen(0, () => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
-  await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    const mockClient = new MockGoogleGenerativeAI({
-      apiKey: 'mock-api-key',
-    });
+  const server = await startMockGoogleGenAIServer();
 
-    const client = instrumentGoogleGenAIClient(mockClient, { enableTruncation: true, recordInputs: true });
+  await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
+    const client = new GoogleGenAI({
+      apiKey: 'mock-api-key',
+      httpOptions: { baseUrl: `http://localhost:${server.address().port}` },
+    });
 
     // Test 1: Given an array of messages only the last message should be kept
     // The last message should be truncated to fit within the 20KB limit
@@ -80,6 +72,10 @@ async function run() {
       ],
     });
   });
+
+  await Sentry.flush(2000);
+
+  server.close();
 }
 
 run();

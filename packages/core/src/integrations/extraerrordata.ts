@@ -10,7 +10,7 @@ import { normalize } from '../utils/normalize';
 import { setSkipNormalizationHint } from '../utils/normalizationHints';
 import { truncate } from '../utils/string';
 
-const INTEGRATION_NAME = 'ExtraErrorData';
+const INTEGRATION_NAME = 'ExtraErrorData' as const;
 
 interface ExtraErrorDataOptions {
   /**

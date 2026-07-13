@@ -1,7 +1,7 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 
-const INTEGRATION_NAME = 'DenoContext';
+const INTEGRATION_NAME = 'DenoContext' as const;
 
 function getOSName(): string {
   switch (Deno.build.os) {

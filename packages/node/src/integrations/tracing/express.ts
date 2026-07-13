@@ -17,7 +17,7 @@ export { expressErrorHandler } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 
-const INTEGRATION_NAME = 'Express';
+const INTEGRATION_NAME = 'Express' as const;
 const SUPPORTED_VERSIONS = ['>=4.0.0 <6'];
 
 export function setupExpressErrorHandler(

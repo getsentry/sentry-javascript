@@ -1,33 +1,39 @@
-import { instrumentAnthropicAiClient } from '@sentry/core';
+import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
+import express from 'express';
 
-class MockAnthropic {
-  constructor(config) {
-    this.apiKey = config.apiKey;
-    this.messages = {
-      create: this._messagesCreate.bind(this),
-    };
-  }
+function startMockAnthropicServer() {
+  const app = express();
+  app.use(express.json({ limit: '10mb' }));
 
-  async _messagesCreate(params) {
-    await new Promise(resolve => setTimeout(resolve, 10));
-    return {
+  app.post('/anthropic/v1/messages', (req, res) => {
+    res.send({
       id: 'msg-no-truncation-test',
       type: 'message',
       role: 'assistant',
       content: [{ type: 'text', text: 'Response' }],
-      model: params.model,
+      model: req.body.model,
       stop_reason: 'end_turn',
       stop_sequence: null,
       usage: { input_tokens: 10, output_tokens: 5 },
-    };
-  }
+    });
+  });
+
+  return new Promise(resolve => {
+    const server = app.listen(0, () => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
+  const server = await startMockAnthropicServer();
+
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    const mockClient = new MockAnthropic({ apiKey: 'mock-api-key' });
-    const client = instrumentAnthropicAiClient(mockClient, { enableTruncation: false, recordInputs: true });
+    const client = new Anthropic({
+      apiKey: 'mock-api-key',
+      baseURL: `http://localhost:${server.address().port}/anthropic`,
+    });
 
     // Multiple messages with long content (would normally be truncated and popped to last message only)
     const longContent = 'A'.repeat(50_000);
@@ -49,6 +55,10 @@ async function run() {
       input: longStringInput,
     });
   });
+
+  await Sentry.flush(2000);
+
+  server.close();
 }
 
 run();

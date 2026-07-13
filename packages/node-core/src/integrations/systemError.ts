@@ -1,7 +1,7 @@
 import * as util from 'node:util';
 import { defineIntegration } from '@sentry/core';
 
-const INTEGRATION_NAME = 'NodeSystemError';
+const INTEGRATION_NAME = 'NodeSystemError' as const;
 
 type SystemErrorContext = {
   dest?: string; // If present, the file path destination when reporting a file system error

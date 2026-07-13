@@ -39,13 +39,13 @@ test(import.meta.url, ({ runBundler, readOutputFiles }) => {
     			"data-sentry-source-file": "app.jsx"
     		}, void 0, false, {
     			fileName: _jsxFileName,
-    			lineNumber: 4,
+    			lineNumber: 6,
     			columnNumber: 7
     		}, this), ";"]
     	}, void 0, true, {
     		fileName: _jsxFileName,
-    		lineNumber: 3,
-    		columnNumber: 10
+    		lineNumber: 5,
+    		columnNumber: 5
     	}, this);
     }
     console.log(App());

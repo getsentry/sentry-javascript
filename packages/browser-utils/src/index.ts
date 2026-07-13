@@ -25,6 +25,8 @@ export { extractNetworkProtocol } from './metrics/utils';
 
 export { trackClsAsSpan, trackInpAsSpan, trackLcpAsSpan } from './metrics/webVitalSpans';
 
+export { whenIdleOrHidden } from './metrics/web-vitals/lib/whenIdleOrHidden';
+
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';
 
 export { addHistoryInstrumentationHandler } from './instrument/history';
@@ -40,5 +42,7 @@ export { resourceTimingToSpanAttributes } from './metrics/resourceTiming';
 export { htmlTreeAsString } from './htmlTreeAsString';
 
 export { isElement } from './is';
+
+export { getAbsoluteUrl } from './instrument/location';
 
 export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';

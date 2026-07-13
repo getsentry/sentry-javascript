@@ -112,6 +112,8 @@ export type { DenoHttpIntegrationOptions } from './integrations/http';
 export { denoRedisIntegration } from './integrations/redis';
 export type { DenoRedisIntegrationOptions } from './integrations/redis';
 export { denoMysqlIntegration } from './integrations/mysql';
+export { denoPostgresIntegration } from './integrations/postgres';
+export { denoAmqplibIntegration } from './integrations/amqplib';
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { normalizePathsIntegration } from './integrations/normalizepaths';

@@ -1,7 +1,18 @@
-import { mysqlChannelIntegration, detectOrchestrionSetup } from '@sentry/server-utils/orchestrion';
+import {
+  channelIntegrations,
+  ioredisChannelIntegration,
+  redisChannelIntegration,
+  detectOrchestrionSetup,
+} from '@sentry/server-utils/orchestrion';
+import type { RegisterDiagnosticsChannelInjectionOptions } from '@sentry/server-utils/orchestrion/register';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
+import { cacheResponseHook } from '../integrations/tracing/redis/cache';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
 import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInjection';
+
+export function diagnosticsChannelInjectionIntegrations(): typeof channelIntegrations {
+  return channelIntegrations;
+}
 
 /**
  * EXPERIMENTAL: opt into diagnostics-channel-based auto-instrumentation.
@@ -35,13 +46,29 @@ import { setDiagnosticsChannelInjectionLoader } from './diagnosticsChannelInject
  *
  * @experimental May change or be removed in any release.
  */
-export function experimentalUseDiagnosticsChannelInjection(): void {
-  setDiagnosticsChannelInjectionLoader(
-    (): DiagnosticsChannelInjection => ({
-      integrations: [mysqlChannelIntegration()],
-      replacedOtelIntegrationNames: ['Mysql'],
-      register: registerDiagnosticsChannelInjection,
+export function experimentalUseDiagnosticsChannelInjection(
+  // Forwarded to `registerDiagnosticsChannelInjection()`; framework SDKs whose bundlers compile
+  // the SDK into the app (e.g. `@sentry/nextjs`) use it to point the runtime module hook at the
+  // tracing-hooks package location resolved at build time. Plain Node apps don't need it.
+  options?: RegisterDiagnosticsChannelInjectionOptions,
+): void {
+  setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
+    // The registry integrations 1:1 replace the OTel integration of the same name.
+    const integrations = Object.values(channelIntegrations).map(createIntegration => createIntegration());
+    const replacedOtelIntegrationNames = integrations.map(i => i.name);
+
+    return {
+      // ioredis and redis are wired separately (not in `channelIntegrations`): they need the node
+      // redis cache `responseHook` and only partially replace the composite OTel `Redis` integration,
+      // so they're kept OUT of `replacedOtelIntegrationNames` — `Redis` must stay (batch + >=5.11 native DC).
+      integrations: [
+        ...integrations,
+        ioredisChannelIntegration({ responseHook: cacheResponseHook }),
+        redisChannelIntegration({ responseHook: cacheResponseHook }),
+      ],
+      replacedOtelIntegrationNames,
+      register: () => registerDiagnosticsChannelInjection(options),
       detect: detectOrchestrionSetup,
-    }),
-  );
+    };
+  });
 }

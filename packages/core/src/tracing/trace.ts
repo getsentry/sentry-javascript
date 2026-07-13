@@ -82,7 +82,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
       // Ignored root spans still need to be set on scope so that `getActiveSpan()` returns them
       // and descendants are also non-recording. Ignored child spans don't need this because
       // the parent span is already on scope.
-      if (!_isIgnoredSpan(activeSpan) || !parentSpan) {
+      if (!spanIsIgnored(activeSpan) || !parentSpan) {
         _setSpanForScope(scope, activeSpan);
       }
 
@@ -144,7 +144,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
       // We don't set ignored child spans onto the scope because there likely is an active,
       // unignored span on the scope already.
-      if (!_isIgnoredSpan(activeSpan) || !parentSpan) {
+      if (!spanIsIgnored(activeSpan) || !parentSpan) {
         _setSpanForScope(scope, activeSpan);
       }
 
@@ -181,6 +181,20 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
     return acs.startInactiveSpan(options);
   }
 
+  return _startInactiveSpanImpl(options);
+}
+
+/**
+ * Internal version of startInactiveSpan that bypasses the ACS check.
+ * Used by SentryTracerProvider to create spans without triggering recursion
+ * through ACS overrides.
+ * @hidden
+ */
+export function _INTERNAL_startInactiveSpan(options: StartSpanOptions): Span {
+  return _startInactiveSpanImpl(options);
+}
+
+function _startInactiveSpanImpl(options: StartSpanOptions): Span {
   const spanArguments = parseSentrySpanArguments(options);
   const { forceTransaction, parentSpan: customParentSpan } = options;
 
@@ -291,6 +305,17 @@ export function suppressTracing<T>(callback: () => T): T {
   });
 }
 
+/** Check if tracing is suppressed. */
+export function isTracingSuppressed(scope = getCurrentScope()): boolean {
+  const acs = getAcs();
+
+  if (acs.isTracingSuppressed) {
+    return acs.isTracingSuppressed(scope);
+  }
+
+  return scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY] === true;
+}
+
 /**
  * Starts a new trace for the duration of the provided callback. Spans started within the
  * callback will be part of the new trace instead of a potentially previously started trace.
@@ -372,7 +397,7 @@ function createChildOrRootSpan({
 
   const client = getClient();
   if (_shouldIgnoreStreamedSpan(client, spanArguments)) {
-    if (!_isTracingSuppressed(scope)) {
+    if (!isTracingSuppressed(scope)) {
       // if tracing is actively suppressed (Sentry.suppressTracing(...)),
       // we don't want to record a client outcome for the ignored span
       client?.recordDroppedEvent('ignored', 'span');
@@ -489,9 +514,9 @@ function _startRootSpan(
   const finalAttributes = mutableSpanSamplingData.spanAttributes;
 
   const currentPropagationContext = scope.getPropagationContext();
-  const isTracingSuppressed = _isTracingSuppressed(scope);
+  const _isTracingSuppressed = isTracingSuppressed(scope);
 
-  const [sampled, sampleRate, localSampleRateWasApplied] = isTracingSuppressed
+  const [sampled, sampleRate, localSampleRateWasApplied] = _isTracingSuppressed
     ? [false]
     : sampleSpan(
         options,
@@ -499,6 +524,7 @@ function _startRootSpan(
           name,
           parentSampled: finalParentSampled,
           attributes: finalAttributes,
+          normalizedRequest: isolationScope.getScopeData().sdkProcessingMetadata.normalizedRequest,
           parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
         },
         currentPropagationContext.sampleRand,
@@ -515,7 +541,7 @@ function _startRootSpan(
     sampled,
   });
 
-  if (!sampled && client && !isTracingSuppressed) {
+  if (!sampled && client && !_isTracingSuppressed) {
     DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
     client.recordDroppedEvent('sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
   }
@@ -540,8 +566,8 @@ function _startChildSpan(
   isolationScope: Scope,
 ): Span {
   const { spanId, traceId } = parentSpan.spanContext();
-  const isTracingSuppressed = _isTracingSuppressed(scope);
-  const sampled = isTracingSuppressed ? false : spanIsSampled(parentSpan);
+  const _isTracingSuppressed = isTracingSuppressed(scope);
+  const sampled = _isTracingSuppressed ? false : spanIsSampled(parentSpan);
 
   const childSpan = sampled
     ? new SentrySpan({
@@ -569,7 +595,7 @@ function _startChildSpan(
       // record a client outcome for the child.
       childSpan.dropReason = parentSpan.dropReason;
       client.recordDroppedEvent(parentSpan.dropReason, 'span');
-    } else if (!isTracingSuppressed) {
+    } else if (!_isTracingSuppressed) {
       // Otherwise, the child is not sampled due to sampling of the parent span,
       // hence we record a sample_rate client outcome for the child.
       childSpan.dropReason = 'sample_rate';
@@ -639,10 +665,11 @@ function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: Se
   );
 }
 
-function _isIgnoredSpan(span: Span): span is SentryNonRecordingSpan {
+/**
+ * Whether a span is an ignored (`ignoreSpans`) placeholder. Such a span must not be set as the active
+ * span when it has a parent, so its children attach to that parent and get re-parented rather than
+ * dropped with it. Shared with the OTel-based provider so both span pipelines apply the same rule.
+ */
+export function spanIsIgnored(span: Span): span is SentryNonRecordingSpan {
   return spanIsNonRecordingSpan(span) && span.dropReason === 'ignored';
-}
-
-function _isTracingSuppressed(scope: Scope): boolean {
-  return scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY] === true;
 }

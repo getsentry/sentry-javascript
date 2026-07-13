@@ -18,7 +18,7 @@ import { DEBUG_BUILD } from '../debug-build';
 export type HttpStatusCodeRange = [number, number] | number;
 export type HttpRequestTarget = string | RegExp;
 
-const INTEGRATION_NAME = 'HttpClient';
+const INTEGRATION_NAME = 'HttpClient' as const;
 
 interface HttpClientOptions {
   /**

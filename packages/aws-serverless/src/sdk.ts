@@ -139,7 +139,7 @@ export const AWS_HANDLER_HIGHWATERMARK_SYMBOL = Symbol.for('aws.lambda.runtime.h
 export const AWS_HANDLER_STREAMING_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming');
 export const AWS_HANDLER_STREAMING_RESPONSE = 'response';
 
-function isStreamingHandler(handler: Handler | StreamifyHandler): handler is StreamifyHandler {
+export function isStreamingHandler(handler: Handler | StreamifyHandler): handler is StreamifyHandler {
   return (
     (handler as unknown as Record<symbol, unknown>)[AWS_HANDLER_STREAMING_SYMBOL] === AWS_HANDLER_STREAMING_RESPONSE
   );
@@ -241,7 +241,7 @@ export function wrapHandler<TEvent, TResult>(
           });
         }
       } catch (e) {
-        // Errors should already captured in the instrumentation's `responseHook`,
+        // Errors should already be captured in the AwsLambda instrumentation's error handler,
         // we capture them here just to be safe. Double captures are deduplicated by the SDK.
         captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.handler'));
         throw e;
@@ -288,7 +288,7 @@ function wrapStreamingHandler<TEvent, TResult>(
 
         return await handler(event, responseStream, context);
       } catch (e) {
-        // Errors should already captured in the instrumentation's `responseHook`,
+        // Errors should already be captured in the AwsLambda instrumentation's error handler,
         // we capture them here just to be safe. Double captures are deduplicated by the SDK.
         captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.handler'));
         throw e;

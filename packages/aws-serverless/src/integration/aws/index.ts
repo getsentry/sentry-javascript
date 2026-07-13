@@ -7,7 +7,7 @@ import { defineIntegration } from '@sentry/core';
  */
 export const awsIntegration = defineIntegration(() => {
   return {
-    name: 'Aws',
+    name: 'Aws' as const,
     setupOnce() {
       registerInstrumentations({
         instrumentations: [new AwsInstrumentation()],

@@ -29,7 +29,7 @@ describe('filtering child spans with ignoreSpans (streaming)', () => {
             expect(container.items).toHaveLength(8);
             const getSpan = (name: string, op: string) =>
               container.items.find(
-                item => item.name === name && item.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === op,
+                item => item.name === name && item.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === op,
               );
             const queryMiddlewareSpan = getSpan('query', 'middleware.express');
             const corsMiddlewareSpan = getSpan('corsMiddleware', 'middleware.express');

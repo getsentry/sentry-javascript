@@ -1,10 +1,12 @@
 import {
   browserTracingIntegration,
+  getAbsoluteUrl,
   getActiveSpan,
   getRootSpan,
   spanToJSON,
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
+import { PARAMS_KEY, URL_FULL, URL_PATH, URL_PATH_PARAMETER_KEY, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import type { Client, Integration, Span } from '@sentry/core';
 import {
   getClient,
@@ -27,6 +29,15 @@ import { createComponent } from 'solid-js/web';
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
+function locationToSpanUrlAttributes(pathname: string, search: string = '', hash: string = ''): Record<string, string> {
+  const pathWithSearch = `${pathname}${search}${hash}`;
+
+  return {
+    [URL_PATH]: pathname,
+    [URL_FULL]: getAbsoluteUrl(pathWithSearch),
+  };
+}
+
 function handleNavigation(location: string): void {
   const client = getClient();
   if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.has(client)) {
@@ -40,14 +51,20 @@ function handleNavigation(location: string): void {
   const { name } = metaData?.sdk || {};
   const framework = name?.includes('solidstart') ? 'solidstart' : 'solid';
 
-  startBrowserTracingNavigationSpan(client, {
-    name: location,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.${framework}.solidrouter`,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+  const isBackNavigation = location === '-1';
+
+  startBrowserTracingNavigationSpan(
+    client,
+    {
+      name: location,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.${framework}.solidrouter`,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
     },
-  });
+    isBackNavigation ? undefined : { url: getAbsoluteUrl(location) },
+  );
 }
 
 function getActiveRootSpan(): Span | undefined {
@@ -101,16 +118,22 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
       const currentMatches = matches();
       const lastMatch = currentMatches[currentMatches.length - 1];
 
+      const urlAttributes = locationToSpanUrlAttributes(name, location.search, location.hash);
+
       if (lastMatch) {
         const parametrizedRoute = lastMatch.route.pattern || name;
         rootSpan.updateName(parametrizedRoute);
-        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+        rootSpan.setAttributes({
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: parametrizedRoute,
+          ...urlAttributes,
+        });
 
         const params = lastMatch.params;
         for (const [key, value] of Object.entries(params)) {
           if (value !== undefined) {
-            rootSpan.setAttribute(`url.path.parameter.${key}`, value);
-            rootSpan.setAttribute(`params.${key}`, value);
+            rootSpan.setAttribute(URL_PATH_PARAMETER_KEY.replace('<key>', key), value);
+            rootSpan.setAttribute(PARAMS_KEY.replace('<key>', key), value);
           }
         }
       } else {
@@ -119,7 +142,7 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
         if (op === 'navigation' && description === '-1') {
           rootSpan.updateName(name);
         }
-        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+        rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url', ...urlAttributes });
       }
     });
 

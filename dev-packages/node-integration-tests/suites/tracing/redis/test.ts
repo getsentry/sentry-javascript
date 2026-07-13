@@ -1,10 +1,16 @@
-import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { afterAll, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-describe('redis auto instrumentation', () => {
+describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
+
+  // Under orchestrion, ioredis <5.11 is instrumented by the diagnostics-channel
+  // subscriber instead of the OTel monkey-patch, so the span origin differs. All
+  // other attributes are identical.
+  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.redis' : 'auto.db.otel.redis';
 
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Span',
@@ -12,26 +18,26 @@ describe('redis auto instrumentation', () => {
       expect.objectContaining({
         description: 'set test-key [1 other arguments]',
         op: 'db',
-        origin: 'auto.db.otel.redis',
+        origin,
         data: expect.objectContaining({
           'sentry.op': 'db',
-          'sentry.origin': 'auto.db.otel.redis',
+          'sentry.origin': origin,
           'db.system': 'redis',
           'net.peer.name': 'localhost',
-          'net.peer.port': 6379,
+          'net.peer.port': 6380,
           'db.statement': 'set test-key [1 other arguments]',
         }),
       }),
       expect.objectContaining({
         description: 'get test-key',
         op: 'db',
-        origin: 'auto.db.otel.redis',
+        origin,
         data: expect.objectContaining({
           'sentry.op': 'db',
-          'sentry.origin': 'auto.db.otel.redis',
+          'sentry.origin': origin,
           'db.system': 'redis',
           'net.peer.name': 'localhost',
-          'net.peer.port': 6379,
+          'net.peer.port': 6380,
           'db.statement': 'get test-key',
         }),
       }),
@@ -40,13 +46,13 @@ describe('redis auto instrumentation', () => {
         description: 'incr test-key',
         op: 'db',
         status: 'internal_error',
-        origin: 'auto.db.otel.redis',
+        origin,
         data: expect.objectContaining({
           'sentry.op': 'db',
-          'sentry.origin': 'auto.db.otel.redis',
+          'sentry.origin': origin,
           'db.system': 'redis',
           'net.peer.name': 'localhost',
-          'net.peer.port': 6379,
+          'net.peer.port': 6380,
           'db.statement': 'incr test-key',
         }),
       }),
@@ -58,11 +64,7 @@ describe('redis auto instrumentation', () => {
       'should auto-instrument `ioredis` package when using redis.set() and redis.get()',
       { timeout: 75_000 },
       async () => {
-        await createTestRunner()
-          .withDockerCompose({ workingDirectory: [__dirname] })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       },
     );
   });

@@ -19,7 +19,11 @@ export default Sentry.withSentry(
   }),
   {
     async fetch(_request, _env, _ctx) {
-      const response = await client.chat?.completions?.create({
+      // The mock client types `chat` loosely (`Record<string, unknown>`), so narrow it to the shape used here.
+      const completions = (
+        client.chat as { completions?: { create: (args: Record<string, unknown>) => Promise<unknown> } }
+      )?.completions;
+      const response = await completions?.create({
         model: 'gpt-3.5-turbo',
         messages: [
           { role: 'system', content: 'You are a helpful assistant.' },

@@ -1,10 +1,38 @@
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Server start transaction (Apollo Server v5 no longer runs introspection query on start)
 const EXPECTED_START_SERVER_TRANSACTION = {
   transaction: 'Test Server Start',
 };
+
+// apollo uses graphql v16, so the default run instruments it via the vendored OTel patcher and the
+// orchestrion run (auto-injected on CI) via the diagnostics-channel path. Both emit the same span
+// name/status; the origin and the document attribute (`graphql.source` vs `graphql.document`) differ.
+const orchestrion = isOrchestrionEnabled();
+const ORIGIN = orchestrion ? 'auto.graphql.diagnostic_channel' : 'auto.graphql.otel.graphql';
+
+function graphqlExecuteSpan(opts: {
+  description: string;
+  operationType: string;
+  operationName?: string;
+  document: unknown;
+  status?: string;
+}): ReturnType<typeof expect.objectContaining> {
+  const { description, operationType, operationName, document, status = 'ok' } = opts;
+  return expect.objectContaining({
+    description,
+    status,
+    origin: ORIGIN,
+    data: expect.objectContaining({
+      'graphql.operation.type': operationType,
+      ...(operationName ? { 'graphql.operation.name': operationName } : {}),
+      [orchestrion ? 'graphql.document' : 'graphql.source']: document,
+      'sentry.origin': ORIGIN,
+    }),
+  });
+}
 
 describe('GraphQL/Apollo Tests', () => {
   afterAll(() => {
@@ -15,16 +43,7 @@ describe('GraphQL/Apollo Tests', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction (query)',
       spans: expect.arrayContaining([
-        expect.objectContaining({
-          data: {
-            'graphql.operation.type': 'query',
-            'graphql.source': '{hello}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
-          },
-          description: 'query',
-          status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
-        }),
+        graphqlExecuteSpan({ description: 'query', operationType: 'query', document: '{hello}' }),
       ]),
     };
 
@@ -37,6 +56,7 @@ describe('GraphQL/Apollo Tests', () => {
           await createTestRunner()
             .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
             .expect({ transaction: EXPECTED_TRANSACTION })
+            .unordered()
             .start()
             .completed();
         });
@@ -49,16 +69,11 @@ describe('GraphQL/Apollo Tests', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction (mutation Mutation)',
       spans: expect.arrayContaining([
-        expect.objectContaining({
-          data: {
-            'graphql.operation.name': 'Mutation',
-            'graphql.operation.type': 'mutation',
-            'graphql.source': 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
-          },
+        graphqlExecuteSpan({
           description: 'mutation Mutation',
-          status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          operationType: 'mutation',
+          operationName: 'Mutation',
+          document: 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
         }),
       ]),
     };
@@ -72,6 +87,7 @@ describe('GraphQL/Apollo Tests', () => {
           await createTestRunner()
             .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
             .expect({ transaction: EXPECTED_TRANSACTION })
+            .unordered()
             .start()
             .completed();
         });
@@ -84,16 +100,11 @@ describe('GraphQL/Apollo Tests', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction (mutation)',
       spans: expect.arrayContaining([
-        expect.objectContaining({
+        // The inline email literal must be redacted to `"*"`, so the raw value never reaches the span.
+        graphqlExecuteSpan({
           description: 'mutation',
-          status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
-          data: expect.objectContaining({
-            'graphql.operation.type': 'mutation',
-            // The inline email literal must be redacted to `"*"`, so the raw value can never reach `graphql.source`.
-            'graphql.source': expect.stringContaining('login(email: "*")'),
-            'sentry.origin': 'auto.graphql.otel.graphql',
-          }),
+          operationType: 'mutation',
+          document: expect.stringContaining('login(email: "*")'),
         }),
       ]),
     };
@@ -103,10 +114,11 @@ describe('GraphQL/Apollo Tests', () => {
       'scenario-redaction.mjs',
       'instrument.mjs',
       (createTestRunner, test) => {
-        test('redacts inline literal values from graphql.source.', async () => {
+        test('redacts inline literal values from the graphql document.', async () => {
           await createTestRunner()
             .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
             .expect({ transaction: EXPECTED_TRANSACTION })
+            .unordered()
             .start()
             .completed();
         });
@@ -119,16 +131,12 @@ describe('GraphQL/Apollo Tests', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction (mutation Mutation)',
       spans: expect.arrayContaining([
-        expect.objectContaining({
-          data: {
-            'graphql.operation.name': 'Mutation',
-            'graphql.operation.type': 'mutation',
-            'graphql.source': 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
-          },
+        graphqlExecuteSpan({
           description: 'mutation Mutation',
+          operationType: 'mutation',
+          operationName: 'Mutation',
+          document: 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
           status: 'internal_error',
-          origin: 'auto.graphql.otel.graphql',
         }),
       ]),
     };
@@ -142,6 +150,7 @@ describe('GraphQL/Apollo Tests', () => {
           await createTestRunner()
             .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
             .expect({ transaction: EXPECTED_TRANSACTION })
+            .unordered()
             .start()
             .completed();
         });

@@ -75,11 +75,11 @@ Note: you must run `yarn build` before `yarn test` will work.
 
 ## Running E2E Tests Locally
 
-E2E tests verify SDK behavior in real-world framework scenarios using a local npm registry (Verdaccio).
+E2E tests verify SDK behavior in real-world framework scenarios.
 
 ### Prerequisites
 
-1. **Docker**: Required to run the Verdaccio registry container
+1. **Docker**: Required for some E2E tests
 2. **Volta with pnpm support**: Enable pnpm in Volta by setting `VOLTA_FEATURE_PNPM=1` in your environment. See [Volta pnpm docs](https://docs.volta.sh/advanced/pnpm).
 
 ### Step-by-Step Instructions
@@ -122,17 +122,6 @@ E2E tests verify SDK behavior in real-world framework scenarios using a local np
 
 ### Common Issues and Troubleshooting
 
-#### Packages install from public npm instead of Verdaccio
-
-Every E2E test application **must** have an `.npmrc` file with:
-
-```
-@sentry:registry=http://127.0.0.1:4873
-@sentry-internal:registry=http://127.0.0.1:4873
-```
-
-Without this, pnpm will fetch packages from the public npm registry instead of the local Verdaccio instance, causing tests to use outdated/published versions instead of your local changes.
-
 #### Tests fail after making SDK changes
 
 Make sure to rebuild tarballs:
@@ -144,15 +133,12 @@ yarn build:tarball
 
 #### Docker-related issues
 
-- Ensure Docker daemon is running
-- Check that port 4873 is not in use by another process
-- Try stopping and removing existing Verdaccio containers
+- Ensure Docker daemon is running, some E2E tests require Docker
 
 #### Debugging test failures
 
 1. Check browser console logs for SDK initialization errors
 2. Enable debug mode in the test app's Sentry config: `debug: true`
-3. Verify packages are installed from Verdaccio by checking the version in `node_modules/@sentry/*/package.json`
 
 For more details, see [dev-packages/e2e-tests/README.md](dev-packages/e2e-tests/README.md).
 

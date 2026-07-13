@@ -7,7 +7,7 @@ interface PostgresIntegrationOptions {
   ignoreConnectSpans?: boolean;
 }
 
-const INTEGRATION_NAME = 'Postgres';
+const INTEGRATION_NAME = 'Postgres' as const;
 
 export const instrumentPostgres = generateInstrumentOnce(
   INTEGRATION_NAME,

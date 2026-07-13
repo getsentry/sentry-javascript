@@ -1,16 +1,5 @@
-import { afterEach, describe, expect, test, vi } from 'vitest';
-import { eventContextExtractor, getAwsTraceData } from '../src/utils';
-
-const mockExtractContext = vi.fn();
-vi.mock('@opentelemetry/api', async () => {
-  const actualApi = await vi.importActual('@opentelemetry/api');
-  return {
-    ...actualApi,
-    propagation: {
-      extract: (...args: unknown[]) => mockExtractContext(args),
-    },
-  };
-});
+import { describe, expect, test } from 'vitest';
+import { getAwsTraceData } from '../src/utils';
 
 const mockContext = {
   clientContext: {
@@ -59,45 +48,5 @@ describe('getTraceData', () => {
 
     expect(traceData['sentry-trace']).toEqual('12345678901234567890123456789012-1234567890123456-2');
     expect(traceData.baggage).toEqual('sentry-environment=staging');
-  });
-});
-
-describe('eventContextExtractor', () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  test('passes sentry trace data to the propagation extractor', () => {
-    // @ts-expect-error, a partial context object is fine here
-    eventContextExtractor(mockEvent, mockContext);
-
-    // @ts-expect-error, a partial context object is fine here
-    const expectedTraceData = getAwsTraceData(mockEvent, mockContext);
-
-    expect(mockExtractContext).toHaveBeenCalledTimes(1);
-    expect(mockExtractContext).toHaveBeenCalledWith(expect.arrayContaining([expectedTraceData]));
-  });
-
-  test('passes along non-sentry trace headers along', () => {
-    eventContextExtractor(
-      {
-        ...mockEvent,
-        headers: {
-          ...mockEvent.headers,
-          'X-Custom-Header': 'Foo',
-        },
-      },
-      // @ts-expect-error, a partial context object is fine here
-      mockContext,
-    );
-
-    const expectedHeaders = {
-      'X-Custom-Header': 'Foo',
-      // @ts-expect-error, a partial context object is fine here
-      ...getAwsTraceData(mockEvent, mockContext),
-    };
-
-    expect(mockExtractContext).toHaveBeenCalledTimes(1);
-    expect(mockExtractContext).toHaveBeenCalledWith(expect.arrayContaining([expectedHeaders]));
   });
 });

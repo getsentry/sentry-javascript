@@ -4,7 +4,7 @@
 /* eslint-disable max-lines */
 
 export type { ClientClass as SentryCoreCurrentScopes } from './sdk';
-export type { AsyncContextStrategy } from './asyncContext/types';
+export type { AsyncContextStrategy, TracingChannelBinding } from './asyncContext/types';
 export type { Carrier } from './carrier';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { IntegrationIndex } from './integration';
@@ -49,7 +49,11 @@ export {
   hasExternalPropagationContext,
 } from './currentScopes';
 export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
-export { setAsyncContextStrategy } from './asyncContext';
+export { setAsyncContextStrategy, getAsyncContextStrategy } from './asyncContext';
+export {
+  waitForTracingChannelBinding,
+  _INTERNAL_createTracingChannelBinding,
+} from './asyncContext/tracing-channel-binding';
 export { getGlobalSingleton, getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 export { Scope } from './scope';
@@ -61,7 +65,13 @@ export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from './transports/multiplexed';
-export { getIntegrationsToSetup, addIntegration, defineIntegration, installedIntegrations } from './integration';
+export {
+  getIntegrationsToSetup,
+  addIntegration,
+  defineIntegration,
+  extendIntegration,
+  installedIntegrations,
+} from './integration';
 export {
   _INTERNAL_skipAiProviderWrapping,
   _INTERNAL_shouldSkipAiProviderWrapping,
@@ -93,6 +103,7 @@ export {
   spanToJSON,
   spanToStreamedSpanJSON,
   spanIsSampled,
+  spanIsSentrySpan,
   spanToTraceContext,
   getSpanDescendants,
   getStatusMessage,
@@ -110,6 +121,7 @@ export { getTraceData } from './utils/traceData';
 export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
+export { uniq } from './utils/array';
 export { makeWeakRef, derefWeakRef } from './utils/weakRef';
 export type { MaybeWeakRef } from './utils/weakRef';
 export { shouldIgnoreSpan } from './utils/should-ignore-span';
@@ -126,6 +138,8 @@ export {
 } from './utils/request';
 export type { MaxRequestBodySize } from './utils/request';
 export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
+export { SPAN_KIND, spanKindToName } from './spanKind';
+export type { SpanKindValue } from './spanKind';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
 // eslint-disable-next-line typescript/no-deprecated
@@ -164,14 +178,41 @@ export {
 export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
-export { addVercelAiProcessors } from './tracing/vercel-ai';
+export { addVercelAiProcessors, getProviderMetadataAttributes } from './tracing/vercel-ai';
+export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptions } from './tracing/ai/utils';
+export {
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
+} from './tracing/ai/gen-ai-attributes';
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
-export { instrumentOpenAiClient } from './tracing/openai';
+export {
+  instrumentOpenAiClient,
+  extractRequestAttributes as extractOpenAiRequestAttributes,
+  addRequestAttributes as addOpenAiRequestAttributes,
+} from './tracing/openai';
+export {
+  addResponseAttributes as addOpenAiResponseAttributes,
+  extractRequestParameters as extractOpenAiRequestParameters,
+} from './tracing/openai/utils';
+export { instrumentStream as instrumentOpenAiStream } from './tracing/openai/streaming';
 export { OPENAI_INTEGRATION_NAME } from './tracing/openai/constants';
-export { instrumentAnthropicAiClient } from './tracing/anthropic-ai';
+export {
+  instrumentAnthropicAiClient,
+  extractRequestAttributes as extractAnthropicRequestAttributes,
+  addPrivateRequestAttributes as addAnthropicRequestAttributes,
+  addResponseAttributes as addAnthropicResponseAttributes,
+} from './tracing/anthropic-ai';
+export { instrumentAsyncIterableStream, instrumentMessageStream } from './tracing/anthropic-ai/streaming';
 export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants';
-export { instrumentGoogleGenAIClient } from './tracing/google-genai';
+export {
+  instrumentGoogleGenAIClient,
+  extractRequestAttributes as extractGoogleGenAIRequestAttributes,
+  addPrivateRequestAttributes as addGoogleGenAIRequestAttributes,
+  addResponseAttributes as addGoogleGenAIResponseAttributes,
+} from './tracing/google-genai';
+export { instrumentStream as instrumentGoogleGenAIStream } from './tracing/google-genai/streaming';
 export { GOOGLE_GENAI_INTEGRATION_NAME } from './tracing/google-genai/constants';
 export type { GoogleGenAIResponse } from './tracing/google-genai/types';
 export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './tracing/langchain';
@@ -230,6 +271,7 @@ export {
   isErrorEvent,
   isEvent,
   isInstanceOf,
+  isObjectLike,
   isParameterizedString,
   isPlainObject,
   isPrimitive,

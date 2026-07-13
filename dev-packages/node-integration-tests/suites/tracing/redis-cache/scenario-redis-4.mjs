@@ -2,7 +2,11 @@ import * as Sentry from '@sentry/node';
 import { createClient } from 'redis-4';
 
 async function run() {
-  const redisClient = await createClient().connect();
+  const redisClient = await createClient({
+    socket: {
+      port: 6383,
+    },
+  }).connect();
 
   await Sentry.startSpan(
     {

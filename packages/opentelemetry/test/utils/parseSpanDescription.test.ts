@@ -543,6 +543,27 @@ describe('descriptionForHttpMethod', () => {
         source: 'component',
       },
     ],
+    [
+      'strips the leading `?`/`#` from http.query and http.fragment',
+      'GET',
+      {
+        [HTTP_METHOD]: 'GET',
+        [HTTP_URL]: 'https://www.example.com/my-path?id=1#section',
+        [HTTP_TARGET]: '/my-path?id=1#section',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        op: 'http.client',
+        description: 'GET https://www.example.com/my-path',
+        data: {
+          url: 'https://www.example.com/my-path',
+          'http.query': 'id=1',
+          'http.fragment': 'section',
+        },
+        source: 'url',
+      },
+    ],
   ])('%s', (_, httpMethod, attributes, name, kind, expected) => {
     const actual = descriptionForHttpMethod({ attributes, kind, name }, httpMethod);
     expect(actual).toEqual(expected);

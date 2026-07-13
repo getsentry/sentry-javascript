@@ -20,7 +20,9 @@ process.on('exit', cleanupChildProcesses);
 
 // Wrangler can report "Ready" before it can actually handle requests.
 // This retries fetch on connection errors and transient 500 responses to handle this race condition.
-async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 10, retryDelayMs = 200): Promise<Response> {
+// The budget (maxRetries * retryDelayMs) must cover the "ready-but-not-serving" window, which can be
+// several seconds on a loaded CI runner — hence a generous default.
+async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 25, retryDelayMs = 200): Promise<Response> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const res = await fetch(url, init);
@@ -408,7 +410,10 @@ export function createRunner(...paths: string[]) {
           expected: Expected | Expected[],
           options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
-          const expectations = Array.isArray(expected) ? expected : [expected];
+          // `Expected` includes `Envelope`, which is itself an array, so `Array.isArray` can't
+          // distinguish a single `Envelope` from an `Expected[]`. Callers pass expectation
+          // callbacks (or an array of them), so the narrowed value is always `Expected[]`.
+          const expectations = (Array.isArray(expected) ? expected : [expected]) as Expected[];
           const envelopePromises = expectations.map(e => waitForEnvelope(e));
           const result = await this.makeRequest<T>(method, path, options);
           await Promise.all(envelopePromises);

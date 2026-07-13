@@ -10,7 +10,8 @@
 # Node/server runtimes and related packages
 /packages/node/                     @getsentry/team-javascript-sdks-server
 /packages/node-core/                @getsentry/team-javascript-sdks-server
-/packages/server-utils/             @getsentry/team-javascript-sdks-server
+# TEMP: whole JS SDK team reviews orchestrion work; revert to team-javascript-sdks-server after
+/packages/server-utils/             @getsentry/team-javascript-sdks
 /packages/node-native/              @getsentry/team-javascript-sdks-server
 /packages/profiling-node/           @getsentry/team-javascript-sdks-server
 /packages/opentelemetry/            @getsentry/team-javascript-sdks-server
@@ -24,6 +25,7 @@
 /dev-packages/node-core-integration-tests/ @getsentry/team-javascript-sdks-server
 /dev-packages/cloudflare-integration-tests/ @getsentry/team-javascript-sdks-server
 /dev-packages/bun-integration-tests/ @getsentry/team-javascript-sdks-server
+/dev-packages/deno-integration-tests/ @getsentry/team-javascript-sdks-server
 
 # Framework integration packages
 /packages/angular/                  @getsentry/team-javascript-sdks-framework

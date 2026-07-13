@@ -23,7 +23,11 @@ import { getTraceData } from './traceData';
  *
  */
 export function getTraceMetaTags(traceData?: SerializedTraceData): string {
-  return Object.entries(traceData || getTraceData())
-    .map(([key, value]) => `<meta name="${key}" content="${value}"/>`)
-    .join('\n');
+  return (
+    Object.entries(traceData || getTraceData())
+      .map(([key, value]) => `<meta name="${key}" content="${value}"/>`)
+      // Joined without whitespace on purpose: a separator between the tags becomes a text node when
+      // injected into `<head>`, which breaks React 19 whole-document hydration (#21915).
+      .join('')
+  );
 }

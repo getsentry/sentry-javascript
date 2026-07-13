@@ -2,7 +2,7 @@
   "name": "d1-test-worker",
   "compatibility_date": "2025-06-17",
   "main": "index.ts",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_als"],
   "d1_databases": [
     {
       "binding": "DB",

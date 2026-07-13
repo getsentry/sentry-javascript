@@ -20,7 +20,7 @@ jobs:
       && github.event.pull_request.author_association != 'OWNER'
       && endsWith(github.event.pull_request.user.login, '[bot]') == false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
@@ -39,7 +39,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ vars.GITFLOW_APP_ID }}
+          client-id: ${{ vars.GITFLOW_APP_ID }}
           private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
 
       - name: Create PR with changes

@@ -8,26 +8,25 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
+  isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
 } from '@sentry/core';
 import {
-  ATTR_DB_CONNECTION_STRING,
-  ATTR_DB_MONGODB_COLLECTION,
-  ATTR_DB_NAME,
-  ATTR_DB_OPERATION,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-  DB_SYSTEM_VALUE_MONGODB,
-} from './semconv';
+  DB_NAME,
+  DB_OPERATION,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  NET_PEER_NAME,
+  NET_PEER_PORT,
+} from '@sentry/conventions/attributes';
+import { ATTR_DB_CONNECTION_STRING, ATTR_DB_MONGODB_COLLECTION, DB_SYSTEM_VALUE_MONGODB } from './semconv';
 import type { MongodbNamespace, MongoInternalCommand, MongoInternalTopology } from './internal-types';
 import { MongodbCommandType } from './internal-types';
 
@@ -62,7 +61,7 @@ function scrubStatement(value: unknown): unknown {
 }
 
 function isCommandObj(value: Record<string, unknown> | unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !isBuffer(value);
+  return isObjectLike(value) && !isBuffer(value);
 }
 
 function isBuffer(value: unknown): boolean {
@@ -166,31 +165,31 @@ function getSpanAttributes(
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     // eslint-disable-next-line typescript/no-deprecated
-    [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MONGODB,
+    [DB_SYSTEM]: DB_SYSTEM_VALUE_MONGODB,
     // eslint-disable-next-line typescript/no-deprecated
-    [ATTR_DB_NAME]: dbName,
+    [DB_NAME]: dbName,
     // eslint-disable-next-line typescript/no-deprecated
     [ATTR_DB_MONGODB_COLLECTION]: dbCollection,
     // eslint-disable-next-line typescript/no-deprecated
-    [ATTR_DB_OPERATION]: operation,
+    [DB_OPERATION]: operation,
     // eslint-disable-next-line typescript/no-deprecated
     [ATTR_DB_CONNECTION_STRING]: `mongodb://${host}:${port}/${dbName}`,
   };
 
   if (host && port) {
     // eslint-disable-next-line typescript/no-deprecated
-    attributes[ATTR_NET_PEER_NAME] = host;
+    attributes[NET_PEER_NAME] = host;
     const portNumber = parseInt(port, 10);
     if (!isNaN(portNumber)) {
       // eslint-disable-next-line typescript/no-deprecated
-      attributes[ATTR_NET_PEER_PORT] = portNumber;
+      attributes[NET_PEER_PORT] = portNumber;
     }
   }
 
   if (commandObj) {
     try {
       // eslint-disable-next-line typescript/no-deprecated
-      attributes[ATTR_DB_STATEMENT] = serializeDbStatement(commandObj);
+      attributes[DB_STATEMENT] = serializeDbStatement(commandObj);
     } catch {
       // ignore serialization errors — the statement is best-effort metadata
     }
@@ -202,8 +201,8 @@ function getSpanAttributes(
 export function startMongoSpan(attributes: SpanAttributes): Span {
   return startInactiveSpan({
     // eslint-disable-next-line typescript/no-deprecated
-    name: `mongodb.${attributes[ATTR_DB_OPERATION] || 'command'}`,
-    kind: SpanKind.CLIENT,
+    name: `mongodb.${attributes[DB_OPERATION] || 'command'}`,
+    kind: SPAN_KIND.CLIENT,
     attributes,
   });
 }

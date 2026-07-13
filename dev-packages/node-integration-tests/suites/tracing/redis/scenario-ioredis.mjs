@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 import Redis from 'ioredis';
 
-const redis = new Redis({ port: 6379 });
+const redis = new Redis({ port: 6380 });
 
 async function run() {
   await Sentry.startSpan(

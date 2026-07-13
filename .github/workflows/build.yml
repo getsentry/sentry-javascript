@@ -80,13 +80,13 @@ jobs:
       (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false' && needs.job_get_metadata.outputs.changed_any_code == 'true')
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
@@ -172,9 +172,18 @@ jobs:
       changed_bun_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/bun-integration-tests') }}
+      changed_deno_integration:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/deno-integration-tests') }}
       changed_browser_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/browser-integration-tests') }}
+      changed_cloudflare_integration:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/cloudflare-integration-tests') }}
+      changed_bundler_plugin_integration:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/bundler-plugin-integration-tests') }}
       changed_aws_serverless:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/aws-serverless') }}
@@ -191,7 +200,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -230,7 +239,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -287,7 +296,7 @@ jobs:
       needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -319,7 +328,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -334,6 +343,8 @@ jobs:
         run: yarn lint
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
+      - name: Lint types
+        run: yarn lint:types
 
   job_check_lockfile:
     name: Check lockfile
@@ -346,7 +357,7 @@ jobs:
       needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -371,7 +382,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
@@ -394,7 +405,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -416,7 +427,7 @@ jobs:
     if: needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -466,13 +477,13 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -500,7 +511,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -527,7 +538,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -559,12 +570,12 @@ jobs:
         node: [18, 20, 22, 24, 26]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.base.sha }}
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -645,7 +656,7 @@ jobs:
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -707,7 +718,7 @@ jobs:
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -753,7 +764,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -773,27 +784,51 @@ jobs:
 
   job_node_integration_tests:
     name:
-      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
-      Tests
+      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }}${{
+      (matrix.use_orchestrion && format(' (Orchestrion)', matrix.use_orchestrion)) || '' }} Integration Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         node: [18, 20, 22, 24, 26]
         typescript:
           - false
+        use_orchestrion:
+          - false
         include:
           # Only check typescript for latest version (to streamline CI)
           - node: 24
             typescript: '3.8'
+          # No need to test orchestrion for v18
+          - node: 20
+            use_orchestrion: 'true'
+          - node: 22
+            use_orchestrion: 'true'
+          - node: 24
+            use_orchestrion: 'true'
+          - node: 26
+            use_orchestrion: 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Free up disk space if low
+        # The full suite pulls several DB docker images (mssql alone is ~1.5GB)
+        # Available disk space is not consistent, if we detect low space this cleans up some unused toolchains
+        run: |
+          df -h /
+          avail_kb=$(df -k --output=avail / | tail -1)
+          if [ "$avail_kb" -lt $((40 * 1024 * 1024)) ]; then
+            echo "Low disk space (<40GB free) — reclaiming unused toolchains"
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+            df -h /
+          else
+            echo "Sufficient disk space — skipping cleanup"
+          fi
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
@@ -811,6 +846,8 @@ jobs:
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
         run: yarn test
+        env:
+          INJECT_ORCHESTRION: ${{ matrix.use_orchestrion }}
 
   job_node_v18_compat:
     name: Node v18.0.0 Compatibility Check
@@ -820,7 +857,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -854,7 +891,7 @@ jobs:
             typescript: '3.8'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -878,11 +915,12 @@ jobs:
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests
     needs: [job_get_metadata, job_build]
+    if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -899,23 +937,28 @@ jobs:
         run: yarn test
 
   job_bundler_plugin_integration_tests:
-    name: Bundler Plugin Integration Tests
+    name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
+    if: needs.job_build.outputs.changed_bundler_plugin_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22, 24, 26]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       # The fixtures install the locally-packed `@sentry/bundler-plugins` tarball with pnpm.
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 9.15.9
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
-          node-version-file: 'package.json'
+          node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -933,7 +976,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -953,6 +996,36 @@ jobs:
         working-directory: dev-packages/bun-integration-tests
         run: yarn test
 
+  job_deno_integration_tests:
+    name: Deno Integration Tests
+    needs: [job_get_metadata, job_build]
+    if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: 'package.json'
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2.0.4
+        with:
+          deno-version: 'v2.8.0'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Build @sentry/deno
+        working-directory: packages/deno
+        run: yarn build
+      - name: Run integration tests
+        working-directory: dev-packages/deno-integration-tests
+        run: yarn test
+
   job_build_tarballs:
     name: Build tarballs
     # We want to run this if:
@@ -965,7 +1038,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -1021,10 +1094,10 @@ jobs:
       matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix) }}
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 9.15.9
       - name: Set up Node
@@ -1033,8 +1106,8 @@ jobs:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
         if:
-          contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun", "hono-4", "bun-bytecode"]'),
-          matrix.test-application)
+          contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun", "hono-4", "bun-bytecode",
+          "bun-mysql"]'), matrix.test-application)
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.14'
@@ -1047,7 +1120,8 @@ jobs:
       - name: Set up Deno
         if:
           matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed' || matrix.test-application ==
-          'deno-redis' || matrix.test-application == 'hono-4' || matrix.test-application == 'deno-mysql'
+          'deno-redis' || matrix.test-application == 'hono-4' || matrix.test-application == 'deno-mysql' ||
+          matrix.test-application == 'deno-pg'
         uses: denoland/setup-deno@v2.0.4
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.0' }}
@@ -1159,10 +1233,10 @@ jobs:
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 9.15.9
       - name: Set up Node
@@ -1252,6 +1326,7 @@ jobs:
         job_cloudflare_integration_tests,
         job_bundler_plugin_integration_tests,
         job_bun_integration_tests,
+        job_deno_integration_tests,
         job_browser_playwright_tests,
         job_browser_loader_tests,
         job_e2e_tests,
@@ -1271,7 +1346,7 @@ jobs:
     steps:
       - name: Check out current commit
         if: github.ref == 'refs/heads/develop' && contains(needs.*.result, 'failure')
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           sparse-checkout: |
             .github

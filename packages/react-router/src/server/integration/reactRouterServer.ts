@@ -5,7 +5,7 @@ import { ReactRouterInstrumentation } from '../instrumentation/reactRouter';
 import { registerServerBuildGlobal } from '../serverBuild';
 import { enableOtelDataLoaderSpanCreation } from '../serverGlobals';
 
-const INTEGRATION_NAME = 'ReactRouterServer';
+const INTEGRATION_NAME = 'ReactRouterServer' as const;
 
 const instrumentReactRouter = generateInstrumentOnce(INTEGRATION_NAME, () => {
   return new ReactRouterInstrumentation();

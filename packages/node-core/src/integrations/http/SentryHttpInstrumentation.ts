@@ -1,30 +1,29 @@
-import { subscribe } from 'node:diagnostics_channel';
+import type { ChannelListener } from 'node:diagnostics_channel';
+import { subscribe, unsubscribe } from 'node:diagnostics_channel';
 import { context, trace } from '@opentelemetry/api';
-import { isTracingSuppressed } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
-import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
+import { InstrumentationBase } from '@opentelemetry/instrumentation';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'node:http';
-import type {
-  HttpClientRequest,
-  HttpIncomingMessage,
-  HttpInstrumentationOptions,
-  HttpModuleExport,
-  Span,
+import type { HttpClientRequest, HttpIncomingMessage, HttpInstrumentationOptions, Span } from '@sentry/core';
+import {
+  getHttpClientSubscriptions,
+  patchHttpModuleClient,
+  SDK_VERSION,
+  getRequestOptions,
+  isTracingSuppressed,
 } from '@sentry/core';
-import { getHttpClientSubscriptions, patchHttpModuleClient, SDK_VERSION, getRequestOptions } from '@sentry/core';
 import { INSTRUMENTATION_NAME } from './constants';
 import { HTTP_ON_CLIENT_REQUEST } from '@sentry/core';
 import { NODE_VERSION } from '../../nodeVersion';
 import { errorMonitor } from 'node:events';
 import * as http from 'node:http';
-import * as https from 'node:https';
 
 const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL =
   (NODE_VERSION.major === 22 && NODE_VERSION.minor >= 12) ||
   (NODE_VERSION.major === 23 && NODE_VERSION.minor >= 2) ||
   NODE_VERSION.major >= 24;
 
-export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
+interface OutgoingHttpRequestInstrumentationOptions {
   /**
    * Whether breadcrumbs should be recorded for outgoing requests.
    *
@@ -33,39 +32,32 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   breadcrumbs?: boolean;
 
   /**
-   * Whether to propagate Sentry trace headers in outgoing requests.
-   * By default this is done by the HttpInstrumentation, but if that is not added (e.g. because tracing is disabled)
-   * then this instrumentation can take over.
-   *
-   * @default `false`
-   */
-  propagateTraceInOutgoingRequests?: boolean;
-
-  /**
-   * Whether to enable the capability to create spans for outgoing requests via diagnostic channels.
-   * If enabled, spans will only be created if the `spans` option is also enabled (default: true).
-   *
-   * This is a feature flag that should be enabled by SDKs when the runtime supports it (Node 22.12+).
-   * Individual users should not need to configure this directly.
-   *
-   * @default `false`
-   */
-  createSpansForOutgoingRequests?: boolean;
-
-  /**
    * Whether to create spans for outgoing requests (user preference).
-   * This only takes effect if `createSpansForOutgoingRequests` is also enabled.
-   * If `createSpansForOutgoingRequests` is not enabled, this option is ignored.
+   * This only takes effect if `createSpansForOutgoingRequests` is not disabled.
+   * If `createSpansForOutgoingRequests` is explicitly set false, this option is ignored.
    *
    * @default `true`
    */
   spans?: boolean;
 
   /**
-   * Do not capture breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
-   * For the scope of this instrumentation, this callback only controls breadcrumb creation.
-   * The same option can be passed to the top-level httpIntegration where it controls both, breadcrumb and
-   * span creation.
+   * Whether to propagate Sentry trace headers in outgoing requests.
+   *
+   * @default `true`
+   */
+  propagateTraceInOutgoingRequests?: boolean;
+
+  /**
+   * @deprecated Use spans option instead.
+   *
+   * @default `true`
+   */
+  createSpansForOutgoingRequests?: boolean;
+
+  /**
+   * Do not instrument outgoing HTTP requests to URLs where the given callback returns `true`.
+   * When it returns `true`, the request is skipped entirely: no breadcrumb and no span are created,
+   * and no trace headers are propagated for that request.
    *
    * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the outgoing request.
    * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
@@ -73,7 +65,8 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   ignoreOutgoingRequests?: (url: string, request: http.RequestOptions) => boolean;
 
   /**
-   * Hooks for outgoing request spans, called when `createSpansForOutgoingRequests` is enabled.
+   * Hooks for outgoing request spans, only called when spans are created for outgoing requests
+   * (i.e. when `spans` is enabled).
    * These mirror the OTEL HttpInstrumentation hooks for backwards compatibility.
    */
   outgoingRequestHook?: (span: Span, request: ClientRequest | HttpClientRequest) => void;
@@ -83,63 +76,155 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
     request: HttpClientRequest,
     response: HttpIncomingMessage,
   ) => void;
+}
 
-  // All options below do not do anything anymore in this instrumentation, and will be removed in the future.
-  // They are only kept here for backwards compatibility - the respective functionality is now handled by the httpServerIntegration/httpServerSpansIntegration.
+export type SentryHttpInstrumentationOptions = InstrumentationConfig &
+  OutgoingHttpRequestInstrumentationOptions & {
+    // All options below do not do anything anymore in this instrumentation, and will be removed in the future.
+    // They are only kept here for backwards compatibility - the respective functionality is now handled by the httpServerIntegration/httpServerSpansIntegration.
 
-  /**
-   * @deprecated This no longer does anything.
-   */
-  extractIncomingTraceFromHeader?: boolean;
+    /**
+     * @deprecated This no longer does anything.
+     */
+    extractIncomingTraceFromHeader?: boolean;
 
-  /**
-   * @deprecated This no longer does anything.
-   */
-  ignoreStaticAssets?: boolean;
+    /**
+     * @deprecated This no longer does anything.
+     */
+    ignoreStaticAssets?: boolean;
 
-  /**
-   * @deprecated This no longer does anything.
-   */
-  disableIncomingRequestSpans?: boolean;
+    /**
+     * @deprecated This no longer does anything.
+     */
+    disableIncomingRequestSpans?: boolean;
 
-  /**
-   * @deprecated This no longer does anything.
-   */
-  ignoreSpansForIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
+    /**
+     * @deprecated This no longer does anything.
+     */
+    ignoreSpansForIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
 
-  /**
-   * @deprecated This no longer does anything.
-   */
-  ignoreIncomingRequestBody?: (url: string, request: http.RequestOptions) => boolean;
+    /**
+     * @deprecated This no longer does anything.
+     */
+    ignoreIncomingRequestBody?: (url: string, request: http.RequestOptions) => boolean;
 
-  /**
-   * @deprecated This no longer does anything.
-   */
-  maxIncomingRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
+    /**
+     * @deprecated This no longer does anything.
+     */
+    maxIncomingRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
 
-  /**
-   * @deprecated This no longer does anything.
-   */
-  trackIncomingRequestsAsSessions?: boolean;
+    /**
+     * @deprecated This no longer does anything.
+     */
+    trackIncomingRequestsAsSessions?: boolean;
 
-  /**
-   * @deprecated This no longer does anything.
-   */
-  instrumentation?: {
-    requestHook?: (span: Span, req: ClientRequest | IncomingMessage) => void;
-    responseHook?: (span: Span, response: IncomingMessage | ServerResponse) => void;
-    applyCustomAttributesOnSpan?: (
-      span: Span,
-      request: ClientRequest | IncomingMessage,
-      response: IncomingMessage | ServerResponse,
-    ) => void;
+    /**
+     * @deprecated This no longer does anything.
+     */
+    instrumentation?: {
+      requestHook?: (span: Span, req: ClientRequest | IncomingMessage) => void;
+      responseHook?: (span: Span, response: IncomingMessage | ServerResponse) => void;
+      applyCustomAttributesOnSpan?: (
+        span: Span,
+        request: ClientRequest | IncomingMessage,
+        response: IncomingMessage | ServerResponse,
+      ) => void;
+    };
+
+    /**
+     * @deprecated This no longer does anything.
+     */
+    sessionFlushingDelayMS?: number;
   };
 
-  /**
-   * @deprecated This no longer does anything.
-   */
-  sessionFlushingDelayMS?: number;
-};
+/**
+ * This instruments the http modules for outgoing requests.
+ * It uses the diagnostics channel if available, otherwise it falls back to monkey-patching.
+ *
+ * The instrumentation will start spans, create breadcrumbs, and propagate trace headers in outgoing requests (depending on the settings).
+ * This can be called multiple times, where the last invocation will have the current options.
+ *
+ * @TODO Cleanup options in v11
+ */
+export function instrumentHttpOutgoingRequests(
+  instrumentationOptions: OutgoingHttpRequestInstrumentationOptions = {},
+): void {
+  const { outgoingRequestApplyCustomAttributes: applyCustomAttributesOnSpan, ...options } = instrumentationOptions;
+  const patchOptions = {
+    propagateTrace: options.propagateTraceInOutgoingRequests ?? true,
+    applyCustomAttributesOnSpan,
+    ...options,
+    // oxlint-disable-next-line typescript/no-deprecated
+    spans: options.createSpansForOutgoingRequests !== false && (options.spans ?? true),
+    ignoreOutgoingRequests(url, request) {
+      return (
+        isTracingSuppressed() || !!options.ignoreOutgoingRequests?.(url, getRequestOptions(request as ClientRequest))
+      );
+    },
+    outgoingRequestHook(span, request) {
+      options.outgoingRequestHook?.(span, request);
+      // We monkey-patch `req.once('response'), which is used to trigger
+      // the callback of the request, so that it runs in the active context
+      // eslint-disable-next-line @typescript-eslint/unbound-method, typescript/no-deprecated
+      const originalOnce = request.once;
+
+      const newOnce = new Proxy(originalOnce, {
+        apply(target, thisArg, args: Parameters<typeof originalOnce>) {
+          const [event] = args;
+          if (event !== 'response') {
+            return target.apply(thisArg, args);
+          }
+
+          const parentContext = context.active();
+          const requestContext = trace.setSpan(parentContext, span);
+
+          return context.with(requestContext, () => {
+            return target.apply(thisArg, args);
+          });
+        },
+      });
+
+      // eslint-disable-next-line typescript/no-deprecated
+      request.once = newOnce;
+    },
+    outgoingResponseHook(span, response) {
+      options.outgoingResponseHook?.(span, response);
+      context.bind(context.active(), response);
+    },
+    errorMonitor,
+    // Pass these in to detect OTel double-wrapping if we're enabling spans
+    http,
+  } satisfies HttpInstrumentationOptions;
+
+  if (FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL) {
+    instrumentHttpOutgoingRequestsViaChannel(patchOptions);
+  } else {
+    instrumentHttpOutgoingRequestsViaMonkeyPatching(patchOptions);
+  }
+}
+
+let _currentListener: ChannelListener | undefined;
+function instrumentHttpOutgoingRequestsViaChannel(options: HttpInstrumentationOptions): void {
+  const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = getHttpClientSubscriptions(options);
+  // If it was previously subscribed, first unsubscribe it
+  // TODO(v11): We can likely remove this when we drop preload support
+  if (_currentListener) {
+    unsubscribe(HTTP_ON_CLIENT_REQUEST, _currentListener);
+  }
+
+  subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequestCreated);
+  _currentListener = onHttpClientRequestCreated;
+}
+
+/**
+ * Instrument outgoing HTTP(S) requests by old-school monkey-patching the `http` module.
+ * This is the fallback for runtimes that do not fully support the `node:http` client diagnostics channel
+ * (Node < 22.12).
+ */
+function instrumentHttpOutgoingRequestsViaMonkeyPatching(options: HttpInstrumentationOptions): void {
+  // Patching http also patches https, as this uses the same underlying object
+  patchHttpModuleClient(http, options);
+}
 
 /**
  * This custom HTTP instrumentation handles outgoing HTTP requests.
@@ -156,6 +241,8 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
  *
  * This is heavily inspired & adapted from:
  * https://github.com/open-telemetry/opentelemetry-js/blob/f8ab5592ddea5cba0a3b33bf8d74f27872c0367f/experimental/packages/opentelemetry-instrumentation-http/src/http.ts
+ *
+ * @deprecated This will be removed in v11. Use instrumentHttpOutgoingRequests() instead.
  */
 export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
@@ -163,87 +250,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
   }
 
   /** @inheritdoc */
-  public init(): [InstrumentationNodeModuleDefinition, InstrumentationNodeModuleDefinition] {
-    const { outgoingRequestApplyCustomAttributes: applyCustomAttributesOnSpan, ...options } = this.getConfig();
-    const patchOptions: HttpInstrumentationOptions = {
-      propagateTrace: options.propagateTraceInOutgoingRequests,
-      applyCustomAttributesOnSpan,
-      ...options,
-      spans: options.createSpansForOutgoingRequests && (options.spans ?? true),
-      ignoreOutgoingRequests(url, request) {
-        return (
-          isTracingSuppressed(context.active()) ||
-          !!options.ignoreOutgoingRequests?.(url, getRequestOptions(request as ClientRequest))
-        );
-      },
-      outgoingRequestHook(span, request) {
-        options.outgoingRequestHook?.(span, request);
-        // We monkey-patch `req.once('response'), which is used to trigger
-        // the callback of the request, so that it runs in the active context
-        // eslint-disable-next-line @typescript-eslint/unbound-method, typescript/no-deprecated
-        const originalOnce = request.once;
-
-        const newOnce = new Proxy(originalOnce, {
-          apply(target, thisArg, args: Parameters<typeof originalOnce>) {
-            const [event] = args;
-            if (event !== 'response') {
-              return target.apply(thisArg, args);
-            }
-
-            const parentContext = context.active();
-            const requestContext = trace.setSpan(parentContext, span);
-
-            return context.with(requestContext, () => {
-              return target.apply(thisArg, args);
-            });
-          },
-        });
-
-        // eslint-disable-next-line typescript/no-deprecated
-        request.once = newOnce;
-      },
-      outgoingResponseHook(span, response) {
-        options.outgoingResponseHook?.(span, response);
-        context.bind(context.active(), response);
-      },
-      errorMonitor,
-      // Pass these in to detect OTel double-wrapping if we're enabling spans
-      http,
-      https,
-    };
-
-    // only generate the subscriber function if we'll actually use it
-    const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL
-      ? getHttpClientSubscriptions(patchOptions)
-      : {};
-
-    // guard because we cover both http and https with the same subscribers
-    let hasRegisteredHandlers = false;
-    const sub = onHttpClientRequestCreated
-      ? <T extends HttpModuleExport>(moduleExports: T): T => {
-          if (!hasRegisteredHandlers && onHttpClientRequestCreated) {
-            hasRegisteredHandlers = true;
-            subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequestCreated);
-          }
-          return moduleExports;
-        }
-      : undefined;
-
-    const wrapHttp = sub ?? ((moduleExports: HttpModuleExport) => patchHttpModuleClient(moduleExports, patchOptions));
-
-    const wrapHttps = sub ?? ((moduleExports: HttpModuleExport) => patchHttpModuleClient(moduleExports, patchOptions));
-
-    /**
-     * You may be wondering why we register these diagnostics-channel listeners
-     * in such a convoluted way (as InstrumentationNodeModuleDefinition...)˝,
-     * instead of simply subscribing to the events once in here.
-     * The reason for this is timing semantics: These functions are called once the http or https module is loaded.
-     * If we'd subscribe before that, there seem to be conflicts with the OTEL native instrumentation in some scenarios,
-     * especially the "import-on-top" pattern of setting up ESM applications.
-     */
-    return [
-      new InstrumentationNodeModuleDefinition('http', ['*'], wrapHttp),
-      new InstrumentationNodeModuleDefinition('https', ['*'], wrapHttps),
-    ];
+  public init(): void {
+    instrumentHttpOutgoingRequests(this.getConfig());
   }
 }

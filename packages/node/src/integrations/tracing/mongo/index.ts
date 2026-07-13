@@ -3,7 +3,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 
-const INTEGRATION_NAME = 'Mongo';
+const INTEGRATION_NAME = 'Mongo' as const;
 
 export const instrumentMongo = generateInstrumentOnce(INTEGRATION_NAME, () => new MongoDBInstrumentation());
 

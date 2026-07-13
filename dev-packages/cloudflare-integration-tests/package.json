@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/cloudflare-integration-tests",
-  "version": "10.60.0",
+  "version": "10.65.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -9,19 +9,25 @@
   "scripts": {
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint:types": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
+    "ai": "^6.0.0",
     "@langchain/langgraph": "^1.0.1",
-    "@sentry/cloudflare": "10.60.0",
-    "@sentry/hono": "10.60.0",
+    "@prisma/adapter-d1": "6.15.0",
+    "@prisma/client": "6.15.0",
+    "@sentry/cloudflare": "10.65.0",
+    "@sentry/hono": "10.65.0",
     "hono": "^4.12.25"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260426.0",
-    "@sentry-internal/test-utils": "10.60.0",
+    "@sentry-internal/test-utils": "10.65.0",
+    "@sentry/conventions": "0.15.1",
     "eslint-plugin-regexp": "^3.1.0",
+    "prisma": "6.15.0",
     "vitest": "^3.2.6",
     "wrangler": "4.86.0"
   },

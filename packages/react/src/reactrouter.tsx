@@ -18,6 +18,7 @@ import type { ReactElement } from 'react';
 import * as React from 'react';
 import { hoistNonReactStatics } from './hoist-non-react-statics';
 import type { Action, Location } from './types';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 // We need to disable eslint no-explicit-any because any is required for the
 // react-router typings.
@@ -162,6 +163,7 @@ function instrumentReactRouter(
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.${instrumentationName}`,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          ...(source === 'route' && { [URL_TEMPLATE]: name }),
         },
       });
     }
@@ -177,6 +179,7 @@ function instrumentReactRouter(
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.${instrumentationName}`,
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            ...(source === 'route' && { [URL_TEMPLATE]: name }),
           },
         });
       }
@@ -233,7 +236,7 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
 
       if (activeRootSpan) {
         activeRootSpan.updateName(route);
-        activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+        activeRootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: route });
       }
     }
 

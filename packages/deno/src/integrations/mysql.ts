@@ -1,9 +1,9 @@
 import { mysqlChannelIntegration } from '@sentry/server-utils/orchestrion';
 import type { Integration, IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, extendIntegration } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 
-const INTEGRATION_NAME = 'DenoMysql';
+const INTEGRATION_NAME = 'DenoMysql' as const;
 
 /**
  * Create spans for `mysql` queries under Deno.
@@ -19,13 +19,13 @@ const INTEGRATION_NAME = 'DenoMysql';
  */
 const _denoMysqlIntegration = (() => {
   const inner = mysqlChannelIntegration();
-  return {
+
+  return extendIntegration(inner, {
     name: INTEGRATION_NAME,
     setupOnce() {
       setAsyncLocalStorageAsyncContextStrategy();
-      inner.setupOnce?.();
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 export const denoMysqlIntegration = defineIntegration(_denoMysqlIntegration) as () => Integration & {

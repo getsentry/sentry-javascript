@@ -12,7 +12,7 @@ export type SpotlightConnectionOptions = {
   sidecarUrl?: string;
 };
 
-export const INTEGRATION_NAME = 'SpotlightBrowser';
+export const INTEGRATION_NAME = 'SpotlightBrowser' as const;
 
 export const SPOTLIGHT_IGNORE_SPANS = [{ op: 'ui.interaction.click', name: '#sentry-spotlight' }];
 

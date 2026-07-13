@@ -5,10 +5,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
-  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_USER_EMAIL,
   SEMANTIC_ATTRIBUTE_USER_ID,
@@ -27,6 +23,14 @@ import { getCapturedScopesOnSpan } from '../utils';
 import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
 import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 import { DEFAULT_ENVIRONMENT } from '../../constants';
+import {
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_SPAN_SOURCE,
+  SENTRY_TRACE_LIFECYCLE,
+} from '@sentry/conventions/attributes';
 
 export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
   _segmentSpan: Span;
@@ -85,9 +89,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   const spanNameSource = processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
   if (spanNameSource) {
     safeSetSpanJSONAttributes(processedSpan, {
-      // Purposefully not using a constant defined here like in other attributes:
-      // This will be the name for SEMANTIC_ATTRIBUTE_SENTRY_SOURCE in v11
-      'sentry.span.source': spanNameSource,
+      [SENTRY_SPAN_SOURCE]: spanNameSource,
     });
   }
 
@@ -139,12 +141,13 @@ function applyCommonSpanAttributes(
 
   // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
   safeSetSpanJSONAttributes(spanJSON, {
+    [SENTRY_TRACE_LIFECYCLE]: 'stream',
+    [SENTRY_SEGMENT_NAME]: serializedSegmentSpan.name,
+    [SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
+    [SENTRY_SDK_NAME]: sdk?.sdk?.name,
+    [SENTRY_SDK_VERSION]: sdk?.sdk?.version,
     [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: release,
     [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: environment || DEFAULT_ENVIRONMENT,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: serializedSegmentSpan.name,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: sdk?.sdk?.name,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: sdk?.sdk?.version,
     [SEMANTIC_ATTRIBUTE_USER_ID]: scopeData.user?.id,
     [SEMANTIC_ATTRIBUTE_USER_EMAIL]: scopeData.user?.email,
     [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: scopeData.user?.ip_address,

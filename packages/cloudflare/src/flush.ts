@@ -1,6 +1,7 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Client } from '@sentry/core';
-import { flush } from '@sentry/core';
+import { debug, flush } from '@sentry/core';
+import { DEBUG_BUILD } from './debug-build';
 
 type FlushLock = {
   readonly ready: Promise<void>;
@@ -118,17 +119,29 @@ function getOrCreateFlushLockRegistry(context: ExecutionContext): FlushLockRegis
  * Flushes the client and then disposes of it to allow garbage collection.
  * This should be called at the end of each request to prevent memory leaks.
  *
+ * This function never rejects. On Workers, a rejected promise passed to
+ * `ctx.waitUntil` marks the whole invocation as `outcome: exception` even when
+ * the handler itself completed successfully. Since flush/dispose is internal
+ * SDK housekeeping, a failure here must not fail the user's invocation.
+ *
  * @param client - The CloudflareClient instance to flush and dispose
  * @param timeout - Timeout in milliseconds for the flush operation
  * @returns A promise that resolves when flush and dispose are complete
  */
 export async function flushAndDispose(client: Client | undefined, timeout = 2000): Promise<void> {
-  if (!client) {
-    await flush(timeout);
-
-    return;
+  try {
+    if (!client) {
+      await flush(timeout);
+      return;
+    }
+    await client.flush(timeout);
+  } catch (e) {
+    DEBUG_BUILD && debug.warn('Failed to flush client', e);
+  } finally {
+    try {
+      client?.dispose();
+    } catch (e) {
+      DEBUG_BUILD && debug.warn('Failed to dispose client', e);
+    }
   }
-
-  await client.flush(timeout);
-  client.dispose();
 }

@@ -61,7 +61,7 @@ export interface StreamedSpanJSON {
  * Main difference: Attributes are converted to {@link Attributes}, thus including the `type` annotation.
  */
 export type SerializedStreamedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links'> & {
-  attributes?: Attributes;
+  attributes: Attributes;
   links?: SpanLinkJSON<Attributes>[];
 };
 
@@ -319,5 +319,5 @@ export interface Span {
   /**
    * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
    */
-  recordException(exception: unknown, time?: number): void;
+  recordException(exception: unknown, time?: SpanTimeInput): void;
 }

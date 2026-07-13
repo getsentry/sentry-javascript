@@ -7,11 +7,12 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { SPAN_STATUS_ERROR, startSpanManual } from '../tracing';
 import type { Span } from '../types/span';
 import { debug } from '../utils/debug-logger';
+import { isObjectLike } from '../utils/is';
 import { getActiveSpan } from '../utils/spanUtils';
 
 const SQL_OPERATION_REGEX = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i;
 
-type PostgresConnectionContext = {
+export type PostgresConnectionContext = {
   ATTR_DB_NAMESPACE?: string;
   ATTR_SERVER_ADDRESS?: string;
   ATTR_SERVER_PORT?: string;
@@ -89,7 +90,7 @@ function _instrumentSqlInstance(
     apply(target, thisArg, argumentsList: unknown[]) {
       const query = Reflect.apply(target, thisArg, argumentsList);
 
-      if (query && typeof query === 'object' && 'handle' in query) {
+      if (isObjectLike(query) && 'handle' in query) {
         _wrapSingleQueryHandle(query as { handle: unknown; strings?: string[] }, proxiedSql, options);
       }
 
@@ -142,7 +143,7 @@ function _wrapQueryMethod(
   return function (this: unknown, ...args: unknown[]): unknown {
     const query = Reflect.apply(original, target, args);
 
-    if (query && typeof query === 'object' && 'handle' in query) {
+    if (isObjectLike(query) && 'handle' in query) {
       _wrapSingleQueryHandle(query as { handle: unknown; strings?: string[] }, proxiedSql, options);
     }
 
@@ -398,8 +399,10 @@ export function _sanitizeSqlQuery(sqlQuery: string | undefined): string {
 
 /**
  * Sets connection context attributes on a span.
+ *
+ * @internal Exported for the orchestrion (diagnostics-channel) integration.
  */
-function _setConnectionAttributes(span: Span, connectionContext: PostgresConnectionContext | undefined): void {
+export function _setConnectionAttributes(span: Span, connectionContext: PostgresConnectionContext | undefined): void {
   if (!connectionContext) {
     return;
   }
@@ -421,8 +424,10 @@ function _setConnectionAttributes(span: Span, connectionContext: PostgresConnect
 
 /**
  * Extracts DB operation name from SQL query and sets it on the span.
+ *
+ * @internal Exported for the orchestrion (diagnostics-channel) integration.
  */
-function _setOperationName(span: Span, sanitizedQuery: string | undefined, command?: string): void {
+export function _setOperationName(span: Span, sanitizedQuery: string | undefined, command?: string): void {
   if (command) {
     span.setAttribute('db.operation.name', command);
     return;
@@ -435,6 +440,26 @@ function _setOperationName(span: Span, sanitizedQuery: string | undefined, comma
 }
 
 /**
+ * Builds a {@link PostgresConnectionContext} from postgres.js' parsed options
+ * (which store `host`/`port` as arrays). Defaults to 'localhost'/5432.
+ *
+ * @internal Exported for the orchestrion (diagnostics-channel) integration.
+ */
+export function _buildConnectionContext(options: {
+  host?: string[];
+  port?: number[];
+  database?: string;
+}): PostgresConnectionContext {
+  const host = options.host?.[0] || 'localhost';
+  const port = options.port?.[0] || 5432;
+  return {
+    ATTR_DB_NAMESPACE: typeof options.database === 'string' && options.database !== '' ? options.database : undefined,
+    ATTR_SERVER_ADDRESS: host,
+    ATTR_SERVER_PORT: String(port),
+  };
+}
+
+/**
  * Extracts and stores connection context from sql.options.
  */
 function _attachConnectionContext(sql: unknown, proxiedSql: Record<symbol, unknown>): void {
@@ -443,17 +468,5 @@ function _attachConnectionContext(sql: unknown, proxiedSql: Record<symbol, unkno
     return;
   }
 
-  const opts = sqlInstance.options;
-  // postgres.js stores parsed options with host and port as arrays
-  // The library defaults to 'localhost' and 5432 if not specified, but we're defensive here
-  const host = opts.host?.[0] || 'localhost';
-  const port = opts.port?.[0] || 5432;
-
-  const connectionContext: PostgresConnectionContext = {
-    ATTR_DB_NAMESPACE: typeof opts.database === 'string' && opts.database !== '' ? opts.database : undefined,
-    ATTR_SERVER_ADDRESS: host,
-    ATTR_SERVER_PORT: String(port),
-  };
-
-  proxiedSql[CONNECTION_CONTEXT_SYMBOL] = connectionContext;
+  proxiedSql[CONNECTION_CONTEXT_SYMBOL] = _buildConnectionContext(sqlInstance.options);
 }

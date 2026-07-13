@@ -9,25 +9,19 @@
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
-import { defaultDbStatementSerializer } from './redis-common';
-import {
-  ATTR_DB_CONNECTION_STRING,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
-  ATTR_NET_PEER_NAME,
-  ATTR_NET_PEER_PORT,
-  DB_SYSTEM_VALUE_REDIS,
-} from './semconv';
+import { DB_STATEMENT, DB_SYSTEM, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
+import { defaultDbStatementSerializer } from '@sentry/server-utils';
+import { ATTR_DB_CONNECTION_STRING, DB_SYSTEM_VALUE_REDIS } from './semconv';
 import type { IORedisInstrumentationConfig } from './types';
 
 const PACKAGE_NAME = '@sentry/instrumentation-ioredis';
@@ -118,15 +112,19 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
 
         const { host, port } = this.options;
         const attributes: SpanAttributes = {
-          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
-          [ATTR_DB_STATEMENT]: defaultDbStatementSerializer(cmd.name, cmd.args),
+          // oxlint-disable-next-line typescript/no-deprecated
+          [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
+          // oxlint-disable-next-line typescript/no-deprecated
+          [DB_STATEMENT]: defaultDbStatementSerializer(cmd.name, cmd.args),
           [ATTR_DB_CONNECTION_STRING]: `redis://${host}:${port}`,
-          [ATTR_NET_PEER_NAME]: host,
-          [ATTR_NET_PEER_PORT]: port,
+          // oxlint-disable-next-line typescript/no-deprecated
+          [NET_PEER_NAME]: host,
+          // oxlint-disable-next-line typescript/no-deprecated
+          [NET_PEER_PORT]: port,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };
 
-        const span = startInactiveSpan({ name: cmd.name, kind: SpanKind.CLIENT, attributes });
+        const span = startInactiveSpan({ name: cmd.name, kind: SPAN_KIND.CLIENT, attributes });
 
         try {
           const result = original.apply(this, args);
@@ -159,15 +157,19 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
 
         const { host, port } = this.options;
         const attributes: SpanAttributes = {
-          [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
-          [ATTR_DB_STATEMENT]: 'connect',
+          // oxlint-disable-next-line typescript/no-deprecated
+          [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
+          // oxlint-disable-next-line typescript/no-deprecated
+          [DB_STATEMENT]: 'connect',
           [ATTR_DB_CONNECTION_STRING]: `redis://${host}:${port}`,
-          [ATTR_NET_PEER_NAME]: host,
-          [ATTR_NET_PEER_PORT]: port,
+          // oxlint-disable-next-line typescript/no-deprecated
+          [NET_PEER_NAME]: host,
+          // oxlint-disable-next-line typescript/no-deprecated
+          [NET_PEER_PORT]: port,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };
 
-        const span = startInactiveSpan({ name: 'connect', kind: SpanKind.CLIENT, attributes });
+        const span = startInactiveSpan({ name: 'connect', kind: SPAN_KIND.CLIENT, attributes });
 
         try {
           const result = original.apply(this, args) as Promise<unknown> | undefined;

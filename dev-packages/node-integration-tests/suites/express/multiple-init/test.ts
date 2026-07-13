@@ -1,73 +1,77 @@
-import { afterAll, expect, test } from 'vitest';
-import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { afterAll, describe, expect } from 'vitest';
+import { cleanupChildProcesses, createCjsTests } from '../../../utils/runner';
 
-afterAll(() => {
-  cleanupChildProcesses();
-});
+describe('express multiple init', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
 
-test('allows to call init multiple times', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
-    .expect({
-      event: {
-        exception: {
-          values: [
-            {
-              value: 'This is an exception 2',
+  createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('allows to call init multiple times', async () => {
+      const runner = createRunner()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  value: 'This is an exception 2',
+                },
+              ],
             },
-          ],
-        },
-        breadcrumbs: [
-          {
-            message: 'error breadcrumb 2',
-            timestamp: expect.any(Number),
+            breadcrumbs: [
+              {
+                message: 'error breadcrumb 2',
+                timestamp: expect.any(Number),
+              },
+            ],
+            tags: {
+              global: 'tag',
+              error: '2',
+            },
           },
-        ],
-        tags: {
-          global: 'tag',
-          error: '2',
-        },
-      },
-    })
-    .expect({
-      event: {
-        exception: {
-          values: [
-            {
-              value: 'This is an exception 3',
+        })
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  value: 'This is an exception 3',
+                },
+              ],
             },
-          ],
-        },
-        breadcrumbs: [
-          {
-            message: 'error breadcrumb 3',
-            timestamp: expect.any(Number),
+            breadcrumbs: [
+              {
+                message: 'error breadcrumb 3',
+                timestamp: expect.any(Number),
+              },
+            ],
+            tags: {
+              global: 'tag',
+              error: '3',
+            },
           },
-        ],
-        tags: {
-          global: 'tag',
-          error: '3',
-        },
-      },
-    })
-    .expect({
-      event: {
-        exception: {
-          values: [
-            {
-              value: 'Final exception was captured',
+        })
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  value: 'Final exception was captured',
+                },
+              ],
             },
-          ],
-        },
-      },
-    })
-    .start();
+          },
+        })
+        .start();
 
-  runner
-    .makeRequest('get', '/test/no-init')
-    .then(() => runner.makeRequest('get', '/test/error/1'))
-    .then(() => runner.makeRequest('get', '/test/init'))
-    .then(() => runner.makeRequest('get', '/test/error/2'))
-    .then(() => runner.makeRequest('get', '/test/error/3'));
+      runner
+        .makeRequest('get', '/test/no-init')
+        .then(() => runner.makeRequest('get', '/test/error/1'))
+        .then(() => runner.makeRequest('get', '/test/init'))
+        .then(() => runner.makeRequest('get', '/test/error/2'))
+        .then(() => runner.makeRequest('get', '/test/error/3'));
 
-  await runner.completed();
+      await runner.completed();
+    });
+  });
 });

@@ -10,7 +10,7 @@ import {
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
-const INTEGRATION_NAME = 'ReportingObserver';
+const INTEGRATION_NAME = 'ReportingObserver' as const;
 
 interface Report {
   [key: string]: unknown;

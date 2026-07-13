@@ -9,6 +9,7 @@ import {
   WINDOW,
 } from '@sentry/svelte';
 import { navigating, page } from '$app/stores';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 /**
  * A custom `BrowserTracing` integration for SvelteKit.
@@ -66,7 +67,7 @@ function _instrumentPageload(client: Client): void {
 
     if (routeId) {
       pageloadSpan.updateName(routeId);
-      pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      pageloadSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: routeId });
       getCurrentScope().setTransactionName(routeId);
     }
   });
@@ -127,15 +128,20 @@ function _instrumentNavigations(client: Client): void {
       'sentry.sveltekit.navigation.to': parameterizedRouteDestination || undefined,
     };
 
-    startBrowserTracingNavigationSpan(client, {
-      name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
-      op: 'navigation',
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
-        ...navigationInfo,
+    startBrowserTracingNavigationSpan(
+      client,
+      {
+        name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
+        op: 'navigation',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
+          ...(parameterizedRouteDestination && { [URL_TEMPLATE]: parameterizedRouteDestination }),
+          ...navigationInfo,
+        },
       },
-    });
+      { url: to?.url.href },
+    );
 
     routingSpan = startInactiveSpan({
       op: 'ui.sveltekit.routing',

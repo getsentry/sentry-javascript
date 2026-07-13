@@ -1,16 +1,15 @@
 import type { RequestOptions } from 'node:http';
 import type { HttpIncomingMessage } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { HttpServerIntegrationOptions } from './httpServerIntegration';
 import { httpServerIntegration } from './httpServerIntegration';
 import type { HttpServerSpansIntegrationOptions } from './httpServerSpansIntegration';
 import { httpServerSpansIntegration } from './httpServerSpansIntegration';
 import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
-import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
+import { instrumentHttpOutgoingRequests } from './SentryHttpInstrumentation';
 
-const INTEGRATION_NAME = 'Http';
+const INTEGRATION_NAME = 'Http' as const;
 
 interface HttpOptions {
   /**
@@ -125,18 +124,21 @@ interface HttpOptions {
   disableIncomingRequestSpans?: boolean;
 }
 
-export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
-  `${INTEGRATION_NAME}.sentry`,
-  options => {
-    return new SentryHttpInstrumentation(options);
-  },
-);
+export const instrumentSentryHttp = Object.assign(instrumentHttpOutgoingRequests, {
+  id: `${INTEGRATION_NAME}.sentry`,
+});
 
 /**
  * The http integration instruments Node's internal http and https modules.
  * It creates breadcrumbs for outgoing HTTP requests which will be attached to the currently active span.
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
+  // In node-core, for now we disable incoming requests spans by default
+  // we may revisit this in a future release
+  const spans = options.spans ?? false;
+  const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? false;
+  const enabledServerSpans = spans && !disableIncomingRequestSpans;
+
   const serverOptions: HttpServerIntegrationOptions = {
     sessions: options.trackIncomingRequestsAsSessions,
     sessionFlushingDelayMS: options.sessionFlushingDelayMS,
@@ -154,16 +156,11 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     breadcrumbs: options.breadcrumbs,
     propagateTraceInOutgoingRequests: options.tracePropagation ?? true,
     ignoreOutgoingRequests: options.ignoreOutgoingRequests,
+    spans,
   };
 
   const server = httpServerIntegration(serverOptions);
   const serverSpans = httpServerSpansIntegration(serverSpansOptions);
-
-  // In node-core, for now we disable incoming requests spans by default
-  // we may revisit this in a future release
-  const spans = options.spans ?? false;
-  const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? false;
-  const enabledServerSpans = spans && !disableIncomingRequestSpans;
 
   return {
     name: INTEGRATION_NAME,
@@ -175,7 +172,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     setupOnce() {
       server.setupOnce();
 
-      instrumentSentryHttp(httpInstrumentationOptions);
+      instrumentHttpOutgoingRequests(httpInstrumentationOptions);
     },
 
     processEvent(event) {

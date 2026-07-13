@@ -1,4 +1,4 @@
-import { startBrowserTracingNavigationSpan } from '@sentry/browser';
+import { getAbsoluteUrl, startBrowserTracingNavigationSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
   debug,
@@ -6,19 +6,29 @@ import {
   getClient,
   getRootSpan,
   GLOBAL_OBJ,
+  isThenable,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
 } from '@sentry/core';
-import type { DataRouter, RouterState } from 'react-router';
+import type { DataRouter } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { isClientInstrumentationApiUsed } from './createClientInstrumentation';
-import { resolveNavigateArg } from './utils';
+import {
+  finalizeNavigationSpanFromRouterState,
+  getParameterizedRoute,
+  normalizePathname,
+  resolveNavigateAbsoluteUrl,
+  resolveNavigateArg,
+} from './utils';
+import { URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __reactRouterDataRouter?: DataRouter;
 };
+
+const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 const MAX_RETRIES = 40; // 2 seconds at 50ms interval
 
@@ -50,6 +60,7 @@ export function instrumentHydratedRouter(): void {
           pageloadSpan.setAttributes({
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react_router',
+            [URL_TEMPLATE]: parameterizePageloadRoute,
           });
         }
       }
@@ -60,7 +71,45 @@ export function instrumentHydratedRouter(): void {
         router.navigate = function sentryPatchedNavigate(...args) {
           // Skip if instrumentation API is enabled (it handles navigation spans itself)
           if (!isClientInstrumentationApiUsed()) {
-            maybeCreateNavigationTransaction(resolveNavigateArg(args[0]) || '<unknown route>', 'url');
+            const target = args[0];
+
+            if (typeof target === 'number') {
+              // navigate(0) triggers a reload, not a route change — skip span creation
+              if (target !== 0) {
+                const currentPathname = WINDOW.location?.pathname || '/';
+                const navigationSpan = maybeCreateNavigationTransaction(
+                  currentPathname,
+                  getAbsoluteUrl(currentPathname),
+                  'url',
+                );
+
+                const result = originalNav(...args);
+
+                // Numeric navigations (`navigate(-1)`/`navigate(1)`) don't carry a destination
+                // path, so we can only resolve the real URL/route once the router has settled.
+                if (navigationSpan) {
+                  // Finalize from the (updated) router state after navigation completes, in both
+                  // the resolve and reject paths, so a rejected navigation still ends up with the
+                  // correct URL attributes instead of the placeholder start pathname.
+                  if (isThenable(result)) {
+                    result.then(
+                      () => finalizeNavigationSpanFromRouterState(navigationSpan, router.state),
+                      () => finalizeNavigationSpanFromRouterState(navigationSpan, router.state),
+                    );
+                  } else {
+                    finalizeNavigationSpanFromRouterState(navigationSpan, router.state);
+                  }
+                }
+
+                return result;
+              }
+            } else {
+              maybeCreateNavigationTransaction(
+                resolveNavigateArg(target) || '<unknown route>',
+                resolveNavigateAbsoluteUrl(target),
+                'url',
+              );
+            }
           }
           return originalNav(...args);
         };
@@ -90,15 +139,18 @@ export function instrumentHydratedRouter(): void {
 
         const rootSpanName = rootSpanJson.description;
         const parameterizedRoute = getParameterizedRoute(newState);
+        const spanPathname = rootSpanJson.data?.[URL_PATH] as string | undefined;
+        const destinationPathname = normalizePathname(newState.location.pathname);
 
         if (
           rootSpanName &&
           newState.navigation.state === 'idle' && // navigation has completed
           // this event is for the currently active root span
-          normalizePathname(newState.location.pathname) === normalizePathname(rootSpanName)
+          (destinationPathname === normalizePathname(rootSpanName) ||
+            (spanPathname && destinationPathname === normalizePathname(spanPathname)))
         ) {
           rootSpan.updateName(parameterizedRoute);
-          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+          rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: parameterizedRoute });
         }
       });
       return true;
@@ -122,21 +174,26 @@ export function instrumentHydratedRouter(): void {
   }
 }
 
-function maybeCreateNavigationTransaction(name: string, source: 'url' | 'route'): Span | undefined {
+function maybeCreateNavigationTransaction(name: string, url: string, source: 'url' | 'route'): Span | undefined {
   const client = getClient();
 
   if (!client) {
     return undefined;
   }
 
-  return startBrowserTracingNavigationSpan(client, {
-    name,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router',
+  return startBrowserTracingNavigationSpan(
+    client,
+    {
+      name,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router',
+        ...(source === 'route' ? { [URL_TEMPLATE]: name } : {}),
+      },
     },
-  });
+    { url },
+  );
 }
 
 function getActiveRootSpan(): Span | undefined {
@@ -151,19 +208,4 @@ function getActiveRootSpan(): Span | undefined {
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
-}
-
-function getParameterizedRoute(routerState: RouterState): string {
-  const lastMatch = routerState.matches[routerState.matches.length - 1];
-  return normalizePathname(lastMatch?.route.path ?? routerState.location.pathname);
-}
-
-function normalizePathname(pathname: string): string {
-  // Ensure it starts with a single slash
-  let normalized = pathname.startsWith('/') ? pathname : `/${pathname}`;
-  // Remove trailing slash unless it's the root
-  if (normalized.length > 1 && normalized.endsWith('/')) {
-    normalized = normalized.slice(0, -1);
-  }
-  return normalized;
 }

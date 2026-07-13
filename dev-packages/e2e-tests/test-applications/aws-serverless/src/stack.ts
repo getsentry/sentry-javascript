@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 
 const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
-export const SAM_PORT = 3001;
+export const SAM_PORT = Number(process.env.SAM_PORT) || 7120;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
 function samLambdaArchitecture(): 'arm64' | 'x86_64' {
@@ -123,7 +123,9 @@ export class LocalLambdaStack extends Stack {
     }
   }
 
-  static async waitForStack(timeout = 60000, port = SAM_PORT) {
+  // Generous timeout: with `--warm-containers EAGER`, SAM boots every function container
+  // before the endpoint responds, which can take well over a minute on slow CI runners.
+  static async waitForStack(timeout = 180000, port = SAM_PORT) {
     const startTime = Date.now();
     const maxWaitTime = timeout;
 

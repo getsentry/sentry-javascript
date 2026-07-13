@@ -63,7 +63,7 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
  * Otherwise, truncation is disabled whenever gen_ai spans are sent through the span streaming / v2
  * span path, i.e. full span streaming (`traceLifecycle: 'stream'`) or `streamGenAiSpans`. That path
  * is not subject to the transaction payload-size limits that truncation works around, so the full
- * message data can be retained.
+ * message data can be retained. `streamGenAiSpans` is opt-out (on unless explicitly set to `false`).
  */
 export function shouldEnableTruncation(enableTruncation: boolean | undefined): boolean {
   if (enableTruncation !== undefined) {
@@ -75,7 +75,7 @@ export function shouldEnableTruncation(enableTruncation: boolean | undefined): b
     return true;
   }
 
-  return !hasSpanStreamingEnabled(client) && !client.getOptions().streamGenAiSpans;
+  return !hasSpanStreamingEnabled(client) && client.getOptions().streamGenAiSpans === false;
 }
 
 /**

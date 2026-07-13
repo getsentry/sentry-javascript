@@ -1,5 +1,13 @@
 import * as Sentry from '@sentry/react';
-import { Link, Outlet, RouterProvider, createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
+import {
+  Link,
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  redirect,
+} from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 
@@ -18,6 +26,11 @@ const rootRoute = createRootRoute({
         <li>
           <Link to="/posts/$postId" params={{ postId: '2' }} id="nav-link">
             Post 2
+          </Link>
+        </li>
+        <li>
+          <Link to="/redirect" id="redirect-link">
+            Redirect
           </Link>
         </li>
       </ul>
@@ -50,6 +63,11 @@ const postIdRoute = createRoute({
   shouldReload() {
     return true;
   },
+  beforeLoad: ({ params }) => {
+    if (params.postId === '999') {
+      throw redirect({ to: '/posts/$postId', params: { postId: '2' }, replace: true });
+    }
+  },
   loader: ({ params }) => {
     return Sentry.startSpan({ name: `loading-post-${params.postId}` }, async () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -61,7 +79,15 @@ const postIdRoute = createRoute({
   },
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, postsRoute.addChildren([postIdRoute])]);
+const redirectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'redirect',
+  beforeLoad: () => {
+    throw redirect({ to: '/posts/$postId', params: { postId: '1' }, replace: true });
+  },
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, redirectRoute, postsRoute.addChildren([postIdRoute])]);
 
 const router = createRouter({ routeTree });
 

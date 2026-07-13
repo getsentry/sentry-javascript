@@ -21,7 +21,7 @@ function getUser(): User | undefined {
 
 export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
   return {
-    name: 'FeedbackModal',
+    name: 'FeedbackModal' as const,
     setupOnce() {},
     createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }) => {
       const shadowRoot = shadow as ShadowRoot;
