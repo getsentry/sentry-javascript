@@ -1,7 +1,11 @@
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-const ORIGIN = 'auto.db.otel.dataloader';
+// The span origin depends on which instrumentation is active. When the generic orchestrion run is
+// enabled (via INJECT_ORCHESTRION) the OTel `Dataloader` integration is swapped for the
+// diagnostics-channel one, which stamps a different origin.
+const ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.dataloader' : 'auto.db.otel.dataloader';
 const CACHE_GET_OP = 'cache.get';
 
 describe('dataloader auto-instrumentation', () => {
