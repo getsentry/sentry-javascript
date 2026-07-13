@@ -3137,6 +3137,11 @@
   resolved "https://registry.yarnpkg.com/@cloudflare/workers-types/-/workers-types-4.20250922.0.tgz#a159fbf3bb785fa85b473ecfaa8c501525827885"
   integrity sha512-BaqlKnVc0Xzqm9xt3TC4v0yB9EHy5vVqpiWz+DAsbEmdcpUbqdBschvI9502p6FgFbZElD7XcxTEeViXLsoO0A==
 
+"@cloudflare/workers-types@5.20260710.1":
+  version "5.20260710.1"
+  resolved "https://registry.yarnpkg.com/@cloudflare/workers-types/-/workers-types-5.20260710.1.tgz#215c0cf84c3917552b53a1f5129150abf0b6009f"
+  integrity sha512-4ooaY2Pb5XGwDn8Fzm6jnTAJkIX0R5LBvL9euQpp2T58sQItlAQd9yivAlkwGhpY5cM1u81/9HaXwKAjXwtyzA==
+
 "@cloudflare/workers-types@^4.20260426.0":
   version "4.20260519.1"
   resolved "https://registry.yarnpkg.com/@cloudflare/workers-types/-/workers-types-4.20260519.1.tgz#061b4594e874a0e506ddc6599221939e6718d2a7"
