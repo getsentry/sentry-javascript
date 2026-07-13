@@ -875,6 +875,7 @@ describe('request utils', () => {
         httpBodies: [],
         queryParams: true,
         genAI: { inputs: true, outputs: true },
+        databaseQueryData: true,
         stackFrameVariables: true,
         frameContextLines: 5,
       };

@@ -60,6 +60,13 @@ export interface DataCollection {
   };
 
   /**
+   * Include data associated with database queries, such as parameters provided to a query, statement values, or returned results.
+   * Structural metadata (database system, query summary, table) is always collected regardless of this setting.
+   * @default true
+   */
+  databaseQueryData?: boolean;
+
+  /**
    * Capture local variable values in stack frames.
    * @default true
    */

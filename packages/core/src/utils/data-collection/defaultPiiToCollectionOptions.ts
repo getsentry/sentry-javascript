@@ -17,6 +17,7 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): Resolve
         httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
         queryParams: true,
         genAI: { inputs: true, outputs: true },
+        databaseQueryData: true,
         stackFrameVariables: true,
         frameContextLines: 7, // default should be 5, but ContextLines integration uses 7
       }
@@ -27,6 +28,9 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): Resolve
         httpBodies: [],
         queryParams: { deny: PII_HEADER_SNIPPETS },
         genAI: { inputs: false, outputs: false },
+        // Database query values were only sent with `sendDefaultPii: true` (e.g. Supabase gated on it),
+        // so map the legacy "off" state to `false`.
+        databaseQueryData: false,
         stackFrameVariables: true,
         frameContextLines: 7, // default should be 5, but ContextLines integration uses 7
       };

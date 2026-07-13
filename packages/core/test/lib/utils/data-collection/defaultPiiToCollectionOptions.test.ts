@@ -10,6 +10,7 @@ describe('defaultPiiToCollectionOptions', () => {
       httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
       queryParams: true,
       genAI: { inputs: true, outputs: true },
+      databaseQueryData: true,
       stackFrameVariables: true,
       frameContextLines: 7,
     });
@@ -26,6 +27,7 @@ describe('defaultPiiToCollectionOptions', () => {
       httpBodies: [],
       queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
       stackFrameVariables: true,
       frameContextLines: 7,
     });
@@ -42,6 +44,7 @@ describe('defaultPiiToCollectionOptions', () => {
       httpBodies: [],
       queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
       stackFrameVariables: true,
       frameContextLines: 7,
     });
@@ -58,6 +61,7 @@ describe('defaultPiiToCollectionOptions', () => {
       httpBodies: [],
       queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
       stackFrameVariables: true,
       frameContextLines: 7,
     });

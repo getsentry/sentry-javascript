@@ -18,6 +18,7 @@ export function createMockClient(userInfo = true, genAI?: { inputs: boolean; out
       httpBodies: [],
       queryParams: true,
       genAI: genAIOptions,
+      databaseQueryData: true,
       stackFrameVariables: true,
       frameContextLines: 5,
     }),

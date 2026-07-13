@@ -48,6 +48,7 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
         httpBodies: [],
         queryParams: true,
         genAI: { inputs: false, outputs: false },
+        databaseQueryData: true,
         stackFrameVariables: true,
         frameContextLines: 5,
       }),

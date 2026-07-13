@@ -8,6 +8,7 @@ const DEFAULTS: ResolvedDataCollection = {
   httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
   queryParams: true,
   genAI: { inputs: true, outputs: true },
+  databaseQueryData: true,
   stackFrameVariables: true,
   frameContextLines: 5,
 };
@@ -47,6 +48,7 @@ export function resolveDataCollectionOptions(options: {
       inputs: dc.genAI?.inputs ?? base.genAI.inputs,
       outputs: dc.genAI?.outputs ?? base.genAI.outputs,
     },
+    databaseQueryData: dc.databaseQueryData ?? base.databaseQueryData,
     stackFrameVariables: dc.stackFrameVariables ?? base.stackFrameVariables,
     frameContextLines: dc.frameContextLines ?? base.frameContextLines,
   };

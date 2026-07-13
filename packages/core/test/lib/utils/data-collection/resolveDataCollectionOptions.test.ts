@@ -9,6 +9,7 @@ describe('resolveDataCollectionOptions', () => {
     httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
     queryParams: true,
     genAI: { inputs: true, outputs: true },
+    databaseQueryData: true,
     stackFrameVariables: true,
     frameContextLines: 5,
   };
@@ -21,6 +22,7 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.userInfo).toBe(false);
       expect(result.httpBodies).toEqual([]);
       expect(result.genAI).toEqual({ inputs: false, outputs: false });
+      expect(result.databaseQueryData).toBe(false);
       expect(result.stackFrameVariables).toBe(true);
       expect(result.frameContextLines).toBe(7);
     });
@@ -46,6 +48,7 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.httpBodies).toEqual(['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']);
       expect(result.queryParams).toBe(true);
       expect(result.genAI).toEqual({ inputs: true, outputs: true });
+      expect(result.databaseQueryData).toBe(true);
     });
 
     it('bridges sendDefaultPii: false to restrictive config', () => {
@@ -54,6 +57,7 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.userInfo).toBe(false);
       expect(result.httpBodies).toEqual([]);
       expect(result.genAI).toEqual({ inputs: false, outputs: false });
+      expect(result.databaseQueryData).toBe(false);
     });
   });
 
@@ -69,6 +73,7 @@ describe('resolveDataCollectionOptions', () => {
       // Remaining fields use spec defaults (not sendDefaultPii bridge)
       expect(result.httpBodies).toEqual(['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']);
       expect(result.genAI).toEqual({ inputs: true, outputs: true });
+      expect(result.databaseQueryData).toBe(true);
     });
   });
 
@@ -88,6 +93,7 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.httpHeaders).toEqual({ request: true, response: true });
       expect(result.queryParams).toBe(true);
       expect(result.genAI).toEqual({ inputs: true, outputs: true });
+      expect(result.databaseQueryData).toBe(true);
       expect(result.stackFrameVariables).toBe(true);
       expect(result.frameContextLines).toBe(5);
     });
@@ -133,13 +139,23 @@ describe('resolveDataCollectionOptions', () => {
 
       expect(result.queryParams).toBe(false);
     });
+
+    it('supports turning off database query data', () => {
+      const result = resolveDataCollectionOptions({
+        dataCollection: {
+          databaseQueryData: false,
+        },
+      });
+
+      expect(result.databaseQueryData).toBe(false);
+    });
   });
 
   describe('return type completeness', () => {
     it('always returns all fields', () => {
       const result = resolveDataCollectionOptions({});
 
-      expect(Object.keys(result)).toHaveLength(8);
+      expect(Object.keys(result)).toHaveLength(9);
       expect(result).toHaveProperty('userInfo');
       expect(result).toHaveProperty('cookies');
       expect(result).toHaveProperty('httpHeaders');
@@ -150,6 +166,7 @@ describe('resolveDataCollectionOptions', () => {
       expect(result).toHaveProperty('genAI');
       expect(result).toHaveProperty('genAI.inputs');
       expect(result).toHaveProperty('genAI.outputs');
+      expect(result).toHaveProperty('databaseQueryData');
       expect(result).toHaveProperty('stackFrameVariables');
       expect(result).toHaveProperty('frameContextLines');
     });
