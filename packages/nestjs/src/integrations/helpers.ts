@@ -5,6 +5,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   withActiveSpan,
 } from '@sentry/core';
+import { isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
 
 /** A function of unknown signature, matching the methods/handlers we wrap. */
@@ -70,24 +71,25 @@ export function isTargetPatched(target: object, flag: 'sentryPatchedInjectable' 
 
 /** Origin for middleware/guard/pipe/interceptor/exception_filter spans. */
 function middlewareOrigin(componentType?: string): string {
-  return componentType ? `auto.middleware.nestjs.${componentType}` : 'auto.middleware.nestjs';
+  const base = isOrchestrionInjected() ? 'auto.middleware.orchestrion.nestjs' : 'auto.middleware.nestjs';
+  return componentType ? `${base}.${componentType}` : base;
 }
 
 /**
  * Origin for the app-creation / request-context / request-handler HTTP spans.
  */
 export function httpOrigin(): string {
-  return 'auto.http.otel.nestjs';
+  return isOrchestrionInjected() ? 'auto.http.orchestrion.nestjs' : 'auto.http.otel.nestjs';
 }
 
 /** Origin for `@OnEvent` spans. */
 function eventOrigin(): string {
-  return 'auto.event.nestjs';
+  return isOrchestrionInjected() ? 'auto.event.orchestrion.nestjs' : 'auto.event.nestjs';
 }
 
 /** Origin for BullMQ `@Processor` `process` spans. */
 function bullmqOrigin(): string {
-  return 'auto.queue.nestjs.bullmq';
+  return isOrchestrionInjected() ? 'auto.queue.orchestrion.nestjs.bullmq' : 'auto.queue.nestjs.bullmq';
 }
 
 /**
@@ -147,7 +149,8 @@ export function getBullMQProcessSpanOptions(queueName: string): {
 }
 
 /**
- * Adds instrumentation to a js observable and attaches the span to an active parent span.
+ * Adds instrumentation to a js observable and attaches the span to an active
+ * parent span.
  */
 export function instrumentObservable(observable: Observable<unknown>, activeSpan: Span | undefined): void {
   if (activeSpan) {
@@ -165,7 +168,7 @@ export function instrumentObservable(observable: Observable<unknown>, activeSpan
 }
 
 /**
- * Proxies the next() call in a nestjs middleware to end the span when it is called.
+ * Proxies the next() call in a nestjs middleware to end the span when called
  */
 export function getNextProxy(next: NextFunction, span: Span, prevSpan: undefined | Span): NextFunction {
   return new Proxy(next, {
