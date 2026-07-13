@@ -10,6 +10,7 @@ import {
 import { hapiChannelIntegration } from '../integrations/tracing-channel/hapi';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
 import { kafkajsChannelIntegration } from '../integrations/tracing-channel/kafkajs';
+import { knexChannelIntegration } from '../integrations/tracing-channel/knex';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
@@ -32,6 +33,7 @@ export {
   hapiChannelIntegration,
   ioredisChannelIntegration,
   kafkajsChannelIntegration,
+  knexChannelIntegration,
   lruMemoizerChannelIntegration,
   mysqlChannelIntegration,
   openaiChannelIntegration,

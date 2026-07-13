@@ -2,6 +2,7 @@ import { KnexInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
+import { isOrchestrionInjected, knexChannelIntegration } from '@sentry/server-utils/orchestrion';
 
 const INTEGRATION_NAME = 'Knex' as const;
 
@@ -11,7 +12,14 @@ const _knexIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentKnex();
+      // Prefer the diagnostics-channel subscriber when orchestrion injected its channels; otherwise
+      // fall back to the vendored OTel instrumentation. `isOrchestrionInjected()` is only reliable by
+      // `setupOnce` (the runtime injection runs during `Sentry.init()`, after integrations are built).
+      if (isOrchestrionInjected()) {
+        knexChannelIntegration().setupOnce?.();
+      } else {
+        instrumentKnex();
+      }
     },
   };
 }) satisfies IntegrationFn;
