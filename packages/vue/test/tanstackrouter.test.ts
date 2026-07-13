@@ -27,6 +27,12 @@ const mockNavigationSpan = {
   setAttributes: vi.fn(),
 };
 
+const mockPageloadSpan = {
+  updateName: vi.fn(),
+  setAttribute: vi.fn(),
+  setAttributes: vi.fn(),
+};
+
 describe('tanstackRouterBrowserTracingIntegration', () => {
   const mockMatchedRoutes = [
     {
@@ -72,6 +78,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     startBrowserTracingNavigationSpanSpy.mockReturnValue(mockNavigationSpan as any);
+    startBrowserTracingPageLoadSpanSpy.mockReturnValue(mockPageloadSpan as any);
 
     // Mock window.location
     vi.stubGlobal('window', {
@@ -128,6 +135,99 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
     integration.afterAllSetup(mockClient as any);
 
     expect(startBrowserTracingPageLoadSpanSpy).not.toHaveBeenCalled();
+  });
+
+  it('updates pageload span URL attributes on redirect to the same route template', () => {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
+      instrumentPageLoad: true,
+      instrumentNavigation: false,
+    });
+
+    integration.afterAllSetup(mockClient as any);
+
+    const onResolvedCallback = getSubscribeCallback('onResolved');
+    expect(onResolvedCallback).toBeDefined();
+
+    (mockRouter.matchRoutes as any).mockReturnValueOnce([
+      {
+        routeId: '/test/:id',
+        pathname: '/test/456',
+        params: { id: '456' },
+      },
+    ]);
+
+    onResolvedCallback({
+      toLocation: {
+        pathname: '/test/456',
+        search: {},
+      },
+    });
+
+    expect(mockPageloadSpan.setAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        [URL_TEMPLATE]: '/test/:id',
+        'url.path': '/test/456',
+        'url.full': expect.any(String),
+        'url.path.parameter.id': '456',
+        'params.id': '456',
+      }),
+    );
+  });
+
+  it('clears url.template on pageload onResolved when the final destination does not match a route', () => {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
+      instrumentPageLoad: true,
+      instrumentNavigation: false,
+    });
+
+    integration.afterAllSetup(mockClient as any);
+
+    const onResolvedCallback = getSubscribeCallback('onResolved');
+    expect(onResolvedCallback).toBeDefined();
+
+    // A redirect during pageload lands on a URL that no longer matches a route.
+    (mockRouter.matchRoutes as any).mockReturnValueOnce([{ routeId: '__root__', params: {} }]);
+
+    onResolvedCallback({
+      toLocation: { pathname: '/unknown/path', search: {} },
+    });
+
+    expect(mockPageloadSpan.updateName).toHaveBeenCalledWith('/unknown/path');
+    expect(mockPageloadSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+    expect(mockPageloadSpan.setAttributes).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        [URL_TEMPLATE]: undefined,
+        'url.path': '/unknown/path',
+        'url.full': expect.any(String),
+      }),
+    );
+  });
+
+  it('unsubscribes the pageload onResolved handler after the first resolution', () => {
+    const unsubscribe = vi.fn();
+    (mockRouter.subscribe as any).mockImplementation((eventType: string) => {
+      if (eventType === 'onResolved') {
+        return unsubscribe;
+      }
+      return vi.fn();
+    });
+
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
+      instrumentPageLoad: true,
+      instrumentNavigation: false,
+    });
+
+    integration.afterAllSetup(mockClient as any);
+
+    const onResolvedCallback = getSubscribeCallback('onResolved');
+    expect(onResolvedCallback).toBeDefined();
+
+    onResolvedCallback({ toLocation: { pathname: '/test/456', search: {} } });
+
+    // The handler must detach itself so later resolutions (e.g. subsequent navigations)
+    // don't touch the pageload span again.
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(mockPageloadSpan.updateName).toHaveBeenCalledTimes(1);
   });
 
   const getSubscribeCallback = (eventType: string): ((...args: any[]) => void) =>

@@ -61,6 +61,21 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
         return lastMatch?.routeId !== '__root__' ? lastMatch : undefined;
       };
 
+      const applyRouteMatch = (
+        span: NonNullable<ReturnType<typeof startBrowserTracingPageLoadSpan>>,
+        match: RouteMatch | undefined,
+        toLocation: TanstackRouterLocation,
+        fallbackName: string,
+      ): void => {
+        span.updateName(match ? match.routeId : fallbackName);
+        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, match ? 'route' : 'url');
+        span.setAttributes({
+          [URL_TEMPLATE]: match?.routeId,
+          ...locationToSpanUrlAttributes(router, toLocation),
+          ...routeMatchToParamSpanAttributes(match),
+        });
+      };
+
       const initialWindowLocation = WINDOW.location;
       if (instrumentPageLoad && initialWindowLocation) {
         const routeMatch = resolveRouteMatch(
@@ -89,15 +104,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
           }
           const { toLocation } = onResolvedArgs as TanstackRouterSubscribeArgs;
           const resolvedMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
-          if (resolvedMatch && resolvedMatch.routeId !== routeMatch?.routeId) {
-            pageloadSpan.updateName(resolvedMatch.routeId);
-            pageloadSpan.setAttributes({
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-              [URL_TEMPLATE]: resolvedMatch.routeId,
-              ...locationToSpanUrlAttributes(router, toLocation),
-              ...routeMatchToParamSpanAttributes(resolvedMatch),
-            });
-          }
+          applyRouteMatch(pageloadSpan, resolvedMatch, toLocation, toLocation.pathname);
         });
       }
 
@@ -107,21 +114,6 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
         // A redirect chain emits one `onBeforeLoad` per load but a single `onResolved`, so we start the
         // span on the first `onBeforeLoad`, rename it on later ones, and clear it on `onResolved`.
         let inFlightNavigationSpan: ReturnType<typeof startBrowserTracingNavigationSpan> | undefined;
-
-        const applyRouteMatch = (
-          span: NonNullable<typeof inFlightNavigationSpan>,
-          match: RouteMatch | undefined,
-          toLocation: TanstackRouterLocation,
-          fallbackName: string,
-        ): void => {
-          span.updateName(match ? match.routeId : fallbackName);
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, match ? 'route' : 'url');
-          span.setAttributes({
-            [URL_TEMPLATE]: match?.routeId,
-            ...locationToSpanUrlAttributes(router, toLocation),
-            ...routeMatchToParamSpanAttributes(match),
-          });
-        };
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         router.subscribe('onBeforeLoad', (onBeforeLoadArgs: any) => {

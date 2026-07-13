@@ -10,12 +10,15 @@ import {
   withScope,
 } from '@sentry/core';
 import type {
+  WorkflowDelayDuration,
   WorkflowEntrypoint,
   WorkflowEvent,
   WorkflowSleepDuration,
   WorkflowStep,
   WorkflowStepConfig,
+  WorkflowStepContext,
   WorkflowStepEvent,
+  WorkflowStepRollbackOptions,
   WorkflowTimeoutDuration,
 } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
@@ -70,23 +73,34 @@ class WrappedWorkflowStep implements WorkflowStep {
 
   public async do<T extends Rpc.Serializable<T>>(
     name: string,
-    callback: (...args: unknown[]) => Promise<T>,
+    callback: (ctx: WorkflowStepContext) => Promise<T>,
+    rollbackOptions?: WorkflowStepRollbackOptions<T>,
+  ): Promise<T>;
+  public async do<T extends Rpc.Serializable<T>, const C extends WorkflowStepConfig>(
+    name: string,
+    config: C,
+    callback: (
+      ctx: WorkflowStepContext<C['retries'] extends { delay: infer D } ? D : WorkflowDelayDuration | number>,
+    ) => Promise<T>,
+    rollbackOptions?: WorkflowStepRollbackOptions<T>,
   ): Promise<T>;
   public async do<T extends Rpc.Serializable<T>>(
     name: string,
-    config: WorkflowStepConfig,
-    callback: (...args: unknown[]) => Promise<T>,
-  ): Promise<T>;
-  public async do<T extends Rpc.Serializable<T>>(
-    name: string,
-    configOrCallback: WorkflowStepConfig | (() => Promise<T>),
-    maybeCallback?: (...args: unknown[]) => Promise<T>,
+    configOrCallback: WorkflowStepConfig | ((ctx: WorkflowStepContext) => Promise<T>),
+    callbackOrRollback?: ((ctx: WorkflowStepContext) => Promise<T>) | WorkflowStepRollbackOptions<T>,
+    maybeRollback?: WorkflowStepRollbackOptions<T>,
   ): Promise<T> {
     // Capture the current scope, so parent span (e.g., a startSpan surrounding step.do) is preserved
     const scopeForStep = getCurrentScope();
 
-    const userCallback = (maybeCallback || configOrCallback) as (...args: unknown[]) => Promise<T>;
-    const config = typeof configOrCallback === 'function' ? undefined : configOrCallback;
+    const hasConfig = typeof configOrCallback !== 'function';
+    const config = hasConfig ? configOrCallback : undefined;
+    const userCallback = (hasConfig ? callbackOrRollback : configOrCallback) as (
+      ctx: WorkflowStepContext,
+    ) => Promise<T>;
+    const rollbackOptions = (hasConfig ? maybeRollback : callbackOrRollback) as
+      | WorkflowStepRollbackOptions<T>
+      | undefined;
 
     const instrumentedCallback = async (...args: unknown[]): Promise<T> => {
       // Feature detection: Cloudflare Workflows (April 2026+) pass a step context
@@ -109,7 +123,9 @@ class WrappedWorkflowStep implements WorkflowStep {
           attributes: {
             'cloudflare.workflow.timeout': config?.timeout,
             'cloudflare.workflow.retries.backoff': config?.retries?.backoff,
-            'cloudflare.workflow.retries.delay': config?.retries?.delay,
+            // In workers-types v5, `delay` may be a `WorkflowDelayFunction`, which isn't a valid span attribute value.
+            'cloudflare.workflow.retries.delay':
+              typeof config?.retries?.delay === 'function' ? undefined : config?.retries?.delay,
             'cloudflare.workflow.retries.limit': config?.retries?.limit,
             'cloudflare.workflow.attempt': attempt,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
@@ -118,7 +134,7 @@ class WrappedWorkflowStep implements WorkflowStep {
         },
         async span => {
           try {
-            const result = await userCallback(...args);
+            const result = await (userCallback as (...args: unknown[]) => Promise<T>)(...args);
             span.setStatus({ code: 1 });
             return result;
           } catch (error) {
@@ -133,7 +149,15 @@ class WrappedWorkflowStep implements WorkflowStep {
       );
     };
 
-    return config ? this._step.do(name, config, instrumentedCallback) : this._step.do(name, instrumentedCallback);
+    if (config) {
+      return rollbackOptions
+        ? this._step.do(name, config, instrumentedCallback, rollbackOptions)
+        : this._step.do(name, config, instrumentedCallback);
+    }
+
+    return rollbackOptions
+      ? this._step.do(name, instrumentedCallback, rollbackOptions)
+      : this._step.do(name, instrumentedCallback);
   }
 
   public async sleep(name: string, duration: WorkflowSleepDuration): Promise<void> {
