@@ -75,6 +75,11 @@ export function instrumentXHR(): void {
         }
 
         if (xhrOpenThisArg.readyState === 4) {
+          // remove the listener once the request is done so we don't
+          // leak one `readystatechange` listener (and pin the XMLHttpRequest +
+          // its captured virtualError) per HTTP call on long-lived pages.
+          xhrOpenThisArg.removeEventListener('readystatechange', onreadystatechangeHandler);
+
           try {
             // touching statusCode in some platforms throws
             // an exception
