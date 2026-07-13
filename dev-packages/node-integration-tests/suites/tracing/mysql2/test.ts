@@ -1,4 +1,5 @@
 import { afterAll, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -6,13 +7,17 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
     cleanupChildProcesses();
   });
 
+  // With orchestrion injection enabled (`INJECT_ORCHESTRION`), the diagnostics-channel integration
+  // records the spans instead of the OTel patcher, so they carry a different `sentry.origin`.
+  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.mysql2' : 'auto.db.otel.mysql2';
+
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Transaction',
     spans: expect.arrayContaining([
       expect.objectContaining({
         description: 'SELECT 1 + 1 AS solution',
         op: 'db',
-        origin: 'auto.db.otel.mysql2',
+        origin: ORIGIN,
         data: expect.objectContaining({
           'db.system': 'mysql',
           'db.statement': 'SELECT 1 + 1 AS solution',
@@ -24,7 +29,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
       expect.objectContaining({
         description: 'SELECT NOW()',
         op: 'db',
-        origin: 'auto.db.otel.mysql2',
+        origin: ORIGIN,
         data: expect.objectContaining({
           'db.system': 'mysql',
           'db.statement': 'SELECT NOW()',
@@ -37,7 +42,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
       expect.objectContaining({
         description: 'SELECT 42 AS answer',
         op: 'db',
-        origin: 'auto.db.otel.mysql2',
+        origin: ORIGIN,
         data: expect.objectContaining({
           'db.system': 'mysql',
           'db.statement': 'SELECT 42 AS answer',
@@ -48,7 +53,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         description: 'SELECT * FROM does_not_exist',
         op: 'db',
         status: 'internal_error',
-        origin: 'auto.db.otel.mysql2',
+        origin: ORIGIN,
         data: expect.objectContaining({
           'db.system': 'mysql',
           'db.statement': 'SELECT * FROM does_not_exist',
