@@ -1,6 +1,6 @@
-import type { ExecutionContext } from '@cloudflare/workers-types';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
+import type { ExecutionContextCompat } from './executionContext';
 import { wrapRequestHandler } from './request';
 
 /**
@@ -54,9 +54,9 @@ export function sentryPagesPlugin<
     }
 
     const options = typeof handlerOrOptions === 'function' ? handlerOrOptions(context) : handlerOrOptions;
-    // A Pages `EventPluginContext` is not a Workers `ExecutionContext` (it lacks `exports`/`tracing`),
-    // but `wrapRequestHandler` only reads `waitUntil` off it, so a structural cast is safe here.
-    const executionContext = { ...context, props: {} } as unknown as ExecutionContext;
+    // A Pages `EventPluginContext` is not a Workers `ExecutionContext`, but `wrapRequestHandler` only
+    // uses `waitUntil` and a `'storage' in context` check, both of which this satisfies.
+    const executionContext = { ...context, props: {} } as unknown as ExecutionContextCompat;
     return wrapRequestHandler({ options, request: context.request, context: executionContext }, () => context.next());
   };
 }

@@ -2,6 +2,7 @@ import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Client } from '@sentry/core';
 import { debug, flush } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
+import type { ExecutionContextCompat } from './executionContext';
 
 type FlushLock = {
   readonly ready: Promise<void>;
@@ -34,7 +35,7 @@ const flushLockRegistries = new WeakMap<ExecutionContext['waitUntil'], FlushLock
  *
  * By using the original waitUntil for flush operations, we bypass this issue.
  */
-export function getOriginalWaitUntil(context: ExecutionContext): ExecutionContext['waitUntil'] | undefined {
+export function getOriginalWaitUntil(context: ExecutionContextCompat): ExecutionContext['waitUntil'] | undefined {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const currentWaitUntil = context.waitUntil;
   const original = flushLockRegistries.get(currentWaitUntil)?.originalWaitUntil;
@@ -49,7 +50,7 @@ export function getOriginalWaitUntil(context: ExecutionContext): ExecutionContex
  * @param {ExecutionContext} context - The execution context to be enhanced. If no context is provided, the function returns undefined.
  * @return {FlushLock} Returns a flusher function if a valid context is provided, otherwise undefined.
  */
-export function makeFlushLock(context: ExecutionContext): FlushLock {
+export function makeFlushLock(context: ExecutionContextCompat): FlushLock {
   const registry = getOrCreateFlushLockRegistry(context);
   let resolveAllDone: () => void = () => undefined;
   const allDone = new Promise<void>(res => {
@@ -81,7 +82,7 @@ export function makeFlushLock(context: ExecutionContext): FlushLock {
   return Object.freeze(lock);
 }
 
-function getOrCreateFlushLockRegistry(context: ExecutionContext): FlushLockRegistry {
+function getOrCreateFlushLockRegistry(context: ExecutionContextCompat): FlushLockRegistry {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const waitUntil = context.waitUntil;
   const existingRegistry = flushLockRegistries.get(waitUntil);

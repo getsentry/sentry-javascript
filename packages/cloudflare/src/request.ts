@@ -1,4 +1,4 @@
-import type { CfProperties, ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import {
   captureException,
   continueTrace,
@@ -14,12 +14,13 @@ import {
 } from '@sentry/core';
 import { captureIncomingRequestBody } from './integrations/httpServer';
 import type { CloudflareOptions } from './client';
+import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
 import { classifyResponseStreaming } from './utils/streaming';
 
-function getRequestErrorMechanismType(context: ExecutionContext | undefined): string {
+function getRequestErrorMechanismType(context: ExecutionContextCompat | undefined): string {
   // Durable Object fetch handlers use DO state as context (see instrumentDurableObjectWithSentry)
   return context && 'storage' in context ? 'auto.faas.cloudflare.durable_object' : 'auto.http.cloudflare';
 }
@@ -27,7 +28,7 @@ function getRequestErrorMechanismType(context: ExecutionContext | undefined): st
 interface RequestHandlerWrapperOptions {
   options: CloudflareOptions;
   request: Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>>;
-  context: ExecutionContext | undefined;
+  context: ExecutionContextCompat | undefined;
   /**
    * If true, errors will be captured, rethrown and sent to Sentry.
    * Otherwise, errors are rethrown but not captured.
