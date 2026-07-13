@@ -4,14 +4,8 @@ import { createRequire } from 'node:module';
 import { DEBUG_BUILD } from '../debug-build';
 import { parseHandlerString, resolveHandlerFile } from '../handlerResolution';
 
-interface AwsLambdaOptions {
-  // TODO(v11): Remove this option since it's no longer used.
-  /**
-   * @deprecated This option no longer does anything and will be removed in a future major version.
-   * Sentry trace propagation always takes precedence.
-   */
-  disableAwsContextPropagation?: boolean;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+interface AwsLambdaOptions {}
 
 const SHIM_MODULE_ID = '@sentry/aws-serverless/run-lambda-handler';
 
