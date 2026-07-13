@@ -27,7 +27,15 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { EngineSpan, ExtendedSpanOptions, SpanCallback, TracingHelper } from './types';
 import { DB_SYSTEM } from '@sentry/conventions/attributes';
 
-const showAllTraces = process.env.PRISMA_SHOW_ALL_TRACES === 'true';
+// Reading `process.env` can throw in runtimes that gate env access (e.g. Deno without `--allow-env`)
+// and `process` may be absent altogether (edge runtimes), so this degrades to `false` in those cases.
+const showAllTraces = ((): boolean => {
+  try {
+    return process.env.PRISMA_SHOW_ALL_TRACES === 'true';
+  } catch {
+    return false;
+  }
+})();
 
 const nonSampledTraceParent = `00-10-10-00`;
 
