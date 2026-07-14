@@ -5,18 +5,9 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
 } from '@opentelemetry/instrumentation';
-import type { Span } from '@sentry/core';
-import {
-  getActiveSpan,
-  isThenable,
-  SDK_VERSION,
-  startInactiveSpan,
-  startSpan,
-  startSpanManual,
-  withActiveSpan,
-} from '@sentry/core';
-import { getMiddlewareSpanOptions, getNextProxy, instrumentObservable, isPatched } from './helpers';
-import type { CallHandler, CatchTarget, InjectableTarget, MinimalNestJsExecutionContext, Observable } from './types';
+import { SDK_VERSION } from '@sentry/core';
+import { patchCatchTarget, patchInjectableTarget } from './wrap-components';
+import type { CatchTarget, InjectableTarget, MinimalNestJsExecutionContext } from './types';
 
 const supportedVersions = ['>=8.0.0 <12'];
 const COMPONENT = '@nestjs/common';
@@ -25,7 +16,8 @@ const COMPONENT = '@nestjs/common';
  * Custom instrumentation for nestjs.
  *
  * This hooks into
- * 1. @Injectable decorator, which is applied on class middleware, interceptors and guards.
+ * 1. @Injectable decorator, which is applied on class middleware,
+ *    interceptors and guards.
  * 2. @Catch decorator, which is applied on exception filters.
  */
 export class SentryNestInstrumentation extends InstrumentationBase {
@@ -87,191 +79,18 @@ export class SentryNestInstrumentation extends InstrumentationBase {
   }
 
   /**
-   * Creates a wrapper function for the @Injectable decorator.
+   * Creates a wrapper function for the @Injectable decorator. It patches the
+   * decorated class (via `patchInjectableTarget`) and delegates to the
+   * original decorator.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _createWrapInjectable(): (original: any) => (options?: unknown) => (target: InjectableTarget) => any {
-    const SeenNestjsContextSet = new WeakSet<MinimalNestJsExecutionContext>();
+    const seenContexts = new WeakSet<MinimalNestJsExecutionContext>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return function wrapInjectable(original: any) {
       return function wrappedInjectable(options?: unknown) {
         return function (target: InjectableTarget) {
-          // patch middleware
-          if (typeof target.prototype.use === 'function' && !target.__SENTRY_INTERNAL__) {
-            // patch only once
-            if (isPatched(target)) {
-              return original(options)(target);
-            }
-
-            target.prototype.use = new Proxy(target.prototype.use, {
-              apply: (originalUse, thisArgUse, argsUse) => {
-                const [req, res, next, ...args] = argsUse;
-
-                // Check that we can reasonably assume that the target is a middleware.
-                // Without these guards, instrumentation will fail if a function named 'use' on a service, which is
-                // decorated with @Injectable, is called.
-                if (!req || !res || !next || typeof next !== 'function') {
-                  return originalUse.apply(thisArgUse, argsUse);
-                }
-
-                const prevSpan = getActiveSpan();
-
-                return startSpanManual(getMiddlewareSpanOptions(target), (span: Span) => {
-                  // proxy next to end span on call
-                  const nextProxy = getNextProxy(next, span, prevSpan);
-                  return originalUse.apply(thisArgUse, [req, res, nextProxy, args]);
-                });
-              },
-            });
-          }
-
-          // patch guards
-          if (typeof target.prototype.canActivate === 'function' && !target.__SENTRY_INTERNAL__) {
-            // patch only once
-            if (isPatched(target)) {
-              return original(options)(target);
-            }
-
-            target.prototype.canActivate = new Proxy(target.prototype.canActivate, {
-              apply: (originalCanActivate, thisArgCanActivate, argsCanActivate) => {
-                const context = argsCanActivate[0];
-
-                if (!context) {
-                  return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
-                }
-
-                return startSpan(getMiddlewareSpanOptions(target, undefined, 'guard'), () => {
-                  return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
-                });
-              },
-            });
-          }
-
-          // patch pipes
-          if (typeof target.prototype.transform === 'function' && !target.__SENTRY_INTERNAL__) {
-            if (isPatched(target)) {
-              return original(options)(target);
-            }
-
-            target.prototype.transform = new Proxy(target.prototype.transform, {
-              apply: (originalTransform, thisArgTransform, argsTransform) => {
-                const value = argsTransform[0];
-                const metadata = argsTransform[1];
-
-                if (!value || !metadata) {
-                  return originalTransform.apply(thisArgTransform, argsTransform);
-                }
-
-                return startSpan(getMiddlewareSpanOptions(target, undefined, 'pipe'), () => {
-                  return originalTransform.apply(thisArgTransform, argsTransform);
-                });
-              },
-            });
-          }
-
-          // patch interceptors
-          if (typeof target.prototype.intercept === 'function' && !target.__SENTRY_INTERNAL__) {
-            if (isPatched(target)) {
-              return original(options)(target);
-            }
-
-            target.prototype.intercept = new Proxy(target.prototype.intercept, {
-              apply: (originalIntercept, thisArgIntercept, argsIntercept) => {
-                const context = argsIntercept[0] as MinimalNestJsExecutionContext | undefined;
-                const next = argsIntercept[1] as CallHandler | undefined;
-
-                const parentSpan = getActiveSpan();
-                let afterSpan: Span | undefined;
-
-                if (
-                  !context ||
-                  !next ||
-                  typeof next.handle !== 'function' || // Check that we can reasonably assume that the target is an interceptor.
-                  target.name === 'SentryTracingInterceptor' // We don't want to trace this internal interceptor
-                ) {
-                  return originalIntercept.apply(thisArgIntercept, argsIntercept);
-                }
-
-                return startSpanManual(
-                  getMiddlewareSpanOptions(target, undefined, 'interceptor'),
-                  (beforeSpan: Span) => {
-                    // eslint-disable-next-line @typescript-eslint/unbound-method
-                    next.handle = new Proxy(next.handle, {
-                      apply: (originalHandle, thisArgHandle, argsHandle) => {
-                        beforeSpan.end();
-
-                        if (parentSpan) {
-                          return withActiveSpan(parentSpan, () => {
-                            const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
-
-                            if (!SeenNestjsContextSet.has(context)) {
-                              SeenNestjsContextSet.add(context);
-                              afterSpan = startInactiveSpan(
-                                getMiddlewareSpanOptions(target, 'Interceptors - After Route', 'interceptor'),
-                              );
-                            }
-
-                            return handleReturnObservable;
-                          });
-                        } else {
-                          const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
-
-                          if (!SeenNestjsContextSet.has(context)) {
-                            SeenNestjsContextSet.add(context);
-                            afterSpan = startInactiveSpan(
-                              getMiddlewareSpanOptions(target, 'Interceptors - After Route', 'interceptor'),
-                            );
-                          }
-
-                          return handleReturnObservable;
-                        }
-                      },
-                    });
-
-                    let returnedObservableInterceptMaybePromise: Observable<unknown> | Promise<Observable<unknown>>;
-
-                    try {
-                      returnedObservableInterceptMaybePromise = originalIntercept.apply(
-                        thisArgIntercept,
-                        argsIntercept,
-                      );
-                    } catch (e) {
-                      beforeSpan.end();
-                      afterSpan?.end();
-                      throw e;
-                    }
-
-                    if (!afterSpan) {
-                      return returnedObservableInterceptMaybePromise;
-                    }
-
-                    // handle async interceptor
-                    if (isThenable(returnedObservableInterceptMaybePromise)) {
-                      return returnedObservableInterceptMaybePromise.then(
-                        observable => {
-                          instrumentObservable(observable, afterSpan ?? parentSpan);
-                          return observable;
-                        },
-                        e => {
-                          beforeSpan.end();
-                          afterSpan?.end();
-                          throw e;
-                        },
-                      );
-                    }
-
-                    // handle sync interceptor
-                    if (typeof returnedObservableInterceptMaybePromise.subscribe === 'function') {
-                      instrumentObservable(returnedObservableInterceptMaybePromise, afterSpan);
-                    }
-
-                    return returnedObservableInterceptMaybePromise;
-                  },
-                );
-              },
-            });
-          }
-
+          patchInjectableTarget(target, seenContexts);
           return original(options)(target);
         };
       };
@@ -279,35 +98,15 @@ export class SentryNestInstrumentation extends InstrumentationBase {
   }
 
   /**
-   * Creates a wrapper function for the @Catch decorator. Used to instrument exception filters.
+   * Creates a wrapper function for the @Catch decorator. Used to instrument
+   * exception filters.
    */
   private _createWrapCatch() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return function wrapCatch(original: any) {
       return function wrappedCatch(...exceptions: unknown[]) {
         return function (target: CatchTarget) {
-          if (typeof target.prototype.catch === 'function' && !target.__SENTRY_INTERNAL__) {
-            // patch only once
-            if (isPatched(target)) {
-              return original(...exceptions)(target);
-            }
-
-            target.prototype.catch = new Proxy(target.prototype.catch, {
-              apply: (originalCatch, thisArgCatch, argsCatch) => {
-                const exception = argsCatch[0];
-                const host = argsCatch[1];
-
-                if (!exception || !host) {
-                  return originalCatch.apply(thisArgCatch, argsCatch);
-                }
-
-                return startSpan(getMiddlewareSpanOptions(target, undefined, 'exception_filter'), () => {
-                  return originalCatch.apply(thisArgCatch, argsCatch);
-                });
-              },
-            });
-          }
-
+          patchCatchTarget(target);
           return original(...exceptions)(target);
         };
       };

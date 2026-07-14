@@ -1,5 +1,6 @@
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
 import { uniq } from '@sentry/core';
+
 import { amqplibConfig } from './amqplib';
 import { anthropicAiConfig } from './anthropic-ai';
 import { dataloaderConfig } from './dataloader';
@@ -17,8 +18,9 @@ import { langgraphConfig } from './langgraph';
 import { lruMemoizerConfig } from './lru-memoizer';
 import { mongodbConfig } from './mongodb';
 import { mongooseConfig } from './mongoose';
-import { mysqlConfig } from './mysql';
 import { mysql2Config } from './mysql2';
+import { mysqlConfig } from './mysql';
+import { nestjsConfig } from './nestjs';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { postgresJsConfig } from './postgres';
@@ -28,9 +30,16 @@ import { redisConfig } from './redis';
 import { remixConfig } from './remix';
 import { tediousConfig } from './tedious';
 import { vercelAiConfig } from './vercel-ai';
-
 // Kept sorted alphabetically by module so concurrent additions insert at different
 // points rather than all appending to the end (fewer merge conflicts).
+
+/**
+ * The orchestrion code-transform configs. Every instrumentable library is here
+ * so the transform is all-or-nothing: whenever orchestrion is enabled, all of
+ * these are injected. The channel LISTENERS may live elsewhere (e.g. the NestJS
+ * one lives in `@sentry/nestjs`), but the config that decides what gets
+ * transformed is centralized here.
+ */
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...amqplibConfig,
   ...anthropicAiConfig,
@@ -49,8 +58,9 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...lruMemoizerConfig,
   ...mongodbConfig,
   ...mongooseConfig,
-  ...mysqlConfig,
   ...mysql2Config,
+  ...mysqlConfig,
+  ...nestjsConfig,
   ...openaiConfig,
   ...pgConfig,
   ...postgresJsConfig,

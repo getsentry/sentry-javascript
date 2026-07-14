@@ -322,7 +322,7 @@ export {
   stackParserFromStackParserOptions,
   stripSentryFramesAndReverse,
 } from './utils/stacktrace';
-export { isMatchingPattern, safeJoin, snipLine, stringMatchesSomePattern, truncate } from './utils/string';
+export { isMatchingPattern, safeJoin, stringify, snipLine, stringMatchesSomePattern, truncate } from './utils/string';
 export {
   isNativeFunction,
   supportsDOMException,

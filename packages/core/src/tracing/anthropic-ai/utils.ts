@@ -7,7 +7,8 @@ import {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getJsonString, getTruncatedJsonString } from '../ai/utils';
+import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
+import { stringify } from '../../utils/string';
 import type { AnthropicAiResponse } from './types';
 
 /**
@@ -31,7 +32,7 @@ export function setMessagesAttribute(span: Span, messages: unknown, enableTrunca
   span.setAttributes({
     [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
       ? getTruncatedJsonString(filteredMessages)
-      : getJsonString(filteredMessages),
+      : stringify(filteredMessages),
     [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
   });
 }
