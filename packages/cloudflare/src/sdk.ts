@@ -21,6 +21,18 @@ import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
 
+/**
+ * Exact copy of the function from `@sentry/server-utils/orchestrion`.
+ * This is to avoid importing from server-utils directly into the Cloudflare SDK.
+ * TODO(v11): Use `@sentry/server-utils/orchestrion` once we move to `nodejs_compat` by default
+ */
+function getRegisteredChannelIntegrations(): Integration[] {
+  const marker = globalThis.__SENTRY_ORCHESTRION__;
+  const registered = marker?.integrations || [];
+
+  return registered.map(factory => factory());
+}
+
 /** Get the default integrations for the Cloudflare SDK. */
 export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
   // TODO(v11): Drop this transitional gating and let `requestDataIntegration` rely on the resolved
@@ -44,6 +56,13 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     httpServerIntegration(),
     requestDataIntegration(cookiesEnabled ? undefined : { include: { cookies: false } }),
     consoleIntegration(),
+    // The orchestrion diagnostics-channel subscribers (mysql, pg, …). The
+    // `@sentry/cloudflare/vite` plugin injects the channels at build time and
+    // adds a generated registration module to the bundle, which puts the
+    // subscriber factories on the global marker. Read from there instead of
+    // importing them so bundles built without the plugin — where the channels
+    // would never fire — don't ship the code.
+    ...getRegisteredChannelIntegrations(),
   ];
 }
 
