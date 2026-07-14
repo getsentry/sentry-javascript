@@ -89,12 +89,14 @@ const _langGraphChannelIntegration = ((options: LangGraphOptions = {}) => {
           CHANNELS.LANGGRAPH_CREATE_REACT_AGENT,
         );
         reactAgentChannel.start.subscribe(message => {
-          insideCreateReactAgent = true;
           const { arguments: args } = message as CreateReactAgentChannelContext;
           const params = getFirstArgObject(args);
           if (params && Array.isArray(params.tools) && params.tools.length > 0) {
             wrapToolsWithSpans(params.tools, resolvedOptions, extractAgentNameFromParams(args) ?? undefined);
           }
+          // Set only after tool wrapping so a throw there can't leave the flag stuck on and permanently
+          // suppress `create_agent` spans. The flag must be on before the body runs its internal compile.
+          insideCreateReactAgent = true;
         });
         reactAgentChannel.end.subscribe(message => {
           insideCreateReactAgent = false;

@@ -93,53 +93,42 @@ export function instrumentStateGraphCompile(
         return Reflect.apply(target, thisArg, args);
       }
 
-      return startSpan(
-        {
-          op: 'gen_ai.create_agent',
-          name: 'create_agent',
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
-            [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
-          },
-        },
-        span => {
-          try {
-            const compiledGraph = Reflect.apply(target, thisArg, args);
-            const compileOptions = args.length > 0 ? (args[0] as Record<string, unknown>) : {};
+      return startSpan(_INTERNAL_getLangGraphCreateAgentSpanOptions(), span => {
+        try {
+          const compiledGraph = Reflect.apply(target, thisArg, args);
+          const compileOptions = args.length > 0 ? (args[0] as Record<string, unknown>) : {};
 
-            // Extract graph name
-            if (compileOptions?.name && typeof compileOptions.name === 'string') {
-              span.setAttribute(GEN_AI_AGENT_NAME_ATTRIBUTE, compileOptions.name);
-              span.updateName(`create_agent ${compileOptions.name}`);
-            }
-
-            // Instrument agent invoke method on the compiled graph
-            const originalInvoke = compiledGraph.invoke;
-            if (originalInvoke && typeof originalInvoke === 'function') {
-              compiledGraph.invoke = instrumentCompiledGraphInvoke(
-                originalInvoke.bind(compiledGraph) as (...args: unknown[]) => Promise<unknown>,
-                compiledGraph,
-                compileOptions,
-                options,
-                undefined,
-                sentryHandler,
-              ) as typeof originalInvoke;
-            }
-
-            return compiledGraph;
-          } catch (error) {
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: 'auto.ai.langgraph.error',
-              },
-            });
-            throw error;
+          // Extract graph name
+          if (compileOptions?.name && typeof compileOptions.name === 'string') {
+            span.setAttribute(GEN_AI_AGENT_NAME_ATTRIBUTE, compileOptions.name);
+            span.updateName(`create_agent ${compileOptions.name}`);
           }
-        },
-      );
+
+          // Instrument agent invoke method on the compiled graph
+          const originalInvoke = compiledGraph.invoke;
+          if (originalInvoke && typeof originalInvoke === 'function') {
+            compiledGraph.invoke = instrumentCompiledGraphInvoke(
+              originalInvoke.bind(compiledGraph) as (...args: unknown[]) => Promise<unknown>,
+              compiledGraph,
+              compileOptions,
+              options,
+              undefined,
+              sentryHandler,
+            ) as typeof originalInvoke;
+          }
+
+          return compiledGraph;
+        } catch (error) {
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          captureException(error, {
+            mechanism: {
+              handled: false,
+              type: 'auto.ai.langgraph.error',
+            },
+          });
+          throw error;
+        }
+      });
     },
   }) as (...args: unknown[]) => CompiledGraph;
 
