@@ -50,8 +50,6 @@ interface Mysql2ConnectionConfig {
 
 interface Mysql2Connection {
   config?: Mysql2ConnectionConfig;
-  // mysql2 renders parameterized statements through the connection's own `format` (SqlString.format).
-  format?: (sql: string, values?: unknown) => string;
 }
 
 /**
@@ -80,7 +78,7 @@ function subscribeQueryChannel(channelName: ChannelName): void {
   bindTracingChannelToSpan(
     diagnosticsChannel.tracingChannel<Mysql2QueryChannelContext>(channelName),
     data => {
-      const statement = getQueryText(data.self, data.arguments);
+      const statement = getQueryText(data.arguments);
 
       return startInactiveSpan({
         name: statement ?? 'mysql2.query',
@@ -101,35 +99,10 @@ function subscribeQueryChannel(channelName: ChannelName): void {
 }
 
 /**
- * Render the `db.statement` from the wrapped call's arguments, inlining any bind values through the
- * connection's own `format` (as `@opentelemetry/instrumentation-mysql2` does). Returns the raw SQL if
- * formatting isn't possible.
+ * Render the `db.statement` from the wrapped call's first argument.
  */
-function getQueryText(connection: Mysql2Connection | undefined, args: unknown[]): string | undefined {
-  const sql = extractSql(args[0]);
-  if (sql === undefined) {
-    return undefined;
-  }
-
-  // `query(sql, values, cb)` → values is `args[1]`. mysql2 also accepts a single non-array bind value
-  // (`query(sql, scalar, cb)`); a non-array `args[1]` is only a value when a callback follows it,
-  // otherwise it is the callback itself (`query(sql, cb)`). Matches `@opentelemetry/instrumentation-mysql2`.
-  const values = Array.isArray(args[1]) ? args[1] : args[2] !== undefined ? [args[1]] : undefined;
-
-  const objectValues =
-    isObjectLike(args[0]) && 'values' in args[0] ? (args[0] as { values?: unknown }).values : undefined;
-  const boundValues = values ?? objectValues;
-
-  const format = connection?.format;
-  if (format && boundValues !== undefined) {
-    try {
-      return format.call(connection, sql, boundValues);
-    } catch {
-      return sql;
-    }
-  }
-
-  return sql;
+function getQueryText(args: unknown[]): string | undefined {
+  return extractSql(args[0]);
 }
 
 function extractSql(firstArg: unknown): string | undefined {

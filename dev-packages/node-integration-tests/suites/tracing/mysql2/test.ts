@@ -26,26 +26,27 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
           'db.user': 'root',
         }),
       }),
+      // bind values are left as `?` placeholders in `db.statement` (not inlined)
       expect.objectContaining({
-        description: 'SELECT NOW()',
+        description: 'SELECT ? as a, ? as b, NOW() as c',
         op: 'db',
         origin: ORIGIN,
         data: expect.objectContaining({
           'db.system': 'mysql',
-          'db.statement': 'SELECT NOW()',
+          'db.statement': 'SELECT ? as a, ? as b, NOW() as c',
           'net.peer.name': 'localhost',
           'net.peer.port': 3306,
           'db.user': 'root',
         }),
       }),
-      // a single non-array bind value is inlined into `db.statement` (not left as a `?` placeholder)
+      // a single non-array bind value is also left as a `?` placeholder in `db.statement`
       expect.objectContaining({
-        description: 'SELECT 42 AS scalar_value',
+        description: 'SELECT ? AS scalar_value',
         op: 'db',
         origin: ORIGIN,
         data: expect.objectContaining({
           'db.system': 'mysql',
-          'db.statement': 'SELECT 42 AS scalar_value',
+          'db.statement': 'SELECT ? AS scalar_value',
         }),
       }),
       // `execute` is instrumented the same way as `query`
@@ -73,7 +74,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
   };
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
-    test('should auto-instrument `mysql` package without connection.connect()', { timeout: 75_000 }, async () => {
+    test('should auto-instrument `mysql2` package without connection.connect()', { timeout: 75_000 }, async () => {
       await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
     });
   });
