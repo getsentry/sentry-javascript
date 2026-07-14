@@ -1,5 +1,6 @@
 import { amqplibChannelIntegration } from '../integrations/tracing-channel/amqplib';
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
+import { genericPoolChannelIntegration } from '../integrations/tracing-channel/generic-pool';
 import { googleGenAIChannelIntegration } from '../integrations/tracing-channel/google-genai';
 import {
   graphqlChannelIntegration,
@@ -23,6 +24,7 @@ export { nestjsChannels } from './config/nestjs';
 export {
   amqplibChannelIntegration,
   anthropicChannelIntegration,
+  genericPoolChannelIntegration,
   googleGenAIChannelIntegration,
   graphqlChannelIntegration,
   hapiChannelIntegration,
@@ -66,6 +68,7 @@ export const channelIntegrations = {
   postgresIntegration: postgresChannelIntegration,
   postgresJsIntegration: postgresJsChannelIntegration,
   mysqlIntegration: mysqlChannelIntegration,
+  genericPoolIntegration: genericPoolChannelIntegration,
   lruMemoizerIntegration: lruMemoizerChannelIntegration,
   openaiIntegration: openaiChannelIntegration,
   anthropicIntegration: anthropicChannelIntegration,
