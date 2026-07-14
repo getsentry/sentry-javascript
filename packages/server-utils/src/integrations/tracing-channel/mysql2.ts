@@ -111,8 +111,11 @@ function getQueryText(connection: Mysql2Connection | undefined, args: unknown[])
     return undefined;
   }
 
-  // `query(sql, values, cb)` → values is `args[1]`; `query(sql, cb)` → no values.
-  const values = Array.isArray(args[1]) ? args[1] : undefined;
+  // `query(sql, values, cb)` → values is `args[1]`. mysql2 also accepts a single non-array bind value
+  // (`query(sql, scalar, cb)`); a non-array `args[1]` is only a value when a callback follows it,
+  // otherwise it is the callback itself (`query(sql, cb)`). Matches `@opentelemetry/instrumentation-mysql2`.
+  const values = Array.isArray(args[1]) ? args[1] : args[2] !== undefined ? [args[1]] : undefined;
+
   const objectValues =
     isObjectLike(args[0]) && 'values' in args[0] ? (args[0] as { values?: unknown }).values : undefined;
   const boundValues = values ?? objectValues;

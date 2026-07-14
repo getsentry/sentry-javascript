@@ -38,6 +38,16 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
           'db.user': 'root',
         }),
       }),
+      // a single non-array bind value is inlined into `db.statement` (not left as a `?` placeholder)
+      expect.objectContaining({
+        description: 'SELECT 42 AS scalar_value',
+        op: 'db',
+        origin: ORIGIN,
+        data: expect.objectContaining({
+          'db.system': 'mysql',
+          'db.statement': 'SELECT 42 AS scalar_value',
+        }),
+      }),
       // `execute` is instrumented the same way as `query`
       expect.objectContaining({
         description: 'SELECT 42 AS answer',
