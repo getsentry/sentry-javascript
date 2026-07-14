@@ -75,10 +75,14 @@
     "@sentry/server-utils": "10.67.0"
   },
   "peerDependencies": {
-    "@cloudflare/workers-types": "^4.x || ^5.x"
+    "@cloudflare/workers-types": "^4.x || ^5.x",
+    "wrangler": "^4.x"
   },
   "peerDependenciesMeta": {
     "@cloudflare/workers-types": {
+      "optional": true
+    },
+    "wrangler": {
       "optional": true
     }
   },
