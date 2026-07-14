@@ -68,8 +68,8 @@ function makeSpanOptions(loader: DataLoaderInstance | undefined, operation: Oper
     name: getSpanName(loader, operation),
     // The batch runs off a deferred tick and has no obvious network peer, so only `load`/`loadMany`
     // get a client kind, matching the vendored OTel instrumentation.
-    ...(operation === 'batch' ? {} : { kind: SPAN_KIND.CLIENT }),
-    ...(isCacheGet ? { op: CACHE_GET_OP } : {}),
+    kind: operation === 'batch' ? SPAN_KIND.CLIENT : undefined,
+    op: isCacheGet ? CACHE_GET_OP : undefined,
     onlyIfParent: true,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
