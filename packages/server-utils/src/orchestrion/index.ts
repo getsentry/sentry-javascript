@@ -1,5 +1,6 @@
 import { amqplibChannelIntegration } from '../integrations/tracing-channel/amqplib';
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
+import { dataloaderChannelIntegration } from '../integrations/tracing-channel/dataloader';
 import { genericPoolChannelIntegration } from '../integrations/tracing-channel/generic-pool';
 import { googleGenAIChannelIntegration } from '../integrations/tracing-channel/google-genai';
 import {
@@ -24,6 +25,7 @@ export { nestjsChannels } from './config/nestjs';
 export {
   amqplibChannelIntegration,
   anthropicChannelIntegration,
+  dataloaderChannelIntegration,
   genericPoolChannelIntegration,
   googleGenAIChannelIntegration,
   graphqlChannelIntegration,
@@ -63,6 +65,11 @@ export type * from '../integrations/tracing-channel/graphql/graphql-types';
  * Framework SDKs that own their own channel listener (e.g. `@sentry/nestjs`'s `Nest`) are NOT here
  * either: their transform config is still in `SENTRY_INSTRUMENTATIONS`, but the listener lives in
  * their package and picks the channel-vs-OTel path itself at `setupOnce`, so it needs no central swap.
+ *
+ * NOTE: `dataloaderChannelIntegration` is also NOT here. Everything in this map is auto-appended to
+ * the default integrations, but the OTel `Dataloader` integration is opt-in (never a default). Like
+ * `@sentry/nestjs`'s `Nest`, its `@sentry/node` factory picks the channel-vs-OTel path itself at
+ * `setupOnce` (via `isOrchestrionInjected()`), so there's nothing for the central swap to do.
  */
 export const channelIntegrations = {
   postgresIntegration: postgresChannelIntegration,
