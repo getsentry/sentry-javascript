@@ -169,7 +169,9 @@ function _init(
 
   options.transport = options.transport || makeFetchTransport;
 
-  options.defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(options);
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrationsImpl(options);
+  }
 
   return initNode(options);
 }
