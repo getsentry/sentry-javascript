@@ -1,10 +1,5 @@
-import { debug } from '@sentry/core';
+import { debug, GLOBAL_OBJ } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-
-declare global {
-  // eslint-disable-next-line no-var
-  var __SENTRY_ORCHESTRION__: { runtime?: boolean; bundler?: boolean } | undefined;
-}
 
 /**
  * Whether orchestrion has injected the diagnostics channels into this process,
@@ -16,14 +11,15 @@ declare global {
  * will ever publish to those channels.
  */
 export function isOrchestrionInjected(): boolean {
-  const marker = globalThis.__SENTRY_ORCHESTRION__;
-  return !!(marker?.runtime || marker?.bundler);
+  return !!GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
 }
 
 /**
  * Verifies that the diagnostics channels have been injected either by the
  * runtime `--import` hook (or init-time registration), a bundler plugin, or
- * both, and warns if not.
+ * both, and warns if not. When at least one injector is active, logs for each
+ * mechanism whether it hooked (a defined array, even empty, means it did) and
+ * which libraries it injected.
  *
  * Both injectors being active at once is fine: they operate on disjoint module
  * sets (a module is either loaded through Node's loader and transformed by the
@@ -31,25 +27,27 @@ export function isOrchestrionInjected(): boolean {
  * a single module can't be double-wrapped. A hybrid setup, with some deps
  * external and runtime-instrumented, others bundled and plugin-instrumented,
  * is fine.
- *
- * Note: intentionally does NOT warn in production, only in debug builds,
- * because production warnings are reserved for truly critical issues.
  */
 export function detectOrchestrionSetup(): void {
-  if (!DEBUG_BUILD) return;
+  const { runtime, bundler } = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ?? {};
 
-  const marker = globalThis.__SENTRY_ORCHESTRION__;
-  const runtime = !!marker?.runtime;
-  const bundler = !!marker?.bundler;
-
-  DEBUG_BUILD && debug.log(`[orchestrion] detect: runtime=${runtime} bundler=${bundler}`);
-
-  if (!isOrchestrionInjected()) {
-    DEBUG_BUILD &&
-      debug.warn(
-        '[Sentry] No diagnostics-channel injection detected. Channel-based integrations ' +
-          '(mysql, …) will not record spans. Make sure the diagnostics channels are injected ' +
-          'via the runtime `--import` hook or a bundler plugin before the instrumented modules load.',
-      );
+  if (!runtime && !bundler) {
+    debug.warn(
+      '[Sentry] No diagnostics-channel injection detected. Channel-based integrations ' +
+        'will not record spans. Make sure the diagnostics channels are injected ' +
+        'via the runtime `--import` hook or a bundler plugin before the instrumented modules load.',
+    );
+    return;
   }
+
+  debug.log(
+    runtime
+      ? `[Sentry] Runtime hook registered, injected libraries=${JSON.stringify(runtime)}`
+      : '[Sentry] Runtime hook not registered',
+  );
+  debug.log(
+    bundler
+      ? `[Sentry] Bundler plugin ran, injected libraries=${JSON.stringify(bundler)}`
+      : '[Sentry] Bundler plugin did not run',
+  );
 }
