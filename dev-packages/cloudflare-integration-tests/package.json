@@ -25,7 +25,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260426.0",
     "@sentry-internal/test-utils": "10.65.0",
-    "@sentry/conventions": "0.15.1",
+    "@sentry/conventions": "0.16.0",
     "eslint-plugin-regexp": "^3.1.0",
     "prisma": "6.15.0",
     "vitest": "^3.2.6",
