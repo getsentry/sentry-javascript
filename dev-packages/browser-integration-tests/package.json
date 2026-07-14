@@ -53,7 +53,7 @@
     "test:loader:full": "PW_BUNDLE=loader_tracing_replay yarn test:loader",
     "test:loader:debug": "PW_BUNDLE=loader_debug yarn test:loader",
     "test:update-snapshots": "yarn test:all --update-snapshots",
-    "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts"
+    "test:detect-flaky": "tsx scripts/detectFlakyTests.ts"
   },
   "dependencies": {
     "@babel/core": "^7.29.6",

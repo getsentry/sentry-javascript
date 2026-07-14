@@ -51,7 +51,26 @@ export interface DataCollection {
   queryParams?: CollectBehavior;
 
   /**
-   * Controls generative AI input/output recording.
+   * Allow collection of GraphQL operation data when using the SDK's GraphQL integrations
+   *
+   * These options do not add GraphQL instrumentation on their own. The corresponding integration must still be enabled
+   * for any data to be captured.
+   *
+   * - `document`: attach the GraphQL document (query/mutation source text).
+   * - `variables`: attach the variables passed to GraphQL operations.
+   * @default { document: true, variables: true }
+   */
+  graphQL?: {
+    document?: boolean;
+    variables?: boolean;
+  };
+
+  /**
+   * Allow generative AI input/output recording when using the SDK's AI integrations.
+   *
+   * These options do not add AI instrumentation on their own. The corresponding integration must still be enabled for
+   * any data to be captured. Integration-level options, when set, take precedence over these
+   * values.
    * @default { inputs: true, outputs: true }
    */
   genAI?: {
@@ -84,5 +103,6 @@ export interface DataCollection {
  */
 export type ResolvedDataCollection = Required<DataCollection> & {
   httpHeaders: Required<NonNullable<DataCollection['httpHeaders']>>;
+  graphQL: Required<NonNullable<DataCollection['graphQL']>>;
   genAI: Required<NonNullable<DataCollection['genAI']>>;
 };

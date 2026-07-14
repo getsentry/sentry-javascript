@@ -11,6 +11,7 @@ import {
 } from '@sentry/core/browser';
 import type { FetchHint, XhrHint } from '@sentry/browser-utils';
 import { getBodyString, getFetchRequestArgBody, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
+import { GRAPHQL_DOCUMENT } from '@sentry/conventions/attributes';
 
 interface GraphQLClientOptions {
   endpoints: Array<string | RegExp>;
@@ -88,9 +89,9 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
         const operationInfo = _getGraphQLOperation(graphqlBody);
         span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
 
-        // Handle standard requests - always capture the query document
-        if (isStandardRequest(graphqlBody)) {
-          span.setAttribute('graphql.document', graphqlBody.query);
+        // Handle standard requests - capture the query document when enabled via dataCollection (default true)
+        if (isStandardRequest(graphqlBody) && client.getDataCollectionOptions().graphQL.document === true) {
+          span.setAttribute(GRAPHQL_DOCUMENT, graphqlBody.query);
         }
 
         // Handle persisted operations - capture hash for debugging
@@ -126,8 +127,8 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
 
           data['graphql.operation'] = operationInfo;
 
-          if (isStandardRequest(graphqlBody)) {
-            data['graphql.document'] = graphqlBody.query;
+          if (isStandardRequest(graphqlBody) && client.getDataCollectionOptions().graphQL.document === true) {
+            data[GRAPHQL_DOCUMENT] = graphqlBody.query;
           }
 
           if (isPersistedRequest(graphqlBody)) {

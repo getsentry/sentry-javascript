@@ -7,6 +7,7 @@ const DEFAULTS: ResolvedDataCollection = {
   httpHeaders: { request: true, response: true },
   httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
   queryParams: true,
+  graphQL: { document: true, variables: true },
   genAI: { inputs: true, outputs: true },
   databaseQueryData: true,
   stackFrameVariables: true,
@@ -44,6 +45,10 @@ export function resolveDataCollectionOptions(options: {
     },
     httpBodies: dc.httpBodies ?? base.httpBodies,
     queryParams: dc.queryParams ?? base.queryParams,
+    graphQL: {
+      document: dc.graphQL?.document ?? base.graphQL.document,
+      variables: dc.graphQL?.variables ?? base.graphQL.variables,
+    },
     genAI: {
       inputs: dc.genAI?.inputs ?? base.genAI.inputs,
       outputs: dc.genAI?.outputs ?? base.genAI.outputs,

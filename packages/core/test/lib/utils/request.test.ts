@@ -874,6 +874,7 @@ describe('request utils', () => {
         httpHeaders: { request: true, response: true },
         httpBodies: [],
         queryParams: true,
+        graphQL: { document: true, variables: true },
         genAI: { inputs: true, outputs: true },
         databaseQueryData: true,
         stackFrameVariables: true,
