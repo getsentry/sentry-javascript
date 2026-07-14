@@ -1,13 +1,11 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
 import {
-  debug,
   defineIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
@@ -28,20 +26,7 @@ const _genericPoolChannelIntegration = (() => {
         return;
       }
 
-      DEBUG_BUILD && debug.log(`[orchestrion:generic-pool] subscribing to channel "${CHANNELS.GENERIC_POOL_ACQUIRE}"`);
-
-      waitForTracingChannelBinding(() => {
-        bindTracingChannelToSpan(
-          diagnosticsChannel.tracingChannel<GenericPoolAcquireContext>(CHANNELS.GENERIC_POOL_ACQUIRE),
-          () =>
-            startInactiveSpan({
-              name: 'generic-pool.acquire',
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.orchestrion.generic_pool',
-              },
-            }),
-        );
-      });
+      waitForTracingChannelBinding(() => instrumentGenericPool());
     },
   };
 }) satisfies IntegrationFn;
@@ -53,3 +38,16 @@ const _genericPoolChannelIntegration = (() => {
  * acquisition. Requires the orchestrion runtime hook or bundler plugin.
  */
 export const genericPoolChannelIntegration = defineIntegration(_genericPoolChannelIntegration);
+
+function instrumentGenericPool(): void {
+  bindTracingChannelToSpan(
+    diagnosticsChannel.tracingChannel<GenericPoolAcquireContext>(CHANNELS.GENERIC_POOL_ACQUIRE),
+    () =>
+      startInactiveSpan({
+        name: 'generic-pool.acquire',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.orchestrion.generic_pool',
+        },
+      }),
+  );
+}
