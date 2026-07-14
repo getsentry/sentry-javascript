@@ -86,10 +86,20 @@ describe('getDefaultIntegrations', () => {
     expect(names).not.toContain('LruMemoizer');
   });
 
-  test('adds orchestrion channel integrations registered by the injected registration module', async () => {
-    // Mirror what the module the vite plugin injects into bundles does at runtime.
-    const { registerChannelIntegrations } = await import('@sentry/server-utils/orchestrion');
-    registerChannelIntegrations();
+  test('adds orchestrion channel integrations registered on the marker by injected modules', async () => {
+    // Mirror what the snippet the vite plugin injects into each instrumented
+    // module does at runtime: import its factory and `.set` it on the marker map,
+    // keyed by export name (so a package split across files registers once).
+    const { mysqlChannelIntegration, postgresChannelIntegration, lruMemoizerChannelIntegration } =
+      await import('@sentry/server-utils/orchestrion');
+    globalThis.__SENTRY_ORCHESTRION__ = {
+      bundler: true,
+      integrations: new Map([
+        ['mysqlChannelIntegration', mysqlChannelIntegration],
+        ['postgresChannelIntegration', postgresChannelIntegration],
+        ['lruMemoizerChannelIntegration', lruMemoizerChannelIntegration],
+      ]),
+    };
 
     const names = getDefaultIntegrations({}).map(i => i.name);
 

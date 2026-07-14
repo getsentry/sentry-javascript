@@ -19,9 +19,10 @@ export interface SentryCloudflareVitePluginOptions {
      * trace them without monkey-patching, which wouldn't work in workerd anyway.
      *
      * When enabled, the plugin injects `diagnostics_channel.tracingChannel`
-     * calls into the bundled packages and adds a generated registration module
-     * to the bundle, which the SDK picks up in `Sentry.withSentry()`. Both
-     * `vite build` and `vite dev` are instrumented.
+     * calls into the bundled packages and, next to each, a snippet that
+     * registers the matching Sentry channel-subscriber factory on the global
+     * marker, which the SDK picks up in `Sentry.withSentry()`. Both `vite build`
+     * and `vite dev` are instrumented.
      *
      * @default false
      * @experimental May change or be removed in any release.
@@ -66,5 +67,5 @@ export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOp
     return [];
   }
 
-  return sentryOrchestrionPlugin({ registerIntegrations: true });
+  return sentryOrchestrionPlugin({ injectChannelSubscribers: true });
 }
