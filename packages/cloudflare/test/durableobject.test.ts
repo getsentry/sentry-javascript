@@ -232,6 +232,35 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(obj.constructor).toBe(testClass);
   });
 
+  it('honors newTarget so that subclasses of the instrumented class keep their prototype', () => {
+    const testClass = class {
+      fetch() {
+        return new Response('fetch');
+      }
+
+      alarm() {}
+    };
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
+
+    // Dev tooling such as wrangler or `@cloudflare/vitest-pool-workers` subclasses the exported
+    // (instrumented) class, so the construct trap is invoked with the subclass as `newTarget`.
+    class Subclass extends instrumented {
+      subclassMethod() {
+        return 'subclass-result';
+      }
+    }
+
+    const obj = Reflect.construct(Subclass, []);
+
+    // The subclass prototype must be preserved
+    expect(obj).toBeInstanceOf(Subclass);
+    expect(obj.subclassMethod()).toBe('subclass-result');
+
+    // Built-in DO methods are still instrumented
+    expect(getInstrumented(obj.fetch)).toBeTruthy();
+    expect(getInstrumented(obj.alarm)).toBeTruthy();
+  });
+
   it('Does not instrument RPC methods when instrumentPrototypeMethods is not set', () => {
     const testClass = class {
       rpcMethod() {

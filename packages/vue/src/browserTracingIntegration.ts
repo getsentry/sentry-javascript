@@ -64,8 +64,8 @@ export function browserTracingIntegration(options: VueBrowserTracingIntegrationO
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      const startNavigationSpan = (options: StartSpanOptions): void => {
-        startBrowserTracingNavigationSpan(client, options);
+      const startNavigationSpan = (options: StartSpanOptions, destinationUrl: string): void => {
+        startBrowserTracingNavigationSpan(client, options, { url: destinationUrl });
       };
 
       instrumentVueRouter(router, { routeLabel, instrumentNavigation, instrumentPageLoad }, startNavigationSpan);

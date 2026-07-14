@@ -63,6 +63,11 @@ const postIdRoute = createRoute({
   shouldReload() {
     return true;
   },
+  beforeLoad: ({ params }) => {
+    if (params.postId === '999') {
+      throw redirect({ to: '/posts/$postId', params: { postId: '2' }, replace: true });
+    }
+  },
   loader: ({ params }) => {
     return Sentry.startSpan({ name: `loading-post-${params.postId}` }, async () => {
       await new Promise(resolve => setTimeout(resolve, 1000));

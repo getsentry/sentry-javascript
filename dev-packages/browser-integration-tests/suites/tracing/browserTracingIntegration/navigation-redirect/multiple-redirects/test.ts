@@ -7,6 +7,7 @@ import {
 } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 sentryTest(
   'creates a pageload and navigation root spans each with multiple navigation.redirect childspans',
@@ -57,6 +58,8 @@ sentryTest(
           'sentry.op': 'navigation.redirect',
           'sentry.origin': 'auto.navigation.browser',
           'sentry.source': 'url',
+          [URL_FULL]: expect.any(String),
+          [URL_PATH]: expect.any(String),
         },
         description: expect.stringContaining('/sub-page-redirect-'),
         op: 'navigation.redirect',

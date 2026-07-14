@@ -28,10 +28,10 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../ai/utils';
+import { stringify } from '../../utils/string';
 import {
   buildMethodPath,
   extractSystemInstructions,
-  getJsonString,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   shouldEnableTruncation,
@@ -197,7 +197,7 @@ export function addPrivateRequestAttributes(
       [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
       [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
         ? getTruncatedJsonString(filteredMessages)
-        : getJsonString(filteredMessages),
+        : stringify(filteredMessages),
     });
   }
 }

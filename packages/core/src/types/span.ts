@@ -61,7 +61,7 @@ export interface StreamedSpanJSON {
  * Main difference: Attributes are converted to {@link Attributes}, thus including the `type` annotation.
  */
 export type SerializedStreamedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links'> & {
-  attributes?: Attributes;
+  attributes: Attributes;
   links?: SpanLinkJSON<Attributes>[];
 };
 

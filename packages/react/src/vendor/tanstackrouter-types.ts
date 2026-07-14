@@ -11,6 +11,7 @@ export interface VendoredTanstackRouter {
   options: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     parseSearch: (search: string) => Record<string, any>;
+    stringifySearch?: (search: Record<string, unknown>) => string;
   };
   matchRoutes: (
     pathname: string,

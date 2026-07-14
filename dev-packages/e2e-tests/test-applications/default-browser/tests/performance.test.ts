@@ -19,6 +19,8 @@ test('captures a pageload transaction', async ({ page }) => {
           'sentry.origin': 'auto.pageload.browser',
           'sentry.sample_rate': 1,
           'sentry.source': 'url',
+          'url.full': 'http://localhost:3030/',
+          'url.path': '/',
         }),
         op: 'pageload',
         origin: 'auto.pageload.browser',
@@ -83,6 +85,10 @@ test('captures a navigation transaction', async ({ page }) => {
       trace: {
         op: 'navigation',
         origin: 'auto.navigation.browser',
+        data: expect.objectContaining({
+          'url.full': 'http://localhost:3030/#navigation-target',
+          'url.path': '/',
+        }),
       },
     },
     transaction: '/',

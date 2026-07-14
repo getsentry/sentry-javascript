@@ -1,10 +1,104 @@
-import { sentryRollupPlugin } from '../../src/rollup';
+import { _rollupPluginInternal, sentryRollupPlugin } from '../../src/rollup';
+import { createComponentNameAnnotateHooks } from '../../src/core';
 import type { Plugin, SourceMap } from 'rollup';
 import { describe, it, expect, test, beforeEach, vi } from 'vitest';
+
+const { babelCoreImportMock, transformAsyncMock, viteAnnotationModuleImportMock, viteAnnotationTransformMock } =
+  vi.hoisted(() => {
+    return {
+      babelCoreImportMock: vi.fn(),
+      transformAsyncMock: vi.fn(async (code: string) => ({ code, map: null })),
+      viteAnnotationModuleImportMock: vi.fn(),
+      viteAnnotationTransformMock: vi.fn(async () => ({ code: 'fast-path', map: null })),
+    };
+  });
+
+vi.mock('@babel/core', () => {
+  babelCoreImportMock();
+  return {
+    transformAsync: transformAsyncMock,
+  };
+});
+
+vi.mock('../../src/core/component-annotation-vite', () => {
+  viteAnnotationModuleImportMock();
+  return {
+    createViteComponentNameAnnotateHooks: vi.fn(() => ({
+      transform: viteAnnotationTransformMock,
+    })),
+  };
+});
+
+async function runTransform(plugin: Plugin, code: string, id: string): Promise<unknown> {
+  const transform = plugin.transform;
+
+  if (typeof transform === 'function') {
+    return await transform.call({} as never, code, id);
+  }
+
+  return await transform?.handler.call({} as never, code, id);
+}
 
 test('Rollup plugin should exist', () => {
   expect(sentryRollupPlugin).toBeDefined();
   expect(typeof sentryRollupPlugin).toBe('function');
+});
+
+test('component annotations only load Babel when the Babel transform runs', async () => {
+  expect(babelCoreImportMock).not.toHaveBeenCalled();
+
+  const hooks = createComponentNameAnnotateHooks([], false);
+
+  await hooks.transform('const x = 1;', '/src/plain.js');
+
+  expect(babelCoreImportMock).not.toHaveBeenCalled();
+
+  await hooks.transform('export function App() { return <div />; }', '/src/app.jsx');
+
+  expect(babelCoreImportMock).toHaveBeenCalledTimes(1);
+  expect(transformAsyncMock).toHaveBeenCalledTimes(1);
+});
+
+test('Vite annotation fast path only loads for Vite 8 annotation transforms', async () => {
+  expect(viteAnnotationModuleImportMock).not.toHaveBeenCalled();
+
+  const vite7Plugin = _rollupPluginInternal(
+    { release: { inject: false }, reactComponentAnnotation: { enabled: true } },
+    'vite',
+    '7',
+  ) as Plugin;
+
+  await runTransform(vite7Plugin, 'export function App() { return <div />; }', '/src/app.jsx');
+
+  expect(viteAnnotationModuleImportMock).not.toHaveBeenCalled();
+
+  const vite8Plugin = _rollupPluginInternal(
+    { release: { inject: false }, reactComponentAnnotation: { enabled: true } },
+    'vite',
+    '8',
+  ) as Plugin;
+
+  await runTransform(vite8Plugin, 'export function App() { return <div />; }', '/src/app.jsx');
+
+  expect(viteAnnotationModuleImportMock).toHaveBeenCalledTimes(1);
+  expect(viteAnnotationTransformMock).toHaveBeenCalledTimes(1);
+});
+
+test('uses a Rollup 3-compatible function transform hook for Rollup builds', () => {
+  const [rollupPlugin] = sentryRollupPlugin({
+    release: { inject: false },
+    reactComponentAnnotation: { enabled: true },
+  }) as [Plugin];
+
+  expect(typeof rollupPlugin.transform).toBe('function');
+
+  const vitePlugin = _rollupPluginInternal(
+    { release: { inject: false }, reactComponentAnnotation: { enabled: true } },
+    'vite',
+    '8',
+  ) as Plugin;
+
+  expect(typeof vitePlugin.transform).toBe('object');
 });
 
 describe('sentryRollupPlugin', () => {

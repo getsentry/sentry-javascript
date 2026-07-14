@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "10.64.0",
+  "version": "10.65.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -12,9 +12,9 @@
     "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && npx playwright install --with-deps || echo 'Skipping browser installation'",
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "type-check": "tsc",
+    "lint:types": "tsc --noEmit",
     "postinstall": "yarn install-browsers",
-    "pretest": "yarn clean && yarn type-check",
+    "pretest": "yarn clean && yarn lint:types",
     "test": "yarn test:all --project='chromium'",
     "test:all": "npx playwright test -c playwright.browser.config.ts",
     "test:bundle": "PW_BUNDLE=bundle yarn test",
@@ -53,16 +53,16 @@
     "test:loader:full": "PW_BUNDLE=loader_tracing_replay yarn test:loader",
     "test:loader:debug": "PW_BUNDLE=loader_debug yarn test:loader",
     "test:update-snapshots": "yarn test:all --update-snapshots",
-    "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts"
+    "test:detect-flaky": "tsx scripts/detectFlakyTests.ts"
   },
   "dependencies": {
     "@babel/core": "^7.29.6",
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "~1.56.0",
     "@sentry/rrweb": "2.43.2",
-    "@sentry/browser": "10.64.0",
-    "@sentry/replay": "10.64.0",
-    "@sentry/opentelemetry": "10.64.0",
+    "@sentry/browser": "10.65.0",
+    "@sentry/replay": "10.65.0",
+    "@sentry/opentelemetry": "10.65.0",
     "@sentry/conventions": "0.15.1",
     "@supabase/supabase-js": "2.49.3",
     "axios": "1.16.0",

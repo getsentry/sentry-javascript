@@ -1,11 +1,11 @@
 import { describe, expect } from 'vitest';
-import { createEsmAndCjsTests } from '../../../../utils/runner';
+import { createEsmAndCjsTests, describeWithDockerCompose } from '../../../../utils/runner';
 
 describe('knex auto instrumentation', () => {
   // Update this if another knex version is installed
   const KNEX_VERSION = '2.5.1';
 
-  describe('with `pg` client', () => {
+  describeWithDockerCompose('with `pg` client', { workingDirectory: [__dirname] }, () => {
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
       test('should auto-instrument `knex` package', { timeout: 60_000 }, async () => {
         const EXPECTED_TRANSACTION = {
@@ -76,11 +76,7 @@ describe('knex auto instrumentation', () => {
           ]),
         };
 
-        await createRunner()
-          .withDockerCompose({ workingDirectory: [__dirname] })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+        await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     });
   });

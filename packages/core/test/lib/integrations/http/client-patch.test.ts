@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HTTP_ON_CLIENT_REQUEST } from '../../../../src/integrations/http/constants';
 import { patchHttpModuleClient } from '../../../../src/integrations/http/client-patch';
-import type { HttpClientRequest, HttpExport } from '../../../../src/integrations/http/types';
+import type { HttpClientRequest, HttpExport, HttpModuleExport } from '../../../../src/integrations/http/types';
 import { getOriginalFunction } from '../../../../src/utils/object';
+import { getHttpClientSubscriptions } from '../../../../src/integrations/http/client-subscriptions';
 
 const mockClientRequestHandler = vi.fn();
 
@@ -12,34 +13,19 @@ vi.mock('../../../../src/integrations/http/client-subscriptions', () => ({
   })),
 }));
 
-function makeMockClientRequest(): HttpClientRequest {
-  return {
-    method: 'GET',
-    path: '/api/test',
-    host: 'example.com',
-    protocol: 'http:',
-    port: 80,
-    end: vi.fn(),
-    getHeader: vi.fn(() => undefined),
-    getHeaders: vi.fn(() => ({})),
-    setHeader: vi.fn(),
-    removeHeader: vi.fn(),
-    on: vi.fn(),
-    once: vi.fn(),
-    prependListener: vi.fn(),
-    listenerCount: vi.fn(() => 0),
-    removeListener: vi.fn(),
-  } as unknown as HttpClientRequest;
-}
-
+/**
+ * Build a mock that mirrors the shape we patch: a module exposing a
+ * `ClientRequest` constructor with a `_storeHeader` method on its prototype.
+ */
 function makeMockHttpModule(): HttpExport & {
-  request: ReturnType<typeof vi.fn>;
-  get: ReturnType<typeof vi.fn>;
+  ClientRequest: NonNullable<HttpExport['ClientRequest']> & { prototype: { _storeHeader: ReturnType<typeof vi.fn> } };
 } {
-  const mockClientReq = makeMockClientRequest();
-  const request = vi.fn(() => mockClientReq);
-  const get = vi.fn(() => mockClientReq);
-  return { request, get };
+  const _storeHeader = vi.fn();
+  return {
+    request: vi.fn(),
+    get: vi.fn(),
+    ClientRequest: { prototype: { _storeHeader } },
+  };
 }
 
 describe('patchHttpModuleClient', () => {
@@ -47,91 +33,115 @@ describe('patchHttpModuleClient', () => {
     vi.clearAllMocks();
   });
 
-  it('replaces request with a wrapped version', () => {
+  it('replaces ClientRequest.prototype._storeHeader with a wrapped version', () => {
     const httpModule = makeMockHttpModule();
-    const originalRequest = httpModule.request;
+    const originalStoreHeader = httpModule.ClientRequest.prototype._storeHeader;
 
     patchHttpModuleClient(httpModule);
 
-    expect(httpModule.request).not.toBe(originalRequest);
+    expect(httpModule.ClientRequest.prototype._storeHeader).not.toBe(originalStoreHeader);
   });
 
   it('preserves the original function via __sentry_original__', () => {
     const httpModule = makeMockHttpModule();
-    const originalRequest = httpModule.request;
+    const originalStoreHeader = httpModule.ClientRequest.prototype._storeHeader;
 
     patchHttpModuleClient(httpModule);
 
-    expect(getOriginalFunction(httpModule.request)).toBe(originalRequest);
+    expect(getOriginalFunction(httpModule.ClientRequest.prototype._storeHeader)).toBe(originalStoreHeader);
   });
 
-  it('still calls the original request when the patched one is invoked', () => {
+  it('still calls the original _storeHeader when the patched one is invoked', () => {
     const httpModule = makeMockHttpModule();
-    const originalRequest = httpModule.request;
+    const originalStoreHeader = httpModule.ClientRequest.prototype._storeHeader;
 
     patchHttpModuleClient(httpModule);
-    httpModule.request('http://example.com/');
+    const request = {} as HttpClientRequest;
+    const firstLine = 'GET / HTTP/1.1\r\n';
+    const headers = {};
+    httpModule.ClientRequest.prototype._storeHeader.call(request, firstLine, headers);
 
-    expect(originalRequest).toHaveBeenCalledOnce();
+    expect(originalStoreHeader).toHaveBeenCalledOnce();
+    expect(originalStoreHeader).toHaveBeenCalledWith(firstLine, headers);
   });
 
-  it('returns the result of the original request', () => {
-    const httpModule = makeMockHttpModule();
-
-    patchHttpModuleClient(httpModule);
-    const result = httpModule.request('http://example.com/');
-
-    expect(result).toBeDefined();
-  });
-
-  it('invokes the subscription handler after each request', () => {
+  it('invokes the subscription handler with the request on each _storeHeader call', () => {
     const httpModule = makeMockHttpModule();
 
     patchHttpModuleClient(httpModule);
-    httpModule.request('http://example.com/');
+    const request = { method: 'GET' } as HttpClientRequest;
+    httpModule.ClientRequest.prototype._storeHeader.call(request, 'GET / HTTP/1.1\r\n', {});
 
     expect(mockClientRequestHandler).toHaveBeenCalledOnce();
-    expect(mockClientRequestHandler).toHaveBeenCalledWith(
-      expect.objectContaining({ request: expect.any(Object) }),
-      HTTP_ON_CLIENT_REQUEST,
-    );
+    expect(mockClientRequestHandler).toHaveBeenCalledWith({ request }, HTTP_ON_CLIENT_REQUEST);
   });
 
-  it('wraps get to call .end() on the returned request automatically', () => {
+  it('runs the handler before the original _storeHeader so headers can still be injected', () => {
     const httpModule = makeMockHttpModule();
-    const mockReq = makeMockClientRequest();
-    httpModule.request = vi.fn(() => mockReq);
+    const originalStoreHeader = httpModule.ClientRequest.prototype._storeHeader;
+    const callOrder: string[] = [];
+    mockClientRequestHandler.mockImplementationOnce(() => callOrder.push('handler'));
+    originalStoreHeader.mockImplementationOnce(() => callOrder.push('original'));
 
     patchHttpModuleClient(httpModule);
-    httpModule.get('http://example.com/');
+    httpModule.ClientRequest.prototype._storeHeader.call({} as HttpClientRequest, 'GET / HTTP/1.1\r\n', {});
 
-    expect(mockReq.end).toHaveBeenCalledOnce();
+    expect(callOrder).toEqual(['handler', 'original']);
   });
 
-  it('is idempotent — patching a second time does not re-wrap', () => {
+  it('still calls the original _storeHeader even if the handler throws', () => {
+    const httpModule = makeMockHttpModule();
+    const originalStoreHeader = httpModule.ClientRequest.prototype._storeHeader;
+    mockClientRequestHandler.mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
+
+    patchHttpModuleClient(httpModule);
+    expect(() =>
+      httpModule.ClientRequest.prototype._storeHeader.call({} as HttpClientRequest, 'GET / HTTP/1.1\r\n', {}),
+    ).not.toThrow();
+    expect(originalStoreHeader).toHaveBeenCalledOnce();
+  });
+
+  it('is idempotent — patching a second time does not re-wrap but updates options', () => {
     const httpModule = makeMockHttpModule();
 
-    patchHttpModuleClient(httpModule);
-    const wrappedRequest = httpModule.request;
+    // Each patch derives its subscription handler from the options it was given,
+    // so distinct handlers stand in for distinct options here.
+    const handler1 = vi.fn();
+    const handler2 = vi.fn();
+    vi.mocked(getHttpClientSubscriptions)
+      .mockReturnValueOnce({ [HTTP_ON_CLIENT_REQUEST]: handler1 })
+      .mockReturnValueOnce({ [HTTP_ON_CLIENT_REQUEST]: handler2 });
 
-    patchHttpModuleClient(httpModule);
+    patchHttpModuleClient(httpModule, { propagateTrace: true });
+    const wrappedStoreHeader = httpModule.ClientRequest.prototype._storeHeader;
 
-    expect(httpModule.request).toBe(wrappedRequest);
+    patchHttpModuleClient(httpModule, { propagateTrace: false });
+
+    // The wrapper itself is preserved (no double-wrapping)...
+    expect(httpModule.ClientRequest.prototype._storeHeader).toBe(wrappedStoreHeader);
+
+    // ...but it now routes through the handler derived from the second patch's options.
+    httpModule.ClientRequest.prototype._storeHeader.call({} as HttpClientRequest, 'GET / HTTP/1.1\r\n', {});
+    expect(handler2).toHaveBeenCalledOnce();
+    expect(handler1).not.toHaveBeenCalled();
   });
 
-  it('handles CJS default export — patches the default and copies back to the container', () => {
+  it('is a no-op for modules without a ClientRequest (e.g. https)', () => {
+    const httpModule = { request: vi.fn(), get: vi.fn() } as unknown as HttpExport;
+
+    expect(() => patchHttpModuleClient(httpModule)).not.toThrow();
+    expect(mockClientRequestHandler).not.toHaveBeenCalled();
+  });
+
+  it('handles a CJS default export by patching the default export', () => {
     const httpDefault = makeMockHttpModule();
-    const httpModule: HttpExport & { default: HttpExport } = {
-      ...httpDefault,
-      default: httpDefault,
-    };
-    const originalRequest = httpDefault.request;
+    const httpModule: HttpModuleExport = { default: httpDefault, get: vi.fn(), request: vi.fn() };
+    const originalStoreHeader = httpDefault.ClientRequest.prototype._storeHeader;
 
     patchHttpModuleClient(httpModule);
 
-    // The default export's request is now wrapped
-    expect(getOriginalFunction(httpDefault.request)).toBe(originalRequest);
-    // The module container's request descriptor was copied from the default
-    expect(httpModule.request).toBe(httpDefault.request);
+    expect(getOriginalFunction(httpDefault.ClientRequest.prototype._storeHeader)).toBe(originalStoreHeader);
   });
 });

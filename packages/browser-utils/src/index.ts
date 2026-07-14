@@ -43,4 +43,6 @@ export { htmlTreeAsString } from './htmlTreeAsString';
 
 export { isElement } from './is';
 
+export { getAbsoluteUrl } from './instrument/location';
+
 export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';

@@ -1,8 +1,15 @@
 import { debug } from '@sentry/core';
 import * as path from 'path';
+import { getOrchestrionLoaderPath, getSentryInstrumentations } from '@sentry/server-utils/orchestrion/webpack';
 import type { VercelCronsConfig } from '../../common/types';
 import type { RouteManifest } from '../manifest/types';
-import type { NextConfigObject, SentryBuildOptions, TurbopackMatcherWithRule, TurbopackOptions } from '../types';
+import type {
+  JSONValue,
+  NextConfigObject,
+  SentryBuildOptions,
+  TurbopackMatcherWithRule,
+  TurbopackOptions,
+} from '../types';
 import { supportsNativeDebugIds, supportsTurbopackRuleCondition } from '../util';
 import { generateValueInjectionRules } from './generateValueInjectionRules';
 
@@ -106,7 +113,40 @@ export function constructTurbopackConfig({
     });
   }
 
+  newConfig.rules = maybeAddOrchestrionRule(newConfig.rules, userSentryOptions, nextJsVersion);
+
   return newConfig;
+}
+
+/**
+ * Adds the orchestrion code-transform loader rule when diagnostics-channel injection is enabled.
+ */
+function maybeAddOrchestrionRule(
+  rules: TurbopackOptions['rules'],
+  userSentryOptions: SentryBuildOptions | undefined,
+  nextJsVersion: string | undefined,
+): TurbopackOptions['rules'] {
+  if (
+    !userSentryOptions?._experimental?.useDiagnosticsChannelInjection ||
+    !nextJsVersion ||
+    !supportsTurbopackRuleCondition(nextJsVersion)
+  ) {
+    return rules;
+  }
+
+  return safelyAddTurbopackRule(rules, {
+    matcher: '*.{js,mjs,cjs}',
+    rule: {
+      condition: 'node',
+      loaders: [
+        {
+          loader: getOrchestrionLoaderPath(),
+          // `instrumentations` is JSON-serializable
+          options: { instrumentations: getSentryInstrumentations() as unknown as JSONValue[] },
+        },
+      ],
+    },
+  });
 }
 
 /**

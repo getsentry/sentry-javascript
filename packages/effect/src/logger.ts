@@ -1,4 +1,4 @@
-import { logger as sentryLogger } from '@sentry/core';
+import { isObjectLike, logger as sentryLogger } from '@sentry/core';
 import * as Logger from 'effect/Logger';
 import type * as LogLevel from 'effect/LogLevel';
 
@@ -9,7 +9,7 @@ function getLogLevelTag(logLevel: LogLevel.LogLevel): LogLevel.LogLevel | 'Warni
   }
 
   // Effect v3: logLevel has _tag property
-  if (logLevel && typeof logLevel === 'object' && '_tag' in logLevel) {
+  if (isObjectLike(logLevel) && '_tag' in logLevel) {
     return (logLevel as { _tag: LogLevel.LogLevel })._tag;
   }
 

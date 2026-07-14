@@ -13,8 +13,11 @@ test('sends a pageload span with a parameterized URL', async ({ page }) => {
   expect(span.name).toBe('/');
   expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
   expect(span.status).toBe('ok');
-  expect(span.attributes?.['sentry.origin']?.value).toBe('auto.pageload.react.reactrouter_v7');
-  expect(span.attributes?.['sentry.source']?.value).toBe('route');
+  expect(span.attributes['sentry.origin']?.value).toBe('auto.pageload.react.reactrouter_v7');
+  expect(span.attributes['sentry.source']?.value).toBe('route');
+  expect(span.attributes['url.template']?.value).toBe('/');
+  expect(span.attributes['url.path']?.value).toBe('/');
+  expect(span.attributes['url.full']?.value).toMatch(/^https?:\/\/localhost:\d+\/$/);
 });
 
 test('sends a navigation span with a parameterized URL', async ({ page }) => {
@@ -37,8 +40,11 @@ test('sends a navigation span with a parameterized URL', async ({ page }) => {
   expect(navigationSpan.name).toBe('/user/:id');
   expect(navigationSpan.trace_id).toMatch(/[a-f0-9]{32}/);
   expect(navigationSpan.status).toBe('ok');
-  expect(navigationSpan.attributes?.['sentry.origin']?.value).toBe('auto.navigation.react.reactrouter_v7');
-  expect(navigationSpan.attributes?.['sentry.source']?.value).toBe('route');
+  expect(navigationSpan.attributes['sentry.origin']?.value).toBe('auto.navigation.react.reactrouter_v7');
+  expect(navigationSpan.attributes['sentry.source']?.value).toBe('route');
+  expect(navigationSpan.attributes['url.template']?.value).toBe('/user/:id');
+  expect(navigationSpan.attributes['url.path']?.value).toBe('/user/5');
+  expect(navigationSpan.attributes['url.full']?.value).toMatch(/^https?:\/\/localhost:\d+\/user\/5$/);
 });
 
 test('sends an INP span', async ({ page }) => {
@@ -63,7 +69,7 @@ test('sends an INP span', async ({ page }) => {
   expect(inpSpan.trace_id).toMatch(/[a-f0-9]{32}/);
   expect(inpSpan.span_id).toMatch(/[a-f0-9]{16}/);
   expect(inpSpan.end_timestamp).toBeGreaterThan(inpSpan.start_timestamp);
-  expect(inpSpan.attributes?.['sentry.op']?.value).toBe('ui.interaction.click');
-  expect(inpSpan.attributes?.['sentry.origin']?.value).toBe('auto.http.browser.inp');
-  expect(inpSpan.attributes?.['sentry.exclusive_time']?.value).toEqual(expect.any(Number));
+  expect(inpSpan.attributes['sentry.op']?.value).toBe('ui.interaction.click');
+  expect(inpSpan.attributes['sentry.origin']?.value).toBe('auto.http.browser.inp');
+  expect(inpSpan.attributes['sentry.exclusive_time']?.value).toEqual(expect.any(Number));
 });

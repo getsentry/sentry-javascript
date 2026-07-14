@@ -113,4 +113,28 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
     },
     { additionalDependencies: { graphql: '^17' } },
   );
+
+  // A document that references an unknown field passes `graphql.parse` but fails `graphql.validate`;
+  // validation returns errors without throwing, so the validate span must be flagged errored.
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-invalid.mjs',
+    'instrument.mjs',
+    (createTestRunner, test) => {
+      test('flags the validate span as errored for an invalid document', async () => {
+        await createTestRunner()
+          .expect({
+            transaction: event => {
+              const spans = event.spans || [];
+              const validateSpan = spans.find(span => span.description === 'graphql.validate');
+              expect(validateSpan).toBeDefined();
+              expect(validateSpan?.status).toBe('invalid_argument');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { graphql: '^17' } },
+  );
 });

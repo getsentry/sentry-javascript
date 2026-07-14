@@ -69,7 +69,7 @@ export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: 
       if (prop === 'send') {
         const original = Reflect.get(target, prop, receiver) as Queue['send'];
 
-        return function (this: unknown, message: unknown, options?: QueueSendOptions): Promise<void> {
+        return function (this: unknown, message: unknown, options?: QueueSendOptions): ReturnType<Queue['send']> {
           return startPublishSpan({ bindingName, bodySize: getBodySize(message) }, () =>
             Reflect.apply(original, target, [message, options]),
           );
@@ -82,7 +82,7 @@ export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: 
           this: unknown,
           messages: Iterable<MessageSendRequest>,
           options?: QueueSendBatchOptions,
-        ): Promise<void> {
+        ): ReturnType<Queue['sendBatch']> {
           const messageArray = Array.from(messages);
           const totalBodySize = messageArray.reduce<number | undefined>((acc, m) => {
             const size = getBodySize(m.body);

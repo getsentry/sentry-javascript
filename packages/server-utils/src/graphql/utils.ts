@@ -1,6 +1,6 @@
 import { SENTRY_GRAPHQL_OPERATION } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import { getRootSpan, spanToJSON } from '@sentry/core';
+import { getClient, isObjectLike, getRootSpan, spanToJSON } from '@sentry/core';
 
 // Same key the OTel path uses, so renames stay consistent across both.
 const ORIGINAL_DESCRIPTION_ATTRIBUTE = 'original-description';
@@ -100,7 +100,7 @@ export function getOperationSpanName(
 
 /** Whether a graphql execution result carries GraphQL errors (returned on `result.errors`). */
 export function hasResultErrors(result: unknown): boolean {
-  if (result && typeof result === 'object' && 'errors' in result) {
+  if (isObjectLike(result) && 'errors' in result) {
     const errors = (result as { errors?: unknown }).errors;
 
     return Array.isArray(errors) && errors.length > 0;
@@ -116,7 +116,7 @@ export function hasResultErrors(result: unknown): boolean {
  * prevents raw inline values (potential PII) from leaving the process. Variable values are never
  * included. Returns `undefined` (rather than throwing) on anything it cannot serialize.
  */
-export function redactGraphqlDocument(document: GraphqlDocumentNode | undefined): string | undefined {
+function redactGraphqlDocument(document: GraphqlDocumentNode | undefined): string | undefined {
   const loc = document?.loc;
   const body = loc?.source?.body;
   if (typeof body !== 'string' || !loc?.startToken) {
@@ -145,4 +145,14 @@ export function redactGraphqlDocument(document: GraphqlDocumentNode | undefined)
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Returns the redacted document if `dataCollection.graphQL.document` is enabled, `undefined` otherwise.
+ */
+export function collectGraphqlDocument(document: GraphqlDocumentNode | undefined): string | undefined {
+  if (getClient()?.getDataCollectionOptions().graphQL.document !== true) {
+    return undefined;
+  }
+  return redactGraphqlDocument(document);
 }
