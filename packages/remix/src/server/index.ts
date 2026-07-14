@@ -145,3 +145,5 @@ export { init, getRemixDefaultIntegrations } from './sdk';
 export { captureRemixServerException } from './errors';
 export { sentryHandleError, wrapHandleErrorWithSentry, instrumentBuild } from './instrumentServer';
 export { generateSentryServerTimingHeader } from './serverTimingTracePropagation';
+export { remixChannelIntegration } from './integrations/tracing-channel';
+export { remixIntegration } from './integrations/opentelemetry';

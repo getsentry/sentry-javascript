@@ -10,5 +10,9 @@ Sentry.init({
   dsn: 'https://username@domain/123',
   environment: 'qa', // dynamic sampling bias to keep transactions
   tracesSampleRate: 1.0,
-  tunnel: 'http://localhost:3031/', // proxy server
+  tunnel: 'http://localhost:3031/', // proxy server,
+  integrations: [
+    // Manually add this here instead of the default one, this overwrites the default one.
+    Sentry.remixChannelIntegration(),
+  ],
 });
