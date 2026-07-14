@@ -1,9 +1,18 @@
+import type { Integration } from '@sentry/core';
 import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
 declare global {
   // eslint-disable-next-line no-var
-  var __SENTRY_ORCHESTRION__: { runtime?: boolean; bundler?: boolean } | undefined;
+  var __SENTRY_ORCHESTRION__:
+    | {
+        runtime?: boolean;
+        bundler?: boolean;
+        integrations?: Array<{ factory: () => Integration; modules: string[] }>;
+        transformedModules?: string[];
+        failedModules?: string[];
+      }
+    | undefined;
 }
 
 /**
@@ -18,6 +27,63 @@ declare global {
 export function isOrchestrionInjected(): boolean {
   const marker = globalThis.__SENTRY_ORCHESTRION__;
   return !!(marker?.runtime || marker?.bundler);
+}
+
+/**
+ * Returns fresh instances of the channel-subscriber integrations an injector
+ * registered on the global marker (e.g. the registration module that the
+ * `@sentry/cloudflare/vite` plugin injects into the worker bundle).
+ *
+ * SDKs that can't afford to ship the subscriber code unconditionally read the
+ * registry through this function instead of importing the integrations: no
+ * static import means bundlers drop the integration code entirely unless the
+ * injector put its registration module — and with it the integrations — into
+ * the bundle.
+ *
+ * When the injector also recorded which modules were transformed (the
+ * `transformedModules` list the code transformer's `injectDiagnostics` hook
+ * emits onto the marker), only integrations whose module was actually
+ * transformed are activated — so an app that bundles `postgres` but not
+ * `mysql` never wires up the mysql subscriber. If no such list is present
+ * (an injector that doesn't emit diagnostics), every registered integration is
+ * returned, preserving the prior behavior.
+ */
+export function getRegisteredChannelIntegrations(): Integration[] {
+  const marker = globalThis.__SENTRY_ORCHESTRION__;
+  const registered = marker?.integrations || [];
+  const transformedModules = marker?.transformedModules;
+
+  warnAboutFailedModules(marker?.failedModules);
+
+  if (!transformedModules) {
+    return registered.map(entry => entry.factory());
+  }
+
+  return registered
+    .filter(entry => entry.modules.some(module => transformedModules.includes(module)))
+    .map(entry => entry.factory());
+}
+
+// A failed transform means the package is in the bundle but its diagnostics
+// channels are not, so its integration is filtered out and spans silently go
+// missing. Surface why (the bundler plugin also warns at build time). The
+// failed-modules list is fixed at build time, but this runs on every
+// `Sentry.init()` — which in Cloudflare is once per request — so remember which
+// packages we've already warned about and warn once per isolate instead of on
+// every request.
+const warnedFailedModules = new Set<string>();
+
+function warnAboutFailedModules(failedModules: string[] | undefined): void {
+  if (!DEBUG_BUILD || !failedModules?.length) return;
+
+  const unwarned = failedModules.filter(module => !warnedFailedModules.has(module));
+  if (!unwarned.length) return;
+
+  unwarned.forEach(module => warnedFailedModules.add(module));
+  debug.warn(
+    `[Sentry] The orchestrion code transform failed at build time for: ${unwarned.join(', ')}. ` +
+      'No spans will be recorded for these packages.',
+  );
 }
 
 /**

@@ -1,7 +1,13 @@
+import type { Integration } from '@sentry/core';
 import { debug } from '@sentry/core';
 import { createRequire } from 'node:module';
 import * as Module from 'node:module';
+// Only used in the CJS-only block below (ESM uses `import.meta.url`). Guarded so
+// the ESM build doesn't carry an unused `node:url` import, which Rollup flags as
+// an unused external import.
+/*! rollup-include-cjs-only */
 import { pathToFileURL } from 'node:url';
+/*! rollup-include-cjs-only-end */
 import { DEBUG_BUILD } from '../../debug-build';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 
@@ -19,7 +25,15 @@ export interface RegisterDiagnosticsChannelInjectionOptions {
 
 declare global {
   // eslint-disable-next-line no-var
-  var __SENTRY_ORCHESTRION__: { runtime?: boolean; bundler?: boolean } | undefined;
+  var __SENTRY_ORCHESTRION__:
+    | {
+        runtime?: boolean;
+        bundler?: boolean;
+        integrations?: Array<{ factory: () => Integration; modules: string[] }>;
+        transformedModules?: string[];
+        failedModules?: string[];
+      }
+    | undefined;
 }
 
 /** `Module.registerHooks` only became stable in Node 24.13 / 25.1 and Deno 2.8. */

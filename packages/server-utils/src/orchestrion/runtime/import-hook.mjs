@@ -1,6 +1,6 @@
 // EXPERIMENTAL — diagnostics-channel injection runtime hook. The side-effecting
-// `--import` entry (e.g. `node --import @sentry/node/import app.js`) that injects
-// the channels unconditionally before the app loads.
+// `--import` entry (`node --import @sentry/server-utils/orchestrion/import-hook app.js`)
+// that injects the channels unconditionally before the app loads.
 //
 // All of the registration logic lives in `register.ts` — it has to be a
 // CJS-compatible, dual-built module so `Sentry.init()` can `require()` it
