@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { setNormalizeStringifier } from '../../../src';
-import { isMatchingPattern, safeJoin, stringMatchesSomePattern, truncate } from '../../../src/utils/string';
+import { isMatchingPattern, safeJoin, stringify, stringMatchesSomePattern, truncate } from '../../../src/utils/string';
 
 describe('truncate()', () => {
   test('it works as expected', () => {
@@ -193,5 +193,37 @@ describe('safeJoin()', () => {
 
   test('supports an empty delimiter', () => {
     expect(safeJoin(['a', 'b', 'c'], '')).toEqual('abc');
+  });
+});
+
+describe('stringify()', () => {
+  test('passes strings through unchanged (no JSON quoting)', () => {
+    expect(stringify('hello')).toBe('hello');
+  });
+
+  test('JSON-stringifies non-string values', () => {
+    expect(stringify({ a: 1 })).toBe('{"a":1}');
+    expect(stringify([1, 2])).toBe('[1,2]');
+    expect(stringify(42)).toBe('42');
+    expect(stringify(null)).toBe('null');
+  });
+
+  test('returns the default fallback on circular references', () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    expect(stringify(circular)).toBe('[unserializable]');
+  });
+
+  test('returns a custom string fallback on failure', () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    expect(stringify(circular, '[oops]')).toBe('[oops]');
+  });
+
+  test('calls a function fallback with the value on failure', () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    expect(stringify(circular, () => 'from-fn')).toBe('from-fn');
+    expect(stringify(circular, String)).toBe('[object Object]');
   });
 });
