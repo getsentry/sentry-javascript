@@ -43,6 +43,11 @@ describe('dataloader auto-instrumentation', () => {
                 span_id: loadSpan?.span_id,
               }),
             ]);
+
+            // Locks down the async behavior: `load` encloses the deferred `batch` span
+            expect(batchSpan?.parent_span_id).toBe(loadSpan?.span_id);
+            expect(loadSpan?.start_timestamp).toBeLessThanOrEqual(batchSpan?.start_timestamp ?? 0);
+            expect(loadSpan?.timestamp).toBeGreaterThanOrEqual(batchSpan?.timestamp ?? 0);
           },
         })
         .expect({
