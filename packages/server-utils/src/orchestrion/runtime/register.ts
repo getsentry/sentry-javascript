@@ -55,7 +55,7 @@ export function registerDiagnosticsChannelInjection(options?: RegisterDiagnostic
   const g = (globalThis.__SENTRY_ORCHESTRION__ ??= {});
 
   // Already injected (runtime --import hook or bundler plugin) — nothing to do.
-  if (g.runtime || g.bundler) {
+  if (g.runtime) {
     return;
   }
 
