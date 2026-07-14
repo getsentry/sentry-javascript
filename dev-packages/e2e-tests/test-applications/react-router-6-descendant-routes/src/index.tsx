@@ -88,12 +88,27 @@ const ChildRoutes = () => (
   </SentryRoutes>
 );
 
+// Deep wildcard chain: three levels of `/*` nesting.
+// workspace/* → :teamId/* → :memberId
+const DeepMemberRoutes = () => (
+  <SentryRoutes>
+    <Route path=":memberId" element={<div id="deep-member">Deep Member</div>} />
+  </SentryRoutes>
+);
+
+const DeepTeamRoutes = () => (
+  <SentryRoutes>
+    <Route path=":teamId/*" element={<DeepMemberRoutes />} />
+  </SentryRoutes>
+);
+
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <BrowserRouter>
     <SentryRoutes>
       <Route path="/" element={<Index />} />
       <Route path="child/*" element={<ChildRoutes />} />
+      <Route path="workspace/*" element={<DeepTeamRoutes />} />
       <Route path="/*" element={<ProjectsRoutes />} />
     </SentryRoutes>
   </BrowserRouter>,

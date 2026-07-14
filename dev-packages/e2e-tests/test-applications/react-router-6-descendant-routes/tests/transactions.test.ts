@@ -262,3 +262,70 @@ test('keeps the parent path prefix for a descendant route with non-wildcard nest
     },
   });
 });
+
+test('resolves deep wildcard chain with three levels of nesting - pageload', async ({ page }) => {
+  const transactionPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto(`/workspace/team/u123`);
+
+  const rootSpan = await transactionPromise;
+
+  expect((await page.innerHTML('#root')).includes('Deep Member')).toBe(true);
+  expect(rootSpan).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'pageload',
+        origin: 'auto.pageload.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/workspace/:teamId/:memberId',
+          'url.path': '/workspace/team/u123',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/workspace\/team\/u123$/),
+        },
+      },
+    },
+    transaction: '/workspace/:teamId/:memberId',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
+
+test('resolves deep wildcard chain with three levels of nesting - navigation', async ({ page }) => {
+  const pageloadTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  const navigationTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  });
+
+  await page.goto(`/`);
+  await pageloadTxnPromise;
+
+  const linkElement = page.locator('id=deep-member-navigation');
+
+  const [_, navigationTxn] = await Promise.all([linkElement.click(), navigationTxnPromise]);
+
+  expect((await page.innerHTML('#root')).includes('Deep Member')).toBe(true);
+  expect(navigationTxn).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'navigation',
+        origin: 'auto.navigation.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/workspace/:teamId/:memberId',
+          'url.path': '/workspace/team/u123',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/workspace\/team\/u123$/),
+        },
+      },
+    },
+    transaction: '/workspace/:teamId/:memberId',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});

@@ -13,6 +13,9 @@ const Index = () => {
       <Link to="/child/abc123" id="child-navigation">
         navigate child
       </Link>
+      <Link to="/workspace/team/u123" id="deep-member-navigation">
+        navigate deep member
+      </Link>
     </>
   );
 };
