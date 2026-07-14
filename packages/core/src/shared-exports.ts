@@ -121,6 +121,7 @@ export { getTraceData } from './utils/traceData';
 export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
+export { uniq } from './utils/array';
 export { makeWeakRef, derefWeakRef } from './utils/weakRef';
 export type { MaybeWeakRef } from './utils/weakRef';
 export { shouldIgnoreSpan } from './utils/should-ignore-span';
@@ -270,6 +271,7 @@ export {
   isErrorEvent,
   isEvent,
   isInstanceOf,
+  isObjectLike,
   isParameterizedString,
   isPlainObject,
   isPrimitive,
@@ -320,7 +322,7 @@ export {
   stackParserFromStackParserOptions,
   stripSentryFramesAndReverse,
 } from './utils/stacktrace';
-export { isMatchingPattern, safeJoin, snipLine, stringMatchesSomePattern, truncate } from './utils/string';
+export { isMatchingPattern, safeJoin, stringify, snipLine, stringMatchesSomePattern, truncate } from './utils/string';
 export {
   isNativeFunction,
   supportsDOMException,

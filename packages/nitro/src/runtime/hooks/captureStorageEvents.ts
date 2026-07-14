@@ -99,10 +99,6 @@ function normalizeMethodName(methodName: string): string {
   return methodName.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 }
 
-function isEmptyValue(value: unknown): value is null | undefined {
-  return value === null || value === undefined;
-}
-
 interface CacheEntry<T = unknown> {
   value?: T;
   expires?: number;
@@ -116,7 +112,7 @@ interface ResponseCacheEntry {
 
 function isCacheHit(key: unknown, value: unknown): boolean {
   try {
-    const isEmpty = isEmptyValue(value);
+    const isEmpty = value == null;
     if (isEmpty || typeof key !== 'string' || !CACHED_FN_HANDLERS_RE.test(key)) {
       return !isEmpty;
     }
@@ -133,7 +129,7 @@ function validateCacheEntry(
   key: string,
   entry: CacheEntry | CacheEntry<ResponseCacheEntry & { status: number }>,
 ): boolean {
-  if (isEmptyValue(entry.value)) {
+  if (entry.value == null) {
     return false;
   }
 

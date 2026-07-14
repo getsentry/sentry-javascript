@@ -23,7 +23,7 @@ import type {
   Token,
 } from './graphql-types';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import { getClient, isObjectLike, SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { AllowedOperationTypes, SpanNames, TokenKind } from './enum';
 import { AttributeNames } from './enums/AttributeNames';
 import { OTEL_GRAPHQL_DATA_SYMBOL, OTEL_PATCHED_SYMBOL } from './symbols';
@@ -37,14 +37,11 @@ export const isPromise = (value: any): value is Promise<unknown> => {
   return typeof value?.then === 'function';
 };
 
-// https://github.com/graphql/graphql-js/blob/main/src/jsutils/isObjectLike.ts
-const isObjectLike = (value: unknown): value is { [key: string]: unknown } => {
-  return typeof value == 'object' && value !== null;
-};
-
 export function addSpanSource(span: Span, loc?: Location, start?: number, end?: number): void {
-  const source = getSourceFromLocation(loc, start, end);
-  span.setAttribute(AttributeNames.SOURCE, source);
+  if (getClient()?.getDataCollectionOptions().graphQL.document === true) {
+    const source = getSourceFromLocation(loc, start, end);
+    span.setAttribute(AttributeNames.SOURCE, source);
+  }
 }
 
 function createFieldIfNotExists(
@@ -239,7 +236,9 @@ export function wrapFields(
     }
 
     if (field.resolve) {
-      field.resolve = wrapFieldResolver(getConfig, field.resolve);
+      // The shared structural types narrow the resolver context to `ObjectWithGraphQLData`; cast back
+      // to the field's own resolver type (behavior is unchanged — this is a type-only adjustment).
+      field.resolve = wrapFieldResolver(getConfig, field.resolve) as GraphQLFieldResolver;
     }
 
     if (field.type) {
@@ -254,7 +253,8 @@ export function wrapFields(
 function unwrapType(type: GraphQLOutputType): readonly GraphQLObjectType[] {
   // unwrap wrapping types (non-nullable and list types)
   if ('ofType' in type) {
-    return unwrapType(type.ofType);
+    // The structural index signature widens `ofType` to `unknown`, so narrow it back explicitly.
+    return unwrapType(type.ofType as GraphQLOutputType);
   }
 
   // unwrap union types

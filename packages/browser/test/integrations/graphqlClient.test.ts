@@ -313,7 +313,10 @@ describe('GraphqlClient', () => {
   });
 
   describe('beforeOutgoingRequestSpan handler', () => {
-    function setupHandler(endpoints: Array<string | RegExp>): (span: SentrySpan, hint: FetchHint | XhrHint) => void {
+    function setupHandler(
+      endpoints: Array<string | RegExp>,
+      graphQLDocument = true,
+    ): (span: SentrySpan, hint: FetchHint | XhrHint) => void {
       let capturedListener: ((span: SentrySpan, hint: FetchHint | XhrHint) => void) | undefined;
       const mockClient = {
         on: (eventName: string, cb: (span: SentrySpan, hint: FetchHint | XhrHint) => void) => {
@@ -321,6 +324,7 @@ describe('GraphqlClient', () => {
             capturedListener = cb;
           }
         },
+        getDataCollectionOptions: () => ({ graphQL: { document: graphQLDocument, variables: true } }),
       } as unknown as Client;
 
       const integration = graphqlClientIntegration({ endpoints });
@@ -418,6 +422,26 @@ describe('GraphqlClient', () => {
 
       const json = spanToJSON(span);
       expect(json.description).toBe('custom span');
+      expect(json.data['graphql.document']).toBeUndefined();
+    });
+
+    test('omits graphql.document when dataCollection.graphQL.document is false', () => {
+      const handler = setupHandler([/\/graphql$/], false);
+      const span = new SentrySpan({
+        name: 'POST http://localhost:4000/graphql',
+        op: 'http.client',
+        attributes: {
+          'http.method': 'POST',
+          'http.url': 'http://localhost:4000/graphql',
+          url: 'http://localhost:4000/graphql',
+        },
+      });
+
+      handler(span, makeFetchHint('http://localhost:4000/graphql', requestBody));
+
+      const json = spanToJSON(span);
+      // The span is still renamed with the operation, but the document is not attached.
+      expect(json.description).toBe('POST http://localhost:4000/graphql (query GetHello)');
       expect(json.data['graphql.document']).toBeUndefined();
     });
   });

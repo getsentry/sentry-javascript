@@ -20,6 +20,9 @@ test('should create a parameterized transaction when the `app` directory is used
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
           'sentry.source': 'route',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/parameterized\/cappuccino$/),
+          'url.path': '/parameterized/cappuccino',
+          'url.template': '/parameterized/:one',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -61,6 +64,8 @@ test('should create a static transaction when the `app` directory is used and th
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
           'sentry.source': 'url',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/parameterized\/static$/),
+          'url.path': '/parameterized/static',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -79,6 +84,8 @@ test('should create a static transaction when the `app` directory is used and th
     transaction_info: { source: 'url' },
     type: 'transaction',
   });
+
+  expect(transaction.contexts?.trace?.data).not.toHaveProperty('url.template');
 });
 
 test('should create a partially parameterized transaction when the `app` directory is used', async ({ page }) => {
@@ -100,6 +107,9 @@ test('should create a partially parameterized transaction when the `app` directo
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
           'sentry.source': 'route',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/parameterized\/cappuccino\/beep$/),
+          'url.path': '/parameterized/cappuccino/beep',
+          'url.template': '/parameterized/:one/beep',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -140,6 +150,9 @@ test('should create a nested parameterized transaction when the `app` directory 
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
           'sentry.source': 'route',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/parameterized\/cappuccino\/beep\/espresso$/),
+          'url.path': '/parameterized/cappuccino/beep/espresso',
+          'url.template': '/parameterized/:one/beep/:two',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',

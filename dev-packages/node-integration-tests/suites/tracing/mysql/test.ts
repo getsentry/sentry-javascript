@@ -197,7 +197,7 @@ describe('mysql auto instrumentation', () => {
       expect(segmentSpan?.name).toBe('Test Transaction');
 
       const dbSpans = container.items.filter(
-        spanItem => spanItem.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db',
+        spanItem => spanItem.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db',
       );
 
       expect(dbSpans.length).toBe(2);

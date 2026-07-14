@@ -1,5 +1,5 @@
 import type { R2Bucket, R2ListOptions, R2MultipartUpload } from '@cloudflare/workers-types';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 
 const ORIGIN = 'auto.faas.cloudflare.r2';
 
@@ -30,7 +30,7 @@ const R2_OPERATIONS = {
 type R2OperationKey = keyof typeof R2_OPERATIONS;
 
 function isR2ListOptions(key: unknown): key is R2ListOptions {
-  return typeof key === 'object' && key !== null && !Array.isArray(key);
+  return isObjectLike(key) && !Array.isArray(key);
 }
 
 function createSpanOptions(bindingName: string, r2Op: R2OperationKey, key?: string | string[] | R2ListOptions) {

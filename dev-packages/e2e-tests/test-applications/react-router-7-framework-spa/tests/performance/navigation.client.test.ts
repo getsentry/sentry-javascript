@@ -11,8 +11,12 @@ test.describe('client - navigation performance', () => {
       );
     });
 
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
     await page.goto(`/performance`); // pageload
-    await page.waitForTimeout(1000); // give it a sec before navigation
+    await pageloadTxPromise;
     await page.getByRole('link', { name: 'With Param Page' }).click(); // navigation
 
     const transaction = await txPromise;
@@ -26,6 +30,9 @@ test.describe('client - navigation performance', () => {
             'sentry.origin': 'auto.navigation.react_router',
             'sentry.op': 'navigation',
             'sentry.source': 'route',
+            'url.template': '/performance/with/:param',
+            'url.path': '/performance/with/sentry',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),
           },
           op: 'navigation',
           origin: 'auto.navigation.react_router',

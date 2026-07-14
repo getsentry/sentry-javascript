@@ -17,6 +17,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('LangGraph integration', () => {
@@ -77,7 +78,9 @@ describe('LangGraph integration', () => {
             expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
 
             const weatherTodaySpan = container.items.find(span =>
-              span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes('What is the weather today?'),
+              getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                'What is the weather today?',
+              ),
             );
             expect(weatherTodaySpan).toBeDefined();
             expect(weatherTodaySpan!.name).toBe('invoke_agent weather_assistant');
@@ -86,7 +89,9 @@ describe('LangGraph integration', () => {
             expect(weatherTodaySpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
 
             const weatherDetailsSpan = container.items.find(span =>
-              span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Tell me about the weather'),
+              getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                'Tell me about the weather',
+              ),
             );
             expect(weatherDetailsSpan).toBeDefined();
             expect(weatherDetailsSpan!.name).toBe('invoke_agent weather_assistant');
@@ -319,7 +324,9 @@ describe('LangGraph integration', () => {
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                streamingLongContent,
+              ),
             );
             expect(chatSpan).toBeDefined();
           },
@@ -342,12 +349,14 @@ describe('LangGraph integration', () => {
 
               // With explicit enableTruncation: true, content should be truncated despite streaming.
               const chatSpan = spans.find(s =>
-                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('[{"role":"user","content":"AAAA'),
+                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
+                  '[{"role":"user","content":"AAAA',
+                ),
               );
               expect(chatSpan).toBeDefined();
-              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
-                streamingLongContent.length,
-              );
+              expect(
+                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value) ?? '').length,
+              ).toBeLessThan(streamingLongContent.length);
             },
           })
           .start()

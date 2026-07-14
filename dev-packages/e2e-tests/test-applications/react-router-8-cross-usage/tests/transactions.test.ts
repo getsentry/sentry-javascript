@@ -16,6 +16,12 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/projects/:projectId/views/:viewId/:detailId',
+          'url.path': '/projects/123/views/234/567',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/123\/views\/234\/567$/),
+        },
       },
     },
     transaction: '/projects/:projectId/views/:viewId/:detailId',
@@ -40,6 +46,12 @@ test('sends a pageload transaction with a parameterized URL - alternative route'
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/projects/:projectId/old-views/:viewId/:detailId',
+          'url.path': '/projects/234/old-views/234/567',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/234\/old-views\/234\/567$/),
+        },
       },
     },
     transaction: '/projects/:projectId/old-views/:viewId/:detailId',
@@ -66,6 +78,12 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/',
+          'url.path': '/',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
+        },
       },
     },
     transaction: '/',
@@ -84,6 +102,12 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
       trace: {
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/projects/:projectId/views/:viewId/:detailId',
+          'url.path': '/projects/123/views/456/789',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/123\/views\/456\/789$/),
+        },
       },
     },
     transaction: '/projects/:projectId/views/:viewId/:detailId',
@@ -110,6 +134,12 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/',
+          'url.path': '/',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
+        },
       },
     },
     transaction: '/',
@@ -128,6 +158,12 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
       trace: {
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/projects/:projectId/old-views/:viewId/:detailId',
+          'url.path': '/projects/123/old-views/345/654',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/123\/old-views\/345\/654$/),
+        },
       },
     },
     transaction: '/projects/:projectId/old-views/:viewId/:detailId',

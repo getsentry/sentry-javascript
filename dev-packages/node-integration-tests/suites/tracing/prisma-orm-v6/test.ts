@@ -1,23 +1,19 @@
 import type { SpanJSON } from '@sentry/core';
-import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { afterAll, expect } from 'vitest';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-describe('Prisma ORM v6 Tests', () => {
+describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname] }, () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario.mjs',
     'instrument.mjs',
-    (createRunner, test, _mode, cwd) => {
+    (createRunner, test) => {
       test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
         await createRunner()
-          .withDockerCompose({
-            workingDirectory: [cwd],
-            setupCommand: `yarn prisma generate --schema ${cwd}/prisma/schema.prisma && yarn prisma migrate dev -n sentry-test --schema ${cwd}/prisma/schema.prisma`,
-          })
           .expect({
             transaction: transaction => {
               expect(transaction.transaction).toBe('Test Transaction');
@@ -119,7 +115,8 @@ describe('Prisma ORM v6 Tests', () => {
       });
     },
     {
-      copyPaths: ['prisma', 'docker-compose.yml'],
+      afterSetupCommand: 'prisma generate --schema prisma/schema.prisma',
+      copyPaths: ['prisma'],
     },
   );
 });

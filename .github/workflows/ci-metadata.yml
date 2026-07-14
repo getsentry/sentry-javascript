@@ -43,7 +43,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.head_commit }}
           # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but

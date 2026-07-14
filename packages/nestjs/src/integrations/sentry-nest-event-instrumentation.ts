@@ -5,9 +5,10 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
 } from '@opentelemetry/instrumentation';
-import { captureException, SDK_VERSION, startSpan, withIsolationScope } from '@sentry/core';
-import { getEventSpanOptions } from './helpers';
+import { SDK_VERSION } from '@sentry/core';
+import type { AnyFn } from './helpers';
 import type { OnEventTarget } from './types';
+import { patchMethodDescriptor, wrapEventHandler } from './wrap-handlers';
 
 const supportedVersions = ['>=2.0.0'];
 const COMPONENT = '@nestjs/event-emitter';
@@ -16,9 +17,6 @@ const COMPONENT = '@nestjs/event-emitter';
  * Custom instrumentation for nestjs event-emitter
  *
  * This hooks into the `OnEvent` decorator, which is applied on event handlers.
- * Wrapped handlers run inside a forked isolation scope to ensure event-scoped data
- * (breadcrumbs, tags, etc.) does not leak between concurrent event invocations
- * or into subsequent HTTP requests.
  */
 export class SentryNestEventInstrumentation extends InstrumentationBase {
   public constructor(config: InstrumentationConfig = {}) {
@@ -62,87 +60,10 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return function wrapOnEvent(original: any) {
       return function wrappedOnEvent(event: unknown, options?: unknown) {
-        // Get the original decorator result
         const decoratorResult = original(event, options);
 
-        // Return a new decorator function that wraps the handler
         return (target: OnEventTarget, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
-          if (
-            !descriptor.value ||
-            typeof descriptor.value !== 'function' ||
-            target.__SENTRY_INTERNAL__ ||
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            descriptor.value.__SENTRY_INSTRUMENTED__
-          ) {
-            return decoratorResult(target, propertyKey, descriptor);
-          }
-
-          function eventNameFromEvent(event: unknown): string {
-            if (typeof event === 'string') {
-              return event;
-            } else if (Array.isArray(event)) {
-              return event.map(eventNameFromEvent).join(',');
-            } else return String(event);
-          }
-
-          const originalHandler = descriptor.value;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const handlerName = originalHandler.name || propertyKey;
-          let eventName = eventNameFromEvent(event);
-
-          // Instrument the actual handler
-          descriptor.value = async function (...args: unknown[]) {
-            // When multiple @OnEvent decorators are used on a single method, we need to get all event names
-            // from the reflector metadata as there is no information during execution which event triggered it
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
-            if (Reflect.getMetadataKeys(descriptor.value).includes('EVENT_LISTENER_METADATA')) {
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
-              const eventData = Reflect.getMetadata('EVENT_LISTENER_METADATA', descriptor.value);
-              if (Array.isArray(eventData)) {
-                eventName = eventData
-                  .map((data: unknown) => {
-                    if (data && typeof data === 'object' && 'event' in data && data.event) {
-                      return eventNameFromEvent(data.event);
-                    }
-                    return '';
-                  })
-                  .reverse() // decorators are evaluated bottom to top
-                  .join('|');
-              }
-            }
-
-            return withIsolationScope(() => {
-              return startSpan(getEventSpanOptions(eventName), async () => {
-                try {
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                  const result = await originalHandler.apply(this, args);
-                  return result;
-                } catch (error) {
-                  // exceptions from event handlers are not caught by global error filter
-                  captureException(error, {
-                    mechanism: {
-                      handled: false,
-                      type: 'auto.event.nestjs',
-                    },
-                  });
-                  throw error;
-                }
-              });
-            });
-          };
-
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          descriptor.value.__SENTRY_INSTRUMENTED__ = true;
-
-          // Preserve the original function name
-          Object.defineProperty(descriptor.value, 'name', {
-            value: handlerName,
-            configurable: true,
-          });
-
-          // Apply the original decorator
+          patchMethodDescriptor(target, propertyKey, descriptor, (handler: AnyFn) => wrapEventHandler(handler, event));
           return decoratorResult(target, propertyKey, descriptor);
         };
       };

@@ -37,63 +37,84 @@ import type { HttpExport, HttpModuleExport, HttpInstrumentationOptions, HttpClie
 import { getOriginalFunction, wrapMethod } from '../../utils/object';
 import { getHttpClientSubscriptions } from './client-subscriptions';
 
-function patchHttpRequest(httpModule: HttpExport, options: HttpInstrumentationOptions): void {
-  // avoid double-wrap
-  if (!getOriginalFunction(httpModule.request)) {
-    const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = getHttpClientSubscriptions({
-      ...options,
-      http: httpModule,
-    });
+let onHttpClientRequestCreated: ReturnType<typeof getHttpClientSubscriptions>[typeof HTTP_ON_CLIENT_REQUEST];
 
-    const originalRequest = httpModule.request;
-    wrapMethod(httpModule, 'request', function patchedRequest(this: HttpExport, ...args: unknown[]) {
-      const request = originalRequest.apply(this, args) as HttpClientRequest;
-      onHttpClientRequestCreated({ request }, HTTP_ON_CLIENT_REQUEST);
-      return request;
-    });
-  }
-}
+/**
+ * Patch `ClientRequest.prototype._storeHeader` so that every outgoing request
+ * is routed through our instrumentation.
+ *
+ * We deliberately patch the shared `ClientRequest` prototype rather than the
+ * module's `request`/`get` exports. Every outgoing request — no matter how the
+ * module was imported (`require('node:http')`, `import http from 'node:http'`,
+ * or `import * as http from 'node:http'`) — ultimately constructs a
+ * `ClientRequest` and serializes its headers through `_storeHeader` on this one
+ * prototype. ES module namespace bindings (`import * as http` / `import
+ * { request }`) are immutable snapshots that cannot be monkey-patched at all,
+ * but the prototype is a shared, mutable object, so patching it reaches those
+ * consumers too.
+ *
+ * `_storeHeader` is the method that renders the outgoing header block into
+ * `request._header`. We run *before* the original, which is the last moment a
+ * header can still be added via `setHeader` (afterwards `request._header` is
+ * set and any `setHeader` call throws `ERR_HTTP_HEADERS_SENT`). It runs
+ * synchronously in the caller's async context — during `request.end()` /
+ * `request.write()` — so spans are parented correctly, and is invoked exactly
+ * once per request whether the headers are being sent immediately or buffered
+ * while a socket is assigned.
+ *
+ * We intentionally do *not* hook `onSocket`: it does not fire until a socket is
+ * assigned to the request, which for an `Agent` with all sockets busy (e.g.
+ * `maxSockets: 1`) happens only *after* the request's headers have already been
+ * serialized — far too late to inject trace-propagation headers.
+ *
+ * `https` requests reuse `http`'s `ClientRequest`, so patching `http` covers
+ * both; the `https` module does not expose its own `ClientRequest` and is a
+ * no-op here.
+ */
+function patchClientRequest(httpModule: HttpExport, options: HttpInstrumentationOptions): void {
+  const proto = httpModule.ClientRequest?.prototype;
 
-// This simply ensures that http.get calls http.request, which we patched.
-// Call it from the object each time, to ensure that any subsequent patches
-// or other mutations are also respected.
-function patchHttpGet(httpModule: HttpExport) {
-  if (!getOriginalFunction(httpModule.get)) {
-    // match node's normalization to exactly 3 arguments.
-    wrapMethod(httpModule, 'get', function patchedGet(this: HttpExport, input: unknown, options: unknown, cb: unknown) {
-      // http.get is like http.request but automatically calls .end()
-      const request = httpModule.request.call(this, input, options, cb) as HttpClientRequest;
-      request.end();
-      return request;
-    });
+  // Nothing to patch if the module doesn't expose `ClientRequest` (e.g. `https`)
+  if (typeof proto?._storeHeader !== 'function') {
+    return;
   }
+
+  const subscriptions = getHttpClientSubscriptions({
+    ...options,
+    http: httpModule,
+  });
+
+  onHttpClientRequestCreated = subscriptions[HTTP_ON_CLIENT_REQUEST];
+
+  // This means it was already wrapped, we just update onHttpClientRequestCreated and then stop
+  // future calls will pick up the new function
+  if (getOriginalFunction(proto._storeHeader)) {
+    return;
+  }
+
+  const originalStoreHeader = proto._storeHeader;
+  wrapMethod(proto, '_storeHeader', function patchedStoreHeader(this: HttpClientRequest, ...args: unknown[]) {
+    // Never let instrumentation errors break the underlying request.
+    try {
+      onHttpClientRequestCreated({ request: this }, HTTP_ON_CLIENT_REQUEST);
+    } catch {
+      // ignore
+    }
+    return originalStoreHeader.apply(this, args);
+  });
 }
 
 function patchModule(httpModuleExport: HttpModuleExport, options: HttpInstrumentationOptions = {}): HttpModuleExport {
-  const httpDefault = getDefaultExport(httpModuleExport);
-  const httpModule = httpModuleExport as HttpExport;
-  // if we have a default, patch that, and copy to the import container
-  if (httpDefault !== httpModuleExport) {
-    patchModule(httpDefault, options);
-    // copy with defineProperty because these might be configured oddly
-    for (const method of ['get', 'request']) {
-      const desc = Object.getOwnPropertyDescriptor(httpDefault, method);
-      /* v8 ignore start - will always be set at this point */
-      if (desc) {
-        Object.defineProperty(httpModule, method, desc);
-      }
-      /* v8 ignore stop */
-    }
-    return httpModule;
-  }
-  patchHttpRequest(httpModule, options);
-  patchHttpGet(httpModule);
+  // Resolve to the underlying module in case we were handed an interop
+  // container (e.g. `{ default: http }`). Either the container or its default
+  // export carries the same `ClientRequest` class.
+  const httpModule = getDefaultExport(httpModuleExport);
+  patchClientRequest(httpModule, options);
   return httpModuleExport;
 }
 
 /**
- * Patch an `node:http` or `node:https` module-shaped export so that every
- * outgoing request is tracked by Sentry.
+ * Patch `node:http`. This also covers `node:https` as it reuses the same `ClientRequest` class.
  *
  * @example
  * ```javascript

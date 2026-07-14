@@ -54,7 +54,18 @@ test('Creates a navigation transaction for basePath router with prefix', async (
   await page.waitForTimeout(1000);
   await page.getByText('router.push()').click();
 
-  expect(await navigationTransactionPromise).toBeDefined();
+  const navigationTransaction = await navigationTransactionPromise;
+  expect(navigationTransaction).toBeDefined();
+
+  const attributes = navigationTransaction.contexts?.trace?.data;
+  expect(attributes).toMatchObject({
+    'sentry.op': 'navigation',
+    'sentry.origin': 'auto.navigation.nextjs.app_router_instrumentation',
+    'sentry.source': 'route',
+    'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/my-app\/navigation\/42\/router-push$/),
+    'url.path': '/my-app/navigation/42/router-push',
+    'url.template': '/my-app/navigation/:param/router-push',
+  });
 });
 
 test('Creates a navigation transaction for basePath <Link> with prefix', async ({ page }) => {

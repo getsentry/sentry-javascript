@@ -1,7 +1,7 @@
 import type { ChildProcess } from 'node:child_process';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Worker } from 'node:worker_threads';
-import { addBreadcrumb, captureException, defineIntegration } from '@sentry/core';
+import { addBreadcrumb, captureException, defineIntegration, isObjectLike } from '@sentry/core';
 
 interface Options {
   /**
@@ -29,13 +29,13 @@ export const childProcessIntegration = defineIntegration((options: Options = {})
     name: INTEGRATION_NAME,
     setup() {
       diagnosticsChannel.channel('child_process').subscribe((event: unknown) => {
-        if (event && typeof event === 'object' && 'process' in event) {
+        if (isObjectLike(event) && 'process' in event) {
           captureChildProcessEvents(event.process as ChildProcess, options);
         }
       });
 
       diagnosticsChannel.channel('worker_threads').subscribe((event: unknown) => {
-        if (event && typeof event === 'object' && 'worker' in event) {
+        if (isObjectLike(event) && 'worker' in event) {
           captureWorkerThreadEvents(event.worker as Worker, options);
         }
       });

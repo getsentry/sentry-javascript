@@ -1,4 +1,5 @@
-import { startBrowserTracingNavigationSpan } from '@sentry/browser';
+// oxlint-disable max-lines
+import { getAbsoluteUrl, startBrowserTracingNavigationSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
   debug,
@@ -17,7 +18,13 @@ import {
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { ClientInstrumentation, InstrumentableRoute, InstrumentableRouter } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
-import { resolveNavigateArg } from './utils';
+import {
+  resolveNavigateAbsoluteUrl,
+  resolveNavigateArg,
+  finalizeNavigationSpanFromHydratedRouter,
+  updateNavigationSpanUrlFromLocation,
+} from './utils';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -87,22 +94,26 @@ export function createSentryClientInstrumentation(
           // If there's an active numeric navigation span, update it instead of creating a duplicate
           if (currentNumericNavigationSpan) {
             if (currentNumericNavigationSpan.isRecording()) {
-              currentNumericNavigationSpan.updateName(pathname);
+              updateNavigationSpanUrlFromLocation(currentNumericNavigationSpan);
             }
             currentNumericNavigationSpan = undefined;
             return;
           }
 
           // Only create a new span for actual browser back/forward button clicks
-          startBrowserTracingNavigationSpan(client, {
-            name: pathname,
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
-              'navigation.type': 'browser.popstate',
+          startBrowserTracingNavigationSpan(
+            client,
+            {
+              name: pathname,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
+                'navigation.type': 'browser.popstate',
+              },
             },
-          });
+            { url: getAbsoluteUrl(pathname) },
+          );
         });
 
         DEBUG_BUILD && debug.log('React Router popstate listener registered for browser back/forward navigation.');
@@ -133,15 +144,19 @@ export function createSentryClientInstrumentation(
               const navigationType = info.to < 0 ? 'router.back' : 'router.forward';
               const currentPathname = WINDOW.location?.pathname || info.currentUrl;
 
-              navigationSpan = startBrowserTracingNavigationSpan(client, {
-                name: currentPathname,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
-                  'navigation.type': navigationType,
+              navigationSpan = startBrowserTracingNavigationSpan(
+                client,
+                {
+                  name: currentPathname,
+                  attributes: {
+                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
+                    'navigation.type': navigationType,
+                  },
                 },
-              });
+                { url: getAbsoluteUrl(currentPathname) },
+              );
 
               // Store ref so popstate listener can update it instead of creating a duplicate
               currentNumericNavigationSpan = navigationSpan;
@@ -151,7 +166,7 @@ export function createSentryClientInstrumentation(
               const result = await callNavigate();
 
               if (navigationSpan && WINDOW.location) {
-                navigationSpan.updateName(WINDOW.location.pathname);
+                finalizeNavigationSpanFromHydratedRouter(navigationSpan);
               }
 
               if (result.status === 'error' && result.error instanceof Error) {
@@ -174,15 +189,19 @@ export function createSentryClientInstrumentation(
           let navigationSpan;
 
           if (client) {
-            navigationSpan = startBrowserTracingNavigationSpan(client, {
-              name: toPath,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
-                'navigation.type': 'router.navigate',
+            navigationSpan = startBrowserTracingNavigationSpan(
+              client,
+              {
+                name: toPath,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
+                  'navigation.type': 'router.navigate',
+                },
               },
-            });
+              { url: resolveNavigateAbsoluteUrl(info.to, info.currentUrl) },
+            );
           }
 
           const result = await callNavigate();
@@ -358,7 +377,7 @@ function updateRootSpanRoute(routeName: string, hasPattern: boolean): void {
   }
 
   updateSpanName(rootSpan, routeName);
-  rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+  rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: routeName });
 }
 
 /**

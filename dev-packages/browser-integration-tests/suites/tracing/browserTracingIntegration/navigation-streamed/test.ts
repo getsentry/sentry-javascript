@@ -8,7 +8,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
+import { SENTRY_TRACE_LIFECYCLE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import {
@@ -92,7 +92,11 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: expect.any(String),
       },
-      'url.full': {
+      [URL_FULL]: {
+        type: 'string',
+        value: expect.any(String),
+      },
+      [URL_PATH]: {
         type: 'string',
         value: expect.any(String),
       },

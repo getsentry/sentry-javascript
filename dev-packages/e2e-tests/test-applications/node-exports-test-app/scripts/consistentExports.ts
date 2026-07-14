@@ -29,6 +29,8 @@ const NODE_EXPORTS_IGNORE = [
   // factories for that same Node-runtime-only opt-in, so it isn't surfaced
   // through the framework / serverless SDKs either.
   'diagnosticsChannelInjectionIntegrations',
+  // Companion to the above two, same reasoning (Next.js re-exports it via `export * from '@sentry/node'`)
+  'isDiagnosticsChannelInjectionEnabled',
   // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
   '_INTERNAL_normalizeCollectionInterval',
 ];
