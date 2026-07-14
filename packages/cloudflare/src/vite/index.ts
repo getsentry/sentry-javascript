@@ -4,6 +4,7 @@
 // The CJS rollup variant still emits this file, but `package.json` doesn't
 // expose it — same setup as `@sentry/server-utils/orchestrion/vite` itself.
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
+import { sentryCloudflareAutoInstrumentPlugin } from './autoInstrument';
 
 /**
  * Options for {@link sentryCloudflareVitePlugin}.
@@ -28,6 +29,17 @@ export interface SentryCloudflareVitePluginOptions {
      * @experimental May change or be removed in any release.
      */
     useDiagnosticsChannelInjection?: boolean;
+    /**
+     * Automatically wraps your Worker at build time so you don't have to edit
+     * your entry: the plugin reads your wrangler config and wraps the default
+     * export with `Sentry.withSentry()`, sourcing options from a co-located
+     * `instrument.*` file and falling back to env. Both `vite build` and
+     * `vite dev` are instrumented.
+     *
+     * @default false
+     * @experimental May change or be removed in any release.
+     */
+    autoInstrumentation?: boolean;
   };
 }
 
@@ -63,9 +75,10 @@ export interface SentryCloudflareVitePluginOptions {
  * ```
  */
 export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOptions = {}) {
-  if (!options._experimental?.useDiagnosticsChannelInjection) {
-    return [];
-  }
-
-  return sentryOrchestrionPlugin({ injectChannelSubscribers: true });
+  return [
+    ...(options._experimental?.useDiagnosticsChannelInjection
+      ? [sentryOrchestrionPlugin({ injectChannelSubscribers: true })]
+      : []),
+    ...(options._experimental?.autoInstrumentation ? sentryCloudflareAutoInstrumentPlugin() : []),
+  ];
 }
