@@ -263,7 +263,11 @@ export function createRunner(...paths: string[]) {
   const logs: string[] = [];
 
   if (testPath.endsWith('.ts')) {
-    flags.push('-r', 'ts-node/register');
+    // Load .ts scenarios through tsx's CommonJS require hook (not `--import tsx`, the ESM loader).
+    // `--import` routes these CJS scenarios through Node's ESM machinery, which on Node 22+ gives
+    // them a different `@sentry/node` instance than the CJS instrument/auto-flush, breaking
+    // instrumentation and flushing. The require hook keeps one CJS instance, like ts-node did.
+    flags.push('-r', 'tsx/cjs');
   }
 
   return {

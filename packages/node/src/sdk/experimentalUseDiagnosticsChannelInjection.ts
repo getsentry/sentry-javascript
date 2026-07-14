@@ -53,7 +53,11 @@ export function experimentalUseDiagnosticsChannelInjection(
   options?: RegisterDiagnosticsChannelInjectionOptions,
 ): void {
   setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
-    // The registry integrations 1:1 replace the OTel integration of the same name.
+    // These channel integrations 1:1 replace the OTel integration of the
+    // same name. Framework SDKs that own their own channel listener
+    // (e.g. `@sentry/nestjs`'s `Nest`) are NOT here. They pick the
+    // channel-vs-OTel path themselves at integration `setupOnce`, so
+    // there's nothing for the central swap to do.
     const integrations = Object.values(channelIntegrations).map(createIntegration => createIntegration());
     const replacedOtelIntegrationNames = integrations.map(i => i.name);
 
