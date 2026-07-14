@@ -12,6 +12,7 @@ import { koaChannelIntegration } from '../integrations/tracing-channel/koa';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
 import { kafkajsChannelIntegration } from '../integrations/tracing-channel/kafkajs';
 import { knexChannelIntegration } from '../integrations/tracing-channel/knex';
+import { langGraphChannelIntegration } from '../integrations/tracing-channel/langgraph';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { mysql2ChannelIntegration } from '../integrations/tracing-channel/mysql2';
@@ -37,6 +38,7 @@ export {
   ioredisChannelIntegration,
   kafkajsChannelIntegration,
   knexChannelIntegration,
+  langGraphChannelIntegration,
   lruMemoizerChannelIntegration,
   mysqlChannelIntegration,
   mysql2ChannelIntegration,
@@ -88,6 +90,7 @@ export const channelIntegrations = {
   openaiIntegration: openaiChannelIntegration,
   anthropicIntegration: anthropicChannelIntegration,
   googleGenAIIntegration: googleGenAIChannelIntegration,
+  langGraphIntegration: langGraphChannelIntegration,
   vercelAiIntegration: vercelAiChannelIntegration,
   amqplibIntegration: amqplibChannelIntegration,
   hapiIntegration: hapiChannelIntegration,

@@ -219,7 +219,14 @@ export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from '.
 export { _INTERNAL_mergeLangChainCallbackHandler } from './tracing/langchain/utils';
 export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
 export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
-export { instrumentStateGraphCompile, instrumentCreateReactAgent, instrumentLangGraph } from './tracing/langgraph';
+export {
+  instrumentStateGraphCompile,
+  instrumentCreateReactAgent,
+  instrumentLangGraph,
+  instrumentCompiledGraphInvoke,
+  _INTERNAL_getLangGraphCreateAgentSpanOptions,
+} from './tracing/langgraph';
+export { wrapToolsWithSpans, extractLLMFromParams, extractAgentNameFromParams } from './tracing/langgraph/utils';
 export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
 // eslint-disable-next-line typescript/no-deprecated
