@@ -1,5 +1,5 @@
 import { buildOptionsImport, ENV_FALLBACK_OPTIONS_FN, resolveInstrumentFile } from './instrumentFile';
-import { applyAutoInstrumentTransforms, type ProgramBody } from './transform';
+import { applyAutoInstrumentTransforms, type ClassWrapperKind, type ProgramBody } from './transform';
 import { resolveWranglerConfig, type WranglerConfig } from './wranglerConfig';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,10 +81,30 @@ export function sentryCloudflareAutoInstrumentPlugin(): UnknownPlugin {
         return undefined;
       }
 
+      const classWrappers = new Map<string, ClassWrapperKind>();
+      for (const { className } of wranglerConfig.durableObjects) {
+        classWrappers.set(className, 'durableObject');
+      }
+
+      // No registration import is injected here: the orchestrion plugin's
+      // subscribe-injection makes each bundled package self-register its channel
+      // subscriber on the global marker, so wrapping the entry with `withSentry`
+      // is all this plugin needs to do.
       const result = applyAutoInstrumentTransforms(code, ast, {
+        classWrappers,
         optionsFn,
         optionsImport,
       });
+
+      const wrappedClasses = result?.wrappedClasses ?? new Set<string>();
+      const missing = [...classWrappers.keys()].filter(name => !wrappedClasses.has(name));
+      if (missing.length > 0) {
+        this.warn?.(
+          `[sentry] Could not auto-instrument class(es) ${missing.join(', ')}: no matching exported class ` +
+            'declaration found in the worker entry (re-exports from other modules cannot be wrapped ' +
+            'automatically). Wrap them manually with the matching `instrument*WithSentry` helper.',
+        );
+      }
 
       return result ?? undefined;
     },

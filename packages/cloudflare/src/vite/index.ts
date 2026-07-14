@@ -31,10 +31,11 @@ export interface SentryCloudflareVitePluginOptions {
     useDiagnosticsChannelInjection?: boolean;
     /**
      * Automatically wraps your Worker at build time so you don't have to edit
-     * your entry: the plugin reads your wrangler config and wraps the default
-     * export with `Sentry.withSentry()`, sourcing options from a co-located
-     * `instrument.*` file and falling back to env. Both `vite build` and
-     * `vite dev` are instrumented.
+     * your entry: the plugin reads your wrangler config, wraps the default
+     * export with `Sentry.withSentry()` (sourcing options from a co-located
+     * `instrument.*` file, falling back to env), and wraps any configured
+     * Durable Object class with `instrumentDurableObjectWithSentry`. Both
+     * `vite build` and `vite dev` are instrumented.
      *
      * @default false
      * @experimental May change or be removed in any release.
@@ -79,6 +80,6 @@ export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOp
     ...(options._experimental?.useDiagnosticsChannelInjection
       ? [sentryOrchestrionPlugin({ injectChannelSubscribers: true })]
       : []),
-    ...(options._experimental?.autoInstrumentation ? sentryCloudflareAutoInstrumentPlugin() : []),
+    ...(options._experimental?.autoInstrumentation ? [sentryCloudflareAutoInstrumentPlugin()] : []),
   ];
 }
