@@ -24,7 +24,6 @@ import {
 
 const INTEGRATION_NAME = 'Mysql2' as const;
 const ORIGIN = 'auto.db.orchestrion.mysql2';
-const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const DB_SYSTEM_VALUE_MYSQL = 'mysql';
 
 /**
@@ -149,7 +148,6 @@ function getConnectionAttributes(config: Mysql2ConnectionConfig | undefined): Sp
   const portIsNumber = typeof portNumber === 'number' && !isNaN(portNumber);
 
   return {
-    [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
     // oxlint-disable-next-line typescript/no-deprecated
     ...(database ? { [DB_NAME]: database } : {}),
     ...(user ? { [DB_USER]: user } : {}),
@@ -158,17 +156,6 @@ function getConnectionAttributes(config: Mysql2ConnectionConfig | undefined): Sp
     // oxlint-disable-next-line typescript/no-deprecated
     ...(portIsNumber ? { [NET_PEER_PORT]: portNumber } : {}),
   };
-}
-
-function getJDBCString(host: string | undefined, port: number | undefined, database: string | undefined): string {
-  let s = `jdbc:mysql://${host || 'localhost'}`;
-  if (typeof port === 'number') {
-    s += `:${port}`;
-  }
-  if (database) {
-    s += `/${database}`;
-  }
-  return s;
 }
 
 const _mysql2ChannelIntegration = (() => {
