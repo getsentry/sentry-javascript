@@ -33,8 +33,7 @@
     },
     "./module": {
       "types": "./build/module/types.d.ts",
-      "import": "./build/module/module.mjs",
-      "require": "./build/module/module.cjs"
+      "import": "./build/module/module.mjs"
     },
     "./module/plugins": {
       "types": "./build/module/runtime/plugins/index.d.ts",
@@ -66,7 +65,6 @@
     "local-pkg": "^1.1.2"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "^0.8.4",
     "@nuxt/nitro-server": "^3.21.6",
     "nitro": "^3.0.260311-beta",
     "nuxi": "^3.25.1",
@@ -76,7 +74,7 @@
   "scripts": {
     "build": "run-s build:types build:transpile",
     "build:dev": "yarn build",
-    "build:nuxt-module": "bash ./generate-build-stubs.bash && nuxt-module-build build --outDir build/module",
+    "build:nuxt-module": "rollup -c rollup.module.config.mjs && tsc -p tsconfig.module.json && node scripts/build-module-meta.mjs",
     "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:nuxt-module",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
@@ -87,7 +85,7 @@
     "clean": "rimraf build coverage sentry-nuxt-*.tgz",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
-    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module && es-check es2020 ./build/module/*.cjs && es-check es2020 ./build/module/*.mjs --module",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module && es-check es2020 ./build/module/*.mjs --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",

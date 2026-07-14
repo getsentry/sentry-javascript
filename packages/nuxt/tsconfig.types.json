@@ -1,6 +1,5 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["build.config.ts"],
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,
