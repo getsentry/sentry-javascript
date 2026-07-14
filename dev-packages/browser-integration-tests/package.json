@@ -14,7 +14,7 @@
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "lint:types": "tsc --noEmit",
     "postinstall": "yarn install-browsers",
-    "pretest": "yarn clean && yarn type-check",
+    "pretest": "yarn clean && yarn lint:types",
     "test": "yarn test:all --project='chromium'",
     "test:all": "npx playwright test -c playwright.browser.config.ts",
     "test:bundle": "PW_BUNDLE=bundle yarn test",
