@@ -18,8 +18,8 @@ export function sentry<E extends Env>(
   options: HonoCloudflareOptions | ((env: E['Bindings']) => HonoCloudflareOptions),
 ): MiddlewareHandler {
   withSentry(
-    env => {
-      const honoOptions = typeof options === 'function' ? options(env as E['Bindings']) : options;
+    (env: E['Bindings']) => {
+      const honoOptions = typeof options === 'function' ? options(env) : options;
 
       applySdkMetadata(honoOptions, 'hono', ['hono', 'cloudflare']);
 
@@ -33,8 +33,8 @@ export function sentry<E extends Env>(
         integrations: buildFilteredIntegrations(honoOptions.integrations, true),
       };
     },
-    // Cast needed because Hono<E> exposes a narrower fetch signature than ExportedHandler<unknown>
-    app as unknown as ExportedHandler<unknown>,
+    // Cast needed because Hono<E> exposes a narrower fetch signature than ExportedHandler<E['Bindings']>
+    app as unknown as ExportedHandler<E['Bindings']>,
   );
 
   applyPatches(app);

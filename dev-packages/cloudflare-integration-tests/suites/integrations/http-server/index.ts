@@ -5,7 +5,7 @@ interface Env {
 }
 
 export default Sentry.withSentry(
-  (env: Env) => ({
+  env => ({
     dsn: env.SENTRY_DSN,
   }),
   {
@@ -34,5 +34,5 @@ export default Sentry.withSentry(
 
       return new Response('Not found', { status: 404 });
     },
-  },
+  } as ExportedHandler<Env>,
 );

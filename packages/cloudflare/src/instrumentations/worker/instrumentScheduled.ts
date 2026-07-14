@@ -15,6 +15,7 @@ import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
 import { instrumentEnv } from './instrumentEnv';
+import type { HandlerEnv } from '../instrumentWorkerEntrypoint';
 
 function wrapScheduledHandler(
   controller: ScheduledController,
@@ -62,7 +63,7 @@ function wrapScheduledHandler(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentExportedHandlerScheduled<T extends ExportedHandler<any, any, any>>(
   handler: T,
-  optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
+  optionsCallback: (env: HandlerEnv<T>) => CloudflareOptions | undefined,
 ): void {
   if (!('scheduled' in handler) || typeof handler.scheduled !== 'function') {
     return;

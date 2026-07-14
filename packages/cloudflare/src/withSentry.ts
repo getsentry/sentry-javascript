@@ -1,4 +1,4 @@
-import type { env as cloudflareEnv } from 'cloudflare:workers';
+import type { Hono, Env as HonoEnv } from 'hono';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { ensureInstrumented } from './instrument';
@@ -11,8 +11,18 @@ import { getHonoIntegration } from './integrations/hono';
 import { isCloudflareClass } from './utils/isCloudflareClass';
 import {
   instrumentWorkerEntrypoint,
+  type HandlerEnv,
   type WorkerEntrypointConstructor,
 } from './instrumentations/instrumentWorkerEntrypoint';
+
+// oxlint-disable-next-line typescript/no-explicit-any
+type ExportedHandlerHandler<T> = Extract<T, ExportedHandler<any, any, any>>;
+
+// oxlint-disable-next-line typescript/no-explicit-any
+type HandlerWithHonoErrorHandler = ExportedHandler<any, any, any> & {
+  onError?: () => void;
+  errorHandler?: (err: Error, context?: unknown) => Response;
+};
 
 /**
  * Wrapper for Cloudflare handlers.
@@ -25,37 +35,29 @@ import {
  * @param handler {ExportedHandler} The handler to wrap.
  * @returns The wrapped handler.
  */
-// TODO(v11): The generic types need to be rewritten to following to improve type safety:
-// T extends ExportedHandler<any, any, any> | WorkerEntrypointConstructor<any, any>
 export function withSentry<
-  Env = typeof cloudflareEnv,
-  QueueHandlerMessage = unknown,
-  CfHostMetadata = unknown,
-  T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> | WorkerEntrypointConstructor = ExportedHandler<
-    Env,
-    QueueHandlerMessage,
-    CfHostMetadata
-  >,
->(optionsCallback: (env: Env) => CloudflareOptions | undefined, handler: T): T {
+  // oxlint-disable-next-line typescript/no-explicit-any
+  T extends ExportedHandler<any, any, any> | WorkerEntrypointConstructor<any, any> | Hono<HonoEnv>,
+  HandlerBindings = HandlerEnv<T>,
+>(optionsCallback: (env: HandlerBindings) => CloudflareOptions | undefined, handler: T): T {
   if (isCloudflareClass(handler, 'WorkerEntrypoint')) {
-    // oxlint-disable-next-line typescript/no-explicit-any
-    return instrumentWorkerEntrypoint(optionsCallback as any, handler);
+    return instrumentWorkerEntrypoint(optionsCallback, handler);
   }
 
   setAsyncLocalStorageAsyncContextStrategy();
 
+  const exportedHandler = handler as ExportedHandlerHandler<T>;
+  const instrumentOptionsCallback = optionsCallback as (
+    env: HandlerEnv<ExportedHandlerHandler<T>>,
+  ) => CloudflareOptions | undefined;
+
   try {
-    // oxlint-disable-next-line typescript/no-explicit-any
-    instrumentExportedHandlerFetch(handler, optionsCallback as any);
-    instrumentHonoErrorHandler(handler);
-    // oxlint-disable-next-line typescript/no-explicit-any
-    instrumentExportedHandlerScheduled(handler, optionsCallback as any);
-    // oxlint-disable-next-line typescript/no-explicit-any
-    instrumentExportedHandlerEmail(handler, optionsCallback as any);
-    // oxlint-disable-next-line typescript/no-explicit-any
-    instrumentExportedHandlerQueue(handler, optionsCallback as any);
-    // oxlint-disable-next-line typescript/no-explicit-any
-    instrumentExportedHandlerTail(handler, optionsCallback as any);
+    instrumentExportedHandlerFetch(exportedHandler, instrumentOptionsCallback);
+    instrumentHonoErrorHandler(exportedHandler);
+    instrumentExportedHandlerScheduled(exportedHandler, instrumentOptionsCallback);
+    instrumentExportedHandlerEmail(exportedHandler, instrumentOptionsCallback);
+    instrumentExportedHandlerQueue(exportedHandler, instrumentOptionsCallback);
+    instrumentExportedHandlerTail(exportedHandler, instrumentOptionsCallback);
     // This is here because Miniflare sometimes cannot get instrumented
   } catch {
     // Do not console anything here, we don't want to spam the console with errors
@@ -64,8 +66,7 @@ export function withSentry<
   return handler;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function instrumentHonoErrorHandler<T extends ExportedHandler<any, any, any>>(handler: T): void {
+function instrumentHonoErrorHandler(handler: HandlerWithHonoErrorHandler): void {
   if ('onError' in handler && 'errorHandler' in handler && typeof handler.errorHandler === 'function') {
     handler.errorHandler = ensureInstrumented(
       handler.errorHandler,

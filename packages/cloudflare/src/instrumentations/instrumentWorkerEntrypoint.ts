@@ -1,3 +1,4 @@
+import type { Hono } from 'hono';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import type { CloudflareOptions } from '../client';
@@ -9,10 +10,40 @@ import { getFinalOptions } from '../options';
 import { instrumentContext } from '../utils/instrumentContext';
 import { instrumentEnv } from './worker/instrumentEnv';
 
-export type WorkerEntrypointConstructor<Env = typeof cloudflareEnv, Props = {}> = new (
+export type WorkerEntrypointConstructor<Env = unknown, Props = {}> = new (
   ctx: ExecutionContext,
-  env: typeof cloudflareEnv,
+  env: Env,
 ) => InstanceType<typeof WorkerEntrypoint<Env, Props>>;
+
+type ExtractHonoBindings<T> = T extends Hono<infer E>
+  ? 'Bindings' extends keyof E
+    ? E['Bindings']
+    : never
+  : never;
+
+type ExtractFetchBindings<T> = T extends {
+  fetch: (request: Request, env?: infer B, executionCtx?: ExecutionContext) => Response | Promise<Response>;
+}
+  ? Exclude<B, {}>
+  : never;
+
+type ExtractWorkerEntrypointEnv<T> = T extends abstract new (
+  _ctx: ExecutionContext,
+  env: infer E,
+) => unknown
+  ? E
+  : never;
+
+// oxlint-disable-next-line typescript/no-explicit-any
+export type HandlerEnv<T> = T extends ExportedHandler<infer E, any, any>
+  ? E
+  : ExtractHonoBindings<T> extends never
+    ? ExtractWorkerEntrypointEnv<T> extends never
+      ? ExtractFetchBindings<T> extends never
+        ? typeof cloudflareEnv
+        : ExtractFetchBindings<T>
+      : ExtractWorkerEntrypointEnv<T>
+    : ExtractHonoBindings<T>;
 
 /**
  * Instruments a WorkerEntrypoint class to capture errors and performance data.
@@ -51,8 +82,8 @@ export type WorkerEntrypointConstructor<Env = typeof cloudflareEnv, Props = {}> 
  * );
  * ```
  */
-export function instrumentWorkerEntrypoint<T extends WorkerEntrypointConstructor>(
-  optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
+export function instrumentWorkerEntrypoint<T extends WorkerEntrypointConstructor<any, any>>(
+  optionsCallback: (env: HandlerEnv<T>) => CloudflareOptions | undefined,
   WorkerEntrypointClass: T,
 ): T {
   // Set up AsyncLocalStorage strategy ONCE at instrumentation time, not per-request

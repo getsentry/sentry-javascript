@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { captureException } from '@sentry/core';
-import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { ensureInstrumented } from './instrument';
@@ -11,6 +10,13 @@ import { instrumentContext } from './utils/instrumentContext';
 import { extractRpcMeta } from './utils/rpcMeta';
 import { getEffectiveRpcPropagation } from './utils/rpcOptions';
 import { type UncheckedMethod, wrapMethodWithSentry } from './wrapMethodWithSentry';
+
+type ExtractDurableObjectEnv<C> = C extends abstract new (
+  _state: DurableObjectState,
+  env: infer E,
+) => unknown
+  ? E
+  : never;
 
 /**
  * Instruments a Durable Object class to capture errors and performance data.
@@ -46,9 +52,8 @@ import { type UncheckedMethod, wrapMethodWithSentry } from './wrapMethodWithSent
  * ```
  */
 export function instrumentDurableObjectWithSentry<
-  E,
-  T extends DurableObject<E>,
-  C extends new (state: DurableObjectState, env: E) => T,
+  C extends abstract new (state: DurableObjectState, env: any) => any,
+  E = ExtractDurableObjectEnv<C>,
 >(optionsCallback: (env: E) => CloudflareOptions, DurableObjectClass: C): C {
   return new Proxy(DurableObjectClass, {
     construct(target, [ctx, env], newTarget) {
@@ -60,7 +65,7 @@ export function instrumentDurableObjectWithSentry<
       // Pass `newTarget` so that subclasses of the instrumented class (e.g. the wrapper classes
       // created by wrangler's local dev tooling or `@cloudflare/vitest-pool-workers`) keep their
       // own prototype — otherwise subclass methods disappear and `instanceof` checks break.
-      const obj = Reflect.construct(target, [context, instrumentedEnv], newTarget) as T;
+      const obj = Reflect.construct(target, [context, instrumentedEnv], newTarget) as InstanceType<C>;
 
       // These are the methods that are available on a Durable Object
       // ref: https://developers.cloudflare.com/durable-objects/api/base/

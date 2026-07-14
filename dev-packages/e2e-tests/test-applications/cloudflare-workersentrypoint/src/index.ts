@@ -107,6 +107,14 @@ class MyWorker extends WorkerEntrypoint {
   }
 }
 
+type CustomEnv = { customEnv: number };
+
+class SecondWoker extends WorkerEntrypoint<CustomEnv> {
+
+}
+
+Sentry.withSentry((env) => ({ tracesSampleRate: env.customEnv }), SecondWoker)
+
 export default Sentry.withSentry(
   env => ({
     dsn: env.E2E_TEST_DSN,

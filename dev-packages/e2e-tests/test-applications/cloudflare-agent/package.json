@@ -7,8 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "ts:check": "tsc --noEmit",
     "cf-typegen": "wrangler types --include-runtime=false",
-    "test:build": "pnpm install && pnpm build",
+    "test:build": "pnpm install && pnpm ts:check && pnpm build",
     "test:assert": "pnpm test:dev && pnpm test:prod",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test"

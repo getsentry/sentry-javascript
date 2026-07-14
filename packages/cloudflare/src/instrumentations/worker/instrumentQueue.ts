@@ -1,5 +1,5 @@
 import type { ExportedHandler, MessageBatch } from '@cloudflare/workers-types';
-import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
+import type { WorkerEntrypoint } from 'cloudflare:workers';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -16,6 +16,7 @@ import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
 import { instrumentEnv } from './instrumentEnv';
+import type { HandlerEnv } from '../instrumentWorkerEntrypoint';
 
 /**
  * Core queue handler logic - wraps execution with Sentry instrumentation.
@@ -71,7 +72,7 @@ function wrapQueueHandler(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentExportedHandlerQueue<T extends ExportedHandler<any, any, any>>(
   handler: T,
-  optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
+  optionsCallback: (env: HandlerEnv<T>) => CloudflareOptions | undefined,
 ): void {
   if (!('queue' in handler) || typeof handler.queue !== 'function') {
     return;

@@ -1,5 +1,4 @@
 import type { EmailMessage, ExportedHandler } from '@cloudflare/workers-types';
-import type { env as cloudflareEnv } from 'cloudflare:workers';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -15,6 +14,7 @@ import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
 import { instrumentEnv } from './instrumentEnv';
+import type { HandlerEnv } from '../instrumentWorkerEntrypoint';
 
 /**
  * Core email handler logic - wraps execution with Sentry instrumentation.
@@ -63,7 +63,7 @@ function wrapEmailHandler(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentExportedHandlerEmail<T extends ExportedHandler<any, any, any>>(
   handler: T,
-  optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
+  optionsCallback: (env: HandlerEnv<T>) => CloudflareOptions | undefined,
 ): void {
   if (!('email' in handler) || typeof handler.email !== 'function') {
     return;

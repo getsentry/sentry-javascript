@@ -1,10 +1,11 @@
 import type { ExportedHandler } from '@cloudflare/workers-types';
-import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
+import type { WorkerEntrypoint } from 'cloudflare:workers';
 import type { CloudflareOptions } from '../../client';
 import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { wrapRequestHandler } from '../../request';
 import { instrumentContext } from '../../utils/instrumentContext';
+import type { HandlerEnv } from '../instrumentWorkerEntrypoint';
 import { instrumentEnv } from './instrumentEnv';
 
 /**
@@ -13,7 +14,7 @@ import { instrumentEnv } from './instrumentEnv';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentExportedHandlerFetch<T extends ExportedHandler<any, any, any>>(
   handler: T,
-  optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
+  optionsCallback: (env: HandlerEnv<T>) => CloudflareOptions | undefined,
 ): void {
   if (!('fetch' in handler) || typeof handler.fetch !== 'function') {
     return;

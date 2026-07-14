@@ -1,5 +1,5 @@
 import type { ExportedHandler, TraceItem } from '@cloudflare/workers-types';
-import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
+import type { WorkerEntrypoint } from 'cloudflare:workers';
 import { captureException, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
@@ -9,6 +9,7 @@ import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
 import { instrumentEnv } from './instrumentEnv';
+import type { HandlerEnv } from '../instrumentWorkerEntrypoint';
 
 /**
  * Core tail handler logic - wraps execution with Sentry instrumentation.
@@ -40,7 +41,7 @@ function wrapTailHandler(options: CloudflareOptions, context: ExecutionContext, 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentExportedHandlerTail<T extends ExportedHandler<any, any, any>>(
   handler: T,
-  optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
+  optionsCallback: (env: HandlerEnv<T>) => CloudflareOptions | undefined,
 ): void {
   if (!('tail' in handler) || typeof handler.tail !== 'function') {
     return;
