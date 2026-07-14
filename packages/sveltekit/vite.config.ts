@@ -12,6 +12,10 @@ export default {
         find: '$app/stores',
         replacement: resolve(fileURLToPath(dirname(import.meta.url)), '/.empty.js'),
       },
+      {
+        find: '$app/state',
+        replacement: resolve(fileURLToPath(dirname(import.meta.url)), '/.empty.js'),
+      },
     ],
   },
 };

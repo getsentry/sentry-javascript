@@ -11,7 +11,7 @@ export default makeNPMConfigVariants(
       'src/worker/index.ts',
     ],
     packageSpecificConfig: {
-      external: ['$app/stores'],
+      external: ['$app/state', '$app/stores'],
       output: {
         dynamicImportInCjs: true,
       },

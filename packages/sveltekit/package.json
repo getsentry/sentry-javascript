@@ -42,7 +42,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@sveltejs/kit": "2.x",
+    "@sveltejs/kit": "2.x || ^3.0.0-0",
     "vite": "*"
   },
   "peerDependenciesMeta": {

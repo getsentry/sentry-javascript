@@ -8,8 +8,12 @@ import {
   startInactiveSpan,
   WINDOW,
 } from '@sentry/svelte';
-import { navigating, page } from '$app/stores';
 import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import type { Navigation, Page } from '@sveltejs/kit';
+import { VERSION } from '@sveltejs/kit';
+import type { Readable } from 'svelte/store';
+
+const IS_SVELTEKIT_3 = Number(VERSION.split('.')[0]) >= 3;
 
 /**
  * A custom `BrowserTracing` integration for SvelteKit.
@@ -30,18 +34,34 @@ export function browserTracingIntegration(
     afterAllSetup: client => {
       integration.afterAllSetup(client);
 
-      if (options.instrumentPageLoad !== false) {
-        _instrumentPageload(client);
-      }
-
-      if (options.instrumentNavigation !== false) {
-        _instrumentNavigations(client);
+      if (IS_SVELTEKIT_3) {
+        void import('./kit3BrowserTracingIntegration').then(({ instrumentSvelteKit3Tracing }) => {
+          instrumentSvelteKit3Tracing(client, options);
+        });
+      } else {
+        void _instrumentSvelteKit2Tracing(client, options);
       }
     },
   };
 }
 
-function _instrumentPageload(client: Client): void {
+async function _instrumentSvelteKit2Tracing(
+  client: Client,
+  options: NonNullable<Parameters<typeof originalBrowserTracingIntegration>[0]>,
+): Promise<void> {
+  // eslint-disable-next-line typescript/no-deprecated
+  const { navigating, page } = await import('$app/stores');
+
+  if (options.instrumentPageLoad !== false) {
+    _instrumentPageload(client, page);
+  }
+
+  if (options.instrumentNavigation !== false) {
+    _instrumentNavigations(client, navigating);
+  }
+}
+
+function _instrumentPageload(client: Client, page: Readable<Page>): void {
   const initialPath = WINDOW.location?.pathname;
 
   const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
@@ -76,7 +96,7 @@ function _instrumentPageload(client: Client): void {
 /**
  * Use the `navigating` store to start a transaction on navigations.
  */
-function _instrumentNavigations(client: Client): void {
+function _instrumentNavigations(client: Client, navigating: Readable<Navigation | null>): void {
   let routingSpan: Span | undefined;
 
   // TODO(v11): require svelte 5 or newer to switch to `navigating` from `$app/state`
