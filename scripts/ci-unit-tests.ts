@@ -28,7 +28,7 @@ const BROWSER_TEST_PACKAGES = [
 ];
 
 // Packages that cannot run in Node 18
-const SKIP_NODE_18_PACKAGES = ['@sentry/react-router'];
+const SKIP_NODE_18_PACKAGES = ['@sentry/react-router', '@sentry/cloudflare'];
 
 function getAllPackages(): string[] {
   const { workspaces }: { workspaces: string[] } = JSON.parse(
