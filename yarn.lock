@@ -9157,20 +9157,20 @@
     "@types/estree" "*"
     "@types/json-schema" "*"
 
-"@types/estree@*", "@types/estree@1.0.8", "@types/estree@^1.0.0", "@types/estree@^1.0.1", "@types/estree@^1.0.6", "@types/estree@^1.0.8":
-  version "1.0.8"
-  resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.8.tgz#958b91c991b1867ced318bedea0e215ee050726e"
-  integrity sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==
+"@types/estree@*", "@types/estree@1.0.9", "@types/estree@^1.0.0", "@types/estree@^1.0.1", "@types/estree@^1.0.6", "@types/estree@^1.0.8":
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.9.tgz#cf3f0e876d7bee15a93ab925b82bf570a3904a24"
+  integrity sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==
 
 "@types/estree@0.0.39":
   version "0.0.39"
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-0.0.39.tgz#e177e699ee1b8c22d23174caaa7422644389509f"
   integrity sha512-EYNwp3bU+98cpU4lAWYYL7Zz+2gryWH1qbdDTidVd6hkiR6weksdbMadyXKXNPEkQFhXM+hVO9ZygomHXp+AIw==
 
-"@types/estree@1.0.9":
-  version "1.0.9"
-  resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.9.tgz#cf3f0e876d7bee15a93ab925b82bf570a3904a24"
-  integrity sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==
+"@types/estree@1.0.8":
+  version "1.0.8"
+  resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.8.tgz#958b91c991b1867ced318bedea0e215ee050726e"
+  integrity sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==
 
 "@types/estree@^0.0.51":
   version "0.0.51"
@@ -21065,7 +21065,7 @@ magic-string@^0.26.0, magic-string@^0.26.7:
   dependencies:
     sourcemap-codec "^1.4.8"
 
-magic-string@^0.30.0, magic-string@^0.30.10, magic-string@^0.30.17, magic-string@^0.30.19, magic-string@^0.30.21, magic-string@^0.30.3, magic-string@^0.30.4, magic-string@^0.30.5, magic-string@~0.30.0, magic-string@~0.30.8:
+magic-string@^0.30.0, magic-string@^0.30.10, magic-string@^0.30.17, magic-string@^0.30.19, magic-string@^0.30.21, magic-string@^0.30.3, magic-string@^0.30.4, magic-string@^0.30.5, magic-string@~0.30.0, magic-string@~0.30.21, magic-string@~0.30.8:
   version "0.30.21"
   resolved "https://registry.yarnpkg.com/magic-string/-/magic-string-0.30.21.tgz#56763ec09a0fa8091df27879fd94d19078c00d91"
   integrity sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==
@@ -26696,41 +26696,7 @@ rollup@^3.27.1:
   optionalDependencies:
     fsevents "~2.3.2"
 
-rollup@^4.34.9, rollup@^4.60.2, rollup@^4.60.3:
-  version "4.60.4"
-  resolved "https://registry.yarnpkg.com/rollup/-/rollup-4.60.4.tgz#ca3814f5900da3ac3981d2e0c61944b7e6e0cb09"
-  integrity sha512-WHeFSbZYsPu3+bLoNRUuAO+wavNlocOPf3wSHTP7hcFKVnJeWsYlCDbr3mTS14FCizf9ccIxXA8sGL8zKeQN3g==
-  dependencies:
-    "@types/estree" "1.0.8"
-  optionalDependencies:
-    "@rollup/rollup-android-arm-eabi" "4.60.4"
-    "@rollup/rollup-android-arm64" "4.60.4"
-    "@rollup/rollup-darwin-arm64" "4.60.4"
-    "@rollup/rollup-darwin-x64" "4.60.4"
-    "@rollup/rollup-freebsd-arm64" "4.60.4"
-    "@rollup/rollup-freebsd-x64" "4.60.4"
-    "@rollup/rollup-linux-arm-gnueabihf" "4.60.4"
-    "@rollup/rollup-linux-arm-musleabihf" "4.60.4"
-    "@rollup/rollup-linux-arm64-gnu" "4.60.4"
-    "@rollup/rollup-linux-arm64-musl" "4.60.4"
-    "@rollup/rollup-linux-loong64-gnu" "4.60.4"
-    "@rollup/rollup-linux-loong64-musl" "4.60.4"
-    "@rollup/rollup-linux-ppc64-gnu" "4.60.4"
-    "@rollup/rollup-linux-ppc64-musl" "4.60.4"
-    "@rollup/rollup-linux-riscv64-gnu" "4.60.4"
-    "@rollup/rollup-linux-riscv64-musl" "4.60.4"
-    "@rollup/rollup-linux-s390x-gnu" "4.60.4"
-    "@rollup/rollup-linux-x64-gnu" "4.60.4"
-    "@rollup/rollup-linux-x64-musl" "4.60.4"
-    "@rollup/rollup-openbsd-x64" "4.60.4"
-    "@rollup/rollup-openharmony-arm64" "4.60.4"
-    "@rollup/rollup-win32-arm64-msvc" "4.60.4"
-    "@rollup/rollup-win32-ia32-msvc" "4.60.4"
-    "@rollup/rollup-win32-x64-gnu" "4.60.4"
-    "@rollup/rollup-win32-x64-msvc" "4.60.4"
-    fsevents "~2.3.2"
-
-rollup@^4.43.0:
+rollup@^4.34.9, rollup@^4.43.0, rollup@^4.60.2, rollup@^4.60.3:
   version "4.62.2"
   resolved "https://registry.yarnpkg.com/rollup/-/rollup-4.62.2.tgz#d90fc4cb811f071303c890b779595634f35f9541"
   integrity sha512-RFnrW4lhXA3s3eqHDZvN654g8OTjzRfqpIRJYczCGB6HzphckVAi/Qh4tbPUbRuDi7s1Llv8g/NspLkttY3gTA==
@@ -30302,7 +30268,7 @@ vite-plugin-vue-tracer@^1.0.1:
     pathe "^2.0.3"
     source-map-js "^1.2.1"
 
-vite@7.3.2:
+vite@7.3.2, "vite@^5.0.0 || ^6.0.0 || ^7.0.0-0":
   version "7.3.2"
   resolved "https://registry.yarnpkg.com/vite/-/vite-7.3.2.tgz#cb041794d4c1395e28baea98198fd6e8f4b96b5c"
   integrity sha512-Bby3NOsna2jsjfLVOHKes8sGwgl4TT0E6vvpYgnAYDIF/tie7MRaFthmKuHx1NSXjiTueXH3do80FMQgvEktRg==
@@ -30327,7 +30293,7 @@ vite@^4.4.9:
   optionalDependencies:
     fsevents "~2.3.2"
 
-"vite@^5.0.0 || ^6.0.0 || ^7.0.0-0", vite@^6.3.5, vite@^6.4.1, vite@^6.4.3:
+vite@^6.3.5, vite@^6.4.1, vite@^6.4.3:
   version "6.4.3"
   resolved "https://registry.yarnpkg.com/vite/-/vite-6.4.3.tgz#85a164db7ce706f2a776812efa2b340f1721858e"
   integrity sha512-NTKlcQjlAK7MlQoyb6LgaqHc8sso/pVyUJYWMws3jg21uTJw/LddqIFPcPqP6PzpgbIcZyKI85sFE4HBrQDA8A==
