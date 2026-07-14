@@ -2,6 +2,7 @@ import type { Integration } from '@sentry/core';
 import {
   consoleIntegration,
   conversationIdIntegration,
+  debug,
   dedupeIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
@@ -11,6 +12,7 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
+import { DEBUG_BUILD } from './debug-build';
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
 import { makeFlushLock } from './flush';
@@ -20,6 +22,48 @@ import { honoIntegration } from './integrations/hono';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
+
+/**
+ * Exact copy of the function from `@sentry/server-utils/orchestrion`.
+ * This is to avoid importing the orchestrion package directly into the cloudflare package.
+ * TODO(v11): Use `@sentry/server-utils/orchestrion` once we move to `nodejs_compat` by default
+ */
+function getRegisteredChannelIntegrations(): Integration[] {
+  const marker = globalThis.__SENTRY_ORCHESTRION__;
+  const registered = marker?.integrations || [];
+  const transformedModules = marker?.transformedModules;
+
+  warnAboutFailedModules(marker?.failedModules);
+
+  if (!transformedModules) {
+    return registered.map(entry => entry.factory());
+  }
+
+  return registered
+    .filter(entry => entry.modules.some(module => transformedModules.includes(module)))
+    .map(entry => entry.factory());
+}
+
+// A failed transform means the package is in the bundle but its diagnostics
+// channels are not, so its integration is filtered out and spans silently go
+// missing. Surface why (the bundler plugin also warns at build time). The
+// failed-modules list is fixed at build time, but `init()` runs once per
+// request in a Cloudflare worker, so remember which packages we've already
+// warned about and warn once per isolate instead of on every request.
+const warnedFailedModules = new Set<string>();
+
+function warnAboutFailedModules(failedModules: string[] | undefined): void {
+  if (!DEBUG_BUILD || !failedModules?.length) return;
+
+  const unwarned = failedModules.filter(module => !warnedFailedModules.has(module));
+  if (!unwarned.length) return;
+
+  unwarned.forEach(module => warnedFailedModules.add(module));
+  debug.warn(
+    `[Sentry] The orchestrion code transform failed at build time for: ${unwarned.join(', ')}. ` +
+      'No spans will be recorded for these packages.',
+  );
+}
 
 /** Get the default integrations for the Cloudflare SDK. */
 export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
@@ -44,6 +88,13 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     httpServerIntegration(),
     requestDataIntegration(cookiesEnabled ? undefined : { include: { cookies: false } }),
     consoleIntegration(),
+    // The orchestrion diagnostics-channel subscribers (mysql, pg, …). The
+    // `@sentry/cloudflare/vite` plugin injects the channels at build time and
+    // adds a generated registration module to the bundle, which puts the
+    // subscriber factories on the global marker. Read from there instead of
+    // importing them so bundles built without the plugin — where the channels
+    // would never fire — don't ship the code.
+    ...getRegisteredChannelIntegrations(),
   ];
 }
 
