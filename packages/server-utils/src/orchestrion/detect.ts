@@ -1,5 +1,4 @@
 import { debug, GLOBAL_OBJ } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
 
 /**
  * Whether orchestrion has injected the diagnostics channels into this process,
