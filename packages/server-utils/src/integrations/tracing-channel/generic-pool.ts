@@ -1,0 +1,55 @@
+import * as diagnosticsChannel from 'node:diagnostics_channel';
+import type { IntegrationFn } from '@sentry/core';
+import {
+  debug,
+  defineIntegration,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startInactiveSpan,
+  waitForTracingChannelBinding,
+} from '@sentry/core';
+import { DEBUG_BUILD } from '../../debug-build';
+import { CHANNELS } from '../../orchestrion/channels';
+import { bindTracingChannelToSpan } from '../../tracing-channel';
+
+// Same name as the OTel integration by design — when enabled, the OTel
+// 'GenericPool' integration is omitted from the default set.
+const INTEGRATION_NAME = 'GenericPool' as const;
+
+interface GenericPoolAcquireContext {
+  arguments: unknown[];
+}
+
+const _genericPoolChannelIntegration = (() => {
+  return {
+    name: INTEGRATION_NAME,
+    setupOnce() {
+      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
+      if (!diagnosticsChannel.tracingChannel) {
+        return;
+      }
+
+      DEBUG_BUILD && debug.log(`[orchestrion:generic-pool] subscribing to channel "${CHANNELS.GENERIC_POOL_ACQUIRE}"`);
+
+      waitForTracingChannelBinding(() => {
+        bindTracingChannelToSpan(
+          diagnosticsChannel.tracingChannel<GenericPoolAcquireContext>(CHANNELS.GENERIC_POOL_ACQUIRE),
+          () =>
+            startInactiveSpan({
+              name: 'generic-pool.acquire',
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.orchestrion.generic_pool',
+              },
+            }),
+        );
+      });
+    },
+  };
+}) satisfies IntegrationFn;
+
+/**
+ * EXPERIMENTAL — orchestrion-driven generic-pool integration. Subscribes to
+ * `orchestrion:generic-pool:acquire` (injected into `generic-pool/lib/Pool.js`'s
+ * `Pool.prototype.acquire`). Creates a `generic-pool.acquire` span for each
+ * acquisition. Requires the orchestrion runtime hook or bundler plugin.
+ */
+export const genericPoolChannelIntegration = defineIntegration(_genericPoolChannelIntegration);
