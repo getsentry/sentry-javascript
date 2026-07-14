@@ -9,7 +9,7 @@ import {
 } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import type { GraphqlDocumentNode } from './utils';
-import { getOperationSpanName, hasResultErrors, redactGraphqlDocument, renameRootSpanWithOperation } from './utils';
+import { collectGraphqlDocument, getOperationSpanName, hasResultErrors, renameRootSpanWithOperation } from './utils';
 
 // Channel names published by graphql >= 17.0.0 (see graphql-js `src/diagnostics.ts`).
 // Hardcoded so the subscriber does not have to import graphql — the channels just
@@ -160,14 +160,12 @@ function setupValidateChannel(tracingChannel: GraphqlTracingChannelFactory): voi
   bindTracingChannelToSpan(
     tracingChannel<GraphqlValidateData>(GRAPHQL_DC_CHANNEL_VALIDATE),
     data => {
-      const document = redactGraphqlDocument(data.document);
-
       return startInactiveSpan({
         name: SPAN_NAME_VALIDATE,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
-          [GRAPHQL_DOCUMENT]: document,
+          [GRAPHQL_DOCUMENT]: collectGraphqlDocument(data.document),
         },
       });
     },
@@ -191,8 +189,6 @@ function setupOperationChannel(
   bindTracingChannelToSpan(
     tracingChannel<GraphqlOperationData>(channelName),
     data => {
-      const document = redactGraphqlDocument(data.document);
-
       const span = startInactiveSpan({
         name: getOperationSpanName(data.operationType, data.operationName, fallbackName),
         attributes: {
@@ -200,7 +196,7 @@ function setupOperationChannel(
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
           [GRAPHQL_OPERATION_TYPE]: data.operationType,
           [GRAPHQL_OPERATION_NAME]: data.operationName || undefined,
-          [GRAPHQL_DOCUMENT]: document,
+          [GRAPHQL_DOCUMENT]: collectGraphqlDocument(data.document),
         },
       });
 

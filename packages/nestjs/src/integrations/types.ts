@@ -63,8 +63,8 @@ export interface CallHandler {
  * Represents an injectable target class in NestJS.
  */
 export interface InjectableTarget {
-  name: string;
-  sentryPatched?: boolean;
+  name?: string;
+  sentryPatchedInjectable?: boolean;
   __SENTRY_INTERNAL__?: boolean;
   prototype: {
     use?: (req: unknown, res: unknown, next: () => void, ...args: any[]) => void;
@@ -78,8 +78,8 @@ export interface InjectableTarget {
  * Represents a target class in NestJS annotated with @Catch.
  */
 export interface CatchTarget {
-  name: string;
-  sentryPatched?: boolean;
+  name?: string;
+  sentryPatchedCatch?: boolean;
   __SENTRY_INTERNAL__?: boolean;
   prototype: {
     catch?: (...args: any[]) => any;
@@ -109,7 +109,7 @@ export interface ProcessorDecoratorTarget {
   name: string;
   __SENTRY_INTERNAL__?: boolean;
   prototype: {
-    process?: ((...args: any[]) => Promise<any>) & { __SENTRY_INSTRUMENTED__?: boolean };
+    process?: (...args: any[]) => Promise<any>;
   };
 }
 

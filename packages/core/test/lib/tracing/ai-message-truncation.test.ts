@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { truncateGenAiMessages, truncateGenAiStringInput } from '../../../src/tracing/ai/messageTruncation';
+import { getTruncatedJsonString } from '../../../src/tracing/ai/utils';
 
 describe('message truncation utilities', () => {
   describe('truncateGenAiMessages', () => {
@@ -608,5 +609,20 @@ describe('message truncation utilities', () => {
       ];
       expect(truncateGenAiMessages(messages)).toStrictEqual([]);
     });
+  });
+});
+
+describe('getTruncatedJsonString', () => {
+  it('returns a fallback instead of throwing on circular references', () => {
+    const circular: Record<string, unknown> = { role: 'user', content: 'hi' };
+    circular.self = circular;
+
+    expect(getTruncatedJsonString(circular)).toBe('[unserializable]');
+    expect(getTruncatedJsonString([circular])).toBe('[unserializable]');
+  });
+
+  it('serializes normal values as before', () => {
+    expect(getTruncatedJsonString('hello')).toBe('hello');
+    expect(getTruncatedJsonString({ a: 1 })).toBe('{"a":1}');
   });
 });

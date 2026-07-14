@@ -76,6 +76,8 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - **Do NOT add a "Test plan" / "Testing" checklist to PR bodies.** CI runs the full test suite on every PR — a hand-rolled checklist duplicates that signal and rots fast. Write the summary content directly and add a _Root cause_ section only if relevant.
 - **Omit the "Summary" heading** in PR bodies — lead with the summary text itself, no `## Summary` header.
 - Include `Fixes #<issue-number>` somewhere in the PR body so the merge auto-closes the linked issue.
+- Always open PRs as draft.
+- Include reasoning of changes in the PR description, as well as decisions that were taken during implementation. Do not explain the implementation that can be viewed in the code.
 
 ## Architecture
 

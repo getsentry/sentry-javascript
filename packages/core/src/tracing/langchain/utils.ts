@@ -1,5 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { SpanAttributeValue } from '../../types/span';
+import { stringify } from '../../utils/string';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
@@ -27,7 +28,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { isContentMedia, stripInlineMediaFromSingleMessage } from '../ai/mediaStripping';
-import { extractSystemInstructions, getJsonString, getTruncatedJsonString } from '../ai/utils';
+import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -37,7 +38,7 @@ import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from '
  * We keep this tiny helper because call sites are repetitive and easy to miswrite.
  * It also preserves falsy-but-valid values like `0` and `""`.
  */
-const setIfDefined = (target: Record<string, SpanAttributeValue>, key: string, value: unknown): void => {
+const setIfDefined = (target: Record<string, SpanAttributeValue | undefined>, key: string, value: unknown): void => {
   if (value != null) target[key] = value as SpanAttributeValue;
 };
 
@@ -45,23 +46,14 @@ const setIfDefined = (target: Record<string, SpanAttributeValue>, key: string, v
  * Like `setIfDefined`, but converts the value with `Number()` and skips only when the
  * result is `NaN`. This ensures numeric 0 makes it through (unlike truthy checks).
  */
-const setNumberIfDefined = (target: Record<string, SpanAttributeValue>, key: string, value: unknown): void => {
+const setNumberIfDefined = (
+  target: Record<string, SpanAttributeValue | undefined>,
+  key: string,
+  value: unknown,
+): void => {
   const n = Number(value);
   if (!Number.isNaN(n)) target[key] = n;
 };
-
-/**
- * Converts a value to a string. Avoids double-quoted JSON strings where a plain
- * string is desired, but still handles objects/arrays safely.
- */
-function asString(v: unknown): string {
-  if (typeof v === 'string') return v;
-  try {
-    return JSON.stringify(v);
-  } catch {
-    return String(v);
-  }
-}
 
 /**
  * Converts message content to a string, stripping inline media (base64 images, audio, etc.)
@@ -78,10 +70,10 @@ function asString(v: unknown): string {
  * ])
  * // => '[{"type":"text","text":"What color?"},{"type":"image_url","image_url":{"url":"[Blob substitute]"}}]'
  *
- * // Without this, asString() would JSON.stringify the raw array and the base64 blob
+ * // Without this, stringification would JSON.stringify the raw array and the base64 blob
  * // would end up in span attributes, since downstream stripping only works on objects.
  */
-function normalizeContent(v: unknown): string {
+function normalizeContent(v: unknown): string | undefined {
   if (Array.isArray(v)) {
     try {
       const stripped = v.map(part =>
@@ -92,7 +84,7 @@ function normalizeContent(v: unknown): string {
       return String(v);
     }
   }
-  return asString(v);
+  return stringify(v, String);
 }
 
 /**
@@ -148,7 +140,9 @@ export function getInvocationParams(tags?: string[] | Record<string, unknown>): 
  * @param messages Mixed LangChain messages
  * @returns Array of normalized `{ role, content }`
  */
-export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<{ role: string; content: string }> {
+export function normalizeLangChainMessages(
+  messages: LangChainMessage[],
+): Array<{ role: string; content: string | undefined }> {
   return messages.map(message => {
     // 1) Prefer _getType() when present
     const maybeGetType = (message as { _getType?: () => string })._getType;
@@ -262,11 +256,11 @@ function baseRequestAttributes(
   serialized: LangChainSerialized,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
-): Record<string, SpanAttributeValue> {
+): Record<string, SpanAttributeValue | undefined> {
   return {
-    [GEN_AI_SYSTEM_ATTRIBUTE]: asString(system ?? 'langchain'),
+    [GEN_AI_SYSTEM_ATTRIBUTE]: stringify(system ?? 'langchain', String),
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: asString(modelName),
+    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: stringify(modelName, String),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     ...extractCommonRequestAttributes(serialized, invocationParams, langSmithMetadata),
   };
@@ -287,7 +281,7 @@ export function extractLLMRequestAttributes(
   enableTruncation: boolean,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
-): Record<string, SpanAttributeValue> {
+): Record<string, SpanAttributeValue | undefined> {
   const system = langSmithMetadata?.ls_provider;
   const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
 
@@ -299,7 +293,7 @@ export function extractLLMRequestAttributes(
     setIfDefined(
       attrs,
       GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-      enableTruncation ? getTruncatedJsonString(messages) : getJsonString(messages),
+      enableTruncation ? getTruncatedJsonString(messages) : stringify(messages),
     );
   }
 
@@ -322,7 +316,7 @@ export function extractChatModelRequestAttributes(
   enableTruncation: boolean,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
-): Record<string, SpanAttributeValue> {
+): Record<string, SpanAttributeValue | undefined> {
   const system = langSmithMetadata?.ls_provider ?? llm.id?.[2];
   const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
 
@@ -343,7 +337,7 @@ export function extractChatModelRequestAttributes(
     setIfDefined(
       attrs,
       GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-      enableTruncation ? getTruncatedJsonString(filteredMessages) : getJsonString(filteredMessages),
+      enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
     );
   }
 
@@ -378,7 +372,7 @@ function addToolCallsAttributes(generations: LangChainMessage[][], attrs: Record
   }
 
   if (toolCalls.length > 0) {
-    setIfDefined(attrs, GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, asString(toolCalls));
+    setIfDefined(attrs, GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, stringify(toolCalls, String));
   }
 }
 
@@ -466,7 +460,7 @@ export function extractLlmResponseAttributes(
       .filter((r): r is string => typeof r === 'string');
 
     if (finishReasons.length > 0) {
-      setIfDefined(attrs, GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE, asString(finishReasons));
+      setIfDefined(attrs, GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE, stringify(finishReasons, String));
     }
 
     // Tool calls metadata (names, IDs) are not PII, so capture them regardless of recordOutputs
@@ -479,7 +473,7 @@ export function extractLlmResponseAttributes(
         .filter(t => typeof t === 'string');
 
       if (texts.length > 0) {
-        setIfDefined(attrs, GEN_AI_RESPONSE_TEXT_ATTRIBUTE, asString(texts));
+        setIfDefined(attrs, GEN_AI_RESPONSE_TEXT_ATTRIBUTE, stringify(texts, String));
       }
     }
   }
@@ -506,7 +500,7 @@ export function extractLlmResponseAttributes(
   // Stop reason: v1 stores this in message.response_metadata.finish_reason
   const stopReason = llmOutput?.stop_reason ?? v1Message?.response_metadata?.finish_reason;
   if (stopReason) {
-    setIfDefined(attrs, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE, asString(stopReason));
+    setIfDefined(attrs, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE, stringify(stopReason, String));
   }
 
   return attrs;

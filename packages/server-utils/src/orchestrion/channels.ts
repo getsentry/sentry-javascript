@@ -15,8 +15,9 @@ import { langgraphChannels } from './config/langgraph';
 import { lruMemoizerChannels } from './config/lru-memoizer';
 import { mongodbChannels } from './config/mongodb';
 import { mongooseChannels } from './config/mongoose';
-import { mysqlChannels } from './config/mysql';
 import { mysql2Channels } from './config/mysql2';
+import { mysqlChannels } from './config/mysql';
+import { nestjsChannels } from './config/nestjs';
 import { openaiChannels } from './config/openai';
 import { pgChannels } from './config/pg';
 import { postgresJsChannels } from './config/postgres';
@@ -61,8 +62,9 @@ export const CHANNELS = {
   ...lruMemoizerChannels,
   ...mongodbChannels,
   ...mongooseChannels,
-  ...mysqlChannels,
   ...mysql2Channels,
+  ...mysqlChannels,
+  ...nestjsChannels,
   ...openaiChannels,
   ...pgChannels,
   ...postgresJsChannels,

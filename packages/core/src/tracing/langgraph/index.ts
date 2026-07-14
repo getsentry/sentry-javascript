@@ -15,11 +15,11 @@ import {
 } from '../ai/gen-ai-attributes';
 import {
   extractSystemInstructions,
-  getJsonString,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   shouldEnableTruncation,
 } from '../ai/utils';
+import { stringify } from '../../utils/string';
 import { createLangChainCallbackHandler } from '../langchain';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
@@ -210,7 +210,7 @@ function instrumentCompiledGraphInvoke(
               span.setAttributes({
                 [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
                   ? getTruncatedJsonString(filteredMessages)
-                  : getJsonString(filteredMessages),
+                  : stringify(filteredMessages),
                 [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
               });
             }
