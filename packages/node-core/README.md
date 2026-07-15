@@ -4,7 +4,11 @@
   </a>
 </p>
 
-# Official Sentry SDK for Node-Core
+# Official Sentry SDK for Node-Core (DEPRECATED)
+
+> DEPRECATION NOTICE: The `@sentry/node-core` package is deprecated and will be removed in the next major version.
+> Its functionality is being merged back into the `@sentry/node` SDK.
+> Use [`@sentry/node`](https://www.npmjs.com/package/@sentry/node) instead.
 
 [![npm version](https://img.shields.io/npm/v/@sentry/node-core.svg)](https://www.npmjs.com/package/@sentry/node-core)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/node-core.svg)](https://www.npmjs.com/package/@sentry/node-core)
