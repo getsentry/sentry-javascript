@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- feat(replay): Allow skipping the final flush when stopping recording via `stop({ flush: false })` ([#PR_NUMBER](https://github.com/getsentry/sentry-javascript/pull/PR_NUMBER))
+
 ## 10.66.0
 
 - chore(node-core): Deprecate `@sentry/node-core` package ([#22285](https://github.com/getsentry/sentry-javascript/pull/22285))
