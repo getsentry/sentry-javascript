@@ -414,10 +414,10 @@
     magic-string "^0.30.21"
     module-details-from-path "^1.0.4"
 
-"@apm-js-collab/code-transformer-bundler-plugins@^0.6.0":
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.6.0.tgz#ed64bae9e1871366eadc1ef6dabc9ee6ccc53e57"
-  integrity sha512-Hys7LDskIB/BNrd87GAfYWHRE3mWgcPYonK4W9uxjho4N0JnPKk2YQyOLlqmkyVhj2UzwLRpmbJ4D6uR9O7wyw==
+"@apm-js-collab/code-transformer-bundler-plugins@^0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.6.1.tgz#29bf79167411b8607f02db177250b8f7c16d93e1"
+  integrity sha512-TDvypsLUk/W202Y1JBE6I2enQalWjbYXKnxpELWEZn6GLoIcGFii69ljh948hdAzKZJ/wg0Uwivz72a/szoOBQ==
   dependencies:
     "@apm-js-collab/code-transformer" "^0.18.0"
     es-module-lexer "^2.1.0"
