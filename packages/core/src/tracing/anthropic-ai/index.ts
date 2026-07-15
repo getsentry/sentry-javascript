@@ -3,6 +3,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types/span';
+import { getActiveSpan } from '../../utils/spanUtils';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PROMPT_ATTRIBUTE,
@@ -22,7 +23,6 @@ import {
 } from '../ai/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../ai/utils';
 import {
-  buildMethodPath,
   resolveAIRecordingOptions,
   setTokenUsageAttributes,
   shouldEnableTruncation,
@@ -32,6 +32,16 @@ import { ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
 import { handleResponseError, messagesFromParams, setMessagesAttribute } from './utils';
+
+// Spans created for streaming helper methods (e.g. `messages.stream()`). The Anthropic SDK
+// implements these helpers by internally calling `this.create()`, which we also instrument.
+// We track the helper span here so that the internal `create` call does not produce a duplicate
+// child span. This relies on the SDK invoking `create` synchronously while the helper span is
+// active, which is the case for the currently supported SDK versions.
+const STREAMING_HELPER_SPANS = new WeakSet<Span>();
+
+// Methods that have already been wrapped, so instrumenting the same client twice is a no-op.
+const INSTRUMENTED_METHODS = new WeakSet<object>();
 
 /**
  * Extract request attributes from method arguments
@@ -188,9 +198,8 @@ function handleStreamingError(error: unknown, span: Span, methodPath: string): n
  * Handle streaming cases with common logic
  */
 function handleStreamingRequest<T extends unknown[], R>(
-  originalMethod: (...args: T) => R | Promise<R>,
   target: (...args: T) => R | Promise<R>,
-  context: unknown,
+  invocationThis: unknown,
   args: T,
   requestAttributes: Record<string, unknown>,
   operationName: string,
@@ -212,7 +221,7 @@ function handleStreamingRequest<T extends unknown[], R>(
     let originalResult!: Promise<R>;
 
     const instrumentedPromise = startSpanManual(spanConfig, (span: Span) => {
-      originalResult = originalMethod.apply(context, args) as Promise<R>;
+      originalResult = target.apply(invocationThis, args) as Promise<R>;
 
       if (options.recordInputs && params) {
         addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
@@ -236,10 +245,14 @@ function handleStreamingRequest<T extends unknown[], R>(
   } else {
     return startSpanManual(spanConfig, span => {
       try {
+        // Mark this as a streaming-helper span so the SDK's internal `create` delegation
+        // does not create a duplicate child span (see the dedup gate in `instrumentMethod`).
+        STREAMING_HELPER_SPANS.add(span);
+
         if (options.recordInputs && params) {
           addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
         }
-        const messageStream = target.apply(context, args);
+        const messageStream = target.apply(invocationThis, args);
         return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
       } catch (error) {
         return handleStreamingError(error, span, methodPath);
@@ -262,19 +275,35 @@ function instrumentMethod<T extends unknown[], R>(
 ): (...args: T) => R | Promise<R> {
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: T): R | Promise<R> {
+      // Preserve the caller's `this` so instrumentation stays transparent: the SDK's methods
+      // rely on private fields bound to the real instance, and internal delegation (e.g.
+      // `messages.stream()` calling `this.create()`) must resolve against the same object it
+      // would on an uninstrumented client. Fall back to the wrap-time owner for unbound calls.
+      const invocationThis = thisArg !== undefined ? thisArg : context;
+
+      const isStreamingMethod = instrumentedMethod.streaming === true;
+
+      // If this call is the SDK's internal delegation from a streaming helper (e.g.
+      // `messages.stream()` invoking `this.create()`), skip instrumentation: the helper span
+      // already represents this operation, so a second span would be a duplicate.
+      if (!isStreamingMethod) {
+        const activeSpan = getActiveSpan();
+        if (activeSpan && STREAMING_HELPER_SPANS.has(activeSpan)) {
+          return target.apply(invocationThis, args);
+        }
+      }
+
       const operationName = instrumentedMethod.operation || 'unknown';
       const requestAttributes = extractRequestAttributes(args, methodPath, operationName);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
 
       const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
       const isStreamRequested = Boolean(params?.stream);
-      const isStreamingMethod = instrumentedMethod.streaming === true;
 
       if (isStreamRequested || isStreamingMethod) {
         return handleStreamingRequest(
-          originalMethod,
           target,
-          context,
+          invocationThis,
           args,
           requestAttributes,
           operationName,
@@ -295,7 +324,7 @@ function instrumentMethod<T extends unknown[], R>(
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
         span => {
-          originalResult = target.apply(context, args) as Promise<R>;
+          originalResult = target.apply(invocationThis, args) as Promise<R>;
 
           if (options.recordInputs && params) {
             addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
@@ -328,37 +357,47 @@ function instrumentMethod<T extends unknown[], R>(
 }
 
 /**
- * Create a deep proxy for Anthropic AI client instrumentation
+ * Instrument the Anthropic client's methods in place.
+ *
+ * We deliberately do not wrap the client in a Proxy. The Anthropic SDK relies on private class
+ * fields (`this.#field`), which are invisible to a Proxy and throw if a method runs with a
+ * proxied `this`. Wrapping the registered methods in place (as own properties shadowing the
+ * prototype) keeps `this` bound to the real instance, so instrumentation stays observationally
+ * transparent: internal delegation (e.g. `messages.stream()` calling `this.create()`) and
+ * `instanceof` checks behave exactly as on an uninstrumented client, and non-instrumented
+ * methods are left untouched.
  */
-function createDeepProxy<T extends object>(target: T, currentPath = '', options: AnthropicAiOptions): T {
-  return new Proxy(target, {
-    get(obj: object, prop: string): unknown {
-      const value = (obj as Record<string, unknown>)[prop];
-      const methodPath = buildMethodPath(currentPath, String(prop));
+function instrumentClientInPlace<T extends object>(client: T, options: AnthropicAiOptions): T {
+  for (const methodPath of Object.keys(ANTHROPIC_METHOD_REGISTRY) as Array<keyof typeof ANTHROPIC_METHOD_REGISTRY>) {
+    const segments = methodPath.split('.');
+    const methodName = segments.pop() as string;
 
-      const instrumentedMethod = ANTHROPIC_METHOD_REGISTRY[methodPath as keyof typeof ANTHROPIC_METHOD_REGISTRY];
-      if (typeof value === 'function' && instrumentedMethod) {
-        return instrumentMethod(
-          value as (...args: unknown[]) => unknown | Promise<unknown>,
-          methodPath,
-          instrumentedMethod,
-          obj,
-          options,
-        );
-      }
+    let owner = client as Record<string, unknown> | undefined;
+    for (const segment of segments) {
+      owner = owner?.[segment] as Record<string, unknown> | undefined;
+    }
 
-      if (typeof value === 'function') {
-        // Bind non-instrumented functions to preserve the original `this` context,
-        return value.bind(obj);
-      }
+    if (!owner || typeof owner[methodName] !== 'function') {
+      continue;
+    }
 
-      if (value && typeof value === 'object') {
-        return createDeepProxy(value, methodPath, options);
-      }
+    const originalMethod = owner[methodName] as (...args: unknown[]) => unknown;
+    if (INSTRUMENTED_METHODS.has(originalMethod)) {
+      continue;
+    }
 
-      return value;
-    },
-  }) as T;
+    const instrumented = instrumentMethod(
+      originalMethod,
+      methodPath,
+      ANTHROPIC_METHOD_REGISTRY[methodPath],
+      owner,
+      options,
+    );
+    INSTRUMENTED_METHODS.add(instrumented);
+    owner[methodName] = instrumented;
+  }
+
+  return client;
 }
 
 /**
@@ -371,5 +410,5 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * @returns The instrumented client with the same type as the input
  */
 export function instrumentAnthropicAiClient<T extends object>(anthropicAiClient: T, options?: AnthropicAiOptions): T {
-  return createDeepProxy(anthropicAiClient, '', resolveAIRecordingOptions(options));
+  return instrumentClientInPlace(anthropicAiClient, resolveAIRecordingOptions(options));
 }
