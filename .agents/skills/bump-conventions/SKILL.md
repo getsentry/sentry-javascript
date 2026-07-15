@@ -60,5 +60,5 @@ yarn test
 Use the `chore(deps):` prefix the repo uses for dependency bumps:
 
 ```
-feat(deps): Bump `@sentry/conventions` to <NEW>
+chore(deps): Bump `@sentry/conventions` to <NEW>
 ```
