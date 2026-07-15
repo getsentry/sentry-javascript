@@ -317,6 +317,17 @@ describe('instrumentQueue', () => {
               },
             },
           },
+          {
+            ...originalBatch.messages[0]!,
+            id: '3',
+            body: {
+              invoiceId: 'inv_789',
+              __sentry_queue_meta__: {
+                'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+                baggage: 'sentry-release=1.0.0',
+              },
+            },
+          },
         ],
       } satisfies MessageBatch<unknown>;
       let receivedBodies: unknown[] = [];
@@ -334,7 +345,7 @@ describe('instrumentQueue', () => {
 
       await wrappedHandler.queue?.(batch, MOCK_ENV, createMockExecutionContext());
 
-      expect(receivedBodies).toEqual([{ invoiceId: 'inv_123' }, { invoiceId: 'inv_456' }]);
+      expect(receivedBodies).toEqual([{ invoiceId: 'inv_123' }, { invoiceId: 'inv_456' }, { invoiceId: 'inv_789' }]);
       expect(processSpan?.parent_span_id).toBeUndefined();
       expect(processSpan?.links).toEqual([
         {

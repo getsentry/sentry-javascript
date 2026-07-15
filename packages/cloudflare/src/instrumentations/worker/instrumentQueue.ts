@@ -22,11 +22,19 @@ import { extractQueueTraceContext } from '../../utils/queueTraceMeta';
 import { instrumentEnv } from './instrumentEnv';
 
 function extractQueueTraceLinks(batch: MessageBatch): SpanLink[] {
+  const linkedSpans = new Set<string>();
+
   return batch.messages.flatMap(message => {
     const producerContext = extractQueueTraceContext(message.body);
     if (!producerContext) {
       return [];
     }
+
+    const spanKey = `${producerContext.traceId}:${producerContext.spanId}`;
+    if (linkedSpans.has(spanKey)) {
+      return [];
+    }
+    linkedSpans.add(spanKey);
 
     return [
       {
