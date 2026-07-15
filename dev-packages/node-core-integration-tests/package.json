@@ -50,7 +50,7 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
-    "@sentry/conventions": "0.15.1",
+    "@sentry/conventions": "0.16.0",
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",
     "eslint-plugin-regexp": "^3.1.0",
