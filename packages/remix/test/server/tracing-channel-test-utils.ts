@@ -11,13 +11,6 @@ import type { NodeClient } from '@sentry/node';
 import { vi } from 'vitest';
 import { instrumentRemix } from '../../src/server/integrations/tracing-channel';
 
-export const CHANNELS = {
-  REQUEST_HANDLER: 'orchestrion:@remix-run/server-runtime:requestHandler',
-  MATCH_SERVER_ROUTES: 'orchestrion:@remix-run/server-runtime:matchServerRoutes',
-  CALL_ROUTE_LOADER: 'orchestrion:@remix-run/server-runtime:callRouteLoader',
-  CALL_ROUTE_ACTION: 'orchestrion:@remix-run/server-runtime:callRouteAction',
-} as const;
-
 interface TestStore {
   scope: Scope;
   isolationScope: Scope;
@@ -102,11 +95,11 @@ export function makeRequest(
 }
 
 /**
- * Install the async-context strategy, mock the client with the given form-data config, and run the
- * integration's `setupOnce` so the channel subscriptions register. `captureActionFormDataKeys`
- * left undefined mimics an app that hasn't opted into form-data capture.
+ * Install the async-context strategy, mock the client with the given form-data config, and orchestrion-based remix instrumentation
+ * so the channel subscriptions register.
+ * `captureActionFormDataKeys` left undefined mimics an app that hasn't opted into form-data capture.
  */
-export function setupRemixChannelIntegration(captureActionFormDataKeys?: Record<string, string | boolean>): void {
+export function setupRemixInstrumentation(captureActionFormDataKeys?: Record<string, string | boolean>): void {
   installTestAsyncContextStrategy();
   vi.spyOn(SentryNode, 'getClient').mockReturnValue({
     getOptions: () => ({ captureActionFormDataKeys }),

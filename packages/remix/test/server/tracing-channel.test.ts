@@ -3,21 +3,21 @@ import type { Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import {
-  CHANNELS,
   makeRequest,
   makeSpan,
-  setupRemixChannelIntegration,
+  setupRemixInstrumentation,
   teardownTestAsyncContextStrategy,
 } from './tracing-channel-test-utils';
+import { remixChannels } from '@sentry/server-utils/orchestrion';
 
-describe('remixChannelIntegration', () => {
+describe('remixIntegration (Orchestrion-based)', () => {
   let startInactiveSpanSpy: MockInstance;
   let getActiveSpanSpy: MockInstance;
   let span: Span;
 
   beforeAll(() => {
     // Configure form-data capture so the ACTION span also extracts the mapped keys.
-    setupRemixChannelIntegration({ _action: 'actionType' });
+    setupRemixInstrumentation({ _action: 'actionType' });
   });
 
   afterAll(() => {
@@ -39,7 +39,7 @@ describe('remixChannelIntegration', () => {
   it('requestHandler: builds the http.server span and sets the response status', async () => {
     const ctx = { arguments: [makeRequest({ method: 'GET', url: 'http://localhost/users' })] };
 
-    await tracingChannel(CHANNELS.REQUEST_HANDLER).tracePromise(async () => ({ status: 200 }), ctx);
+    await tracingChannel(remixChannels.REMIX_REQUEST_HANDLER).tracePromise(async () => ({ status: 200 }), ctx);
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -65,7 +65,7 @@ describe('remixChannelIntegration', () => {
       result: [{ route: { path: 'users/:userId', id: 'routes/users.$userId' } }],
     };
 
-    tracingChannel(CHANNELS.MATCH_SERVER_ROUTES).traceSync(() => ctx.result, ctx);
+    tracingChannel(remixChannels.REMIX_MATCH_SERVER_ROUTES).traceSync(() => ctx.result, ctx);
 
     expect(span.setAttribute).toHaveBeenCalledWith('http.route', 'users/:userId');
     expect(span.setAttribute).toHaveBeenCalledWith('match.route.id', 'routes/users.$userId');
@@ -76,7 +76,7 @@ describe('remixChannelIntegration', () => {
     getActiveSpanSpy.mockReturnValue(undefined);
     const ctx = { arguments: [], result: [{ route: { path: 'users/:userId', id: 'x' } }] };
 
-    tracingChannel(CHANNELS.MATCH_SERVER_ROUTES).traceSync(() => ctx.result, ctx);
+    tracingChannel(remixChannels.REMIX_MATCH_SERVER_ROUTES).traceSync(() => ctx.result, ctx);
 
     expect(span.setAttribute).not.toHaveBeenCalled();
   });
@@ -92,7 +92,7 @@ describe('remixChannelIntegration', () => {
       ],
     };
 
-    await tracingChannel(CHANNELS.CALL_ROUTE_LOADER).tracePromise(async () => ({ status: 200 }), ctx);
+    await tracingChannel(remixChannels.REMIX_CALL_ROUTE_LOADER).tracePromise(async () => ({ status: 200 }), ctx);
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -116,7 +116,7 @@ describe('remixChannelIntegration', () => {
     getActiveSpanSpy.mockReturnValue(undefined);
     const ctx = { arguments: [{ routeId: 'x', request: makeRequest(), params: {} }] };
 
-    await tracingChannel(CHANNELS.CALL_ROUTE_LOADER).tracePromise(async () => ({ status: 200 }), ctx);
+    await tracingChannel(remixChannels.REMIX_CALL_ROUTE_LOADER).tracePromise(async () => ({ status: 200 }), ctx);
 
     expect(startInactiveSpanSpy).not.toHaveBeenCalled();
   });
@@ -132,7 +132,7 @@ describe('remixChannelIntegration', () => {
       ],
     };
 
-    await tracingChannel(CHANNELS.CALL_ROUTE_ACTION).tracePromise(async () => ({ status: 201 }), ctx);
+    await tracingChannel(remixChannels.REMIX_CALL_ROUTE_ACTION).tracePromise(async () => ({ status: 201 }), ctx);
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({

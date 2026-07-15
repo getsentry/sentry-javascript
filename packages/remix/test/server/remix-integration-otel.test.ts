@@ -17,7 +17,7 @@ vi.mock('../../src/server/integrations/tracing-channel', () => ({
   instrumentRemix: vi.fn(),
 }));
 
-import { remixIntegration } from '../../src/server/integrations';
+import { remixIntegration } from '../../src/server/integrations/RemixIntegration';
 import { instrumentRemixWithOpenTelemetry } from '../../src/server/integrations/opentelemetry';
 import { instrumentRemix } from '../../src/server/integrations/tracing-channel';
 
@@ -31,7 +31,7 @@ function mockClient(
   } as unknown as NodeClient);
 }
 
-describe('remixIntegration (OpenTelemetry path)', () => {
+describe('remixIntegration (OpenTelemetry-based)', () => {
   afterEach(() => {
     vi.clearAllMocks();
     vi.restoreAllMocks();

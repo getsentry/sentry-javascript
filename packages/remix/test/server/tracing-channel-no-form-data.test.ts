@@ -3,12 +3,12 @@ import type { Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import {
-  CHANNELS,
   makeRequest,
   makeSpan,
-  setupRemixChannelIntegration,
+  setupRemixInstrumentation,
   teardownTestAsyncContextStrategy,
 } from './tracing-channel-test-utils';
+import { remixChannels } from '@sentry/server-utils/orchestrion';
 
 // Runs in its own file so the channel subscriptions register with NO form-data capture configured -
 // the default for most apps. `captureActionFormDataKeys` gates only the optional attribute
@@ -19,7 +19,7 @@ describe('remixIntegration with orchestrion (no form-data capture configured)', 
   let span: Span;
 
   beforeAll(() => {
-    setupRemixChannelIntegration(undefined);
+    setupRemixInstrumentation(undefined);
   });
 
   afterAll(() => {
@@ -48,7 +48,7 @@ describe('remixIntegration with orchestrion (no form-data capture configured)', 
       ],
     };
 
-    await tracingChannel(CHANNELS.CALL_ROUTE_ACTION).tracePromise(async () => ({ status: 201 }), ctx);
+    await tracingChannel(remixChannels.REMIX_CALL_ROUTE_ACTION).tracePromise(async () => ({ status: 201 }), ctx);
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
