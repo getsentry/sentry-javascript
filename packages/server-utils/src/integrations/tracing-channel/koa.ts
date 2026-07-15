@@ -12,6 +12,7 @@ import {
   spanToJSON,
   startSpan,
 } from '@sentry/core';
+// oxlint-disable-next-line typescript/no-deprecated
 import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_NAME, KOA_TYPE } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -173,6 +174,7 @@ function patchLayer(
       setHttpServerSpanRouteAttribute(context._matchedRoute.toString());
     }
 
+    // oxlint-disable-next-line typescript/no-deprecated
     const koaName = metadata.attributes[KOA_NAME];
     // Somehow, name is sometimes `''` for middleware spans.
     // See: https://github.com/open-telemetry/opentelemetry-js-contrib/issues/2220
@@ -210,6 +212,7 @@ function getMiddlewareMetadata(
   if (isRouter) {
     return {
       attributes: {
+        // oxlint-disable-next-line typescript/no-deprecated
         [KOA_NAME]: layerPath?.toString(), // TODO(v11): remove, replaced by http.route
         [KOA_TYPE]: LAYER_TYPE.ROUTER,
         [HTTP_ROUTE]: layerPath?.toString(),
@@ -219,6 +222,7 @@ function getMiddlewareMetadata(
   }
   return {
     attributes: {
+      // oxlint-disable-next-line typescript/no-deprecated
       [KOA_NAME]: layer.name || 'middleware', // TODO(v11): remove, replaced by code.function.name
       [KOA_TYPE]: LAYER_TYPE.MIDDLEWARE,
       [CODE_FUNCTION_NAME]: layer.name || 'middleware',
