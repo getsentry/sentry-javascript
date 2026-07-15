@@ -349,9 +349,9 @@ describe('Vercel AI integration (v4)', () => {
   createEsmAndCjsTests(__dirname, 'scenario-error-in-tool-express.mjs', 'instrument.mjs', (createRunner, test) => {
     test('captures error in tool in express server', async () => {
       let transactionEvent: Event | undefined;
-      let errorEvent: Event | undefined;
+      const errorEvents: Event[] = [];
 
-      const runner = createRunner()
+      const builder = createRunner()
         // In orchestrion mode the tool error is captured mid-request, so envelopes can arrive in any order.
         .unordered()
         .expect({
@@ -387,13 +387,29 @@ describe('Vercel AI integration (v4)', () => {
         })
         .expect({
           event: event => {
-            errorEvent = event;
+            errorEvents.push(event);
           },
-        })
-        .start();
+        });
+
+      // In orchestrion mode the tool error surfaces twice: the channel subscriber captures the raw error
+      // (tagged with the tool identity), and the express error handler captures the wrapped
+      // `AI_ToolExecutionError`. Expect both so we can pick the tagged one regardless of arrival order.
+      if (orchestrion) {
+        builder.expect({
+          event: event => {
+            errorEvents.push(event);
+          },
+        });
+      }
+
+      const runner = builder.start();
 
       await runner.makeRequest('get', '/test/error-in-tool', { expectError: true });
       await runner.completed();
+
+      const errorEvent = orchestrion
+        ? errorEvents.find(event => event.tags?.['vercel.ai.tool.name'] === 'getWeather')
+        : errorEvents[0];
 
       expect(transactionEvent).toBeDefined();
       expect(transactionEvent!.transaction).toBe('GET /test/error-in-tool');
