@@ -1,6 +1,7 @@
+/* eslint-disable max-lines */
 import { errorMonitor } from 'node:events';
 import type { IncomingHttpHeaders } from 'node:http';
-import { context, SpanKind, trace } from '@opentelemetry/api';
+import { context } from '@opentelemetry/api';
 import type { RPCMetadata } from '@opentelemetry/core';
 import { RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
@@ -33,6 +34,10 @@ import {
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
   isTracingSuppressed,
+  bindScopeToEmitter,
+  startInactiveSpan,
+  withActiveSpan,
+  SPAN_KIND,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -141,7 +146,6 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const host = headers.host as string | undefined;
           const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
 
-          const tracer = client.tracer;
           const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
 
           const method = normalizedRequest.method || request.method?.toUpperCase() || 'GET';
@@ -149,8 +153,9 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const bestEffortTransactionName = `${method} ${httpTargetWithoutQueryFragment}`;
 
           // We use the plain tracer.startSpan here so we can pass the span kind
-          const span = tracer.startSpan(bestEffortTransactionName, {
-            kind: SpanKind.SERVER,
+          const span = startInactiveSpan({
+            name: bestEffortTransactionName,
+            kind: SPAN_KIND.SERVER,
             attributes: {
               // Sentry specific attributes
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
@@ -180,42 +185,45 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
           const rpcMetadata: RPCMetadata = { type: RPCType.HTTP, span };
 
-          return context.with(setRPCMetadata(trace.setSpan(context.active(), span), rpcMetadata), () => {
-            context.bind(context.active(), request);
-            context.bind(context.active(), response);
+          return withActiveSpan(span, () => {
+            // TODO(v11): Get rid of RPC metadata here
+            return context.with(setRPCMetadata(context.active(), rpcMetadata), () => {
+              bindScopeToEmitter(request);
+              bindScopeToEmitter(response);
 
-            // Ensure we only end the span once
-            // E.g. error can be emitted before close is emitted
-            let isEnded = false;
-            function endSpan(status: SpanStatus): void {
-              if (isEnded) {
-                return;
+              // Ensure we only end the span once
+              // E.g. error can be emitted before close is emitted
+              let isEnded = false;
+              function endSpan(status: SpanStatus): void {
+                if (isEnded) {
+                  return;
+                }
+
+                isEnded = true;
+
+                const newAttributes = getIncomingRequestAttributesOnResponse(request, response, rpcMetadata);
+                span.setAttributes(newAttributes);
+                span.setStatus(status);
+                span.end();
+
+                // Update the transaction name if the route has changed
+                const route = newAttributes['http.route'];
+                if (route) {
+                  getIsolationScope().setTransactionName(`${request.method?.toUpperCase() || 'GET'} ${route}`);
+                }
               }
 
-              isEnded = true;
+              response.on('close', () => {
+                endSpan(getSpanStatusFromHttpCode(response.statusCode));
+              });
+              response.on(errorMonitor, () => {
+                const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
+                // Ensure we def. have an error status here
+                endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
+              });
 
-              const newAttributes = getIncomingRequestAttributesOnResponse(request, response, rpcMetadata);
-              span.setAttributes(newAttributes);
-              span.setStatus(status);
-              span.end();
-
-              // Update the transaction name if the route has changed
-              const route = newAttributes['http.route'];
-              if (route) {
-                getIsolationScope().setTransactionName(`${request.method?.toUpperCase() || 'GET'} ${route}`);
-              }
-            }
-
-            response.on('close', () => {
-              endSpan(getSpanStatusFromHttpCode(response.statusCode));
+              return next();
             });
-            response.on(errorMonitor, () => {
-              const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
-              // Ensure we def. have an error status here
-              endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
-            });
-
-            return next();
           });
         };
 
