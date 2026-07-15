@@ -2,9 +2,12 @@ import type { Span } from '@sentry/core';
 import type { NormalizedRequest, NormalizedResponse, RequestMetadata } from '../types';
 import { DynamodbServiceExtension } from './dynamodb';
 import { KinesisServiceExtension } from './kinesis';
+import { LambdaServiceExtension } from './lambda';
 import { S3ServiceExtension } from './s3';
 import { SecretsManagerServiceExtension } from './secretsmanager';
 import type { ServiceExtension } from './ServiceExtension';
+import { SnsServiceExtension } from './sns';
+import { SqsServiceExtension } from './sqs';
 import { StepFunctionsServiceExtension } from './stepfunctions';
 
 export class ServicesExtensions implements ServiceExtension {
@@ -13,7 +16,10 @@ export class ServicesExtensions implements ServiceExtension {
   private _services: Map<string, ServiceExtension> = new Map<string, ServiceExtension>([
     ['SecretsManager', new SecretsManagerServiceExtension()],
     ['SFN', new StepFunctionsServiceExtension()],
+    ['SQS', new SqsServiceExtension()],
+    ['SNS', new SnsServiceExtension()],
     ['DynamoDB', new DynamodbServiceExtension()],
+    ['Lambda', new LambdaServiceExtension()],
     ['S3', new S3ServiceExtension()],
     ['Kinesis', new KinesisServiceExtension()],
   ]);
