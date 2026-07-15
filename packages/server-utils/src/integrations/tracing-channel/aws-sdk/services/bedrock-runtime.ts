@@ -4,6 +4,7 @@ import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_STOP_SEQUENCES as ATTR_GEN_AI_REQUEST_STOP_SEQUENCES,
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_RESPONSE_FINISH_REASONS,
@@ -12,11 +13,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../../../debug-build';
-import {
-  ATTR_GEN_AI_REQUEST_STOP_SEQUENCES,
-  GEN_AI_OPERATION_NAME_VALUE_CHAT,
-  GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
-} from '../constants';
+import { GEN_AI_OPERATION_NAME_VALUE_CHAT, GEN_AI_SYSTEM_VALUE_AWS_BEDROCK } from '../constants';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
 
