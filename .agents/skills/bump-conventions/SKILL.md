@@ -60,5 +60,3 @@ Use the `feat(deps):` prefix the repo uses for dependency bumps:
 ```
 feat(deps): Bump `@sentry/conventions` to <NEW>
 ```
-
-Follow the repo's commit and PR conventions (target `develop`, draft PR, `## What` / `## Why`). Do **not** create the commit yourself unless the user invokes `/commit-push-pr`.
