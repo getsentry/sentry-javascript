@@ -101,7 +101,7 @@
     }
   },
   "dependencies": {
-    "@sentry/conventions": "^0.15.1",
+    "@sentry/conventions": "^0.16.0",
     "@sentry/core": "10.65.0",
     "@sentry/opentelemetry": "10.65.0",
     "import-in-the-middle": "^3.0.0"

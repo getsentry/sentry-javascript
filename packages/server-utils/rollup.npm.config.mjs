@@ -19,10 +19,10 @@ export default [
   ...orchestrionRuntimeHooks,
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      // `src/orchestrion/config/index.ts` and `src/orchestrion/bundler/vite.ts` are
-      // loaded via dedicated subpath exports (`.../orchestrion/config`,
-      // `.../orchestrion/vite`) — neither is reachable from `src/index.ts`, so we
-      // list them as separate entrypoints to guarantee they end up in build/esm
+      // `src/orchestrion/config/index.ts` and the `src/orchestrion/bundler/*.ts`
+      // plugins are loaded via dedicated subpath exports (`.../orchestrion/config`,
+      // `.../orchestrion/vite`, etc.) — none are reachable from `src/index.ts`, so
+      // we list them as separate entrypoints to guarantee they end up in build/esm
       // and build/cjs. `src/orchestrion/index.ts` backs the `./orchestrion`
       // subpath export.
       entrypoints: [
@@ -34,7 +34,9 @@ export default [
         // `Sentry.init()` to install the channel-injection hooks.
         'src/orchestrion/runtime/register.ts',
         'src/orchestrion/bundler/vite.ts',
+        'src/orchestrion/bundler/rollup.ts',
         'src/orchestrion/bundler/webpack.ts',
+        'src/orchestrion/bundler/esbuild.ts',
       ],
       packageSpecificConfig: {
         output: {
