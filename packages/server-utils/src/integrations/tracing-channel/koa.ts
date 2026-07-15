@@ -12,7 +12,7 @@ import {
   spanToJSON,
   startSpan,
 } from '@sentry/core';
-import { CODE_FUNCTION_NAME, HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_NAME, KOA_TYPE } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 
@@ -20,13 +20,6 @@ import { CHANNELS } from '../../orchestrion/channels';
 const INTEGRATION_NAME = 'Koa' as const;
 
 const ORIGIN = 'auto.http.orchestrion.koa';
-
-// `koa.type` (a layer's role) has no `@sentry/conventions` equivalent, so it stays
-// the canonical attribute — kept in sync with the OTel koa integration so spans are
-// identical across both code paths.
-const ATTR_KOA_TYPE = 'koa.type';
-// TODO(v11): remove this attribute.
-const ATTR_KOA_NAME = 'koa.name';
 
 const LAYER_TYPE = {
   ROUTER: 'router',
@@ -180,7 +173,7 @@ function patchLayer(
       setHttpServerSpanRouteAttribute(context._matchedRoute.toString());
     }
 
-    const koaName = metadata.attributes[ATTR_KOA_NAME];
+    const koaName = metadata.attributes[KOA_NAME];
     // Somehow, name is sometimes `''` for middleware spans.
     // See: https://github.com/open-telemetry/opentelemetry-js-contrib/issues/2220
     const name = typeof koaName === 'string' ? koaName || '< unknown >' : metadata.name;
@@ -217,8 +210,8 @@ function getMiddlewareMetadata(
   if (isRouter) {
     return {
       attributes: {
-        [ATTR_KOA_NAME]: layerPath?.toString(), // TODO(v11): remove, replaced by http.route
-        [ATTR_KOA_TYPE]: LAYER_TYPE.ROUTER,
+        [KOA_NAME]: layerPath?.toString(), // TODO(v11): remove, replaced by http.route
+        [KOA_TYPE]: LAYER_TYPE.ROUTER,
         [HTTP_ROUTE]: layerPath?.toString(),
       },
       name: context._matchedRouteName || `router - ${layerPath}`,
@@ -226,8 +219,8 @@ function getMiddlewareMetadata(
   }
   return {
     attributes: {
-      [ATTR_KOA_NAME]: layer.name || 'middleware', // TODO(v11): remove, replaced by code.function.name
-      [ATTR_KOA_TYPE]: LAYER_TYPE.MIDDLEWARE,
+      [KOA_NAME]: layer.name || 'middleware', // TODO(v11): remove, replaced by code.function.name
+      [KOA_TYPE]: LAYER_TYPE.MIDDLEWARE,
       [CODE_FUNCTION_NAME]: layer.name || 'middleware',
     },
     name: `middleware - ${layer.name}`,
