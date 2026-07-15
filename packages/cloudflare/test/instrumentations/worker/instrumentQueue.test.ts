@@ -301,20 +301,14 @@ describe('instrumentQueue', () => {
             ...originalBatch.messages[0]!,
             body: {
               invoiceId: 'inv_123',
-              __sentry_queue_meta__: {
-                'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
-                baggage: 'sentry-release=1.0.0',
-              },
+              __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
             },
           },
           {
             ...originalBatch.messages[1]!,
             body: {
               invoiceId: 'inv_456',
-              __sentry_queue_meta__: {
-                'sentry-trace': 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
-                baggage: 'sentry-environment=production',
-              },
+              __sentry_queue_trace__: 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
             },
           },
           {
@@ -322,10 +316,15 @@ describe('instrumentQueue', () => {
             id: '3',
             body: {
               invoiceId: 'inv_789',
-              __sentry_queue_meta__: {
-                'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
-                baggage: 'sentry-release=1.0.0',
-              },
+              __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+            },
+          },
+          {
+            ...originalBatch.messages[1]!,
+            id: '4',
+            body: {
+              invoiceId: 'inv_invalid',
+              __sentry_queue_trace__: 'not-a-valid-trace',
             },
           },
         ],
@@ -345,7 +344,12 @@ describe('instrumentQueue', () => {
 
       await wrappedHandler.queue?.(batch, MOCK_ENV, createMockExecutionContext());
 
-      expect(receivedBodies).toEqual([{ invoiceId: 'inv_123' }, { invoiceId: 'inv_456' }, { invoiceId: 'inv_789' }]);
+      expect(receivedBodies).toEqual([
+        { invoiceId: 'inv_123' },
+        { invoiceId: 'inv_456' },
+        { invoiceId: 'inv_789' },
+        { invoiceId: 'inv_invalid' },
+      ]);
       expect(processSpan?.parent_span_id).toBeUndefined();
       expect(processSpan?.links).toEqual([
         {

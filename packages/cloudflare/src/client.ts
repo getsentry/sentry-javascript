@@ -214,7 +214,7 @@ interface BaseCloudflareOptions {
    * Enable trace propagation from Queue producers to Queue consumers using span links.
    *
    * Cloudflare Queues does not expose a message-header API, so the SDK adds trace context to record-like message
-   * bodies under `__sentry_queue_meta__`. The consumer removes this field before invoking the queue handler.
+   * bodies under `__sentry_queue_trace__`. The consumer removes this field before invoking the queue handler.
    *
    * **Important:** Enable this option on both producers and consumers. Consumers which are not instrumented with
    * this option receive the additional field, which may break strict message validation or affect payload limits.

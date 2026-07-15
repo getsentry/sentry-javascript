@@ -1,4 +1,5 @@
 import type { MessageSendRequest, Queue, QueueSendBatchOptions, QueueSendOptions } from '@cloudflare/workers-types';
+import type { Span } from '@sentry/core';
 import { getTraceData, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import { addQueueTraceContext } from '../../utils/queueTraceMeta';
 
@@ -10,7 +11,7 @@ function startPublishSpan<T>(
     bodySize: number | undefined;
     messageCount?: number;
   },
-  callback: () => T,
+  callback: (span: Span) => T,
 ): T {
   const { bindingName, bodySize, messageCount } = options;
 
@@ -57,6 +58,16 @@ function getBodySize(body: unknown): number | undefined {
   }
 }
 
+function getBatchBodySize(messages: MessageSendRequest[]): number | undefined {
+  return messages.reduce<number | undefined>((acc, message) => {
+    const size = getBodySize(message.body);
+    if (size === undefined) {
+      return acc;
+    }
+    return (acc ?? 0) + size;
+  }, undefined);
+}
+
 /**
  * Wraps a Queue producer binding to create `queue.publish` spans on
  * `send` and `sendBatch` calls.
@@ -75,13 +86,18 @@ export function instrumentQueueProducer<T extends Queue>(
         const original = Reflect.get(target, prop, receiver) as Queue['send'];
 
         return function (this: unknown, message: unknown, options?: QueueSendOptions): ReturnType<Queue['send']> {
-          return startPublishSpan({ bindingName, bodySize: getBodySize(message) }, () =>
-            Reflect.apply(original, target, [
-              // Read trace data here so the carrier points to queue.publish, not its parent span.
-              enableTracePropagation ? addQueueTraceContext(message, getTraceData()) : message,
-              options,
-            ]),
-          );
+          return startPublishSpan({ bindingName, bodySize: getBodySize(message) }, span => {
+            // Read trace data here so the carrier points to queue.publish, not its parent span.
+            const tracedMessage = enableTracePropagation
+              ? addQueueTraceContext(message, getTraceData()['sentry-trace'])
+              : message;
+
+            if (enableTracePropagation) {
+              span.setAttribute('messaging.message.body.size', getBodySize(tracedMessage));
+            }
+
+            return Reflect.apply(original, target, [tracedMessage, options]);
+          });
         };
       }
 
@@ -93,25 +109,23 @@ export function instrumentQueueProducer<T extends Queue>(
           options?: QueueSendBatchOptions,
         ): ReturnType<Queue['sendBatch']> {
           const messageArray = Array.from(messages);
-          const totalBodySize = messageArray.reduce<number | undefined>((acc, m) => {
-            const size = getBodySize(m.body);
-            if (size === undefined) {
-              return acc;
-            }
-            return (acc ?? 0) + size;
-          }, undefined);
+          const totalBodySize = getBatchBodySize(messageArray);
 
-          return startPublishSpan({ bindingName, bodySize: totalBodySize, messageCount: messageArray.length }, () => {
+          return startPublishSpan({ bindingName, bodySize: totalBodySize, messageCount: messageArray.length }, span => {
             if (!enableTracePropagation) {
               return Reflect.apply(original, target, [messageArray, options]);
             }
 
             // Every entry was published by this batch span, so they intentionally share one producer context.
-            const traceData = getTraceData();
+            const sentryTrace = getTraceData()['sentry-trace'];
+
             const tracedMessages = messageArray.map(message => ({
               ...message,
-              body: addQueueTraceContext(message.body, traceData),
+              body: addQueueTraceContext(message.body, sentryTrace),
             }));
+
+            span.setAttribute('messaging.message.body.size', getBatchBodySize(tracedMessages));
+
             return Reflect.apply(original, target, [tracedMessages, options]);
           });
         };

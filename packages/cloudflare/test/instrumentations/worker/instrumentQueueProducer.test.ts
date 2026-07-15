@@ -1,4 +1,4 @@
-import type { Queue } from '@cloudflare/workers-types';
+import type { MessageSendRequest, Queue } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentQueueProducer } from '../../../src/instrumentations/worker/instrumentQueueProducer';
@@ -56,14 +56,31 @@ describe('instrumentQueueProducer', () => {
       expect(queue.send).toHaveBeenLastCalledWith(
         {
           invoiceId: 'inv_123',
-          __sentry_queue_meta__: {
-            'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
-            baggage: 'sentry-release=1.0.0',
-          },
+          __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
         },
         undefined,
       );
       expect(message).toEqual({ invoiceId: 'inv_123' });
+    });
+
+    test('includes injected trace context in body size', async () => {
+      const setAttribute = vi.fn();
+      vi.spyOn(SentryCore, 'startSpan').mockImplementation(((_options, callback) =>
+        callback({ setAttribute } as unknown as SentryCore.Span)) as typeof SentryCore.startSpan);
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      });
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'BILLING_QUEUE', true);
+
+      await wrapped.send({ invoiceId: 'inv_123' });
+
+      const sentBody = vi.mocked(queue.send).mock.calls[0]![0];
+      expect(setAttribute).toHaveBeenCalledTimes(1);
+      expect(setAttribute).toHaveBeenCalledWith(
+        'messaging.message.body.size',
+        new TextEncoder().encode(JSON.stringify(sentBody)).byteLength,
+      );
     });
 
     test('preserves an existing metadata field', async () => {
@@ -74,10 +91,7 @@ describe('instrumentQueueProducer', () => {
       const wrapped = instrumentQueueProducer(queue, 'BILLING_QUEUE', true);
       const message = {
         invoiceId: 'inv_123',
-        __sentry_queue_meta__: {
-          'sentry-trace': 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
-          baggage: 'billing-field=value',
-        },
+        __sentry_queue_trace__: 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
       };
 
       await wrapped.send(message);
@@ -208,26 +222,41 @@ describe('instrumentQueueProducer', () => {
           {
             body: {
               invoiceId: 'inv_123',
-              __sentry_queue_meta__: {
-                'sentry-trace': 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
-                baggage: 'sentry-environment=production',
-              },
+              __sentry_queue_trace__: 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
             },
             contentType: 'json',
           },
           {
             body: {
               invoiceId: 'inv_456',
-              __sentry_queue_meta__: {
-                'sentry-trace': 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
-                baggage: 'sentry-environment=production',
-              },
+              __sentry_queue_trace__: 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
             },
             delaySeconds: 10,
           },
         ],
         { delaySeconds: 5 },
       );
+    });
+
+    test('includes injected trace context in batch body size', async () => {
+      const setAttribute = vi.fn();
+      vi.spyOn(SentryCore, 'startSpan').mockImplementation(((_options, callback) =>
+        callback({ setAttribute } as unknown as SentryCore.Span)) as typeof SentryCore.startSpan);
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-1',
+      });
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'BILLING_QUEUE', true);
+
+      await wrapped.sendBatch([{ body: { invoiceId: 'inv_123' } }, { body: { invoiceId: 'inv_456' } }]);
+
+      const sentMessages = vi.mocked(queue.sendBatch).mock.calls[0]![0] as MessageSendRequest[];
+      const expectedSize = sentMessages.reduce(
+        (total, message) => total + new TextEncoder().encode(JSON.stringify(message.body)).byteLength,
+        0,
+      );
+      expect(setAttribute).toHaveBeenCalledTimes(1);
+      expect(setAttribute).toHaveBeenCalledWith('messaging.message.body.size', expectedSize);
     });
 
     test('starts a queue.publish span with batch attributes', async () => {

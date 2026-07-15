@@ -246,10 +246,7 @@ describe('instrumentEnv', () => {
     expect(send).toHaveBeenLastCalledWith(
       {
         invoiceId: 'inv_123',
-        __sentry_queue_meta__: {
-          'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
-          baggage: 'sentry-release=1.0.0',
-        },
+        __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
       },
       undefined,
     );
@@ -261,6 +258,32 @@ describe('instrumentEnv', () => {
     const instrumented = instrumentEnv(env);
 
     expect(instrumented.MY_QUEUE).toBe(instrumented.MY_QUEUE);
+  });
+
+  it('caches Queue bindings separately by propagation setting', async () => {
+    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+      'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+    });
+    const send = vi.fn().mockResolvedValue(undefined);
+    const queue = { send, sendBatch: vi.fn() };
+    const message = { invoiceId: 'inv_123' };
+
+    const first = instrumentEnv({ MY_QUEUE: queue }).MY_QUEUE;
+    const second = instrumentEnv({ MY_QUEUE: queue }, { enableQueueTracePropagation: true }).MY_QUEUE;
+
+    expect(first).not.toBe(second);
+    await first.send(message);
+    await second.send(message);
+    expect(send.mock.calls).toEqual([
+      [message, undefined],
+      [
+        {
+          invoiceId: 'inv_123',
+          __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+        },
+        undefined,
+      ],
+    ]);
   });
 
   it('wraps Queue bindings independently from DO bindings', () => {
