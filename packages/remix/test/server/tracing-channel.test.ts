@@ -1,100 +1,14 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { tracingChannel } from 'node:diagnostics_channel';
-import type { Scope, Span } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import {
-  _INTERNAL_setSpanForScope,
-  getDefaultCurrentScope,
-  getDefaultIsolationScope,
-  setAsyncContextStrategy,
-} from '@sentry/core';
-import * as SentryNode from '@sentry/node';
-import type { NodeClient } from '@sentry/node';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { remixChannelIntegration } from '../../src/server/integrations/tracing-channel';
-
-const CHANNELS = {
-  REQUEST_HANDLER: 'orchestrion:@remix-run/server-runtime:requestHandler',
-  MATCH_SERVER_ROUTES: 'orchestrion:@remix-run/server-runtime:matchServerRoutes',
-  CALL_ROUTE_LOADER: 'orchestrion:@remix-run/server-runtime:callRouteLoader',
-  CALL_ROUTE_ACTION: 'orchestrion:@remix-run/server-runtime:callRouteAction',
-} as const;
-
-interface TestStore {
-  scope: Scope;
-  isolationScope: Scope;
-}
-
-// `bindTracingChannelToSpan` only binds (and `setupOnce` only subscribes via
-// `waitForTracingChannelBinding`) when an async-context strategy exposes a
-// `getTracingChannelBinding`. Install a minimal one so the channel subscriptions
-// actually register in this unit-test context (no SDK `init`).
-function installTestAsyncContextStrategy(): void {
-  const asyncStorage = new AsyncLocalStorage<TestStore>();
-
-  function getScopes(): TestStore {
-    return asyncStorage.getStore() || { scope: getDefaultCurrentScope(), isolationScope: getDefaultIsolationScope() };
-  }
-
-  setAsyncContextStrategy({
-    withScope: callback => {
-      const scope = getScopes().scope.clone();
-      const isolationScope = getScopes().isolationScope;
-      return asyncStorage.run({ scope, isolationScope }, () => callback(scope));
-    },
-    withSetScope: (scope, callback) => {
-      const isolationScope = getScopes().isolationScope;
-      return asyncStorage.run({ scope, isolationScope }, () => callback(scope));
-    },
-    withIsolationScope: callback => {
-      const scope = getScopes().scope;
-      const isolationScope = getScopes().isolationScope.clone();
-      return asyncStorage.run({ scope, isolationScope }, () => callback(isolationScope));
-    },
-    withSetIsolationScope: (isolationScope, callback) => {
-      const scope = getScopes().scope;
-      return asyncStorage.run({ scope, isolationScope }, () => callback(isolationScope));
-    },
-    getCurrentScope: () => getScopes().scope,
-    getIsolationScope: () => getScopes().isolationScope,
-    getTracingChannelBinding: () => ({
-      asyncLocalStorage: asyncStorage,
-      getStoreWithActiveSpan: span => {
-        const scope = getScopes().scope.clone();
-        const isolationScope = getScopes().isolationScope;
-        _INTERNAL_setSpanForScope(scope, span);
-        return { scope, isolationScope };
-      },
-    }),
-  });
-}
-
-function makeSpan(): Span {
-  return {
-    end: vi.fn(),
-    setStatus: vi.fn(),
-    setAttributes: vi.fn(),
-    setAttribute: vi.fn(),
-    updateName: vi.fn(),
-  } as unknown as Span;
-}
-
-function makeRequest(overrides: { method?: string; url?: string; formEntries?: Record<string, string> } = {}): Request {
-  const { method = 'GET', url = 'http://localhost/test', formEntries } = overrides;
-  return {
-    method,
-    url,
-    clone: () => ({
-      formData: async () => {
-        const fd = new FormData();
-        for (const [key, value] of Object.entries(formEntries ?? {})) {
-          fd.append(key, value);
-        }
-        return fd;
-      },
-    }),
-  } as unknown as Request;
-}
+import {
+  CHANNELS,
+  makeRequest,
+  makeSpan,
+  setupRemixChannelIntegration,
+  teardownTestAsyncContextStrategy,
+} from './tracing-channel-test-utils';
 
 describe('remixChannelIntegration', () => {
   let startInactiveSpanSpy: MockInstance;
@@ -102,20 +16,12 @@ describe('remixChannelIntegration', () => {
   let span: Span;
 
   beforeAll(() => {
-    installTestAsyncContextStrategy();
-    // `setupOnce` reads form-data options off the client; provide one so the action subscription
-    // (which is gated on `captureActionFormDataKeys`) is installed.
-    vi.spyOn(SentryNode, 'getClient').mockReturnValue({
-      getOptions: () => ({ captureActionFormDataKeys: { _action: 'actionType' } }),
-      getDataCollectionOptions: () => ({ httpBodies: ['incomingRequest'] }),
-    } as unknown as NodeClient);
-
-    remixChannelIntegration().setupOnce?.();
+    // Configure form-data capture so the ACTION span also extracts the mapped keys.
+    setupRemixChannelIntegration({ _action: 'actionType' });
   });
 
   afterAll(() => {
-    setAsyncContextStrategy(undefined);
-    vi.restoreAllMocks();
+    teardownTestAsyncContextStrategy();
   });
 
   beforeEach(() => {

@@ -185,14 +185,16 @@ function subscribeCallRouteLoader(): void {
   );
 }
 
-function subscribeCallRouteAction(actionFormDataAttributes: Record<string, string | boolean>): void {
+function subscribeCallRouteAction(actionFormDataAttributes: Record<string, string | boolean> | undefined): void {
   bindTracingChannelToSpan<ActionChannelContext>(
     diagnosticsChannel.tracingChannel(CHANNELS.CALL_ROUTE_ACTION),
     data => {
       const params = (data.arguments[0] ?? {}) as RouteCallParams;
-      // Clone the request before the action consumes its body, so the form data is still readable
-      // when the span ends.
-      data._sentryClonedRequest = params.request?.clone();
+      // Only clone the request (before the action consumes its body) when form-data capture is
+      // configured, so the body is still readable when the span ends.
+      if (actionFormDataAttributes) {
+        data._sentryClonedRequest = params.request?.clone();
+      }
       return startInactiveSpan({
         name: `ACTION ${params.routeId}`,
         attributes: {
@@ -206,20 +208,14 @@ function subscribeCallRouteAction(actionFormDataAttributes: Record<string, strin
     },
     {
       requiresParentSpan: true,
-      // Reading form data is async, so take ownership of when the span ends: apply the response
-      // status, await the form-data attributes, then end.
+      beforeSpanEnd: (span, data) => setResponseStatus(span, data.result),
+      // When form-data capture is configured, reading it is async, so take ownership of when the
+      // span ends: await the form-data attributes, then end (which applies the response status via
+      // `beforeSpanEnd`). Otherwise let the helper end the span normally.
       deferSpanEnd: ({ span, data, end }) => {
-        if ('error' in data) {
-          end(data.error);
-          return true;
-        }
-
-        setResponseStatus(span, data.result);
-
         const clonedRequest = data._sentryClonedRequest;
-        if (!clonedRequest) {
-          end();
-          return true;
+        if (!actionFormDataAttributes || !clonedRequest || 'error' in data) {
+          return false;
         }
 
         clonedRequest
@@ -254,9 +250,9 @@ function instrumentRemix(actionFormDataAttributes: Record<string, string | boole
   subscribeRequestHandler();
   subscribeMatchServerRoutes();
   subscribeCallRouteLoader();
-  if (actionFormDataAttributes) {
-    subscribeCallRouteAction(actionFormDataAttributes);
-  }
+  // Always instrument actions; `actionFormDataAttributes` only gates the optional form-data
+  // attribute extraction, not whether ACTION spans are created.
+  subscribeCallRouteAction(actionFormDataAttributes);
 }
 
 const _remixChannelIntegration = (() => {
