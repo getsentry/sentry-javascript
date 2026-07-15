@@ -38,7 +38,13 @@ test.describe('orchestrion build-time injection', () => {
       /tracingChannel(\$?\d)?\(["']orchestrion:@remix-run\/server-runtime:requestHandler["']\)/,
     );
     expect(serverBundle).toMatch(
+      /tracingChannel(\$?\d)?\(["']orchestrion:@remix-run\/server-runtime:matchServerRoutes["']\)/,
+    );
+    expect(serverBundle).toMatch(
       /tracingChannel(\$?\d)?\(["']orchestrion:@remix-run\/server-runtime:callRouteLoader["']\)/,
+    );
+    expect(serverBundle).toMatch(
+      /tracingChannel(\$?\d)?\(["']orchestrion:@remix-run\/server-runtime:callRouteAction["']\)/,
     );
   });
 });
