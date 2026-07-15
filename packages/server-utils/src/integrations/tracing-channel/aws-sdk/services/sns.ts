@@ -1,12 +1,12 @@
 import type { Span, SpanKindValue } from '@sentry/core';
 import { getTraceData, SPAN_KIND } from '@sentry/core';
-import { MESSAGING_DESTINATION_NAME, MESSAGING_SYSTEM } from '@sentry/conventions/attributes';
 import {
-  ATTR_AWS_SNS_TOPIC_ARN,
-  ATTR_MESSAGING_DESTINATION,
-  ATTR_MESSAGING_DESTINATION_KIND,
-  MESSAGING_DESTINATION_KIND_VALUE_TOPIC,
-} from '../constants';
+  AWS_SNS_TOPIC_ARN as ATTR_AWS_SNS_TOPIC_ARN,
+  MESSAGING_DESTINATION as ATTR_MESSAGING_DESTINATION,
+  MESSAGING_DESTINATION_NAME,
+  MESSAGING_SYSTEM,
+} from '@sentry/conventions/attributes';
+import { ATTR_MESSAGING_DESTINATION_KIND, MESSAGING_DESTINATION_KIND_VALUE_TOPIC } from '../constants';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
 import { injectPropagationContext } from './MessageAttributes';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
@@ -25,6 +25,7 @@ export class SnsServiceExtension implements ServiceExtension {
       spanAttributes[ATTR_MESSAGING_DESTINATION_KIND] = MESSAGING_DESTINATION_KIND_VALUE_TOPIC;
       const { TopicArn, TargetArn, PhoneNumber } = request.commandInput;
       const destinationName = extractDestinationName(TopicArn, TargetArn, PhoneNumber);
+      // oxlint-disable-next-line typescript/no-deprecated -- old-semconv messaging.destination, matched to the OTel aws-sdk integration
       spanAttributes[ATTR_MESSAGING_DESTINATION] = destinationName;
       spanAttributes[MESSAGING_DESTINATION_NAME] = TopicArn || TargetArn || PhoneNumber || 'unknown';
 

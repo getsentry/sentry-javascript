@@ -1,12 +1,12 @@
 import type { Span } from '@sentry/core';
 import { debug, getTraceData, SPAN_KIND } from '@sentry/core';
-import { DEBUG_BUILD } from '../../../../debug-build';
 import {
-  ATTR_FAAS_EXECUTION,
-  ATTR_FAAS_INVOKED_NAME,
-  ATTR_FAAS_INVOKED_PROVIDER,
-  ATTR_FAAS_INVOKED_REGION,
-} from '../constants';
+  FAAS_EXECUTION as ATTR_FAAS_EXECUTION,
+  FAAS_INVOKED_NAME as ATTR_FAAS_INVOKED_NAME,
+  FAAS_INVOKED_PROVIDER as ATTR_FAAS_INVOKED_PROVIDER,
+  FAAS_INVOKED_REGION as ATTR_FAAS_INVOKED_REGION,
+} from '@sentry/conventions/attributes';
+import { DEBUG_BUILD } from '../../../../debug-build';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
 
@@ -43,6 +43,7 @@ export class LambdaServiceExtension implements ServiceExtension {
 
   public responseHook(response: NormalizedResponse, span: Span): void {
     if (response.request.commandName === INVOKE_COMMAND) {
+      // oxlint-disable-next-line typescript/no-deprecated -- old-semconv faas.execution, matched to the OTel aws-sdk integration
       span.setAttribute(ATTR_FAAS_EXECUTION, response.requestId);
       // Region resolves asynchronously after `requestPreSpanHook`, so it's backfilled onto the
       // normalized request and read here (same timing as `cloud.region`).
