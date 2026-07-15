@@ -1,5 +1,8 @@
 import { SPAN_KIND } from '@sentry/core';
-import { ATTR_AWS_STEP_FUNCTIONS_ACTIVITY_ARN, ATTR_AWS_STEP_FUNCTIONS_STATE_MACHINE_ARN } from '../constants';
+import {
+  AWS_STEP_FUNCTIONS_ACTIVITY_ARN as ATTR_AWS_STEP_FUNCTIONS_ACTIVITY_ARN,
+  AWS_STEP_FUNCTIONS_STATE_MACHINE_ARN as ATTR_AWS_STEP_FUNCTIONS_STATE_MACHINE_ARN,
+} from '@sentry/conventions/attributes';
 import type { NormalizedRequest } from '../types';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
 

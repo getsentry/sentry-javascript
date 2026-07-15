@@ -1,5 +1,5 @@
 import { SPAN_KIND } from '@sentry/core';
-import { AWS_S3_BUCKET } from '../constants';
+import { AWS_S3_BUCKET } from '@sentry/conventions/attributes';
 import type { NormalizedRequest } from '../types';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
 
