@@ -40,10 +40,10 @@ interface RouteCallParams {
   routeId?: string;
 }
 
-// A pre-action clone of the request, stashed at span start so the (already consumed) body is still
-// readable for form-data extraction when the action settles.
+// The in-flight form-data read, started at span start (before the action consumes the body) so it
+// overlaps the action's execution rather than starting after it settles.
 interface ActionChannelContext extends ChannelContext {
-  _sentryClonedRequest?: Request;
+  _sentryFormData?: Promise<FormData>;
 }
 
 // Minimal shape of a `matchServerRoutes` entry we read.
@@ -177,10 +177,16 @@ function subscribeCallRouteAction(actionFormDataAttributes: Record<string, strin
     diagnosticsChannel.tracingChannel(remixChannels.REMIX_CALL_ROUTE_ACTION),
     data => {
       const params = (data.arguments[0] ?? {}) as RouteCallParams;
-      // Only clone the request (before the action consumes its body) when form-data capture is
-      // configured, so the body is still readable when the span ends.
-      if (actionFormDataAttributes) {
-        data._sentryClonedRequest = params.request?.clone();
+      // Start reading the form data now (from a clone taken before the action consumes the body), so
+      // it overlaps the action's execution. Unlike the patched instrumentation, a channel can't
+      // delay the action promise, so reading only after it settles would race the parent
+      // `requestHandler` span flushing the transaction. Reading here means the promise is (virtually
+      // always) already resolved by `asyncEnd`, so ending the span costs a single microtask.
+      if (actionFormDataAttributes && params.request) {
+        const formData = params.request.clone().formData();
+        // Attach a handler so an unconsumed rejection (e.g. the action errored) isn't unhandled.
+        formData.catch(() => undefined);
+        data._sentryFormData = formData;
       }
       return startInactiveSpan({
         name: `ACTION ${params.routeId}`,
@@ -196,18 +202,17 @@ function subscribeCallRouteAction(actionFormDataAttributes: Record<string, strin
     {
       requiresParentSpan: true,
       beforeSpanEnd: (span, data) => setResponseStatus(span, data.result),
-      // When form-data capture is configured, reading it is async, so take ownership of when the
-      // span ends: await the form-data attributes, then end (which applies the response status via
-      // `beforeSpanEnd`). Otherwise let the helper end the span normally.
+      // Hold the span end until the (already in-flight) form-data read resolves, then apply the
+      // attributes and end (which sets the response status via `beforeSpanEnd`). On error, or when
+      // capture isn't configured, let the helper end the span normally.
       deferSpanEnd: ({ span, data, end }) => {
-        const clonedRequest = data._sentryClonedRequest;
-        if (!actionFormDataAttributes || !clonedRequest || 'error' in data) {
+        const formData = data._sentryFormData;
+        if (!actionFormDataAttributes || !formData || 'error' in data) {
           return false;
         }
 
-        clonedRequest
-          .formData()
-          .then(formData => applyFormDataAttributes(span, formData, actionFormDataAttributes))
+        formData
+          .then(resolved => applyFormDataAttributes(span, resolved, actionFormDataAttributes))
           // Silently continue on any error. Typically happens because the action body cannot be
           // processed into FormData, in which case we should just continue.
           .catch(() => undefined)
