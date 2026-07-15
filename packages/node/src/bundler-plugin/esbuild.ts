@@ -13,15 +13,11 @@ type EsbuildPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
 
 /**
  * esbuild plugin that bundles the Sentry esbuild bundler plugin (source maps,
- * release injection, …) together with the orchestrion code transform
+ * release injection, …) together with the code transformer
  * (build-time `diagnostics_channel` instrumentation for Node libraries).
  *
  * It is a drop-in replacement for `@sentry/bundler-plugins/esbuild` and accepts
  * the same options.
- *
- * esbuild does not flatten nested `plugins` arrays, so this returns a single
- * plugin that runs both plugins' `setup` against the same build.
- *
  * @example
  * ```ts
  * // build.mjs

@@ -14,15 +14,11 @@ type RollupPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
 /**
  * Rollup plugin that bundles the Sentry Rollup bundler plugin (source maps,
  * release injection, bundle size optimizations, …) together with the
- * orchestrion code transform (build-time `diagnostics_channel` instrumentation
+ * code transformer (build-time `diagnostics_channel` instrumentation
  * for Node libraries).
  *
  * It is a drop-in replacement for `@sentry/bundler-plugins/rollup` and accepts
  * the same options.
- *
- * Rollup flattens nested `plugins` arrays, so `plugins: [sentryRollupPlugin(opts)]`
- * works directly.
- *
  * @example
  * ```ts
  * // rollup.config.js

@@ -8,15 +8,11 @@ type WebpackCompiler = Parameters<ReturnType<typeof sentryWebpackBundlerPlugin>[
 
 /**
  * webpack plugin that bundles the Sentry webpack bundler plugin (source maps,
- * release injection, …) together with the orchestrion code transform
+ * release injection, …) together with the code transformer
  * (build-time `diagnostics_channel` instrumentation for Node libraries).
  *
  * It is a drop-in replacement for `@sentry/bundler-plugins/webpack` and accepts
  * the same options.
- *
- * webpack does not flatten nested `plugins` arrays, so this returns a single
- * plugin that runs both plugins' `apply` against the same compiler.
- *
  * @example
  * ```ts
  * // webpack.config.mjs

@@ -13,15 +13,12 @@ type VitePlugin = ReturnType<typeof sentryOrchestrionPlugin>;
 
 /**
  * Vite plugin that bundles the Sentry Vite bundler plugin (source maps, release
- * injection, bundle size optimizations, …) together with the orchestrion code
- * transform (build-time `diagnostics_channel` instrumentation for Node
+ * injection, bundle size optimizations, …) together with the code
+ * transformer (build-time `diagnostics_channel` instrumentation for Node
  * libraries).
  *
  * It is a drop-in replacement for `@sentry/bundler-plugins/vite` and accepts the
  * same options.
- *
- * Vite flattens nested `plugins` arrays, so `plugins: [sentryVitePlugin(opts)]`
- * works directly.
  *
  * @example
  * ```ts
