@@ -45,6 +45,8 @@ A `conventions` bump can rename or remove exported attribute constants. If `yarn
 
 Use LSP `findReferences` on the changed export to catch every call site. Do not paper over a rename with a cast.
 
+After fixing, re-run `yarn build:dev` and confirm it passes before verifying, so the next step runs against fresh build output.
+
 ## 5. Final verification
 
 ```bash
