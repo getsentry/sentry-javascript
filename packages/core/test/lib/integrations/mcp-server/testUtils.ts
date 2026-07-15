@@ -19,6 +19,7 @@ export function createMockClient(userInfo = true, genAI?: { inputs: boolean; out
       queryParams: true,
       graphQL: { document: true, variables: true },
       genAI: genAIOptions,
+      databaseQueryData: true,
       stackFrameVariables: true,
       frameContextLines: 5,
     }),
