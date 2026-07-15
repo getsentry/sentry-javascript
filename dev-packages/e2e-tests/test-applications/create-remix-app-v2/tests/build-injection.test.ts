@@ -33,8 +33,7 @@ test.describe('orchestrion build-time injection', () => {
 
   test('injects the diagnostics-channel publishers into @remix-run/server-runtime', () => {
     // Remix's own instrumentation is orchestrion-based too: the transform force-bundles
-    // and injects channels into `@remix-run/server-runtime` (the subscriber is
-    // `remixChannelIntegration`).
+    // and injects channels into `@remix-run/server-runtime`
     expect(serverBundle).toMatch(
       /tracingChannel(\$?\d)?\(["']orchestrion:@remix-run\/server-runtime:requestHandler["']\)/,
     );

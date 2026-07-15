@@ -1,7 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
-  defineIntegration,
   getActiveSpan,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -12,11 +11,8 @@ import {
 } from '@sentry/core';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import { CODE_FUNCTION, HTTP_METHOD, HTTP_ROUTE, HTTP_STATUS_CODE, HTTP_URL } from '@sentry/conventions/attributes';
-import { getClient } from '@sentry/node';
-import type { RemixOptions } from '../../utils/remixOptions';
 import { remixChannels } from '@sentry/server-utils/orchestrion';
 
-const INTEGRATION_NAME = 'Remix' as const;
 const ORIGIN = 'auto.http.orchestrion.remix';
 
 const NOOP = (): void => {};
@@ -237,43 +233,18 @@ function applyFormDataAttributes(
   });
 }
 
-function instrumentRemix(actionFormDataAttributes: Record<string, string | boolean> | undefined): void {
-  subscribeRequestHandler();
-  subscribeMatchServerRoutes();
-  subscribeCallRouteLoader();
-  // Always instrument actions; `actionFormDataAttributes` only gates the optional form-data
-  // attribute extraction, not whether ACTION spans are created.
-  subscribeCallRouteAction(actionFormDataAttributes);
+export function instrumentRemix(actionFormDataAttributes: Record<string, string | boolean> | undefined): void {
+  // `tracingChannel` is unavailable before Node 18.19, so do nothing in that case.
+  if (!diagnosticsChannel.tracingChannel) {
+    return;
+  }
+
+  waitForTracingChannelBinding(() => {
+    subscribeRequestHandler();
+    subscribeMatchServerRoutes();
+    subscribeCallRouteLoader();
+    // Always instrument actions; `actionFormDataAttributes` only gates the optional form-data
+    // attribute extraction, not whether ACTION spans are created.
+    subscribeCallRouteAction(actionFormDataAttributes);
+  });
 }
-
-const _remixChannelIntegration = (() => {
-  return {
-    name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19, so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      const client = getClient();
-      const options = client?.getOptions() as RemixOptions | undefined;
-      const actionFormDataAttributes = client?.getDataCollectionOptions().httpBodies.includes('incomingRequest')
-        ? options?.captureActionFormDataKeys
-        : undefined;
-
-      waitForTracingChannelBinding(() => {
-        instrumentRemix(actionFormDataAttributes);
-      });
-    },
-  };
-}) satisfies IntegrationFn;
-
-/**
- * Orchestrion-driven Remix integration.
- *
- * Ports the vendored `RemixInstrumentation` (an OTel `InstrumentationBase`) to diagnostics-channel
- * listeners, with orchestrion injecting the channels into `@remix-run/server-runtime`. Creates the
- * `remix.request` server span plus `LOADER`/`ACTION` spans, and enriches the request span with the
- * matched route. Requires the orchestrion runtime hook or bundler plugin to be active.
- */
-export const remixChannelIntegration = defineIntegration(_remixChannelIntegration);

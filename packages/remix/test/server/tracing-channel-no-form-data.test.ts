@@ -13,7 +13,7 @@ import {
 // Runs in its own file so the channel subscriptions register with NO form-data capture configured -
 // the default for most apps. `captureActionFormDataKeys` gates only the optional attribute
 // extraction, so ACTION spans must still be created.
-describe('remixChannelIntegration (no form-data capture configured)', () => {
+describe('remixIntegration with orchestrion (no form-data capture configured)', () => {
   let startInactiveSpanSpy: MockInstance;
   let getActiveSpanSpy: MockInstance;
   let span: Span;

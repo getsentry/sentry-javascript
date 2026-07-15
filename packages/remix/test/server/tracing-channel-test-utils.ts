@@ -9,7 +9,7 @@ import {
 import * as SentryNode from '@sentry/node';
 import type { NodeClient } from '@sentry/node';
 import { vi } from 'vitest';
-import { remixChannelIntegration } from '../../src/server/integrations/tracing-channel';
+import { instrumentRemix } from '../../src/server/integrations/tracing-channel';
 
 export const CHANNELS = {
   REQUEST_HANDLER: 'orchestrion:@remix-run/server-runtime:requestHandler',
@@ -113,5 +113,5 @@ export function setupRemixChannelIntegration(captureActionFormDataKeys?: Record<
     getDataCollectionOptions: () => ({ httpBodies: captureActionFormDataKeys ? ['incomingRequest'] : [] }),
   } as unknown as NodeClient);
 
-  remixChannelIntegration().setupOnce?.();
+  instrumentRemix(captureActionFormDataKeys);
 }

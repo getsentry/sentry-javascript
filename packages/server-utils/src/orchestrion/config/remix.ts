@@ -2,7 +2,7 @@ import type { InstrumentationConfig } from '..';
 
 // Ports the vendored `RemixInstrumentation` (an OTel `InstrumentationBase` that patched
 // `@remix-run/server-runtime`) to orchestrion channel injection. The subscriber lives in
-// `@sentry/remix` (`remixChannelIntegration`), because it needs remix-specific SDK options.
+// `@sentry/remix` (`instrumentRemix`), because it needs remix-specific SDK options.
 //
 // Four concepts, one channel each. Where a function was renamed across the supported range, both
 // names publish to the same channel so the subscriber only ever knows one name per concept:
