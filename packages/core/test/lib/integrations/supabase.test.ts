@@ -39,8 +39,8 @@ type CreateMockSupabaseClientOptions = {
   method?: string;
   url?: URL | string;
   body?: unknown;
-  /** When set, configures the mocked Sentry client's `dataCollection.userInfo`. Omit to leave `getClient` to the test file `beforeEach`. */
-  dataCollectionUserInfo?: boolean;
+  /** When set, configures the mocked Sentry client's `dataCollection.databaseQueryData`. Omit to leave `getClient` to the test file `beforeEach`. */
+  dataCollectionDatabaseQueryData?: boolean;
 };
 
 const DEFAULT_MOCK_SUPABASE_REST_URL = 'https://example.supabase.co/rest/v1/todos';
@@ -53,9 +53,9 @@ const MOCK_SUPABASE_PII_SCENARIO: Pick<CreateMockSupabaseClientOptions, 'method'
 };
 
 function createMockSupabaseClient(resolveWith: unknown, options?: CreateMockSupabaseClientOptions): unknown {
-  if (options?.dataCollectionUserInfo !== undefined) {
+  if (options?.dataCollectionDatabaseQueryData !== undefined) {
     currentScopesMocks.getClient.mockReturnValue({
-      getDataCollectionOptions: () => ({ userInfo: options.dataCollectionUserInfo }),
+      getDataCollectionOptions: () => ({ databaseQueryData: options.dataCollectionDatabaseQueryData }),
     } as any);
   }
 
@@ -237,10 +237,10 @@ describe('Supabase Integration', () => {
       vi.restoreAllMocks();
     });
 
-    it('omits db.query, db.body, and breadcrumb query/body when dataCollection.userInfo is false', async () => {
+    it('omits db.query, db.body, and breadcrumb query/body when dataCollection.databaseQueryData is false', async () => {
       const client = createMockSupabaseClient(
         { status: 200 },
-        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionUserInfo: false },
+        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionDatabaseQueryData: false },
       );
       instrumentSupabaseClient(client);
 
@@ -259,10 +259,10 @@ describe('Supabase Integration', () => {
       expect(breadcrumb).not.toHaveProperty('data');
     });
 
-    it('includes db.query, db.body, and breadcrumb query/body when dataCollection.userInfo is true', async () => {
+    it('includes db.query, db.body, and breadcrumb query/body when dataCollection.databaseQueryData is true', async () => {
       const client = createMockSupabaseClient(
         { status: 200 },
-        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionUserInfo: true },
+        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionDatabaseQueryData: true },
       );
       instrumentSupabaseClient(client);
 
@@ -290,10 +290,10 @@ describe('Supabase Integration', () => {
       );
     });
 
-    it('includes data when sendOperationData option is set, regardless of dataCollection.userInfo', async () => {
+    it('includes data when sendOperationData option is set, regardless of dataCollection.databaseQueryData', async () => {
       const client = createMockSupabaseClient(
         { status: 200 },
-        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionUserInfo: false },
+        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionDatabaseQueryData: false },
       );
       instrumentSupabaseClient(client, { sendOperationData: true });
 
@@ -312,10 +312,10 @@ describe('Supabase Integration', () => {
       );
     });
 
-    it('sendOperationData: false takes precedence over dataCollection.userInfo: true', async () => {
+    it('sendOperationData: false takes precedence over dataCollection.databaseQueryData: true', async () => {
       const client = createMockSupabaseClient(
         { status: 200 },
-        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionUserInfo: true },
+        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionDatabaseQueryData: true },
       );
       instrumentSupabaseClient(client, { sendOperationData: false });
 
@@ -330,7 +330,7 @@ describe('Supabase Integration', () => {
       expect(spanOptions.attributes['db.body']).toBeUndefined();
     });
 
-    it('includes data when legacy sendDefaultPii: true is bridged to dataCollection.userInfo', async () => {
+    it('includes data when legacy sendDefaultPii: true is bridged to dataCollection.databaseQueryData', async () => {
       const resolved = resolveDataCollectionOptions({ sendDefaultPii: true });
       currentScopesMocks.getClient.mockReturnValue({
         getDataCollectionOptions: () => resolved,
@@ -378,7 +378,7 @@ describe('Supabase Integration', () => {
     it('omits supabase error context query/body when data collection is off', async () => {
       const client = createMockSupabaseClient(
         { status: 400, error: { message: 'Bad request', code: '400' } },
-        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionUserInfo: false },
+        { ...MOCK_SUPABASE_PII_SCENARIO, dataCollectionDatabaseQueryData: false },
       );
       instrumentSupabaseClient(client);
 
@@ -417,7 +417,7 @@ describe('Supabase Integration', () => {
           method: 'POST',
           url: 'https://example.supabase.co/rest/v1/todos?columns=',
           body: [{ title: 'Test Todo' }],
-          dataCollectionUserInfo: true,
+          dataCollectionDatabaseQueryData: true,
         },
       );
       instrumentSupabaseClient(client);
