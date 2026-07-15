@@ -404,39 +404,15 @@
   dependencies:
     json-schema-to-ts "^3.1.1"
 
-"@apm-js-collab/code-transformer-bundler-plugins@^0.5.0":
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.5.0.tgz#8a08136e8281f7e8e36ac6810d2b122c5917de93"
-  integrity sha512-YxLBY5nGlurL7QeJLq6e5g0ouBpAp0pwgyA/5rHXEXwhiPLn9ZHbT+Y2LlP90GT872cSocfjWRYu/fnpuBudNQ==
+"@apm-js-collab/code-transformer-bundler-plugins@^0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.6.1.tgz#29bf79167411b8607f02db177250b8f7c16d93e1"
+  integrity sha512-TDvypsLUk/W202Y1JBE6I2enQalWjbYXKnxpELWEZn6GLoIcGFii69ljh948hdAzKZJ/wg0Uwivz72a/szoOBQ==
   dependencies:
-    "@apm-js-collab/code-transformer" "^0.15.0"
+    "@apm-js-collab/code-transformer" "^0.18.0"
     es-module-lexer "^2.1.0"
     magic-string "^0.30.21"
     module-details-from-path "^1.0.4"
-
-"@apm-js-collab/code-transformer@^0.15.0":
-  version "0.15.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer/-/code-transformer-0.15.0.tgz#a3a1b6c7b92db16f8277636b4a72a1626e2fa52a"
-  integrity sha512-XmXYVs8CzJ1Aj79noVbn2weUO/XWtRyURpGqx7aU7DOXlUQhR0WKOQNF0okh7PCeY37vxf7kU3v57OAkEPm3ww==
-  dependencies:
-    "@types/estree" "^1.0.8"
-    astring "^1.9.0"
-    esquery "^1.7.0"
-    meriyah "^6.1.4"
-    semifies "^1.0.0"
-    source-map "^0.6.0"
-
-"@apm-js-collab/code-transformer@^0.16.0":
-  version "0.16.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer/-/code-transformer-0.16.0.tgz#f49f3f88839907aea86a23c0a8102ad5038b8273"
-  integrity sha512-J3YRXRsxr/d48E7iDOAyVLrqQMCGU1iHWxXPKq7EeXQTRDDJ50piOfQNqxsM7u4XogJlirXvLHIznr0T33HTKw==
-  dependencies:
-    "@types/estree" "^1.0.8"
-    astring "^1.9.0"
-    esquery "^1.7.0"
-    meriyah "^6.1.4"
-    semifies "^1.0.0"
-    source-map "^0.6.0"
 
 "@apm-js-collab/code-transformer@^0.18.0":
   version "0.18.0"
@@ -450,12 +426,12 @@
     semifies "^1.0.0"
     source-map "^0.6.0"
 
-"@apm-js-collab/tracing-hooks@^0.11.0":
-  version "0.11.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.11.0.tgz#4c9c378695d65e90574893c1faba3c13b5bdbd14"
-  integrity sha512-5hWEcCGF4hcNh9lyB70p58pXn4HyUAVCad44wK6j110Ky+ivG19TfKHLB2aIDgItabCj6VPZm0DMAMNRnJDNBw==
+"@apm-js-collab/tracing-hooks@^0.13.0":
+  version "0.13.0"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.13.0.tgz#20b2f77ec7a0e5dfd9fbf2215b56e2c2b7f41e4b"
+  integrity sha512-mTvWz9rnQwx1U3h0XPTHaX7bgfkpipLLTQyjlC2cdhQpQEuoLT0AGzoydeoq2NxfEVv6fWOOETcSbb2nptleyw==
   dependencies:
-    "@apm-js-collab/code-transformer" "^0.16.0"
+    "@apm-js-collab/code-transformer" "^0.18.0"
     debug "^4.4.1"
     module-details-from-path "^1.0.4"
 
@@ -7439,10 +7415,10 @@
     "@sentry/cli-win32-i686" "2.58.6"
     "@sentry/cli-win32-x64" "2.58.6"
 
-"@sentry/conventions@0.15.1", "@sentry/conventions@^0.15.1":
-  version "0.15.1"
-  resolved "https://registry.yarnpkg.com/@sentry/conventions/-/conventions-0.15.1.tgz#5b8888862d1e444678938f5afdd7842bca42f7cc"
-  integrity sha512-ZLP8bRdMON3prWE2tJyImuYscCxdcJeIPIhrOs/rgyFm3C1nCh1B6gdvPj3AZ5zW08oSFFCsq7T+tYEW3h8MNA==
+"@sentry/conventions@0.16.0", "@sentry/conventions@^0.16.0":
+  version "0.16.0"
+  resolved "https://registry.yarnpkg.com/@sentry/conventions/-/conventions-0.16.0.tgz#3b58d15714cf44dca1518496c00749eec5525009"
+  integrity sha512-fO9PLmHdVURcSPUpWCItWAtgKiMwGdJHbovoSEyLplX5sxs2ugvI4CBPTrkkgqhObnZOD0CnWBKDzSVQYBKEyQ==
 
 "@sentry/node-cpu-profiler@^2.4.2":
   version "2.4.2"

@@ -1,9 +1,23 @@
-import { debug } from '@sentry/core';
+import { debug, GLOBAL_OBJ } from '@sentry/core';
 import { createRequire } from 'node:module';
 import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { DEBUG_BUILD } from '../../debug-build';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
+import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { register } from 'node:module';
+
+type TracingHooksSync = {
+  initialize: (opts: { instrumentations: InstrumentationConfig[] }) => void;
+  resolve: Function;
+  load: Function;
+  setDiagnosticsHook: (callback: (event: { url: string; moduleName: string; error: Error }) => void) => void;
+};
+
+type NodeModule = {
+  registerHooks?: (options: unknown) => { deregister: () => void };
+  register?: typeof register;
+};
 
 export interface RegisterDiagnosticsChannelInjectionOptions {
   /**
@@ -15,11 +29,6 @@ export interface RegisterDiagnosticsChannelInjectionOptions {
    * location here; it is loaded through an opaque `createRequire` that bundlers can't trace.
    */
   tracingHooksDir?: string;
-}
-
-declare global {
-  // eslint-disable-next-line no-var
-  var __SENTRY_ORCHESTRION__: { runtime?: boolean; bundler?: boolean } | undefined;
 }
 
 /** `Module.registerHooks` only became stable in Node 24.13 / 25.1 and Deno 2.8. */
@@ -47,15 +56,9 @@ function hasStableSyncModuleHooks(denoVersionString: string | undefined): boolea
  *
  * Libraries imported *after* this call publish the `tracingChannel` events that
  * the channel-based integrations subscribe to.
- *
- * Idempotent via `globalThis.__SENTRY_ORCHESTRION__` — a no-op if the runtime
- * `--import` hook or a bundler plugin already injected the channels.
  */
 export function registerDiagnosticsChannelInjection(options?: RegisterDiagnosticsChannelInjectionOptions): void {
-  const g = (globalThis.__SENTRY_ORCHESTRION__ ??= {});
-
-  // Already injected (runtime --import hook or bundler plugin) — nothing to do.
-  if (g.runtime || g.bundler) {
+  if (GLOBAL_OBJ?.__SENTRY_ORCHESTRION__?.runtime) {
     return;
   }
 
@@ -89,10 +92,7 @@ export function registerDiagnosticsChannelInjection(options?: RegisterDiagnostic
 
   // `Module.registerHooks` / `Module.register` are newer than the @types/node
   // we build against, hence the cast.
-  const mod = Module as unknown as {
-    registerHooks?: (hooks: unknown) => void;
-    register?: (specifier: string, options: unknown) => void;
-  };
+  const mod = Module as NodeModule;
 
   // runs both at `--import` time and (synchronously) inside `Sentry.init()`,
   // so an unguarded throw would either abort startup or make `init()` throw.
@@ -105,15 +105,18 @@ export function registerDiagnosticsChannelInjection(options?: RegisterDiagnostic
       // We require() the module here so that we can synchronously load it,
       // including from a CommonJS Sentry build, without bundlers pulling in.
       // All versions in stableSyncHooks support this.
-      const { initialize, resolve, load } = (
+      const { initialize, resolve, load, setDiagnosticsHook } = (
         requireFromHooksDir
           ? requireFromHooksDir(`${tracingHooksDir}/hook-sync.mjs`)
           : nodeRequire('@apm-js-collab/tracing-hooks/hook-sync.mjs')
-      ) as {
-        initialize: (opts: { instrumentations: unknown }) => void;
-        resolve: unknown;
-        load: unknown;
-      };
+      ) as TracingHooksSync;
+
+      setDiagnosticsHook(event => {
+        GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ || {};
+        GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime = GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime || [];
+        GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime.push(event.moduleName);
+      });
+
       initialize({ instrumentations: SENTRY_INSTRUMENTATIONS });
       mod.registerHooks({ resolve, load });
       DEBUG_BUILD && debug.log('[orchestrion] registered diagnostics-channel injection via Module.registerHooks()');
@@ -161,5 +164,6 @@ export function registerDiagnosticsChannelInjection(options?: RegisterDiagnostic
     return;
   }
 
-  g.runtime = true;
+  GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ || {};
+  GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime = GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime || [];
 }

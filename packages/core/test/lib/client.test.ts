@@ -2220,7 +2220,7 @@ describe('Client', () => {
         .spyOn(logsInternalModule, '_INTERNAL_flushLogsBuffer')
         .mockImplementation(() => undefined);
 
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
       const client = new TestClient(options);
 
       await client.close();
