@@ -43,8 +43,6 @@ const kLayerPatched: unique symbol = Symbol('sentry.koa.layer-patched');
 // subscription here.
 let subscribed = false;
 
-let ignoreLayersType: KoaLayerType[] = [];
-
 type Next = () => Promise<unknown>;
 
 interface KoaContext {
@@ -75,9 +73,7 @@ interface KoaMiddlewareMetadata {
   name: string;
 }
 
-// `arguments[0]` is the live middleware array passed to `compose(middleware)`;
-// we mutate its entries in place to swap each layer for a span-creating proxy.
-interface KoaComposeContext {
+interface KoaUseContext {
   arguments: unknown[];
 }
 
@@ -87,6 +83,8 @@ export interface KoaChannelIntegrationOptions {
 }
 
 const _koaChannelIntegration = ((options: KoaChannelIntegrationOptions = {}) => {
+  const ignoreLayersType = options.ignoreLayersType ?? [];
+
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -95,15 +93,11 @@ const _koaChannelIntegration = ((options: KoaChannelIntegrationOptions = {}) => 
         return;
       }
       subscribed = true;
-      ignoreLayersType = (options.ignoreLayersType ?? []) as KoaLayerType[];
+      DEBUG_BUILD && debug.log(`[orchestrion:koa] subscribing to channel "${CHANNELS.KOA_USE}"`);
 
-      DEBUG_BUILD && debug.log(`[orchestrion:koa] subscribing to channel "${CHANNELS.KOA_COMPOSE}"`);
-
-      // `subscribe` requires all five lifecycle hooks. We only act on `start`,
-      // which orchestrion fires synchronously with the live middleware array.
-      diagnosticsChannel.tracingChannel(CHANNELS.KOA_COMPOSE).subscribe({
+      diagnosticsChannel.tracingChannel(CHANNELS.KOA_USE).subscribe({
         start(rawCtx) {
-          handleCompose(rawCtx as KoaComposeContext);
+          handleUse(rawCtx as KoaUseContext, ignoreLayersType);
         },
         end() {},
         asyncStart() {},
@@ -114,25 +108,11 @@ const _koaChannelIntegration = ((options: KoaChannelIntegrationOptions = {}) => 
   };
 }) satisfies IntegrationFn;
 
-/**
- * koa calls `compose(app.middleware)` once at startup (no active span); `@koa/router`
- * calls it per request while the `http.server` span is active. We only wrap at startup
- * — the route handlers are wrapped in place via the router-stack descent, so skipping
- * the per-request call just avoids spanning the router's internal param-setters.
- */
-function handleCompose(ctx: KoaComposeContext): void {
-  if (getActiveSpan()) {
-    return;
-  }
+function handleUse(ctx: KoaUseContext, ignoreLayersType: KoaLayerType[]): void {
   const middleware = ctx.arguments[0];
-  if (!Array.isArray(middleware)) {
-    return;
+  if (typeof middleware === 'function') {
+    ctx.arguments[0] = patchUse(middleware as KoaMiddleware, ignoreLayersType);
   }
-  middleware.forEach((layer, i) => {
-    if (typeof layer === 'function') {
-      middleware[i] = patchUse(layer as KoaMiddleware);
-    }
-  });
 }
 
 /**
@@ -141,22 +121,24 @@ function handleCompose(ctx: KoaComposeContext): void {
  * middleware in its stack (in place) and leave the dispatch itself unwrapped;
  * everything else is a plain middleware.
  */
-function patchUse(middleware: KoaMiddleware): KoaMiddleware {
-  return middleware.router ? patchRouterDispatch(middleware) : patchLayer(middleware, false);
+function patchUse(middleware: KoaMiddleware, ignoreLayersType: KoaLayerType[]): KoaMiddleware {
+  return middleware.router
+    ? patchRouterDispatch(middleware, ignoreLayersType)
+    : patchLayer(middleware, false, ignoreLayersType);
 }
 
 /**
  * Patches the dispatch function used by `@koa/router`, wrapping each routed
  * middleware in the router's stack so routed spans carry their matched path.
  */
-function patchRouterDispatch(dispatchLayer: KoaMiddleware): KoaMiddleware {
+function patchRouterDispatch(dispatchLayer: KoaMiddleware, ignoreLayersType: KoaLayerType[]): KoaMiddleware {
   const router = dispatchLayer.router;
   const routesStack = router?.stack ?? [];
   for (const pathLayer of routesStack) {
     const path = pathLayer.path;
     const pathStack = pathLayer.stack;
     pathStack.forEach((routedMiddleware, j) => {
-      pathStack[j] = patchLayer(routedMiddleware, true, path);
+      pathStack[j] = patchLayer(routedMiddleware, true, ignoreLayersType, path);
     });
   }
   return dispatchLayer;
@@ -167,10 +149,15 @@ function patchRouterDispatch(dispatchLayer: KoaMiddleware): KoaMiddleware {
  * is created when there is no active (parent) span, matching the vendored OTel
  * instrumentation's `api.trace.getSpan(api.context.active())` guard.
  */
-function patchLayer(middlewareLayer: KoaMiddleware, isRouter: boolean, layerPath?: string | RegExp): KoaMiddleware {
+function patchLayer(
+  middlewareLayer: KoaMiddleware,
+  isRouter: boolean,
+  ignoreLayersType: KoaLayerType[],
+  layerPath?: string | RegExp,
+): KoaMiddleware {
   const layerType = isRouter ? LAYER_TYPE.ROUTER : LAYER_TYPE.MIDDLEWARE;
   // Skip patching the layer if it's ignored by config or already wrapped.
-  if (middlewareLayer[kLayerPatched] === true || isLayerIgnored(layerType)) {
+  if (middlewareLayer[kLayerPatched] === true || ignoreLayersType.includes(layerType)) {
     return middlewareLayer;
   }
 
@@ -247,10 +234,6 @@ function getMiddlewareMetadata(
   };
 }
 
-function isLayerIgnored(type: KoaLayerType): boolean {
-  return ignoreLayersType.includes(type);
-}
-
 /**
  * Set the `http.route` attribute on the root HTTP server span for the current trace.
  *
@@ -275,7 +258,7 @@ function setHttpServerSpanRouteAttribute(route: string): void {
 
 /**
  * EXPERIMENTAL — orchestrion-driven koa integration. Subscribes to the
- * `orchestrion:koa-compose:compose` channel injected into `koa-compose` and
+ * `orchestrion:koa:use` channel injected into `Application.prototype.use` and
  * wraps each registered middleware/router layer in a span-creating proxy.
  * Requires the orchestrion runtime hook or bundler plugin.
  */
