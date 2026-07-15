@@ -26,7 +26,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL_SPAN_OP, GEN_AI_INVOKE_AGENT_SPAN_OP } from '@sentry/conventions/op';
-import type { Span } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   captureException,
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
@@ -42,19 +42,12 @@ import {
   spanToJSON,
   spanToTraceContext,
   startInactiveSpan,
+  stringify,
   withScope,
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { bindTracingChannelToSpan } from '../tracing-channel';
-import {
-  asNumber,
-  asString,
-  isReadableStream,
-  safeStringify,
-  type StreamedModelCallResult,
-  sum,
-  tapModelCallStream,
-} from './util';
+import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum, tapModelCallStream } from './util';
 
 /**
  * The single tracing channel the `ai` package (>= 7) publishes all telemetry lifecycle events to
@@ -411,7 +404,7 @@ export function createSpanFromMessage(
       const input = type === 'embedMany' ? event.values : event.value;
       return startGenAiSpan(GEN_AI_EMBEDDINGS_OPERATION, modelId, {
         ...baseAttributes,
-        ...(recordInputs && input !== undefined ? { [GEN_AI_EMBEDDINGS_INPUT]: safeStringify(input) } : {}),
+        ...(recordInputs && input !== undefined ? { [GEN_AI_EMBEDDINGS_INPUT]: stringify(input) } : {}),
       });
     }
     case 'rerank':
@@ -422,10 +415,8 @@ export function createSpanFromMessage(
   }
 }
 
-type Attributes = Record<string, string | number | boolean>;
-
 /** Start a `gen_ai.<operation>` span named `<operation> <suffix>` (or just `<operation>` when no suffix). */
-function startGenAiSpan(operation: string, suffix: string | undefined, attributes: Attributes): Span {
+function startGenAiSpan(operation: string, suffix: string | undefined, attributes: SpanAttributes): Span {
   return startInactiveSpan({
     name: suffix ? `${operation} ${suffix}` : operation,
     op: `gen_ai.${operation}`,
@@ -435,7 +426,7 @@ function startGenAiSpan(operation: string, suffix: string | undefined, attribute
 
 function buildInvokeAgentSpan(
   event: Record<string, unknown>,
-  baseAttributes: Attributes,
+  baseAttributes: SpanAttributes,
   recordInputs: boolean,
   enableTruncation: boolean,
   callId: string | undefined,
@@ -462,7 +453,7 @@ function buildInvokeAgentSpan(
 
 function buildModelCallSpan(
   event: Record<string, unknown>,
-  baseAttributes: Attributes,
+  baseAttributes: SpanAttributes,
   recordInputs: boolean,
   enableTruncation: boolean,
   callId: string | undefined,
@@ -476,9 +467,7 @@ function buildModelCallSpan(
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     ...(recordInputs ? buildInputMessageAttributes(event, enableTruncation) : {}),
-    ...(recordInputs && Array.isArray(event.tools)
-      ? { [GEN_AI_REQUEST_AVAILABLE_TOOLS]: safeStringify(event.tools) }
-      : {}),
+    ...(recordInputs && Array.isArray(event.tools) ? { [GEN_AI_REQUEST_AVAILABLE_TOOLS]: stringify(event.tools) } : {}),
   });
 }
 
@@ -497,7 +486,7 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
     ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
     ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
     ...(description ? { [GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE]: description } : {}),
-    ...(recordInputs && toolInput !== undefined ? { [GEN_AI_TOOL_INPUT]: safeStringify(toolInput) } : {}),
+    ...(recordInputs && toolInput !== undefined ? { [GEN_AI_TOOL_INPUT]: stringify(toolInput) } : {}),
   });
 }
 
@@ -520,7 +509,7 @@ export function enrichSpanOnEnd(
 
   if (type === 'executeTool') {
     if (recordOutputs) {
-      span.setAttribute(GEN_AI_TOOL_OUTPUT, safeStringify(result.output ?? result));
+      span.setAttribute(GEN_AI_TOOL_OUTPUT, stringify(result.output ?? result));
     }
     // From V5 on, tool errors are not rejected (so the `error` channel verb never fires) — they
     // surface as `tool-error` content on the resolved result. Mirror the OTel path by marking the
@@ -555,7 +544,7 @@ export function enrichSpanOnEnd(
   // on the top-level `invoke_agent` span.
   const finishReason = getFinishReason(result);
   if (finishReason && type === 'languageModelCall') {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, safeStringify([finishReason]));
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, stringify([finishReason]));
   }
 
   const response = isObjectLike(result.response) ? result.response : undefined;
@@ -624,7 +613,7 @@ function buildOutputMessages(
   if (!parts.length) {
     return undefined;
   }
-  return safeStringify([{ role: 'assistant', parts, finish_reason: normalizeFinishReason(finishReason) }]);
+  return stringify([{ role: 'assistant', parts, finish_reason: normalizeFinishReason(finishReason) }]);
 }
 
 function toolCallPart(toolCall: Record<string, unknown>): Record<string, unknown> {
@@ -633,7 +622,7 @@ function toolCallPart(toolCall: Record<string, unknown>): Record<string, unknown
     type: 'tool_call',
     id: asString(toolCall.toolCallId),
     name: asString(toolCall.toolName),
-    arguments: typeof args === 'string' ? args : safeStringify(args ?? {}),
+    arguments: typeof args === 'string' ? args : stringify(args ?? {}),
   };
 }
 
@@ -735,22 +724,22 @@ function resolveRecording(integrationOption: unknown, perCallOption: unknown, gl
 function buildInputMessageAttributes(
   event: Record<string, unknown>,
   enableTruncation: boolean,
-): Record<string, string | number> {
-  const attributes: Record<string, string | number> = {};
+): Record<string, string | number | undefined> {
+  const attributes: Record<string, string | number | undefined> = {};
 
   // `ai` >= 7 forbids system messages in `messages`/`prompt` and exposes the system prompt as a
   // separate `instructions` field. The OTel path lifts the system message out of the prompt into
   // `gen_ai.system_instructions` as `[{ type: 'text', content }]`; mirror that shape here.
   const instructions = asString(event.instructions);
   if (instructions) {
-    attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE] = safeStringify([{ type: 'text', content: instructions }]);
+    attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE] = stringify([{ type: 'text', content: instructions }]);
   }
 
   // The AI SDK start events extend `StandardizedPrompt`; messages live on `messages`, otherwise the
   // simpler `prompt` field is used.
   const messages = event.messages ?? event.prompt;
   if (messages !== undefined) {
-    attributes[GEN_AI_INPUT_MESSAGES] = enableTruncation ? getTruncatedJsonString(messages) : safeStringify(messages);
+    attributes[GEN_AI_INPUT_MESSAGES] = enableTruncation ? getTruncatedJsonString(messages) : stringify(messages);
     // The original (pre-truncation) message count, so the product can show how many were dropped.
     attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE] = Array.isArray(messages) ? messages.length : 1;
   }

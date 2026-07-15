@@ -1,5 +1,4 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/esbuild';
-import { instrumentedModuleNames, withoutInstrumentedExternals } from '../config';
 import type { PluginOptions } from './options';
 import { orchestrionTransformOptions } from './options';
 
@@ -21,22 +20,5 @@ import { orchestrionTransformOptions } from './options';
  * ```
  */
 export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
-  const transformer = codeTransformer(orchestrionTransformOptions(options));
-
-  return {
-    name: 'sentry-orchestrion',
-    async setup(build): Promise<void> {
-      // Strip instrumented packages from an `external` denylist so esbuild
-      // bundles them and the transform's `onLoad` actually sees their source;
-      // an externalized dependency is resolved from `node_modules` at runtime
-      // and never gets the diagnostics_channel calls injected. Mutating
-      // `initialOptions` inside `setup` is respected by esbuild — the upstream
-      // plugin sets `initialOptions.metafile` the same way.
-      build.initialOptions.external = withoutInstrumentedExternals(
-        build.initialOptions.external,
-        instrumentedModuleNames(options.instrumentations),
-      );
-      await transformer.setup(build);
-    },
-  };
+  return codeTransformer(orchestrionTransformOptions(options));
 }

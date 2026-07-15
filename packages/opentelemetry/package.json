@@ -48,7 +48,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.15.1",
+    "@sentry/conventions": "^0.16.0",
     "@sentry/core": "10.65.0"
   },
   "peerDependencies": {

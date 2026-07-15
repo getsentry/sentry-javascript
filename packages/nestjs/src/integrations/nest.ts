@@ -1,6 +1,8 @@
 import { NestInstrumentation as NestInstrumentationCore } from './vendored/instrumentation';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node';
+import { isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
+import { subscribeToNestChannels } from './orchestrion-subscriber';
 import { SentryNestBullMQInstrumentation } from './sentry-nest-bullmq-instrumentation';
 import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentation';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
@@ -41,12 +43,18 @@ export const instrumentNest = Object.assign(
 
 /**
  * Integration capturing tracing data for NestJS.
+ * Only the span origin differs between otel and orchestrion implementations.
+ * See the shared `./wrap-*` helpers
  */
 export const nestIntegration = defineIntegration(() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentNest();
+      if (isOrchestrionInjected()) {
+        subscribeToNestChannels();
+      } else {
+        instrumentNest();
+      }
     },
   };
 });

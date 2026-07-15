@@ -142,7 +142,12 @@ export function createRunner(...paths: string[]) {
   const logs: string[] = [];
 
   if (testPath.endsWith('.ts')) {
-    flags.push('-r', 'ts-node/register');
+    // Load .ts scenarios through tsx's CommonJS require hook (not `--import tsx`, the ESM loader).
+    // These scenarios are CJS; `--import` routes them through Node's ESM machinery, which on Node
+    // 22+ gives the scenario a different `@sentry/node` instance than the CJS instrument/auto-flush,
+    // so instrumentation and flushing target the wrong SDK object. The require hook keeps one CJS
+    // instance, matching how ts-node loaded them.
+    flags.push('-r', 'tsx/cjs');
   }
 
   // Cleanup steps registered by this specific runner (child process, docker, mock server). They are
