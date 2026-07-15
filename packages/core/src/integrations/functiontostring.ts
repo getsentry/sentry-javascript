@@ -22,10 +22,17 @@ const _functionToStringIntegration = (() => {
       // e.g. Node with --frozen-intrinsics, XS (an embedded JavaScript engine) or SES (a JavaScript proposal)
       try {
         Function.prototype.toString = function (this: WrappedFunction, ...args: unknown[]): string {
-          const originalFunction = getOriginalFunction(this);
-          const context =
-            SETUP_CLIENTS.has(getClient() as Client) && originalFunction !== undefined ? originalFunction : this;
-          return originalFunctionToString.apply(context, args);
+          try {
+            const originalFunction = getOriginalFunction(this);
+            const context =
+              SETUP_CLIENTS.has(getClient() as Client) && originalFunction !== undefined ? originalFunction : this;
+            return originalFunctionToString.apply(context, args);
+          } catch {
+            // Reading the Sentry carrier off `getClient()` can throw a `SecurityError` when `this` (or the global
+            // object) is a `WindowProxy` whose browsing context was navigated cross-origin. The native
+            // `toString` never throws here, so fall back to it to avoid turning harmless introspection into noise.
+            return originalFunctionToString.apply(this, args);
+          }
         };
       } catch {
         // ignore errors here, just don't patch this

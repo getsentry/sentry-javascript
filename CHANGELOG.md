@@ -3,6 +3,7 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- fix(core): Prevent `functionToStringIntegration` from throwing on cross-origin `WindowProxy` realms
 
 Work in this release was contributed by @dobladov. Thank you for your contribution!
 
