@@ -1,7 +1,10 @@
 import type { ExportedHandler, MessageBatch } from '@cloudflare/workers-types';
+import { TraceFlags } from '@opentelemetry/api';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
+import type { SpanLink } from '@sentry/core';
 import {
   captureException,
+  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -15,7 +18,29 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { extractQueueTraceContext } from '../../utils/queueTraceMeta';
 import { instrumentEnv } from './instrumentEnv';
+
+function extractQueueTraceLinks(batch: MessageBatch): SpanLink[] {
+  return batch.messages.flatMap(message => {
+    const producerContext = extractQueueTraceContext(message.body);
+    if (!producerContext) {
+      return [];
+    }
+
+    return [
+      {
+        context: {
+          traceId: producerContext.traceId,
+          spanId: producerContext.spanId,
+          traceFlags: producerContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
+          isRemote: true,
+        },
+        attributes: { [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace' },
+      },
+    ];
+  });
+}
 
 /**
  * Core queue handler logic - wraps execution with Sentry instrumentation.
@@ -34,10 +59,15 @@ function wrapQueueHandler(
 
     addCloudResourceContext(isolationScope);
 
+    const links = options.enableQueueTracePropagation ? extractQueueTraceLinks(batch) : [];
+
     return startSpan(
       {
         op: 'faas.queue',
         name: `process ${batch.queue}`,
+        // A queue batch can fan in unrelated traces, so continuing one trace would invent false parentage.
+        // Keep queue.process as a root and link every producer instead: https://github.com/getsentry/sentry-javascript/issues/22298
+        links,
         attributes: {
           'faas.trigger': 'pubsub',
           'messaging.destination.name': batch.queue,

@@ -291,6 +291,68 @@ describe('instrumentQueue', () => {
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
+
+    test('links producer traces and removes transport context before invoking the handler', async () => {
+      const originalBatch = createMockQueueBatch();
+      const batch = {
+        ...originalBatch,
+        messages: [
+          {
+            ...originalBatch.messages[0]!,
+            body: {
+              invoiceId: 'inv_123',
+              __sentry_queue_meta__: {
+                'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+                baggage: 'sentry-release=1.0.0',
+              },
+            },
+          },
+          {
+            ...originalBatch.messages[1]!,
+            body: {
+              invoiceId: 'inv_456',
+              __sentry_queue_meta__: {
+                'sentry-trace': 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
+                baggage: 'sentry-environment=production',
+              },
+            },
+          },
+        ],
+      } satisfies MessageBatch<unknown>;
+      let receivedBodies: unknown[] = [];
+      let processSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
+      const handler = {
+        queue(receivedBatch, _env, _context) {
+          receivedBodies = receivedBatch.messages.map(message => message.body);
+          processSpan = SentryCore.spanToJSON(SentryCore.getActiveSpan()!);
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+      const wrappedHandler = withSentry(
+        env => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1, enableQueueTracePropagation: true }),
+        handler,
+      );
+
+      await wrappedHandler.queue?.(batch, MOCK_ENV, createMockExecutionContext());
+
+      expect(receivedBodies).toEqual([{ invoiceId: 'inv_123' }, { invoiceId: 'inv_456' }]);
+      expect(processSpan?.parent_span_id).toBeUndefined();
+      expect(processSpan?.links).toEqual([
+        {
+          trace_id: '1234567890abcdef1234567890abcdef',
+          span_id: '1234567890abcdef',
+          sampled: true,
+          isRemote: true,
+          attributes: { 'sentry.link.type': 'previous_trace' },
+        },
+        {
+          trace_id: 'abcdefabcdefabcdefabcdefabcdefab',
+          span_id: 'fedcbafedcbafedc',
+          sampled: false,
+          isRemote: true,
+          attributes: { 'sentry.link.type': 'previous_trace' },
+        },
+      ]);
+    });
   });
 
   test('flush must be called when all waitUntil are done', async () => {

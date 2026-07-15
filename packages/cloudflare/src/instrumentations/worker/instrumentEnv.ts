@@ -57,7 +57,7 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
 
       if (isQueue(item)) {
         const bindingName = typeof prop === 'string' ? prop : String(prop);
-        const instrumented = instrumentQueueProducer(item, bindingName);
+        const instrumented = instrumentQueueProducer(item, bindingName, options?.enableQueueTracePropagation === true);
         instrumentedBindings.set(item, instrumented);
         return instrumented;
       }

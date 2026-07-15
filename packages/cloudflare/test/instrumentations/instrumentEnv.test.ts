@@ -231,6 +231,30 @@ describe('instrumentEnv', () => {
     expect(send.mock.calls[0]?.[0]).toBe('hello');
   });
 
+  it('enables Queue trace propagation only when configured', async () => {
+    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+      'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      baggage: 'sentry-release=1.0.0',
+    });
+    const send = vi.fn().mockResolvedValue(undefined);
+    const queue = { send, sendBatch: vi.fn().mockResolvedValue(undefined) };
+    const instrumented = instrumentEnv({ BILLING_QUEUE: queue }, { enableQueueTracePropagation: true });
+
+    await instrumented.BILLING_QUEUE.send({ invoiceId: 'inv_123' });
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenLastCalledWith(
+      {
+        invoiceId: 'inv_123',
+        __sentry_queue_meta__: {
+          'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+          baggage: 'sentry-release=1.0.0',
+        },
+      },
+      undefined,
+    );
+  });
+
   it('caches the wrapped Queue binding across repeated access', () => {
     const queue = { send: vi.fn(), sendBatch: vi.fn() };
     const env = { MY_QUEUE: queue };
