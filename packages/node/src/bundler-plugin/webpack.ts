@@ -23,7 +23,7 @@ type WebpackCompiler = Parameters<ReturnType<typeof sentryWebpackBundlerPlugin>[
 export function sentryWebpackPlugin(options?: SentryWebpackPluginOptions): {
   apply: (compiler: WebpackCompiler) => void;
 } {
-  const bundlerPlugin = sentryWebpackBundlerPlugin(options);
+  const bundlerPlugin = sentryWebpackBundlerPlugin(options) as { apply: (compiler: WebpackCompiler) => void };
   const orchestrionPlugin = sentryOrchestrionWebpackPlugin() as { apply: (compiler: WebpackCompiler) => void };
 
   return {

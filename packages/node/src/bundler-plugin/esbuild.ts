@@ -26,14 +26,14 @@ type EsbuildPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  * ```
  */
 export function sentryEsbuildPlugin(options?: SentryEsbuildPluginOptions): EsbuildPlugin {
-  const bundlerPlugin = sentryEsbuildBundlerPlugin(options);
+  const bundlerPlugin = sentryEsbuildBundlerPlugin(options) as EsbuildPlugin;
   const orchestrionPlugin = sentryOrchestrionPlugin(options);
 
   return {
     name: 'sentry-node-esbuild',
-    setup(build): void {
-      bundlerPlugin.setup(build);
-      orchestrionPlugin.setup(build);
+    async setup(build): Promise<void> {
+      await bundlerPlugin.setup(build);
+      await orchestrionPlugin.setup(build);
     },
   };
 }
