@@ -127,7 +127,8 @@ function isNativeServerTracingEnabled(plugins: readonly Plugin[] | undefined): b
 
   for (const plugin of plugins) {
     const options = (plugin?.api as { options?: BackwardsForwardsCompatibleSvelteConfig } | undefined)?.options;
-    if (options?.kit?.experimental?.tracing?.server) {
+    // SvelteKit 3 (>= next.8) promoted `tracing` out of `experimental`; older versions nest it there.
+    if (options?.kit?.tracing?.server || options?.kit?.experimental?.tracing?.server) {
       return true;
     }
   }

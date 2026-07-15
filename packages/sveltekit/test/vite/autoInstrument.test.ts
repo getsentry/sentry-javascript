@@ -224,22 +224,52 @@ describe('makeAutoInstrumentationPlugin()', () => {
     // SvelteKit 3 no longer reads native-tracing config from `svelte.config.js` (so the
     // `onlyInstrumentClient` option computed from it is `false`); the config is exposed on the
     // SvelteKit Vite plugin's `api.options` instead.
-    function configWithKitTracing(ssr: boolean, serverTracing: boolean): unknown {
+    // The tracing config location differs by SvelteKit version:
+    // - SvelteKit 3 (>= 3.0.0-next.8): `kit.tracing.server`
+    // - SvelteKit 2.31+ and early Kit 3 prereleases: `kit.experimental.tracing.server`
+    function configWithKitTracing(
+      ssr: boolean,
+      serverTracing: boolean,
+      location: 'tracing' | 'experimental' = 'tracing',
+    ): unknown {
+      const kit =
+        location === 'tracing'
+          ? { tracing: { server: serverTracing } }
+          : { experimental: { tracing: { server: serverTracing } } };
       return {
         build: { ssr },
         plugins: [
           { name: 'some-other-plugin' },
           {
             name: 'vite-plugin-sveltekit-setup',
-            api: { options: { kit: { experimental: { tracing: { server: serverTracing } } } } },
+            api: { options: { kit } },
           },
         ],
       };
     }
 
-    it.each(['path/to/+page.server.ts', 'path/to/+layout.server.js', 'path/to/+page.ts', 'path/to/+layout.mjs'])(
-      "doesn't wrap %s in the SSR build when native tracing is enabled, even if `onlyInstrumentClient` is `false`",
-      async (path: string) => {
+    describe.each(['tracing', 'experimental'] as const)('with the config under `kit.%s`', location => {
+      it.each(['path/to/+page.server.ts', 'path/to/+layout.server.js', 'path/to/+page.ts', 'path/to/+layout.mjs'])(
+        "doesn't wrap %s in the SSR build when native tracing is enabled, even if `onlyInstrumentClient` is `false`",
+        async (path: string) => {
+          const plugin = makeAutoInstrumentationPlugin({
+            debug: false,
+            load: true,
+            serverLoad: true,
+            onlyInstrumentClient: false,
+          });
+
+          // @ts-expect-error this exists and is callable
+          plugin.configResolved(configWithKitTracing(true, true, location));
+
+          // @ts-expect-error this exists and is callable
+          const loadResult = await plugin.load(path);
+
+          expect(loadResult).toEqual(null);
+        },
+      );
+
+      it('still wraps server load in the SSR build when native tracing is not enabled', async () => {
         const plugin = makeAutoInstrumentationPlugin({
           debug: false,
           load: true,
@@ -248,36 +278,19 @@ describe('makeAutoInstrumentationPlugin()', () => {
         });
 
         // @ts-expect-error this exists and is callable
-        plugin.configResolved(configWithKitTracing(true, true));
+        plugin.configResolved(configWithKitTracing(true, false, location));
 
+        const path = 'path/to/+page.server.ts';
         // @ts-expect-error this exists and is callable
         const loadResult = await plugin.load(path);
 
-        expect(loadResult).toEqual(null);
-      },
-    );
-
-    it('still wraps server load in the SSR build when native tracing is not enabled', async () => {
-      const plugin = makeAutoInstrumentationPlugin({
-        debug: false,
-        load: true,
-        serverLoad: true,
-        onlyInstrumentClient: false,
+        expect(loadResult).toBe(
+          'import { wrapServerLoadWithSentry } from "@sentry/sveltekit";' +
+            `import * as userModule from "${path}?sentry-auto-wrap";` +
+            'export const load = userModule.load ? wrapServerLoadWithSentry(userModule.load) : undefined;' +
+            `export * from "${path}?sentry-auto-wrap";`,
+        );
       });
-
-      // @ts-expect-error this exists and is callable
-      plugin.configResolved(configWithKitTracing(true, false));
-
-      const path = 'path/to/+page.server.ts';
-      // @ts-expect-error this exists and is callable
-      const loadResult = await plugin.load(path);
-
-      expect(loadResult).toBe(
-        'import { wrapServerLoadWithSentry } from "@sentry/sveltekit";' +
-          `import * as userModule from "${path}?sentry-auto-wrap";` +
-          'export const load = userModule.load ? wrapServerLoadWithSentry(userModule.load) : undefined;' +
-          `export * from "${path}?sentry-auto-wrap";`,
-      );
     });
   });
 });
