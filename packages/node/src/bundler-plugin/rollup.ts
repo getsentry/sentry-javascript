@@ -27,5 +27,5 @@ type RollupPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  * ```
  */
 export function sentryRollupPlugin(options?: SentryRollupPluginOptions): RollupPlugin[] {
-  return [sentryRollupBundlerPlugin(options), sentryOrchestrionPlugin(options)];
+  return [...sentryRollupBundlerPlugin(options), sentryOrchestrionPlugin(options)];
 }

@@ -1,8 +1,13 @@
 import { sentryWebpackPlugin as sentryWebpackBundlerPlugin } from '@sentry/bundler-plugins/webpack';
-import type { SentryWebpackPluginOptions } from '@sentry/bundler-plugins/webpack';
+import type { SentryWebpackPluginOptions as SentryWebpackPluginOptionsBase } from '@sentry/bundler-plugins/webpack';
 import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
 
-export type { SentryWebpackPluginOptions };
+export type SentryWebpackPluginOptions = SentryWebpackPluginOptionsBase & {
+  /**
+   * @ignore This is for internal use only when this plugin is consumed by a framework SDK
+   */
+  instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionWebpackPlugin>[0]>['instrumentations'];
+};
 
 type WebpackCompiler = Parameters<ReturnType<typeof sentryWebpackBundlerPlugin>['apply']>[0];
 
@@ -24,7 +29,7 @@ export function sentryWebpackPlugin(options?: SentryWebpackPluginOptions): {
   apply: (compiler: WebpackCompiler) => void;
 } {
   const bundlerPlugin = sentryWebpackBundlerPlugin(options) as { apply: (compiler: WebpackCompiler) => void };
-  const orchestrionPlugin = sentryOrchestrionWebpackPlugin() as { apply: (compiler: WebpackCompiler) => void };
+  const orchestrionPlugin = sentryOrchestrionWebpackPlugin(options) as { apply: (compiler: WebpackCompiler) => void };
 
   return {
     apply(compiler: WebpackCompiler): void {
