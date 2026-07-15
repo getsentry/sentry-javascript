@@ -1,5 +1,21 @@
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { sentryOrchestrionPlugin } from '../../src/orchestrion/bundler/vite';
+
+// Creates an isolated project root whose `node_modules` contains only the given
+// packages, so the register plugin's dependency-resolution allow-list is
+// deterministic (an OS temp dir has no ambient `node_modules` to leak in).
+function makeRootWithDeps(packages: string[]): string {
+  const root = mkdtempSync(join(tmpdir(), 'orchestrion-root-'));
+  for (const pkg of packages) {
+    const pkgDir = join(root, 'node_modules', pkg);
+    mkdirSync(pkgDir, { recursive: true });
+    writeFileSync(join(pkgDir, 'package.json'), JSON.stringify({ name: pkg, version: '1.0.0' }));
+  }
+  return root;
+}
 
 const REGISTER_MODULE_ID = 'virtual:@sentry/orchestrion-register-integrations';
 const RESOLVED_REGISTER_MODULE_ID = `\0${REGISTER_MODULE_ID}`;
@@ -81,14 +97,49 @@ describe('sentryOrchestrionPlugin — registerIntegrations', () => {
       expect(plugin.resolveId('some-other-module')).toBeNull();
     });
 
-    it('loads a side-effect module which registers integrations from the absolute ESM build', () => {
-      const result = plugin.load(RESOLVED_REGISTER_MODULE_ID);
+    it('loads a side-effect module that imports factories from the absolute ESM build', () => {
+      const freshPlugin = getRegisterPlugin(sentryOrchestrionPlugin({ registerIntegrations: true }));
+      freshPlugin.configResolved({ command: 'build', root: makeRootWithDeps(['mysql']) });
+      const result = freshPlugin.load(RESOLVED_REGISTER_MODULE_ID);
       const normalizedCode = result?.code.replaceAll('\\', '/');
 
       expect(normalizedCode).toContain('/server-utils/build/esm/orchestrion/index.js');
       expect(normalizedCode).not.toContain('/build/cjs/');
-      expect(result?.code).toContain('registerChannelIntegrations();');
+      // The whole-map `registerChannelIntegrations()` call would defeat tree-shaking; the module
+      // must import individual factories by name and build the registry inline instead.
+      expect(result?.code).not.toContain('registerChannelIntegrations');
+      expect(result?.code).toContain('marker.integrations = [');
       expect(result?.moduleSideEffects).toBe(true);
+    });
+
+    it('imports only the factories whose package the app depends on', () => {
+      const freshPlugin = getRegisterPlugin(sentryOrchestrionPlugin({ registerIntegrations: true }));
+      freshPlugin.configResolved({ command: 'build', root: makeRootWithDeps(['mysql']) });
+      const { code } = freshPlugin.load(RESOLVED_REGISTER_MODULE_ID);
+
+      expect(code).toContain('import { mysqlChannelIntegration }');
+      expect(code).toContain('{ factory: mysqlChannelIntegration, modules: ["mysql"] }');
+      // No `pg` in the app's deps → the postgres subscriber must not be imported.
+      expect(code).not.toContain('postgresChannelIntegration');
+      expect(code).not.toContain('anthropicChannelIntegration');
+    });
+
+    it('resolves an integration when any of its packages is present (pg-pool → postgres)', () => {
+      const freshPlugin = getRegisterPlugin(sentryOrchestrionPlugin({ registerIntegrations: true }));
+      freshPlugin.configResolved({ command: 'build', root: makeRootWithDeps(['pg-pool']) });
+      const { code } = freshPlugin.load(RESOLVED_REGISTER_MODULE_ID);
+
+      expect(code).toContain('import { postgresChannelIntegration }');
+      expect(code).toContain('modules: ["pg","pg-pool"]');
+    });
+
+    it('registers nothing when the app depends on no instrumented package', () => {
+      const freshPlugin = getRegisterPlugin(sentryOrchestrionPlugin({ registerIntegrations: true }));
+      freshPlugin.configResolved({ command: 'build', root: makeRootWithDeps([]) });
+      const { code } = freshPlugin.load(RESOLVED_REGISTER_MODULE_ID);
+
+      expect(code).toContain('marker.integrations = [];');
+      expect(code).not.toContain('import {');
     });
 
     it('does not load unrelated ids', () => {

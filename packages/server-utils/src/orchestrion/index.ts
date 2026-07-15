@@ -16,6 +16,7 @@ import { postgresChannelIntegration } from '../integrations/tracing-channel/post
 import { postgresJsChannelIntegration } from '../integrations/tracing-channel/postgres-js';
 import { vercelAiChannelIntegration } from '../integrations/tracing-channel/vercel-ai';
 import { expressChannelIntegration } from '../integrations/tracing-channel/express';
+import { CHANNEL_INTEGRATION_DEFINITIONS } from './channel-integration-definitions';
 
 export { detectOrchestrionSetup, getRegisteredChannelIntegrations, isOrchestrionInjected } from './detect';
 // The `@nestjs/*` channel names live here alongside their transform config; the
@@ -27,6 +28,7 @@ export {
   genericPoolChannelIntegration,
   googleGenAIChannelIntegration,
   graphqlChannelIntegration,
+  graphqlDiagnosticsChannelIntegration,
   hapiChannelIntegration,
   ioredisChannelIntegration,
   kafkajsChannelIntegration,
@@ -55,8 +57,8 @@ export type * from '../integrations/tracing-channel/graphql/graphql-types';
  * opt-in helper (`experimentalUseDiagnosticsChannelInjection`), its public
  * `diagnosticsChannelInjectionIntegrations()` map, and the marker-based `registerChannelIntegrations()`
  * below — picks it up automatically. The only companion data to maintain is
- * {@link CHANNEL_INTEGRATION_MODULES}, and its `Record` type errors at compile time when an entry
- * here has no module list there.
+ * {@link CHANNEL_INTEGRATION_DEFINITIONS}, and its `Record` guard errors at compile time when an
+ * entry here has no definition there.
  *
  * NOTE: `ioredisChannelIntegration` and `redisChannelIntegration` are intentionally NOT here. They
  * only partially replace the composite OTel `Redis` integration and need the node SDK's redis cache
@@ -84,32 +86,16 @@ export const channelIntegrations = {
 } as const;
 
 /**
- * The instrumented package name(s) each channel integration subscribes to,
- * keyed the same as {@link channelIntegrations}. Used by
- * `getRegisteredChannelIntegrations()` to activate only the integrations whose
- * module was actually transformed into the bundle, per the marker's
- * `transformedModules` list emitted by the code transformer's
- * `injectDiagnostics` hook.
- *
- * Names must match the `module.name` values in `SENTRY_INSTRUMENTATIONS` (the
- * `config/` files) — e.g. `postgresIntegration` covers both `pg` and `pg-pool`.
+ * Compile-time guard that {@link CHANNEL_INTEGRATION_DEFINITIONS} — the factory-free metadata the
+ * Vite plugin and this registry both read — stays in lockstep with {@link channelIntegrations}: a
+ * missing or mistyped key here fails the build. The `modules` each integration subscribes to (used by
+ * `getRegisteredChannelIntegrations()` to activate only integrations whose module was transformed
+ * into the bundle) live in the definitions so there is a single source of truth.
  */
-const CHANNEL_INTEGRATION_MODULES: Record<keyof typeof channelIntegrations, string[]> = {
-  postgresIntegration: ['pg', 'pg-pool'],
-  postgresJsIntegration: ['postgres'],
-  mysqlIntegration: ['mysql'],
-  genericPoolIntegration: ['generic-pool'],
-  lruMemoizerIntegration: ['lru-memoizer'],
-  openaiIntegration: ['openai'],
-  anthropicIntegration: ['@anthropic-ai/sdk'],
-  googleGenAIIntegration: ['@google/genai'],
-  vercelAiIntegration: ['ai'],
-  amqplibIntegration: ['amqplib'],
-  hapiIntegration: ['@hapi/hapi'],
-  expressIntegration: ['express'],
-  graphqlIntegration: ['graphql'],
-  kafkajsIntegration: ['kafkajs'],
-};
+const _channelIntegrationDefinitionsGuard: Record<
+  keyof typeof channelIntegrations,
+  { exportName: string; modules: readonly string[] }
+> = CHANNEL_INTEGRATION_DEFINITIONS;
 
 /**
  * Puts the factories of all channel integrations — each paired with the package
@@ -128,6 +114,6 @@ export function registerChannelIntegrations(): void {
   const marker = (globalThis.__SENTRY_ORCHESTRION__ = globalThis.__SENTRY_ORCHESTRION__ || {});
   marker.integrations = (Object.keys(channelIntegrations) as Array<keyof typeof channelIntegrations>).map(key => ({
     factory: channelIntegrations[key],
-    modules: CHANNEL_INTEGRATION_MODULES[key],
+    modules: [...CHANNEL_INTEGRATION_DEFINITIONS[key].modules],
   }));
 }

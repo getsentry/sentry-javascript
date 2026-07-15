@@ -19,6 +19,7 @@ import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vit
 import MagicString from 'magic-string';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
+import { CHANNEL_INTEGRATION_DEFINITIONS } from '../channel-integration-definitions';
 import { INSTRUMENTED_MODULE_NAMES, SENTRY_INSTRUMENTATIONS } from '../config';
 
 // `vite` types live in the package's ESM-only subpath; under Node16 module
@@ -186,13 +187,17 @@ const RESOLVED_REGISTER_MODULE_ID = `\0${REGISTER_MODULE_ID}`;
  *     specifier from there. Resolving the ESM build explicitly also avoids
  *     pulling a second, CommonJS copy of `@sentry/core` into the worker bundle.
  *
- * This registers every integration's factory (still can't tree-shake unused
- * subscriber code out of the bundle — that needs a module-graph-phase hook
- * upstream). In a build, which ones actually get instantiated at runtime is
- * narrowed by `getRegisteredChannelIntegrations()` against the
- * `transformedModules` list that {@link makeTransformedModulesBanner} emits via
- * `injectDiagnostics`; in dev there is no such list, so every registered
- * integration is activated.
+ * The generated module imports only the factories whose instrumented package is
+ * resolvable from the app root (see {@link resolveRegisteredDefinitions}) and
+ * references them by their named export, so Rollup tree-shakes the subscriber
+ * code of every other integration out of the bundle entirely — `@sentry/server-utils`
+ * is `sideEffects: false`, so an unimported factory drops with its module. A
+ * package present in the app's dependency tree but never actually imported is the
+ * one over-inclusion this can't rule out at build time (it can't know that
+ * without bundling first); such a factory ships but is still not instantiated at
+ * runtime, because `getRegisteredChannelIntegrations()` further narrows against
+ * the `transformedModules` list {@link makeTransformedModulesBanner} emits. In
+ * dev there is no such list, so every resolvable integration is activated.
  *
  * Entry detection differs by mode, because the dev server never bundles:
  *   - Build: inject into the entry module, found via Rollup's
@@ -228,9 +233,45 @@ function registerIntegrationsPlugin(): UnknownPlugin {
 
   // `serve` (vite dev) vs `build`; drives entry detection in `transform`.
   let command = 'build';
+  // The app's project root, used to resolve which instrumented packages the app
+  // actually depends on so the generated module imports only their factories.
+  let root = process.cwd();
   // Dev only: environments the registration import has already been injected
   // into, so each is injected exactly once (into its first source module).
   const injectedServeEnvironments = new Set<string>();
+
+  // The registration module is loaded once per build (dev re-resolves on each
+  // restart via a fresh plugin instance), so resolve the app's instrumented deps
+  // lazily on first `load()` and cache the result.
+  let registeredDefinitions: Array<{ exportName: string; modules: readonly string[] }> | undefined;
+  function resolveRegisteredDefinitions(): Array<{ exportName: string; modules: readonly string[] }> {
+    if (registeredDefinitions) return registeredDefinitions;
+    // Resolve instrumented packages from the app root, not the plugin's location.
+    // `bundlerMarkerPlugin` force-bundles them via `ssr.noExternal`, but only the
+    // ones the app can actually resolve (i.e. depends on) will ever be imported
+    // and transformed, so importing the rest would just ship dead subscribers.
+    const appRequire = createRequire(resolve(root, 'index.js'));
+    const isResolvable = (mod: string): boolean => {
+      // `${mod}/package.json` is the reliable probe (a package may have no
+      // resolvable main export yet still be installed); fall back to the bare
+      // specifier for the rare package that doesn't expose its `package.json`.
+      try {
+        appRequire.resolve(`${mod}/package.json`);
+        return true;
+      } catch {
+        try {
+          appRequire.resolve(mod);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    };
+    registeredDefinitions = Object.values(CHANNEL_INTEGRATION_DEFINITIONS).filter(def =>
+      def.modules.some(isResolvable),
+    );
+    return registeredDefinitions;
+  }
 
   function injectRegisterImport(code: string): { code: string; map: unknown } | null {
     if (code.includes(REGISTER_MODULE_ID)) return null;
@@ -247,21 +288,32 @@ function registerIntegrationsPlugin(): UnknownPlugin {
 
   return {
     name: 'sentry-orchestrion-register-integrations',
-    configResolved(config: { command: string }): void {
+    configResolved(config: { command: string; root?: string }): void {
       command = config.command;
+      if (config.root) root = config.root;
     },
     resolveId(id: string): string | null {
       return id === REGISTER_MODULE_ID ? RESOLVED_REGISTER_MODULE_ID : null;
     },
     load(id: string): { code: string; moduleSideEffects: boolean } | null {
       if (id !== RESOLVED_REGISTER_MODULE_ID) return null;
-      // Keep this generated rather than moving the side effect into a published
-      // entry point: a future allow-list can emit only the requested factory
-      // imports here and let Rollup tree-shake the rest of the ESM module.
+      // Import only the factories whose package the app depends on, by named
+      // export, and build the marker registry inline. Referencing `registerChannelIntegrations()`
+      // instead would pull in the whole `channelIntegrations` map and defeat tree-shaking; naming
+      // the exports individually lets Rollup drop every unused subscriber (the barrel is
+      // `sideEffects: false`).
+      const definitions = resolveRegisteredDefinitions();
+      const imports = definitions.map(
+        def => `import { ${def.exportName} } from ${JSON.stringify(resolvedRegisterModule)};`,
+      );
+      const entries = definitions.map(
+        def => `{ factory: ${def.exportName}, modules: ${JSON.stringify([...def.modules])} }`,
+      );
       return {
         code: [
-          `import { registerChannelIntegrations } from ${JSON.stringify(resolvedRegisterModule)};`,
-          'registerChannelIntegrations();',
+          ...imports,
+          'const marker = (globalThis.__SENTRY_ORCHESTRION__ = globalThis.__SENTRY_ORCHESTRION__ || {});',
+          `marker.integrations = [${entries.join(', ')}];`,
           '',
         ].join('\n'),
         moduleSideEffects: true,
