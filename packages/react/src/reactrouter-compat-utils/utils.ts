@@ -205,14 +205,19 @@ function reconstructNameFromDescendantParent(
 
   const parentTemplate = trimSlash(trimWildcard(parentMatch.route.path || ''));
 
-  // Only a static leading segment (e.g. `child/*`) has a fixed position in the absolute URL; dynamic
-  // leads (`:projectId/*`) are relative and stay with the existing wildcard-rebuild path.
-  if (!parentTemplate || parentTemplate.startsWith(':')) {
+  if (!parentTemplate) {
     return undefined;
   }
 
   const expectedPrefix = prefixWithSlash(parentTemplate);
-  if (currentName === expectedPrefix || currentName?.startsWith(`${expectedPrefix}/`)) {
+
+  // Child `<Routes>` resolve against the matched parent, but flattened route matching can already retain
+  // a dynamic leading parameter. Adding the parent again would duplicate it (e.g. `/:id/:id`)
+  const firstElement = parentTemplate.split('/')[0];
+  const hasDynamicLead = firstElement?.startsWith(':') && currentName?.split('/').includes(firstElement);
+
+  // Rebuild only when matching the descendant subtree discarded its parent route template
+  if (currentName === expectedPrefix || currentName?.startsWith(`${expectedPrefix}/`) || hasDynamicLead) {
     return undefined;
   }
 
