@@ -2,6 +2,7 @@ import { context, trace, TraceFlags, type Context } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Scope } from '@sentry/core';
 import {
+  addChildSpanToSpan,
   getAsyncContextStrategy,
   getCurrentScope,
   getIsolationScope,
@@ -118,6 +119,7 @@ describe('asyncContextStrategy', () => {
       dropReason: 'ignored',
       traceId: parentSpan.spanContext().traceId,
     });
+    addChildSpanToSpan(parentSpan, ignoredSpan);
 
     context.with(trace.setSpan(context.active(), parentSpan), () => {
       const binding = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.();
@@ -130,18 +132,28 @@ describe('asyncContextStrategy', () => {
     parentSpan.end();
   });
 
-  test('tracing channel binding activates a native ignored root span', () => {
+  test('tracing channel binding activates a native ignored root span with a remote parent', () => {
     setNodeOpenTelemetryContextAsyncContextStrategy();
 
+    const traceId = '12345678901234567890123456789012';
+    const remoteParent = trace.wrapSpanContext({
+      traceId,
+      spanId: '1234567890123456',
+      traceFlags: TraceFlags.SAMPLED,
+      isRemote: true,
+    });
     const ignoredSpan = new SentryNonRecordingSpan({
       dropReason: 'ignored',
-      traceId: '12345678901234567890123456789012',
+      traceId,
     });
-    const binding = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.();
-    const store = binding?.getStoreWithActiveSpan(ignoredSpan);
 
-    expect(store).toBeDefined();
-    expect(trace.getSpan(store as Context)).toBe(ignoredSpan);
+    context.with(trace.setSpan(context.active(), remoteParent), () => {
+      const binding = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.();
+      const store = binding?.getStoreWithActiveSpan(ignoredSpan);
+
+      expect(store).toBeDefined();
+      expect(trace.getSpan(store as Context)).toBe(ignoredSpan);
+    });
   });
 
   test('async scope inheritance', async () => {

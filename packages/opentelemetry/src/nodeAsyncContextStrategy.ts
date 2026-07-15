@@ -1,7 +1,7 @@
 import * as api from '@opentelemetry/api';
 import { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { spanIsIgnored, type TracingChannelBinding } from '@sentry/core';
+import { getRootSpan, spanIsIgnored, type TracingChannelBinding } from '@sentry/core';
 import { SENTRY_TRACE_STATE_CHILD_IGNORED } from './constants';
 
 interface ContextApi {
@@ -62,12 +62,11 @@ function getCustomAsyncLocalStorageFactory(): () => TracingChannelBinding | unde
 
 function getStoreWithActiveSpan(span: Parameters<TracingChannelBinding['getStoreWithActiveSpan']>[0]): api.Context {
   const activeContext = api.context.active();
-  const activeSpan = api.trace.getSpan(activeContext);
 
   // Tracing channels bind directly to the context manager's AsyncLocalStorage and bypass
   // SentryContextManager.with(), so ignored children must restore their parent here as well.
   const isIgnoredChild =
-    (!!activeSpan && spanIsIgnored(span)) ||
+    (spanIsIgnored(span) && getRootSpan(span) !== span) ||
     span.spanContext().traceState?.get(SENTRY_TRACE_STATE_CHILD_IGNORED) === '1';
 
   return isIgnoredChild ? activeContext : api.trace.setSpan(activeContext, span);
