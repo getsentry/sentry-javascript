@@ -33,7 +33,7 @@ describe('ignoring a continued server segment (streaming)', () => {
           },
         });
 
-        expect(response.status).toBe('ok');
+        expect(response?.status).toBe('ok');
       } finally {
         closeTestServer();
       }

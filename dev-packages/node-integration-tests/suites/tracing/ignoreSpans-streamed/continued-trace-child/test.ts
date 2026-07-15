@@ -1,7 +1,7 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { parseBaggageHeader, SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 
 describe('ignoring a child of a continued server segment (streaming)', () => {
   afterAll(() => {
@@ -16,9 +16,9 @@ describe('ignoring a child of a continued server segment (streaming)', () => {
             expect.stringMatching(/^12345678901234567890123456789012-[\da-f]{16}-1$/),
           );
 
-          const baggage = parseBaggageHeader(headers['baggage'] as string);
-          expect(baggage?.['sentry-trace_id']).toBe('12345678901234567890123456789012');
-          expect(baggage?.['sentry-sampled']).toBe('true');
+          expect(headers['baggage']).toBe(
+            'sentry-trace_id=12345678901234567890123456789012,sentry-sample_rate=1,sentry-sampled=true,sentry-public_key=public,sentry-sample_rand=0.5',
+          );
         })
         .start();
       const runner = createRunner()
@@ -31,9 +31,7 @@ describe('ignoring a child of a continued server segment (streaming)', () => {
         })
         .expect({
           span: container => {
-            const httpServerSpan = container.items.find(
-              item => item.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'http.server',
-            );
+            const httpServerSpan = container.items.find(item => item.attributes[SENTRY_OP]?.value === 'http.server');
 
             expect(httpServerSpan?.is_segment).toBe(true);
             expect(httpServerSpan?.trace_id).toBe('12345678901234567890123456789012');
@@ -51,7 +49,7 @@ describe('ignoring a child of a continued server segment (streaming)', () => {
           },
         });
 
-        expect(response.status).toBe('ok');
+        expect(response?.status).toBe('ok');
         await runner.completed();
       } finally {
         closeTestServer();
@@ -60,6 +58,7 @@ describe('ignoring a child of a continued server segment (streaming)', () => {
 
     test('preserves the positive sampling decision on outgoing fetch requests', () =>
       testPropagation('/ignored-child'));
+
     test('preserves the positive sampling decision on outgoing node:http requests', () =>
       testPropagation('/ignored-child-http'));
   });

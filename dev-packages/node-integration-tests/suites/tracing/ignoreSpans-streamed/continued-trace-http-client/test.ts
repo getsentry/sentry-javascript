@@ -1,7 +1,7 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { parseBaggageHeader, SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 
 describe('ignoring an HTTP client child of a continued server segment (streaming)', () => {
   afterAll(() => {
@@ -16,11 +16,12 @@ describe('ignoring an HTTP client child of a continued server segment (streaming
             .soft(headers['sentry-trace'])
             .toEqual(expect.stringMatching(/^12345678901234567890123456789012-[\da-f]{16}-1$/));
 
-          const baggage = parseBaggageHeader(headers['baggage'] as string);
-          expect.soft(baggage?.['sentry-trace_id']).toBe('12345678901234567890123456789012');
-          expect.soft(baggage?.['sentry-sampled']).toBe('true');
+          expect(headers['baggage']).toBe(
+            'sentry-trace_id=12345678901234567890123456789012,sentry-sample_rate=1,sentry-sampled=true,sentry-public_key=public,sentry-sample_rand=0.5',
+          );
         })
         .start();
+
       const runner = createRunner()
         .withEnv({ SERVER_URL })
         .unignore('client_report')
@@ -31,15 +32,12 @@ describe('ignoring an HTTP client child of a continued server segment (streaming
         })
         .expect({
           span: container => {
-            const httpServerSpan = container.items.find(
-              item => item.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'http.server',
-            );
+            const httpServerSpan = container.items.find(item => item.attributes[SENTRY_OP]?.value === 'http.server');
 
             expect(httpServerSpan?.is_segment).toBe(true);
             expect(httpServerSpan?.trace_id).toBe('12345678901234567890123456789012');
-            expect(
-              container.items.some(item => item.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'http.client'),
-            ).toBe(false);
+
+            expect(container.items.some(item => item.attributes[SENTRY_OP]?.value === 'http.client')).toBe(false);
           },
         })
         .start();
@@ -53,7 +51,7 @@ describe('ignoring an HTTP client child of a continued server segment (streaming
           },
         });
 
-        expect(response.status).toBe('ok');
+        expect(response?.status).toBe('ok');
         await runner.completed();
       } finally {
         closeTestServer();
@@ -62,6 +60,7 @@ describe('ignoring an HTTP client child of a continued server segment (streaming
 
     test('preserves the positive sampling decision on the outgoing fetch request', () =>
       testPropagation('/ignored-http-client'));
+
     test('preserves the positive sampling decision on the outgoing node:http request', () =>
       testPropagation('/ignored-node-http-client'));
   });
