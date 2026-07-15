@@ -115,7 +115,7 @@
   "dependencies": {
     "@apm-js-collab/code-transformer-bundler-plugins": "^0.6.0",
     "@apm-js-collab/code-transformer": "^0.18.0",
-    "@apm-js-collab/tracing-hooks": "^0.12.0",
+    "@apm-js-collab/tracing-hooks": "^0.13.0",
     "@sentry/conventions": "^0.16.0",
     "@sentry/core": "10.65.0"
   },
