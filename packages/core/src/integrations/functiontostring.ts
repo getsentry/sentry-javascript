@@ -4,8 +4,6 @@ import { defineIntegration } from '../integration';
 import type { IntegrationFn } from '../types/integration';
 import { getOriginalFunction } from '../utils/object';
 
-let originalFunctionToString: () => string;
-
 const INTEGRATION_NAME = 'FunctionToString' as const;
 
 const SETUP_CLIENTS = new WeakMap<Client, boolean>();
@@ -15,7 +13,7 @@ const _functionToStringIntegration = (() => {
     name: INTEGRATION_NAME,
     setupOnce() {
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      originalFunctionToString = Function.prototype.toString;
+      const originalFunctionToString = Function.prototype.toString;
 
       // intrinsics (like Function.prototype) might be immutable in some environments
       // e.g. Node with --frozen-intrinsics, XS (an embedded JavaScript engine) or SES (a JavaScript proposal)
