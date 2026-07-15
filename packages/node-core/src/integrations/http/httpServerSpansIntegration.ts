@@ -2,8 +2,8 @@
 import { errorMonitor } from 'node:events';
 import type { IncomingHttpHeaders } from 'node:http';
 import { context } from '@opentelemetry/api';
-import type { RPCMetadata } from '@opentelemetry/core';
-import { RPCType, setRPCMetadata } from '@opentelemetry/core';
+import type { RPCMetadata } from './vendored/rpcMetadata';
+import { RPCType, setRPCMetadata } from './vendored/rpcMetadata';
 import {
   HTTP_CLIENT_IP,
   HTTP_FLAVOR,
