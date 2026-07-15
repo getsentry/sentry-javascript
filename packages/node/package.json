@@ -53,28 +53,44 @@
         "default": "./build/cjs/preload.js"
       }
     },
-    "./bundler-plugins/vite": {
+    "./bundler-plugin/vite": {
       "import": {
-        "types": "./build/types/bundler-plugins/vite.d.ts",
-        "default": "./build/esm/bundler-plugins/vite.js"
+        "types": "./build/types/bundler-plugin/vite.d.ts",
+        "default": "./build/esm/bundler-plugin/vite.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/vite.d.ts",
+        "default": "./build/cjs/bundler-plugin/vite.js"
       }
     },
-    "./bundler-plugins/rollup": {
+    "./bundler-plugin/rollup": {
       "import": {
-        "types": "./build/types/bundler-plugins/rollup.d.ts",
-        "default": "./build/esm/bundler-plugins/rollup.js"
+        "types": "./build/types/bundler-plugin/rollup.d.ts",
+        "default": "./build/esm/bundler-plugin/rollup.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/rollup.d.ts",
+        "default": "./build/cjs/bundler-plugin/rollup.js"
       }
     },
-    "./bundler-plugins/webpack": {
+    "./bundler-plugin/webpack": {
       "import": {
-        "types": "./build/types/bundler-plugins/webpack.d.ts",
-        "default": "./build/esm/bundler-plugins/webpack.js"
+        "types": "./build/types/bundler-plugin/webpack.d.ts",
+        "default": "./build/esm/bundler-plugin/webpack.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/webpack.d.ts",
+        "default": "./build/cjs/bundler-plugin/webpack.js"
       }
     },
-    "./bundler-plugins/esbuild": {
+    "./bundler-plugin/esbuild": {
       "import": {
-        "types": "./build/types/bundler-plugins/esbuild.d.ts",
-        "default": "./build/esm/bundler-plugins/esbuild.js"
+        "types": "./build/types/bundler-plugin/esbuild.d.ts",
+        "default": "./build/esm/bundler-plugin/esbuild.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/esbuild.d.ts",
+        "default": "./build/cjs/bundler-plugin/esbuild.js"
       }
     }
   },
@@ -83,17 +99,17 @@
       "build/types/index.d.ts": [
         "build/types-ts3.8/index.d.ts"
       ],
-      "bundler-plugins/vite": [
-        "build/types-ts3.8/bundler-plugins/vite.d.ts"
+      "bundler-plugin/vite": [
+        "build/types-ts3.8/bundler-plugin/vite.d.ts"
       ],
-      "bundler-plugins/rollup": [
-        "build/types-ts3.8/bundler-plugins/rollup.d.ts"
+      "bundler-plugin/rollup": [
+        "build/types-ts3.8/bundler-plugin/rollup.d.ts"
       ],
-      "bundler-plugins/webpack": [
-        "build/types-ts3.8/bundler-plugins/webpack.d.ts"
+      "bundler-plugin/webpack": [
+        "build/types-ts3.8/bundler-plugin/webpack.d.ts"
       ],
-      "bundler-plugins/esbuild": [
-        "build/types-ts3.8/bundler-plugins/esbuild.d.ts"
+      "bundler-plugin/esbuild": [
+        "build/types-ts3.8/bundler-plugin/esbuild.d.ts"
       ]
     }
   },

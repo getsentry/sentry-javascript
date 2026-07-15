@@ -14,12 +14,11 @@ export default [
         'src/init.ts',
         'src/preload.ts',
         // Combined Sentry bundler plugins + orchestrion code transform, exposed
-        // ESM-only via the `@sentry/node/bundler-plugins/*` subpath exports
-        // (they import the ESM-only `@sentry/server-utils/orchestrion/*` plugins).
-        'src/bundler-plugins/vite.ts',
-        'src/bundler-plugins/rollup.ts',
-        'src/bundler-plugins/webpack.ts',
-        'src/bundler-plugins/esbuild.ts',
+        // via the `@sentry/node/bundler-plugin/*` subpath exports.
+        'src/bundler-plugin/vite.ts',
+        'src/bundler-plugin/rollup.ts',
+        'src/bundler-plugin/webpack.ts',
+        'src/bundler-plugin/esbuild.ts',
       ],
       packageSpecificConfig: {
         external: [/^@sentry\/opentelemetry/],

@@ -25,7 +25,7 @@ type EsbuildPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  * @example
  * ```ts
  * // build.mjs
- * import { sentryEsbuildPlugin } from '@sentry/node/bundler-plugins/esbuild';
+ * import { sentryEsbuildPlugin } from '@sentry/node/bundler-plugin/esbuild';
  * await esbuild.build({ plugins: [sentryEsbuildPlugin({ org: '…', project: '…' })] });
  * ```
  */

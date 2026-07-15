@@ -44,6 +44,12 @@ export default [
           exports: 'named',
           // set preserveModules to true because we don't want to bundle everything into one file.
           preserveModules: true,
+          // The `@apm-js-collab/code-transformer-bundler-plugins` CJS builds assign the
+          // plugin factory directly to `module.exports` (no `__esModule` marker), so the
+          // repo-wide `interop: 'esModule'` would make our CJS build read the factory
+          // from `require(...).default` and crash. `'auto'` emits a runtime `__esModule`
+          // check that unwraps both their CJS and ESM builds correctly.
+          interop: id => (id?.startsWith('@apm-js-collab/code-transformer-bundler-plugins') ? 'auto' : 'esModule'),
         },
       },
     }),

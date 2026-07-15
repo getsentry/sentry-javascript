@@ -26,7 +26,7 @@ type VitePlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  * @example
  * ```ts
  * // vite.config.ts
- * import { sentryVitePlugin } from '@sentry/node/bundler-plugins/vite';
+ * import { sentryVitePlugin } from '@sentry/node/bundler-plugin/vite';
  * export default { plugins: [sentryVitePlugin({ org: '…', project: '…' })] };
  * ```
  */

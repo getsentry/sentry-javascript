@@ -26,7 +26,7 @@ type RollupPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  * @example
  * ```ts
  * // rollup.config.js
- * import { sentryRollupPlugin } from '@sentry/node/bundler-plugins/rollup';
+ * import { sentryRollupPlugin } from '@sentry/node/bundler-plugin/rollup';
  * export default { plugins: [sentryRollupPlugin({ org: '…', project: '…' })] };
  * ```
  */
