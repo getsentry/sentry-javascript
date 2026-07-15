@@ -5,12 +5,24 @@ import { context } from '@opentelemetry/api';
 import type { RPCMetadata } from '@opentelemetry/core';
 import { RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
+  HTTP_CLIENT_IP,
+  HTTP_FLAVOR,
+  HTTP_HOST,
+  HTTP_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
   HTTP_ROUTE,
+  HTTP_SCHEME,
   HTTP_STATUS_CODE,
+  HTTP_TARGET,
+  HTTP_URL,
+  HTTP_USER_AGENT,
   NET_HOST_IP,
+  NET_HOST_NAME,
   NET_HOST_PORT,
   NET_PEER_IP,
+  NET_PEER_PORT,
+  NET_TRANSPORT,
+  SENTRY_HTTP_PREFETCH,
 } from '@sentry/conventions/attributes';
 import type {
   Event,
@@ -152,7 +164,6 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
           const bestEffortTransactionName = `${method} ${httpTargetWithoutQueryFragment}`;
 
-          // We use the plain tracer.startSpan here so we can pass the span kind
           const span = startInactiveSpan({
             name: bestEffortTransactionName,
             kind: SPAN_KIND.SERVER,
@@ -160,18 +171,20 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               // Sentry specific attributes
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
-              'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
+              [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
               // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
-              'http.url': fullUrl,
-              'http.method': normalizedRequest.method,
-              'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
-              'http.host': host,
-              'net.host.name': hostname,
-              'http.client_ip': typeof ips === 'string' ? ips.split(',')[0] : undefined,
-              'http.user_agent': userAgent,
-              'http.scheme': scheme,
-              'http.flavor': httpVersion,
-              'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
+              /* eslint-disable typescript/no-deprecated */
+              [HTTP_URL]: fullUrl,
+              [HTTP_METHOD]: normalizedRequest.method,
+              [HTTP_TARGET]: urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+              [HTTP_HOST]: host,
+              [NET_HOST_NAME]: hostname,
+              [HTTP_CLIENT_IP]: typeof ips === 'string' ? ips.split(',')[0] : undefined,
+              [HTTP_USER_AGENT]: userAgent,
+              [HTTP_SCHEME]: scheme,
+              [HTTP_FLAVOR]: httpVersion,
+              [NET_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
+              /* eslint-enable typescript/no-deprecated */
               ...getRequestContentLengthAttribute(request),
               ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
             },
@@ -406,7 +419,8 @@ function getIncomingRequestAttributesOnResponse(
     newAttributes[NET_HOST_PORT] = localPort;
     // eslint-disable-next-line typescript/no-deprecated
     newAttributes[NET_PEER_IP] = remoteAddress;
-    newAttributes['net.peer.port'] = remotePort;
+    // oxlint-disable-next-line typescript/no-deprecated
+    newAttributes[NET_PEER_PORT] = remotePort;
   }
   // eslint-disable-next-line typescript/no-deprecated
   newAttributes[HTTP_STATUS_CODE] = statusCode;
