@@ -17,7 +17,7 @@ sentryTest(
     const { baggage, sentryTrace } = await tracingHeadersPromise;
     expect(sentryTrace).toMatch(/12345678901234567890123456789012-[\da-f]{16}-0/);
     expect(baggage).toEqual(
-      'sentry-environment=production,sentry-public_key=public,sentry-trace_id=12345678901234567890123456789012,sentry-sampled=false,sentry-sample_rand=0.5',
+      'sentry-trace_id=12345678901234567890123456789012,sentry-sample_rate=1,sentry-sampled=false,sentry-public_key=public,sentry-sample_rand=0.5',
     );
   },
 );
