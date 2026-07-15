@@ -57,7 +57,7 @@ yarn test
 
 ## Commit
 
-Use the `feat(deps):` prefix the repo uses for dependency bumps:
+Use the `chore(deps):` prefix the repo uses for dependency bumps:
 
 ```
 feat(deps): Bump `@sentry/conventions` to <NEW>
