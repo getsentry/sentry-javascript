@@ -90,7 +90,7 @@ function subscribeQueryChannel(channelName: ChannelName): void {
           [DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
           ...getConnectionAttributes(data.self?.config),
           // oxlint-disable-next-line typescript/no-deprecated
-          ...(statement ? { [DB_STATEMENT]: statement } : {}),
+          [DB_STATEMENT]: statement || undefined,
         },
       });
     },
@@ -125,12 +125,12 @@ function getConnectionAttributes(config: Mysql2ConnectionConfig | undefined): Sp
 
   return {
     // oxlint-disable-next-line typescript/no-deprecated
-    ...(database ? { [DB_NAME]: database } : {}),
-    ...(user ? { [DB_USER]: user } : {}),
+    [DB_NAME]: database || undefined,
+    [DB_USER]: user || undefined,
     // oxlint-disable-next-line typescript/no-deprecated
-    ...(host ? { [NET_PEER_NAME]: host } : {}),
+    [NET_PEER_NAME]: host || undefined,
     // oxlint-disable-next-line typescript/no-deprecated
-    ...(portIsNumber ? { [NET_PEER_PORT]: portNumber } : {}),
+    [NET_PEER_PORT]: portIsNumber ? portNumber : undefined,
   };
 }
 
