@@ -13,7 +13,7 @@ export type PluginOptions = {
  * The `@apm-js-collab/code-transformer-bundler-plugins` options shared by every
  * orchestrion bundler plugin.
  *
- * `injectDiagnostics` sets `globalThis.__SENTRY_ORCHESTRION__.bundler = true` at
+ * `injectDiagnostics` sets `globalThis.__SENTRY_ORCHESTRION__.bundler = ["mysql"]` at
  * app boot so the `_experimentalSetupOrchestrion()` detector can confirm the
  * bundler path ran (rather than relying on a build-time flag that wouldn't be
  * visible to the runtime).
@@ -21,8 +21,8 @@ export type PluginOptions = {
 export function orchestrionTransformOptions(options: PluginOptions): Parameters<typeof codeTransformer>[0] {
   return {
     instrumentations: [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])],
-    injectDiagnostics: () => {
-      return '(globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{}).bundler=true;';
+    injectDiagnostics: (diag: { transformedModules: string[]; failedModules: string[] }) => {
+      return `(globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{}).bundler=${JSON.stringify(diag.transformedModules)};`;
     },
   };
 }
