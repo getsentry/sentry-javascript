@@ -6,6 +6,10 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-nestjs-core
  * - Upstream version: @opentelemetry/instrumentation-nestjs-core@0.64.0
  * - Some types vendored from @nestjs/core and @nestjs/common with simplifications
+ * - The span-emitting logic (app-creation / request-context / request-handler
+ *   spans) has been extracted to `../wrap-route` and is shared with the
+ *   orchestrion (diagnostics-channel) path; this file only wraps the
+ *   `NestFactory.create` / `RouterExecutionContext.create` methods to feed into it.
  */
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
@@ -14,14 +18,11 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
 } from '@opentelemetry/instrumentation';
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
-import type { SpanAttributes } from '@sentry/core';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
-import { AttributeNames, NestType } from './enums';
+import { SDK_VERSION, startSpan } from '@sentry/core';
+import type { AnyFn } from '../helpers';
+import { getAppCreationSpanOptions, wrapRequestContextHandler, wrapRouteHandler } from '../wrap-route';
 
 const PACKAGE_NAME = '@sentry/instrumentation-nestjs-core';
-
-type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
 
 type Controller = object;
 
@@ -33,28 +34,10 @@ interface RouterExecutionContext {
   create(instance: Controller, callback: (...args: unknown[]) => unknown, ...args: unknown[]): unknown;
 }
 
-interface NestRequest {
-  route?: { path?: string };
-  routeOptions?: { url?: string };
-  routerPath?: string;
-  method?: string;
-  originalUrl?: string;
-  url?: string;
-}
-
-declare namespace Reflect {
-  function getMetadataKeys(target: unknown): unknown[];
-  function getMetadata(metadataKey: unknown, target: unknown): unknown;
-  function defineMetadata(metadataKey: unknown, metadataValue: unknown, target: unknown): void;
-}
-
 const supportedVersions = ['>=4.0.0 <12'];
 
 export class NestInstrumentation extends InstrumentationBase {
   static readonly COMPONENT = '@nestjs/core';
-  static readonly COMMON_ATTRIBUTES = {
-    component: NestInstrumentation.COMPONENT,
-  };
 
   constructor(config: InstrumentationConfig = {}) {
     super(PACKAGE_NAME, SDK_VERSION, config);
@@ -123,20 +106,7 @@ function createWrapNestFactoryCreate(moduleVersion?: string) {
   return function wrapCreate(original: typeof NestFactory.create): typeof NestFactory.create {
     return function createWithTrace(this: typeof NestFactory, ...args: unknown[]) {
       const nestModule = args[0] as { name?: string };
-      return startSpan(
-        {
-          name: 'Create Nest App',
-          op: `${NestType.APP_CREATION}.nestjs`,
-          attributes: {
-            ...NestInstrumentation.COMMON_ATTRIBUTES,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
-            [AttributeNames.TYPE]: NestType.APP_CREATION,
-            [AttributeNames.VERSION]: moduleVersion,
-            [AttributeNames.MODULE]: nestModule.name,
-          },
-        },
-        () => original.apply(this, args),
-      );
+      return startSpan(getAppCreationSpanOptions(moduleVersion, nestModule?.name), () => original.apply(this, args));
     };
   };
 }
@@ -146,56 +116,11 @@ function createWrapCreateHandler(moduleVersion: string | undefined) {
     return function createHandlerWithTrace(this: RouterExecutionContext, ...args: unknown[]) {
       const instance = args[0] as { constructor?: { name?: string } };
       const callback = args[1] as AnyFn;
-      args[1] = createWrapHandler(moduleVersion, callback);
+      const instanceName = instance?.constructor?.name || 'UnnamedInstance';
+      const callbackName = typeof callback === 'function' ? callback.name : '';
+      args[1] = wrapRouteHandler(callback, moduleVersion);
       const handler = original.apply(this, args) as AnyFn;
-      const callbackName = callback.name;
-      const instanceName = instance.constructor?.name || 'UnnamedInstance';
-      const spanName = callbackName ? `${instanceName}.${callbackName}` : instanceName;
-
-      return function (this: unknown, ...handlerArgs: unknown[]) {
-        const req = handlerArgs[0] as NestRequest;
-        const attributes: SpanAttributes = {
-          ...NestInstrumentation.COMMON_ATTRIBUTES,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
-          [AttributeNames.VERSION]: moduleVersion,
-          [AttributeNames.TYPE]: NestType.REQUEST_CONTEXT,
-          [HTTP_ROUTE]: req.route?.path || req.routeOptions?.url || req.routerPath,
-          [AttributeNames.CONTROLLER]: instanceName,
-          [AttributeNames.CALLBACK]: callbackName,
-        };
-        attributes['http.method'] = req.method;
-        attributes['http.url'] = req.originalUrl || req.url;
-        return startSpan({ name: spanName, op: `${NestType.REQUEST_CONTEXT}.nestjs`, attributes }, () =>
-          handler.apply(this, handlerArgs),
-        );
-      };
+      return wrapRequestContextHandler(handler, instanceName, callbackName, moduleVersion);
     };
   };
-}
-
-function createWrapHandler(moduleVersion: string | undefined, handler: AnyFn): AnyFn {
-  const spanName = handler.name || 'anonymous nest handler';
-  const attributes: SpanAttributes = {
-    ...NestInstrumentation.COMMON_ATTRIBUTES,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
-    [AttributeNames.VERSION]: moduleVersion,
-    [AttributeNames.TYPE]: NestType.REQUEST_HANDLER,
-    [AttributeNames.CALLBACK]: handler.name,
-  };
-  const wrappedHandler = function (this: unknown, ...args: unknown[]) {
-    return startSpan({ name: spanName, op: `${NestType.REQUEST_HANDLER}.nestjs`, attributes }, () =>
-      handler.apply(this, args),
-    );
-  };
-
-  if (handler.name) {
-    Object.defineProperty(wrappedHandler, 'name', { value: handler.name });
-  }
-
-  // Get the current metadata and set onto the wrapper to ensure other decorators ( ie: NestJS EventPattern / RolesGuard )
-  // won't be affected by the use of this instrumentation
-  Reflect.getMetadataKeys(handler).forEach(metadataKey => {
-    Reflect.defineMetadata(metadataKey, Reflect.getMetadata(metadataKey, handler), wrappedHandler);
-  });
-  return wrappedHandler;
 }

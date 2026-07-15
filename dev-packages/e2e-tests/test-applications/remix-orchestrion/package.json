@@ -1,0 +1,45 @@
+{
+  "name": "remix-orchestrion",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
+  "scripts": {
+    "build": "remix vite:build",
+    "dev": "remix vite:dev",
+    "start": "NODE_OPTIONS='--require=./instrument.server.cjs' remix-serve ./build/server/index.js",
+    "proxy": "node start-event-proxy.mjs",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "@remix-run/node": "2.17.4",
+    "@remix-run/react": "2.17.4",
+    "@remix-run/serve": "2.17.4",
+    "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
+    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
+    "ioredis": "5.10.1",
+    "isbot": "^3.6.8",
+    "mysql": "^2.18.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.58.0",
+    "@remix-run/dev": "2.17.4",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.34",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vite-tsconfig-paths": "^4.2.1"
+  },
+  "resolutions": {
+    "@types/react": "18.2.22"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

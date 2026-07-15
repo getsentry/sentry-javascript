@@ -1,4 +1,5 @@
 import type { Integration } from '@sentry/core';
+import { prismaIntegration } from '@sentry/server-utils';
 import { instrumentSentryHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { anthropicAIIntegration, instrumentAnthropicAi } from './anthropic-ai';
@@ -23,7 +24,6 @@ import { instrumentMysql2, mysql2Integration } from './mysql2';
 import { instrumentOpenAi, openAIIntegration } from './openai';
 import { instrumentPostgres, postgresIntegration } from './postgres';
 import { instrumentPostgresJs, postgresJsIntegration } from './postgresjs';
-import { prismaIntegration } from './prisma';
 import { instrumentRedis, redisIntegration } from './redis';
 import { instrumentTedious, tediousIntegration } from './tedious';
 import { instrumentVercelAi, vercelAIIntegration } from './vercelai';

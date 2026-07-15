@@ -1,6 +1,6 @@
 {
   "name": "@sentry/core",
-  "version": "10.64.0",
+  "version": "10.65.0",
   "description": "Base implementation for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/core",
@@ -108,6 +108,6 @@
     "zod": "^3.24.1"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.15.1"
+    "@sentry/conventions": "^0.16.0"
   }
 }

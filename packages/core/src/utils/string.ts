@@ -4,6 +4,31 @@ import { stringifyValue } from './normalize';
 export { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 
 /**
+ * Coerce a value to a string without ever throwing. Strings pass through unchanged (so an
+ * already-serialized value isn't double-encoded and a plain string isn't wrapped in quotes);
+ * anything else is `JSON.stringify`-ed, falling back to `fallback` if that throws (e.g. on
+ * circular references or `BigInt`). Returns `undefined` for values `JSON.stringify` itself drops
+ * (top-level `undefined`, functions, symbols), matching `JSON.stringify`'s own runtime behavior.
+ *
+ * @param value the value to stringify
+ * @param fallback returned when serialization throws, or, if a function, called with `value` to
+ *   produce the fallback. Defaults to `'[unserializable]'`.
+ */
+export function stringify(
+  value: unknown,
+  fallback: string | ((value: unknown) => string) = '[unserializable]',
+): string | undefined {
+  if (typeof value === 'string') {
+    return value;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return typeof fallback === 'function' ? fallback(value) : fallback;
+  }
+}
+
+/**
  * Truncates given string to the maximum characters count
  *
  * @param str An object that contains serializable values

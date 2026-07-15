@@ -90,6 +90,14 @@ export function instrumentXHR(): void {
             virtualError,
           };
           triggerHandlers('xhr', handlerData);
+
+          // In the `addEventListener` branch below, this handler is the only
+          // `readystatechange` listener we add, so detach it once the request is
+          // done to avoid pinning the XMLHttpRequest and its captured
+          // `virtualError` per HTTP call on long-lived pages. In the
+          // `onreadystatechange` proxy branch the handler isn't registered via
+          // `addEventListener`, so this is a harmless no-op there.
+          xhrOpenThisArg.removeEventListener('readystatechange', onreadystatechangeHandler);
         }
       };
 

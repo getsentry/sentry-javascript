@@ -16,6 +16,10 @@ import {
 } from '../fixtures';
 import { materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
 
+vi.mock('@sentry/server-utils/orchestrion/webpack', () => ({
+  sentryOrchestrionWebpackPlugin: () => ({ _name: 'sentry-orchestrion-webpack-plugin' }),
+}));
+
 describe('constructWebpackConfigFunction()', () => {
   it('includes expected properties', async () => {
     vi.spyOn(core, 'loadModule').mockImplementation(() => ({
@@ -787,6 +791,55 @@ describe('constructWebpackConfigFunction()', () => {
       // Should not have disabled flags
       expect(treeshakePlugin.definitions).not.toHaveProperty('__SENTRY_TRACING__');
       expect(treeshakePlugin.definitions).not.toHaveProperty('__RRWEB_EXCLUDE_SHADOW_DOM__');
+    });
+  });
+
+  describe('orchestrion webpack plugin', () => {
+    const findOrchestrionPlugin = (config: { plugins?: unknown[] }): unknown =>
+      config.plugins?.find(plugin => (plugin as { _name?: string })._name === 'sentry-orchestrion-webpack-plugin');
+
+    it('adds the plugin to the node server build when diagnostics-channel injection is enabled', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+      });
+
+      expect(findOrchestrionPlugin(finalWebpackConfig)).toBeDefined();
+    });
+
+    it('does not add the plugin to the edge build', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: edgeBuildContext,
+        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+      });
+
+      expect(findOrchestrionPlugin(finalWebpackConfig)).toBeUndefined();
+    });
+
+    it('does not add the plugin to the client build', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientBuildContext,
+        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+      });
+
+      expect(findOrchestrionPlugin(finalWebpackConfig)).toBeUndefined();
+    });
+
+    it('does not add the plugin when diagnostics-channel injection is not enabled', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+        sentryBuildTimeOptions: {},
+      });
+
+      expect(findOrchestrionPlugin(finalWebpackConfig)).toBeUndefined();
     });
   });
 });

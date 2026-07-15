@@ -26,7 +26,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL_SPAN_OP, GEN_AI_INVOKE_AGENT_SPAN_OP } from '@sentry/conventions/op';
-import type { Span } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   captureException,
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
@@ -35,26 +35,19 @@ import {
   getClient,
   getProviderMetadataAttributes,
   getTruncatedJsonString,
+  isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   shouldEnableTruncation,
   SPAN_STATUS_ERROR,
   spanToJSON,
   spanToTraceContext,
   startInactiveSpan,
+  stringify,
   withScope,
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { bindTracingChannelToSpan } from '../tracing-channel';
-import {
-  asNumber,
-  asString,
-  isReadableStream,
-  isRecord,
-  safeStringify,
-  type StreamedModelCallResult,
-  sum,
-  tapModelCallStream,
-} from './util';
+import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum, tapModelCallStream } from './util';
 
 /**
  * The single tracing channel the `ai` package (>= 7) publishes all telemetry lifecycle events to
@@ -102,7 +95,14 @@ const invokeAgentSpanByCallId = new Map<string, Span>();
 
 // Only top-level operations own the `callId` → operationId mapping; `step`/`languageModelCall`/
 // `executeTool` share the parent's `callId`, so they must not clear it.
-const ROOT_OPERATION_TYPES = new Set<ChannelEventType>(['generateText', 'streamText', 'embed', 'embedMany', 'rerank']);
+const ROOT_OPERATION_TYPES = new Set<ChannelEventType>([
+  'generateText',
+  'streamText',
+  'generateObject',
+  'embed',
+  'embedMany',
+  'rerank',
+]);
 
 /** Drop the per-operation `callId` maps once the owning top-level operation settles (success or error). */
 export function clearOperationId(data: VercelAiChannelMessage): void {
@@ -134,7 +134,7 @@ function recordToolDescriptions(callId: string | undefined, tools: unknown): voi
   }
   let descriptions = toolDescriptionsByCallId.get(callId);
   for (const tool of tools) {
-    if (isRecord(tool) && typeof tool.name === 'string' && typeof tool.description === 'string') {
+    if (isObjectLike(tool) && typeof tool.name === 'string' && typeof tool.description === 'string') {
       descriptions = descriptions ?? new Map();
       if (!descriptions.has(tool.name)) {
         descriptions.set(tool.name, tool.description);
@@ -157,12 +157,12 @@ function resolveToolDescription(callId: string | undefined, toolName: string, to
     return fromMap;
   }
   if (Array.isArray(tools)) {
-    const match = tools.find(tool => isRecord(tool) && tool.name === toolName);
-    return isRecord(match) ? asString(match.description) : undefined;
+    const match = tools.find(tool => isObjectLike(tool) && tool.name === toolName);
+    return isObjectLike(match) ? asString(match.description) : undefined;
   }
-  if (isRecord(tools)) {
+  if (isObjectLike(tools)) {
     const tool = tools[toolName];
-    return isRecord(tool) ? asString(tool.description) : undefined;
+    return isObjectLike(tool) ? asString(tool.description) : undefined;
   }
   return undefined;
 }
@@ -171,6 +171,7 @@ function resolveToolDescription(callId: string | undefined, toolName: string, to
 export type ChannelEventType =
   | 'generateText'
   | 'streamText'
+  | 'generateObject'
   | 'step'
   | 'languageModelCall'
   | 'executeTool'
@@ -253,7 +254,7 @@ function deferStreamedModelCallEnd(
   options: VercelAiChannelOptions,
   end: (error?: unknown) => void,
 ): boolean {
-  if (data.type !== 'languageModelCall' || !isRecord(data.result)) {
+  if (data.type !== 'languageModelCall' || !isObjectLike(data.result)) {
     return false;
   }
   const result = data.result;
@@ -321,10 +322,10 @@ function enrichInvokeAgentFromStream(
     return;
   }
 
-  const usage = isRecord(final.usage) ? final.usage : undefined;
+  const usage = isObjectLike(final.usage) ? final.usage : undefined;
   if (usage) {
-    const input = tokenCount(usage.inputTokens) ?? tokenCount(usage.tokens);
-    const output = tokenCount(usage.outputTokens);
+    const input = tokenCount(usage.inputTokens) ?? tokenCount(usage.promptTokens) ?? tokenCount(usage.tokens);
+    const output = tokenCount(usage.outputTokens) ?? tokenCount(usage.completionTokens);
     addTokensToSpan(span, GEN_AI_USAGE_INPUT_TOKENS, input);
     addTokensToSpan(span, GEN_AI_USAGE_OUTPUT_TOKENS, output);
     addTokensToSpan(span, GEN_AI_USAGE_TOTAL_TOKENS, tokenCount(usage.totalTokens) ?? sum(input, output));
@@ -388,6 +389,10 @@ export function createSpanFromMessage(
   switch (type) {
     case 'generateText':
     case 'streamText':
+    case 'generateObject':
+      // `generateObject` builds the same `invoke_agent` span as `generateText` (non-streaming); its
+      // distinct `ai.generateObject` operationId rides on `event.operationId`. The JSON-schema attribute
+      // the OTel path derives from the SDK's Zod schema is not reconstructed on the channel path.
       return buildInvokeAgentSpan(event, baseAttributes, recordInputs, enableTruncation, callId, type === 'streamText');
     case 'languageModelCall':
       return buildModelCallSpan(event, baseAttributes, recordInputs, enableTruncation, callId, modelId);
@@ -399,7 +404,7 @@ export function createSpanFromMessage(
       const input = type === 'embedMany' ? event.values : event.value;
       return startGenAiSpan(GEN_AI_EMBEDDINGS_OPERATION, modelId, {
         ...baseAttributes,
-        ...(recordInputs && input !== undefined ? { [GEN_AI_EMBEDDINGS_INPUT]: safeStringify(input) } : {}),
+        ...(recordInputs && input !== undefined ? { [GEN_AI_EMBEDDINGS_INPUT]: stringify(input) } : {}),
       });
     }
     case 'rerank':
@@ -410,10 +415,8 @@ export function createSpanFromMessage(
   }
 }
 
-type Attributes = Record<string, string | number | boolean>;
-
 /** Start a `gen_ai.<operation>` span named `<operation> <suffix>` (or just `<operation>` when no suffix). */
-function startGenAiSpan(operation: string, suffix: string | undefined, attributes: Attributes): Span {
+function startGenAiSpan(operation: string, suffix: string | undefined, attributes: SpanAttributes): Span {
   return startInactiveSpan({
     name: suffix ? `${operation} ${suffix}` : operation,
     op: `gen_ai.${operation}`,
@@ -423,7 +426,7 @@ function startGenAiSpan(operation: string, suffix: string | undefined, attribute
 
 function buildInvokeAgentSpan(
   event: Record<string, unknown>,
-  baseAttributes: Attributes,
+  baseAttributes: SpanAttributes,
   recordInputs: boolean,
   enableTruncation: boolean,
   callId: string | undefined,
@@ -450,7 +453,7 @@ function buildInvokeAgentSpan(
 
 function buildModelCallSpan(
   event: Record<string, unknown>,
-  baseAttributes: Attributes,
+  baseAttributes: SpanAttributes,
   recordInputs: boolean,
   enableTruncation: boolean,
   callId: string | undefined,
@@ -464,14 +467,12 @@ function buildModelCallSpan(
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     ...(recordInputs ? buildInputMessageAttributes(event, enableTruncation) : {}),
-    ...(recordInputs && Array.isArray(event.tools)
-      ? { [GEN_AI_REQUEST_AVAILABLE_TOOLS]: safeStringify(event.tools) }
-      : {}),
+    ...(recordInputs && Array.isArray(event.tools) ? { [GEN_AI_REQUEST_AVAILABLE_TOOLS]: stringify(event.tools) } : {}),
   });
 }
 
 function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): Span {
-  const toolCall = isRecord(event.toolCall) ? event.toolCall : {};
+  const toolCall = isObjectLike(event.toolCall) ? event.toolCall : {};
   const toolName = asString(toolCall.toolName);
   const toolCallId = asString(event.toolCallId) ?? asString(toolCall.toolCallId);
   const toolInput = toolCall.input ?? toolCall.args;
@@ -485,7 +486,7 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
     ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
     ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
     ...(description ? { [GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE]: description } : {}),
-    ...(recordInputs && toolInput !== undefined ? { [GEN_AI_TOOL_INPUT]: safeStringify(toolInput) } : {}),
+    ...(recordInputs && toolInput !== undefined ? { [GEN_AI_TOOL_INPUT]: stringify(toolInput) } : {}),
   });
 }
 
@@ -500,7 +501,7 @@ export function enrichSpanOnEnd(
   channelOptions: VercelAiChannelOptions,
 ): void {
   const { type, result } = data;
-  if (!isRecord(result)) {
+  if (!isObjectLike(result)) {
     return;
   }
 
@@ -508,12 +509,12 @@ export function enrichSpanOnEnd(
 
   if (type === 'executeTool') {
     if (recordOutputs) {
-      span.setAttribute(GEN_AI_TOOL_OUTPUT, safeStringify(result.output ?? result));
+      span.setAttribute(GEN_AI_TOOL_OUTPUT, stringify(result.output ?? result));
     }
     // From V5 on, tool errors are not rejected (so the `error` channel verb never fires) — they
     // surface as `tool-error` content on the resolved result. Mirror the OTel path by marking the
     // span and capturing the error.
-    const output = isRecord(result.output) ? result.output : undefined;
+    const output = isObjectLike(result.output) ? result.output : undefined;
     if (output?.type === 'tool-error') {
       captureToolError(span, data, output.error);
     }
@@ -521,11 +522,12 @@ export function enrichSpanOnEnd(
   }
 
   // `languageModelCall` results report usage as `{ total }` objects; top-level/step results report
-  // flat numbers. `tokenCount` handles both.
-  const usage = isRecord(result.usage) ? result.usage : undefined;
+  // flat numbers. `tokenCount` handles both. v4 names tokens `promptTokens`/`completionTokens`
+  // (v5+ uses `inputTokens`/`outputTokens`); the fallbacks are `undefined`-inert on v5+.
+  const usage = isObjectLike(result.usage) ? result.usage : undefined;
   if (usage) {
-    const inputTokens = tokenCount(usage.inputTokens) ?? tokenCount(usage.tokens);
-    const outputTokens = tokenCount(usage.outputTokens);
+    const inputTokens = tokenCount(usage.inputTokens) ?? tokenCount(usage.promptTokens) ?? tokenCount(usage.tokens);
+    const outputTokens = tokenCount(usage.outputTokens) ?? tokenCount(usage.completionTokens);
     const totalTokens = tokenCount(usage.totalTokens) ?? sum(inputTokens, outputTokens);
     if (inputTokens !== undefined) {
       span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, inputTokens);
@@ -542,10 +544,10 @@ export function enrichSpanOnEnd(
   // on the top-level `invoke_agent` span.
   const finishReason = getFinishReason(result);
   if (finishReason && type === 'languageModelCall') {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, safeStringify([finishReason]));
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, stringify([finishReason]));
   }
 
-  const response = isRecord(result.response) ? result.response : undefined;
+  const response = isObjectLike(result.response) ? result.response : undefined;
   const responseId = asString(response?.id) ?? asString(result.responseId);
   if (responseId) {
     span.setAttribute(GEN_AI_RESPONSE_ID, responseId);
@@ -596,12 +598,12 @@ function getFinishReason(result: Record<string, unknown>): string | undefined {
   if (typeof finishReason === 'string') {
     return finishReason;
   }
-  return isRecord(finishReason) ? asString(finishReason.unified) : undefined;
+  return isObjectLike(finishReason) ? asString(finishReason.unified) : undefined;
 }
 
 /** Reads a token count that may be a plain number or a `{ total }` object (model-call usage). */
 function tokenCount(value: unknown): number | undefined {
-  return asNumber(value) ?? (isRecord(value) ? asNumber(value.total) : undefined);
+  return asNumber(value) ?? (isObjectLike(value) ? asNumber(value.total) : undefined);
 }
 
 function buildOutputMessages(
@@ -611,7 +613,7 @@ function buildOutputMessages(
   if (!parts.length) {
     return undefined;
   }
-  return safeStringify([{ role: 'assistant', parts, finish_reason: normalizeFinishReason(finishReason) }]);
+  return stringify([{ role: 'assistant', parts, finish_reason: normalizeFinishReason(finishReason) }]);
 }
 
 function toolCallPart(toolCall: Record<string, unknown>): Record<string, unknown> {
@@ -620,14 +622,14 @@ function toolCallPart(toolCall: Record<string, unknown>): Record<string, unknown
     type: 'tool_call',
     id: asString(toolCall.toolCallId),
     name: asString(toolCall.toolName),
-    arguments: typeof args === 'string' ? args : safeStringify(args ?? {}),
+    arguments: typeof args === 'string' ? args : stringify(args ?? {}),
   };
 }
 
 function partsFromContent(content: unknown[]): Array<Record<string, unknown>> {
   const parts: Array<Record<string, unknown>> = [];
   for (const item of content) {
-    if (!isRecord(item)) {
+    if (!isObjectLike(item)) {
       continue;
     }
     if (item.type === 'text' && typeof item.text === 'string') {
@@ -646,7 +648,7 @@ function partsFromTextAndToolCalls(text: unknown, toolCalls: unknown): Array<Rec
   }
   if (Array.isArray(toolCalls)) {
     for (const toolCall of toolCalls) {
-      if (isRecord(toolCall)) {
+      if (isObjectLike(toolCall)) {
         parts.push(toolCallPart(toolCall));
       }
     }
@@ -660,7 +662,7 @@ export function captureToolError(span: Span, data: VercelAiChannelMessage, error
     message: error instanceof Error ? error.message : 'tool_error',
   });
 
-  const toolCall = isRecord(data.event.toolCall) ? data.event.toolCall : {};
+  const toolCall = isObjectLike(data.event.toolCall) ? data.event.toolCall : {};
   const toolName = asString(toolCall.toolName);
   const toolCallId = asString(data.event.toolCallId) ?? asString(toolCall.toolCallId);
 
@@ -722,22 +724,22 @@ function resolveRecording(integrationOption: unknown, perCallOption: unknown, gl
 function buildInputMessageAttributes(
   event: Record<string, unknown>,
   enableTruncation: boolean,
-): Record<string, string | number> {
-  const attributes: Record<string, string | number> = {};
+): Record<string, string | number | undefined> {
+  const attributes: Record<string, string | number | undefined> = {};
 
   // `ai` >= 7 forbids system messages in `messages`/`prompt` and exposes the system prompt as a
   // separate `instructions` field. The OTel path lifts the system message out of the prompt into
   // `gen_ai.system_instructions` as `[{ type: 'text', content }]`; mirror that shape here.
   const instructions = asString(event.instructions);
   if (instructions) {
-    attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE] = safeStringify([{ type: 'text', content: instructions }]);
+    attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE] = stringify([{ type: 'text', content: instructions }]);
   }
 
   // The AI SDK start events extend `StandardizedPrompt`; messages live on `messages`, otherwise the
   // simpler `prompt` field is used.
   const messages = event.messages ?? event.prompt;
   if (messages !== undefined) {
-    attributes[GEN_AI_INPUT_MESSAGES] = enableTruncation ? getTruncatedJsonString(messages) : safeStringify(messages);
+    attributes[GEN_AI_INPUT_MESSAGES] = enableTruncation ? getTruncatedJsonString(messages) : stringify(messages);
     // The original (pre-truncation) message count, so the product can show how many were dropped.
     attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE] = Array.isArray(messages) ? messages.length : 1;
   }

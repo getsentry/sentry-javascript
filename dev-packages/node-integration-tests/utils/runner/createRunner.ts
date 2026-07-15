@@ -14,8 +14,7 @@ import type {
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
-import { execSync, spawn, spawnSync } from 'child_process';
-import { createHash } from 'crypto';
+import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -34,17 +33,6 @@ import {
   assertSentryTransaction,
   assertSpanEnvelopeHeader,
 } from './../assertions';
-
-interface DockerOptions {
-  /**
-   * The working directory to run docker compose in
-   */
-  workingDirectory: string[];
-  /**
-   * The command to run after docker compose is up
-   */
-  setupCommand?: string;
-}
 
 type VoidFunction = () => void;
 
@@ -146,7 +134,6 @@ export function createRunner(...paths: string[]) {
   let unordered = false;
   let withEnv: Record<string, string> = {};
   let withSentryServer = false;
-  let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
   // When set, the test using this runner expects `completed()` to reject (e.g. `test.fails` variants
   // created via `createEsmAndCjsTests` with `failsOnEsm`/`failsOnCjs`). We suppress the captured-log
@@ -155,7 +142,12 @@ export function createRunner(...paths: string[]) {
   const logs: string[] = [];
 
   if (testPath.endsWith('.ts')) {
-    flags.push('-r', 'ts-node/register');
+    // Load .ts scenarios through tsx's CommonJS require hook (not `--import tsx`, the ESM loader).
+    // These scenarios are CJS; `--import` routes them through Node's ESM machinery, which on Node
+    // 22+ gives the scenario a different `@sentry/node` instance than the CJS instrument/auto-flush,
+    // so instrumentation and flushing target the wrong SDK object. The require hook keeps one CJS
+    // instance, matching how ts-node loaded them.
+    flags.push('-r', 'tsx/cjs');
   }
 
   // Cleanup steps registered by this specific runner (child process, docker, mock server). They are
@@ -233,10 +225,6 @@ export function createRunner(...paths: string[]) {
     },
     unordered: function () {
       unordered = true;
-      return this;
-    },
-    withDockerCompose: function (options: DockerOptions) {
-      dockerOptions = options;
       return this;
     },
     ensureNoErrorOutput: function () {
@@ -401,28 +389,17 @@ export function createRunner(...paths: string[]) {
       // We need to properly define & pass these types around for TS 3.8,
       // which otherwise fails to infer these correctly :(
       type ServerStartup = [number | undefined, (() => void) | undefined];
-      type DockerStartup = VoidFunction | undefined;
 
       const serverStartup: Promise<ServerStartup> = withSentryServer
         ? createBasicSentryServer(newEnvelope)
         : Promise.resolve([undefined, undefined]);
 
-      const dockerStartup: Promise<DockerStartup> = dockerOptions
-        ? runDockerCompose(dockerOptions)
-        : Promise.resolve(undefined);
-
-      const startup = Promise.all([dockerStartup, serverStartup]);
-
-      startup
-        .then(([dockerChild, [mockServerPort, mockServerClose]]) => {
+      serverStartup
+        .then(([mockServerPort, mockServerClose]) => {
           if (mockServerClose) {
             registerCleanupStep(() => {
               mockServerClose();
             });
-          }
-
-          if (dockerChild) {
-            registerCleanupStep(dockerChild);
           }
 
           const env = mockServerPort
@@ -480,11 +457,30 @@ export function createRunner(...paths: string[]) {
             }
           });
 
-          child.on('close', () => {
+          child.on('close', (code, signal) => {
             hasExited = true;
 
             if (ensureNoErrorOutput) {
               complete();
+              return;
+            }
+
+            // A scenario that still owes envelopes but has already exited will never deliver them.
+            // Without this, `completed()` blocks until the vitest test timeout and reports an opaque
+            // "Test timed out", hiding the real failure (e.g. the scenario threw before sending its
+            // transaction — an unhandled rejection exits the process with no envelope). Complete with
+            // the exit status and how far we got so the failure is fast and diagnosable; the captured
+            // child output is dumped by `completed()`. In the success path `complete()` has already
+            // run (so `isComplete` short-circuits this), server-style tests are killed by `complete()`
+            // first, and tests that expect no envelopes drive completion some other way.
+            if (!isComplete && expectedEnvelopeCount > 0) {
+              const how = signal ? `signal ${signal}` : `code ${code ?? 'unknown'}`;
+              complete(
+                new Error(
+                  `Scenario exited (${how}) after ${envelopeCount}/${expectedEnvelopeCount} expected ` +
+                    'envelope(s), before the test completed.',
+                ),
+              );
             }
           });
 
@@ -618,78 +614,6 @@ export function createRunner(...paths: string[]) {
       };
     },
   };
-}
-
-/**
- * Runs `docker compose up -d --wait`, which blocks until every service's
- * healthcheck reports healthy. Each suite defines its healthcheck in its
- * own docker-compose.yml.
- *
- * Returns a function that can be called to docker compose down
- */
-async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
-  const cwd = join(...options.workingDirectory);
-
-  // Docker Compose derives the project name from the compose file's directory
-  // basename by default. Several suites live in directories that share a
-  // basename (e.g. `tracing/mysql2` and `tracing/knex/mysql2`), so they collide
-  // on the same project + network when running in parallel: one suite's
-  // teardown removes the shared `<name>_default` network while a sibling is
-  // still starting, producing "network <name>_default not found". Deriving a
-  // unique, stable project name from the full working directory isolates every
-  // suite from each other.
-  const projectName = `sentry-it-${createHash('sha1').update(cwd).digest('hex').slice(0, 12)}`;
-  const composeArgs = (...args: string[]): string[] => ['compose', '-p', projectName, ...args];
-
-  const close = (): void => {
-    spawnSync('docker', composeArgs('down', '--volumes'), {
-      cwd,
-      stdio: process.env.DEBUG ? 'inherit' : undefined,
-    });
-  };
-
-  // ensure we're starting fresh
-  close();
-
-  const composeUp = (): ReturnType<typeof spawnSync> =>
-    spawnSync('docker', composeArgs('up', '-d', '--wait'), {
-      cwd,
-      stdio: process.env.DEBUG ? 'inherit' : 'pipe',
-    });
-
-  // `docker compose up` occasionally fails on CI with transient daemon races
-  // (e.g. "failed to set up container networking: network <x>_default not
-  // found" right after the network was created). A clean teardown plus retry
-  // clears these, while genuine healthcheck failures stay red on every attempt.
-  const maxAttempts = 3;
-  let result = composeUp();
-  for (let attempt = 1; attempt < maxAttempts && result.status !== 0; attempt++) {
-    close();
-    result = composeUp();
-  }
-
-  if (result.status !== 0) {
-    const stderr = result.stderr?.toString() ?? '';
-    const stdout = result.stdout?.toString() ?? '';
-    // Surface container logs to make healthcheck failures easier to diagnose in CI
-    const logs = spawnSync('docker', composeArgs('logs'), { cwd }).stdout?.toString() ?? '';
-    close();
-    throw new Error(
-      `docker compose up --wait failed (exit ${result.status})\n${stderr}${stdout}\n--- container logs ---\n${logs}`,
-    );
-  }
-
-  if (options.setupCommand) {
-    try {
-      // Prepend local node_modules/.bin to PATH so additionalDependencies binaries take precedence
-      const env = { ...process.env, PATH: `${cwd}/node_modules/.bin:${process.env.PATH}` };
-      execSync(options.setupCommand, { cwd, stdio: 'inherit', env });
-    } catch (e) {
-      log('Error running docker setup command', e);
-    }
-  }
-
-  return close;
 }
 
 interface Deferred {

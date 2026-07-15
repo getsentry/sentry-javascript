@@ -4,6 +4,7 @@ import type { ExclusiveEventHintOrCaptureContext, Span } from '@sentry/core';
 import {
   debug,
   captureException,
+  isObjectLike,
   SPAN_STATUS_ERROR,
   getAsyncContextStrategy,
   getMainCarrier,
@@ -282,13 +283,13 @@ type ErrorInfo = {
  * Best-effort message and attribute extraction for thrown/rejected values.
  */
 function getErrorInfo(error: unknown): ErrorInfo {
-  const isObject = !!error && typeof error === 'object';
-  const raw = isObject ? ('message' in error ? error.message : undefined) : error;
+  const errorIsObject = isObjectLike(error);
+  const raw = errorIsObject ? ('message' in error ? error.message : undefined) : error;
 
   // Leave the status message unset if not set (e.g. an `AggregateError` from
   // ECONNREFUSED, whose `.message` is empty). Otherwise cast to string.
   const message = raw ? String(raw) : undefined;
-  const type = isObject && 'name' in error ? String(error.name) : 'unknown';
+  const type = errorIsObject && 'name' in error ? String(error.name) : 'unknown';
 
   return {
     message,

@@ -99,6 +99,7 @@ async function pruneNodeModules(): Promise<void> {
     './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/cjs/index.js',
     './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/cjs/awslambda-auto.js',
     './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/esm/awslambda-auto.js',
+    './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/run-lambda-handler.mjs',
   ];
 
   const { fileList } = await nodeFileTrace(entrypoints, {

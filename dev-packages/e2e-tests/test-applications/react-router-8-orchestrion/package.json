@@ -1,0 +1,51 @@
+{
+  "name": "react-router-8-orchestrion",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router": "^8.0.0",
+    "@react-router/node": "^8.0.0",
+    "@react-router/serve": "^8.0.0",
+    "@sentry/react-router": "file:../../packed/sentry-react-router-packed.tgz",
+    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
+    "ioredis": "5.10.1",
+    "mysql": "^2.18.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@types/node": "^22",
+    "@react-router/dev": "^8.0.0",
+    "@playwright/test": "~1.58.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "typescript": "^5.6.3",
+    "vite": "^7.3.2"
+  },
+  "scripts": {
+    "build": "react-router build",
+    "test:build-latest": "pnpm install && pnpm add react-router@latest && pnpm add @react-router/node@latest && pnpm add @react-router/serve@latest && pnpm build",
+    "dev": "react-router dev",
+    "start": "NODE_ENV=production react-router-serve ./build/server/index.js",
+    "proxy": "node start-event-proxy.mjs",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test",
+    "test": "playwright test"
+  },
+  "volta": {
+    "extends": "../../package.json",
+    "node": "22.22.0"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "react-router-8-orchestrion (latest)"
+      }
+    ]
+  }
+}

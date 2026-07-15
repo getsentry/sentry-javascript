@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
-    "@cloudflare/vite-plugin": "1.43.1",
+    "@cloudflare/vite-plugin": "^1.37.2",
     "@cloudflare/workers-types": "^4.20260520.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^24.12.4",
