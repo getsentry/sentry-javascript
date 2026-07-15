@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { waitForInitialPageload } from './utils';
 
-test.describe('client-specific performance events', () => {
+// TODO(sveltekit-3): Unskip once SvelteKit 3 browser support lands (#22264).
+test.describe.skip('client-specific performance events', () => {
   test('multiple navigations have distinct traces', async ({ page }) => {
     const navigationTxn1EventPromise = waitForTransaction('sveltekit-3', txnEvent => {
       return txnEvent?.transaction === '/nav1' && txnEvent.contexts?.trace?.op === 'navigation';
