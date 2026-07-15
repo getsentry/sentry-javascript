@@ -67,6 +67,36 @@ function connectionAttributes(host: string | undefined, port: number | undefined
   };
 }
 
+// ioredis re-enters `sendCommand` with the same command object when it drains
+// the offline queue on connect which leads to duplicate spans.
+// Track commands we've already traced so each logical command produces one span.
+const tracedCommands = new WeakSet<object>();
+
+/**
+ * Builds the db span for an `orchestrion:ioredis:command` payload, or returns `undefined` to skip
+ * it: for a non-command payload, or the offline-queue re-send of an already-traced command.
+ *
+ * Exported for unit testing.
+ */
+export function startIORedisCommandSpan(data: IORedisCommandContext): Span | undefined {
+  const command = data.arguments?.[0] as RedisCommand | undefined;
+  if (!command || typeof command !== 'object') {
+    return undefined;
+  }
+  // guard against duplicate spans
+  if (tracedCommands.has(command)) {
+    return undefined;
+  }
+  tracedCommands.add(command);
+  const { host, port } = getConnectionOptions(data.self);
+  const statement = defaultDbStatementSerializer(command.name, command.args ?? []);
+  return startInactiveSpan({
+    name: statement,
+    op: 'db',
+    attributes: { ...connectionAttributes(host, port), [DB_STATEMENT]: statement },
+  });
+}
+
 const _ioredisChannelIntegration = ((options: IORedisChannelIntegrationOptions = {}) => {
   const responseHook = options.responseHook;
 
@@ -92,35 +122,19 @@ const _ioredisChannelIntegration = ((options: IORedisChannelIntegrationOptions =
       // binding that `initOpenTelemetry()` registers after integration `setupOnce` —
       // defer until it's available (matches the native redis diagnostics-channel subscriber).
       waitForTracingChannelBinding(() => {
-        bindTracingChannelToSpan(
-          commandChannel,
-          data => {
-            const command = data.arguments?.[0] as RedisCommand | undefined;
-            if (!command || typeof command !== 'object') {
-              return undefined;
+        bindTracingChannelToSpan(commandChannel, startIORedisCommandSpan, {
+          // ioredis' `requireParentSpan` default: only create a span under an active span.
+          requiresParentSpan: true,
+          beforeSpanEnd(span, data) {
+            if ('error' in data || !responseHook) {
+              return;
             }
-            const { host, port } = getConnectionOptions(data.self);
-            const statement = defaultDbStatementSerializer(command.name, command.args ?? []);
-            return startInactiveSpan({
-              name: statement,
-              op: 'db',
-              attributes: { ...connectionAttributes(host, port), [DB_STATEMENT]: statement },
-            });
+            const command = data.arguments?.[0] as RedisCommand | undefined;
+            if (command) {
+              runResponseHook(responseHook, span, command, data.result);
+            }
           },
-          {
-            // ioredis' `requireParentSpan` default: only create a span under an active span.
-            requiresParentSpan: true,
-            beforeSpanEnd(span, data) {
-              if ('error' in data || !responseHook) {
-                return;
-              }
-              const command = data.arguments?.[0] as RedisCommand | undefined;
-              if (command) {
-                runResponseHook(responseHook, span, command, data.result);
-              }
-            },
-          },
-        );
+        });
 
         bindTracingChannelToSpan(
           connectChannel,
