@@ -14,6 +14,7 @@ import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import { CODE_FUNCTION, HTTP_METHOD, HTTP_ROUTE, HTTP_STATUS_CODE, HTTP_URL } from '@sentry/conventions/attributes';
 import { getClient } from '@sentry/node';
 import type { RemixOptions } from '../../utils/remixOptions';
+import { remixChannels } from '@sentry/server-utils/orchestrion';
 
 const INTEGRATION_NAME = 'Remix' as const;
 const ORIGIN = 'auto.http.orchestrion.remix';
@@ -24,16 +25,6 @@ const NOOP = (): void => {};
 // `RemixInstrumentation` this integration replaces.
 const MATCH_ROUTE_ID = 'match.route.id';
 const MATCH_PARAMS = 'match.params';
-
-// The full `diagnostics_channel` names orchestrion injects for `@remix-run/server-runtime`. Source of
-// truth is `remixChannels` in `@sentry/server-utils` (`orchestrion/config/remix.ts`); duplicated here
-// as plain strings because that map isn't part of the package's public export surface.
-const CHANNELS = {
-  REQUEST_HANDLER: 'orchestrion:@remix-run/server-runtime:requestHandler',
-  MATCH_SERVER_ROUTES: 'orchestrion:@remix-run/server-runtime:matchServerRoutes',
-  CALL_ROUTE_LOADER: 'orchestrion:@remix-run/server-runtime:callRouteLoader',
-  CALL_ROUTE_ACTION: 'orchestrion:@remix-run/server-runtime:callRouteAction',
-} as const;
 
 /**
  * The shape orchestrion's transform attaches to a tracing-channel `context` object. Documented here
@@ -130,7 +121,7 @@ function enrichActiveSpanWithRoute(result: unknown): void {
 
 function subscribeRequestHandler(): void {
   bindTracingChannelToSpan<ChannelContext>(
-    diagnosticsChannel.tracingChannel(CHANNELS.REQUEST_HANDLER),
+    diagnosticsChannel.tracingChannel(remixChannels.REMIX_REQUEST_HANDLER),
     data =>
       startInactiveSpan({
         name: 'remix.request',
@@ -151,7 +142,7 @@ function subscribeRequestHandler(): void {
 function subscribeMatchServerRoutes(): void {
   // `matchServerRoutes` is synchronous, so only the `end` event carries a result; the rest are
   // no-ops. `subscribe` types demand a handler for each channel.
-  diagnosticsChannel.tracingChannel<ChannelContext, ChannelContext>(CHANNELS.MATCH_SERVER_ROUTES).subscribe({
+  diagnosticsChannel.tracingChannel<ChannelContext, ChannelContext>(remixChannels.REMIX_MATCH_SERVER_ROUTES).subscribe({
     start: NOOP,
     end(data) {
       enrichActiveSpanWithRoute(data.result);
@@ -164,7 +155,7 @@ function subscribeMatchServerRoutes(): void {
 
 function subscribeCallRouteLoader(): void {
   bindTracingChannelToSpan<ChannelContext>(
-    diagnosticsChannel.tracingChannel(CHANNELS.CALL_ROUTE_LOADER),
+    diagnosticsChannel.tracingChannel(remixChannels.REMIX_CALL_ROUTE_LOADER),
     data => {
       const params = (data.arguments[0] ?? {}) as RouteCallParams;
       return startInactiveSpan({
@@ -187,7 +178,7 @@ function subscribeCallRouteLoader(): void {
 
 function subscribeCallRouteAction(actionFormDataAttributes: Record<string, string | boolean> | undefined): void {
   bindTracingChannelToSpan<ActionChannelContext>(
-    diagnosticsChannel.tracingChannel(CHANNELS.CALL_ROUTE_ACTION),
+    diagnosticsChannel.tracingChannel(remixChannels.REMIX_CALL_ROUTE_ACTION),
     data => {
       const params = (data.arguments[0] ?? {}) as RouteCallParams;
       // Only clone the request (before the action consumes its body) when form-data capture is
