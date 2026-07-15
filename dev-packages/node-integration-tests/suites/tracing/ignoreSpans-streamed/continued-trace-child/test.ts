@@ -12,9 +12,7 @@ describe('ignoring a child of a continued server segment (streaming)', () => {
     const testPropagation = async (path: string): Promise<void> => {
       const [SERVER_URL, closeTestServer] = await createTestServer()
         .get('/outgoing', headers => {
-          expect(headers['sentry-trace']).toEqual(
-            expect.stringMatching(/^12345678901234567890123456789012-[\da-f]{16}-1$/),
-          );
+          expect(headers['sentry-trace']).toMatch(/^12345678901234567890123456789012-[\da-f]{16}-1$/);
 
           expect(headers['baggage']).toBe(
             'sentry-trace_id=12345678901234567890123456789012,sentry-sample_rate=1,sentry-sampled=true,sentry-public_key=public,sentry-sample_rand=0.5',
