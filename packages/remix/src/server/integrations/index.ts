@@ -20,7 +20,10 @@ const _remixIntegration = (() => {
       if (isOrchestrionInjected()) {
         instrumentRemix(actionFormDataAttributes);
       } else {
-        instrumentRemixWithOpenTelemetry(actionFormDataAttributes);
+        // `RemixInstrumentation` takes an options object; passing the bare map would leave its
+        // default `{ _action: 'actionType' }` mapping in place (applying even when capture wasn't
+        // configured, and ignoring the opted-in keys).
+        instrumentRemixWithOpenTelemetry({ actionFormDataAttributes });
       }
     },
     setup(client) {
