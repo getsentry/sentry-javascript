@@ -8,8 +8,8 @@ import {
   WINDOW,
 } from '@sentry/svelte';
 import { URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { page } from '$app/state';
-import { onNavigationChange } from './navigationState.svelte';
+import type { Navigation } from '@sveltejs/kit';
+import { getCurrentNavigation, onNavigationChange, onPageRouteChange } from './navigationState.svelte';
 
 /** @internal */
 export function instrumentSvelteKit3Tracing(
@@ -26,38 +26,39 @@ export function instrumentSvelteKit3Tracing(
 }
 
 function _instrumentPageLoad(client: Client): void {
-  const routeId = page.route.id;
   const initialPath = WINDOW.location?.pathname;
 
   const pageLoadSpan = startBrowserTracingPageLoadSpan(client, {
-    name: routeId || initialPath,
+    name: initialPath,
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
-      ...(routeId && { [URL_TEMPLATE]: routeId }),
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   });
-
-  if (routeId) {
-    getCurrentScope().setTransactionName(routeId);
-  }
 
   if (!pageLoadSpan) {
     return;
   }
+
+  // `page.route.id` isn't available synchronously when we set up (during `Sentry.init`), so we react
+  // to it and upgrade the pageload span from `url` to the parameterized `route` once it resolves.
+  onPageRouteChange(routeId => {
+    if (routeId) {
+      pageLoadSpan.updateName(routeId);
+      pageLoadSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: routeId });
+      getCurrentScope().setTransactionName(routeId);
+    }
+  });
 }
 
 function _instrumentNavigations(client: Client): void {
   let routingSpan: Span | undefined;
+  // Deduplicates the two triggers below (the `fetch` wrapper and the `$effect`) so a single
+  // navigation starts exactly one span, regardless of which fires first.
+  let activeNavigationId: string | undefined;
 
-  onNavigationChange(navigation => {
-    if (!navigation) {
-      routingSpan?.end();
-      routingSpan = undefined;
-      return;
-    }
-
+  function _startNavigation(navigation: Navigation): void {
     const from = navigation.from;
     const to = navigation.to;
     const rawRouteOrigin = from?.url.pathname || WINDOW.location?.pathname;
@@ -66,6 +67,12 @@ function _instrumentNavigations(client: Client): void {
     if (rawRouteOrigin === rawRouteDestination) {
       return;
     }
+
+    const navigationId = to?.url.href;
+    if (navigationId && navigationId === activeNavigationId) {
+      return;
+    }
+    activeNavigationId = navigationId;
 
     const parameterizedRouteOrigin = from?.route.id;
     const parameterizedRouteDestination = to?.route.id;
@@ -102,5 +109,34 @@ function _instrumentNavigations(client: Client): void {
       },
       onlyIfParent: true,
     });
+  }
+
+  // SvelteKit fires its data request (e.g. a server load's `__data.json`) synchronously at
+  // navigation start. A `$effect` reacting to `navigating` only runs a microtask later — after that
+  // request has already left carrying the *previous* trace, breaking the distributed trace. By
+  // wrapping `fetch` (outermost, since this runs after the SDK's own fetch instrumentation) we read
+  // `navigating` synchronously and start the navigation span *before* the request, so it propagates
+  // the navigation trace and the server continues it.
+  const originalFetch = WINDOW.fetch?.bind(WINDOW);
+  if (originalFetch) {
+    WINDOW.fetch = (...args: Parameters<typeof fetch>): ReturnType<typeof fetch> => {
+      const navigation = getCurrentNavigation();
+      if (navigation) {
+        _startNavigation(navigation);
+      }
+      return originalFetch(...args);
+    };
+  }
+
+  onNavigationChange(navigation => {
+    if (!navigation) {
+      routingSpan?.end();
+      routingSpan = undefined;
+      activeNavigationId = undefined;
+      return;
+    }
+
+    // Fallback for navigations that don't issue an outgoing request (the `fetch` wrapper never fires).
+    _startNavigation(navigation);
   });
 }
