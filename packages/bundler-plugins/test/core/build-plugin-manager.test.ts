@@ -417,6 +417,44 @@ describe('createSentryBuildPluginManager', () => {
         live: 'rejectOnError',
       });
     });
+
+    // Skipping mapless chunks (so the CLI stops warning per stub chunk) must
+    // not swallow the signal that source map generation is disabled.
+    it('warns and skips upload when none of the matched bundles have a source map', async () => {
+      mockCliUploadSourceMaps.mockResolvedValue(undefined);
+
+      // Bundles were found, but preparation produced no artifacts
+      mockGlobFiles.mockResolvedValue(['/app/dist/a.js', '/app/dist/b.js']);
+
+      vi.spyOn(fs.promises, 'mkdtemp').mockResolvedValue('/tmp/sentry-upload-empty');
+      vi.spyOn(fs.promises, 'readdir').mockResolvedValue([] as never);
+      vi.spyOn(fs.promises, 'stat').mockResolvedValue({ size: 0 } as fs.Stats);
+      vi.spyOn(fs.promises, 'rm').mockResolvedValue(undefined as never);
+
+      mockPrepareBundleForDebugIdUpload.mockResolvedValue(undefined);
+
+      const manager = createSentryBuildPluginManager(
+        {
+          authToken: 't',
+          org: 'o',
+          project: 'p',
+          release: { name: 'some-release-name', dist: '1' },
+          sourcemaps: { assets: ['/app/dist/**/*'] },
+        },
+        { buildTool: 'webpack', loggerPrefix: '[sentry-webpack-plugin]' },
+      );
+
+      const warnSpy = vi.spyOn(manager.logger, 'warn');
+
+      await manager.uploadSourcemaps(['/unused']);
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy.mock.calls[0]?.[0]).toMatch(/source map generation is not enabled/);
+      // Nothing to upload, so the CLI upload must be skipped entirely.
+      expect(mockCliUploadSourceMaps).not.toHaveBeenCalled();
+
+      vi.restoreAllMocks();
+    });
   });
 
   describe('injectDebugIds', () => {
@@ -477,9 +515,10 @@ describe('createSentryBuildPluginManager', () => {
       mockPrepareBundleForDebugIdUpload.mockResolvedValue(undefined);
       mockCliUploadSourceMaps.mockResolvedValue(undefined);
 
-      // Mock fs operations needed for temp folder upload path
+      // Mock fs operations needed for temp folder upload path. `readdir` returns a prepared artifact
+      // so the upload path runs (an empty temp folder warns and skips the upload instead).
       vi.spyOn(fs.promises, 'mkdtemp').mockResolvedValue('/tmp/sentry-test');
-      vi.spyOn(fs.promises, 'readdir').mockResolvedValue([]);
+      vi.spyOn(fs.promises, 'readdir').mockResolvedValue(['bundle.js', 'bundle.js.map'] as never);
       vi.spyOn(fs.promises, 'stat').mockResolvedValue({ size: 1000 } as fs.Stats);
       vi.spyOn(fs.promises, 'rm').mockResolvedValue(undefined);
     });
