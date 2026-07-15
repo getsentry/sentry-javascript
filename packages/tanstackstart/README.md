@@ -4,16 +4,15 @@
   </a>
 </p>
 
-# Utilities for the Sentry TanStack Start SDKs
+# Utilities for the Sentry TanStack Start SDKs (DEPRECATED)
+
+> DEPRECATION NOTICE: The `@sentry/tanstackstart` package is deprecated and will be removed in the next major version.
+> It contains no functionality.
+> If you are using TanStack Start, use [`@sentry/tanstackstart-react`](https://www.npmjs.com/package/@sentry/tanstackstart-react) instead.
 
 [![npm version](https://img.shields.io/npm/v/@sentry/tanstackstart.svg)](https://www.npmjs.com/package/@sentry/tanstackstart)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/tanstackstart.svg)](https://www.npmjs.com/package/@sentry/tanstackstart)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/tanstackstart.svg)](https://www.npmjs.com/package/@sentry/tanstackstart)
-
-> NOTICE: This package is a package that contains SDK internals and does not follow semantic versioning. Use with caution.
-
-This package contains shared utilities for Sentry TanStack Start SDKs.
-If you are looking for the actual TanStack Start React SDK package, see: https://www.npmjs.com/package/@sentry/tanstackstart-react
 
 ## Links
 
