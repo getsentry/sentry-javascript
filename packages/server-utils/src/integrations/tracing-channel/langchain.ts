@@ -16,6 +16,7 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
+import { langchainEmbeddingsChannels } from '../../orchestrion/config/langchain';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
 // Same name as the OTel integration by design: when enabled, the OTel 'LangChain' integration is
@@ -89,7 +90,7 @@ const _langChainChannelIntegration = ((options: LangChainOptions = {}) => {
       // do the same here. `bindTracingChannelToSpan` needs the async-context binding that
       // `initOpenTelemetry()` registers after `setupOnce`, so wait for it before subscribing.
       waitForTracingChannelBinding(() => {
-        for (const channelName of [CHANNELS.LANGCHAIN_EMBED_QUERY, CHANNELS.LANGCHAIN_EMBED_DOCUMENTS]) {
+        for (const channelName of langchainEmbeddingsChannels) {
           DEBUG_BUILD && debug.log(`[orchestrion:langchain] subscribing to channel "${channelName}"`);
           bindTracingChannelToSpan(
             diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName),
