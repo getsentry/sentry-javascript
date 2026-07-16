@@ -26,8 +26,7 @@ const INTEGRATION_NAME = 'OpenAI' as const;
 // are attributable separately from the OTel/proxy one.
 const ORIGIN = 'auto.ai.orchestrion.openai';
 
-// Each instrumented `create` method maps to the gen_ai operation its span reports. Chat completions,
-// the responses API, and the conversations API all share the `chat` channel and operation.
+// Each instrumented `create` method maps to the gen_ai operation its span reports.
 const INSTRUMENTED_CHANNELS = [
   { channel: CHANNELS.OPENAI_CHAT, operation: 'chat' },
   { channel: CHANNELS.OPENAI_EMBEDDINGS, operation: 'embeddings' },

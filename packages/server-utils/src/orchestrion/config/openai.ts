@@ -9,8 +9,7 @@ export const openaiConfig = [
     module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
     functionQuery: { className: 'Completions', methodName: 'create', kind: 'Auto' as const },
   })),
-  // OpenAI responses API — same `create(body, options)` shape as chat completions, and the subscriber
-  // reports it as the same `chat` operation, so it shares the `chat` channel.
+  // OpenAI responses API — same `create(body, options)` shape as chat completions.
   ...['resources/responses/responses.js', 'resources/responses/responses.mjs'].map(filePath => ({
     channelName: 'chat',
     module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
@@ -22,8 +21,7 @@ export const openaiConfig = [
     module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
     functionQuery: { className: 'Embeddings', methodName: 'create', kind: 'Auto' as const },
   })),
-  // OpenAI conversations API — same `create(body, options)` shape as chat completions, reported as the
-  // same `chat` operation, so it shares the `chat` channel.
+  // OpenAI conversations API — same `create(body, options)` shape as chat completions.
   ...['resources/conversations/conversations.js', 'resources/conversations/conversations.mjs'].map(filePath => ({
     channelName: 'chat',
     module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
