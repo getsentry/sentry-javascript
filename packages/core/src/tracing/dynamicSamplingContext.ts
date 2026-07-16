@@ -107,20 +107,26 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     return applyLocalSampleRateToDsc(frozenDsc);
   }
 
-  // For a non-recording placeholder in Tracing without Performance (TwP) mode, the DSC is not
-  // carried on the span; the scope is the source of truth. Resolve it from the span's captured
-  // scope: continued traces keep the incoming DSC, new traces derive it from the client.
+  // For a non-recording placeholder in Tracing without Performance (TwP) mode or an ignored segment,
+  // the DSC is not carried on the span; the scope is the source of truth. Resolve it from the span's
+  // captured scope so continued traces keep their incoming DSC.
   //
   // We gate this on `!hasSpansEnabled()` so it mirrors the `sentry-trace` source in `getTraceData`:
-  // with tracing enabled, a non-recording span (e.g. an `onlyIfParent` placeholder) keeps deriving
-  // its DSC from the span/client so the baggage agrees with the `-0` decision that `spanToTraceHeader`
-  // encodes for `sentry-trace`. Without this guard the two headers can disagree.
+  // with tracing enabled, other non-recording spans (e.g. an `onlyIfParent` placeholder) keep deriving
+  // their DSC from the span/client. Ignored segments are an explicit exception: they preserve the
+  // incoming DSC but override its sampling decision to agree with the propagated `sentry-trace`.
   //
   // We spread into a new object so applying the local sample rate can't mutate the scope's DSC.
-  if (spanIsNonRecordingSpan(rootSpan) && !hasSpansEnabled(client.getOptions())) {
+  const isNonRecordingRoot = spanIsNonRecordingSpan(rootSpan);
+  const isIgnoredRoot = isNonRecordingRoot && rootSpan.dropReason === 'ignored';
+  if (isNonRecordingRoot && (!hasSpansEnabled(client.getOptions()) || isIgnoredRoot)) {
     const capturedScope = getCapturedScopesOnSpan(rootSpan).scope;
     if (capturedScope) {
-      return applyLocalSampleRateToDsc({ ...getDynamicSamplingContextFromScope(client, capturedScope) });
+      const dsc = { ...getDynamicSamplingContextFromScope(client, capturedScope) };
+      if (isIgnoredRoot) {
+        dsc.sampled = 'false';
+      }
+      return applyLocalSampleRateToDsc(dsc);
     }
   }
 

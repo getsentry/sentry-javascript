@@ -1,6 +1,7 @@
 import type { LRUMap, SanitizedRequestData, Span } from '@sentry/core';
 import {
   addBreadcrumb,
+  getActiveSpan,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
   getSanitizedUrlString,
@@ -8,6 +9,7 @@ import {
   parseUrl,
   shouldPropagateTraceForUrl,
   mergeBaggageHeaders,
+  spanIsIgnored,
   withActiveSpan,
 } from '@sentry/core';
 import type { UndiciRequest, UndiciResponse } from '../integrations/node-fetch/types';
@@ -45,11 +47,11 @@ export function addTracePropagationHeadersToFetchRequest(
     return;
   }
 
-  // When a span is provided, make it active so the propagated headers reference it (and not the parent
-  // span). Passing `{ span }` to `getTraceData()` is not enough: for an inactive span it resolves to the
-  // span's captured scope, whose active span is still the parent.
-  const addedHeaders = span
-    ? withActiveSpan(span, () => getTraceData({ propagateTraceparent }))
+  // An ignored child must not become the propagation parent because no span will be emitted for it.
+  // Otherwise, make the span active so the propagated headers reference it instead of its parent.
+  const spanForTraceHeaders = span && spanIsIgnored(span) && getActiveSpan() ? undefined : span;
+  const addedHeaders = spanForTraceHeaders
+    ? withActiveSpan(spanForTraceHeaders, () => getTraceData({ propagateTraceparent }))
     : getTraceData({ propagateTraceparent });
 
   if (!addedHeaders) {
