@@ -404,10 +404,10 @@
   dependencies:
     json-schema-to-ts "^3.1.1"
 
-"@apm-js-collab/code-transformer-bundler-plugins@^0.6.0":
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.6.0.tgz#ed64bae9e1871366eadc1ef6dabc9ee6ccc53e57"
-  integrity sha512-Hys7LDskIB/BNrd87GAfYWHRE3mWgcPYonK4W9uxjho4N0JnPKk2YQyOLlqmkyVhj2UzwLRpmbJ4D6uR9O7wyw==
+"@apm-js-collab/code-transformer-bundler-plugins@^0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.6.1.tgz#29bf79167411b8607f02db177250b8f7c16d93e1"
+  integrity sha512-TDvypsLUk/W202Y1JBE6I2enQalWjbYXKnxpELWEZn6GLoIcGFii69ljh948hdAzKZJ/wg0Uwivz72a/szoOBQ==
   dependencies:
     "@apm-js-collab/code-transformer" "^0.18.0"
     es-module-lexer "^2.1.0"
@@ -426,10 +426,10 @@
     semifies "^1.0.0"
     source-map "^0.6.0"
 
-"@apm-js-collab/tracing-hooks@^0.12.0":
-  version "0.12.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.12.0.tgz#b65505d1d075fc8d8f4fa1973c37eaa9a9975b3f"
-  integrity sha512-U1cDbHOFbeToq5VWNcroBtQpz3hfH39uLkzJ5lorBFVNhHbTNj5MQvP+jODDwxBkG6A/agbQelG15rEoDgnjWg==
+"@apm-js-collab/tracing-hooks@^0.13.0":
+  version "0.13.0"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.13.0.tgz#20b2f77ec7a0e5dfd9fbf2215b56e2c2b7f41e4b"
+  integrity sha512-mTvWz9rnQwx1U3h0XPTHaX7bgfkpipLLTQyjlC2cdhQpQEuoLT0AGzoydeoq2NxfEVv6fWOOETcSbb2nptleyw==
   dependencies:
     "@apm-js-collab/code-transformer" "^0.18.0"
     debug "^4.4.1"
