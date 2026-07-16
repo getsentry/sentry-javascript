@@ -321,28 +321,22 @@ describe('Vercel AI integration (v4)', () => {
 
       expect(errorEvent).toBeDefined();
       expect(errorEvent!.tags).toMatchObject({ 'test-tag': 'test-value' });
-      // Trace id is shared between the transaction and the tool error.
-      expect(errorEvent!.contexts!.trace!.trace_id).toBe(transactionEvent!.contexts!.trace!.trace_id);
 
-      if (orchestrion) {
-        // The channel subscriber captures the raw tool error and tags it with the tool identity.
-        expect(errorEvent!.level).toBe('error');
-        expect(errorEvent!.tags).toMatchObject({
-          'vercel.ai.tool.name': 'getWeather',
-          'vercel.ai.tool.callId': 'call-1',
-        });
-      } else {
-        // The OTel processor surfaces the SDK's wrapped `AI_ToolExecutionError`.
-        expect(errorEvent!.exception?.values).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              type: 'AI_ToolExecutionError',
-              value: 'Error executing tool getWeather: Error in tool',
-            }),
-          ]),
-        );
-        expect(errorEvent!.contexts!.trace!.span_id).toBe(transactionEvent!.contexts!.trace!.span_id);
-      }
+      // The tool error bubbles out of the `ai` call as the SDK's wrapped `AI_ToolExecutionError`. The
+      // channel subscriber deliberately doesn't self-capture v4 tool errors (that would double-report
+      // alongside the bubbled error), so a single error event is produced in both modes.
+      expect(errorEvent!.exception?.values).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'AI_ToolExecutionError',
+            value: 'Error executing tool getWeather: Error in tool',
+          }),
+        ]),
+      );
+      // Both paths stamp the operation's call-site span onto the bubbled error, so the global
+      // unhandled-rejection handler restores it and correlates the report to the transaction's root span.
+      expect(errorEvent!.contexts!.trace!.trace_id).toBe(transactionEvent!.contexts!.trace!.trace_id);
+      expect(errorEvent!.contexts!.trace!.span_id).toBe(transactionEvent!.contexts!.trace!.span_id);
     });
   });
 
@@ -352,7 +346,7 @@ describe('Vercel AI integration (v4)', () => {
       let errorEvent: Event | undefined;
 
       const runner = createRunner()
-        // In orchestrion mode the tool error is captured mid-request, so envelopes can arrive in any order.
+        // The error and transaction/span envelopes can arrive in either order, so assert content, not order.
         .unordered()
         .expect({
           transaction: transaction => {
@@ -403,24 +397,18 @@ describe('Vercel AI integration (v4)', () => {
       expect(errorEvent!.tags).toMatchObject({ 'test-tag': 'test-value' });
       expect(errorEvent!.contexts!.trace!.trace_id).toBe(transactionEvent!.contexts!.trace!.trace_id);
 
-      if (orchestrion) {
-        // The channel subscriber captures the raw tool error and tags it with the tool identity.
-        expect(errorEvent!.tags).toMatchObject({
-          'vercel.ai.tool.name': 'getWeather',
-          'vercel.ai.tool.callId': 'call-1',
-        });
-      } else {
-        // The OTel processor surfaces the SDK's wrapped `AI_ToolExecutionError`.
-        expect(errorEvent!.exception?.values).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              type: 'AI_ToolExecutionError',
-              value: 'Error executing tool getWeather: Error in tool',
-            }),
-          ]),
-        );
-        expect(errorEvent!.contexts!.trace!.span_id).toBe(transactionEvent!.contexts!.trace!.span_id);
-      }
+      // The tool error bubbles out of the `ai` call as the SDK's wrapped `AI_ToolExecutionError` and is
+      // captured once by the express error handler — the channel subscriber deliberately doesn't
+      // self-capture v4 tool errors, so orchestrion and OTel produce the same single error event.
+      expect(errorEvent!.exception?.values).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'AI_ToolExecutionError',
+            value: 'Error executing tool getWeather: Error in tool',
+          }),
+        ]),
+      );
+      expect(errorEvent!.contexts!.trace!.span_id).toBe(transactionEvent!.contexts!.trace!.span_id);
     });
   });
 
