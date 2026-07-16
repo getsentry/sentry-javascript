@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { InstrumentationConfig } from '..';
 
 // `parse`/`validate`/`execute` are top-level named `function` declarations in graphql's compiled
 // files, stable across the supported majors, so `functionName` matches. `execute` returns

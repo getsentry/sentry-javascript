@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { InstrumentationConfig } from '..';
 
 // TODO: Stub for the `mongoose` orchestrion integration (ports `@opentelemetry/instrumentation-mongoose`).
 export const mongooseConfig: InstrumentationConfig[] = [];

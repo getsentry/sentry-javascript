@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { DEBUG_BUILD } from '../../debug-build';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 import type { register } from 'node:module';
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { InstrumentationConfig } from '..';
 
 type TracingHooksSync = {
   initialize: (opts: { instrumentations: InstrumentationConfig[] }) => void;

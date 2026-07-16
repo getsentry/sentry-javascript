@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { InstrumentationConfig } from '..';
 
 // Two shapes of `acquire`, both publishing to the same `orchestrion:generic-pool:acquire` channel:
 // - v3+: `class Pool { acquire(priority) }` returns a promise, so `kind: 'Auto'` resolves to `wrapPromise`.

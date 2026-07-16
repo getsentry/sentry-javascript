@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { InstrumentationConfig } from '..';
 
 export const hapiConfig = [
   // hapi's `route`/`ext` live on an anonymous class (`internals.Server = class {}`),

@@ -3,7 +3,7 @@
 
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { InstrumentationConfig } from '..';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 
 // Both branches use `createRequire` (never alias the CJS `require`) so bundlers consuming this

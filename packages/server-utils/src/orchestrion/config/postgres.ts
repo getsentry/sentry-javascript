@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { InstrumentationConfig } from '..';
 
 // postgres.js (`postgres` npm package, v3.x). Named after the npm package;
 // `postgres` doesn't collide with `pg.ts` (that file instruments `pg`/`pg-pool`).

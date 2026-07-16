@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { InstrumentationConfig } from '..';
 
 export const openaiConfig = [
   // OpenAI chat completions. `Completions.create` returns a thenable `APIPromise` with no callback arg,

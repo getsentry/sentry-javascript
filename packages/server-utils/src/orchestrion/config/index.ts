@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { InstrumentationConfig } from '..';
 import { uniq } from '@sentry/core';
 
 import { amqplibConfig } from './amqplib';
