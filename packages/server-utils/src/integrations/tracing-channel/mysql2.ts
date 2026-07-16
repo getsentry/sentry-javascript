@@ -2,12 +2,12 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
   defineIntegration,
+  extendIntegration,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_KIND,
   startInactiveSpan,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
 import { subscribeMysql2DiagnosticChannels } from '../../mysql2/mysql2-dc-subscriber';
 import type { ChannelName } from '../../orchestrion/channels';
@@ -21,6 +21,9 @@ import {
   NET_PEER_NAME,
   NET_PEER_PORT,
 } from '@sentry/conventions/attributes';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+import { mysql2ModuleNames } from '../../orchestrion/config/mysql2';
+import { mysql2Integration } from '../../mysql2';
 
 const INTEGRATION_NAME = 'Mysql2' as const;
 const ORIGIN = 'auto.db.orchestrion.mysql2';
@@ -135,19 +138,11 @@ function getConnectionAttributes(config: Mysql2ConnectionConfig | undefined): Sp
 }
 
 const _mysql2ChannelIntegration = (() => {
-  return {
-    name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => {
-        instrumentMysql2();
-      });
+  return extendIntegration(mysql2Integration(), {
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, mysql2ModuleNames, instrumentMysql2, []);
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**

@@ -1,8 +1,9 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { ExpressIntegrationOptions } from './types';
 import { instrumentExpress } from './instrumentation';
+import { expressModuleNames } from '../../../orchestrion/config/express';
+import { invokeOrchestrionInstrumentation } from '../../../orchestrion/instrumentation';
 
 // NOTE: this uses the same name as the OTel integration by design.
 // When enabled, the OTel 'Express' integration is omitted from the default set.
@@ -11,15 +12,8 @@ const INTEGRATION_NAME = 'Express' as const;
 const _expressChannelIntegration = ((options: ExpressIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => {
-        instrumentExpress(options, diagnosticsChannel.tracingChannel);
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, expressModuleNames, instrumentExpress, [options]);
     },
   };
 }) satisfies IntegrationFn;

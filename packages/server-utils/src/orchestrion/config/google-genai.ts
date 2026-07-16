@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { uniq } from '@sentry/core';
 
 // `@google/genai` ships one bundled file per module format and the matcher compares `filePath` exactly,
 // so we list every file the `node` export condition resolves to across the supported range: `index.js`
@@ -31,7 +32,9 @@ export const googleGenAiConfig = [
       functionQuery: { className: 'Chat', methodName, kind: 'Auto' as const },
     })),
   ),
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const googleGenAIModuleNames = uniq(googleGenAiConfig.map(config => config.module.name));
 
 export const googleGenAiChannels = {
   GOOGLE_GENAI_GENERATE_CONTENT: 'orchestrion:@google/genai:generate-content',

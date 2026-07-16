@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { uniq } from '@sentry/core';
 
 // `amqplib` splits its API across three files:
 // - `lib/channel_model.js` holds `class Channel` (publish/consume/ack/nack/reject/…) and
@@ -73,7 +74,9 @@ export const amqplibConfig = [
     module: { ...module, filePath: 'lib/connect.js' },
     functionQuery: { functionName: 'connect', kind: 'Callback' },
   },
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const amqplibModuleNames = uniq(amqplibConfig.map(config => config.module.name));
 
 export const amqplibChannels = {
   AMQPLIB_PUBLISH: 'orchestrion:amqplib:publish',

@@ -9,17 +9,22 @@ const INTEGRATION_NAME = 'Dataloader' as const;
 export const instrumentDataloader = generateInstrumentOnce(INTEGRATION_NAME, () => new DataloaderInstrumentation());
 
 const _dataloaderIntegration = (() => {
+  // Decide in setup/setupOnce, not in the factory: the runtime channel injection runs inside `Sentry.init()`,
+  // after the integrations array has already been built, so `isOrchestrionInjected()` is only
+  // reliable by `setup`. When the diagnostics channels are injected (runtime hook or bundler
+  // plugin), subscribe to them (the channel integration needs the client to register its
+  // injection listener); otherwise fall back to the vendored OTel instrumentation.
+
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      // Decide here, not in the factory: the runtime channel injection runs inside `Sentry.init()`,
-      // after the integrations array has already been built, so `isOrchestrionInjected()` is only
-      // reliable by `setupOnce`. When the diagnostics channels are injected (runtime hook or bundler
-      // plugin), subscribe to them; otherwise fall back to the vendored OTel instrumentation.
-      if (isOrchestrionInjected()) {
-        dataloaderChannelIntegration().setupOnce?.();
-      } else {
+      if (!isOrchestrionInjected()) {
         instrumentDataloader();
+      }
+    },
+    setup(client) {
+      if (isOrchestrionInjected()) {
+        dataloaderChannelIntegration().setup?.(client);
       }
     },
   };

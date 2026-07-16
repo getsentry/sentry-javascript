@@ -1,4 +1,4 @@
-import type * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
@@ -45,16 +45,8 @@ const ATTR_EXPRESS_TYPE = 'express.type';
 
 const NOOP = (): void => {};
 
-let _isInstrumented = false;
-
-export function instrumentExpress(
-  options: ExpressIntegrationOptions,
-  tracingChannel: typeof diagnosticsChannel.tracingChannel,
-): void {
-  if (_isInstrumented) {
-    return;
-  }
-  _isInstrumented = true;
+export function instrumentExpress(options: ExpressIntegrationOptions): void {
+  const tracingChannel = diagnosticsChannel.tracingChannel;
 
   // Record each layer's registered path *pattern* as it is registered, so the
   // matched route can be reconstructed with its parameters intact at request

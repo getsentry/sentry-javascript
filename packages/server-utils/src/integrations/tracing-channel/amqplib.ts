@@ -3,7 +3,6 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   continueTrace,
-  debug,
   defineIntegration,
   getTraceData,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -11,7 +10,6 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   timestampInSeconds,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
 // eslint-disable-next-line typescript/no-deprecated -- NET_PEER_* emitted alongside SERVER_* for backwards compatibility (TODO(v11): remove)
 import {
@@ -27,9 +25,10 @@ import {
   SERVER_PORT,
   URL_FULL,
 } from '@sentry/conventions/attributes';
-import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+import { amqplibModuleNames } from '../../orchestrion/config/amqplib';
 
 // NOTE: this uses the same name as the OTel integration by design.
 // When enabled, the OTel 'Amqplib' integration is omitted from the default set.
@@ -156,32 +155,20 @@ interface AmqpConnectContext {
 
 const NOOP = (): void => {};
 
-// Guards against subscribing to the amqplib channels more than once in a process. Core dedupes
-// `setupOnce` by integration *name*, which is not enough here: the Deno SDK wraps this integration
-// under a different name (`DenoAmqplib`) via `extendIntegration`, so adding both would otherwise run
-// the subscribe logic twice and emit duplicate spans for every operation.
-let subscribed = false;
+function instrumentAmqplib(): void {
+  subscribeConnect();
+  subscribePublish();
+  subscribeConfirmPublish();
+  subscribeConsume();
+  subscribeDispatch();
+  subscribeSettle();
+}
 
 const _amqplibChannelIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel || subscribed) {
-        return;
-      }
-      subscribed = true;
-
-      DEBUG_BUILD && debug.log('[orchestrion:amqplib] subscribing to amqplib tracing channels');
-
-      waitForTracingChannelBinding(() => {
-        subscribeConnect();
-        subscribePublish();
-        subscribeConfirmPublish();
-        subscribeConsume();
-        subscribeDispatch();
-        subscribeSettle();
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, amqplibModuleNames, instrumentAmqplib, []);
     },
   };
 }) satisfies IntegrationFn;

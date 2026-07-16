@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { uniq } from '@sentry/core';
 
 // `dataloader` ships a single transpiled CommonJS `index.js`. Its class methods are emitted as
 // `_proto.<name> = function <name>() {}` (named function *expressions*), so they match on
@@ -43,7 +44,9 @@ export const dataloaderConfig = [
     module,
     functionQuery: { expressionName: 'clearAll', kind: 'Sync' },
   },
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const dataloaderModuleNames = uniq(dataloaderConfig.map(config => config.module.name));
 
 export const dataloaderChannels = {
   DATALOADER_CONSTRUCT: 'orchestrion:dataloader:construct',

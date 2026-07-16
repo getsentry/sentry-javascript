@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { uniq } from '@sentry/core';
 
 export const expressConfig = [
   // Express funnels every middleware/route handler through a single method on
@@ -57,7 +58,9 @@ export const expressConfig = [
     module: { name: 'router', versionRange: '>=2.0.0 <3', filePath: 'index.js' },
     functionQuery: { expressionName: 'use', kind: 'Sync' },
   },
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const expressModuleNames = uniq(expressConfig.map(config => config.module.name));
 
 export const expressChannels = {
   // Express v4 runs each layer's handler through `Layer.prototype.handle_request`

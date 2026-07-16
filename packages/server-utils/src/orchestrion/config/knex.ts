@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { uniq } from '@sentry/core';
 
 const MODULE_NAME = 'knex';
 
@@ -43,7 +44,9 @@ export const knexConfig: InstrumentationConfig[] = [
   ...CLIENT_FILES.flatMap(({ filePath, versionRange }) =>
     CLIENT_METHODS.map(methodName => clientMethod(methodName, filePath, versionRange)),
   ),
-];
+] as const satisfies InstrumentationConfig[];
+
+export const knexModuleNames = uniq(knexConfig.map(config => config.module.name));
 
 export const knexChannels = {
   KNEX_QUERY: 'orchestrion:knex:query',

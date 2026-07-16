@@ -49,7 +49,7 @@ describe('orchestrion mysql instrumentation (Bun)', () => {
         // with the expected SQL
         expect(line).toContain('statement=SELECT 1 AS solution');
         // injected banner ran at bundle boot
-        expect(line).toContain('"bundler":true');
+        expect(line).toContain('"bundler":[]');
       } finally {
         if (outfile) {
           rmSync(dirname(outfile), { recursive: true, force: true });

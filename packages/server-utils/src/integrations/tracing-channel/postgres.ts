@@ -3,17 +3,16 @@ import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
 import {
   isObjectLike,
   bindScopeToEmitter,
-  debug,
   defineIntegration,
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_KIND,
   startInactiveSpan,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+import { pgModuleNames } from '../../orchestrion/config/pg';
 
 // NOTE: this uses the same name as the OTel integration by design.
 // When enabled, the OTel 'Postgres' integration is omitted from the default set.
@@ -79,28 +78,25 @@ interface PgPoolOptions extends PgConnectionParams {
   max?: number;
 }
 
+function instrumentPg(options: { ignoreConnectSpans?: boolean }) {
+  // Query spans: `pg`/native `Client.prototype.query`. Only this channel can return a streamable
+  // `Submittable` result, so it's the only one that defers span-ending to the emitter (see below).
+  subscribeQueryLikeChannel(CHANNELS.PG_QUERY, querySpanOptions, { deferStreamedResult: true });
+
+  // Connect spans, gated by `ignoreConnectSpans` (same as OTel pg).
+  // `Client.prototype.connect` (pg + native)
+  // and `Pool.prototype.connect` (pg-pool).
+  if (!options.ignoreConnectSpans) {
+    subscribeQueryLikeChannel(CHANNELS.PG_CONNECT, connectSpanOptions);
+    subscribeQueryLikeChannel(CHANNELS.PGPOOL_CONNECT, poolConnectSpanOptions);
+  }
+}
+
 const _postgresChannelIntegration = ((options: { ignoreConnectSpans?: boolean } = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => {
-        // Query spans: `pg`/native `Client.prototype.query`. Only this channel can return a streamable
-        // `Submittable` result, so it's the only one that defers span-ending to the emitter (see below).
-        subscribeQueryLikeChannel(CHANNELS.PG_QUERY, querySpanOptions, { deferStreamedResult: true });
-
-        // Connect spans, gated by `ignoreConnectSpans` (same as OTel pg).
-        // `Client.prototype.connect` (pg + native)
-        // and `Pool.prototype.connect` (pg-pool).
-        if (!options.ignoreConnectSpans) {
-          subscribeQueryLikeChannel(CHANNELS.PG_CONNECT, connectSpanOptions);
-          subscribeQueryLikeChannel(CHANNELS.PGPOOL_CONNECT, poolConnectSpanOptions);
-        }
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, pgModuleNames, instrumentPg, [options]);
     },
   };
 }) satisfies IntegrationFn;
@@ -116,8 +112,6 @@ function subscribeQueryLikeChannel(
   getSpanOptions: (ctx: PgChannelContext) => { name: string; op: string; attributes: SpanAttributes },
   { deferStreamedResult = false }: { deferStreamedResult?: boolean } = {},
 ): void {
-  DEBUG_BUILD && debug.log(`[orchestrion:pg] subscribing to channel "${channelName}"`);
-
   bindTracingChannelToSpan(
     diagnosticsChannel.tracingChannel<PgChannelContext>(channelName),
     data => {

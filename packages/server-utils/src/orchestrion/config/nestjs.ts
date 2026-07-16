@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { uniq } from '@sentry/core';
 
 /**
  * Wrap an instrumentation that targets nodes via a raw esquery selector
@@ -128,7 +129,9 @@ export const nestjsConfig = [
     },
     functionQuery: { functionName: 'Processor', kind: 'Sync' },
   },
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const nestjsModuleNames = uniq(nestjsConfig.map(config => config.module.name));
 
 export const nestjsChannels = {
   NESTJS_APP_CREATION: 'orchestrion:@nestjs/core:nestFactoryCreate',

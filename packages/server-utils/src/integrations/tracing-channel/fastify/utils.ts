@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from './types';
 
-export const INTEGRATION_NAME = 'Fastify';
+export const INTEGRATION_NAME = 'Fastify' as const;
 
 /**
  * Default function to determine if an error should be sent to Sentry

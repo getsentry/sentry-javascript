@@ -1,4 +1,4 @@
-import { debug, GLOBAL_OBJ } from '@sentry/core';
+import { debug, getClient, GLOBAL_OBJ } from '@sentry/core';
 import { createRequire } from 'node:module';
 import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
@@ -134,6 +134,7 @@ export function registerDiagnosticsChannelInjection(options?: RegisterDiagnostic
         GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ || {};
         GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime = GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime || [];
         GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime.push(moduleName);
+        getClient()?.emit('orchestrion.module-runtime-injected', moduleName);
       }
     };
 

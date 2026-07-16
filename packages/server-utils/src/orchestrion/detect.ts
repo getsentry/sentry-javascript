@@ -50,3 +50,11 @@ export function detectOrchestrionSetup(): void {
       : '[Sentry] Bundler plugin did not run',
   );
 }
+
+/**
+ * Get a list of all module names (e.g. express, @nestjs/core, ...) that have been injected by orchestrion, either at runtime or via a bundler plugin.
+ */
+export function getOrchestrionInjectedModules(): string[] {
+  const { runtime, bundler } = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ?? {};
+  return [...(runtime ?? []), ...(bundler ?? [])];
+}

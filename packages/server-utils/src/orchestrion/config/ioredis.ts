@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { uniq } from '@sentry/core';
 
 export const ioredisConfig = [
   // ioredis `<5.11.0` (>=5.11.0 publishes its own `ioredis:*` diagnostics_channel)
@@ -24,7 +25,9 @@ export const ioredisConfig = [
     module: { name: 'ioredis', versionRange: '>=5.0.0 <5.11.0', filePath: 'built/Redis.js' },
     functionQuery: { className: 'Redis', methodName: 'connect', kind: 'Async' },
   },
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const ioredisModuleNames = uniq(ioredisConfig.map(config => config.module.name));
 
 export const ioredisChannels = {
   IOREDIS_COMMAND: 'orchestrion:ioredis:command',
