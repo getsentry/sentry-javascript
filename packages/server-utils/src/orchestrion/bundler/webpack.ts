@@ -47,6 +47,6 @@ export function getSentryInstrumentations(): InstrumentationConfig[] {
 /**
  * The code-transform webpack plugin, pre-fed the instrumentation config
  */
-export function sentryOrchestrionWebpackPlugin(options: PluginOptions): ReturnType<typeof codeTransformerWebpack> {
+export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformerWebpack> {
   return codeTransformerWebpack(orchestrionTransformOptions(options));
 }
