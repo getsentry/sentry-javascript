@@ -5,6 +5,8 @@ import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
+import type { PluginOptions } from './options';
+import { orchestrionTransformOptions } from './options';
 
 // Both branches use `createRequire` (never alias the CJS `require`) so bundlers consuming this
 // module don't emit a "Critical dependency" warning.
@@ -42,14 +44,12 @@ export function getSentryInstrumentations(): InstrumentationConfig[] {
 }
 
 /**
- * The code-transform webpack plugin, pre-fed the instrumentation config. Unlike the Vite plugin it
- * does NOT inject the `__SENTRY_ORCHESTRION__.bundler` marker — that would disable the runtime
- * module hook, which externalized packages still need (hybrid setup).
+ * The code-transform webpack plugin, pre-fed the instrumentation config
  */
-export function sentryOrchestrionWebpackPlugin(): unknown {
+export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): unknown {
   const mod = getOrchestrionRequire()('@apm-js-collab/code-transformer-bundler-plugins/webpack') as {
     default?: (options: { instrumentations: InstrumentationConfig[] }) => unknown;
   };
   const codeTransformerWebpack = mod.default ?? (mod as unknown as NonNullable<typeof mod.default>);
-  return codeTransformerWebpack({ instrumentations: SENTRY_INSTRUMENTATIONS });
+  return codeTransformerWebpack(orchestrionTransformOptions(options));
 }
