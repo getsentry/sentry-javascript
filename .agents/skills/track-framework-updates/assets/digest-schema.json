@@ -14,7 +14,7 @@
     {
       "name": "React",
       "sentryPackages": ["@sentry/react"],
-      "category": "client",
+      "category": "client|server|meta-framework|platform|library",
       "releases": [
         {
           "tag": "v19.0.0",

@@ -60,12 +60,7 @@ export function instrumentExpress(
   // matched route can be reconstructed with its parameters intact at request
   // time. Only the `end` event matters (the layer is on the router's stack by
   // then); the others are required by the subscriber type, so no-op them.
-  for (const channelName of [
-    CHANNELS.EXPRESS_ROUTE,
-    CHANNELS.EXPRESS_USE,
-    CHANNELS.ROUTER_ROUTE,
-    CHANNELS.ROUTER_USE,
-  ]) {
+  for (const channelName of [CHANNELS.EXPRESS_REGISTER, CHANNELS.ROUTER_REGISTER]) {
     tracingChannel<RegistrationChannelContext>(channelName).subscribe({
       start: NOOP,
       asyncStart: NOOP,

@@ -3,6 +3,7 @@ import { uniq } from '@sentry/core';
 
 import { amqplibConfig } from './amqplib';
 import { anthropicAiConfig } from './anthropic-ai';
+import { awsSdkConfig } from './aws-sdk';
 import { dataloaderConfig } from './dataloader';
 import { expressConfig } from './express';
 import { firebaseConfig } from './firebase';
@@ -44,6 +45,7 @@ import { vercelAiConfig } from './vercel-ai';
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...amqplibConfig,
   ...anthropicAiConfig,
+  ...awsSdkConfig,
   ...dataloaderConfig,
   ...expressConfig,
   ...firebaseConfig,

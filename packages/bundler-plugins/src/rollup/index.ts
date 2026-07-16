@@ -20,9 +20,13 @@ import type {
 } from '../core/component-annotation-vite';
 import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
-import type { TransformResult } from 'rollup';
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
+
+// The subset of Rollup's `TransformResult` that this plugin's `transform`
+// hook actually returns. Defined locally instead of imported from `rollup`
+// because `rollup` is an optional dependency.
+type TransformResult = { code: string; map?: SourceMap | string | { mappings: string } | null } | null | undefined;
 
 type ViteModule = {
   parseAstAsync?: (code: string, options: { lang: 'jsx' | 'tsx' }) => Promise<unknown>;

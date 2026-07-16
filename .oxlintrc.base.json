@@ -148,6 +148,20 @@
       }
     },
     {
+      "files": ["**/integrations/tracing-channel/aws-sdk/**/*.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off",
+        "typescript/no-unsafe-member-access": "off"
+      }
+    },
+    {
+      "files": ["**/integrations/tracing-channel/aws-sdk/services/**/*.ts"],
+      "rules": {
+        "max-lines": "off",
+        "complexity": "off"
+      }
+    },
+    {
       "files": ["**/integrations/tracing/redis/vendored/**/*.ts"],
       "rules": {
         "typescript/no-explicit-any": "off",

@@ -16,7 +16,7 @@ function createMockClient(httpBodies: string[] = []): Client {
       cookies: true,
       httpHeaders: { request: true, response: true },
       httpBodies,
-      queryParams: true,
+      urlQueryParams: true,
       graphQL: { document: true, variables: true },
       genAI: { inputs: true, outputs: true },
       databaseQueryData: true,

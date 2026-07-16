@@ -75,7 +75,13 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
     },
 
     async load(id) {
-      if (onlyInstrumentClient && isServerBuild) {
+      // On Vite 6+ `config.build.ssr` captured in `configResolved` no longer reliably reflects the per-environment build.
+      // Prefer the environment of the current build (`this.environment.name === 'ssr'`) and fall back to
+      // `isServerBuild` for older Vite versions that don't expose environments.
+      const environmentName = (this as { environment?: { name?: string } }).environment?.name;
+      const isServerEnvironment = environmentName != null ? environmentName === 'ssr' : !!isServerBuild;
+
+      if (onlyInstrumentClient && isServerEnvironment) {
         return null;
       }
 
