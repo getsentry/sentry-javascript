@@ -1,4 +1,4 @@
-import type { FunctionKind, InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
 
 /**
  * Wrap an instrumentation that targets nodes via a raw esquery selector
@@ -12,7 +12,7 @@ function astQueryInstrumentation(config: {
   channelName: string;
   module: InstrumentationConfig['module'];
   astQuery: string;
-  functionQuery: { kind: FunctionKind };
+  functionQuery: { kind: 'Sync' | 'Async' | 'Callback' | 'Auto' };
 }): InstrumentationConfig {
   return config as unknown as InstrumentationConfig;
 }

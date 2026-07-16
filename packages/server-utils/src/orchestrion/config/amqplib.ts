@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
 
 // `amqplib` splits its API across three files:
 // - `lib/channel_model.js` holds `class Channel` (publish/consume/ack/nack/reject/…) and

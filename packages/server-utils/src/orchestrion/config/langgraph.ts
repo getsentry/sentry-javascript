@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
 
 // `@langchain/langgraph` ships dual CJS/ESM builds (`.cjs` for `require`, `.js` for `import`) and the
 // matcher compares `filePath` exactly, so each hook is declared once per built file. `StateGraph.compile`

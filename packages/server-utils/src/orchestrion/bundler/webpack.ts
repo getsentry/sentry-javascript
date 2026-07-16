@@ -3,7 +3,7 @@
 
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 import type { PluginOptions } from './options';
 import { orchestrionTransformOptions } from './options';

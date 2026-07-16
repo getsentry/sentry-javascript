@@ -4,8 +4,8 @@ import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { isMainThread, MessageChannel, parentPort } from 'node:worker_threads';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
 import type { register } from 'node:module';
+import type { InstrumentationConfig } from '..';
 
 type DiagnosticsEvent = { url: string; moduleName: string; error?: Error };
 

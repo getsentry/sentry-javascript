@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
 
 export const expressConfig = [
   // Express funnels every middleware/route handler through a single method on
