@@ -1,4 +1,5 @@
 import { koaChannelIntegration } from '@sentry/server-utils/orchestrion';
+import type { KoaChannelIntegrationOptions } from '@sentry/server-utils/orchestrion';
 import type { Integration, IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
@@ -11,8 +12,8 @@ const INTEGRATION_NAME = 'DenoKoa' as const;
  * `@sentry/server-utils`, adding Deno's `AsyncLocalStorage` context strategy so
  * spans nest under the active HTTP server span.
  */
-const _denoKoaIntegration = (() => {
-  const inner = koaChannelIntegration();
+const _denoKoaIntegration = ((options: KoaChannelIntegrationOptions = {}) => {
+  const inner = koaChannelIntegration(options);
 
   return extendIntegration(inner, {
     name: INTEGRATION_NAME,
@@ -22,7 +23,9 @@ const _denoKoaIntegration = (() => {
   });
 }) satisfies IntegrationFn;
 
-export const denoKoaIntegration = defineIntegration(_denoKoaIntegration) as () => Integration & {
+export const denoKoaIntegration = defineIntegration(_denoKoaIntegration) as (
+  options?: KoaChannelIntegrationOptions,
+) => Integration & {
   name: 'DenoKoa';
   setupOnce: () => void;
 };
