@@ -22,6 +22,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   setHttpStatus,
+  spanIsIgnored,
   spanToJSON,
   startInactiveSpan,
   stringMatchesSomePattern,
@@ -325,6 +326,7 @@ export function shouldAttachHeaders(
  *
  * @returns Span if a span was created, otherwise void.
  */
+// oxlint-disable-next-line complexity
 function xhrCallback(
   handlerData: HandlerDataXhr,
   shouldCreateSpan: (url: string) => boolean,
@@ -401,6 +403,10 @@ function xhrCallback(
         })
       : new SentryNonRecordingSpan();
 
+  // If the span is ignored, we don't want to continue the trace from it (NonRecordingSpan) but rather
+  // from the active span. Passing `undefined` here will make `getTraceData` use the active span instead.
+  const spanForTraceHeaders = spanIsIgnored(span) && hasParent ? undefined : span;
+
   if (shouldCreateSpanResult && !shouldEmitSpan) {
     client?.recordDroppedEvent('no_parent_span', 'span');
   }
@@ -414,7 +420,7 @@ function xhrCallback(
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
-      hasSpansEnabled() && shouldEmitSpan ? span : undefined,
+      hasSpansEnabled() && shouldEmitSpan ? spanForTraceHeaders : undefined,
       propagateTraceparent,
     );
   }
