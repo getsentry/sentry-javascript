@@ -2,7 +2,7 @@ import { debug, GLOBAL_OBJ } from '@sentry/core';
 import { createRequire } from 'node:module';
 import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { isMainThread, MessageChannel } from 'node:worker_threads';
+import { isMainThread, MessageChannel, parentPort } from 'node:worker_threads';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
 import type { register } from 'node:module';
@@ -63,9 +63,15 @@ function hasStableSyncModuleHooks(denoVersionString: string | undefined): boolea
  * the channel-based integrations subscribe to.
  */
 export function registerDiagnosticsChannelInjection(options?: RegisterDiagnosticsChannelInjectionOptions): void {
-  // We only want to register the hook once from the main thread.
-  // --import hooks are run in every worker thread!
-  if (!isMainThread) {
+  // Skip Node's internal loader (hooks) threads, recognizable as the only threads without a
+  // `parentPort`. Node re-runs `--require` preloads (though not `--import` ones) on the loader
+  // thread it spawns for `Module.register()`, so this function runs there too — but that thread
+  // never executes app code, and its `register()` implementation (the in-thread `Hooks` class)
+  // has no `transferList` parameter: our transfer array lands in its `isInternal` parameter and
+  // Node crashes trying to load the hook as an internal builtin. User-created workers always
+  // have a `parentPort` and register through `CustomizedModuleLoader`, which handles
+  // `transferList` correctly, so they proceed and get their own instrumented loader.
+  if (!isMainThread && !parentPort) {
     return;
   }
 
