@@ -1,9 +1,30 @@
+import { ChatOpenAI } from '@langchain/openai';
 import * as Sentry from '@sentry/cloudflare';
-import { type CallbackHandler, MockChain, MockChatModel, MockTool } from './mocks';
 
 interface Env {
   SENTRY_DSN: string;
 }
+
+// Return a canned response so the `@langchain/openai` model (backed by the
+// `openai` SDK) runs on workerd without hitting the network.
+const mockFetch: typeof fetch = async () =>
+  new Response(
+    JSON.stringify({
+      id: 'chatcmpl-mock123',
+      object: 'chat.completion',
+      created: 1677652288,
+      model: 'gpt-3.5-turbo',
+      choices: [
+        {
+          index: 0,
+          message: { role: 'assistant', content: 'Hello from LangChain!' },
+          finish_reason: 'stop',
+        },
+      ],
+      usage: { prompt_tokens: 10, completion_tokens: 15, total_tokens: 25 },
+    }),
+    { status: 200, headers: { 'content-type': 'application/json' } },
+  );
 
 export default Sentry.withSentry(
   (env: Env) => ({
@@ -13,38 +34,21 @@ export default Sentry.withSentry(
   }),
   {
     async fetch(_request, _env, _ctx) {
-      // Create LangChain callback handler
-      // The mock models accept their own local `CallbackHandler` shape, which differs from the SDK's handler type.
       const callbackHandler = Sentry.createLangChainCallbackHandler({
         recordInputs: false,
         recordOutputs: false,
-      }) as unknown as CallbackHandler;
+      });
 
-      // Test 1: Chat model invocation
-      const chatModel = new MockChatModel({
-        model: 'claude-3-5-sonnet-20241022',
+      const model = new ChatOpenAI({
+        model: 'gpt-3.5-turbo',
         temperature: 0.7,
         maxTokens: 100,
-      });
-
-      await chatModel.invoke('Tell me a joke', {
+        apiKey: 'mock-api-key',
+        configuration: { fetch: mockFetch },
         callbacks: [callbackHandler],
       });
 
-      // Test 2: Chain invocation
-      const chain = new MockChain('my_test_chain');
-      await chain.invoke(
-        { input: 'test input' },
-        {
-          callbacks: [callbackHandler],
-        },
-      );
-
-      // Test 3: Tool invocation
-      const tool = new MockTool('search_tool');
-      await tool.call('search query', {
-        callbacks: [callbackHandler],
-      });
+      await model.invoke('Tell me a joke');
 
       return new Response(JSON.stringify({ success: true }));
     },
