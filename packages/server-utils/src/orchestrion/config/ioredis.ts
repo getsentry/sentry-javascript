@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
 
 export const ioredisConfig = [
   // ioredis `<5.11.0` (>=5.11.0 publishes its own `ioredis:*` diagnostics_channel)

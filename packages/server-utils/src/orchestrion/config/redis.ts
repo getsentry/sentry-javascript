@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
 
 export const redisConfig = [
   // redis `>=2.6.0 <4` (standalone `redis`). `internal_send_command` is an

@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
 import { describe, expect, it } from 'vitest';
 import {
   INSTRUMENTED_MODULE_NAMES,

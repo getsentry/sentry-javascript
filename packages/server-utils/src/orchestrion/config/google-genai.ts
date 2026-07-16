@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
 
 // `@google/genai` ships one bundled file per module format and the matcher compares `filePath` exactly,
 // so we list every file the `node` export condition resolves to across the supported range: `index.js`
