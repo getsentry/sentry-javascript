@@ -13,6 +13,7 @@ import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
 import { addDatabaseInstrumentation } from './vite/databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
+import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { addStorageInstrumentation } from './vite/storageConfig';
 import { addOTelCommonJSImportAlias, findDefaultSdkInitFile, getNitroMajorVersion } from './vite/utils';
@@ -82,6 +83,10 @@ export default defineNuxtModule<ModuleOptions>({
     const isNitroV3 = (await getNitroMajorVersion()) >= 3;
     const nuxtMajor = parseInt((nuxt as unknown as { _version: string })._version?.split('.')[0] ?? '3', 10);
     const isMinNuxtV4 = nuxtMajor >= 4;
+
+    if (serverConfigFile && moduleOptions._experimental?.useDiagnosticsChannelInjection) {
+      setupOrchestrion(nuxt);
+    }
 
     if (serverConfigFile) {
       if (isNitroV3) {
