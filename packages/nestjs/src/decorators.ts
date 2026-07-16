@@ -3,6 +3,7 @@ import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENT
 import * as Sentry from '@sentry/node';
 import { startSpan } from '@sentry/node';
 import { isExpectedError } from './helpers';
+import { copyReflectMetadata } from './integrations/helpers';
 
 /**
  * A decorator wrapping the native nest Cron decorator, sending check-ins to Sentry.
@@ -100,20 +101,5 @@ function copyFunctionNameAndMetadata({
     writable: true,
   });
 
-  // copy metadata
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
-  if (typeof Reflect !== 'undefined' && typeof Reflect.getMetadataKeys === 'function') {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
-    const originalMetaData = Reflect.getMetadataKeys(originalMethod);
-    for (const key of originalMetaData) {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
-      const value = Reflect.getMetadata(key, originalMethod);
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
-      Reflect.defineMetadata(key, value, descriptor.value);
-    }
-  }
+  copyReflectMetadata(originalMethod, descriptor.value as object);
 }

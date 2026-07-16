@@ -13,7 +13,7 @@ export { mysql2Integration } from './integrations/tracing/mysql2';
 export { redisIntegration } from './integrations/tracing/redis';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { postgresJsIntegration } from './integrations/tracing/postgresjs';
-export { prismaIntegration } from './integrations/tracing/prisma';
+export { prismaIntegration } from '@sentry/server-utils';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
 // eslint-disable-next-line typescript/no-deprecated
 export { honoIntegration, setupHonoErrorHandler } from './integrations/tracing/hono';

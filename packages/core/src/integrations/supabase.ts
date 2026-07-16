@@ -385,7 +385,8 @@ function instrumentPostgRESTFilterBuilder(
         }
 
         const client = getClient();
-        const shouldSendData = _options.sendOperationData ?? client?.getDataCollectionOptions().userInfo === true;
+        const shouldSendData =
+          _options.sendOperationData ?? client?.getDataCollectionOptions().databaseQueryData === true;
         const bodyPayload = getMutationBodyPayloadForTelemetry(typedThis.body, body);
 
         // Adding operation to the beginning of the description if it's not a `select` operation
@@ -563,7 +564,7 @@ interface SupabaseIntegrationOptions {
    * Whether to attach PostgREST query filters and mutation body payloads
    * to Sentry telemetry.
    *
-   * Falls back to `dataCollection.userInfo` when not set.
+   * Falls back to `dataCollection.databaseQueryData` when not set.
    * @default undefined
    */
   sendOperationData?: boolean;

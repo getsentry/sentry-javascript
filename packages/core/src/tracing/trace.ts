@@ -407,6 +407,11 @@ function createChildOrRootSpan({
       dropReason: 'ignored',
       traceId: parentSpan?.spanContext().traceId ?? scope.getPropagationContext().traceId,
     });
+    if (parentSpan && !forceTransaction) {
+      // Preserve the root relationship so async context strategies can distinguish
+      // ignored children from ignored segments and keep the parent active.
+      addChildSpanToSpan(parentSpan, ignoredSpan);
+    }
     setCapturedScopesOnSpan(ignoredSpan, scope, isolationScope);
 
     return ignoredSpan;

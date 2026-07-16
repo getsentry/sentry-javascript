@@ -16,9 +16,9 @@ import {
 } from '@sentry/core';
 import type { GraphqlDocumentNode } from '../../../graphql/utils';
 import {
+  collectGraphqlDocument,
   getOperationSpanName,
   hasResultErrors,
-  redactGraphqlDocument,
   renameRootSpanWithOperation,
 } from '../../../graphql/utils';
 import { GRAPHQL_DATA_SYMBOL, ORIGIN, SPAN_NAME_EXECUTE, SPAN_NAME_PARSE, SPAN_NAME_VALIDATE } from './constants';
@@ -45,7 +45,7 @@ export function startParseSpan(): Span {
 export function startValidateSpan(documentAST: unknown): Span {
   return startInactiveSpan({
     name: SPAN_NAME_VALIDATE,
-    attributes: { ...BASE_ATTRIBUTES, [GRAPHQL_DOCUMENT]: redactGraphqlDocument(documentAST as GraphqlDocumentNode) },
+    attributes: { ...BASE_ATTRIBUTES, [GRAPHQL_DOCUMENT]: collectGraphqlDocument(documentAST as GraphqlDocumentNode) },
   });
 }
 
@@ -161,7 +161,7 @@ export function startExecuteSpan(
       ...BASE_ATTRIBUTES,
       [GRAPHQL_OPERATION_TYPE]: operationType,
       [GRAPHQL_OPERATION_NAME]: operationName || undefined,
-      [GRAPHQL_DOCUMENT]: redactGraphqlDocument(document as GraphqlDocumentNode | undefined),
+      [GRAPHQL_DOCUMENT]: collectGraphqlDocument(document as GraphqlDocumentNode | undefined),
     },
   });
 

@@ -10,7 +10,8 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getJsonString, getTruncatedJsonString } from '../ai/utils';
+import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
+import { stringify } from '../../utils/string';
 import { toolCallSpanContextMap } from './constants';
 import type { TokenSummary, ToolCallSpanContext } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
@@ -241,9 +242,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
       }
 
       const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
-      const messagesJson = enableTruncation
-        ? getTruncatedJsonString(filteredMessages)
-        : getJsonString(filteredMessages);
+      const messagesJson = enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages);
 
       span.setAttributes({
         [AI_PROMPT_ATTRIBUTE]: messagesJson,
@@ -275,7 +274,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
             ? originalMessagesJson
             : enableTruncation
               ? getTruncatedJsonString(filteredMessages)
-              : getJsonString(filteredMessages);
+              : stringify(filteredMessages);
 
         span.setAttributes({
           [AI_PROMPT_MESSAGES_ATTRIBUTE]: messagesJson,

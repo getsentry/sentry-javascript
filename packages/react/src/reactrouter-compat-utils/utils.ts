@@ -181,6 +181,57 @@ export function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location
 }
 
 /**
+ * Recovers the parent prefix for descendant `<Routes>` names.
+ *
+ * `allRoutes` flattens every mounted `<Routes>` into one set, so an orphaned descendant subtree can
+ * outscore the `.../*` route that anchors the location and drop its prefix (e.g. `/:id/:sub` instead of `/child/:id`).
+ * Matching only the descendant-parent routes recovers the true anchor.
+ */
+function reconstructNameFromDescendantParent(
+  location: Location,
+  allRoutes: RouteObject[],
+  currentName: string | undefined,
+): string | undefined {
+  const descendantParents = allRoutes.filter(routeIsDescendant);
+  if (!descendantParents.length) {
+    return undefined;
+  }
+
+  const matchedParents = _matchRoutes(descendantParents, location) as RouteMatch[] | null;
+  const parentMatch = matchedParents?.[matchedParents.length - 1];
+  if (!parentMatch || !pickSplat(parentMatch)) {
+    return undefined;
+  }
+
+  const parentTemplate = trimSlash(trimWildcard(parentMatch.route.path || ''));
+
+  if (!parentTemplate) {
+    return undefined;
+  }
+
+  const expectedPrefix = prefixWithSlash(parentTemplate);
+
+  // Child `<Routes>` resolve against the matched parent, but flattened route matching can already retain
+  // a dynamic leading parameter. Adding the parent again would duplicate it (e.g. `/:id/:id`)
+  const firstElement = parentTemplate.split('/')[0];
+  const hasDynamicLead = firstElement?.startsWith(':') && currentName?.split('/').includes(firstElement);
+
+  // Rebuild only when matching the descendant subtree discarded its parent route template
+  if (currentName === expectedPrefix || currentName?.startsWith(`${expectedPrefix}/`) || hasDynamicLead) {
+    return undefined;
+  }
+
+  const remainingPathname =
+    stripBasenameFromPathname(location.pathname, prefixWithSlash(parentMatch.pathnameBase)) || '/';
+  const remainingName = rebuildRoutePathFromAllRoutes(
+    allRoutes.filter(route => route !== parentMatch.route),
+    { pathname: remainingPathname },
+  );
+
+  return remainingName ? prefixWithSlash(`${parentTemplate}${prefixWithSlash(remainingName)}`) : undefined;
+}
+
+/**
  * Checks if the current location is inside a descendant route (route with splat parameter).
  */
 export function locationIsInsideDescendantRoute(location: Location, routes: RouteObject[]): boolean {
@@ -301,6 +352,13 @@ export function resolveRouteNameAndSource(
 
   if (!isInDescendantRoute || !name) {
     [name, source] = getNormalizedName(routes, location, branches, basename);
+  }
+
+  // Guard against orphaned descendant subtrees stealing the transaction name: if the location is
+  // anchored by a descendant-parent route (`.../*`) whose prefix was dropped, reconstruct with it.
+  const anchoredName = reconstructNameFromDescendantParent(location, allRoutes, name);
+  if (anchoredName) {
+    return [anchoredName, 'route'];
   }
 
   return [name || location.pathname, source];

@@ -9,7 +9,9 @@ describe('defaultPiiToCollectionOptions', () => {
       httpHeaders: { request: true, response: true },
       httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
       urlQueryParams: true,
+      graphQL: { document: true, variables: true },
       genAI: { inputs: true, outputs: true },
+      databaseQueryData: true,
       stackFrameVariables: true,
       frameContextLines: 7,
     });
@@ -25,7 +27,9 @@ describe('defaultPiiToCollectionOptions', () => {
       },
       httpBodies: [],
       urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      graphQL: { document: true, variables: true },
       genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
       stackFrameVariables: true,
       frameContextLines: 7,
     });
@@ -41,7 +45,9 @@ describe('defaultPiiToCollectionOptions', () => {
       },
       httpBodies: [],
       urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      graphQL: { document: true, variables: true },
       genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
       stackFrameVariables: true,
       frameContextLines: 7,
     });
@@ -57,7 +63,9 @@ describe('defaultPiiToCollectionOptions', () => {
       },
       httpBodies: [],
       urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      graphQL: { document: true, variables: true },
       genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
       stackFrameVariables: true,
       frameContextLines: 7,
     });
