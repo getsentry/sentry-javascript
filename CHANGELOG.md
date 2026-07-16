@@ -6,6 +6,8 @@
 
 Work in this release was contributed by @dobladov and @PeterWadie. Thank you for your contributions!
 
+- feat(cloudflare): Instrument custom WorkerEntrypoint RPC receiver methods
+
 ## 10.65.0
 
 - feat(angular): Set `url` attributes on pageload and navigation spans ([#21985](https://github.com/getsentry/sentry-javascript/pull/21985))

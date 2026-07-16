@@ -7,6 +7,7 @@
     {
       "binding": "SUB_WORKER",
       "service": "cloudflare-worker-workerentrypoint-rpc-sub",
+      "entrypoint": "BindingEntrypoint",
     },
   ],
 }

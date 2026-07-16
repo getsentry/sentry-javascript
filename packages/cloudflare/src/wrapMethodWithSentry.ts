@@ -65,6 +65,7 @@ type MethodWrapperOptions = {
    * @default false
    */
   startNewTrace?: boolean;
+  origin?: string;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,7 +93,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
     original =>
       new Proxy(original, {
         apply(target, thisArg, rawArgs: Parameters<T>) {
-          const { startNewTrace } = wrapperOptions;
+          const { startNewTrace, origin = 'auto.faas.cloudflare.durable_object' } = wrapperOptions;
 
           // For RPC methods, extract Sentry trace context from the trailing argument.
           // The caller side (instrumentDurableObjectStub / JSRPC proxy) appends it;
@@ -152,7 +153,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             const onRejected = (e: unknown) => {
               captureException(e, {
                 mechanism: {
-                  type: 'auto.faas.cloudflare.durable_object',
+                  type: origin,
                   handled: false,
                 },
               });
@@ -181,7 +182,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             const attributes = wrapperOptions.spanOp
               ? {
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.durable_object',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
                 }
               : {};
 

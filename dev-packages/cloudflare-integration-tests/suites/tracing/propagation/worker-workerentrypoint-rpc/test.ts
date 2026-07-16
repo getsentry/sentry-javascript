@@ -127,3 +127,89 @@ it('propagates trace for request with query params from Worker to WorkerEntrypoi
   expect(entrypointParentSpanId).toBeDefined();
   expect(entrypointParentSpanId).toBe(workerSpanId);
 });
+
+it('instruments inherited custom WorkerEntrypoint RPC methods and strips metadata', async ({ signal }) => {
+  let callerTraceId: string | undefined;
+  let receiverTraceId: string | undefined;
+
+  const runner = createRunner(__dirname)
+    .expect(envelope => {
+      const event = envelope[1]?.[0]?.[1] as Event;
+      expect(event.transaction).toBe('GET /call-entrypoint-rpc');
+      callerTraceId = event.contexts?.trace?.trace_id;
+    })
+    .expect(envelope => {
+      const event = envelope[1]?.[0]?.[1] as Event;
+      expect(event.transaction).toBe('get');
+      expect(event.contexts?.trace?.op).toBe('rpc');
+      receiverTraceId = event.contexts?.trace?.trace_id;
+    })
+    .expect(envelope => {
+      const event = envelope[1]?.[0]?.[1] as Event;
+      expect(event.transaction).toBe('inherited');
+      expect(event.contexts?.trace?.op).toBe('rpc');
+    })
+    .unordered()
+    .start(signal);
+
+  const response = await runner.makeRequest<{ argumentCount: number; inherited: string; key: string }>(
+    'get',
+    '/call-entrypoint-rpc',
+  );
+  expect(response).toEqual({ argumentCount: 1, inherited: 'base-value', key: 'feature-key' });
+
+  await runner.completed();
+  expect(receiverTraceId).toBe(callerTraceId);
+});
+
+it('captures errors thrown by custom WorkerEntrypoint RPC methods', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .expect(envelope => {
+      const event = envelope[1]?.[0]?.[1] as Event;
+      expect(event.exception?.values?.[0]?.value).toBe('custom RPC receiver failed');
+      expect(event.exception?.values?.[0]?.mechanism).toEqual({
+        handled: false,
+        type: 'auto.faas.cloudflare.worker_entrypoint',
+      });
+      expect(event.tags?.initial_scope).toBe('applied');
+      expect(event.tags?.before_send).toBe('applied');
+    })
+    .expect(envelope => {
+      const event = envelope[1]?.[0]?.[1] as Event;
+      expect(event.transaction).toBe('throwError');
+    })
+    .expect(envelope => {
+      const event = envelope[1]?.[0]?.[1] as Event;
+      expect(event.transaction).toBe('GET /call-entrypoint-rpc-error');
+    })
+    .unordered()
+    .start(signal);
+
+  const response = await runner.makeRequest<string>('get', '/call-entrypoint-rpc-error');
+  expect(response).toBe('fallback');
+
+  await runner.completed();
+});
+
+it('captures errors from loopback WorkerEntrypoint RPC without trace propagation', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .expect(envelope => {
+      const event = envelope[1]?.[0]?.[1] as Event;
+      expect(event.exception?.values?.[0]?.value).toBe('loopback RPC receiver failed');
+      expect(event.exception?.values?.[0]?.mechanism).toEqual({
+        handled: false,
+        type: 'auto.faas.cloudflare.worker_entrypoint',
+      });
+    })
+    .expect(envelope => {
+      const event = envelope[1]?.[0]?.[1] as Event;
+      expect(event.transaction).toBe('GET /call-loopback-rpc-error');
+    })
+    .unordered()
+    .start(signal);
+
+  const response = await runner.makeRequest<string>('get', '/call-loopback-rpc-error');
+  expect(response).toBe('fallback');
+
+  await runner.completed();
+});
