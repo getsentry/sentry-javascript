@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "10.65.0",
+  "version": "10.66.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -49,11 +49,11 @@
     "@nestjs/platform-express": "^11",
     "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "6.15.0",
-    "@sentry/aws-serverless": "10.65.0",
-    "@sentry/core": "10.65.0",
-    "@sentry/server-utils": "10.65.0",
-    "@sentry/hono": "10.65.0",
-    "@sentry/node": "10.65.0",
+    "@sentry/aws-serverless": "10.66.0",
+    "@sentry/core": "10.66.0",
+    "@sentry/server-utils": "10.66.0",
+    "@sentry/hono": "10.66.0",
+    "@sentry/node": "10.66.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
@@ -103,7 +103,7 @@
   },
   "devDependencies": {
     "@sentry/conventions": "0.16.0",
-    "@sentry-internal/test-utils": "10.65.0",
+    "@sentry-internal/test-utils": "10.66.0",
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",
