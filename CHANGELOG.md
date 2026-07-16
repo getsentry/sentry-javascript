@@ -3,11 +3,11 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
-- fix(cloudflare): Route Durable Object teardown through the original `waitUntil` to avoid a flush-lock deadlock that prevented WebSocket hibernation ([#22328](https://github.com/getsentry/sentry-javascript/issues/22328))
 
 Work in this release was contributed by @PeterWadie and @akshitsinha. Thank you for your contributions!
 
 - feat(replay): Allow skipping the final flush when stopping recording via `stop({ flush: false })` ([#22300](https://github.com/getsentry/sentry-javascript/pull/22300))
+- fix(cloudflare): Route Durable Object teardown through the original `waitUntil` to avoid a flush-lock deadlock that prevented WebSocket hibernation ([#22328](https://github.com/getsentry/sentry-javascript/issues/22328))
 
 ## 10.66.0
 
