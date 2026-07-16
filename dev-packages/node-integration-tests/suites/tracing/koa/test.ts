@@ -93,6 +93,7 @@ describe('koa auto-instrumentation', () => {
 
     test('should capture errors thrown in routes via the koa error handler.', async () => {
       const runner = createRunner()
+        .unordered()
         .expect({ transaction: { transaction: 'GET /error' } })
         .expect({ event: EXPECTED_ERROR_EVENT })
         .start();
