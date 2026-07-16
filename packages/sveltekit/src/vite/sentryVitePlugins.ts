@@ -119,44 +119,53 @@ function makeBrowserTracingVariantResolverPlugin(): Plugin {
 }
 
 /**
- * Determines whether the project uses SvelteKit 3+. Primarily resolves `@sveltejs/kit`'s
- * `package.json` through the bundler (not `process.cwd()`) so it reads the exact version the consumer
- * has installed, regardless of monorepo layout or working directory. The two variants use
- * incompatible `$app/*` APIs (`$app/stores` throws on Kit 3, `$app/state` is absent on old Kit 2),
- * so a wrong guess ships broken tracing.
+ * Determines whether to use the SvelteKit 3 (`$app/state`) browser-tracing variant. Primarily
+ * resolves `@sveltejs/kit`'s `package.json` through the bundler (not `process.cwd()`) so it reads the
+ * exact version the consumer has installed, regardless of monorepo layout or working directory. The
+ * two variants use incompatible `$app/*` APIs (`$app/stores` throws on Kit 3, `$app/state` is absent
+ * on old Kit 2), so a wrong guess ships broken tracing.
  *
- * If the version can't be read, we fall back to a heuristic — a `svelte.config` file is required on
- * SvelteKit 2 but not on SvelteKit 3 (config moved to the `sveltekit()` Vite plugin), so its absence
- * implies Kit 3 — and warn instead of failing the build.
+ * If the Kit version can't be read, we fall back to the installed Svelte major version and warn
+ * (never throw): Svelte < 5 can't be Kit 3, so use the `$app/stores` variant; on Svelte 5 use the
+ * `$app/state` variant, which is available on both Kit 2.12+ and Kit 3 — unlike `$app/stores`, which
+ * hard-breaks on Kit 3 — so this errs toward the safe direction. (A `svelte.config` file is not a
+ * reliable Kit-version signal: it's loaded by `@sveltejs/vite-plugin-svelte` on every version.)
  */
 async function isSvelteKit3(resolve: (id: string) => Promise<{ id: string } | null>): Promise<boolean> {
+  const kitMajor = await readPackageMajor(resolve, '@sveltejs/kit/package.json');
+  if (kitMajor !== undefined) {
+    return kitMajor >= 3;
+  }
+
+  const svelteMajor = await readPackageMajor(resolve, 'svelte/package.json');
+  const useKit3Variant = svelteMajor === undefined || svelteMajor >= 5;
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[@sentry/sveltekit] Couldn't read the installed `@sveltejs/kit` version to set up browser " +
+      `tracing; falling back to the Svelte ${svelteMajor ?? '?'} based variant ` +
+      `(${useKit3Variant ? '`$app/state`' : '`$app/stores`'}). ` +
+      'If browser tracing misbehaves, please report this to the Sentry SDK team.',
+  );
+  return useKit3Variant;
+}
+
+async function readPackageMajor(
+  resolve: (id: string) => Promise<{ id: string } | null>,
+  packageJsonId: string,
+): Promise<number | undefined> {
   try {
-    const resolved = await resolve('@sveltejs/kit/package.json');
+    const resolved = await resolve(packageJsonId);
     if (resolved) {
       const { version } = JSON.parse(fs.readFileSync(resolved.id, 'utf8')) as { version: string };
       const major = parseInt(version.split('.')[0] || '', 10);
       if (!Number.isNaN(major)) {
-        return major >= 3;
+        return major;
       }
     }
   } catch {
-    // fall through to the svelte.config heuristic
+    // ignore — caller handles the `undefined` case
   }
-
-  const isKit3 = !hasSvelteConfigFile();
-  // eslint-disable-next-line no-console
-  console.warn(
-    "[@sentry/sveltekit] Couldn't read the installed `@sveltejs/kit` version to set up browser tracing; " +
-      `assuming SvelteKit ${isKit3 ? '3' : '2'} from the ${isKit3 ? 'absence' : 'presence'} of a svelte.config file. ` +
-      'If browser tracing misbehaves, please report this to the Sentry SDK team.',
-  );
-  return isKit3;
-}
-
-function hasSvelteConfigFile(): boolean {
-  return ['svelte.config.js', 'svelte.config.mjs', 'svelte.config.ts'].some(file =>
-    fs.existsSync(path.join(process.cwd(), file)),
-  );
+  return undefined;
 }
 
 /**
