@@ -32,7 +32,7 @@
     "@opentelemetry/instrumentation-http": "0.220.0",
     "@opentelemetry/resources": "^2.9.0",
     "@opentelemetry/sdk-trace-base": "^2.9.0",
-    "@opentelemetry/semantic-conventions": "^1.42.0",
+    "@opentelemetry/semantic-conventions": "^1.43.0",
     "@sentry/core": "10.66.0",
     "@sentry/node-core": "10.66.0",
     "body-parser": "^2.2.2",
