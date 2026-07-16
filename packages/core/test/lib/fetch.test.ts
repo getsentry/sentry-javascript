@@ -1,7 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HandlerDataFetch } from '../../src';
 import { _INTERNAL_getTracingHeadersForFetchRequest, instrumentFetchRequest } from '../../src/fetch';
+import { SentryNonRecordingSpan } from '../../src/tracing/sentryNonRecordingSpan';
 import type { Span } from '../../src/types/span';
+import * as tracing from '../../src/tracing';
+import * as spanUtils from '../../src/utils/spanUtils';
+import * as traceData from '../../src/utils/traceData';
 
 const { DEFAULT_SENTRY_TRACE, DEFAULT_BAGGAGE, hasSpansEnabled } = vi.hoisted(() => ({
   DEFAULT_SENTRY_TRACE: 'defaultTraceId-defaultSpanId-1',
@@ -440,6 +444,41 @@ describe('_INTERNAL_getTracingHeadersForFetchRequest', () => {
 });
 
 describe('instrumentFetchRequest', () => {
+  describe('trace header span', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('uses the active propagation context for an ignored child span', () => {
+      const activeSpan = new SentryNonRecordingSpan();
+      hasSpansEnabled.mockReturnValue(true);
+      const ignoredSpan = new SentryNonRecordingSpan({ dropReason: 'ignored' });
+      vi.spyOn(spanUtils, 'getActiveSpan').mockReturnValue(activeSpan);
+      vi.spyOn(tracing, 'startInactiveSpan').mockReturnValue(ignoredSpan);
+
+      instrumentFetchRequest(
+        {
+          fetchData: { url: '/api/test', method: 'GET' },
+          args: ['/api/test'],
+          startTimestamp: Date.now(),
+        },
+        () => true,
+        () => true,
+        {},
+        { spanOrigin: 'auto.http.fetch' },
+      );
+
+      expect(traceData.getTraceData).toHaveBeenCalledWith({
+        span: undefined,
+        propagateTraceparent: false,
+      });
+    });
+  });
+
   describe('span cleanup', () => {
     it.each([
       { name: 'non-recording', hasTracingEnabled: false },

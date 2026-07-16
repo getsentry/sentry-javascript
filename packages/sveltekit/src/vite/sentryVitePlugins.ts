@@ -32,8 +32,8 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   const sentryPlugins: Plugin[] = [];
 
   if (mergedOptions.autoInstrument) {
-    // TODO: Once tracing is promoted stable, we need to adjust this check!
-    const kitTracingEnabled = !!svelteConfig.kit?.experimental?.tracing?.server;
+    // SvelteKit 3 (>= next.8) promoted `tracing` out of `experimental`; older versions nest it there.
+    const kitTracingEnabled = !!(svelteConfig.kit?.tracing?.server || svelteConfig.kit?.experimental?.tracing?.server);
 
     const pluginOptions: AutoInstrumentSelection = {
       load: true,

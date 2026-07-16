@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/deno-integration-tests",
-  "version": "10.65.0",
+  "version": "10.66.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -15,8 +15,8 @@
     "test:unit": "deno test --allow-net --allow-read --allow-run --allow-env --no-check"
   },
   "dependencies": {
-    "@sentry/core": "10.65.0",
-    "@sentry/deno": "10.65.0",
+    "@sentry/core": "10.66.0",
+    "@sentry/deno": "10.66.0",
     "mysql": "^2.18.1",
     "pg": "^8.22.0"
   },

@@ -215,11 +215,11 @@ Deno.test('App runs without errors', async _ => {
   });
 
   const output = await cmd.output();
-  assertEquals(output.success, true);
 
   const td = new TextDecoder();
   const outString = td.decode(output.stdout);
   const errString = td.decode(output.stderr);
-  assertEquals(outString, 'App has started\n');
   assertEquals(errString, '');
+  assertEquals(outString, 'App has started\n');
+  assertEquals(output.success, true);
 });

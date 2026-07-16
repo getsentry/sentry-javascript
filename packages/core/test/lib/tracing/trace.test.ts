@@ -2707,9 +2707,16 @@ describe('ignoreSpans (core path, streaming)', () => {
     client.init();
     const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
 
-    startSpan({ name: 'root' }, () => {
-      startSpan({ name: 'ignored-child' }, span => {
-        expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    startSpan({ name: 'root' }, rootSpan => {
+      startSpan({ name: 'ignored-child' }, ignoredSpan1 => {
+        expect(ignoredSpan1).toBeInstanceOf(SentryNonRecordingSpan);
+        expect(getRootSpan(ignoredSpan1)).toBe(rootSpan);
+
+        startSpan({ name: 'ignored-child' }, ignoredSpan2 => {
+          expect(ignoredSpan2).toBeInstanceOf(SentryNonRecordingSpan);
+          // since ignoredSpan1 is not active, ignoredSpan2 also has root as its parent
+          expect(getRootSpan(ignoredSpan2)).toBe(rootSpan);
+        });
       });
     });
 

@@ -16,7 +16,9 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): Resolve
         httpHeaders: { request: true, response: true },
         httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
         queryParams: true,
+        graphQL: { document: true, variables: true },
         genAI: { inputs: true, outputs: true },
+        databaseQueryData: true,
         stackFrameVariables: true,
         frameContextLines: 7, // default should be 5, but ContextLines integration uses 7
       }
@@ -26,7 +28,13 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): Resolve
         httpHeaders: { request: { deny: PII_HEADER_SNIPPETS }, response: { deny: PII_HEADER_SNIPPETS } },
         httpBodies: [],
         queryParams: { deny: PII_HEADER_SNIPPETS },
+        // The GraphQL document has literal values redacted at collection time, so it was historically
+        // always attached regardless of `sendDefaultPii`; keep it on to preserve that behavior.
+        graphQL: { document: true, variables: true },
         genAI: { inputs: false, outputs: false },
+        // Database query values were only sent with `sendDefaultPii: true` (e.g. Supabase gated on it),
+        // so map the legacy "off" state to `false`.
+        databaseQueryData: false,
         stackFrameVariables: true,
         frameContextLines: 7, // default should be 5, but ContextLines integration uses 7
       };
