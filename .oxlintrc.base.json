@@ -148,6 +148,12 @@
       }
     },
     {
+      "files": ["**/integrations/tracing-channel/aws-sdk/**/*.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
       "files": ["**/integrations/tracing/redis/vendored/**/*.ts"],
       "rules": {
         "typescript/no-explicit-any": "off",

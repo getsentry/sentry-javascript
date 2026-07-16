@@ -221,7 +221,10 @@ describe('awsIntegration (streamed)', () => {
           await createTestRunner().ignore('event').expect({ span: assertAwsServiceSpans }).start().completed();
         });
       },
-      { additionalDependencies },
+      // The orchestrion aws-sdk channel integration has no service extensions yet (empty registry),
+      // so it can't emit the service-specific attributes asserted here. Stay on the OTel path until
+      // the service extensions land in a follow-up.
+      { additionalDependencies, injectOrchestrion: false },
     );
   });
 });

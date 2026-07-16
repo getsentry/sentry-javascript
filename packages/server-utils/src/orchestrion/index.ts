@@ -1,5 +1,6 @@
 import { amqplibChannelIntegration } from '../integrations/tracing-channel/amqplib';
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
+import { awsChannelIntegration } from '../integrations/tracing-channel/aws-sdk';
 import { dataloaderChannelIntegration } from '../integrations/tracing-channel/dataloader';
 import { genericPoolChannelIntegration } from '../integrations/tracing-channel/generic-pool';
 import { googleGenAIChannelIntegration } from '../integrations/tracing-channel/google-genai';
@@ -30,6 +31,7 @@ export { nestjsChannels } from './config/nestjs';
 export {
   amqplibChannelIntegration,
   anthropicChannelIntegration,
+  awsChannelIntegration,
   dataloaderChannelIntegration,
   genericPoolChannelIntegration,
   googleGenAIChannelIntegration,
@@ -101,4 +103,5 @@ export const channelIntegrations = {
   graphqlIntegration: graphqlDiagnosticsChannelIntegration,
   kafkajsIntegration: kafkajsChannelIntegration,
   tediousIntegration: tediousChannelIntegration,
+  awsIntegration: awsChannelIntegration,
 } as const;
