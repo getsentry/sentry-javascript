@@ -6,3 +6,6 @@
 
 /** The span origin every aws-sdk channel span carries, mirroring the uniform OTel `auto.otel.aws`. */
 export const AWS_SDK_ORIGIN = 'auto.aws.orchestrion.aws_sdk';
+
+/** DynamoDB `db.system` value (an attribute value, not a key, so not covered by conventions). */
+export const DB_SYSTEM_VALUE_DYNAMODB = 'dynamodb';
