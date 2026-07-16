@@ -404,10 +404,10 @@
   dependencies:
     json-schema-to-ts "^3.1.1"
 
-"@apm-js-collab/code-transformer-bundler-plugins@^0.6.1":
-  version "0.6.1"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.6.1.tgz#29bf79167411b8607f02db177250b8f7c16d93e1"
-  integrity sha512-TDvypsLUk/W202Y1JBE6I2enQalWjbYXKnxpELWEZn6GLoIcGFii69ljh948hdAzKZJ/wg0Uwivz72a/szoOBQ==
+"@apm-js-collab/code-transformer-bundler-plugins@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.7.0.tgz#499cb4730570e4f4bc3a1e77739dc1fb17839a7a"
+  integrity sha512-huqdbQqE1lTUM2uud/qBY664o5qGPLrI/3ipGRNcTP37otpaVOb6omfIU/8QyR4aObhkpgnFl0ywtoAJZ+y2jw==
   dependencies:
     "@apm-js-collab/code-transformer" "^0.18.0"
     es-module-lexer "^2.1.0"
