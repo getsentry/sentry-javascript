@@ -1,9 +1,11 @@
 import { describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../../utils';
 import { createEsmAndCjsTests, describeWithDockerCompose } from '../../../../utils/runner';
 
 describe('knex auto instrumentation', () => {
   // Update this if another knex version is installed
   const KNEX_VERSION = '2.5.1';
+  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.knex' : 'auto.db.otel.knex';
 
   describeWithDockerCompose('with `pg` client', { workingDirectory: [__dirname] }, () => {
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
@@ -16,7 +18,7 @@ describe('knex auto instrumentation', () => {
                 'knex.version': KNEX_VERSION,
                 'db.system': 'postgresql',
                 'db.name': 'tests',
-                'sentry.origin': 'auto.db.otel.knex',
+                'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
                 'net.peer.name': 'localhost',
                 'net.peer.port': 5445,
@@ -24,14 +26,14 @@ describe('knex auto instrumentation', () => {
               status: 'ok',
               description:
                 'create table "User" ("id" serial primary key, "createdAt" timestamptz(3) not null default CURRENT_TIMESTAMP(3), "email" text not null, "name" text not null)',
-              origin: 'auto.db.otel.knex',
+              origin: ORIGIN,
             }),
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
                 'db.system': 'postgresql',
                 'db.name': 'tests',
-                'sentry.origin': 'auto.db.otel.knex',
+                'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
                 'net.peer.name': 'localhost',
                 'net.peer.port': 5445,
@@ -39,7 +41,7 @@ describe('knex auto instrumentation', () => {
               status: 'ok',
               // In the knex-otel spans, the placeholders (e.g., `$1`) are replaced by a `?`.
               description: 'insert into "User" ("email", "name") values (?, ?)',
-              origin: 'auto.db.otel.knex',
+              origin: ORIGIN,
             }),
 
             expect.objectContaining({
@@ -50,12 +52,12 @@ describe('knex auto instrumentation', () => {
                 'db.system': 'postgresql',
                 'db.name': 'tests',
                 'db.statement': 'select * from "User"',
-                'sentry.origin': 'auto.db.otel.knex',
+                'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
               }),
               status: 'ok',
               description: 'select * from "User"',
-              origin: 'auto.db.otel.knex',
+              origin: ORIGIN,
             }),
 
             expect.objectContaining({
@@ -66,12 +68,12 @@ describe('knex auto instrumentation', () => {
                 'db.system': 'postgresql',
                 'db.name': 'tests',
                 'db.statement': 'select * from "DoesNotExist"',
-                'sentry.origin': 'auto.db.otel.knex',
+                'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
               }),
               status: 'internal_error',
               description: 'select * from "DoesNotExist"',
-              origin: 'auto.db.otel.knex',
+              origin: ORIGIN,
             }),
           ]),
         };

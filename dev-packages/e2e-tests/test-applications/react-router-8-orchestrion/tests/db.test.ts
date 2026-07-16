@@ -36,6 +36,10 @@ test('Instruments ioredis automatically via orchestrion', async ({ baseURL }) =>
       }),
     }),
   );
+
+  // Each command maps to exactly one span (no offline-queue duplicate).
+  const setSpans = spans.filter(span => span.description === 'set test-key [1 other arguments]');
+  expect(setSpans).toHaveLength(1);
 });
 
 test('Instruments mysql automatically via orchestrion', async ({ baseURL }) => {

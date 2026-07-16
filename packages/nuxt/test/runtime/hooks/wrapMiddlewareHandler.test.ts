@@ -49,6 +49,7 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
         queryParams: true,
         graphQL: { document: true, variables: true },
         genAI: { inputs: false, outputs: false },
+        databaseQueryData: true,
         stackFrameVariables: true,
         frameContextLines: 5,
       }),

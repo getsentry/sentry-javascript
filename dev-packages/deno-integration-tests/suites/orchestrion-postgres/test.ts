@@ -92,7 +92,7 @@ Deno.test('@sentry/deno/import: transforms pg so it publishes the orchestrion ch
   // ...with the real SQL forwarded through the channel context.
   assert(line.includes('statement=SELECT 1 AS solution'), `expected forwarded SQL, got: ${line}`);
   // The runtime hook set its detection marker at boot.
-  assert(line.includes('"runtime":true'), `expected runtime marker, got: ${line}`);
+  assert(line.includes('"runtime":["pg","pg-pool"]'), `expected runtime marker, got: ${line}`);
 });
 
 // Exercises the SDK path end-to-end: `init()` wires `denoPostgresIntegration`

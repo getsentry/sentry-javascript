@@ -189,7 +189,6 @@ export function instrumentHttpOutgoingRequests(
     },
     outgoingResponseHook(span, response) {
       options.outgoingResponseHook?.(span, response);
-      context.bind(context.active(), response);
     },
     errorMonitor,
     // Pass these in to detect OTel double-wrapping if we're enabling spans
