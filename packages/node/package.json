@@ -125,7 +125,7 @@
     "@sentry/node-core": "10.66.0",
     "@sentry/opentelemetry": "10.66.0",
     "@sentry/server-utils": "10.66.0",
-    "@sentry/server-utils": "10.66.0",
+    "@sentry/bundler-plugins": "10.66.0",
     "import-in-the-middle": "^3.0.0"
   },
   "devDependencies": {
