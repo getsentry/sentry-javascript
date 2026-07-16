@@ -15,7 +15,8 @@ import {
   withScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
-import { flushAndDispose } from './flush';
+import type { ExecutionContextCompat } from './executionContext';
+import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { ensureInstrumented } from './instrument';
 import { init } from './sdk';
 import { extractRpcMeta } from './utils/rpcMeta';
@@ -117,7 +118,10 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             // see: https://github.com/getsentry/sentry-javascript/issues/13217
             const context: typeof wrapperOptions.context | undefined = wrapperOptions.context;
 
-            const waitUntil = context?.waitUntil?.bind?.(context);
+            // see: https://github.com/getsentry/sentry-javascript/issues/22328
+            const waitUntil = context
+              ? getOriginalWaitUntil(context as ExecutionContextCompat)?.bind(context)
+              : undefined;
             const storage = resolveOriginalStorage(context, thisArg);
 
             let scopeClient = scope.getClient();
