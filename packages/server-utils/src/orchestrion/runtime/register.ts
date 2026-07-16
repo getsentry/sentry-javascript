@@ -2,7 +2,7 @@ import { debug, GLOBAL_OBJ } from '@sentry/core';
 import { createRequire } from 'node:module';
 import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { MessageChannel } from 'node:worker_threads';
+import { isMainThread, MessageChannel } from 'node:worker_threads';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
 import type { register } from 'node:module';
@@ -63,6 +63,12 @@ function hasStableSyncModuleHooks(denoVersionString: string | undefined): boolea
  * the channel-based integrations subscribe to.
  */
 export function registerDiagnosticsChannelInjection(options?: RegisterDiagnosticsChannelInjectionOptions): void {
+  // We only want to register the hook once from the main thread.
+  // --import hooks are run in every worker thread!
+  if (!isMainThread) {
+    return;
+  }
+
   if (GLOBAL_OBJ?.__SENTRY_ORCHESTRION__?.runtime) {
     return;
   }
