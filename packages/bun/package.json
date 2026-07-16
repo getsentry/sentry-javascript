@@ -49,7 +49,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@apm-js-collab/code-transformer-bundler-plugins": "^0.6.1",
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.0",
     "@sentry/core": "10.65.0",
     "@sentry/node": "10.65.0",
     "@sentry/server-utils": "10.65.0"
