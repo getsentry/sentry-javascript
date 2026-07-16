@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import type { Plugin } from 'vite';
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
@@ -29,7 +31,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     adapter: options.adapter || (await detectAdapter(svelteConfig, options.debug)),
   };
 
-  const sentryPlugins: Plugin[] = [];
+  const sentryPlugins: Plugin[] = [makeBrowserTracingVariantResolverPlugin()];
 
   if (mergedOptions.autoInstrument) {
     // SvelteKit 3 (>= next.8) promoted `tracing` out of `experimental`; older versions nest it there.
@@ -69,6 +71,92 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   }
 
   return sentryPlugins;
+}
+
+// Virtual specifier imported by the SDK's `browserTracingIntegration`; this plugin resolves it to a
+// version-specific variant. A bare specifier (rather than a relative import) is required so this
+// `resolveId` hook intercepts it — Vite resolves relative imports inside `node_modules` during dep
+// pre-bundling, before plugin `resolveId` runs.
+const BROWSER_TRACING_VIRTUAL_ID = 'sentry-sveltekit-tracing';
+
+/**
+ * Resolves the `sentry-sveltekit-tracing` virtual module to the Svelte 4 (`$app/stores`) or Svelte 5
+ * (`$app/state`) variant based on the SvelteKit version installed in the user's project. Selecting
+ * the correct `$app/*` API at build time means only the matching variant is bundled, instrumentation
+ * runs eagerly (no dynamic import), and both Svelte versions stay supported from a single release.
+ */
+function makeBrowserTracingVariantResolverPlugin(): Plugin {
+  return {
+    name: 'sentry-sveltekit-browser-tracing-variant',
+    enforce: 'pre',
+    // Dev-only: esbuild dep pre-bundling resolves imports before `resolveId` runs and would fail on
+    // the `sentry-sveltekit-tracing` specifier, so exclude the SDK from it (not needed for build).
+    config(_config, { command }) {
+      if (command === 'serve') {
+        return { optimizeDeps: { exclude: ['@sentry/sveltekit'] } };
+      }
+      return undefined;
+    },
+    async resolveId(id) {
+      if (id !== BROWSER_TRACING_VIRTUAL_ID) {
+        return null;
+      }
+
+      const variantModule = (await isSvelteKit3(id => this.resolve(id, undefined, { skipSelf: true })))
+        ? 'svelte5BrowserTracing'
+        : 'svelte4BrowserTracing';
+
+      // Resolve the SDK's own entry to locate its build directory, then point at the sibling variant
+      // file. An absolute path bypasses the package `exports` map, so the variants stay internal.
+      const sdkEntry = await this.resolve('@sentry/sveltekit', undefined, { skipSelf: true });
+      if (!sdkEntry) {
+        return null;
+      }
+
+      return path.join(path.dirname(sdkEntry.id), 'client', `${variantModule}.js`);
+    },
+  };
+}
+
+/**
+ * Determines whether the project uses SvelteKit 3+. Primarily resolves `@sveltejs/kit`'s
+ * `package.json` through the bundler (not `process.cwd()`) so it reads the exact version the consumer
+ * has installed, regardless of monorepo layout or working directory. The two variants use
+ * incompatible `$app/*` APIs (`$app/stores` throws on Kit 3, `$app/state` is absent on old Kit 2),
+ * so a wrong guess ships broken tracing.
+ *
+ * If the version can't be read, we fall back to a heuristic — a `svelte.config` file is required on
+ * SvelteKit 2 but not on SvelteKit 3 (config moved to the `sveltekit()` Vite plugin), so its absence
+ * implies Kit 3 — and warn instead of failing the build.
+ */
+async function isSvelteKit3(resolve: (id: string) => Promise<{ id: string } | null>): Promise<boolean> {
+  try {
+    const resolved = await resolve('@sveltejs/kit/package.json');
+    if (resolved) {
+      const { version } = JSON.parse(fs.readFileSync(resolved.id, 'utf8')) as { version: string };
+      const major = parseInt(version.split('.')[0] || '', 10);
+      if (!Number.isNaN(major)) {
+        return major >= 3;
+      }
+    }
+  } catch {
+    // fall through to the svelte.config heuristic
+  }
+
+  const isKit3 = !hasSvelteConfigFile();
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[@sentry/sveltekit] Couldn't read the installed `@sveltejs/kit` version to set up browser tracing; " +
+      `assuming SvelteKit ${isKit3 ? '3' : '2'} from the ${isKit3 ? 'absence' : 'presence'} of a svelte.config file. ` +
+      'If browser tracing misbehaves, please report this to the Sentry SDK team.',
+  );
+  return isKit3;
+}
+
+function hasSvelteConfigFile(): boolean {
+  return ['svelte.config.js', 'svelte.config.mjs', 'svelte.config.ts'].some(file =>
+    fs.existsSync(path.join(process.cwd(), file)),
+  );
 }
 
 /**

@@ -11,8 +11,14 @@ import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 import type { Navigation } from '@sveltejs/kit';
 import { getCurrentNavigation, onNavigationChange, onPageRouteChange } from './navigationState.svelte';
 
-/** @internal */
-export function instrumentSvelteKit3Tracing(
+/**
+ * SvelteKit 3 / Svelte 5 browser tracing. Imports `$app/state` (runes) eagerly. Selected at build
+ * time by the `sentrySvelteKit()` Vite plugin, so this module (and its `$app/state` import) is only
+ * bundled on SvelteKit 3.
+ *
+ * @internal
+ */
+export function instrumentSvelteKitTracing(
   client: Client,
   options: { instrumentPageLoad?: boolean; instrumentNavigation?: boolean },
 ): void {
@@ -111,12 +117,9 @@ function _instrumentNavigations(client: Client): void {
     });
   }
 
-  // SvelteKit fires its data request (e.g. a server load's `__data.json`) synchronously at
-  // navigation start. A `$effect` reacting to `navigating` only runs a microtask later — after that
-  // request has already left carrying the *previous* trace, breaking the distributed trace. By
-  // wrapping `fetch` (outermost, since this runs after the SDK's own fetch instrumentation) we read
-  // `navigating` synchronously and start the navigation span *before* the request, so it propagates
-  // the navigation trace and the server continues it.
+  // SvelteKit fires its data request (e.g. `__data.json`) synchronously at navigation start, before
+  // a `$effect` on `navigating` runs (microtask), so the request would carry the previous trace. We
+  // wrap `fetch` to read `navigating` synchronously and start the nav span before the request goes.
   const originalFetch = WINDOW.fetch?.bind(WINDOW);
   if (originalFetch) {
     WINDOW.fetch = (...args: Parameters<typeof fetch>): ReturnType<typeof fetch> => {
