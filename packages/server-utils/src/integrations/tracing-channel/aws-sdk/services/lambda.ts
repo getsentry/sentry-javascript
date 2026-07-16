@@ -16,18 +16,15 @@ export class LambdaServiceExtension implements ServiceExtension {
   public requestPreSpanHook(request: NormalizedRequest): RequestMetadata {
     const functionName = request.commandInput?.FunctionName;
 
-    let spanAttributes: Record<string, unknown> = {};
+    const spanAttributes: Record<string, unknown> = {};
     let spanName: string | undefined;
 
-    switch (request.commandName) {
-      case INVOKE_COMMAND:
-        spanAttributes = {
-          [ATTR_FAAS_INVOKED_NAME]: functionName,
-          [ATTR_FAAS_INVOKED_PROVIDER]: 'aws',
-        };
-        spanName = `${functionName} ${INVOKE_COMMAND}`;
-        break;
+    if (request.commandName === INVOKE_COMMAND) {
+      spanAttributes[ATTR_FAAS_INVOKED_NAME] = functionName;
+      spanAttributes[ATTR_FAAS_INVOKED_PROVIDER] = 'aws';
+      spanName = `${functionName} ${INVOKE_COMMAND}`;
     }
+
     return {
       spanAttributes,
       spanKind: SPAN_KIND.CLIENT,

@@ -12,5 +12,7 @@ export const AWS_SDK_ORIGIN = 'auto.aws.orchestrion.aws_sdk';
 export const DB_SYSTEM_VALUE_DYNAMODB = 'dynamodb';
 
 // Messaging (obsolete OTel convention with no `@sentry/conventions` export, kept for parity)
+// TODO(v11): import from `@sentry/conventions` once a release including it ships (added in
+// getsentry/sentry-conventions#509), and drop this local constant.
 export const ATTR_MESSAGING_DESTINATION_KIND = 'messaging.destination_kind';
 export const MESSAGING_DESTINATION_KIND_VALUE_TOPIC = 'topic';
