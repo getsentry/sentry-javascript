@@ -36,18 +36,22 @@ const chatModelConfig = ['dist/language_models/chat_models.cjs', 'dist/language_
 // is the module hooked for it. (anthropic and groq are chat-only — they ship no embeddings class.) The
 // `embedQuery`/`embedDocuments` channel names are per-method; orchestrion prefixes them with the module
 // name, so the full channel strings stay distinct across packages.
+const EMBED_QUERY = 'embedQuery';
+const EMBED_DOCUMENTS = 'embedDocuments';
+
 const EMBEDDINGS_PROVIDERS = [
-  { name: '@langchain/openai', versionRange: '>=0.1.0 <2.0.0' },
-  { name: '@langchain/google-genai', versionRange: '>=0.1.0 <3.0.0' },
-  { name: '@langchain/mistralai', versionRange: '>=0.1.0 <2.0.0' },
-  { name: '@langchain/google-common', versionRange: '>=0.1.0 <3.0.0' },
+  { name: '@langchain/openai', versionRange: '>=0.1.0 <2.0.0', methods: [EMBED_QUERY, EMBED_DOCUMENTS] },
+  { name: '@langchain/google-genai', versionRange: '>=0.1.0 <3.0.0', methods: [EMBED_QUERY, EMBED_DOCUMENTS] },
+  { name: '@langchain/mistralai', versionRange: '>=0.1.0 <2.0.0', methods: [EMBED_QUERY, EMBED_DOCUMENTS] },
+  // `@langchain/google-vertexai` inherits its embed methods from this shared base. The base's
+  // `embedQuery` delegates to `embedDocuments`, so hooking only `embedDocuments` still traces both
+  // entry points as a single span each, instead of emitting a nested duplicate for `embedQuery`.
+  { name: '@langchain/google-common', versionRange: '>=0.1.0 <3.0.0', methods: [EMBED_DOCUMENTS] },
 ];
 
-const EMBEDDINGS_METHODS = ['embedQuery', 'embedDocuments'] as const;
-
-const embeddingsConfig = EMBEDDINGS_PROVIDERS.flatMap(({ name, versionRange }) =>
+const embeddingsConfig = EMBEDDINGS_PROVIDERS.flatMap(({ name, versionRange, methods }) =>
   ['dist/embeddings.cjs', 'dist/embeddings.js'].flatMap(filePath =>
-    EMBEDDINGS_METHODS.map(method => ({
+    methods.map(method => ({
       channelName: method,
       module: { name, versionRange, filePath },
       functionQuery: { methodName: method, kind: 'Async' as const },
@@ -59,8 +63,8 @@ export const langchainConfig = [...chatModelConfig, ...embeddingsConfig] satisfi
 
 // The embeddings channel strings the subscriber binds to, derived from the provider list above so that
 // adding a provider is a single edit that both instruments it and subscribes the listener to it.
-export const langchainEmbeddingsChannels = EMBEDDINGS_PROVIDERS.flatMap(({ name }) =>
-  EMBEDDINGS_METHODS.map(method => `orchestrion:${name}:${method}`),
+export const langchainEmbeddingsChannels = EMBEDDINGS_PROVIDERS.flatMap(({ name, methods }) =>
+  methods.map(method => `orchestrion:${name}:${method}`),
 );
 
 export const langchainChannels = {
