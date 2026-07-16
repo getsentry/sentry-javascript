@@ -105,7 +105,20 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
   test('ESM', async () => {
     await createRunner(__dirname, 'basic.mjs')
       .withMockSentryServer()
-      .expect({ event: ANR_EVENT_WITH_DEBUG_META('basic') })
+      .expect({
+        event: {
+          ...ANR_EVENT_WITH_DEBUG_META('basic'),
+          // Ensures breadcrumbs make it through the poll state rather than via AsyncLocalStorage
+          breadcrumbs: [
+            {
+              timestamp: expect.any(Number),
+              category: 'test',
+              message: 'blocking event loop soon',
+              level: 'info',
+            },
+          ],
+        },
+      })
       .start()
       .completed();
   });
