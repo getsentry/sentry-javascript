@@ -32,9 +32,8 @@ export const expressConfig = [
   // handler, `use`'s trailing function argument is a registration payload, not a
   // callback — so `Callback` would misclassify it and never fire `end`.
   //
-  // `route` and `use` share a single `register` channel: the subscriber handles
-  // both identically (record the freshly-registered layer's path) and they live
-  // in the same file, so one channel per module covers both.
+  // `route` and `use` share one `register` channel because the subscriber handles
+  // them identically, saving a channel per module.
   //
   // Express v4 ships its own router in `express/lib/router/index.js`.
   {
@@ -70,8 +69,6 @@ export const expressChannels = {
   // Layer *registration* (`Router.prototype.route`/`.use`), used to capture each
   // layer's registered path pattern so the matched route can be reconstructed
   // with its parameters intact (`req.baseUrl` only exposes the resolved prefix).
-  // `route` and `use` share one channel per module — the subscriber treats both
-  // the same.
   EXPRESS_REGISTER: 'orchestrion:express:register',
   ROUTER_REGISTER: 'orchestrion:router:register',
 } as const;
