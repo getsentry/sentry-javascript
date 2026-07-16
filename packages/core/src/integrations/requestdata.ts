@@ -56,7 +56,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
         data: true,
         headers: dataCollection.httpHeaders.request !== false,
         ip: dataCollection.userInfo,
-        query_string: dataCollection.queryParams !== false,
+        query_string: dataCollection.urlQueryParams !== false,
         // No dataCollection equivalent — URL is always included
         url: true,
         ...options.include,

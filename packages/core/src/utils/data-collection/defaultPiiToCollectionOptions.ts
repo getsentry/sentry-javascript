@@ -15,7 +15,7 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): Resolve
         cookies: true,
         httpHeaders: { request: true, response: true },
         httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
-        queryParams: true,
+        urlQueryParams: true,
         graphQL: { document: true, variables: true },
         genAI: { inputs: true, outputs: true },
         databaseQueryData: true,
@@ -27,7 +27,7 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): Resolve
         cookies: { deny: PII_HEADER_SNIPPETS },
         httpHeaders: { request: { deny: PII_HEADER_SNIPPETS }, response: { deny: PII_HEADER_SNIPPETS } },
         httpBodies: [],
-        queryParams: { deny: PII_HEADER_SNIPPETS },
+        urlQueryParams: { deny: PII_HEADER_SNIPPETS },
         // The GraphQL document has literal values redacted at collection time, so it was historically
         // always attached regardless of `sendDefaultPii`; keep it on to preserve that behavior.
         graphQL: { document: true, variables: true },
