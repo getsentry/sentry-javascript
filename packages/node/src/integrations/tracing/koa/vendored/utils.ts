@@ -11,7 +11,7 @@ import { KoaLayerType, type KoaInstrumentationConfig } from './types';
 import type { KoaContext, KoaMiddleware } from './internal-types';
 import { AttributeNames } from './enums/AttributeNames';
 import type { Attributes } from '@opentelemetry/api';
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, HTTP_ROUTE } from '@sentry/conventions/attributes';
 
 export const getMiddlewareMetadata = (
   context: KoaContext,
@@ -25,7 +25,7 @@ export const getMiddlewareMetadata = (
   if (isRouter) {
     return {
       attributes: {
-        [AttributeNames.KOA_NAME]: layerPath?.toString(),
+        [AttributeNames.KOA_NAME]: layerPath?.toString(), // TODO(v11): remove, replaced by http.route
         [AttributeNames.KOA_TYPE]: KoaLayerType.ROUTER,
         [HTTP_ROUTE]: layerPath?.toString(),
       },
@@ -34,8 +34,9 @@ export const getMiddlewareMetadata = (
   } else {
     return {
       attributes: {
-        [AttributeNames.KOA_NAME]: layer.name ?? 'middleware',
+        [AttributeNames.KOA_NAME]: layer.name ?? 'middleware', // TODO(v11): remove, replaced by code.function.name
         [AttributeNames.KOA_TYPE]: KoaLayerType.MIDDLEWARE,
+        [CODE_FUNCTION_NAME]: layer.name ?? 'middleware',
       },
       name: `middleware - ${layer.name}`,
     };

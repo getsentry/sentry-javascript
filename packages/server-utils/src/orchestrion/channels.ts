@@ -10,6 +10,7 @@ import { hapiChannels } from './config/hapi';
 import { ioredisChannels } from './config/ioredis';
 import { kafkajsChannels } from './config/kafkajs';
 import { knexChannels } from './config/knex';
+import { koaChannels } from './config/koa';
 import { langchainChannels } from './config/langchain';
 import { langgraphChannels } from './config/langgraph';
 import { lruMemoizerChannels } from './config/lru-memoizer';
@@ -57,6 +58,7 @@ export const CHANNELS = {
   ...ioredisChannels,
   ...kafkajsChannels,
   ...knexChannels,
+  ...koaChannels,
   ...langchainChannels,
   ...langgraphChannels,
   ...lruMemoizerChannels,

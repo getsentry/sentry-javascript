@@ -4,6 +4,70 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.66.0
+
+- chore(node-core): Deprecate `@sentry/node-core` package ([#22285](https://github.com/getsentry/sentry-javascript/pull/22285))
+- chore(tanstackstart): Deprecate `@sentry/tanstackstart` package ([#22284](https://github.com/getsentry/sentry-javascript/pull/22284))
+- deps(server-utils): bump @apm-js-collab/code-transformer and tracing-hooks ([#22172](https://github.com/getsentry/sentry-javascript/pull/22172))
+- feat(bun): Add `initWithoutDefaultIntegrations` and `getDefaultIntegrationsWithoutPerformance` ([#22036](https://github.com/getsentry/sentry-javascript/pull/22036))
+- feat(bundlers): Add orchestrion bundler plugins ([#22124](https://github.com/getsentry/sentry-javascript/pull/22124))
+- feat(cloudflare): Support Cloudflare types v5 & newer wrangler versions ([#22180](https://github.com/getsentry/sentry-javascript/pull/22180))
+- feat(core): Add and use `dataCollection.databaseQueryData` (for e.g. Supabase filter values and mutation bodies) ([#22219](https://github.com/getsentry/sentry-javascript/pull/22219))
+- feat(core): Add and use `dataCollection.graphQL` ([#22221](https://github.com/getsentry/sentry-javascript/pull/22221))
+- feat(core): Add stringify helper and make AI-tracing serializers safe ([#22163](https://github.com/getsentry/sentry-javascript/pull/22163))
+- feat(nestjs): Add orchestrion diagnostics-channel instrumentation ([#22176](https://github.com/getsentry/sentry-javascript/pull/22176))
+- feat(nextjs): Add opt-in for orchestrion instrumentation ([#22043](https://github.com/getsentry/sentry-javascript/pull/22043))
+- feat(node): Rewrite knex instrumentation to orchestrion tracing channels ([#22237](https://github.com/getsentry/sentry-javascript/pull/22237))
+- feat(server-utils): Capture and log orchestrion stats ([#22269](https://github.com/getsentry/sentry-javascript/pull/22269))
+- feat(server-utils): Migrate `@opentelemetry/instrumentation-kafkajs` to orchestrion ([#21923](https://github.com/getsentry/sentry-javascript/pull/21923))
+- feat(server-utils): Migrate `@opentelemetry/instrumentation-mysql2` to orchestrion ([#22229](https://github.com/getsentry/sentry-javascript/pull/22229))
+- feat(server-utils): Rewrite `@opentelemetry/instrumentation-dataloader` to orchestrion ([#22236](https://github.com/getsentry/sentry-javascript/pull/22236))
+- feat(server-utils): Rewrite `@opentelemetry/instrumentation-generic-pool` to orchestrion ([#22240](https://github.com/getsentry/sentry-javascript/pull/22240))
+- feat(sveltekit): Detect SvelteKit 3 native tracing from the Vite plugin ([#21580](https://github.com/getsentry/sentry-javascript/pull/21580))
+- fix: Include bundler CJS exports to fix Node warning ([#22286](https://github.com/getsentry/sentry-javascript/pull/22286))
+- fix(browser-utils): Remove readystatechange listener to prevent memory leaks ([#22216](https://github.com/getsentry/sentry-javascript/pull/22216))
+- fix(browser): Propagate trace data from active span if `http.client` span is non-recording ([#22246](https://github.com/getsentry/sentry-javascript/pull/22246))
+- fix(core): Preserve propagation across ignored spans ([#22277](https://github.com/getsentry/sentry-javascript/pull/22277))
+- fix(node): move dc integration swap to \_init ([#22173](https://github.com/getsentry/sentry-javascript/pull/22173))
+- fix(react-router): Correct url attributes for history and relative navigations ([#22131](https://github.com/getsentry/sentry-javascript/pull/22131))
+- fix(react): Preserve parent path prefix for descendant route names in `react-router` ([#22225](https://github.com/getsentry/sentry-javascript/pull/22225))
+- fix(server-utils): Dedupe ioredis orchestrion span for offline-queued commands ([#22279](https://github.com/getsentry/sentry-javascript/pull/22279))
+- fix(vue): Refresh pageload URL attrs on TanStack onResolved ([#22140](https://github.com/getsentry/sentry-javascript/pull/22140))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#22295](https://github.com/getsentry/sentry-javascript/pull/22295))
+- chore: Do not treat flaky test issues as bug ([#22272](https://github.com/getsentry/sentry-javascript/pull/22272))
+- chore: stub modules for orchestrion configs, channels ([#22195](https://github.com/getsentry/sentry-javascript/pull/22195))
+- chore: Update claude PR instructions ([#22241](https://github.com/getsentry/sentry-javascript/pull/22241))
+- chore(changelog): Add external contributor to next changelog ([#22234](https://github.com/getsentry/sentry-javascript/pull/22234))
+- chore(ci): Temporarily assign node/node-core reviews to whole JS SDK team ([#22226](https://github.com/getsentry/sentry-javascript/pull/22226))
+- chore(ci): Temporarily assign orchestrion reviews to whole JS SDK team ([#22215](https://github.com/getsentry/sentry-javascript/pull/22215))
+- chore(deps): Bump orchestrion dependencies to latest ([#22287](https://github.com/getsentry/sentry-javascript/pull/22287))
+- chore(deps): Bump `@sentry/conventions` to 0.16.0 ([#22270](https://github.com/getsentry/sentry-javascript/pull/22270))
+- chore(gitignore): Add `.pnpm-store` to gitignore ([#22223](https://github.com/getsentry/sentry-javascript/pull/22223))
+- chore(skills): Add bump-conventions skill ([#22271](https://github.com/getsentry/sentry-javascript/pull/22271))
+- fix(ci): Improve flaky test issue deduplication ([#22042](https://github.com/getsentry/sentry-javascript/pull/22042))
+- fix(ci): Unblock external-contributors checkout on fork PR merges ([#22235](https://github.com/getsentry/sentry-javascript/pull/22235))
+- ref(build): Replace ts-node with tsx for build and CI scripts ([#22186](https://github.com/getsentry/sentry-javascript/pull/22186))
+- ref(core): Remove redundant log buffer flush ([#22278](https://github.com/getsentry/sentry-javascript/pull/22278))
+- ref(nestjs): extract shared span helpers ([#22175](https://github.com/getsentry/sentry-javascript/pull/22175))
+- ref(node): Refactor some otel internals in http integrations ([#22292](https://github.com/getsentry/sentry-javascript/pull/22292))
+- ref(nuxt): Build the Nuxt module in-house instead of @nuxt/module-builder ([#22190](https://github.com/getsentry/sentry-javascript/pull/22190))
+- ref(server-utils): Move prisma instrumentation to server-utils ([#22222](https://github.com/getsentry/sentry-javascript/pull/22222))
+- test(anr): Use pure-JS busy work so ANR stack samples capture longWork ([#22133](https://github.com/getsentry/sentry-javascript/pull/22133))
+- test(browser-integration): Fix local runs referencing renamed `type-check` command ([#22243](https://github.com/getsentry/sentry-javascript/pull/22243))
+- test(e2e): Add E2E test app for orchestrion instrumentations on Remix ([#22218](https://github.com/getsentry/sentry-javascript/pull/22218))
+- test(nextjs): Add orchestrion e2e test app ([#22080](https://github.com/getsentry/sentry-javascript/pull/22080))
+- test(node-integration-tests): Free up CI disk space to prevent ENOSPC failures ([#22132](https://github.com/getsentry/sentry-javascript/pull/22132))
+- test(node-integration-tests): Reuse Docker Compose containers across tests ([#22128](https://github.com/getsentry/sentry-javascript/pull/22128))
+- test(react-router): Add orchestrion based e2e test app ([#22185](https://github.com/getsentry/sentry-javascript/pull/22185))
+- test(sveltekit): Add SvelteKit 3 e2e app ([#21540](https://github.com/getsentry/sentry-javascript/pull/21540))
+- test(tanstackstart): Deterministically match the server-side error event ([#22137](https://github.com/getsentry/sentry-javascript/pull/22137))
+
+</details>
+
 Work in this release was contributed by @dobladov and @PeterWadie. Thank you for your contributions!
 
 ## 10.65.0
