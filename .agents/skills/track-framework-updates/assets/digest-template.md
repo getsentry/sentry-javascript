@@ -39,6 +39,10 @@ _Window: last <SINCE_DAYS> days · generated <GENERATED_AT>_
 
 <!-- Same per-framework structure as Client-Side. Covers Node.js, Bun, Deno, Cloudflare Workers, AWS Lambda, Google Cloud. -->
 
+## Libraries
+
+<!-- Same per-framework structure as Client-Side. Covers state management (e.g. Pinia), loggers (e.g. Pino, Winston, Consola), validators (e.g. Zod), and other utility libraries the SDK instruments. -->
+
 ## Source coverage
 
 ⚠ The following SDK packages are **not tracked** in `sources.json`. Add an upstream framework entry or exclude them in `scripts/check_sources.py`:
