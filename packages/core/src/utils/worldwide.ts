@@ -55,6 +55,15 @@ export type InternalGlobal = {
   _sentryModuleMetadata?: Record<string, any>;
   _sentryEsmLoaderHookRegistered?: boolean;
   _sentryWrappedDepth?: number;
+  /**
+   * Orchestrion bundler and runtime detection.
+   */
+  __SENTRY_ORCHESTRION__?: {
+    /** Empty array signifies runtime hooked */
+    runtime?: string[];
+    /** Empty array signifies bundler plugin ran */
+    bundler?: string[];
+  };
 } & Carrier;
 
 /** Get's the global object for the current JavaScript runtime */

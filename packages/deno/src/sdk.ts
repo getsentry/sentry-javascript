@@ -24,6 +24,7 @@ import {
 import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
 import { denoAmqplibIntegration } from './integrations/amqplib';
+import { denoKoaIntegration } from './integrations/koa';
 import { denoMysqlIntegration } from './integrations/mysql';
 import { denoPostgresIntegration } from './integrations/postgres';
 import { denoRedisIntegration } from './integrations/redis';
@@ -62,7 +63,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     // (or in parallel to) loading the SDK, so we only gate on whether the
     // feature is possible. If they're never loaded, it'll just be a no-op.
     ...(MODULE_REGISTER_HOOKS_SUPPORTED
-      ? [denoMysqlIntegration(), denoPostgresIntegration(), denoAmqplibIntegration()]
+      ? [denoMysqlIntegration(), denoPostgresIntegration(), denoAmqplibIntegration(), denoKoaIntegration()]
       : []),
     contextLinesIntegration(),
     normalizePathsIntegration(),
