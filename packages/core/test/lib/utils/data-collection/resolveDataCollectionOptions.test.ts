@@ -220,7 +220,7 @@ describe('resolveDataCollectionOptions', () => {
     it('does not leak the deprecated queryParams key into the resolved output', () => {
       const result = resolveDataCollectionOptions({ dataCollection: { queryParams: false } });
       expect(result).not.toHaveProperty('queryParams');
-      expect(Object.keys(result)).toHaveLength(8);
+      expect(Object.keys(result)).toHaveLength(10);
     });
   });
 });
