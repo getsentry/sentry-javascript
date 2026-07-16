@@ -1,13 +1,12 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
-import { afterAll, beforeAll, expect } from 'vitest';
-import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
+import { afterAll, beforeAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-// Pins the highest mongoose 9 below 9.7, the top of the IITM patcher's `>=5.9.7 <9.7.0` range, so the
-// monkey-patch path is exercised against a real mongoose 9. mongoose >= 9.7 publishes via
-// diagnostics_channel and is covered by the `mongoose-tracing-channel` suite instead.
-// mongoose 9 requires Node >=20.19, so this suite is skipped on older Node.
-conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
+// Pins mongoose 5.9.7
+// the bottom of the IITM patcher's `>=5.9.7 <9.7.0` range, so the oldest
+// supported major is exercised against a real mongoose.
+describe('Mongoose v5 Test', () => {
   const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongoose' : 'auto.db.otel.mongoose';
   let mongoServer: MongoMemoryServer;
 
@@ -43,9 +42,6 @@ conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
       expectedSpan('aggregate'),
       expectedSpan('insertMany'),
       expectedSpan('bulkWrite'),
-      // Document instance methods are instrumented via Query.exec on v9 (no doc-method patch).
-      expectedSpan('updateOne'),
-      expectedSpan('deleteOne'),
     ]),
   };
 
@@ -54,10 +50,10 @@ conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
     'scenario.mjs',
     'instrument.mjs',
     (createTestRunner, test) => {
-      test('auto-instruments `mongoose` v9.', async () => {
+      test('auto-instruments `mongoose` v5.', async () => {
         await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     },
-    { additionalDependencies: { mongoose: '>=9 <9.7' } },
+    { additionalDependencies: { mongoose: '^5.9.7' } },
   );
 });

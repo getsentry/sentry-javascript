@@ -15,6 +15,7 @@ import { kafkajsChannelIntegration } from '../integrations/tracing-channel/kafka
 import { knexChannelIntegration } from '../integrations/tracing-channel/knex';
 import { langGraphChannelIntegration } from '../integrations/tracing-channel/langgraph';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
+import { mongooseChannelIntegration } from '../integrations/tracing-channel/mongoose';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { mysql2ChannelIntegration } from '../integrations/tracing-channel/mysql2';
 import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
@@ -43,6 +44,7 @@ export {
   knexChannelIntegration,
   langGraphChannelIntegration,
   lruMemoizerChannelIntegration,
+  mongooseChannelIntegration,
   mysqlChannelIntegration,
   mysql2ChannelIntegration,
   openaiChannelIntegration,
@@ -91,6 +93,7 @@ export const channelIntegrations = {
   mysqlIntegration: mysqlChannelIntegration,
   mysql2Integration: mysql2ChannelIntegration,
   genericPoolIntegration: genericPoolChannelIntegration,
+  mongooseIntegration: mongooseChannelIntegration,
   lruMemoizerIntegration: lruMemoizerChannelIntegration,
   openaiIntegration: openaiChannelIntegration,
   anthropicIntegration: anthropicChannelIntegration,

@@ -1,8 +1,10 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Mongoose experimental Test', () => {
+  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongoose' : 'auto.db.otel.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -29,7 +31,7 @@ describe('Mongoose experimental Test', () => {
         }),
         description: 'mongoose.BlogPost.save',
         op: 'db',
-        origin: 'auto.db.otel.mongoose',
+        origin,
       }),
       expect.objectContaining({
         data: expect.objectContaining({
@@ -40,7 +42,7 @@ describe('Mongoose experimental Test', () => {
         }),
         description: 'mongoose.BlogPost.findOne',
         op: 'db',
-        origin: 'auto.db.otel.mongoose',
+        origin,
       }),
       expect.objectContaining({
         data: expect.objectContaining({
@@ -51,7 +53,7 @@ describe('Mongoose experimental Test', () => {
         }),
         description: 'mongoose.BlogPost.aggregate',
         op: 'db',
-        origin: 'auto.db.otel.mongoose',
+        origin,
       }),
       expect.objectContaining({
         data: expect.objectContaining({
@@ -62,7 +64,7 @@ describe('Mongoose experimental Test', () => {
         }),
         description: 'mongoose.BlogPost.insertMany',
         op: 'db',
-        origin: 'auto.db.otel.mongoose',
+        origin,
       }),
       expect.objectContaining({
         data: expect.objectContaining({
@@ -73,7 +75,7 @@ describe('Mongoose experimental Test', () => {
         }),
         description: 'mongoose.BlogPost.bulkWrite',
         op: 'db',
-        origin: 'auto.db.otel.mongoose',
+        origin,
       }),
       // `remove` is patched only on mongoose 5/6.
       expect.objectContaining({
@@ -85,7 +87,7 @@ describe('Mongoose experimental Test', () => {
         }),
         description: 'mongoose.BlogPost.remove',
         op: 'db',
-        origin: 'auto.db.otel.mongoose',
+        origin,
       }),
       // A failing operation still produces a span, marked with an error status.
       expect.objectContaining({
@@ -95,7 +97,7 @@ describe('Mongoose experimental Test', () => {
         }),
         description: 'mongoose.RequiredDoc.save',
         op: 'db',
-        origin: 'auto.db.otel.mongoose',
+        origin,
         status: 'internal_error',
       }),
     ]),
