@@ -16,3 +16,7 @@ export const DB_SYSTEM_VALUE_DYNAMODB = 'dynamodb';
 // getsentry/sentry-conventions#509), and drop this local constant.
 export const ATTR_MESSAGING_DESTINATION_KIND = 'messaging.destination_kind';
 export const MESSAGING_DESTINATION_KIND_VALUE_TOPIC = 'topic';
+
+// Bedrock (gen_ai) attribute values (not keys, so not covered by conventions)
+export const GEN_AI_OPERATION_NAME_VALUE_CHAT = 'chat';
+export const GEN_AI_SYSTEM_VALUE_AWS_BEDROCK = 'aws.bedrock';
