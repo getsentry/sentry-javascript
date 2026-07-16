@@ -4,6 +4,7 @@ import {
   redisChannelIntegration,
   detectOrchestrionSetup,
 } from '@sentry/server-utils/orchestrion';
+import type { RegisterDiagnosticsChannelInjectionOptions } from '@sentry/server-utils/orchestrion/register';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import { cacheResponseHook } from '../integrations/tracing/redis/cache';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
@@ -45,9 +46,18 @@ export function diagnosticsChannelInjectionIntegrations(): typeof channelIntegra
  *
  * @experimental May change or be removed in any release.
  */
-export function experimentalUseDiagnosticsChannelInjection(): void {
+export function experimentalUseDiagnosticsChannelInjection(
+  // Forwarded to `registerDiagnosticsChannelInjection()`; framework SDKs whose bundlers compile
+  // the SDK into the app (e.g. `@sentry/nextjs`) use it to point the runtime module hook at the
+  // tracing-hooks package location resolved at build time. Plain Node apps don't need it.
+  options?: RegisterDiagnosticsChannelInjectionOptions,
+): void {
   setDiagnosticsChannelInjectionLoader((): DiagnosticsChannelInjection => {
-    // The registry integrations 1:1 replace the OTel integration of the same name.
+    // These channel integrations 1:1 replace the OTel integration of the
+    // same name. Framework SDKs that own their own channel listener
+    // (e.g. `@sentry/nestjs`'s `Nest`) are NOT here. They pick the
+    // channel-vs-OTel path themselves at integration `setupOnce`, so
+    // there's nothing for the central swap to do.
     const integrations = Object.values(channelIntegrations).map(createIntegration => createIntegration());
     const replacedOtelIntegrationNames = integrations.map(i => i.name);
 
@@ -61,7 +71,7 @@ export function experimentalUseDiagnosticsChannelInjection(): void {
         redisChannelIntegration({ responseHook: cacheResponseHook }),
       ],
       replacedOtelIntegrationNames,
-      register: registerDiagnosticsChannelInjection,
+      register: () => registerDiagnosticsChannelInjection(options),
       detect: detectOrchestrionSetup,
     };
   });

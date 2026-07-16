@@ -34,6 +34,7 @@ async function run() {
         await pgClient('DoesNotExist')
           .select('*')
           .catch(() => {});
+        await pgClient.schema.dropTable('User');
       } finally {
         await pgClient.destroy();
       }

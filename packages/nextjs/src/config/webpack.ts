@@ -20,7 +20,9 @@ import type {
   WebpackConfigObject,
   WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
+  WebpackPluginInstance,
 } from './types';
+import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
 import { getNextjsVersion, getPackageModules } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
 
@@ -428,6 +430,11 @@ export function constructWebpackConfigFunction({
         __SENTRY_SERVER_MODULES__: JSON.stringify(getPackageModules(projectDir)),
       }),
     );
+
+    // Orchestrion code-transform loader — Node server runtime only, never the edge compilation
+    if (runtime === 'server' && userSentryOptions._experimental?.useDiagnosticsChannelInjection) {
+      newConfig.plugins.push(sentryOrchestrionWebpackPlugin() as WebpackPluginInstance);
+    }
 
     return newConfig;
   };

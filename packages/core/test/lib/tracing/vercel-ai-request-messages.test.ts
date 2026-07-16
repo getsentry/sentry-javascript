@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { getJsonString, getTruncatedJsonString } from '../../../src/tracing/ai/utils';
+import { getTruncatedJsonString } from '../../../src/tracing/ai/utils';
+import { stringify } from '../../../src/utils/string';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
@@ -56,7 +57,7 @@ describe('requestMessagesFromPrompt (ai.prompt.messages string branch)', () => {
 
     expect(recorded[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]).toBe(JSON.stringify([{ type: 'text', content: 'be nice' }]));
     // System message removed; output is the SDK's own serialization of just the remainder.
-    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(getJsonString([{ role: 'user', content: 'hello' }]));
+    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(stringify([{ role: 'user', content: 'hello' }]));
     expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).not.toBe(original);
     expect(recorded[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toBe(1);
   });

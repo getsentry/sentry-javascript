@@ -1,6 +1,7 @@
 import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
 import { applySdkMetadata, debug, ServerRuntimeClient, spanIsSampled } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
+import type { ExecutionContextCompat } from './executionContext';
 import type { makeFlushLock } from './flush';
 import type { CloudflareTransportOptions } from './transport';
 
@@ -230,7 +231,7 @@ interface BaseCloudflareOptions {
  * @see @sentry/core Options for more information.
  */
 export interface CloudflareOptions extends Options<CloudflareTransportOptions>, BaseCloudflareOptions {
-  ctx?: ExecutionContext;
+  ctx?: ExecutionContextCompat;
 }
 
 /**

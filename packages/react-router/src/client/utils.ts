@@ -1,7 +1,14 @@
 import { getAbsoluteUrl } from '@sentry/browser';
-import { GLOBAL_OBJ } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import type { DataRouter, RouterState } from 'react-router';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
+
+const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+  __reactRouterDataRouter?: DataRouter;
+};
 
 /**
  * Resolves a navigate argument to a pathname string.
@@ -81,5 +88,76 @@ export function resolveNavigateAbsoluteUrl(target: unknown, currentUrl?: string)
     return getAbsoluteUrl(`${resolved.pathname}${resolved.search}${resolved.hash}`);
   } catch {
     return getAbsoluteUrl(destination);
+  }
+}
+
+/**
+ * Updates a navigation span's name and `url.path`/`url.full` from the current `location`.
+ */
+export function updateNavigationSpanUrlFromLocation(span: Span): void {
+  if (!WINDOW.location) {
+    return;
+  }
+
+  const { pathname, search = '', hash = '' } = WINDOW.location;
+  const destinationUrl = getAbsoluteUrl(`${pathname}${search}${hash}`);
+
+  span.updateName(pathname);
+  span.setAttributes({
+    [URL_PATH]: pathname,
+    [URL_FULL]: destinationUrl,
+  });
+}
+
+export function normalizePathname(pathname: string): string {
+  let normalized = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  if (normalized.length > 1 && normalized.endsWith('/')) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized;
+}
+
+export function getParameterizedRoute(routerState: RouterState): string {
+  const lastMatch = routerState.matches[routerState.matches.length - 1];
+  return normalizePathname(lastMatch?.route.path || routerState.location.pathname);
+}
+
+/**
+ * Updates a navigation span's URL attributes and parameterizes its name from the router state.
+ * Used after numeric navigations (`navigate(-1)` / `navigate(1)`) where route hooks may not
+ * supply a pattern (e.g. index routes).
+ *
+ * `url.path` reflects raw `location.pathname` (may include a trailing slash when the server
+ * redirects index routes), while `url.template` is normalized without trailing slashes.
+ */
+export function finalizeNavigationSpanFromRouterState(span: Span, routerState: RouterState): void {
+  updateNavigationSpanUrlFromLocation(span);
+
+  if (!WINDOW.location) {
+    return;
+  }
+
+  const { pathname } = WINDOW.location;
+
+  if (
+    routerState.navigation?.state === 'idle' &&
+    normalizePathname(routerState.location.pathname) === normalizePathname(pathname)
+  ) {
+    const parameterizedRoute = getParameterizedRoute(routerState);
+    span.updateName(parameterizedRoute);
+    span.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: parameterizedRoute });
+  }
+}
+
+/**
+ * Finalizes a navigation span after numeric navigation using the hydrated data router when
+ * available, otherwise falls back to URL attributes from `location` alone.
+ */
+export function finalizeNavigationSpanFromHydratedRouter(span: Span): void {
+  const router = GLOBAL_OBJ_WITH_DATA_ROUTER.__reactRouterDataRouter;
+  if (router) {
+    finalizeNavigationSpanFromRouterState(span, router.state);
+  } else {
+    updateNavigationSpanUrlFromLocation(span);
   }
 }

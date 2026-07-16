@@ -39,7 +39,23 @@
     },
     "./orchestrion/vite": {
       "types": "./build/types/orchestrion/bundler/vite.d.ts",
-      "import": "./build/esm/orchestrion/bundler/vite.js"
+      "import": "./build/esm/orchestrion/bundler/vite.js",
+      "require": "./build/cjs/orchestrion/bundler/vite.js"
+    },
+    "./orchestrion/rollup": {
+      "types": "./build/types/orchestrion/bundler/rollup.d.ts",
+      "import": "./build/esm/orchestrion/bundler/rollup.js",
+      "require": "./build/cjs/orchestrion/bundler/rollup.js"
+    },
+    "./orchestrion/webpack": {
+      "types": "./build/types/orchestrion/bundler/webpack.d.ts",
+      "import": "./build/esm/orchestrion/bundler/webpack.js",
+      "require": "./build/cjs/orchestrion/bundler/webpack.js"
+    },
+    "./orchestrion/esbuild": {
+      "types": "./build/types/orchestrion/bundler/esbuild.d.ts",
+      "import": "./build/esm/orchestrion/bundler/esbuild.js",
+      "require": "./build/cjs/orchestrion/bundler/esbuild.js"
     },
     "./orchestrion/import-hook": {
       "import": "./build/orchestrion/import-hook.mjs"
@@ -61,6 +77,15 @@
       ],
       "orchestrion/vite": [
         "build/types-ts3.8/orchestrion/bundler/vite.d.ts"
+      ],
+      "orchestrion/rollup": [
+        "build/types-ts3.8/orchestrion/bundler/rollup.d.ts"
+      ],
+      "orchestrion/webpack": [
+        "build/types-ts3.8/orchestrion/bundler/webpack.d.ts"
+      ],
+      "orchestrion/esbuild": [
+        "build/types-ts3.8/orchestrion/bundler/esbuild.d.ts"
       ]
     },
     "*": {
@@ -75,6 +100,15 @@
       ],
       "orchestrion/vite": [
         "build/types/orchestrion/bundler/vite.d.ts"
+      ],
+      "orchestrion/rollup": [
+        "build/types/orchestrion/bundler/rollup.d.ts"
+      ],
+      "orchestrion/webpack": [
+        "build/types/orchestrion/bundler/webpack.d.ts"
+      ],
+      "orchestrion/esbuild": [
+        "build/types/orchestrion/bundler/esbuild.d.ts"
       ]
     }
   },
@@ -82,12 +116,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@apm-js-collab/code-transformer-bundler-plugins": "^0.5.0",
-    "@apm-js-collab/code-transformer": "^0.15.0",
-    "@apm-js-collab/tracing-hooks": "^0.10.1",
-    "@sentry/conventions": "^0.15.1",
-    "@sentry/core": "10.65.0",
-    "magic-string": "~0.30.0"
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.6.1",
+    "@apm-js-collab/code-transformer": "^0.18.0",
+    "@apm-js-collab/tracing-hooks": "^0.13.0",
+    "@sentry/conventions": "^0.16.0",
+    "@sentry/core": "10.65.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.1",

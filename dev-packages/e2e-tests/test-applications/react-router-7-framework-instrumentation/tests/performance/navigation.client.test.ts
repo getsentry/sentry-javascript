@@ -14,9 +14,12 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
   test('should create navigation span via instrumentation API and parameterize via legacy subscribe', async ({
     page,
   }) => {
-    // First load the performance page
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
     await page.goto(`/performance`);
-    await page.waitForTimeout(1000);
+    await pageloadTxPromise;
 
     const navigationTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return (
@@ -92,8 +95,12 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
   });
 
   test('should parameterize navigation transaction for dynamic routes', async ({ page }) => {
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
     await page.goto(`/performance`);
-    await page.waitForTimeout(1000);
+    await pageloadTxPromise;
 
     const navigationTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return (
@@ -126,8 +133,12 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
   });
 
   test('should send multiple navigation transactions in sequence', async ({ page }) => {
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
     await page.goto(`/performance`);
-    await page.waitForTimeout(1000);
+    await pageloadTxPromise;
 
     // First navigation: /performance -> /performance/ssr
     const firstNavPromise = waitForTransaction(APP_NAME, async transactionEvent => {
@@ -169,6 +180,54 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
       },
       transaction: '/performance',
       type: 'transaction',
+    });
+  });
+
+  test('should create navigation transaction for navigate(-1) with correct url attributes', async ({ page }) => {
+    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
+    await page.goto(`/performance`);
+    await pageloadTxPromise;
+
+    const forwardNavPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return (
+        transactionEvent.transaction === '/performance/ssr' && transactionEvent.contexts?.trace?.op === 'navigation'
+      );
+    });
+
+    await page.getByRole('link', { name: 'SSR Page' }).click();
+    await forwardNavPromise;
+
+    const backNavPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'navigation';
+    });
+
+    await page.getByRole('button', { name: 'History Back Navigate' }).click();
+
+    const transaction = await backNavPromise;
+
+    expect(transaction).toMatchObject({
+      contexts: {
+        trace: {
+          op: 'navigation',
+          origin: 'auto.navigation.react_router.instrumentation_api',
+          data: {
+            'sentry.source': 'route',
+            'sentry.op': 'navigation',
+            'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
+            'navigation.type': 'router.back',
+            'url.template': '/performance',
+            // react-router-serve 301-redirects the bare index route to a trailing slash
+            'url.path': '/performance/',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/$/),
+          },
+        },
+      },
+      transaction: '/performance',
+      type: 'transaction',
+      transaction_info: { source: 'route' },
     });
   });
 });

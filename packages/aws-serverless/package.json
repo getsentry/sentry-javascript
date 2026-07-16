@@ -71,7 +71,7 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/instrumentation": "^0.220.0",
-    "@sentry/conventions": "^0.15.1",
+    "@sentry/conventions": "^0.16.0",
     "@sentry/core": "10.65.0",
     "@sentry/node": "10.65.0",
     "@sentry/node-core": "10.65.0",
@@ -83,8 +83,8 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:extension": "rollup -c rollup.lambda-extension.config.mjs && yarn ts-node scripts/buildLambdaExtension.ts",
-    "build:layer": "rimraf build/aws && yarn ts-node scripts/buildLambdaLayer.ts",
+    "build:extension": "rollup -c rollup.lambda-extension.config.mjs && yarn tsx scripts/buildLambdaExtension.ts",
+    "build:layer": "rimraf build/aws && yarn tsx scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "run-s build:transpile:npm build:extension",
     "build:transpile:npm": "rollup -c rollup.npm.config.mjs",
