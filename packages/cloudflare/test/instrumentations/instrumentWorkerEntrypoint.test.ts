@@ -289,6 +289,30 @@ describe('instrumentWorkerEntrypoint', () => {
       expect(obj.frozenMethod).toBe(frozenMethod);
     });
 
+    it('preserves `this` for custom RPC methods when RPC trace propagation is enabled', () => {
+      class TestClass extends WorkerEntrypoint {
+        #value = 'secret';
+
+        readValue() {
+          return this.#value;
+        }
+      }
+      const obj = Reflect.construct(
+        instrumentWorkerEntrypoint(
+          () => ({ enableRpcTracePropagation: true }),
+          TestClass as unknown as WorkerEntrypointConstructor,
+        ),
+        [createMockExecutionContext(), {}],
+      );
+
+      // No propagated trace metadata takes the error-capture-only path.
+      expect(obj.readValue()).toBe('secret');
+
+      // Propagated trace metadata takes the traced (span-creating) path.
+      const rpcMeta = { __sentry_rpc_meta__: { 'sentry-trace': 'trace-data' } };
+      expect(obj.readValue(rpcMeta)).toBe('secret');
+    });
+
     it('preserves arguments when RPC trace propagation is disabled', () => {
       const rpcMeta = { __sentry_rpc_meta__: { 'sentry-trace': 'trace-data' } };
       const TestClass = class extends WorkerEntrypoint {

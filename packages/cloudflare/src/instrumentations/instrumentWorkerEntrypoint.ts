@@ -34,6 +34,7 @@ interface CachedMethod {
 
 export type WorkerEntrypointConstructor<Env = unknown, Props = {}> = new (
   ctx: ExecutionContext,
+  // WorkerEntrypoint subclasses can define different `env` shapes, so this constructor must accept all of them.
   // oxlint-disable-next-line typescript/no-explicit-any
   env: any,
 ) => InstanceType<typeof WorkerEntrypoint<Env, Props>>;
@@ -99,7 +100,7 @@ function instrumentMethod(
 
   return (...args: unknown[]) => {
     const { rpcMeta } = extractRpcMeta(args);
-    return rpcMeta ? tracedMethod(...args) : captureMethod(...args);
+    return rpcMeta ? tracedMethod.call(proxy, ...args) : captureMethod.call(proxy, ...args);
   };
 }
 
