@@ -89,14 +89,20 @@ const _langGraphChannelIntegration = ((options: LangGraphOptions = {}) => {
           CHANNELS.LANGGRAPH_CREATE_REACT_AGENT,
         );
         reactAgentChannel.start.subscribe(message => {
-          const { arguments: args } = message as CreateReactAgentChannelContext;
-          const params = getFirstArgObject(args);
-          if (params && Array.isArray(params.tools) && params.tools.length > 0) {
-            wrapToolsWithSpans(params.tools, resolvedOptions, extractAgentNameFromParams(args) ?? undefined);
-          }
-          // Set only after tool wrapping so a throw there can't leave the flag stuck on and permanently
-          // suppress `create_agent` spans. The flag must be on before the body runs its internal compile.
+          // `createReactAgent` runs synchronously and compiles a `StateGraph` internally, so the flag
+          // must be on for the duration and off by `end`. It's set here (never in a branch that can
+          // throw) and cleared in both `end` and `error`, so it can neither stick on across calls nor
+          // stay off during this call's nested compile. Tool wrapping is guarded for the same reason.
           insideCreateReactAgent = true;
+          try {
+            const { arguments: args } = message as CreateReactAgentChannelContext;
+            const params = getFirstArgObject(args);
+            if (params && Array.isArray(params.tools) && params.tools.length > 0) {
+              wrapToolsWithSpans(params.tools, resolvedOptions, extractAgentNameFromParams(args) ?? undefined);
+            }
+          } catch (error) {
+            DEBUG_BUILD && debug.error('[orchestrion:langgraph] failed to wrap createReactAgent tools', error);
+          }
         });
         reactAgentChannel.end.subscribe(message => {
           insideCreateReactAgent = false;
