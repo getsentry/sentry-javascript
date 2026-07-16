@@ -1,3 +1,4 @@
+import { consoleSandbox } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin } from 'vite';
@@ -139,13 +140,15 @@ async function isSvelteKit3(resolve: (id: string) => Promise<{ id: string } | nu
 
   const svelteMajor = await readPackageMajor(resolve, 'svelte/package.json');
   const useKit3Variant = svelteMajor === undefined || svelteMajor >= 5;
-  // eslint-disable-next-line no-console
-  console.warn(
-    "[@sentry/sveltekit] Couldn't read the installed `@sveltejs/kit` version to set up browser " +
-      `tracing; falling back to the Svelte ${svelteMajor ?? '?'} based variant ` +
-      `(${useKit3Variant ? '`$app/state`' : '`$app/stores`'}). ` +
-      'If browser tracing misbehaves, please report this to the Sentry SDK team.',
-  );
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[@sentry/sveltekit] Couldn't read the installed `@sveltejs/kit` version to set up browser " +
+        `tracing; falling back to the Svelte ${svelteMajor ?? '?'} based variant ` +
+        `(${useKit3Variant ? '`$app/state`' : '`$app/stores`'}). ` +
+        'If browser tracing misbehaves, please report this to the Sentry SDK team.',
+    );
+  });
   return useKit3Variant;
 }
 
