@@ -28,29 +28,22 @@
  *
  * @module
  */
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UnknownPlugin = any;
-
-// `@apm-js-collab/code-transformer-bundler-plugins/bun` is published ESM-only
-// (no `require` arm, unlike its `/vite` entry). The ESM build imports it; the
-// CJS build requires it. Bun resolves correctly for ESM modules in either
-// module system.
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/bun';
-import {
-  INSTRUMENTED_MODULE_NAMES,
-  SENTRY_INSTRUMENTATIONS,
-  withoutInstrumentedExternals,
-} from '@sentry/server-utils/orchestrion/config';
+import { orchestrionTransformOptions } from '@sentry/server-utils/orchestrion';
+import { INSTRUMENTED_MODULE_NAMES, withoutInstrumentedExternals } from '@sentry/server-utils/orchestrion/config';
 
 const BUNDLER_MARKER_BANNER =
-  ';(globalThis.__SENTRY_ORCHESTRION__=(globalThis.__SENTRY_ORCHESTRION__||{})).bundler=true;';
+  ';(globalThis.__SENTRY_ORCHESTRION__=(globalThis.__SENTRY_ORCHESTRION__||{})).bundler=[];';
+
+type Plugin = ReturnType<typeof codeTransformer>;
 
 // Minimal shape of Bun's `PluginBuilder` that we touch. Typed locally instead
-// of depending on `bun-types`, which would pull Bun's globals.
-interface BunPluginBuilder {
+// of depending on `bun-types`, which would pull Bun's globals. Upstream types
+// `setup` as taking esbuild's `PluginBuild`, which has no `config` — Bun's
+// builder does.
+type BunPluginBuilder = {
   config?: { banner?: string; external?: string[]; packages?: 'bundle' | 'external' };
-}
+};
 
 /**
  * Returns the orchestrion code-transform plugin for Bun's bundler, configured
@@ -67,22 +60,24 @@ interface BunPluginBuilder {
  * await Bun.build({ entrypoints: ['./app.ts'], plugins: [sentryBunPlugin()] });
  * ```
  */
-export function sentryBunPlugin(): UnknownPlugin {
+export function sentryBunPlugin(): Plugin {
   // Typed upstream as an esbuild `Plugin`, but Bun passes its own
   // `PluginBuilder` (which has the `onLoad` the transform uses) to `setup`.
   // Cast to the Bun-compatible shape so we can forward Bun's builder to its
   // `setup`.
-  const transformer = codeTransformer({ instrumentations: SENTRY_INSTRUMENTATIONS }) as unknown as {
+  const transformer = codeTransformer(orchestrionTransformOptions({})) as unknown as {
     setup: (build: BunPluginBuilder) => void;
   };
 
   return {
     name: 'sentry-orchestrion',
-    setup(build: BunPluginBuilder): void {
-      // Inject a banner so the bundled output sets `bundler: true` at boot.
+    setup(esbuildTypedBuild: Parameters<Plugin['setup']>[0]): void {
+      // Same esbuild/Bun mismatch as above: at runtime this is Bun's builder.
+      const build = esbuildTypedBuild as unknown as BunPluginBuilder;
       // `config` is the `Bun.build` config and is present when this plugin
       // is passed to `Bun.build({ plugins: [...] })`.
       if (build.config) {
+        // Inject a banner so the bundled output sets `bundler: true` at boot.
         const existing = build.config.banner ?? '';
         build.config.banner = existing ? `${existing}\n${BUNDLER_MARKER_BANNER}` : BUNDLER_MARKER_BANNER;
 

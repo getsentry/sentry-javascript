@@ -51,6 +51,7 @@ export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../i
 export type { PostgresJsChannelIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
 export { redisChannelIntegration } from '../integrations/tracing-channel/redis';
 export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/tracing-channel/redis';
+export { orchestrionTransformOptions } from './bundler/options';
 
 // The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s
 // vendored OTel graphql instrumentation (re-exported from here so the two can't drift).
