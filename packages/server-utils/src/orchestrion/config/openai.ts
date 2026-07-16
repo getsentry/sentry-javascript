@@ -9,9 +9,10 @@ export const openaiConfig = [
     module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
     functionQuery: { className: 'Completions', methodName: 'create', kind: 'Auto' as const },
   })),
-  // OpenAI responses API — same `create(body, options)` shape as chat completions.
+  // OpenAI responses API — same `create(body, options)` shape as chat completions, and the subscriber
+  // reports it as the same `chat` operation, so it shares the `chat` channel.
   ...['resources/responses/responses.js', 'resources/responses/responses.mjs'].map(filePath => ({
-    channelName: 'responses',
+    channelName: 'chat',
     module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
     functionQuery: { className: 'Responses', methodName: 'create', kind: 'Auto' as const },
   })),
@@ -21,17 +22,18 @@ export const openaiConfig = [
     module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
     functionQuery: { className: 'Embeddings', methodName: 'create', kind: 'Auto' as const },
   })),
-  // OpenAI conversations API — same `create(body, options)` shape as chat completions.
+  // OpenAI conversations API — same `create(body, options)` shape as chat completions, reported as the
+  // same `chat` operation, so it shares the `chat` channel.
   ...['resources/conversations/conversations.js', 'resources/conversations/conversations.mjs'].map(filePath => ({
-    channelName: 'conversations',
+    channelName: 'chat',
     module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
     functionQuery: { className: 'Conversations', methodName: 'create', kind: 'Auto' as const },
   })),
 ] satisfies InstrumentationConfig[];
 
 export const openaiChannels = {
+  // Chat completions, the responses API, and the conversations API all report a `chat` operation with
+  // identical span handling, so they share one channel.
   OPENAI_CHAT: 'orchestrion:openai:chat',
-  OPENAI_RESPONSES: 'orchestrion:openai:responses',
   OPENAI_EMBEDDINGS: 'orchestrion:openai:embeddings',
-  OPENAI_CONVERSATIONS: 'orchestrion:openai:conversations',
 } as const;
