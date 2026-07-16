@@ -8,6 +8,7 @@ import {
   graphqlDiagnosticsChannelIntegration,
 } from '../integrations/tracing-channel/graphql';
 import { hapiChannelIntegration } from '../integrations/tracing-channel/hapi';
+import { koaChannelIntegration } from '../integrations/tracing-channel/koa';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
 import { kafkajsChannelIntegration } from '../integrations/tracing-channel/kafkajs';
 import { knexChannelIntegration } from '../integrations/tracing-channel/knex';
@@ -32,6 +33,7 @@ export {
   googleGenAIChannelIntegration,
   graphqlChannelIntegration,
   hapiChannelIntegration,
+  koaChannelIntegration,
   ioredisChannelIntegration,
   kafkajsChannelIntegration,
   knexChannelIntegration,
@@ -44,6 +46,7 @@ export {
   vercelAiChannelIntegration,
   expressChannelIntegration,
 };
+export type { KoaChannelIntegrationOptions } from '../integrations/tracing-channel/koa';
 export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/tracing-channel/ioredis';
 export type { PostgresJsChannelIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
 export { redisChannelIntegration } from '../integrations/tracing-channel/redis';
@@ -88,6 +91,7 @@ export const channelIntegrations = {
   vercelAiIntegration: vercelAiChannelIntegration,
   amqplibIntegration: amqplibChannelIntegration,
   hapiIntegration: hapiChannelIntegration,
+  koaIntegration: koaChannelIntegration,
   expressIntegration: expressChannelIntegration,
   graphqlIntegration: graphqlDiagnosticsChannelIntegration,
   kafkajsIntegration: kafkajsChannelIntegration,

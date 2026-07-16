@@ -13,6 +13,7 @@ import { hapiConfig } from './hapi';
 import { ioredisConfig } from './ioredis';
 import { kafkajsConfig } from './kafkajs';
 import { knexConfig } from './knex';
+import { koaConfig } from './koa';
 import { langchainConfig } from './langchain';
 import { langgraphConfig } from './langgraph';
 import { lruMemoizerConfig } from './lru-memoizer';
@@ -53,6 +54,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...ioredisConfig,
   ...kafkajsConfig,
   ...knexConfig,
+  ...koaConfig,
   ...langchainConfig,
   ...langgraphConfig,
   ...lruMemoizerConfig,
