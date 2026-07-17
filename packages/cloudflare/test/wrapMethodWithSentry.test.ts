@@ -1,5 +1,6 @@
 import * as sentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { makeFlushLock } from '../src/flush';
 import { getInstrumented } from '../src/instrument';
 import * as sdk from '../src/sdk';
 import { wrapMethodWithSentry } from '../src/wrapMethodWithSentry';
@@ -720,5 +721,55 @@ describe('wrapMethodWithSentry', () => {
       expect(sdk.init).not.toHaveBeenCalled();
       expect(spyClient).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('wrapMethodWithSentry waitUntil teardown (hibernation regression)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // Regression for #22328
+  it('does not deadlock teardown against a concurrent waitUntil task', async () => {
+    const waitUntilPromises: Array<Promise<unknown>> = [];
+    const context = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waitUntilPromises.push(promise);
+      }),
+    } as unknown as ExecutionContext;
+
+    // A prior invocation instrumented context.waitUntil
+    // (installs the flush lock)
+    const lock = makeFlushLock(context);
+
+    // A concurrent, in-flight waitUntil task holds the flush lock
+    let resolveUserTask!: () => void;
+    const userTask = new Promise<void>(resolve => {
+      resolveUserTask = resolve;
+    });
+    context.waitUntil(userTask);
+
+    // flush waits for the flush lock to drain.
+    mocks.flush.mockImplementationOnce(async () => {
+      await lock.finalize();
+      return true;
+    });
+
+    const wrapped = wrapMethodWithSentry(
+      { options: { dsn: 'https://test@sentry.io/123' }, context, spanName: 'webSocketMessage' },
+      vi.fn().mockResolvedValue('ok'),
+    );
+
+    await wrapped();
+
+    // Releasing the concurrent task drains the lock
+    resolveUserTask();
+
+    await expect(Promise.all(waitUntilPromises)).resolves.toBeDefined();
+    expect(mocks.flush).toHaveBeenCalled();
   });
 });
