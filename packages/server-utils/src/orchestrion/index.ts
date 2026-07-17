@@ -16,6 +16,7 @@ import { knexChannelIntegration } from '../integrations/tracing-channel/knex';
 import { langChainChannelIntegration } from '../integrations/tracing-channel/langchain';
 import { langGraphChannelIntegration } from '../integrations/tracing-channel/langgraph';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
+import { mongodbChannelIntegration } from '../integrations/tracing-channel/mongodb';
 import { mongooseChannelIntegration } from '../integrations/tracing-channel/mongoose';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { mysql2ChannelIntegration } from '../integrations/tracing-channel/mysql2';
@@ -46,6 +47,7 @@ export {
   langChainChannelIntegration,
   langGraphChannelIntegration,
   lruMemoizerChannelIntegration,
+  mongodbChannelIntegration,
   mongooseChannelIntegration,
   mysqlChannelIntegration,
   mysql2ChannelIntegration,
@@ -92,6 +94,7 @@ export type * from '../integrations/tracing-channel/graphql/graphql-types';
 export const channelIntegrations = {
   postgresIntegration: postgresChannelIntegration,
   postgresJsIntegration: postgresJsChannelIntegration,
+  mongoIntegration: mongodbChannelIntegration,
   mysqlIntegration: mysqlChannelIntegration,
   mysql2Integration: mysql2ChannelIntegration,
   genericPoolIntegration: genericPoolChannelIntegration,
