@@ -84,11 +84,11 @@ export default defineNuxtModule<ModuleOptions>({
     const nuxtMajor = parseInt((nuxt as unknown as { _version: string })._version?.split('.')[0] ?? '3', 10);
     const isMinNuxtV4 = nuxtMajor >= 4;
 
-    if (serverConfigFile && moduleOptions._experimental?.useDiagnosticsChannelInjection) {
-      setupOrchestrion(nuxt);
-    }
-
     if (serverConfigFile) {
+      if (moduleOptions._experimental?.useDiagnosticsChannelInjection) {
+        setupOrchestrion(nuxt);
+      }
+
       if (isNitroV3) {
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler.server'));
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name.server'));

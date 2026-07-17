@@ -17,9 +17,7 @@ export function setupOrchestrion(nuxt: Nuxt): void {
       return;
     }
 
-    if (!nitroConfig.rollupConfig) {
-      nitroConfig.rollupConfig = {};
-    }
+    nitroConfig.rollupConfig ??= {};
 
     if (nitroConfig.rollupConfig.plugins === null || nitroConfig.rollupConfig.plugins === undefined) {
       nitroConfig.rollupConfig.plugins = [];
