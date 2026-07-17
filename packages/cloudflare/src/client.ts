@@ -217,6 +217,19 @@ interface BaseCloudflareOptions {
   enableRpcTracePropagation?: boolean;
 
   /**
+   * By default, the SDK does not create `db.query` spans for Cloudflare-internal Durable Object SQL
+   * queries. Cloudflare frameworks built on Durable Objects (`agents`, `partyserver`, …) manage their
+   * own SQLite tables, all namespaced with a `cf_` prefix (state, schedules, fibers, workflows, MCP
+   * servers, chat-stream persistence, …). These queries are framework implementation details that
+   * would otherwise flood traces with dozens of zero-signal spans per request.
+   *
+   * Set this to `true` to include these internal spans as well (e.g. for debugging).
+   *
+   * @default false
+   */
+  includeCloudflareInternalSpans?: boolean;
+
+  /**
    * @deprecated Use `enableRpcTracePropagation` instead. This option will be removed in a future major version.
    *
    * Enable instrumentation of prototype methods for DurableObjects.

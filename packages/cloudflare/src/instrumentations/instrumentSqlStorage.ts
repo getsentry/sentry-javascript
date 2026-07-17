@@ -2,9 +2,12 @@ import type { SqlStorage } from '@cloudflare/workers-types';
 import {
   _INTERNAL_getSqlQuerySummary,
   _INTERNAL_sanitizeSqlQuery,
+  getClient,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/core';
+import type { CloudflareClientOptions } from '../client';
+import { targetsCloudflareInternalTable } from '../utils/internalSqlQuery';
 
 /**
  * Instruments the Durable Object SqlStorage `exec` method with Sentry spans.
@@ -23,8 +26,15 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
 
       return function (this: unknown, ...args: unknown[]) {
         const [query, ...bindings] = args as [string, ...unknown[]];
+
         const sanitizedQuery = _INTERNAL_sanitizeSqlQuery(query);
         const querySummary = _INTERNAL_getSqlQuerySummary(sanitizedQuery);
+
+        const includeInternalSpans = (getClient()?.getOptions() as CloudflareClientOptions | undefined)
+          ?.includeCloudflareInternalSpans;
+        if (!includeInternalSpans && targetsCloudflareInternalTable(querySummary)) {
+          return (original as (...a: unknown[]) => ReturnType<SqlStorage['exec']>).apply(target, args);
+        }
 
         return startSpan(
           {
