@@ -79,6 +79,7 @@ export {
   instrumentOpenAiClient,
   instrumentGoogleGenAIClient,
   instrumentAnthropicAiClient,
+  instrumentWorkersAiClient,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
