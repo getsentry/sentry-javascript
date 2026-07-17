@@ -7,6 +7,10 @@ const INSTRUMENTATION_FN_SYMBOL = Symbol.for('InstrumentationFn');
 // oxlint-disable-next-line typescript/no-explicit-any
 type InstrumentationFn = ((...args: any[]) => void) & { [INSTRUMENTATION_FN_SYMBOL]?: boolean };
 
+const globalAny = globalThis as { Bun?: unknown; Deno?: unknown };
+const isBun = typeof globalAny.Bun !== 'undefined';
+const isDeno = typeof globalAny.Deno !== 'undefined';
+
 /**
  * Run the provided instrumentation callback when one of the provided module names is orchestrion-injected.
  * If it is already injected, it will invoce the callback immediately (e.g. when build-time injection is used).
@@ -36,6 +40,13 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
       callback(...args);
     });
   };
+
+  // We do not have working module tracking in Deno or Bun
+  // Additionally, the channel limits do not apply to these runtimes, so it is safe to just register all instrumentation immediately.
+  if (isBun || isDeno) {
+    instrumentationFn();
+    return;
+  }
 
   // First, check if the modules have been injected already
   const modules = getOrchestrionInjectedModules();
