@@ -244,7 +244,7 @@ it('captures errors thrown by custom WorkerEntrypoint RPC methods', async ({ sig
   await runner.completed();
 });
 
-it('does not create a traced RPC transaction on the receiver when enableRpcTracePropagation is disabled', async ({
+it('does not inject RPC trace metadata into receiver calls when enableRpcTracePropagation is disabled', async ({
   signal,
 }) => {
   const runner = createRunner(__dirname)
@@ -256,6 +256,10 @@ it('does not create a traced RPC transaction on the receiver when enableRpcTrace
           contexts: expect.objectContaining({
             trace: expect.objectContaining({
               op: 'http.server',
+              data: expect.objectContaining({
+                'sentry.origin': 'auto.http.cloudflare',
+              }),
+              origin: 'auto.http.cloudflare',
             }),
           }),
           transaction: 'GET /call-entrypoint-rpc-no-propagation',

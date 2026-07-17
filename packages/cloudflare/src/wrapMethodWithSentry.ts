@@ -65,7 +65,11 @@ type MethodWrapperOptions = {
    * @default false
    */
   startNewTrace?: boolean;
-  origin?: string;
+  /**
+   * The trace origin identifying which instrumentation created the span, e.g. `auto.faas.cloudflare.durable_object`.
+   * Used both as the span's `sentry.origin` attribute and as the `mechanism.type` for captured exceptions.
+   */
+  origin: string;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
