@@ -10,7 +10,7 @@ Work in this release was contributed by @PeterWadie and @akshitsinha. Thank you 
 
 - **feat(sveltekit): Add support for SvelteKit 3 ([#22264](https://github.com/getsentry/sentry-javascript/pull/22264))**
 
-  The SvelteKit SDK now supports SvelteKit 3, including client-side pageload and navigation tracing and server-side native tracing, alongside continued SvelteKit 2 support. No Sentry-specific setup changes are required — the SDK detects your SvelteKit version and picks the right implementation automatically.
+  The SvelteKit SDK now supports SvelteKit 3, including client-side pageload and navigation tracing and server-side native tracing, alongside continued SvelteKit 2 support. No Sentry-specific setup changes are required. The SDK detects your SvelteKit version and picks the right implementation automatically.
 
 ## 10.66.0
 
