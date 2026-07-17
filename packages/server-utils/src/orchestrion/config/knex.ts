@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
 
 const MODULE_NAME = 'knex';
 

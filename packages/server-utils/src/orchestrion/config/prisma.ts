@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
 
 // TODO: Stub for the `prisma` orchestrion integration (ports `@prisma/instrumentation`).
 export const prismaConfig: InstrumentationConfig[] = [];

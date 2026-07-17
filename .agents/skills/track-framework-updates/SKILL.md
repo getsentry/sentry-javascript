@@ -107,12 +107,20 @@ For each release or RFC that plausibly needs SDK work, draft one concrete, actio
 
 ### Step 6: Write output artifacts
 
-Produce **three files** in the skill's `output/` directory:
+The `collect_updates.py` script in Step 1 prints its output path, e.g.:
 
-1. **`output/framework-updates-raw.json`** — already written by Step 1.
-2. **`output/framework-updates-digest.json`** — structured, machine-readable digest. Follow the schema in `assets/digest-schema.json`.
-3. **`output/framework-updates-digest.md`** — human-readable digest. Follow the structure in `assets/digest-template.md`:
-   - Group by Client-Side / Server-Side / Meta-Framework.
+```
+Wrote /abs/path/to/.agents/skills/track-framework-updates/output/framework-updates-raw.json: ...
+```
+
+Use that printed path to derive the output directory. All three files must be written to the **same directory** as `framework-updates-raw.json` — never relative paths like `output/` from the workspace root.
+
+Produce **three files**:
+
+1. The raw JSON was already written by Step 1 — no action needed.
+2. **`<output-dir>/framework-updates-digest.json`** — structured, machine-readable digest. Follow the schema in `assets/digest-schema.json`.
+3. **`<output-dir>/framework-updates-digest.md`** — human-readable digest. Follow the structure in `assets/digest-template.md`:
+   - Group by Client-Side / Server-Side / Meta-Framework / Platform / Libraries.
    - Omit frameworks with no activity.
    - Include a "Run notes" section only if a fetcher reported errors.
 

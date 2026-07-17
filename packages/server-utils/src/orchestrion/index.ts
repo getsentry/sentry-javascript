@@ -1,5 +1,6 @@
 import { amqplibChannelIntegration } from '../integrations/tracing-channel/amqplib';
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
+import { awsChannelIntegration } from '../integrations/tracing-channel/aws-sdk';
 import { dataloaderChannelIntegration } from '../integrations/tracing-channel/dataloader';
 import { genericPoolChannelIntegration } from '../integrations/tracing-channel/generic-pool';
 import { googleGenAIChannelIntegration } from '../integrations/tracing-channel/google-genai';
@@ -12,12 +13,15 @@ import { koaChannelIntegration } from '../integrations/tracing-channel/koa';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
 import { kafkajsChannelIntegration } from '../integrations/tracing-channel/kafkajs';
 import { knexChannelIntegration } from '../integrations/tracing-channel/knex';
+import { langGraphChannelIntegration } from '../integrations/tracing-channel/langgraph';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
+import { mongooseChannelIntegration } from '../integrations/tracing-channel/mongoose';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { mysql2ChannelIntegration } from '../integrations/tracing-channel/mysql2';
 import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
 import { postgresChannelIntegration } from '../integrations/tracing-channel/postgres';
 import { postgresJsChannelIntegration } from '../integrations/tracing-channel/postgres-js';
+import { tediousChannelIntegration } from '../integrations/tracing-channel/tedious';
 import { vercelAiChannelIntegration } from '../integrations/tracing-channel/vercel-ai';
 import { expressChannelIntegration } from '../integrations/tracing-channel/express';
 
@@ -28,6 +32,7 @@ export { nestjsChannels } from './config/nestjs';
 export {
   amqplibChannelIntegration,
   anthropicChannelIntegration,
+  awsChannelIntegration,
   dataloaderChannelIntegration,
   genericPoolChannelIntegration,
   googleGenAIChannelIntegration,
@@ -37,12 +42,15 @@ export {
   ioredisChannelIntegration,
   kafkajsChannelIntegration,
   knexChannelIntegration,
+  langGraphChannelIntegration,
   lruMemoizerChannelIntegration,
+  mongooseChannelIntegration,
   mysqlChannelIntegration,
   mysql2ChannelIntegration,
   openaiChannelIntegration,
   postgresChannelIntegration,
   postgresJsChannelIntegration,
+  tediousChannelIntegration,
   vercelAiChannelIntegration,
   expressChannelIntegration,
 };
@@ -51,6 +59,7 @@ export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../i
 export type { PostgresJsChannelIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
 export { redisChannelIntegration } from '../integrations/tracing-channel/redis';
 export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/tracing-channel/redis';
+export type { InstrumentationConfig, CustomTransform } from '@apm-js-collab/code-transformer-bundler-plugins/core';
 
 // The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s
 // vendored OTel graphql instrumentation (re-exported from here so the two can't drift).
@@ -84,10 +93,12 @@ export const channelIntegrations = {
   mysqlIntegration: mysqlChannelIntegration,
   mysql2Integration: mysql2ChannelIntegration,
   genericPoolIntegration: genericPoolChannelIntegration,
+  mongooseIntegration: mongooseChannelIntegration,
   lruMemoizerIntegration: lruMemoizerChannelIntegration,
   openaiIntegration: openaiChannelIntegration,
   anthropicIntegration: anthropicChannelIntegration,
   googleGenAIIntegration: googleGenAIChannelIntegration,
+  langGraphIntegration: langGraphChannelIntegration,
   vercelAiIntegration: vercelAiChannelIntegration,
   amqplibIntegration: amqplibChannelIntegration,
   hapiIntegration: hapiChannelIntegration,
@@ -95,4 +106,6 @@ export const channelIntegrations = {
   expressIntegration: expressChannelIntegration,
   graphqlIntegration: graphqlDiagnosticsChannelIntegration,
   kafkajsIntegration: kafkajsChannelIntegration,
+  tediousIntegration: tediousChannelIntegration,
+  awsIntegration: awsChannelIntegration,
 } as const;

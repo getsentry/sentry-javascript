@@ -2,6 +2,9 @@ import { defineIntegration, type IntegrationFn, waitForTracingChannelBinding } f
 import * as dc from 'node:diagnostics_channel';
 import { subscribeMongooseDiagnosticChannels } from './mongoose-dc-subscriber';
 
+export type { MongooseLegacyCollection, StartMongooseLegacySpanOptions } from './mongoose-legacy-span';
+export { startMongooseLegacySpan } from './mongoose-legacy-span';
+
 const _mongooseIntegration = (() => {
   return {
     name: 'Mongoose',
