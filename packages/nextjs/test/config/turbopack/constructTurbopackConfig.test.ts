@@ -1574,4 +1574,30 @@ describe('safelyAddTurbopackRule', () => {
       });
     });
   });
+
+  describe('orchestrion diagnostics-channel injection', () => {
+    it('does not add the orchestrion loader rule by default', () => {
+      const result = constructTurbopackConfig({
+        userNextConfig: {},
+        userSentryOptions: {},
+        nextJsVersion: '16.0.0',
+      });
+
+      expect(result.rules?.['*.{js,mjs,cjs}']).toBeUndefined();
+    });
+
+    it('adds the Sentry orchestrion loader rule (node server only) when injection is enabled', () => {
+      const result = constructTurbopackConfig({
+        userNextConfig: {},
+        userSentryOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+        nextJsVersion: '16.0.0',
+      });
+
+      const rule = result.rules?.['*.{js,mjs,cjs}'] as { condition?: unknown; loaders?: unknown[] } | undefined;
+      expect(rule?.condition).toBe('node');
+      // A single loader referenced by path (string shortcut, no options).
+      expect(rule?.loaders).toHaveLength(1);
+      expect(typeof rule?.loaders?.[0]).toBe('string');
+    });
+  });
 });

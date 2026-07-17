@@ -57,6 +57,11 @@
       "import": "./build/esm/orchestrion/bundler/esbuild.js",
       "require": "./build/cjs/orchestrion/bundler/esbuild.js"
     },
+    "./orchestrion/turbopack-loader": {
+      "types": "./build/types/orchestrion/bundler/turbopack-loader.d.ts",
+      "import": "./build/esm/orchestrion/bundler/turbopack-loader.js",
+      "require": "./build/cjs/orchestrion/bundler/turbopack-loader.js"
+    },
     "./orchestrion/import-hook": {
       "import": "./build/orchestrion/import-hook.mjs"
     }
@@ -86,6 +91,9 @@
       ],
       "orchestrion/esbuild": [
         "build/types-ts3.8/orchestrion/bundler/esbuild.d.ts"
+      ],
+      "orchestrion/turbopack-loader": [
+        "build/types-ts3.8/orchestrion/bundler/turbopack-loader.d.ts"
       ]
     },
     "*": {
@@ -109,6 +117,9 @@
       ],
       "orchestrion/esbuild": [
         "build/types/orchestrion/bundler/esbuild.d.ts"
+      ],
+      "orchestrion/turbopack-loader": [
+        "build/types/orchestrion/bundler/turbopack-loader.d.ts"
       ]
     }
   },

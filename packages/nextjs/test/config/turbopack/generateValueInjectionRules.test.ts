@@ -70,6 +70,26 @@ describe('generateValueInjectionRules', () => {
     });
   });
 
+  describe('orchestrion bundler marker', () => {
+    it('does not inject the orchestrion marker by default', () => {
+      const result = generateValueInjectionRules({});
+
+      const serverRule = result.find(rule => rule.matcher === '**/instrumentation.*');
+      const values = (serverRule?.rule as { loaders: [{ options: { values: Record<string, unknown> } }] }).loaders[0]
+        .options.values;
+      expect(values).not.toHaveProperty('__SENTRY_ORCHESTRION__');
+    });
+
+    it('seeds an empty bundler array at boot when injectOrchestrionBundlerMarker is set', () => {
+      const result = generateValueInjectionRules({ injectOrchestrionBundlerMarker: true });
+
+      const serverRule = result.find(rule => rule.matcher === '**/instrumentation.*');
+      const values = (serverRule?.rule as { loaders: [{ options: { values: Record<string, unknown> } }] }).loaders[0]
+        .options.values;
+      expect(values.__SENTRY_ORCHESTRION__).toEqual({ bundler: [] });
+    });
+  });
+
   describe('with nextJsVersion only', () => {
     it('should generate client and server rules when nextJsVersion is provided', () => {
       const result = generateValueInjectionRules({

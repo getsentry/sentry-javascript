@@ -1,5 +1,5 @@
 import type { Client } from '@sentry/core';
-import { addNonEnumerableProperty, waitForTracingChannelBinding } from '@sentry/core';
+import { addNonEnumerableProperty, getClient, GLOBAL_OBJ, waitForTracingChannelBinding } from '@sentry/core';
 import { getOrchestrionInjectedModules } from './detect';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 
@@ -27,6 +27,10 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
   if (!diagnosticsChannel.tracingChannel) {
     return;
   }
+
+  // Set up the bridge build-time (bundler) injected modules call to announce themselves. Runs on the
+  // first integration's setup, i.e. during `Sentry.init()`, before any lazily-loaded bundled module.
+  installOrchestrionInjectBridge();
 
   // If already injected, skip
   if (hasBeenInjected(callback)) {
@@ -67,6 +71,22 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
       cleanup();
     }
   });
+}
+
+/**
+ * Install the `__SENTRY_ORCHESTRION_ON_INJECT__` bridge (idempotent). Build-time injected modules call
+ * it from their appended prologue (see `bundler/inject.ts`) when they load; it re-emits as the same
+ * `orchestrion.module-runtime-injected` event the runtime module hook uses, so the listener registered
+ * above wires up the channel subscriber. Uses `getClient()` lazily since the module loads after init.
+ */
+function installOrchestrionInjectBridge(): void {
+  if (GLOBAL_OBJ.__SENTRY_ORCHESTRION_ON_INJECT__) {
+    return;
+  }
+
+  GLOBAL_OBJ.__SENTRY_ORCHESTRION_ON_INJECT__ = (moduleName: string) => {
+    getClient()?.emit('orchestrion.module-runtime-injected', moduleName);
+  };
 }
 
 function hasBeenInjected(callback: InstrumentationFn) {

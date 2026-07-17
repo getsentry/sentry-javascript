@@ -37,6 +37,9 @@ export default [
         'src/orchestrion/bundler/rollup.ts',
         'src/orchestrion/bundler/webpack.ts',
         'src/orchestrion/bundler/esbuild.ts',
+        // Referenced by absolute path (never imported), so it must be its own entrypoint to land in
+        // build/. Turbopack `require`s it as a loader; see `getSentryOrchestrionLoaderPath`.
+        'src/orchestrion/bundler/turbopack-loader.ts',
       ],
       packageSpecificConfig: {
         output: {
