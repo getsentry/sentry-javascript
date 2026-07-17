@@ -28,7 +28,6 @@ import {
   SENTRY_SDK_VERSION,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
-  SENTRY_SPAN_SOURCE,
   SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
 
@@ -84,13 +83,20 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
       ? applyBeforeSendSpanCallback(spanJSON, beforeSendSpan)
       : spanJSON;
 
-  // Backfill sentry.span.source from sentry.source. Only `sentry.span.source` is respected by Sentry.
-  // TODO(v11): Remove this backfill once we renamed SEMANTIC_ATTRIBUTE_SENTRY_SOURCE to sentry.span.source
   const spanNameSource = processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
   if (spanNameSource) {
-    safeSetSpanJSONAttributes(processedSpan, {
-      [SENTRY_SPAN_SOURCE]: spanNameSource,
-    });
+    if (spanJSON.is_segment) {
+      // Backfill sentry.segment.name.source from sentry.source.
+      // TODO(v11): Remove this backfill once we removed setting SEMANTIC_ATTRIBUTE_SENTRY_SOURCE in favour of
+      // SENTRY_SEGMENT_NAME_SOURCE from @sentry/conventions/attributes only on segment spans.
+      safeSetSpanJSONAttributes(processedSpan, {
+        ['sentry.segment.name.source']: spanNameSource,
+      });
+    } else {
+      // streamed child spans should not have a source attribute
+      // TODO(v11): Remove this deletion once we deprecated SEMANTIC_ATTRIBUTE_SENTRY_SOURCE and removed setting it from child spans
+      delete processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    }
   }
 
   return {

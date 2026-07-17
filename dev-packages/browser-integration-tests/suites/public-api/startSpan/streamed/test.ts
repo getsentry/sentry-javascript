@@ -259,7 +259,7 @@ sentryTest(
             type: 'string',
             value: 'custom',
           },
-          'sentry.span.source': {
+          'sentry.segment.name.source': {
             type: 'string',
             value: 'custom',
           },
