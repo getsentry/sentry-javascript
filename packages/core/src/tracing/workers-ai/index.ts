@@ -1,10 +1,8 @@
-import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span } from '../../types/span';
 import { isObjectLike } from '../../utils/is';
 import { resolveAIRecordingOptions, shouldEnableTruncation } from '../ai/utils';
-import { WORKERS_AI_ORIGIN } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
 import type { WorkersAiOptions } from './types';
 import { addRequestAttributes, addResponseAttributes, extractRequestAttributes, getOperationName } from './utils';
@@ -54,9 +52,6 @@ function instrumentRun(
         // including a synchronous throw from `run`.
         const handleError = (error: unknown): never => {
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-          captureException(error, {
-            mechanism: { handled: false, type: `${WORKERS_AI_ORIGIN}.stream`, data: { function: 'run' } },
-          });
           span.end();
           throw error;
         };
@@ -93,20 +88,12 @@ function instrumentRun(
         addRequestAttributes(span, inputs, operationName, shouldEnableTruncation(options.enableTruncation));
       }
 
-      return originalResult.then(
-        result => {
-          if (!returnsRawResponse) {
-            addResponseAttributes(span, result, options.recordOutputs);
-          }
-          return result;
-        },
-        error => {
-          captureException(error, {
-            mechanism: { handled: false, type: WORKERS_AI_ORIGIN, data: { function: 'run' } },
-          });
-          throw error;
-        },
-      );
+      return originalResult.then(result => {
+        if (!returnsRawResponse) {
+          addResponseAttributes(span, result, options.recordOutputs);
+        }
+        return result;
+      });
     });
   };
 }

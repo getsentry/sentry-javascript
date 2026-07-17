@@ -1,8 +1,6 @@
-import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types/span';
 import { endStreamSpan, type StreamResponseState } from '../ai/utils';
-import { WORKERS_AI_ORIGIN } from './constants';
 import type { WorkersAiUsage } from './types';
 
 interface WorkersAiStreamChunk {
@@ -116,9 +114,6 @@ export function instrumentWorkersAiStream(
         controller.enqueue(value);
       } catch (error) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        captureException(error, {
-          mechanism: { handled: false, type: `${WORKERS_AI_ORIGIN}.stream` },
-        });
         finish();
         controller.error(error);
       }
