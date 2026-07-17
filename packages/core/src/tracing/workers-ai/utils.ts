@@ -20,9 +20,9 @@ import {
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { extractSystemInstructions, getTruncatedJsonString, setTokenUsageAttributes } from '../ai/utils';
+import { stringify } from '../../utils/string';
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
 import type { WorkersAiInput, WorkersAiOutput } from './types';
-import { stringify } from '../../shared-exports';
 
 /**
  * Determine the gen_ai operation name from the inputs passed to `AI.run`.
