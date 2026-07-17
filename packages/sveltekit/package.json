@@ -18,6 +18,11 @@
   "types": "build/types/index.types.d.ts",
   "exports": {
     "./package.json": "./package.json",
+    "./browser-tracing-variant": {
+      "types": "./build/types/client/svelte4BrowserTracing.d.ts",
+      "import": "./build/esm/client/svelte4BrowserTracing.js",
+      "require": "./build/cjs/client/svelte4BrowserTracing.js"
+    },
     ".": {
       "types": "./build/types/index.types.d.ts",
       "worker": {
@@ -42,7 +47,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@sveltejs/kit": "2.x",
+    "@sveltejs/kit": "2.x || ^3.0.0-0",
     "vite": "*"
   },
   "peerDependenciesMeta": {
