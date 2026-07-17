@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 // Two shapes of `acquire`, both publishing to the same `orchestrion:generic-pool:acquire` channel:
 // - v3+: `class Pool { acquire(priority) }` returns a promise, so `kind: 'Auto'` resolves to `wrapPromise`.
@@ -19,7 +19,7 @@ export const genericPoolConfig = [
   },
 ] as const satisfies InstrumentationConfig[];
 
-export const genericPoolModuleNames = uniq(genericPoolConfig.map(config => config.module.name));
+export const genericPoolModuleNames = getModuleNames(genericPoolConfig);
 
 export const genericPoolChannels = {
   GENERIC_POOL_ACQUIRE: 'orchestrion:generic-pool:acquire',

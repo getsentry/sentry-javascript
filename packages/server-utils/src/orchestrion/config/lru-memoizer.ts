@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 export const lruMemoizerConfig = [
   {
@@ -10,7 +10,7 @@ export const lruMemoizerConfig = [
   },
 ] as const satisfies InstrumentationConfig[];
 
-export const lruMemoizerModuleNames = uniq(lruMemoizerConfig.map(config => config.module.name));
+export const lruMemoizerModuleNames = getModuleNames(lruMemoizerConfig);
 
 export const lruMemoizerChannels = {
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',

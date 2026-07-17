@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 export const redisConfig = [
   // redis `>=2.6.0 <4` (standalone `redis`). `internal_send_command` is an
@@ -63,7 +63,7 @@ export const redisConfig = [
   },
 ] as const satisfies InstrumentationConfig[];
 
-export const redisModuleNames = uniq(redisConfig.map(config => config.module.name));
+export const redisModuleNames = getModuleNames(redisConfig);
 
 export const redisChannels = {
   REDIS_COMMAND: 'orchestrion:redis:command',

@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 const MODULE_NAME = 'knex';
 
@@ -46,7 +46,7 @@ export const knexConfig: InstrumentationConfig[] = [
   ),
 ] as const satisfies InstrumentationConfig[];
 
-export const knexModuleNames = uniq(knexConfig.map(config => config.module.name));
+export const knexModuleNames = getModuleNames(knexConfig);
 
 export const knexChannels = {
   KNEX_QUERY: 'orchestrion:knex:query',

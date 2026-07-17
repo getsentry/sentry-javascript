@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 export const mysqlConfig = [
   {
@@ -9,7 +9,7 @@ export const mysqlConfig = [
   },
 ] as const satisfies InstrumentationConfig[];
 
-export const mysqlModuleNames = uniq(mysqlConfig.map(config => config.module.name));
+export const mysqlModuleNames = getModuleNames(mysqlConfig);
 
 export const mysqlChannels = {
   MYSQL_QUERY: 'orchestrion:mysql:query',

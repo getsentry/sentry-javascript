@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 export const hapiConfig = [
   // hapi's `route`/`ext` live on an anonymous class (`internals.Server = class {}`),
@@ -18,7 +18,7 @@ export const hapiConfig = [
   },
 ] as const satisfies InstrumentationConfig[];
 
-export const hapiModuleNames = uniq(hapiConfig.map(config => config.module.name));
+export const hapiModuleNames = getModuleNames(hapiConfig);
 
 export const hapiChannels = {
   HAPI_ROUTE: 'orchestrion:@hapi/hapi:route',

@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 export const kafkajsConfig = [
   {
@@ -22,7 +22,7 @@ export const kafkajsConfig = [
   },
 ] as const satisfies InstrumentationConfig[];
 
-export const kafkajsModuleNames = uniq(kafkajsConfig.map(config => config.module.name));
+export const kafkajsModuleNames = getModuleNames(kafkajsConfig);
 
 export const kafkajsChannels = {
   KAFKAJS_SEND_BATCH: 'orchestrion:kafkajs:send_batch',

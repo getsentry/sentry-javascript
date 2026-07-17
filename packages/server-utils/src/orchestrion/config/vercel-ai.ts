@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 export const vercelAiConfig = [
   // Vercel AI v6: mirror the v7 native `ai:telemetry` channel by injecting
@@ -25,7 +25,7 @@ export const vercelAiConfig = [
   ...vercelAiEntries('>=6.0.0 <7.0.0', 'executeToolCall', 'executeToolCall', 'Async'),
 ] as const satisfies InstrumentationConfig[];
 
-export const vercelAiModuleNames = uniq(vercelAiConfig.map(config => config.module.name));
+export const vercelAiModuleNames = getModuleNames(vercelAiConfig);
 
 export const vercelAiChannels = {
   // Vercel AI (`ai`): orchestrion injects these so the same channel-based

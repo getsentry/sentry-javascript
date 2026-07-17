@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 export const anthropicAiConfig = [
   // One entry each for CJS/ESM
@@ -34,7 +34,7 @@ export const anthropicAiConfig = [
   })),
 ] as const satisfies InstrumentationConfig[];
 
-export const anthropicAiModuleNames = uniq(anthropicAiConfig.map(config => config.module.name));
+export const anthropicAiModuleNames = getModuleNames(anthropicAiConfig);
 
 export const anthropicAiChannels = {
   ANTHROPIC_CHAT: 'orchestrion:@anthropic-ai/sdk:chat',

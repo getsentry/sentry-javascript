@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 export const openaiConfig = [
   // OpenAI chat completions. `Completions.create` returns a thenable `APIPromise` with no callback arg,
@@ -30,7 +30,7 @@ export const openaiConfig = [
   })),
 ] as const satisfies InstrumentationConfig[];
 
-export const openaiModuleNames = uniq(openaiConfig.map(config => config.module.name));
+export const openaiModuleNames = getModuleNames(openaiConfig);
 
 export const openaiChannels = {
   // Chat completions, the responses API, and the conversations API all report a `chat` operation with

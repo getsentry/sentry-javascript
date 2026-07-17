@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 // Ports `@opentelemetry/instrumentation-mysql2` (which patches `query`/`execute` on the connection
 // prototype) to orchestrion channel injection.
@@ -43,7 +43,7 @@ export const mysql2Config = [
   },
 ] as const satisfies InstrumentationConfig[];
 
-export const mysql2ModuleNames = uniq(mysql2Config.map(config => config.module.name));
+export const mysql2ModuleNames = getModuleNames(mysql2Config);
 
 export const mysql2Channels = {
   MYSQL2_QUERY: 'orchestrion:mysql2:query',

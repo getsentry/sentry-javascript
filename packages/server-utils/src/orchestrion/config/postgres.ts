@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 // postgres.js (`postgres` npm package, v3.x). Named after the npm package;
 // `postgres` doesn't collide with `pg.ts` (that file instruments `pg`/`pg-pool`).
@@ -48,7 +48,7 @@ const postgresJsInstrumentationConfig = (dir: string): InstrumentationConfig[] =
   ] as const satisfies InstrumentationConfig[];
 
 export const postgresJsConfig = ['src', 'cjs/src'].flatMap(postgresJsInstrumentationConfig);
-export const postgresJsModuleNames = uniq(postgresJsConfig.map(config => config.module.name));
+export const postgresJsModuleNames = getModuleNames(postgresJsConfig);
 
 export const postgresJsChannels = {
   POSTGRESJS_HANDLE: 'orchestrion:postgres:handle',

@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 export const pgConfig = [
   // `pg` (node-postgres).
@@ -42,7 +42,7 @@ export const pgConfig = [
   },
 ] as const satisfies InstrumentationConfig[];
 
-export const pgModuleNames = uniq(pgConfig.map(config => config.module.name));
+export const pgModuleNames = getModuleNames(pgConfig);
 
 export const pgChannels = {
   PG_QUERY: 'orchestrion:pg:query',
