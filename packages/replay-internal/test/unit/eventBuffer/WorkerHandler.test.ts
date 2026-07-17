@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { WorkerHandler } from '../../../src/eventBuffer/WorkerHandler';
 import type { WorkerResponse } from '../../../src/types';
 
@@ -60,6 +60,16 @@ class MockWorker implements Pick<Worker, 'addEventListener' | 'removeEventListen
   /** Dispatch a message that doesn't correspond to a queued request. */
   public dispatchRaw(response: Partial<WorkerResponse>): void {
     this._dispatch('message', { data: response } as MessageEvent);
+  }
+
+  /** Dispatch the worker's readiness message (consumed by `ensureReady`). */
+  public dispatchReady(success = true): void {
+    this._dispatch('message', { data: { success } } as MessageEvent);
+  }
+
+  /** Dispatch an `error` event, as fired when the worker script fails to load. */
+  public dispatchError(event: Event): void {
+    this._dispatch('error', event as MessageEvent);
   }
 
   public get pendingCount(): number {
@@ -170,5 +180,57 @@ describe('Unit | eventBuffer | WorkerHandler', () => {
     await expect(p2).rejects.toThrow('Worker destroyed');
     expect(worker.terminated).toBe(true);
     expect(worker.listenerCount).toBe(0);
+  });
+
+  describe('ensureReady', () => {
+    const originalVisibility = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState');
+
+    const setVisibility = (state: DocumentVisibilityState): void => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state });
+    };
+
+    afterEach(() => {
+      if (originalVisibility) {
+        Object.defineProperty(Document.prototype, 'visibilityState', originalVisibility);
+      }
+    });
+
+    it('resolves once the worker reports readiness', async () => {
+      const { worker, handler } = makeHandler();
+      const ready = handler.ensureReady();
+      worker.dispatchReady();
+      await expect(ready).resolves.toBeUndefined();
+    });
+
+    it('caches the ready promise so listeners are only attached once', () => {
+      const { handler } = makeHandler();
+      expect(handler.ensureReady()).toBe(handler.ensureReady());
+    });
+
+    it("uses an ErrorEvent's message when one is present", async () => {
+      const { worker, handler } = makeHandler();
+      const ready = handler.ensureReady();
+      worker.dispatchError(new ErrorEvent('error', { message: 'CSP blocked worker-src' }));
+      await expect(ready).rejects.toThrow('Failed to load Replay compression worker: CSP blocked worker-src');
+    });
+
+    it('attributes a bare error event to teardown when the document is hidden', async () => {
+      setVisibility('hidden');
+      const { worker, handler } = makeHandler();
+      const ready = handler.ensureReady();
+      // A load failure fires a plain Event with no message (Safari/Chrome/Firefox alike).
+      worker.dispatchError(new Event('error'));
+      await expect(ready).rejects.toThrow(
+        'Failed to load Replay compression worker: the page was hidden or unloaded before the worker loaded.',
+      );
+    });
+
+    it('falls back to the generic message for a bare error event while visible', async () => {
+      setVisibility('visible');
+      const { worker, handler } = makeHandler();
+      const ready = handler.ensureReady();
+      worker.dispatchError(new Event('error'));
+      await expect(ready).rejects.toThrow(/Unknown error\. This can happen due to CSP policy restrictions/);
+    });
   });
 });

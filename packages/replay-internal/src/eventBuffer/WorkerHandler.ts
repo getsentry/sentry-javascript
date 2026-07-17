@@ -1,6 +1,36 @@
+import { WINDOW } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
 import type { WorkerRequest, WorkerResponse } from '../types';
 import { debug } from '../util/logger';
+
+/**
+ * Build the error thrown when the compression worker fails to load.
+ *
+ * The worker's `error` event is a bare `Event` (not an `ErrorEvent`) when the
+ * script fails to *load* — it carries no `message`, so we can't read a cause
+ * off it. Rather than always blaming CSP/network, we check whether the document
+ * is no longer visible: when the page is navigating away or backgrounded, an
+ * in-flight worker fetch is aborted and this error is expected teardown noise,
+ * not a real load failure. Distinguishing the two keeps the captured signal
+ * accurate across browsers (this fires on Safari, Chrome, Firefox alike).
+ */
+function _getWorkerLoadError(error: unknown): Error {
+  if (error instanceof ErrorEvent && error.message) {
+    return new Error(`Failed to load Replay compression worker: ${error.message}`);
+  }
+
+  // `document` may be undefined in non-browser worker/SSR contexts.
+  const isDocumentHidden = WINDOW.document && WINDOW.document.visibilityState !== 'visible';
+  if (isDocumentHidden) {
+    return new Error(
+      'Failed to load Replay compression worker: the page was hidden or unloaded before the worker loaded.',
+    );
+  }
+
+  return new Error(
+    'Failed to load Replay compression worker: Unknown error. This can happen due to CSP policy restrictions, network issues, or the worker script failing to load.',
+  );
+}
 
 interface PendingRequest {
   method: WorkerRequest['method'];
@@ -56,11 +86,7 @@ export class WorkerHandler {
         'error',
         error => {
           DEBUG_BUILD && debug.warn('Failed to load Replay compression worker', error);
-          reject(
-            new Error(
-              `Failed to load Replay compression worker: ${error instanceof ErrorEvent && error.message ? error.message : 'Unknown error. This can happen due to CSP policy restrictions, network issues, or the worker script failing to load.'}`,
-            ),
-          );
+          reject(_getWorkerLoadError(error));
         },
         { once: true },
       );
