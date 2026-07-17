@@ -177,9 +177,9 @@ interface BaseCloudflareOptions {
    * When enabled, trace context (sentry-trace + baggage) is propagated across:
    * - `stub.fetch()` calls to Durable Objects (via HTTP headers)
    * - Service binding `fetch()` calls (via HTTP headers)
-   * - RPC method calls to Durable Objects (via trailing argument)
+   * - RPC method calls to Durable Objects and WorkerEntrypoints (via trailing argument)
    *
-   * When enabled on the **receiver side** (DurableObject), the SDK will also:
+   * When enabled on the **receiver side** (DurableObject or WorkerEntrypoint), the SDK will also:
    * - Extract and continue traces from incoming RPC calls
    * - Create spans for each RPC method invocation
    * - Capture errors thrown by RPC methods
@@ -205,6 +205,12 @@ interface BaseCloudflareOptions {
    *     enableRpcTracePropagation: true,
    *   }),
    *   MyDOBase,
+   * );
+   *
+   * // WorkerEntrypoint side (receiver)
+   * export const MyEntrypoint = Sentry.withSentry(
+   *   env => ({ dsn: env.SENTRY_DSN, enableRpcTracePropagation: true }),
+   *   MyEntrypointBase,
    * );
    * ```
    */

@@ -6,7 +6,13 @@ import {
   spanToJSON,
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
-import { PARAMS_KEY, URL_FULL, URL_PATH, URL_PATH_PARAMETER_KEY, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  PARAMS_KEY_BASE,
+  URL_FULL,
+  URL_PATH,
+  URL_PATH_PARAMETER_KEY_BASE,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
 import type { Client, Integration, Span } from '@sentry/core';
 import {
   getClient,
@@ -132,8 +138,8 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
         const params = lastMatch.params;
         for (const [key, value] of Object.entries(params)) {
           if (value !== undefined) {
-            rootSpan.setAttribute(URL_PATH_PARAMETER_KEY.replace('<key>', key), value);
-            rootSpan.setAttribute(PARAMS_KEY.replace('<key>', key), value);
+            rootSpan.setAttribute(`${URL_PATH_PARAMETER_KEY_BASE}.${key}`, value);
+            rootSpan.setAttribute(`${PARAMS_KEY_BASE}.${key}`, value);
           }
         }
       } else {

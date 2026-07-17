@@ -31,7 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import type { D1Database, DurableObjectNamespace, Queue, R2Bucket } from '@cloudflare/workers-types';
+import type { D1Database, DurableObjectNamespace, Queue, R2Bucket, RateLimit } from '@cloudflare/workers-types';
 
 /**
  * Checks if a value is a JSRPC proxy (service binding).
@@ -94,4 +94,15 @@ export function isR2Bucket(item: unknown): item is R2Bucket {
     typeof item.put === 'function' &&
     typeof item.createMultipartUpload === 'function'
   );
+}
+
+/**
+ * Duck-type check for RateLimit bindings.
+ * RateLimit only exposes a single `limit` method. Because that is a fairly
+ * common method name, this check is intentionally run after the more specific
+ * binding checks (Queue, R2, D1) in `instrumentEnv`, so those win when a binding
+ * also happens to expose `limit`.
+ */
+export function isRateLimit(item: unknown): item is RateLimit {
+  return item != null && isNotJSRPC(item) && typeof item.limit === 'function';
 }
