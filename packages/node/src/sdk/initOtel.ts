@@ -42,6 +42,11 @@ const OTEL_API_GLOBAL_KEY = Symbol.for('opentelemetry.js.api.1');
  * version, so an empty slot means the version gate rejected us and recreating the registry
  * clobbers no other tracer provider. If the slot is occupied (another provider registered first,
  * e.g. a second `Sentry.init()` call), the registry is left untouched and registration fails.
+ *
+ * Slots Sentry does not claim itself (e.g. `diag`, `metrics`) are carried over into the recreated
+ * registry: reads resolve via a semver-compatibility check rather than the exact-match write gate,
+ * so they keep working for the copy that registered them. `propagation` and `context` are not
+ * carried over because Sentry registers its own right after this.
  */
 function registerGlobalTracerProvider(provider: TracerProvider): boolean {
   if (trace.setGlobalTracerProvider(provider)) {
@@ -50,7 +55,7 @@ function registerGlobalTracerProvider(provider: TracerProvider): boolean {
 
   // @opentelemetry/api stores the registry under a `Symbol.for` key that no public type
   // describes, so `typeof globalThis` can only be narrowed to it by casting through `unknown`.
-  const otelGlobal = globalThis as unknown as Record<symbol, { trace?: unknown } | undefined>;
+  const otelGlobal = globalThis as unknown as Record<symbol, Record<string, unknown> | undefined>;
   const registry = otelGlobal[OTEL_API_GLOBAL_KEY];
   if (registry && !registry.trace) {
     DEBUG_BUILD &&
@@ -58,7 +63,20 @@ function registerGlobalTracerProvider(provider: TracerProvider): boolean {
         'Replaced a pre-existing OpenTelemetry API registry that was created by a different @opentelemetry/api version and would have blocked tracing. If you want to manage OpenTelemetry yourself, set `skipOpenTelemetrySetup: true` in `Sentry.init()`.',
       );
     otelGlobal[OTEL_API_GLOBAL_KEY] = undefined;
-    return trace.setGlobalTracerProvider(provider);
+
+    if (!trace.setGlobalTracerProvider(provider)) {
+      return false;
+    }
+
+    // The cast is needed because TS still has the slot narrowed to `undefined` from the reset
+    // above and cannot know the registration call just recreated the registry.
+    const recreatedRegistry = otelGlobal[OTEL_API_GLOBAL_KEY] as Record<string, unknown> | undefined;
+    if (recreatedRegistry) {
+      const { propagation: _propagation, context: _context, ...carriedOverSlots } = registry;
+      otelGlobal[OTEL_API_GLOBAL_KEY] = { ...carriedOverSlots, ...recreatedRegistry };
+    }
+
+    return true;
   }
 
   return false;

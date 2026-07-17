@@ -260,6 +260,30 @@ describe('init()', () => {
       expect(registry?.trace).toBeDefined();
     });
 
+    it('carries non-Sentry slots of a version-mismatched OTel API registry over into the recreated one', () => {
+      // Must be a complete DiagLogger: once carried over, the SDK's api copy resolves it and
+      // calls it for its own diag output.
+      const diagLogger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn(), verbose: vi.fn() };
+      const meterProvider = { getMeter: vi.fn() };
+      const propagator = { inject: vi.fn() };
+      global[OTEL_API_GLOBAL_KEY] = {
+        version: '0.0.1',
+        diag: diagLogger,
+        metrics: meterProvider,
+        propagation: propagator,
+      };
+
+      init({ dsn: PUBLIC_DSN });
+
+      const registry = global[OTEL_API_GLOBAL_KEY];
+
+      expect(registry?.trace).toBeDefined();
+      expect(registry?.diag).toBe(diagLogger);
+      expect(registry?.metrics).toBe(meterProvider);
+      // propagation is claimed by Sentry's own propagator, not carried over
+      expect(registry?.propagation).not.toBe(propagator);
+    });
+
     it('does not recreate the OTel API registry when another tracer provider is already registered', () => {
       const existingProvider = { getTracer: vi.fn() };
       const existingRegistry = { version: '0.0.1', trace: existingProvider };
