@@ -19,9 +19,10 @@ import {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getJsonString, getTruncatedJsonString, setTokenUsageAttributes } from '../ai/utils';
+import { extractSystemInstructions, getTruncatedJsonString, setTokenUsageAttributes } from '../ai/utils';
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
 import type { WorkersAiInput, WorkersAiOutput } from './types';
+import { stringify } from '../../shared-exports';
 
 /**
  * Determine the gen_ai operation name from the inputs passed to `AI.run`.
@@ -124,7 +125,7 @@ export function addRequestAttributes(
 
   span.setAttribute(
     GEN_AI_INPUT_MESSAGES,
-    enableTruncation ? getTruncatedJsonString(filteredMessages) : getJsonString(filteredMessages),
+    enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
   );
 
   span.setAttribute(
