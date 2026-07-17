@@ -146,8 +146,7 @@ describe('instrumentSqlStorage', () => {
   });
 
   describe('internal storage queries', () => {
-    it('does not create a span for Cloudflare-internal queries by default', () => {
-      mockClientOptions({});
+    it('does not create a span for Cloudflare-internal queries', () => {
       const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockCursor = createMockCursor();
       const mockSql = createMockSqlStorage(mockCursor);
@@ -160,8 +159,7 @@ describe('instrumentSqlStorage', () => {
       expect(result).toBe(mockCursor);
     });
 
-    it('still creates a span for user queries when the internal skip is active', () => {
-      mockClientOptions({});
+    it('still creates a span for user queries', () => {
       const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const mockSql = createMockSqlStorage();
       const instrumented = instrumentSqlStorage(mockSql);
@@ -170,25 +168,8 @@ describe('instrumentSqlStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
     });
-
-    it('creates a span for internal queries when includeCloudflareInternalSpans is true', () => {
-      mockClientOptions({ includeCloudflareInternalSpans: true });
-      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
-      const mockSql = createMockSqlStorage();
-      const instrumented = instrumentSqlStorage(mockSql);
-
-      instrumented.exec('SELECT * FROM cf_agents_state');
-
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-    });
   });
 });
-
-function mockClientOptions(options: Record<string, unknown>): void {
-  vi.spyOn(sentryCore, 'getClient').mockReturnValue({
-    getOptions: () => options,
-  } as any);
-}
 
 function createMockCursor() {
   return {

@@ -6,8 +6,7 @@
  * with dozens of zero-signal `db.query` spans per request. The exact set of tables even varies
  * between framework versions, so we match the reserved prefix rather than an enumerated list.
  *
- * User tables never use this prefix, so skipping their spans by default is safe. Users can opt back
- * in via `includeCloudflareInternalSpans`.
+ * User tables never use this prefix, so skipping their spans is safe.
  *
  * The check operates on the query summary produced by `getSqlQuerySummary` (`{operation} {table} ...`,
  * the same value used as the span name), so table targets are already isolated from the rest of the
