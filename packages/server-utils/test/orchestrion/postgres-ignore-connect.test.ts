@@ -3,8 +3,11 @@ import { tracingChannel } from 'node:diagnostics_channel';
 import type { Scope } from '@sentry/core';
 import {
   _INTERNAL_setSpanForScope,
+  Client,
+  createTransport,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
+  resolvedSyncPromise,
   setAsyncContextStrategy,
 } from '@sentry/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -16,7 +19,28 @@ interface TestStore {
   isolationScope: Scope;
 }
 
-// `setupOnce` only subscribes once `waitForTracingChannelBinding` sees an
+class TestClient extends Client<any> {
+  public constructor(options: any) {
+    super(options);
+  }
+  public eventFromException(): PromiseLike<any> {
+    return resolvedSyncPromise({});
+  }
+  public eventFromMessage(): PromiseLike<any> {
+    return resolvedSyncPromise({});
+  }
+}
+
+function createTestClient(): Client {
+  return new TestClient({
+    dsn: 'https://username@domain/123',
+    integrations: [],
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, () => resolvedSyncPromise({})),
+    stackParser: () => [],
+  });
+}
+
+// `setup` only subscribes once `waitForTracingChannelBinding` sees an
 // async-context strategy exposing `getTracingChannelBinding`. Install a
 // minimal one so the subscriptions actually register here.
 function installTestAsyncContextStrategy(): void {
@@ -59,7 +83,7 @@ function installTestAsyncContextStrategy(): void {
   });
 }
 
-// `setupOnce` subscribes to process-global `tracingChannel`s, so asserting the
+// `setup` subscribes to process-global `tracingChannel`s, so asserting the
 // ABSENCE of connect subscribers only holds when no other (default-options)
 // integration in the same module context has subscribed. vitest isolates
 // module state per file, so this file keeps that assertion clean (the default
@@ -74,7 +98,11 @@ describe('postgresChannelIntegration({ ignoreConnectSpans: true })', () => {
   });
 
   it('subscribes to the query channel but NOT the connect / pool-connect channels', () => {
-    postgresChannelIntegration({ ignoreConnectSpans: true }).setupOnce?.();
+    const client = createTestClient();
+    postgresChannelIntegration({ ignoreConnectSpans: true }).setup?.(client);
+    // Channel subscribers only register once orchestrion reports a matching
+    // module as injected.
+    client.emit('orchestrion.module-runtime-injected', 'pg');
 
     expect(tracingChannel(CHANNELS.PG_QUERY).start.hasSubscribers).toBe(true);
     expect(tracingChannel(CHANNELS.PG_CONNECT).start.hasSubscribers).toBe(false);
