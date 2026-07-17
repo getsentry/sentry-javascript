@@ -56,9 +56,11 @@ We raised the minimum supported versions of several frameworks and libraries:
 - **React Router (framework mode):** minimum is now 7.15.
 - **Remix:** dropped `@remix-run/node` v1 (minimum is now v2).
 
-### Sentry CLI v4
+<!-- TODO(v11): Evaluate whether we can move to Sentry CLI v4 already. -->
 
-The SDK and bundler plugins now use Sentry CLI v4. This is an internal change for most users. If you pin or invoke `@sentry/cli` directly, upgrade your usage to v4.
+### Sentry CLI v3
+
+The SDK and bundler plugins now use Sentry CLI v3. This is an internal change for most users. If you pin or invoke `@sentry/cli` directly, upgrade your usage to v3.
 
 ### AWS Lambda Layer Changes
 
