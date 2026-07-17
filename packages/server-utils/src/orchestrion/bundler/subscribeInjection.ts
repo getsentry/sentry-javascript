@@ -70,7 +70,7 @@ function subscribeSnippet(exportName: string, esm: boolean): string {
  * maps to the subscriber's export name.
  */
 const injectSubscribe: CustomTransform = (state, program) => {
-  const node = program as unknown as ProgramNode;
+  const node = program as ProgramNode;
   if (injectedPrograms.has(node)) {
     return;
   }
