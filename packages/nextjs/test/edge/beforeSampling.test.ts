@@ -83,19 +83,24 @@ describe('edge beforeSampling handler', () => {
     });
   });
 
-  it('does not override an existing normalizedRequest', () => {
-    const existing = { method: 'GET', url: 'https://example.com/full?a=1', headers: { host: 'example.com' } };
-    getIsolationScope().setSDKProcessingMetadata({ normalizedRequest: existing });
+  it('overwrites stale normalizedRequest from a previous invocation', () => {
+    getIsolationScope().setSDKProcessingMetadata({
+      normalizedRequest: { method: 'GET', url: '/previous-request' },
+    });
 
     beforeSamplingHandler!({
       spanAttributes: {
         [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute',
-        'http.method': 'GET',
-        'http.target': '/foo',
+        'http.method': 'POST',
+        'http.target': '/current-request?a=1',
       },
     });
 
-    expect(getNormalizedRequest()).toEqual(existing);
+    expect(getNormalizedRequest()).toEqual({
+      method: 'POST',
+      url: '/current-request?a=1',
+      query_string: 'a=1',
+    });
   });
 
   it('is a no-op for non-request span types', () => {

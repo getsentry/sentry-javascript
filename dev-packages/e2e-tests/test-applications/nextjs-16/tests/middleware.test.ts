@@ -21,6 +21,9 @@ test('Should create a transaction for middleware', async ({ request }) => {
   expect(middlewareTransaction.contexts?.runtime?.name).toBe('node');
   expect(middlewareTransaction.transaction_info?.source).toBe('route');
 
+  expect(middlewareTransaction.request?.method).toBe('GET');
+  expect(middlewareTransaction.request?.url).toContain('/api/endpoint-behind-middleware');
+
   // Assert that isolation scope works properly
   expect(middlewareTransaction.tags?.['my-isolated-tag']).toBe(true);
   expect(middlewareTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();

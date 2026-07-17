@@ -106,14 +106,9 @@ export function init(options: VercelEdgeOptions = {}): void {
       return;
     }
 
-    const isolationScope = getIsolationScope();
-    if (isolationScope.getScopeData().sdkProcessingMetadata?.normalizedRequest) {
-      return;
-    }
-
     const normalizedRequest = getNormalizedRequestFromAttributes(spanAttributes);
     if (normalizedRequest) {
-      isolationScope.setSDKProcessingMetadata({ normalizedRequest });
+      getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
     }
   });
 
