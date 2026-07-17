@@ -49,32 +49,39 @@ function instrumentRun(
 
     if (isStreamRequested && !returnsRawResponse) {
       return startSpanManual(spanConfig, (span: Span) => {
-        const originalResult = originalRun.apply(context, args) as Promise<unknown>;
+        // `startSpanManual` does not auto-end the span, so we must end it on every exit path,
+        // including a synchronous throw from `run`.
+        const handleError = (error: unknown): never => {
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          captureException(error, {
+            mechanism: { handled: false, type: `${WORKERS_AI_ORIGIN}.stream`, data: { function: 'run' } },
+          });
+          span.end();
+          throw error;
+        };
+
+        let originalResult: Promise<unknown>;
+
+        try {
+          originalResult = originalRun.apply(context, args) as Promise<unknown>;
+        } catch (error) {
+          return handleError(error);
+        }
 
         if (options.recordInputs) {
           addRequestAttributes(span, inputs, operationName, shouldEnableTruncation(options.enableTruncation));
         }
 
-        return originalResult.then(
-          result => {
-            if (isReadableStream(result)) {
-              return instrumentWorkersAiStream(result, span, options.recordOutputs);
-            }
+        return originalResult.then(result => {
+          if (isReadableStream(result)) {
+            return instrumentWorkersAiStream(result, span, options.recordOutputs);
+          }
 
-            // The model did not actually return a stream — finalize the span eagerly.
-            addResponseAttributes(span, result, options.recordOutputs);
-            span.end();
-            return result;
-          },
-          error => {
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            captureException(error, {
-              mechanism: { handled: false, type: `${WORKERS_AI_ORIGIN}.stream`, data: { function: 'run' } },
-            });
-            span.end();
-            throw error;
-          },
-        );
+          // The model did not actually return a stream — finalize the span eagerly.
+          addResponseAttributes(span, result, options.recordOutputs);
+          span.end();
+          return result;
+        }, handleError);
       });
     }
 
