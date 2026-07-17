@@ -12,10 +12,8 @@ import type { Navigation } from '@sveltejs/kit';
 import { getCurrentNavigation, onNavigationChange, onPageRouteChange } from './navigationState.svelte';
 
 /**
- * SvelteKit 3 / Svelte 5 browser tracing. Imports `$app/state` (runes) eagerly. Selected at build
- * time by the `sentrySvelteKit()` Vite plugin, so this module (and its `$app/state` import) is only
- * bundled on SvelteKit 3.
- *
+ * SvelteKit 3 / Svelte 5 browser tracing (`$app/state` runes). Selected at build time, so it's only
+ * bundled on Kit 3.
  * @internal
  */
 export function instrumentSvelteKitTracing(

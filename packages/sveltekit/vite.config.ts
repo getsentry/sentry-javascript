@@ -17,10 +17,8 @@ export default {
         replacement: resolve(fileURLToPath(dirname(import.meta.url)), '/.empty.js'),
       },
       {
-        // In a real build the `sentrySvelteKit()` Vite plugin resolves this per SvelteKit version.
-        // Unit tests target the Svelte 4 (`$app/stores`) variant; the Svelte 5 rune variant is
-        // covered by the `sveltekit-3` e2e app (runes need the Svelte compiler, not vitest).
-        find: 'sentry-sveltekit-tracing',
+        // Unit tests target the Svelte 4 variant; the Svelte 5 rune variant is covered by e2e.
+        find: '@sentry/sveltekit/browser-tracing-variant',
         replacement: resolve(dirname(fileURLToPath(import.meta.url)), 'src/client/svelte4BrowserTracing.ts'),
       },
     ],

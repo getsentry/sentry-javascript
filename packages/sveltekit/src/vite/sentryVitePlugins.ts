@@ -74,24 +74,20 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   return sentryPlugins;
 }
 
-// Virtual specifier imported by the SDK's `browserTracingIntegration`; this plugin resolves it to a
-// version-specific variant. A bare specifier (rather than a relative import) is required so this
-// `resolveId` hook intercepts it — Vite resolves relative imports inside `node_modules` during dep
-// pre-bundling, before plugin `resolveId` runs.
-const BROWSER_TRACING_VIRTUAL_ID = 'sentry-sveltekit-tracing';
+// A bare subpath (not a relative import) so this plugin's `resolveId` can intercept it.
+const BROWSER_TRACING_VARIANT_ID = '@sentry/sveltekit/browser-tracing-variant';
 
 /**
- * Resolves the `sentry-sveltekit-tracing` virtual module to the Svelte 4 (`$app/stores`) or Svelte 5
- * (`$app/state`) variant based on the SvelteKit version installed in the user's project. Selecting
- * the correct `$app/*` API at build time means only the matching variant is bundled, instrumentation
- * runs eagerly (no dynamic import), and both Svelte versions stay supported from a single release.
+ * Redirects the browser-tracing variant import to the Svelte 4 (`$app/stores`) or Svelte 5
+ * (`$app/state`) variant per installed SvelteKit version, so only the matching one is bundled and
+ * instrumentation runs eagerly (no dynamic import).
  */
 function makeBrowserTracingVariantResolverPlugin(): Plugin {
   return {
     name: 'sentry-sveltekit-browser-tracing-variant',
     enforce: 'pre',
-    // Dev-only: esbuild dep pre-bundling resolves imports before `resolveId` runs and would fail on
-    // the `sentry-sveltekit-tracing` specifier, so exclude the SDK from it (not needed for build).
+    // Dev only: esbuild pre-bundles deps before `resolveId` runs, so exclude the SDK to let us
+    // redirect the import (not needed for build).
     config(_config, { command }) {
       if (command === 'serve') {
         return { optimizeDeps: { exclude: ['@sentry/sveltekit'] } };
@@ -99,7 +95,7 @@ function makeBrowserTracingVariantResolverPlugin(): Plugin {
       return undefined;
     },
     async resolveId(id) {
-      if (id !== BROWSER_TRACING_VIRTUAL_ID) {
+      if (id !== BROWSER_TRACING_VARIANT_ID) {
         return null;
       }
 
@@ -107,8 +103,7 @@ function makeBrowserTracingVariantResolverPlugin(): Plugin {
         ? 'svelte5BrowserTracing'
         : 'svelte4BrowserTracing';
 
-      // Resolve the SDK's own entry to locate its build directory, then point at the sibling variant
-      // file. An absolute path bypasses the package `exports` map, so the variants stay internal.
+      // Point at the variant file next to the SDK's resolved entry (absolute path, so it stays internal).
       const sdkEntry = await this.resolve('@sentry/sveltekit', undefined, { skipSelf: true });
       if (!sdkEntry) {
         return null;
@@ -120,17 +115,12 @@ function makeBrowserTracingVariantResolverPlugin(): Plugin {
 }
 
 /**
- * Determines whether to use the SvelteKit 3 (`$app/state`) browser-tracing variant. Primarily
- * resolves `@sveltejs/kit`'s `package.json` through the bundler (not `process.cwd()`) so it reads the
- * exact version the consumer has installed, regardless of monorepo layout or working directory. The
- * two variants use incompatible `$app/*` APIs (`$app/stores` throws on Kit 3, `$app/state` is absent
- * on old Kit 2), so a wrong guess ships broken tracing.
+ * Whether to use the SvelteKit 3 (`$app/state`) variant, from the installed `@sveltejs/kit` version
+ * (resolved via the bundler, not `process.cwd()`).
  *
- * If the Kit version can't be read, we fall back to the installed Svelte major version and warn
- * (never throw): Svelte < 5 can't be Kit 3, so use the `$app/stores` variant; on Svelte 5 use the
- * `$app/state` variant, which is available on both Kit 2.12+ and Kit 3 — unlike `$app/stores`, which
- * hard-breaks on Kit 3 — so this errs toward the safe direction. (A `svelte.config` file is not a
- * reliable Kit-version signal: it's loaded by `@sveltejs/vite-plugin-svelte` on every version.)
+ * If the Kit version can't be read, fall back to the Svelte major and warn (never throw): Svelte < 5
+ * can't be Kit 3 (use `$app/stores`); on Svelte 5 use `$app/state`, which works on both Kit 2.12+ and
+ * Kit 3 — the safe direction, since `$app/stores` hard-breaks on Kit 3.
  */
 async function isSvelteKit3(resolve: (id: string) => Promise<{ id: string } | null>): Promise<boolean> {
   const kitMajor = await readPackageMajor(resolve, '@sveltejs/kit/package.json');

@@ -14,10 +14,8 @@ import { navigating, page } from '$app/stores';
 import type { Readable } from 'svelte/store';
 
 /**
- * SvelteKit 2 / Svelte 4 browser tracing. Imports `$app/stores` eagerly. Selected at build time by
- * the `sentrySvelteKit()` Vite plugin, so this module (and its deprecated `$app/stores` import) is
- * only bundled on SvelteKit 2 (where `$app/state` may not exist).
- *
+ * SvelteKit 2 / Svelte 4 browser tracing (`$app/stores`). Selected at build time, so it's only
+ * bundled on Kit 2 (where `$app/state` may not exist).
  * @internal
  */
 export function instrumentSvelteKitTracing(

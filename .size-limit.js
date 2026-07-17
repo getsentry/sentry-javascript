@@ -352,9 +352,7 @@ module.exports = [
     name: '@sentry/sveltekit (client)',
     path: 'packages/sveltekit/build/esm/client/index.js',
     import: createImport('init'),
-    // `sentry-sveltekit-tracing` is resolved by the `sentrySvelteKit()` Vite plugin at build time;
-    // it's not resolvable by size-limit's webpack, so treat it as external (like `$app/stores`).
-    ignore: ['$app/stores', 'sentry-sveltekit-tracing'],
+    ignore: ['$app/stores'],
     gzip: true,
     limit: '52 KB',
     disablePlugins: ['@size-limit/esbuild'],
