@@ -1,7 +1,7 @@
 import { getAbsoluteUrl } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { NAVIGATION_ROUTE_ID, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import type { DataRouter, RouterState } from 'react-router';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -123,6 +123,14 @@ export function getParameterizedRoute(routerState: RouterState): string {
 }
 
 /**
+ * Returns the framework-assigned id of the leaf matched route (e.g. `routes/blog.$slug`), which
+ * is distinct from the parameterized path pattern used for `url.template`.
+ */
+export function getRouteId(routerState: RouterState): string | undefined {
+  return routerState.matches[routerState.matches.length - 1]?.route.id;
+}
+
+/**
  * Updates a navigation span's URL attributes and parameterizes its name from the router state.
  * Used after numeric navigations (`navigate(-1)` / `navigate(1)`) where route hooks may not
  * supply a pattern (e.g. index routes).
@@ -144,8 +152,13 @@ export function finalizeNavigationSpanFromRouterState(span: Span, routerState: R
     normalizePathname(routerState.location.pathname) === normalizePathname(pathname)
   ) {
     const parameterizedRoute = getParameterizedRoute(routerState);
+    const routeId = getRouteId(routerState);
     span.updateName(parameterizedRoute);
-    span.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: parameterizedRoute });
+    span.setAttributes({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [URL_TEMPLATE]: parameterizedRoute,
+      ...(routeId && { [NAVIGATION_ROUTE_ID]: routeId }),
+    });
   }
 }
 

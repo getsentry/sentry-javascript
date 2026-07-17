@@ -50,6 +50,7 @@ test.describe('client - instrumentation API pageload', () => {
           data: {
             'sentry.source': 'route',
             'url.template': '/performance/with/:param',
+            'navigation.route.id': 'routes/performance/dynamic-param',
             'url.path': '/performance/with/some-param',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/some-param$/),
           },

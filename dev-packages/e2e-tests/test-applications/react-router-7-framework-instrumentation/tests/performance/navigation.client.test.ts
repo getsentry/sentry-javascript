@@ -121,6 +121,7 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
           data: {
             'sentry.source': 'route',
             'url.template': '/performance/with/:param',
+            'navigation.route.id': 'routes/performance/dynamic-param',
             'url.path': '/performance/with/sentry',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),
           },

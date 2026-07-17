@@ -89,6 +89,7 @@ test.describe('client - navigation performance', () => {
           data: {
             'sentry.source': 'route',
             'url.template': '/performance/with/:param',
+            'navigation.route.id': 'routes/performance/dynamic-param',
             'url.path': '/performance/with/object-nav',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/object-nav\?foo=bar$/),
           },

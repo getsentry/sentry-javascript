@@ -160,6 +160,22 @@ describe('finalizeNavigationSpanFromRouterState', () => {
     });
   });
 
+  it('sets navigation.route.id from the leaf matched route id', () => {
+    const span = { updateName: vi.fn(), setAttributes: vi.fn() } as any;
+
+    finalizeNavigationSpanFromRouterState(span, {
+      location: { pathname: '/performance/' },
+      matches: [{ route: { path: '', id: 'routes/performance/index' } }],
+      navigation: { state: 'idle' },
+    } as any);
+
+    expect(span.setAttributes).toHaveBeenLastCalledWith({
+      'sentry.source': 'route',
+      'url.template': '/performance',
+      'navigation.route.id': 'routes/performance/index',
+    });
+  });
+
   it('sets url attributes but skips parameterization when router state is stale', () => {
     const span = { updateName: vi.fn(), setAttributes: vi.fn() } as any;
 

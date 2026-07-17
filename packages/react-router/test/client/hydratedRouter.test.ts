@@ -114,6 +114,24 @@ describe('instrumentHydratedRouter', () => {
     });
   });
 
+  it('sets navigation.route.id from the leaf matched route id on state change', () => {
+    instrumentHydratedRouter();
+    const callback = mockRouter.subscribe.mock.calls[0][0];
+    const newState = {
+      location: { pathname: '/foo/bar' },
+      matches: [{ route: { path: '/foo/:id', id: 'routes/foo.$id' } }],
+      navigation: { state: 'idle' },
+    };
+    mockRouter.navigate('/foo/bar');
+    (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
+    callback(newState);
+    expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      'url.template': '/foo/:id',
+      'navigation.route.id': 'routes/foo.$id',
+    });
+  });
+
   it('does not overwrite pageload origin when the pageload is still active', () => {
     // Regression test for #20784: a static-route pageload (where pathname == rootSpanName) was
     // being tagged with `origin: auto.navigation.react_router` because the subscribe callback

@@ -18,11 +18,12 @@ import { isClientInstrumentationApiUsed } from './createClientInstrumentation';
 import {
   finalizeNavigationSpanFromRouterState,
   getParameterizedRoute,
+  getRouteId,
   normalizePathname,
   resolveNavigateAbsoluteUrl,
   resolveNavigateArg,
 } from './utils';
-import { URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { NAVIGATION_ROUTE_ID, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __reactRouterDataRouter?: DataRouter;
@@ -56,11 +57,13 @@ export function instrumentHydratedRouter(): void {
           // this event is for the currently active pageload
           normalizePathname(router.state.location.pathname) === normalizePathname(pageloadName)
         ) {
+          const pageloadRouteId = getRouteId(router.state);
           pageloadSpan.updateName(parameterizePageloadRoute);
           pageloadSpan.setAttributes({
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react_router',
             [URL_TEMPLATE]: parameterizePageloadRoute,
+            ...(pageloadRouteId && { [NAVIGATION_ROUTE_ID]: pageloadRouteId }),
           });
         }
       }
@@ -149,8 +152,13 @@ export function instrumentHydratedRouter(): void {
           (destinationPathname === normalizePathname(rootSpanName) ||
             (spanPathname && destinationPathname === normalizePathname(spanPathname)))
         ) {
+          const routeId = getRouteId(newState);
           rootSpan.updateName(parameterizedRoute);
-          rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: parameterizedRoute });
+          rootSpan.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [URL_TEMPLATE]: parameterizedRoute,
+            ...(routeId && { [NAVIGATION_ROUTE_ID]: routeId }),
+          });
         }
       });
       return true;

@@ -880,7 +880,11 @@ describe('navigation root parameterization', () => {
     });
 
     expect(core.updateSpanName).toHaveBeenCalledWith(mockRootSpan, '/users/:id');
-    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({ 'sentry.source': 'route', 'url.template': '/users/:id' });
+    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
+      'sentry.source': 'route',
+      'url.template': '/users/:id',
+      'navigation.route.id': 'r',
+    });
   });
 
   it('does not rename the root span when the route has no pattern', async () => {

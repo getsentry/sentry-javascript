@@ -24,7 +24,7 @@ import {
   finalizeNavigationSpanFromHydratedRouter,
   updateNavigationSpanUrlFromLocation,
 } from './utils';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { NAVIGATION_ROUTE_ID, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -249,7 +249,7 @@ export function createSentryClientInstrumentation(
           const routePattern = pattern || urlPath;
           // Parameterize the active navigation root span. (Route hooks don't fire on initial
           // pageload, so this only affects navigations.)
-          updateRootSpanRoute(routePattern, !!pattern);
+          updateRootSpanRoute(routePattern, !!pattern, routeId);
 
           await startSpan(
             {
@@ -275,7 +275,7 @@ export function createSentryClientInstrumentation(
           const urlPath = getPathFromRequest(info.request);
           const pattern = normalizeRoutePath(getPattern(info));
           const routePattern = pattern || urlPath;
-          updateRootSpanRoute(routePattern, !!pattern);
+          updateRootSpanRoute(routePattern, !!pattern, routeId);
 
           await startSpan(
             {
@@ -360,7 +360,7 @@ export function createSentryClientInstrumentation(
  * Updates the active navigation/pageload root span name with the parameterized route, so the
  * transaction reflects the parameterized route pattern (e.g. `/users/:id`).
  */
-function updateRootSpanRoute(routeName: string, hasPattern: boolean): void {
+function updateRootSpanRoute(routeName: string, hasPattern: boolean, routeId?: string): void {
   if (!hasPattern) {
     return;
   }
@@ -377,7 +377,11 @@ function updateRootSpanRoute(routeName: string, hasPattern: boolean): void {
   }
 
   updateSpanName(rootSpan, routeName);
-  rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: routeName });
+  rootSpan.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+    [URL_TEMPLATE]: routeName,
+    ...(routeId && { [NAVIGATION_ROUTE_ID]: routeId }),
+  });
 }
 
 /**
