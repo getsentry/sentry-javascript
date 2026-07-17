@@ -27,8 +27,17 @@ interface BrowserSessionOptions {
 export const browserSessionIntegration = defineIntegration((options: BrowserSessionOptions = {}) => {
   const lifecycle = options.lifecycle ?? 'route';
 
+  // Tracks whether session lifecycle callbacks are allowed to fire.
+  // Mirrors the client's _sessionTrackingEnabled flag, updated via the 'sessionTrackingEnabledChange' hook.
+  let sessionTrackingEnabled = true;
+
   return {
     name: 'BrowserSession' as const,
+    setup(client) {
+      client.on('sessionTrackingEnabledChange', (enabled: boolean) => {
+        sessionTrackingEnabled = enabled;
+      });
+    },
     setupOnce() {
       if (typeof WINDOW.document === 'undefined') {
         DEBUG_BUILD &&
@@ -52,7 +61,7 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
         // A navigation (in `'route'` lifecycle) may start and send a new session before this
         // deferred callback fires. In that case the current session was already sent, so
         // re-capturing here would send it a second time - guard against that.
-        if (!initialSessionSent) {
+        if (!initialSessionSent && sessionTrackingEnabled) {
           captureSession();
           initialSessionSent = true;
         }
@@ -79,7 +88,7 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
           // reflected in that session (the scope writes it onto the session), so capturing
           // here would send a redundant envelope - and do so during page load, which is
           // exactly the overhead we're deferring away from.
-          if (initialSessionSent) {
+          if (initialSessionSent && sessionTrackingEnabled) {
             captureSession();
           }
         }
@@ -89,7 +98,7 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
         // We want to create a session for every navigation as well
         addHistoryInstrumentationHandler(({ from, to }) => {
           // Don't create an additional session for the initial route or if the location did not change
-          if (from !== to) {
+          if (from !== to && sessionTrackingEnabled) {
             startSession({ ignoreDuration: true });
             captureSession();
             // A session has now been sent, so the deferred initial capture (if still pending)

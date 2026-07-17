@@ -67,9 +67,41 @@ function setVisibilityState(state: DocumentVisibilityState): void {
   Object.defineProperty(document, 'visibilityState', { value: state, configurable: true });
 }
 
+type SessionTrackingChangeCallback = (enabled: boolean) => void;
+
+/**
+ * Minimal client stand-in that supports the sessionTrackingEnabledChange hook.
+ * The integration's setup(client) subscribes to this hook.
+ */
+function createFakeClient(): {
+  on: (hook: 'sessionTrackingEnabledChange', cb: SessionTrackingChangeCallback) => () => void;
+  emit: (hook: 'sessionTrackingEnabledChange', enabled: boolean) => void;
+} {
+  const listeners = new Set<SessionTrackingChangeCallback>();
+  return {
+    on(_hook, cb) {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    emit(_hook, enabled) {
+      listeners.forEach(cb => cb(enabled));
+    },
+  };
+}
+
 function setupBrowserSession(options?: Parameters<typeof browserSessionIntegration>[0]): void {
   const integration = browserSessionIntegration(options);
   integration.setupOnce?.();
+}
+
+function setupBrowserSessionWithClient(
+  options?: Parameters<typeof browserSessionIntegration>[0],
+): ReturnType<typeof createFakeClient> {
+  const integration = browserSessionIntegration(options);
+  const client = createFakeClient();
+  integration.setup?.(client as Parameters<NonNullable<typeof integration.setup>>[0]);
+  integration.setupOnce?.();
+  return client;
 }
 
 describe('browserSessionIntegration', () => {
@@ -186,5 +218,87 @@ describe('browserSessionIntegration', () => {
     // Same id and ip_address (only unrelated fields change) -> no extra capture.
     scopeHolder.current.setUser({ id: '1337', email: 'b@example.com' });
     expect(SentryCore.captureSession).toHaveBeenCalledTimes(2);
+  });
+
+  describe('setSessionTrackingEnabled / sessionTrackingEnabledChange hook', () => {
+    it('suppresses the deferred initial capture while disabled', () => {
+      const client = setupBrowserSessionWithClient({ lifecycle: 'page' });
+
+      // Disable before the idle timer fires
+      client.emit('sessionTrackingEnabledChange', false);
+
+      vi.runAllTimers();
+
+      expect(SentryCore.captureSession).not.toHaveBeenCalled();
+    });
+
+    it('suppresses the page-hide flush while disabled', () => {
+      const client = setupBrowserSessionWithClient({ lifecycle: 'page' });
+
+      client.emit('sessionTrackingEnabledChange', false);
+      window.dispatchEvent(new Event('pagehide'));
+
+      expect(SentryCore.captureSession).not.toHaveBeenCalled();
+    });
+
+    it('suppresses user-change capture while disabled (user changes after initial send)', () => {
+      const client = setupBrowserSessionWithClient({ lifecycle: 'page' });
+      vi.runAllTimers();
+      expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
+
+      client.emit('sessionTrackingEnabledChange', false);
+      scopeHolder.current.setUser({ id: 'new-user' });
+
+      expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('suppresses navigation session creation and capture while disabled', () => {
+      const client = setupBrowserSessionWithClient();
+
+      client.emit('sessionTrackingEnabledChange', false);
+      navigate('/a', '/b');
+
+      expect(SentryCore.startSession).toHaveBeenCalledTimes(1); // only the initial one
+      expect(SentryCore.captureSession).not.toHaveBeenCalled();
+    });
+
+    it('resumes deferred capture on re-enable when idle fires after re-enable', () => {
+      const client = setupBrowserSessionWithClient({ lifecycle: 'page' });
+
+      client.emit('sessionTrackingEnabledChange', false);
+      // Re-enable before the idle timer fires; the deferred callback must now send
+      client.emit('sessionTrackingEnabledChange', true);
+
+      vi.runAllTimers();
+
+      expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('resumes user-change captures after re-enable', () => {
+      const client = setupBrowserSessionWithClient({ lifecycle: 'page' });
+      vi.runAllTimers();
+      expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
+
+      client.emit('sessionTrackingEnabledChange', false);
+      scopeHolder.current.setUser({ id: 'user-while-disabled' });
+      expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
+
+      client.emit('sessionTrackingEnabledChange', true);
+      scopeHolder.current.setUser({ id: 'user-after-reenable' });
+      expect(SentryCore.captureSession).toHaveBeenCalledTimes(2);
+    });
+
+    it('resumes navigation captures after re-enable', () => {
+      const client = setupBrowserSessionWithClient();
+
+      client.emit('sessionTrackingEnabledChange', false);
+      navigate('/a', '/b');
+      expect(SentryCore.captureSession).not.toHaveBeenCalled();
+
+      client.emit('sessionTrackingEnabledChange', true);
+      navigate('/b', '/c');
+      expect(SentryCore.startSession).toHaveBeenCalledTimes(2); // initial + /b->c navigation
+      expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
+    });
   });
 });

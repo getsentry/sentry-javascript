@@ -6,6 +6,23 @@
 
 Work in this release was contributed by @PeterWadie and @akshitsinha. Thank you for your contributions!
 
+- **feat(core): Add `client.setSessionTrackingEnabled()` to toggle session tracking at runtime ([#22369](https://github.com/getsentry/sentry-javascript/pull/22369))**
+
+  You can now turn session tracking on and off at runtime via `client.setSessionTrackingEnabled(enabled)`.
+  This is useful for consent-gated (e.g. GDPR) setups where you want to stop capturing sessions after a user withdraws consent, without re-initializing the SDK.
+
+  While disabled, no session envelopes are sent. The existing in-memory session is retained, so re-enabling resumes it on its next normal capture rather than flushing immediately.
+
+  ```js
+  const client = Sentry.getClient();
+
+  // Stop capturing and sending sessions (e.g. after consent is withdrawn)
+  client.setSessionTrackingEnabled(false);
+
+  // Resume session tracking later
+  client.setSessionTrackingEnabled(true);
+  ```
+
 - feat(replay): Allow skipping the final flush when stopping recording via `stop({ flush: false })` ([#22300](https://github.com/getsentry/sentry-javascript/pull/22300))
 
 ## 10.66.0

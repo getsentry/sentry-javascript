@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import type { SeverityLevel } from '../../src';
 import {
   addBreadcrumb,
+  Client,
   dsnToString,
   getCurrentScope,
   getIsolationScope,
@@ -2428,6 +2429,129 @@ describe('Client', () => {
       client.captureSession(session);
 
       expect(TestClient.instance!.session).toEqual(session);
+    });
+  });
+
+  describe('setSessionTrackingEnabled()', () => {
+    test('is enabled by default — captureSession sends normally', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const session = makeSession({ release: 'test' });
+
+      client.captureSession(session);
+
+      expect(client.session).toEqual(session);
+    });
+
+    test('disabling prevents captureSession from sending', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const session = makeSession({ release: 'test' });
+
+      client.setSessionTrackingEnabled(false);
+      client.captureSession(session);
+
+      expect(client.session).toBeUndefined();
+    });
+
+    test('disabling prevents captureSession from mutating session.init to false', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const session = makeSession({ release: 'test' });
+
+      expect(session.init).toBe(true);
+      client.setSessionTrackingEnabled(false);
+      client.captureSession(session);
+
+      // init must remain true because we never completed the send
+      expect(session.init).toBe(true);
+    });
+
+    test('disabling prevents sendSession from sending envelopes', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const session = makeSession({ release: 'test' });
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      client.setSessionTrackingEnabled(false);
+      // Call base-class sendSession directly because TestClient overrides it for session capture tracking
+      Client.prototype.sendSession.call(client, session);
+
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+    });
+
+    test('re-enabling allows captureSession to send again', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const session = makeSession({ release: 'test' });
+
+      client.setSessionTrackingEnabled(false);
+      client.captureSession(session);
+      expect(client.session).toBeUndefined();
+
+      client.setSessionTrackingEnabled(true);
+      client.captureSession(session);
+      expect(client.session).toEqual(session);
+    });
+
+    test('idempotent: calling disable twice still blocks sends', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const session = makeSession({ release: 'test' });
+
+      client.setSessionTrackingEnabled(false);
+      client.setSessionTrackingEnabled(false);
+      client.captureSession(session);
+
+      expect(client.session).toBeUndefined();
+    });
+
+    test('idempotent: calling enable twice still allows sends', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const session = makeSession({ release: 'test' });
+
+      client.setSessionTrackingEnabled(false);
+      client.setSessionTrackingEnabled(true);
+      client.setSessionTrackingEnabled(true);
+      client.captureSession(session);
+
+      expect(client.session).toEqual(session);
+    });
+
+    test('emits sessionTrackingEnabledChange hook with new state', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const hook = vi.fn();
+
+      client.on('sessionTrackingEnabledChange', hook);
+
+      client.setSessionTrackingEnabled(false);
+      expect(hook).toHaveBeenCalledTimes(1);
+      expect(hook).toHaveBeenLastCalledWith(false);
+
+      client.setSessionTrackingEnabled(true);
+      expect(hook).toHaveBeenCalledTimes(2);
+      expect(hook).toHaveBeenLastCalledWith(true);
+    });
+
+    test('disabling prevents _updateSessionFromEvent from mutating session on error', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.setSessionTrackingEnabled(false);
+      client.captureEvent({ message: 'test', level: 'fatal' });
+
+      // Session should be unchanged — no status update, no error count increment
+      expect(session.status).toBe('ok');
+      expect(session.errors).toBe(0);
+    });
+
+    test('re-enabling allows _updateSessionFromEvent to run on the next error', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.setSessionTrackingEnabled(false);
+      client.captureEvent({ message: 'test', level: 'fatal' });
+      expect(session.status).toBe('ok');
+
+      client.setSessionTrackingEnabled(true);
+      client.captureEvent({ message: 'test', level: 'fatal' });
+      expect(session.status).toBe('crashed');
     });
   });
 

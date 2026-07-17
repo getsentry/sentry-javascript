@@ -220,6 +220,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   protected readonly _dataCollection: ResolvedDataCollection;
 
+  protected _sessionTrackingEnabled: boolean;
+
   /**
    * Initializes this client instance.
    *
@@ -232,6 +234,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._outcomes = {};
     this._hooks = {};
     this._eventProcessors = [];
+    this._sessionTrackingEnabled = true;
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
     this._dataCollection = resolveDataCollectionOptions(options);
 
@@ -377,9 +380,27 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Captures a session.
    */
   public captureSession(session: Session): void {
+    if (!this._sessionTrackingEnabled) {
+      return;
+    }
     this.sendSession(session);
     // After sending, we set init false to indicate it's not the first occurrence
     updateSession(session, { init: false });
+  }
+
+  /**
+   * Enable or disable automatic session tracking and session envelope sending.
+   *
+   * When set to `false`, no session envelopes will be sent and `browserSessionIntegration`
+   * will pause all automatic session lifecycle work. Existing in-memory sessions are
+   * retained but not mutated by error events or sent.
+   *
+   * When set back to `true`, the existing session resumes and will be sent on its
+   * next normal lifecycle trigger.
+   */
+  public setSessionTrackingEnabled(enabled: boolean): void {
+    this._sessionTrackingEnabled = enabled;
+    this.emit('sessionTrackingEnabledChange', enabled);
   }
 
   /**
@@ -572,6 +593,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Send a session or session aggregrates to Sentry.
    */
   public sendSession(session: Session | SessionAggregates): void {
+    if (!this._sessionTrackingEnabled) {
+      return;
+    }
+
     // Backfill release and environment on session
     const { release: clientReleaseOption, environment: clientEnvironmentOption = DEFAULT_ENVIRONMENT } = this._options;
     if ('aggregates' in session) {
@@ -717,6 +742,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
   public on(hook: 'beforeSendSession', callback: (session: Session | SessionAggregates) => void): () => void;
+
+  /**
+   * Register a callback that is called whenever session tracking is enabled or disabled via `client.setSessionTrackingEnabled()`.
+   *
+   * @param callback A frunction that receives the new enabled state as argument.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'sessionTrackingEnabledChange', callback: (enabled: boolean) => void): () => void;
 
   /**
    * Register a callback for preprocessing an event,
@@ -1023,6 +1056,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Expects to be given the prepared session/aggregates as second argument.
    */
   public emit(hook: 'beforeSendSession', session: Session | SessionAggregates): void;
+
+  /**
+   * Fire a hook event when session tracking enabled state changes.
+   * Expects to be given the new enabled state as second argument.
+   */
+  public emit(hook: 'sessionTrackingEnabledChange', enabled: boolean): void;
 
   /**
    * Fire a hook event to process events before they are passed to (global) event processors.
@@ -1477,7 +1516,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         }
 
         const session = currentScope.getSession() || isolationScope.getSession();
-        if (isError && session) {
+        if (isError && session && this._sessionTrackingEnabled) {
           this._updateSessionFromEvent(session, processedEvent);
         }
 
