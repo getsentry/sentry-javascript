@@ -1,25 +1,26 @@
+import {
+  GEN_AI_EMBEDDINGS_INPUT,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_FREQUENCY_PENALTY,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_PRESENCE_PENALTY,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_REQUEST_TOP_K,
+  GEN_AI_REQUEST_TOP_P,
+  GEN_AI_PROVIDER_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+} from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Span, SpanAttributeValue } from '../../types/span';
 import {
-  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_K_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { extractSystemInstructions, getJsonString, getTruncatedJsonString, setTokenUsageAttributes } from '../ai/utils';
-import { WORKERS_AI_ORIGIN, WORKERS_AI_SYSTEM_NAME } from './constants';
+import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
 import type { WorkersAiInput, WorkersAiOutput } from './types';
 
 /**
@@ -47,32 +48,32 @@ export function extractRequestAttributes(
   operationName: string,
 ): Record<string, SpanAttributeValue> {
   const attributes: Record<string, SpanAttributeValue> = {
-    [GEN_AI_SYSTEM_ATTRIBUTE]: WORKERS_AI_SYSTEM_NAME,
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
+    [GEN_AI_PROVIDER_NAME]: WORKERS_AI_PROVIDER_NAME,
+    [GEN_AI_OPERATION_NAME]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
-    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: typeof model === 'string' ? model : 'unknown',
+    [GEN_AI_REQUEST_MODEL]: typeof model === 'string' ? model : 'unknown',
   };
 
   if (inputs && typeof inputs === 'object') {
     const params = inputs as WorkersAiInput;
 
     if (typeof params.temperature === 'number') {
-      attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = params.temperature;
+      attributes[GEN_AI_REQUEST_TEMPERATURE] = params.temperature;
     }
     if (typeof params.max_tokens === 'number') {
-      attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE] = params.max_tokens;
+      attributes[GEN_AI_REQUEST_MAX_TOKENS] = params.max_tokens;
     }
     if (typeof params.top_p === 'number') {
-      attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE] = params.top_p;
+      attributes[GEN_AI_REQUEST_TOP_P] = params.top_p;
     }
     if (typeof params.top_k === 'number') {
-      attributes[GEN_AI_REQUEST_TOP_K_ATTRIBUTE] = params.top_k;
+      attributes[GEN_AI_REQUEST_TOP_K] = params.top_k;
     }
     if (typeof params.frequency_penalty === 'number') {
-      attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = params.frequency_penalty;
+      attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY] = params.frequency_penalty;
     }
     if (typeof params.presence_penalty === 'number') {
-      attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = params.presence_penalty;
+      attributes[GEN_AI_REQUEST_PRESENCE_PENALTY] = params.presence_penalty;
     }
     if (params.stream === true) {
       attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = true;
@@ -105,7 +106,7 @@ export function addRequestAttributes(
       return;
     }
 
-    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE, typeof text === 'string' ? text : JSON.stringify(text));
+    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, typeof text === 'string' ? text : JSON.stringify(text));
     return;
   }
 
@@ -118,11 +119,11 @@ export function addRequestAttributes(
   const { systemInstructions, filteredMessages } = extractSystemInstructions(src);
 
   if (systemInstructions) {
-    span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+    span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
   }
 
   span.setAttribute(
-    GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+    GEN_AI_INPUT_MESSAGES,
     enableTruncation ? getTruncatedJsonString(filteredMessages) : getJsonString(filteredMessages),
   );
 
@@ -153,13 +154,13 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
 
   if (recordOutputs) {
     if (typeof response.response === 'string') {
-      span.setAttribute(GEN_AI_RESPONSE_TEXT_ATTRIBUTE, response.response);
+      span.setAttribute(GEN_AI_OUTPUT_MESSAGES, response.response);
     } else if (response.response != null) {
-      span.setAttribute(GEN_AI_RESPONSE_TEXT_ATTRIBUTE, JSON.stringify(response.response));
+      span.setAttribute(GEN_AI_OUTPUT_MESSAGES, JSON.stringify(response.response));
     }
 
     if (Array.isArray(response.tool_calls) && response.tool_calls.length > 0) {
-      span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, JSON.stringify(response.tool_calls));
+      span.setAttribute(GEN_AI_OUTPUT_MESSAGES, JSON.stringify(response.tool_calls));
     }
   }
 }

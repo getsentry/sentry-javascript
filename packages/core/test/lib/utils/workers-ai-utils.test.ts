@@ -2,26 +2,25 @@ import { describe, expect, it } from 'vitest';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../../src';
 import type { Span } from '../../../src';
 import {
-  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_K_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../../../src/tracing/ai/gen-ai-attributes';
-import { WORKERS_AI_ORIGIN, WORKERS_AI_SYSTEM_NAME } from '../../../src/tracing/workers-ai/constants';
+  GEN_AI_PROVIDER_NAME,
+  GEN_AI_EMBEDDINGS_INPUT,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_FREQUENCY_PENALTY,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_PRESENCE_PENALTY,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_REQUEST_TOP_K,
+  GEN_AI_REQUEST_TOP_P,
+  GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../src/tracing/ai/gen-ai-attributes';
+import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from '../../../src/tracing/workers-ai/constants';
 import {
   addRequestAttributes,
   addResponseAttributes,
@@ -72,10 +71,10 @@ describe('workers-ai utils', () => {
   describe('extractRequestAttributes', () => {
     it('sets exactly the base attributes for a minimal request', () => {
       expect(extractRequestAttributes(MODEL, { prompt: 'Hello' }, 'chat')).toEqual({
-        [GEN_AI_SYSTEM_ATTRIBUTE]: WORKERS_AI_SYSTEM_NAME,
-        [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+        [GEN_AI_PROVIDER_NAME]: WORKERS_AI_PROVIDER_NAME,
+        [GEN_AI_OPERATION_NAME]: 'chat',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
-        [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: MODEL,
+        [GEN_AI_REQUEST_MODEL]: MODEL,
       });
     });
 
@@ -96,16 +95,16 @@ describe('workers-ai utils', () => {
           'chat',
         ),
       ).toEqual({
-        [GEN_AI_SYSTEM_ATTRIBUTE]: WORKERS_AI_SYSTEM_NAME,
-        [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+        [GEN_AI_PROVIDER_NAME]: WORKERS_AI_PROVIDER_NAME,
+        [GEN_AI_OPERATION_NAME]: 'chat',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
-        [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: MODEL,
-        [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.5,
-        [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
-        [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
-        [GEN_AI_REQUEST_TOP_K_ATTRIBUTE]: 40,
-        [GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE]: 0.1,
-        [GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE]: 0.2,
+        [GEN_AI_REQUEST_MODEL]: MODEL,
+        [GEN_AI_REQUEST_TEMPERATURE]: 0.5,
+        [GEN_AI_REQUEST_MAX_TOKENS]: 100,
+        [GEN_AI_REQUEST_TOP_P]: 0.9,
+        [GEN_AI_REQUEST_TOP_K]: 40,
+        [GEN_AI_REQUEST_FREQUENCY_PENALTY]: 0.1,
+        [GEN_AI_REQUEST_PRESENCE_PENALTY]: 0.2,
         [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
       });
     });
@@ -117,7 +116,7 @@ describe('workers-ai utils', () => {
 
     it('falls back to "unknown" model when model is not a string', () => {
       const attrs = extractRequestAttributes(undefined, { prompt: 'Hello' }, 'chat');
-      expect(attrs[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toBe('unknown');
+      expect(attrs[GEN_AI_REQUEST_MODEL]).toBe('unknown');
     });
   });
 
@@ -137,10 +136,10 @@ describe('workers-ai utils', () => {
         false,
       );
 
-      expect(attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]).toBe(
+      expect(attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe(
         JSON.stringify([{ type: 'text', content: 'You are helpful.' }]),
       );
-      expect(attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBe(JSON.stringify([{ role: 'user', content: 'Hi' }]));
+      expect(attributes[GEN_AI_INPUT_MESSAGES]).toBe(JSON.stringify([{ role: 'user', content: 'Hi' }]));
     });
 
     it('records the prompt string directly', () => {
@@ -148,7 +147,7 @@ describe('workers-ai utils', () => {
 
       addRequestAttributes(span, { prompt: 'Hello world' }, 'chat', false);
 
-      expect(attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBe('Hello world');
+      expect(attributes[GEN_AI_INPUT_MESSAGES]).toBe('Hello world');
     });
 
     it('records embeddings input on a dedicated attribute', () => {
@@ -156,7 +155,7 @@ describe('workers-ai utils', () => {
 
       addRequestAttributes(span, { text: ['embed a', 'embed b'] }, 'embeddings', false);
 
-      expect(attributes).toEqual({ [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: JSON.stringify(['embed a', 'embed b']) });
+      expect(attributes).toEqual({ [GEN_AI_EMBEDDINGS_INPUT]: JSON.stringify(['embed a', 'embed b']) });
     });
 
     it('records nothing for an empty messages array', () => {
@@ -191,9 +190,9 @@ describe('workers-ai utils', () => {
       addResponseAttributes(span, { response: 'Paris', usage: { prompt_tokens: 12, completion_tokens: 7 } }, false);
 
       expect(attributes).toEqual({
-        [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 12,
-        [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 7,
-        [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 19,
+        [GEN_AI_USAGE_INPUT_TOKENS]: 12,
+        [GEN_AI_USAGE_OUTPUT_TOKENS]: 7,
+        [GEN_AI_USAGE_TOTAL_TOKENS]: 19,
       });
     });
 
@@ -202,17 +201,16 @@ describe('workers-ai utils', () => {
 
       addResponseAttributes(span, { response: 'Paris' }, false);
 
-      expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeUndefined();
+      expect(attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
     });
 
     it('records response text and tool calls when recordOutputs is true', () => {
       const { span, attributes } = createMockSpan();
       const toolCalls = [{ name: 'lookup', arguments: { city: 'Paris' } }];
 
-      addResponseAttributes(span, { response: 'Paris', tool_calls: toolCalls }, true);
+      addResponseAttributes(span, { tool_calls: toolCalls }, true);
 
-      expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBe('Paris');
-      expect(attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toBe(JSON.stringify(toolCalls));
+      expect(attributes[GEN_AI_OUTPUT_MESSAGES]).toBe(JSON.stringify(toolCalls));
     });
 
     it('serializes non-string response payloads as JSON', () => {
@@ -220,7 +218,7 @@ describe('workers-ai utils', () => {
 
       addResponseAttributes(span, { response: { translated_text: 'Bonjour' } }, true);
 
-      expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBe(JSON.stringify({ translated_text: 'Bonjour' }));
+      expect(attributes[GEN_AI_OUTPUT_MESSAGES]).toBe(JSON.stringify({ translated_text: 'Bonjour' }));
     });
 
     it('ignores raw Response objects', () => {
