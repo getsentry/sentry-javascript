@@ -5,7 +5,13 @@ import {
   startBrowserTracingPageLoadSpan,
   WINDOW,
 } from '@sentry/browser';
-import { PARAMS_KEY, URL_FULL, URL_PATH, URL_PATH_PARAMETER_KEY, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  PARAMS_KEY_BASE,
+  URL_FULL,
+  URL_PATH,
+  URL_PATH_PARAMETER_KEY_BASE,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
 import type { Integration } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -182,8 +188,8 @@ function routeMatchToParamSpanAttributes(match: RouteMatch | undefined): Record<
 
   const paramAttributes: Record<string, string> = {};
   Object.entries(match.params as Record<string, string>).forEach(([key, value]) => {
-    paramAttributes[URL_PATH_PARAMETER_KEY.replace('<key>', key)] = value;
-    paramAttributes[PARAMS_KEY.replace('<key>', key)] = value; // params.[key] is an alias
+    paramAttributes[`${URL_PATH_PARAMETER_KEY_BASE}.${key}`] = value;
+    paramAttributes[`${PARAMS_KEY_BASE}.${key}`] = value; // params.[key] is an alias
   });
 
   return paramAttributes;
