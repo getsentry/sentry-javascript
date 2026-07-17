@@ -9,7 +9,6 @@ import {
   SPAN_KIND,
   startInactiveSpan,
 } from '@sentry/core';
-import { subscribeMysql2DiagnosticChannels } from '../../mysql2/mysql2-dc-subscriber';
 import type { ChannelName } from '../../orchestrion/channels';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
@@ -68,9 +67,6 @@ interface Mysql2Connection {
  * `experimentalUseDiagnosticsChannelInjection`.
  */
 function instrumentMysql2(): void {
-  // mysql2 >= 3.20.0: native diagnostics_channel path (inert on older versions, which never publish).
-  subscribeMysql2DiagnosticChannels(diagnosticsChannel.tracingChannel);
-
   // mysql2 < 3.20.0: orchestrion-injected channels (inert on >= 3.20.0, which we don't transform).
   subscribeQueryChannel(CHANNELS.MYSQL2_QUERY);
   subscribeQueryChannel(CHANNELS.MYSQL2_EXECUTE);
