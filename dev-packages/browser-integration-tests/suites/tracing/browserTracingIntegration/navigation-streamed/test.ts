@@ -158,7 +158,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: 'url',
       },
-      'sentry.span.source': {
+      'sentry.segment.name.source': {
         type: 'string',
         value: 'url',
       },

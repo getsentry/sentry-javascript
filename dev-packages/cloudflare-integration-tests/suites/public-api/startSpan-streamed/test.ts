@@ -201,7 +201,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { type: 'string', value: 'route' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
-          'sentry.span.source': { type: 'string', value: 'route' },
+          'sentry.segment.name.source': { type: 'string', value: 'route' },
           'server.address': {
             type: 'string',
             value: 'localhost',
