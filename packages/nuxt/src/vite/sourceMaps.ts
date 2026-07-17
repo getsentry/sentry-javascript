@@ -94,9 +94,7 @@ export function setupSourceMaps(
 
   nuxt.hook('nitro:config', (nitroConfig: NitroConfig) => {
     if (sourceMapsEnabled && !nitroConfig.dev && !nuxt.options?._prepare) {
-      if (!nitroConfig.rollupConfig) {
-        nitroConfig.rollupConfig = {};
-      }
+      nitroConfig.rollupConfig ??= {};
 
       if (nitroConfig.rollupConfig.plugins === null || nitroConfig.rollupConfig.plugins === undefined) {
         nitroConfig.rollupConfig.plugins = [];
