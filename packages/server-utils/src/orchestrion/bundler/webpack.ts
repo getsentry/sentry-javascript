@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import type { InstrumentationConfig } from '..';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
+import codeTransformerWebpack from '@apm-js-collab/code-transformer-bundler-plugins/webpack';
 import type { PluginOptions } from './options';
 import { orchestrionTransformOptions } from './options';
 
@@ -46,10 +47,6 @@ export function getSentryInstrumentations(): InstrumentationConfig[] {
 /**
  * The code-transform webpack plugin, pre-fed the instrumentation config
  */
-export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): unknown {
-  const mod = getOrchestrionRequire()('@apm-js-collab/code-transformer-bundler-plugins/webpack') as {
-    default?: (options: { instrumentations: InstrumentationConfig[] }) => unknown;
-  };
-  const codeTransformerWebpack = mod.default ?? (mod as unknown as NonNullable<typeof mod.default>);
+export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformerWebpack> {
   return codeTransformerWebpack(orchestrionTransformOptions(options));
 }
