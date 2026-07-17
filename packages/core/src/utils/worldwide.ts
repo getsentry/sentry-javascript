@@ -12,6 +12,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { Integration } from '../types/integration';
 import type { Carrier } from '../carrier';
 import type { SdkSource } from './env';
 
@@ -63,6 +64,14 @@ export type InternalGlobal = {
     runtime?: string[];
     /** Empty array signifies bundler plugin ran */
     bundler?: string[];
+    /**
+     * Channel-subscriber integration factories a bundler plugin's
+     * subscribe-injection stored here, keyed by export name (one per instrumented
+     * package actually bundled; the key dedupes packages split across several
+     * files). A bundler-only SDK (e.g. `@sentry/cloudflare`) reads these at
+     * `init()` and instantiates them.
+     */
+    integrations?: Map<string, () => Integration>;
   };
 } & Carrier;
 

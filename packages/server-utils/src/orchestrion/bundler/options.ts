@@ -1,5 +1,6 @@
 import type { InstrumentationConfig, CustomTransform } from '..';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
+import { subscribeInjectionOptions } from './subscribeInjection';
 import type { CodeTransformerPluginOptions } from '@apm-js-collab/code-transformer-bundler-plugins/core';
 
 export type PluginOptions = {
@@ -17,6 +18,26 @@ export type PluginOptions = {
    * Defaults to `true`.
    */
   shouldInjectDiagnostics?: boolean;
+  /**
+   * Inject a small marker-push into each instrumented module that imports only
+   * that package's channel-subscriber factory and pushes it onto
+   * `globalThis.__SENTRY_ORCHESTRION__.integrations`. A bundler-only SDK reads
+   * the marker at `init()` and instantiates the collected factories, so every
+   * transformed package's subscriber is wired up with no runtime module hook.
+   *
+   * Because each site imports a single named factory, it tree-shakes: a bundle
+   * carries subscriber code only for the packages actually transformed into it.
+   *
+   * This is what lets a bundler-only SDK (e.g. `@sentry/cloudflare`, which runs
+   * in workerd where requires can't be monkey-patched) record channel spans,
+   * but it is bundler-agnostic: any orchestrion bundler plugin can enable it.
+   * Leave it off for SDKs that wire the integrations up through a static import
+   * instead (e.g. `@sentry/node`'s `experimentalUseDiagnosticsChannelInjection()`),
+   * so the subscribers aren't registered twice.
+   *
+   * Defaults to `false`.
+   */
+  injectChannelSubscribers?: boolean;
 };
 
 /**
@@ -29,8 +50,14 @@ export type PluginOptions = {
  * visible to the runtime).
  */
 export function orchestrionTransformOptions(options: PluginOptions): CodeTransformerPluginOptions {
-  const instrumentations = [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])];
-  const customTransforms = options.customTransforms;
+  const subscribeInjection = options.injectChannelSubscribers ? subscribeInjectionOptions() : undefined;
+
+  const instrumentations = [
+    ...SENTRY_INSTRUMENTATIONS,
+    ...(options.instrumentations || []),
+    ...(subscribeInjection?.instrumentations || []),
+  ];
+  const customTransforms = { ...options.customTransforms, ...subscribeInjection?.customTransforms };
 
   if (options.shouldInjectDiagnostics === false) {
     return {
