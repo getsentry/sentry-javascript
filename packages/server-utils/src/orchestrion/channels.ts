@@ -1,5 +1,6 @@
 import { amqplibChannels } from './config/amqplib';
 import { anthropicAiChannels } from './config/anthropic-ai';
+import { awsSdkChannels } from './config/aws-sdk';
 import { dataloaderChannels } from './config/dataloader';
 import { expressChannels } from './config/express';
 import { firebaseChannels } from './config/firebase';
@@ -48,6 +49,7 @@ import { vercelAiChannels } from './config/vercel-ai';
 export const CHANNELS = {
   ...amqplibChannels,
   ...anthropicAiChannels,
+  ...awsSdkChannels,
   ...dataloaderChannels,
   ...expressChannels,
   ...firebaseChannels,

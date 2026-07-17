@@ -1,6 +1,6 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins the highest mongoose 9 below 9.7, the top of the IITM patcher's `>=5.9.7 <9.7.0` range, so the
@@ -8,6 +8,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // diagnostics_channel and is covered by the `mongoose-tracing-channel` suite instead.
 // mongoose 9 requires Node >=20.19, so this suite is skipped on older Node.
 conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
+  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongoose' : 'auto.db.otel.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -31,7 +32,7 @@ conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
       }),
       description: `mongoose.BlogPost.${operation}`,
       op: 'db',
-      origin: 'auto.db.otel.mongoose',
+      origin,
     });
 
   const EXPECTED_TRANSACTION = {

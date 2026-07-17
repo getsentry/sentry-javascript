@@ -404,10 +404,10 @@
   dependencies:
     json-schema-to-ts "^3.1.1"
 
-"@apm-js-collab/code-transformer-bundler-plugins@^0.7.0":
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.7.0.tgz#499cb4730570e4f4bc3a1e77739dc1fb17839a7a"
-  integrity sha512-huqdbQqE1lTUM2uud/qBY664o5qGPLrI/3ipGRNcTP37otpaVOb6omfIU/8QyR4aObhkpgnFl0ywtoAJZ+y2jw==
+"@apm-js-collab/code-transformer-bundler-plugins@^0.7.1":
+  version "0.7.1"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer-bundler-plugins/-/code-transformer-bundler-plugins-0.7.1.tgz#f9e7128b87cdabb50e91f2ce3a5c48505b511c41"
+  integrity sha512-Yidf5GOl60db80UxUtNdKK3pnY7obU/gs0xOfA0SCdnvVLMCvfYIer/egC3TqpPiT0Jg22eg3RlzcO+zKfPMcA==
   dependencies:
     "@apm-js-collab/code-transformer" "^0.18.0"
     es-module-lexer "^2.1.0"
@@ -6112,10 +6112,10 @@
     "@opentelemetry/resources" "2.9.0"
     "@opentelemetry/semantic-conventions" "^1.29.0"
 
-"@opentelemetry/semantic-conventions@^1.29.0", "@opentelemetry/semantic-conventions@^1.42.0":
-  version "1.42.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.42.0.tgz#38f10edd26f02931bf3b7d664ba59bea6279a384"
-  integrity sha512-icc5xCzndZfhuJMy5oqk5AvloWquR7jtae74qzpkKkhGp8BivK+oCcEXgGnjCdTfp8hA44l+w8gE8yYJbocJJw==
+"@opentelemetry/semantic-conventions@^1.29.0", "@opentelemetry/semantic-conventions@^1.43.0":
+  version "1.43.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.43.0.tgz#f3f467e36c27332f0e735ec86cdcd78dd6f27865"
+  integrity sha512-eSYWTm620tTk45EKSedaUL8MFYI8hW164hIXsgIHyxu3VobUB3fFCu5t0hQby6OoWRPsG1KkKUG2M5UadiLiVg==
 
 "@oxc-parser/binding-android-arm64@0.76.0":
   version "0.76.0"

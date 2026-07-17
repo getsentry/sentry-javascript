@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
 
 export const vercelAiConfig = [
   // Vercel AI v6: mirror the v7 native `ai:telemetry` channel by injecting

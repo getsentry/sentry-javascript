@@ -1,4 +1,4 @@
-import type { InstrumentationConfig, CustomTransform } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig, CustomTransform } from '..';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 import type { CodeTransformerPluginOptions } from '@apm-js-collab/code-transformer-bundler-plugins/core';
 
