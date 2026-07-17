@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/cloudflare';
-import { WorkerEntrypoint, exports as workerExports } from 'cloudflare:workers';
+import { WorkerEntrypoint } from 'cloudflare:workers';
 
 interface Env {
   SENTRY_DSN: string;
@@ -7,6 +7,9 @@ interface Env {
     get(key: string): Promise<{ argumentCount: number; key: string }>;
     inherited(value: string): Promise<string>;
     throwError(): Promise<never>;
+  };
+  SUB_WORKER_NO_PROPAGATION: Fetcher & {
+    get(key: string): Promise<{ argumentCount: number; key: string }>;
   };
 }
 
@@ -28,7 +31,7 @@ export default Sentry.withSentry(
     enableRpcTracePropagation: true,
   }),
   {
-    async fetch(request, env) {
+    async fetch(request, env, ctx) {
       const url = new URL(request.url);
 
       if (url.pathname === '/call-entrypoint') {
@@ -57,11 +60,16 @@ export default Sentry.withSentry(
         }
       }
 
+      if (url.pathname === '/call-entrypoint-rpc-no-propagation') {
+        const result = await env.SUB_WORKER_NO_PROPAGATION.get('no-prop-key');
+        return Response.json(result);
+      }
+
       if (url.pathname === '/call-loopback-rpc-error') {
         try {
           await (
-            workerExports as unknown as { LoopbackEntrypoint: { throwError(): Promise<never> } }
-          ).LoopbackEntrypoint.throwError();
+            ctx as unknown as { exports: { LoopbackEntrypoint: { throwError(): Promise<never> } } }
+          ).exports.LoopbackEntrypoint.throwError();
         } catch {
           return new Response('fallback');
         }

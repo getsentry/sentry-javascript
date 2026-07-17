@@ -56,4 +56,13 @@ export const BindingEntrypoint = Sentry.withSentry(
   MySubWorkerEntrypointBase,
 );
 
+export const NoPropagationEntrypoint = Sentry.withSentry(
+  (env: Env) => ({
+    dsn: env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
+    transportOptions: { fetch: fetch.bind(globalThis) },
+  }),
+  MySubWorkerEntrypointBase,
+);
+
 export default BindingEntrypoint;

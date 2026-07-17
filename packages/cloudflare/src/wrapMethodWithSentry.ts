@@ -93,7 +93,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
     original =>
       new Proxy(original, {
         apply(target, thisArg, rawArgs: Parameters<T>) {
-          const { startNewTrace, origin = 'auto.faas.cloudflare.durable_object' } = wrapperOptions;
+          const { startNewTrace, origin } = wrapperOptions;
 
           // For RPC methods, extract Sentry trace context from the trailing argument.
           // The caller side (instrumentDurableObjectStub / JSRPC proxy) appends it;

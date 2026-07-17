@@ -130,24 +130,70 @@ it('propagates trace for request with query params from Worker to WorkerEntrypoi
 
 it('instruments inherited custom WorkerEntrypoint RPC methods and strips metadata', async ({ signal }) => {
   let callerTraceId: string | undefined;
-  let receiverTraceId: string | undefined;
+  let callerSpanId: string | undefined;
+  let receiverGetTraceId: string | undefined;
+  let receiverGetParentSpanId: string | undefined;
 
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const event = envelope[1]?.[0]?.[1] as Event;
-      expect(event.transaction).toBe('GET /call-entrypoint-rpc');
-      callerTraceId = event.contexts?.trace?.trace_id;
+      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+
+      expect(transactionEvent).toEqual(
+        expect.objectContaining({
+          contexts: expect.objectContaining({
+            trace: expect.objectContaining({
+              op: 'http.server',
+              origin: 'auto.http.cloudflare',
+              data: expect.objectContaining({
+                'sentry.origin': 'auto.http.cloudflare',
+              }),
+            }),
+          }),
+          transaction: 'GET /call-entrypoint-rpc',
+        }),
+      );
+      callerTraceId = transactionEvent.contexts?.trace?.trace_id as string;
+      callerSpanId = transactionEvent.contexts?.trace?.span_id as string;
     })
     .expect(envelope => {
-      const event = envelope[1]?.[0]?.[1] as Event;
-      expect(event.transaction).toBe('get');
-      expect(event.contexts?.trace?.op).toBe('rpc');
-      receiverTraceId = event.contexts?.trace?.trace_id;
+      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+
+      expect(transactionEvent).toEqual(
+        expect.objectContaining({
+          contexts: expect.objectContaining({
+            trace: expect.objectContaining({
+              op: 'rpc',
+              origin: 'auto.faas.cloudflare.worker_entrypoint',
+              data: expect.objectContaining({
+                'sentry.op': 'rpc',
+                'sentry.origin': 'auto.faas.cloudflare.worker_entrypoint',
+              }),
+            }),
+          }),
+          transaction: 'get',
+        }),
+      );
+      receiverGetTraceId = transactionEvent.contexts?.trace?.trace_id as string;
+      receiverGetParentSpanId = transactionEvent.contexts?.trace?.parent_span_id as string;
     })
     .expect(envelope => {
-      const event = envelope[1]?.[0]?.[1] as Event;
-      expect(event.transaction).toBe('inherited');
-      expect(event.contexts?.trace?.op).toBe('rpc');
+      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+
+      expect(transactionEvent).toEqual(
+        expect.objectContaining({
+          contexts: expect.objectContaining({
+            trace: expect.objectContaining({
+              op: 'rpc',
+              origin: 'auto.faas.cloudflare.worker_entrypoint',
+              data: expect.objectContaining({
+                'sentry.op': 'rpc',
+                'sentry.origin': 'auto.faas.cloudflare.worker_entrypoint',
+              }),
+            }),
+          }),
+          transaction: 'inherited',
+        }),
+      );
     })
     .unordered()
     .start(signal);
@@ -159,7 +205,14 @@ it('instruments inherited custom WorkerEntrypoint RPC methods and strips metadat
   expect(response).toEqual({ argumentCount: 1, inherited: 'base-value', key: 'feature-key' });
 
   await runner.completed();
-  expect(receiverTraceId).toBe(callerTraceId);
+
+  expect(receiverGetTraceId).toBeDefined();
+  expect(callerTraceId).toBeDefined();
+  expect(receiverGetTraceId).toBe(callerTraceId);
+
+  expect(receiverGetParentSpanId).toBeDefined();
+  expect(callerSpanId).toBeDefined();
+  expect(receiverGetParentSpanId).toBe(callerSpanId);
 });
 
 it('captures errors thrown by custom WorkerEntrypoint RPC methods', async ({ signal }) => {
@@ -187,6 +240,35 @@ it('captures errors thrown by custom WorkerEntrypoint RPC methods', async ({ sig
 
   const response = await runner.makeRequest<string>('get', '/call-entrypoint-rpc-error');
   expect(response).toBe('fallback');
+
+  await runner.completed();
+});
+
+it('does not create a traced RPC transaction on the receiver when enableRpcTracePropagation is disabled', async ({
+  signal,
+}) => {
+  const runner = createRunner(__dirname)
+    .expect(envelope => {
+      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+
+      expect(transactionEvent).toEqual(
+        expect.objectContaining({
+          contexts: expect.objectContaining({
+            trace: expect.objectContaining({
+              op: 'http.server',
+            }),
+          }),
+          transaction: 'GET /call-entrypoint-rpc-no-propagation',
+        }),
+      );
+    })
+    .start(signal);
+
+  const response = await runner.makeRequest<{ argumentCount: number; key: string }>(
+    'get',
+    '/call-entrypoint-rpc-no-propagation',
+  );
+  expect(response).toEqual({ argumentCount: 1, key: 'no-prop-key' });
 
   await runner.completed();
 });

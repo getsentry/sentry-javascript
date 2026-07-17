@@ -286,6 +286,7 @@ describe('wrapMethodWithSentry', () => {
       const options = {
         options: {},
         context: createMockContext(),
+        origin: 'auto.faas.cloudflare.durable_object',
       };
 
       const wrapped = wrapMethodWithSentry(options, handler);
@@ -305,6 +306,7 @@ describe('wrapMethodWithSentry', () => {
       const options = {
         options: {},
         context: createMockContext(),
+        origin: 'auto.faas.cloudflare.durable_object',
       };
 
       const wrapped = wrapMethodWithSentry(options, handler);

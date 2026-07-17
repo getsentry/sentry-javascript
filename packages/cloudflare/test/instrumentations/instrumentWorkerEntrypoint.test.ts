@@ -313,7 +313,7 @@ describe('instrumentWorkerEntrypoint', () => {
       expect(obj.readValue(rpcMeta)).toBe('secret');
     });
 
-    it('preserves arguments when RPC trace propagation is disabled', () => {
+    it('strips RPC metadata even when trace propagation is disabled', () => {
       const rpcMeta = { __sentry_rpc_meta__: { 'sentry-trace': 'trace-data' } };
       const TestClass = class extends WorkerEntrypoint {
         inspect(...args: unknown[]) {
@@ -329,7 +329,7 @@ describe('instrumentWorkerEntrypoint', () => {
       );
 
       expect(obj.inspect).toBe(obj.inspect);
-      expect(obj.inspect(rpcMeta)).toEqual([rpcMeta]);
+      expect(obj.inspect(rpcMeta)).toEqual([]);
     });
 
     it('flushes repeated calls on the same instance', async () => {

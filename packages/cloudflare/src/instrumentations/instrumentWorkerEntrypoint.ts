@@ -1,4 +1,4 @@
-import type { WorkerEntrypoint } from 'cloudflare:workers';
+import type { RpcStub, WorkerEntrypoint } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 import type { CloudflareOptions } from '../client';
 import { getFinalOptions } from '../options';
@@ -13,6 +13,12 @@ import { instrumentWorkerEntrypointTail } from './worker/instrumentTail';
 
 const WORKER_ENTRYPOINT_ORIGIN = 'auto.faas.cloudflare.worker_entrypoint';
 
+type ReservedMethod =
+  | Exclude<Extract<keyof WorkerEntrypoint, string>, '__WORKER_ENTRYPOINT_BRAND'>
+  | Extract<keyof ExportedHandler, string>
+  | Exclude<Extract<keyof RpcStub<(...args: unknown[]) => unknown>, string>, '__RPC_STUB_BRAND'>
+  | 'constructor';
+
 const RESERVED_METHODS = new Set<string>([
   'connect',
   'constructor',
@@ -25,7 +31,7 @@ const RESERVED_METHODS = new Set<string>([
   'tailStream',
   'test',
   'trace',
-]);
+] satisfies ReservedMethod[]);
 
 interface CachedMethod {
   source: UncheckedMethod;
@@ -81,7 +87,7 @@ function instrumentMethod(
   }
 
   const captureMethod = wrapMethodWithSentry(
-    { options, context, origin: WORKER_ENTRYPOINT_ORIGIN },
+    { options, context, spanOp: 'rpc', origin: WORKER_ENTRYPOINT_ORIGIN },
     boundMethod,
     undefined,
     true,
