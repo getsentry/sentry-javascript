@@ -39,7 +39,7 @@ test('should send error for faulty click handlers', async ({ page }) => {
       expect(frames).toContainEqual(
         expect.objectContaining({
           filename: expect.stringMatching(
-            /^app:\/\/\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js$/,
+            /^app:\/\/\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js(:\d+)*$/,
           ),
           in_app: false,
         }),
@@ -48,7 +48,7 @@ test('should send error for faulty click handlers', async ({ page }) => {
       expect(frames).not.toContainEqual(
         expect.objectContaining({
           filename: expect.stringMatching(
-            /^app:\/\/\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js$/,
+            /^app:\/\/\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js(:\d+)*$/,
           ),
           in_app: true,
         }),
