@@ -9,9 +9,10 @@ import { instrumentWorkersAiStream } from './streaming';
 import type { WorkersAiOptions } from './types';
 import { addRequestAttributes, addResponseAttributes, extractRequestAttributes, getOperationName } from './utils';
 
-// Copied from /server-utils/src/vercel-ai/util.ts
+// Adapted from /server-utils/src/vercel-ai/util.ts
 // TODO(v11): Reuse this function once this gets moved to @sentry/server-utils
-function isReadableStream(value: unknown): value is ReadableStream<unknown> {
+// Workers AI streaming responses are SSE byte streams, so we narrow to `Uint8Array`.
+function isReadableStream(value: unknown): value is ReadableStream<Uint8Array> {
   return (
     isObjectLike(value) &&
     typeof (value as { pipeThrough?: unknown }).pipeThrough === 'function' &&
