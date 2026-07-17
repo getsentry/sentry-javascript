@@ -25,7 +25,6 @@ import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentat
 import { mysql2ModuleNames } from '../../orchestrion/config/mysql2';
 import { mysql2Integration } from '../../mysql2';
 
-const INTEGRATION_NAME = 'Mysql2' as const;
 const ORIGIN = 'auto.db.orchestrion.mysql2';
 const DB_SYSTEM_VALUE_MYSQL = 'mysql';
 
