@@ -2,14 +2,21 @@ import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span } from '../../types/span';
+import { isObjectLike } from '../../utils/is';
 import { resolveAIRecordingOptions, shouldEnableTruncation } from '../ai/utils';
 import { WORKERS_AI_ORIGIN } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
 import type { WorkersAiOptions } from './types';
 import { addRequestAttributes, addResponseAttributes, extractRequestAttributes, getOperationName } from './utils';
 
-function isReadableStream(value: unknown): value is ReadableStream<Uint8Array> {
-  return typeof ReadableStream !== 'undefined' && value instanceof ReadableStream;
+// Copied from /server-utils/src/vercel-ai/util.ts
+// TODO(v11): Reuse this function once this gets moved to @sentry/server-utils
+function isReadableStream(value: unknown): value is ReadableStream<unknown> {
+  return (
+    isObjectLike(value) &&
+    typeof (value as { pipeThrough?: unknown }).pipeThrough === 'function' &&
+    typeof (value as { getReader?: unknown }).getReader === 'function'
+  );
 }
 
 /**
