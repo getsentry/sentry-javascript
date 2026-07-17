@@ -81,6 +81,38 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
   });
 
+  // Regression for #22328
+  // built-in handlers live on the class prototype.
+  // ensureInstrumented keys its global cache on the original function
+  // reference, so without per-instance binding a second instance in the
+  // same isolate reuses the first instance's wrapper.
+  it('Built-in handlers do not stick to the first instance options across a shared isolate', async () => {
+    const mockContext = {
+      waitUntil: vi.fn(),
+    } as any;
+    const mockEnv = {} as any;
+    const initCore = vi.spyOn(SentryCore, 'initAndBind');
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+    const options = vi.fn().mockReturnValueOnce({ orgId: 1 }).mockReturnValueOnce({ orgId: 2 });
+
+    const testClass = class {
+      webSocketMessage() {}
+    };
+    const Instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
+
+    const instance1 = Reflect.construct(Instrumented, [mockContext, mockEnv]);
+    const instance2 = Reflect.construct(Instrumented, [mockContext, mockEnv]);
+
+    // Each instance must get its own wrapper, not the first instance's cached proxy.
+    expect(instance2.webSocketMessage).not.toBe(instance1.webSocketMessage);
+
+    await instance1.webSocketMessage();
+    await instance2.webSocketMessage();
+
+    expect(initCore).nthCalledWith(1, expect.any(Function), expect.objectContaining({ orgId: 1 }));
+    expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
+  });
+
   it('does not create RPC spans without metadata when both RPC options are set', () => {
     const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
     vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
