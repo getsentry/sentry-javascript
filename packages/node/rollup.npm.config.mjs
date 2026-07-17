@@ -14,7 +14,7 @@ export default [
         'src/init.ts',
         'src/preload.ts',
         // Combined Sentry bundler plugins + orchestrion code transform, exposed
-        // via the `@sentry/node/bundler-plugin/*` subpath exports.
+        // via the `@sentry/node/{vite,rollup,webpack,esbuild}` subpath exports.
         'src/bundler-plugin/vite.ts',
         'src/bundler-plugin/rollup.ts',
         'src/bundler-plugin/webpack.ts',

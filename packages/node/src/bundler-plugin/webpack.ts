@@ -21,7 +21,7 @@ type WebpackCompiler = Parameters<ReturnType<typeof sentryWebpackBundlerPlugin>[
  * @example
  * ```ts
  * // webpack.config.mjs
- * import { sentryWebpackPlugin } from '@sentry/node/bundler-plugin/webpack';
+ * import { sentryWebpackPlugin } from '@sentry/node/webpack';
  * export default { plugins: [sentryWebpackPlugin({ org: '…', project: '…' })] };
  * ```
  */
