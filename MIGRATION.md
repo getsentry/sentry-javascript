@@ -251,6 +251,30 @@ Affected SDKs: `@sentry/nextjs`.
 
 Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
 
+### Cloudflare: `nodejs_compat` compatibility flag is now required
+
+Affected SDKs: `@sentry/cloudflare`.
+
+The SDK now requires the `nodejs_compat` compatibility flag instead of `nodejs_als`. Update your `wrangler.toml` (or `wrangler.jsonc`):
+
+```diff
+- compatibility_flags = ["nodejs_als"]
++ compatibility_flags = ["nodejs_compat"]
+```
+
+### Cloudflare: `wrapRequestHandler` moved to `@sentry/cloudflare/request`
+
+> **TODO(v11):** This needs to be clarified with #22367
+
+Affected SDKs: `@sentry/cloudflare`.
+
+`wrapRequestHandler` is no longer available from the main `@sentry/cloudflare` entry point. Import it from the dedicated subpath instead:
+
+```diff
+- import { wrapRequestHandler } from '@sentry/cloudflare';
++ import { wrapRequestHandler } from '@sentry/cloudflare/request';
+```
+
 ## 3. Removed APIs
 
 ### `@sentry/core` / All SDKs
@@ -308,7 +332,54 @@ Sentry.init({
 
 ### `@sentry/cloudflare`
 
+- The `@sentry/cloudflare/nodejs_compat` subpath export was removed. Since `nodejs_compat` is now required for all users, the main `@sentry/cloudflare` entry point includes everything that was previously only available via the subpath.
+
+```diff
+- import * as Sentry from '@sentry/cloudflare/nodejs_compat';
++ import * as Sentry from '@sentry/cloudflare';
+```
+
 - The deprecated `instrumentD1WithSentry` export was removed. `withSentry()` automatically instruments all D1 bindings via `env`.
+
+```diff
+  import * as Sentry from '@sentry/cloudflare';
+
+  export default withSentry(
+    (env) => ({ dsn: env.SENTRY_DSN }),
+    {
+      async fetch(request, env, ctx) {
+-       const db = Sentry.instrumentD1WithSentry(env.DB);
+-       const result = await db.prepare('SELECT * FROM users').all();
++       const result = await env.DB.prepare('SELECT * FROM users').all();
+      },
+    },
+  );
+```
+
+> **TODO(v11):** This might change to `enableRpcTracePropagation: true` by default. This depends on the outcomes of #20525
+
+- The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. Use `enableRpcTracePropagation` instead, which was introduced as its replacement in v10.
+
+```diff
+  export const MyDO = Sentry.instrumentDurableObjectWithSentry(
+    (env) => ({
+      dsn: env.SENTRY_DSN,
+-     instrumentPrototypeMethods: true,
++     enableRpcTracePropagation: true,
+    }),
+    MyDOBase,
+  );
+```
+
+- The `honoIntegration` was removed. Use the dedicated [`@sentry/hono`](https://www.npmjs.com/package/@sentry/hono) package instead, which provides a middleware that handles error capturing automatically.
+
+```diff
+- import * as Sentry from '@sentry/cloudflare';
++ import { sentry } from '@sentry/hono/cloudflare';
+
+  const app = new Hono();
++ app.use(sentry());
+```
 
 ### `@sentry/opentelemetry`
 
@@ -441,7 +512,27 @@ The `childProcessIntegration` was split into a `childProcessIntegration` (for `c
 - Attribute typing and serialization were unified across the SDK.
 - The `SentrySpanArguments` interface and related dead code in `SentrySpan` were cleaned up.
 - `BrowserOptions` now supports the `TransportOptions` generic.
-- (Cloudflare) The `env` types and the `withSentry` generics were reworked for better type safety.
+- (Cloudflare) The `env` types and the generics on `withSentry` and `instrumentDurableObjectWithSentry` were reworked for better type safety. If you were not passing explicit generic type parameters, no changes are needed.
+
+```diff
+- export default withSentry<Env>(
++ export default withSentry(
+    (env) => ({ dsn: env.SENTRY_DSN }),
+    {
+      async fetch(request, env, ctx) {
+        // env is correctly typed based on the handler
+      },
+    } satisfies ExportedHandler<Env>,
+  );
+```
+
+```diff
+- export const MyDO = Sentry.instrumentDurableObjectWithSentry<Env, MyDOBase, typeof MyDOBase>(
++ export const MyDO = Sentry.instrumentDurableObjectWithSentry(
+    (env) => ({ dsn: env.SENTRY_DSN }),
+    MyDOBase,
+  );
+```
 
 ## No Version Support Timeline
 
