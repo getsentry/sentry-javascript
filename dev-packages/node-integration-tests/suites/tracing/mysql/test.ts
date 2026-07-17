@@ -263,10 +263,6 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: 'task',
         },
-        'sentry.segment.name.source': {
-          type: 'string',
-          value: 'task',
-        },
         [SENTRY_TRACE_LIFECYCLE]: {
           type: 'string',
           value: 'stream',
