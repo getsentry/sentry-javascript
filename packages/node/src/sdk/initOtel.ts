@@ -48,6 +48,8 @@ function registerGlobalTracerProvider(provider: TracerProvider): boolean {
     return true;
   }
 
+  // @opentelemetry/api stores the registry under a `Symbol.for` key that no public type
+  // describes, so `typeof globalThis` can only be narrowed to it by casting through `unknown`.
   const otelGlobal = globalThis as unknown as Record<symbol, { trace?: unknown } | undefined>;
   const registry = otelGlobal[OTEL_API_GLOBAL_KEY];
   if (registry && !registry.trace) {
