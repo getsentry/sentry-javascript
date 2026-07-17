@@ -2,11 +2,17 @@
   "name": "cloudflare-worker-workerentrypoint-rpc",
   "main": "index.ts",
   "compatibility_date": "2025-06-17",
-  "compatibility_flags": ["nodejs_als"],
+  "compatibility_flags": ["nodejs_als", "enable_ctx_exports"],
   "services": [
     {
       "binding": "SUB_WORKER",
       "service": "cloudflare-worker-workerentrypoint-rpc-sub",
+      "entrypoint": "BindingEntrypoint",
+    },
+    {
+      "binding": "SUB_WORKER_NO_PROPAGATION",
+      "service": "cloudflare-worker-workerentrypoint-rpc-sub",
+      "entrypoint": "NoPropagationEntrypoint",
     },
   ],
 }
