@@ -1,28 +1,50 @@
 import * as Sentry from '@sentry/cloudflare';
+import { MockAi } from './mocks';
 
 interface Env {
   SENTRY_DSN: string;
 }
 
-// A stand-in for the `env.AI` binding whose `run` rejects, so we can assert that a
-// failing Workers AI call bubbles up out of the handler and is reported by the
-// top-level Cloudflare instrumentation, rather than being captured inside the
-// Workers AI integration itself.
-const ai = {
-  run: async (_model: string, _inputs: Record<string, unknown>) => {
-    throw new Error('Workers AI run failed');
-  },
-};
-
-const instrumentedAi = Sentry.instrumentWorkersAiClient(ai);
+const ai = Sentry.instrumentWorkersAiClient(new MockAi());
 
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
+    // Keep gen_ai spans embedded in the transaction (instead of streamed as a
+    // separate envelope container) so they can be asserted on `transaction.spans`.
+    streamGenAiSpans: false,
   }),
   {
-    async fetch(_request, _env, _ctx) {
-      const result = await instrumentedAi.run('@cf/meta/llama-3.1-8b-instruct', { prompt: 'Hello' });
+    async fetch(request) {
+      const url = new URL(request.url);
+
+      if (url.pathname === '/error') {
+        // The Workers AI integration deliberately does not call `captureException` itself.
+        // A failing `run` must bubble up out of the handler so the top-level Cloudflare
+        // instrumentation reports it instead — showing up in Sentry exactly once.
+        const result = await ai.run('error-model', { prompt: 'Hello' });
+        return new Response(JSON.stringify(result));
+      }
+
+      if (url.pathname === '/stream') {
+        const stream = (await ai.run('@cf/meta/llama-3.1-8b-instruct', {
+          messages: [{ role: 'user', content: 'What is the capital of France?' }],
+          stream: true,
+        })) as ReadableStream;
+
+        const text = await new Response(stream).text();
+        return new Response(text);
+      }
+
+      const result = await ai.run('@cf/meta/llama-3.1-8b-instruct', {
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant.' },
+          { role: 'user', content: 'What is the capital of France?' },
+        ],
+        temperature: 0.7,
+        max_tokens: 100,
+      });
 
       return new Response(JSON.stringify(result));
     },
