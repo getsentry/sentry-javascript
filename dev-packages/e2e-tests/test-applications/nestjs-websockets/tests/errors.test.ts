@@ -34,9 +34,12 @@ test('Automatically captures unexpected errors in WebSocket gateway handlers', a
 
   const error = await errorPromise;
 
-  expect(error.exception?.values?.[0]).toMatchObject({
-    type: 'Error',
-    value: 'This is an exception in a WebSocket handler',
+  expect(error.exception?.values).toHaveLength(1);
+  expect(error.exception?.values?.[0]?.type).toBe('Error');
+  expect(error.exception?.values?.[0]?.value).toBe('This is an exception in a WebSocket handler');
+  expect(error.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.ws.nestjs.global_filter',
   });
 
   socket.disconnect();

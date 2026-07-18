@@ -1,6 +1,9 @@
+import { UseFilters } from '@nestjs/common';
 import { MessageBody, SubscribeMessage, WebSocketGateway, WsException } from '@nestjs/websockets';
 import * as Sentry from '@sentry/nestjs';
+import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 
+@UseFilters(new SentryGlobalFilter())
 @WebSocketGateway()
 export class AppGateway {
   @SubscribeMessage('test-exception')

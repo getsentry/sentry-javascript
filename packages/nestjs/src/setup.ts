@@ -162,12 +162,12 @@ class SentryGlobalFilter extends BaseExceptionFilter {
         });
       }
 
-      const client = host.switchToWs().getClient<{ emit: (event: string, data: unknown) => void }>();
+      const client = host.switchToWs().getClient<{ emit?: (event: string, data: unknown) => void }>();
 
       if (isWsException(exception)) {
         const result = (exception as { getError: () => unknown }).getError();
         const response = typeof result === 'object' && result !== null ? result : { status: 'error', message: result };
-        client.emit('exception', response);
+        client.emit?.('exception', response);
         return;
       }
 
@@ -175,7 +175,7 @@ class SentryGlobalFilter extends BaseExceptionFilter {
         this._logger.error(exception.message, exception.stack);
       }
 
-      client.emit('exception', { status: 'error', message: 'Internal server error' });
+      client.emit?.('exception', { status: 'error', message: 'Internal server error' });
       return;
     }
 

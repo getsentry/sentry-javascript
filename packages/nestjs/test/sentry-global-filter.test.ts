@@ -302,5 +302,24 @@ describe('SentryGlobalFilter', () => {
         message: 'Internal server error',
       });
     });
+
+    it('captures unexpected errors when the WebSocket client cannot emit', () => {
+      vi.mocked(mockArgumentsHost.switchToWs).mockReturnValue({
+        getClient: () => ({}),
+        getData: vi.fn(),
+        getPattern: vi.fn(),
+      });
+      const error = new Error('WebSocket adapter without emit');
+
+      filter.catch(error, mockArgumentsHost);
+
+      expect(mockCaptureException).toHaveBeenCalledWith(error, {
+        mechanism: {
+          handled: false,
+          type: 'auto.ws.nestjs.global_filter',
+        },
+      });
+      expect(mockLoggerError).toHaveBeenCalledWith(error.message, error.stack);
+    });
   });
 });
