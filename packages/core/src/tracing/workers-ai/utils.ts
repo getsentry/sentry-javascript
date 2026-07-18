@@ -10,14 +10,16 @@ import {
   GEN_AI_REQUEST_TOP_K,
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_PROVIDER_NAME,
-  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Span, SpanAttributeValue } from '../../types/span';
 import {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+  GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
+  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { extractSystemInstructions, getTruncatedJsonString, setTokenUsageAttributes } from '../ai/utils';
 import { stringify } from '../../utils/string';
@@ -135,6 +137,55 @@ export function addRequestAttributes(
 }
 
 /**
+ * Build the `gen_ai.output.messages` value (a single assistant message with text and/or
+ * tool-call parts) from the response text and tool calls.
+ *
+ * We set this in addition to the deprecated `gen_ai.response.text` / `gen_ai.response.tool_calls`
+ * attributes because Sentry's product reads the model output from `gen_ai.output.messages` first.
+ * Relay migrates `gen_ai.response.text` into `gen_ai.output.messages`, but the tool-calls half of
+ * that migration is lossy — so tool-call turns would otherwise render an empty Output. Emitting the
+ * normalized message here (mirroring the Vercel AI integration) keeps tool calls visible.
+ */
+export function setOutputMessagesAttribute(
+  span: Span,
+  { responseText, toolCalls }: { responseText?: string; toolCalls?: unknown[] },
+): void {
+  const parts: Array<Record<string, unknown>> = [];
+
+  if (typeof responseText === 'string' && responseText.length > 0) {
+    parts.push({ type: 'text', content: responseText });
+  }
+
+  if (Array.isArray(toolCalls)) {
+    for (const toolCall of toolCalls) {
+      if (!toolCall || typeof toolCall !== 'object') {
+        continue;
+      }
+      const call = toolCall as {
+        id?: unknown;
+        function?: { name?: unknown; arguments?: unknown };
+        name?: unknown;
+        arguments?: unknown;
+      };
+      // Normalize both the OpenAI-compatible shape (name/arguments nested under `function`)
+      // and the native Workers AI shape (name/arguments at the top level).
+      const name = call.function?.name ?? call.name;
+      const args = call.function?.arguments ?? call.arguments;
+      parts.push({
+        type: 'tool_call',
+        id: call.id,
+        name,
+        arguments: typeof args === 'string' ? args : JSON.stringify(args ?? {}),
+      });
+    }
+  }
+
+  if (parts.length > 0) {
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE, JSON.stringify([{ role: 'assistant', parts }]));
+  }
+}
+
+/**
  * Record the response attributes (token usage, response text, tool calls) on the span.
  */
 export function addResponseAttributes(span: Span, result: unknown, recordOutputs: boolean): void {
@@ -154,14 +205,21 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
   }
 
   if (recordOutputs) {
+    let responseText: string | undefined;
     if (typeof response.response === 'string') {
-      span.setAttribute(GEN_AI_OUTPUT_MESSAGES, response.response);
+      responseText = response.response;
+      span.setAttribute(GEN_AI_RESPONSE_TEXT_ATTRIBUTE, response.response);
     } else if (response.response != null) {
-      span.setAttribute(GEN_AI_OUTPUT_MESSAGES, JSON.stringify(response.response));
+      responseText = JSON.stringify(response.response);
+      span.setAttribute(GEN_AI_RESPONSE_TEXT_ATTRIBUTE, responseText);
     }
 
-    if (Array.isArray(response.tool_calls) && response.tool_calls.length > 0) {
-      span.setAttribute(GEN_AI_OUTPUT_MESSAGES, JSON.stringify(response.tool_calls));
+    const toolCalls =
+      Array.isArray(response.tool_calls) && response.tool_calls.length > 0 ? response.tool_calls : undefined;
+    if (toolCalls) {
+      span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, JSON.stringify(toolCalls));
     }
+
+    setOutputMessagesAttribute(span, { responseText, toolCalls });
   }
 }

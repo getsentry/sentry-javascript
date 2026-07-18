@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Span } from '../../../src';
 import {
+  GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
@@ -97,6 +99,114 @@ describe('instrumentWorkersAiStream', () => {
 
     expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBe('ok');
     expect(ended()).toBe(true);
+  });
+
+  // Models routed through the OpenAI-compatible endpoint (e.g. via `workers-ai-provider`,
+  // which the Cloudflare Agents SDK uses) stream `choices[].delta.content` instead of the
+  // native top-level `response` field. Usage still arrives top-level, which is why the
+  // pre-fix parser captured tokens but dropped the response text entirely.
+  it('accumulates response text from OpenAI-compatible choices[].delta.content chunks', async () => {
+    const { span, attributes, ended } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"content":"The capital "},"finish_reason":null}]}\n\n',
+      'data: {"choices":[{"delta":{"content":"of France "},"finish_reason":null}]}\n\n',
+      'data: {"choices":[{"delta":{"content":"is Paris."},"finish_reason":"stop"}]}\n\n',
+      'data: {"usage":{"prompt_tokens":12,"completion_tokens":7,"total_tokens":19}}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    expect(attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toBe(true);
+    expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBe('The capital of France is Paris.');
+    expect(attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toBe(12);
+    expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toBe(7);
+    expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toBe(19);
+    expect(ended()).toBe(true);
+  });
+
+  it('assembles fragmented OpenAI-compatible tool calls from choices[].delta.tool_calls', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"getRepoInfo","arguments":"{\\"owner\\":"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"cloudflare\\",\\"name\\":\\"agents\\"}"}}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] as string);
+    expect(toolCalls).toEqual([
+      {
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'getRepoInfo', arguments: '{"owner":"cloudflare","name":"agents"}' },
+      },
+    ]);
+
+    // The product reads model output from `gen_ai.output.messages`; tool calls must appear there too.
+    expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE] as string)).toEqual([
+      {
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool_call',
+            id: 'call_1',
+            name: 'getRepoInfo',
+            arguments: '{"owner":"cloudflare","name":"agents"}',
+          },
+        ],
+      },
+    ]);
+  });
+
+  // Some Workers AI models (e.g. `@cf/moonshotai/kimi-k2.6`) stream tool calls with the
+  // name/arguments at the top level of the tool-call object rather than nested under `function`.
+  it('assembles tool calls whose name/arguments are at the top level of the delta', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","name":"getRepoInfo","arguments":"{\\"owner\\":"}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"arguments":"\\"cloudflare\\"}"}]}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
+    await new Response(instrumented).text();
+
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] as string);
+    expect(toolCalls).toEqual([
+      {
+        index: 0,
+        id: 'call_1',
+        type: undefined,
+        function: { name: 'getRepoInfo', arguments: '{"owner":"cloudflare"}' },
+      },
+    ]);
+
+    expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE] as string)).toEqual([
+      {
+        role: 'assistant',
+        parts: [{ type: 'tool_call', id: 'call_1', name: 'getRepoInfo', arguments: '{"owner":"cloudflare"}' }],
+      },
+    ]);
+  });
+
+  it('does not record OpenAI-compatible output when recordOutputs is false', async () => {
+    const { span, attributes } = createMockSpan();
+    const chunks = [
+      'data: {"choices":[{"delta":{"content":"secret"}}]}\n\n',
+      'data: {"usage":{"prompt_tokens":3,"completion_tokens":1,"total_tokens":4}}\n\ndata: [DONE]\n\n',
+    ];
+
+    const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, false);
+    await new Response(instrumented).text();
+
+    expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeUndefined();
+    expect(attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toBeUndefined();
+    expect(attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]).toBeUndefined();
+    expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toBe(1);
   });
 
   it('ends the span when the consumer cancels the stream', async () => {
