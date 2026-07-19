@@ -28,6 +28,30 @@ export type PluginOptions = {
  * bundler path ran (rather than relying on a build-time flag that wouldn't be
  * visible to the runtime).
  */
+/**
+ * Whether an "external" config entry covers an instrumented module: an exact
+ * package name (`'mysql'`) or a subpath (`'mysql/lib/...'`) — the transform may
+ * target exactly the file a subpath entry externalizes. Mirrors the matching in
+ * `withoutInstrumentedExternals`.
+ */
+export function externalEntryMatchesModule(entry: string, moduleName: string): boolean {
+  return entry === moduleName || entry.startsWith(`${moduleName}/`);
+}
+
+/**
+ * Warning emitted when a bundler config externalizes packages that orchestrion
+ * needs to transform. An externalized dependency is resolved from
+ * `node_modules` at runtime and never passes through the code transform, so
+ * its diagnostics_channel calls are silently never injected.
+ */
+export function externalizedModulesWarning(externalizedModules: string[]): string {
+  return (
+    `The following packages are marked as external in your bundler configuration but need to be bundled for Sentry ` +
+    `instrumentation to work: ${externalizedModules.join(', ')}. Remove them from your bundler's "external" ` +
+    `configuration, or use the Sentry Node SDK's runtime instrumentation instead.`
+  );
+}
+
 export function orchestrionTransformOptions(options: PluginOptions): CodeTransformerPluginOptions {
   const instrumentations = [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])];
   const customTransforms = options.customTransforms;
