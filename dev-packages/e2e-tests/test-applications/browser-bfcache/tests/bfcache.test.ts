@@ -183,6 +183,58 @@ test('reports a miss with a response-cache-control-no-store reason when a CCNS p
   expect(attr(reason, 'browser.bfcache.frame')).toBe('top');
 });
 
+test('restores a page whose embedded iframe is bfcache-eligible', async ({ page }) => {
+  const hitPromise = waitForMetric(PROXY_SERVER_NAME, metric => isNavigation(metric, 'hit'));
+
+  await page.goto('/?botch=iframe-clean');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
+  await page.waitForFunction(() => (window as unknown as { __iframeLoaded?: boolean }).__iframeLoaded === true, {
+    timeout: 5000,
+  });
+
+  await page.click('#to-page-2');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
+  await page.waitForTimeout(500);
+
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => (window as unknown as { __bfcacheRestored?: boolean }).__bfcacheRestored === true, {
+    timeout: 5000,
+  });
+
+  const hit = await hitPromise;
+  expect(hit.value).toBe(1);
+});
+
+test('reports a child-frame reason when an ineligible iframe blocks the top page', async ({ page }) => {
+  const missPromise = waitForMetric(PROXY_SERVER_NAME, metric => isNavigation(metric, 'miss'));
+  // The blocker lives in the child frame, so the reason must be classified as a `child` frame.
+  const childReasonPromise = waitForMetric(
+    PROXY_SERVER_NAME,
+    metric =>
+      metric.name === 'browser.bfcache.not_restored' &&
+      attr(metric, 'browser.bfcache.reason') === 'unload-listener' &&
+      attr(metric, 'browser.bfcache.frame') === 'child',
+  );
+
+  await page.goto('/?botch=iframe-unload');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
+  await page.waitForFunction(() => (window as unknown as { __iframeLoaded?: boolean }).__iframeLoaded === true, {
+    timeout: 5000,
+  });
+
+  await page.click('#to-page-2');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
+  await page.waitForTimeout(500);
+
+  await page.evaluate(() => history.back());
+
+  const miss = await missPromise;
+  expect(miss.value).toBe(1);
+
+  const childReason = await childReasonPromise;
+  expect(attr(childReason, 'browser.bfcache.frame')).toBe('child');
+});
+
 test('does not treat an ordinary forward navigation as a restore', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');

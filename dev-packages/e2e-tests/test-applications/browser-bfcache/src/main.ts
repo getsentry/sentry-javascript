@@ -70,3 +70,16 @@ if (botch === 'indexeddb') {
     });
   });
 }
+
+if (botch === 'iframe-clean' || botch === 'iframe-unload') {
+  // Embed a same-origin child frame. A clean child keeps the top page eligible (hit); a child with an
+  // unload listener makes the whole top page ineligible, and the reason comes from the child frame.
+  const iframe = document.createElement('iframe');
+  iframe.src = botch === 'iframe-unload' ? '/iframe.html?blocker=unload' : '/iframe.html';
+  const w = window as unknown as { __iframeLoaded?: boolean };
+  w.__iframeLoaded = false;
+  iframe.addEventListener('load', () => {
+    w.__iframeLoaded = true;
+  });
+  document.body.appendChild(iframe);
+}

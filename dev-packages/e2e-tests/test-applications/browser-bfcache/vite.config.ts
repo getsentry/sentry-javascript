@@ -9,6 +9,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         page2: resolve(__dirname, 'page-2.html'),
+        iframe: resolve(__dirname, 'iframe.html'),
       },
     },
   },
