@@ -7348,24 +7348,6 @@
   resolved "https://registry.yarnpkg.com/@sec-ant/readable-stream/-/readable-stream-0.4.1.tgz#60de891bb126abfdc5410fdc6166aca065f10a0c"
   integrity sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==
 
-"@sentry/babel-plugin-component-annotate@5.3.0":
-  version "5.3.0"
-  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-5.3.0.tgz#356218f747969f9af970987dcf0f17ec81d6e50c"
-  integrity sha512-p4q8gn8wcFqZGP/s2MnJCAAd8fTikaU6A0mM97RDHQgStcrYiaS0Sc5zUNfb1V+UOLPuvdEdL6MwyxfzjYJQTA==
-
-"@sentry/bundler-plugin-core@5.3.0", "@sentry/bundler-plugin-core@^5.3.0":
-  version "5.3.0"
-  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-5.3.0.tgz#2772866dcb076c36721d2acab1010a6fc0b3ff2f"
-  integrity sha512-L5T60sWdAI3qWwdg3Ptwek/0TY59PERrxyqp4XMUkroayQvGd9r5dIW9Q1kSeXX9iJ442nXbFZKAOyCKV4Z13Q==
-  dependencies:
-    "@babel/core" "^7.18.5"
-    "@sentry/babel-plugin-component-annotate" "5.3.0"
-    "@sentry/cli" "^2.58.5"
-    dotenv "^16.3.1"
-    find-up "^5.0.0"
-    glob "^13.0.6"
-    magic-string "~0.30.8"
-
 "@sentry/cli-darwin@2.58.6":
   version "2.58.6"
   resolved "https://registry.yarnpkg.com/@sentry/cli-darwin/-/cli-darwin-2.58.6.tgz#38fd82751014b287e58e99ef948d01ca1e09f41d"
@@ -7406,7 +7388,7 @@
   resolved "https://registry.yarnpkg.com/@sentry/cli-win32-x64/-/cli-win32-x64-2.58.6.tgz#8d0e70b5660cc82a7763a4bbe9346cf18e49e07e"
   integrity sha512-R35WJ17oF4D2eqI1DR2sQQqr0fjRTt5xoP16WrTu91XM2lndRMFsnjh+/GttbxapLCBNlrjzia99MJ0PZHZpgA==
 
-"@sentry/cli@^2.58.5", "@sentry/cli@^2.58.6":
+"@sentry/cli@^2.58.6":
   version "2.58.6"
   resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.58.6.tgz#72edb4977d822757511b279e006b00f139e24945"
   integrity sha512-baBcNPLLfUi9WuL+Tpri9BFaAdvugZIKelC5X0tt0Zdy+K0K+PCVSrnNmwMWU/HyaF/SEv6b6UHnXIdqanBlcg==
@@ -7447,14 +7429,6 @@
     detect-libc "^2.0.4"
     node-abi "^3.89.0"
 
-"@sentry/rollup-plugin@5.3.0", "@sentry/rollup-plugin@^5.3.0":
-  version "5.3.0"
-  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-5.3.0.tgz#1dbfbee8d5d2a0f6acc245f4dd05e46c66291710"
-  integrity sha512-hgPGPYdQJ/G1cGYOxAb7d4z3V+/k/E5/P/5TFPEEBLuIbFFk+JG0CISUDJdzXJjO382Lb99PBJuXGbueBmO79w==
-  dependencies:
-    "@sentry/bundler-plugin-core" "5.3.0"
-    magic-string "~0.30.8"
-
 "@sentry/rrdom@2.43.2":
   version "2.43.2"
   resolved "https://registry.yarnpkg.com/@sentry/rrdom/-/rrdom-2.43.2.tgz#24e20c5f9ffb085af9527fb5dbbcf30536322e8b"
@@ -7488,21 +7462,6 @@
     base64-arraybuffer "^1.0.1"
     fflate "^0.4.4"
     mitt "^3.0.0"
-
-"@sentry/vite-plugin@^5.3.0":
-  version "5.3.0"
-  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-5.3.0.tgz#6cb63bfc1b0d1613a151de456b9c66f6cb21b1d2"
-  integrity sha512-qcoSzo4n2MulVQ70UUPLq6dTleb2a2HwL2wuwvAgWhPChrYTuk6A6mDg6aQb9fairPAwFPiU9PzOANpoDJcz1A==
-  dependencies:
-    "@sentry/bundler-plugin-core" "5.3.0"
-    "@sentry/rollup-plugin" "5.3.0"
-
-"@sentry/webpack-plugin@^5.3.0":
-  version "5.3.0"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-5.3.0.tgz#7c28fbc3f4fbfe07c51f63f4a403c9c7a28ca9d7"
-  integrity sha512-i3OQUrS0FZlXLgq57RIKDp+vHHzuvYKPCKewAPXULWKMsBXFGhP6veGRQ+6To/pmZkkXjEX5ofVNDy9C3jEPKQ==
-  dependencies:
-    "@sentry/bundler-plugin-core" "5.3.0"
 
 "@shikijs/core@1.29.2":
   version "1.29.2"
@@ -14514,7 +14473,7 @@ dotenv@17.4.2, dotenv@^17.3.1, dotenv@^17.4.2:
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-17.4.2.tgz#c07e54a746e11eba021dd9e1047ced5afdc1c034"
   integrity sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==
 
-dotenv@^16.3.1, dotenv@^16.4.5, dotenv@^16.6.1:
+dotenv@^16.4.5, dotenv@^16.6.1:
   version "16.6.1"
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-16.6.1.tgz#773f0e69527a8315c7285d5ee73c4459d20a8020"
   integrity sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==

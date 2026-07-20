@@ -1,5 +1,5 @@
 import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 
 type SourceMapsOptions = {
   /**

@@ -79,7 +79,7 @@
     "@opentelemetry/api": "^1.9.1",
     "@rollup/plugin-commonjs": "28.0.1",
     "@sentry/browser-utils": "10.66.0",
-    "@sentry/bundler-plugin-core": "^5.3.0",
+    "@sentry/bundler-plugins": "10.66.0",
     "@sentry/conventions": "^0.16.0",
     "@sentry/core": "10.66.0",
     "@sentry/node": "10.66.0",
@@ -87,7 +87,6 @@
     "@sentry/react": "10.66.0",
     "@sentry/server-utils": "10.66.0",
     "@sentry/vercel-edge": "10.66.0",
-    "@sentry/webpack-plugin": "^5.3.0",
     "rollup": "^4.60.3",
     "stacktrace-parser": "^0.1.11"
   },

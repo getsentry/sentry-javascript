@@ -359,7 +359,8 @@ export function constructWebpackConfigFunction({
     // Symbolication for dev-mode errors is done elsewhere.
     if (!(isDev || (isStaticExport && isServer))) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { sentryWebpackPlugin } = loadModule<{ sentryWebpackPlugin: any }>('@sentry/webpack-plugin', module) ?? {};
+      const { sentryWebpackPlugin } =
+        loadModule<{ sentryWebpackPlugin: any }>('@sentry/bundler-plugins/webpack', module) ?? {};
 
       if (sentryWebpackPlugin) {
         if (!userSentryOptions.sourcemaps?.disable) {

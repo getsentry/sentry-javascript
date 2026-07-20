@@ -60,7 +60,7 @@
     "@sentry/core": "10.66.0",
     "@sentry/conventions": "^0.16.0",
     "@sentry/node": "10.66.0",
-    "@sentry/vite-plugin": "^5.3.0"
+    "@sentry/bundler-plugins": "10.66.0"
   },
   "devDependencies": {
     "astro": "^3.5.0",
