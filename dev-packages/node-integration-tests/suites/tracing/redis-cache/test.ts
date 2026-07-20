@@ -136,6 +136,19 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
             'network.peer.port': 6383,
           }),
         }),
+        // DEL
+        expect.objectContaining({
+          description: 'ioredis-cache:test-key',
+          op: 'cache.remove',
+          origin: redisOrigin,
+          data: expect.objectContaining({
+            'sentry.origin': redisOrigin,
+            'db.statement': 'del ioredis-cache:test-key',
+            'cache.key': ['ioredis-cache:test-key'],
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6383,
+          }),
+        }),
       ]),
     };
 
@@ -256,6 +269,17 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
             'db.statement': 'MGET [3 other arguments]',
             'cache.hit': true,
             'cache.key': ['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data'],
+          }),
+        }),
+        // DEL
+        expect.objectContaining({
+          description: 'redis-cache:test-key',
+          op: 'cache.remove',
+          origin: redisOrigin,
+          data: expect.objectContaining({
+            'sentry.origin': redisOrigin,
+            'db.statement': 'DEL redis-cache:test-key',
+            'cache.key': ['redis-cache:test-key'],
           }),
         }),
         ...batchSpans,
@@ -398,6 +422,17 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
             'db.statement': 'MGET [3 other arguments]',
             'cache.hit': true,
             'cache.key': ['redis-5-test-key', 'redis-5-cache:test-key', 'redis-5-cache:unavailable-data'],
+          }),
+        }),
+        // DEL
+        expect.objectContaining({
+          description: 'redis-5-cache:test-key',
+          op: 'cache.remove',
+          origin: redisOrigin,
+          data: expect.objectContaining({
+            'sentry.origin': redisOrigin,
+            'db.statement': 'DEL redis-5-cache:test-key',
+            'cache.key': ['redis-5-cache:test-key'],
           }),
         }),
         ...batchSpans,
