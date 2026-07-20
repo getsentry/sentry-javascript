@@ -65,6 +65,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     {
       data: {
         'koa.name': 'bodyParser',
+        'code.function.name': 'bodyParser',
         'koa.type': 'middleware',
         'sentry.op': 'middleware.koa',
         'sentry.origin': 'auto.http.otel.koa',
@@ -82,6 +83,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     {
       data: {
         'koa.name': '',
+        'code.function.name': '',
         'koa.type': 'middleware',
         'sentry.origin': 'auto.http.otel.koa',
         'sentry.op': 'middleware.koa',

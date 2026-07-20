@@ -1,3 +1,4 @@
+import type { TracerProvider } from '@opentelemetry/api';
 import { context, propagation, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
@@ -25,6 +26,61 @@ import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracin
 
 // About 277h - this must fit into new Array(len)!
 const MAX_MAX_SPAN_WAIT_DURATION = 1_000_000;
+
+// The global registry of @opentelemetry/api 1.x, shared across all copies of the package
+const OTEL_API_GLOBAL_KEY = Symbol.for('opentelemetry.js.api.1');
+
+/**
+ * Registers the given tracer provider as the global tracer provider, recreating the OpenTelemetry
+ * API registry when it pre-exists with a different `@opentelemetry/api` version.
+ *
+ * Some host runtimes (e.g. Neon Functions) pre-create the registry with their own API version.
+ * `registerGlobal` requires an exact version match, so every registration through the SDK's copy
+ * of `@opentelemetry/api` is rejected and tracing is silently disabled
+ * (https://github.com/getsentry/sentry-javascript/issues/22338). This case is identified by a
+ * failed registration with an empty `trace` slot: `registerGlobal` checks the slot before the
+ * version, so an empty slot means the version gate rejected us and recreating the registry
+ * clobbers no other tracer provider. If the slot is occupied (another provider registered first,
+ * e.g. a second `Sentry.init()` call), the registry is left untouched and registration fails.
+ *
+ * Slots Sentry does not claim itself (e.g. `diag`, `metrics`) are carried over into the recreated
+ * registry: reads resolve via a semver-compatibility check rather than the exact-match write gate,
+ * so they keep working for the copy that registered them. `propagation` and `context` are not
+ * carried over because Sentry registers its own right after this.
+ */
+function registerGlobalTracerProvider(provider: TracerProvider): boolean {
+  if (trace.setGlobalTracerProvider(provider)) {
+    return true;
+  }
+
+  // @opentelemetry/api stores the registry under a `Symbol.for` key that no public type
+  // describes, so `typeof globalThis` can only be narrowed to it by casting through `unknown`.
+  const otelGlobal = globalThis as unknown as Record<symbol, Record<string, unknown> | undefined>;
+  const registry = otelGlobal[OTEL_API_GLOBAL_KEY];
+  if (registry && !registry.trace) {
+    DEBUG_BUILD &&
+      coreDebug.warn(
+        'Replaced a pre-existing OpenTelemetry API registry that was created by a different @opentelemetry/api version and would have blocked tracing. If you want to manage OpenTelemetry yourself, set `skipOpenTelemetrySetup: true` in `Sentry.init()`.',
+      );
+    otelGlobal[OTEL_API_GLOBAL_KEY] = undefined;
+
+    if (!trace.setGlobalTracerProvider(provider)) {
+      return false;
+    }
+
+    // The cast is needed because TS still has the slot narrowed to `undefined` from the reset
+    // above and cannot know the registration call just recreated the registry.
+    const recreatedRegistry = otelGlobal[OTEL_API_GLOBAL_KEY] as Record<string, unknown> | undefined;
+    if (recreatedRegistry) {
+      const { propagation: _propagation, context: _context, ...carriedOverSlots } = registry;
+      otelGlobal[OTEL_API_GLOBAL_KEY] = { ...carriedOverSlots, ...recreatedRegistry };
+    }
+
+    return true;
+  }
+
+  return false;
+}
 
 interface AdditionalOpenTelemetryOptions {
   /** Additional SpanProcessor instances that should be used. */
@@ -118,7 +174,7 @@ export function setupOtel(
   });
 
   // Register as globals
-  trace.setGlobalTracerProvider(provider);
+  registerGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());
 
   const ctxManager = new SentryContextManager();
@@ -132,7 +188,7 @@ function setupSentryTracerProvider(
 ): [SentryTracerProvider | undefined, AsyncLocalStorageLookup | undefined] {
   const provider = new SentryTracerProvider({ resource: getSentryResource('node') });
 
-  if (!trace.setGlobalTracerProvider(provider)) {
+  if (!registerGlobalTracerProvider(provider)) {
     DEBUG_BUILD &&
       coreDebug.warn(
         'Could not register SentryTracerProvider because another OpenTelemetry tracer provider is already registered.',

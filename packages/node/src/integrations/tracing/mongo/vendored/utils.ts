@@ -6,205 +6,33 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-mongodb
  * - Upstream version: @opentelemetry/instrumentation-mongodb@0.71.0
  * - Refactored to use Sentry's span APIs instead of OpenTelemetry tracing APIs
+ * - The db/net attribute extraction, `db.statement` scrubbing and span
+ *   builder are shared with the orchestrion mongodb integration in
+ *   `@sentry/server-utils` so the two emit an identical span shape.
+ *   Only the OTel-specific callback/context helpers below remain here.
  */
 
 import type { Span, SpanAttributes } from '@sentry/core';
+import { getActiveSpan, SPAN_STATUS_ERROR, withActiveSpan } from '@sentry/core';
 import {
-  getActiveSpan,
-  isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
-  SPAN_STATUS_ERROR,
-  startInactiveSpan,
-  withActiveSpan,
-} from '@sentry/core';
-import {
-  DB_NAME,
-  DB_OPERATION,
-  DB_STATEMENT,
-  DB_SYSTEM,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
-} from '@sentry/conventions/attributes';
-import { ATTR_DB_CONNECTION_STRING, ATTR_DB_MONGODB_COLLECTION, DB_SYSTEM_VALUE_MONGODB } from './semconv';
-import type { MongodbNamespace, MongoInternalCommand, MongoInternalTopology } from './internal-types';
-import { MongodbCommandType } from './internal-types';
+  getV3CommandOperation,
+  getV3SpanAttributes as sharedGetV3SpanAttributes,
+  getV4SpanAttributes as sharedGetV4SpanAttributes,
+  startMongoSpan,
+} from '@sentry/server-utils';
 
 const ORIGIN = 'auto.db.otel.mongo';
 
-/**
- * Replaces values in the command object with '?', hiding PII and helping grouping.
- */
-function serializeDbStatement(commandObj: Record<string, unknown>): string {
-  return JSON.stringify(scrubStatement(commandObj));
+export { getV3CommandOperation, startMongoSpan };
+
+/** Determine a span's attributes from the v4 connection context (OTel origin). */
+export function getV4SpanAttributes(connectionCtx: any, ns: any, command?: any, operation?: string): SpanAttributes {
+  return sharedGetV4SpanAttributes(connectionCtx, ns, command, operation, ORIGIN);
 }
 
-function scrubStatement(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(element => scrubStatement(element));
-  }
-
-  if (isCommandObj(value)) {
-    const initial: Record<string, unknown> = {};
-    return Object.entries(value)
-      .map(([key, element]) => [key, scrubStatement(element)])
-      .reduce((prev, current) => {
-        if (isCommandEntry(current)) {
-          prev[current[0]] = current[1];
-        }
-        return prev;
-      }, initial);
-  }
-
-  // A value like string or number, possibly contains PII, scrub it
-  return '?';
-}
-
-function isCommandObj(value: Record<string, unknown> | unknown): value is Record<string, unknown> {
-  return isObjectLike(value) && !isBuffer(value);
-}
-
-function isBuffer(value: unknown): boolean {
-  return typeof Buffer !== 'undefined' && Buffer.isBuffer(value);
-}
-
-function isCommandEntry(value: [string, unknown] | unknown): value is [string, unknown] {
-  return Array.isArray(value);
-}
-
-/**
- * Get the mongodb command type from the object.
- */
-export function getCommandType(command: MongoInternalCommand): MongodbCommandType {
-  if (command.createIndexes !== undefined) {
-    return MongodbCommandType.CREATE_INDEXES;
-  } else if (command.findandmodify !== undefined) {
-    return MongodbCommandType.FIND_AND_MODIFY;
-  } else if (command.ismaster !== undefined) {
-    return MongodbCommandType.IS_MASTER;
-  } else if (command.count !== undefined) {
-    return MongodbCommandType.COUNT;
-  } else if (command.aggregate !== undefined) {
-    return MongodbCommandType.AGGREGATE;
-  } else {
-    return MongodbCommandType.UNKNOWN;
-  }
-}
-
-/**
- * Determine a span's attributes by fetching related metadata from the v4 connection context.
- */
-export function getV4SpanAttributes(
-  connectionCtx: any,
-  ns: MongodbNamespace,
-  command?: any,
-  operation?: string,
-): SpanAttributes {
-  let host, port: undefined | string;
-  if (connectionCtx) {
-    const hostParts = typeof connectionCtx.address === 'string' ? connectionCtx.address.split(':') : '';
-    if (hostParts.length === 2) {
-      host = hostParts[0];
-      port = hostParts[1];
-    }
-  }
-  let commandObj: Record<string, unknown>;
-  if (command?.documents && command.documents[0]) {
-    commandObj = command.documents[0];
-  } else if (command?.cursors) {
-    commandObj = command.cursors;
-  } else {
-    commandObj = command;
-  }
-
-  return getSpanAttributes(ns.db, ns.collection, host, port, commandObj, operation);
-}
-
-/**
- * Determine a span's attributes by fetching related metadata from the v3 topology.
- */
-export function getV3SpanAttributes(
-  ns: string,
-  topology: MongoInternalTopology,
-  command?: MongoInternalCommand,
-  operation?: string | undefined,
-): SpanAttributes {
-  let host: undefined | string;
-  let port: undefined | string;
-  if (topology?.s) {
-    host = topology.s.options?.host ?? topology.s.host;
-    port = (topology.s.options?.port ?? topology.s.port)?.toString();
-    if (host == null || port == null) {
-      const address = topology.description?.address;
-      if (address) {
-        const addressSegments = address.split(':');
-        host = addressSegments[0];
-        port = addressSegments[1];
-      }
-    }
-  }
-
-  // The namespace is a combination of the database name and the name of the
-  // collection or index, like so: [database-name].[collection-or-index-name].
-  // It could be a string or an instance of MongoDBNamespace, as such we
-  // always coerce to a string to extract db and collection.
-  const [dbName, dbCollection] = ns.toString().split('.');
-  const commandObj = command?.query ?? command?.q ?? command;
-
-  return getSpanAttributes(dbName, dbCollection, host, port, commandObj, operation);
-}
-
-function getSpanAttributes(
-  dbName?: string,
-  dbCollection?: string,
-  host?: undefined | string,
-  port?: undefined | string,
-  commandObj?: any,
-  operation?: string | undefined,
-): SpanAttributes {
-  const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-    // eslint-disable-next-line typescript/no-deprecated
-    [DB_SYSTEM]: DB_SYSTEM_VALUE_MONGODB,
-    // eslint-disable-next-line typescript/no-deprecated
-    [DB_NAME]: dbName,
-    // eslint-disable-next-line typescript/no-deprecated
-    [ATTR_DB_MONGODB_COLLECTION]: dbCollection,
-    // eslint-disable-next-line typescript/no-deprecated
-    [DB_OPERATION]: operation,
-    // eslint-disable-next-line typescript/no-deprecated
-    [ATTR_DB_CONNECTION_STRING]: `mongodb://${host}:${port}/${dbName}`,
-  };
-
-  if (host && port) {
-    // eslint-disable-next-line typescript/no-deprecated
-    attributes[NET_PEER_NAME] = host;
-    const portNumber = parseInt(port, 10);
-    if (!isNaN(portNumber)) {
-      // eslint-disable-next-line typescript/no-deprecated
-      attributes[NET_PEER_PORT] = portNumber;
-    }
-  }
-
-  if (commandObj) {
-    try {
-      // eslint-disable-next-line typescript/no-deprecated
-      attributes[DB_STATEMENT] = serializeDbStatement(commandObj);
-    } catch {
-      // ignore serialization errors — the statement is best-effort metadata
-    }
-  }
-
-  return attributes;
-}
-
-export function startMongoSpan(attributes: SpanAttributes): Span {
-  return startInactiveSpan({
-    // eslint-disable-next-line typescript/no-deprecated
-    name: `mongodb.${attributes[DB_OPERATION] || 'command'}`,
-    kind: SPAN_KIND.CLIENT,
-    attributes,
-  });
+/** Determine a span's attributes from the v3 topology (OTel origin). */
+export function getV3SpanAttributes(ns: string, topology: any, command?: any, operation?: string): SpanAttributes {
+  return sharedGetV3SpanAttributes(ns, topology, command, operation, ORIGIN);
 }
 
 /**

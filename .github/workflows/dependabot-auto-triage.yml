@@ -159,8 +159,10 @@ jobs:
 
       - name: Open batched runtime fix PR via skill
         uses: anthropics/claude-code-action@fad22eb3fa582b7357fc0ea48af6645851b884fd # v1
+        env:
+          ANTHROPIC_BASE_URL: https://openrouter.ai/api
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          anthropic_api_key: ${{ secrets.OPENROUTER_API_KEY }}
           github_token: ${{ steps.app-token.outputs.token }}
           settings: |
             {
@@ -234,8 +236,10 @@ jobs:
 
       - name: Open batched dev fix PR via skill
         uses: anthropics/claude-code-action@fad22eb3fa582b7357fc0ea48af6645851b884fd # v1
+        env:
+          ANTHROPIC_BASE_URL: https://openrouter.ai/api
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          anthropic_api_key: ${{ secrets.OPENROUTER_API_KEY }}
           github_token: ${{ steps.app-token.outputs.token }}
           settings: |
             {

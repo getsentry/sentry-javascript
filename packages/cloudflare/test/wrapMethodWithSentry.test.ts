@@ -1,5 +1,6 @@
 import * as sentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { makeFlushLock } from '../src/flush';
 import { getInstrumented } from '../src/instrument';
 import * as sdk from '../src/sdk';
 import { wrapMethodWithSentry } from '../src/wrapMethodWithSentry';
@@ -93,6 +94,7 @@ describe('wrapMethodWithSentry', () => {
     it('wraps a sync method and returns its result synchronously (not a Promise)', () => {
       const handler = vi.fn().mockReturnValue('sync-result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
       };
@@ -108,6 +110,7 @@ describe('wrapMethodWithSentry', () => {
     it('wraps a sync method with spanName and preserves sync behavior', () => {
       const handler = vi.fn().mockReturnValue('sync-result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
         spanName: 'test-span',
@@ -124,6 +127,7 @@ describe('wrapMethodWithSentry', () => {
     it('wraps a sync method with startNewTrace and preserves sync behavior (no storage)', () => {
       const handler = vi.fn().mockReturnValue('sync-result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext({ hasStorage: false }),
         spanName: 'test-span',
@@ -142,6 +146,7 @@ describe('wrapMethodWithSentry', () => {
     it('wraps an async method and returns a promise', async () => {
       const handler = vi.fn().mockResolvedValue('async-result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
       };
@@ -159,6 +164,7 @@ describe('wrapMethodWithSentry', () => {
       const context = createMockContext({ hasStorage: true, hasWaitUntil: true });
 
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context,
         spanName: 'alarm',
@@ -185,6 +191,7 @@ describe('wrapMethodWithSentry', () => {
       } as any;
 
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context,
         spanName: 'alarm',
@@ -202,6 +209,7 @@ describe('wrapMethodWithSentry', () => {
     it('marks handler as instrumented', () => {
       const handler = vi.fn();
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
       };
@@ -216,6 +224,7 @@ describe('wrapMethodWithSentry', () => {
     it('does not re-wrap already instrumented handler', () => {
       const handler = vi.fn();
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
       };
@@ -231,6 +240,7 @@ describe('wrapMethodWithSentry', () => {
     it('does not mark handler when noMark is true', () => {
       const handler = vi.fn();
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
       };
@@ -245,6 +255,7 @@ describe('wrapMethodWithSentry', () => {
     it('creates span with spanName when provided', async () => {
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
         spanName: 'test-span',
@@ -265,6 +276,7 @@ describe('wrapMethodWithSentry', () => {
     it('does not create span when spanName is not provided', async () => {
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
       };
@@ -284,6 +296,7 @@ describe('wrapMethodWithSentry', () => {
         throw error;
       });
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
       };
@@ -303,6 +316,7 @@ describe('wrapMethodWithSentry', () => {
       const error = new Error('Test async error');
       const handler = vi.fn().mockRejectedValue(error);
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
       };
@@ -323,6 +337,7 @@ describe('wrapMethodWithSentry', () => {
     it('uses withIsolationScope when startNewTrace is true', async () => {
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
         startNewTrace: true,
@@ -338,6 +353,7 @@ describe('wrapMethodWithSentry', () => {
     it('uses startNewTrace when startNewTrace is true and spanName is set', async () => {
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
         startNewTrace: true,
@@ -353,6 +369,7 @@ describe('wrapMethodWithSentry', () => {
     it('does not use startNewTrace when startNewTrace is false', async () => {
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
         startNewTrace: false,
@@ -384,6 +401,7 @@ describe('wrapMethodWithSentry', () => {
 
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context,
         startNewTrace: true,
@@ -418,6 +436,7 @@ describe('wrapMethodWithSentry', () => {
 
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context,
         startNewTrace: true,
@@ -461,6 +480,7 @@ describe('wrapMethodWithSentry', () => {
 
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context,
         startNewTrace: true,
@@ -496,6 +516,7 @@ describe('wrapMethodWithSentry', () => {
 
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context,
         startNewTrace: false,
@@ -524,6 +545,7 @@ describe('wrapMethodWithSentry', () => {
         callOrder.push('callback');
       });
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
       };
@@ -546,6 +568,7 @@ describe('wrapMethodWithSentry', () => {
 
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context,
       };
@@ -564,6 +587,7 @@ describe('wrapMethodWithSentry', () => {
 
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context,
       };
@@ -579,6 +603,7 @@ describe('wrapMethodWithSentry', () => {
     it('passes arguments to handler', async () => {
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
       };
@@ -595,6 +620,7 @@ describe('wrapMethodWithSentry', () => {
         return this.name;
       });
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: {},
         context: createMockContext(),
       };
@@ -615,6 +641,7 @@ describe('wrapMethodWithSentry', () => {
       const spyClient = vi.spyOn(scope, 'setClient');
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: { dsn: 'https://test@sentry.io/123' },
         context: createMockContext(),
       };
@@ -648,6 +675,7 @@ describe('wrapMethodWithSentry', () => {
       const spyClient = vi.spyOn(scope, 'setClient');
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: { dsn: 'https://test@sentry.io/123' },
         context: createMockContext(),
       };
@@ -681,6 +709,7 @@ describe('wrapMethodWithSentry', () => {
       const spyClient = vi.spyOn(scope, 'setClient');
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
         options: { dsn: 'https://test@sentry.io/123' },
         context: createMockContext(),
       };
@@ -692,5 +721,55 @@ describe('wrapMethodWithSentry', () => {
       expect(sdk.init).not.toHaveBeenCalled();
       expect(spyClient).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('wrapMethodWithSentry waitUntil teardown (hibernation regression)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // Regression for #22328
+  it('does not deadlock teardown against a concurrent waitUntil task', async () => {
+    const waitUntilPromises: Array<Promise<unknown>> = [];
+    const context = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waitUntilPromises.push(promise);
+      }),
+    } as unknown as ExecutionContext;
+
+    // A prior invocation instrumented context.waitUntil
+    // (installs the flush lock)
+    const lock = makeFlushLock(context);
+
+    // A concurrent, in-flight waitUntil task holds the flush lock
+    let resolveUserTask!: () => void;
+    const userTask = new Promise<void>(resolve => {
+      resolveUserTask = resolve;
+    });
+    context.waitUntil(userTask);
+
+    // flush waits for the flush lock to drain.
+    mocks.flush.mockImplementationOnce(async () => {
+      await lock.finalize();
+      return true;
+    });
+
+    const wrapped = wrapMethodWithSentry(
+      { options: { dsn: 'https://test@sentry.io/123' }, context, spanName: 'webSocketMessage' },
+      vi.fn().mockResolvedValue('ok'),
+    );
+
+    await wrapped();
+
+    // Releasing the concurrent task drains the lock
+    resolveUserTask();
+
+    await expect(Promise.all(waitUntilPromises)).resolves.toBeDefined();
+    expect(mocks.flush).toHaveBeenCalled();
   });
 });

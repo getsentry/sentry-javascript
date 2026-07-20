@@ -72,6 +72,7 @@
     "@sentry/core": "10.66.0",
     "@sentry/node": "10.66.0",
     "@sentry/react": "10.66.0",
+    "@sentry/server-utils": "10.66.0",
     "yargs": "^17.6.0"
   },
   "devDependencies": {

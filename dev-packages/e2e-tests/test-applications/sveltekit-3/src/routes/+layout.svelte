@@ -1,8 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
-  import { navigating } from "$app/stores";
-
   onMount(() => {
     // Indicate that the SvelteKit app was hydrated
     document.body.classList.add("hydrated");

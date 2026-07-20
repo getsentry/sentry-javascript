@@ -18,9 +18,8 @@ import type {
   V4ConnectionPool,
   WireProtocolInternal,
 } from './internal-types';
-import { MongodbCommandType } from './internal-types';
 import {
-  getCommandType,
+  getV3CommandOperation,
   getV3SpanAttributes,
   getV4SpanAttributes,
   patchEnd,
@@ -82,8 +81,7 @@ export function getV3PatchCommand() {
         }
       }
 
-      const commandType = getCommandType(cmd);
-      const operationName = commandType === MongodbCommandType.UNKNOWN ? undefined : commandType;
+      const operationName = getV3CommandOperation(cmd as unknown as Record<string, unknown>);
       const span = startMongoSpan(getV3SpanAttributes(ns, server, cmd, operationName));
 
       const patchedCallback = patchEnd(span, resultHandler);

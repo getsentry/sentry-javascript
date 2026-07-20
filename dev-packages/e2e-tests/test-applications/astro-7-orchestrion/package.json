@@ -24,7 +24,7 @@
     "mysql": "^2.18.1"
   },
   "devDependencies": {
-    "@apm-js-collab/code-transformer-bundler-plugins": "^0.5.0"
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.1"
   },
   "volta": {
     "node": "22.22.0",

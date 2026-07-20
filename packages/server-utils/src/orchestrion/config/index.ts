@@ -1,8 +1,9 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
 import { uniq } from '@sentry/core';
 
 import { amqplibConfig } from './amqplib';
 import { anthropicAiConfig } from './anthropic-ai';
+import { awsSdkConfig } from './aws-sdk';
 import { dataloaderConfig } from './dataloader';
 import { expressConfig } from './express';
 import { firebaseConfig } from './firebase';
@@ -13,6 +14,7 @@ import { hapiConfig } from './hapi';
 import { ioredisConfig } from './ioredis';
 import { kafkajsConfig } from './kafkajs';
 import { knexConfig } from './knex';
+import { koaConfig } from './koa';
 import { langchainConfig } from './langchain';
 import { langgraphConfig } from './langgraph';
 import { lruMemoizerConfig } from './lru-memoizer';
@@ -43,6 +45,7 @@ import { vercelAiConfig } from './vercel-ai';
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...amqplibConfig,
   ...anthropicAiConfig,
+  ...awsSdkConfig,
   ...dataloaderConfig,
   ...expressConfig,
   ...firebaseConfig,
@@ -53,6 +56,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...ioredisConfig,
   ...kafkajsConfig,
   ...knexConfig,
+  ...koaConfig,
   ...langchainConfig,
   ...langgraphConfig,
   ...lruMemoizerConfig,
@@ -84,7 +88,12 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
  * externalized and their transform never runs.
  */
 export function instrumentedModuleNames(instrumentations: InstrumentationConfig[] = []): string[] {
-  return uniq([...SENTRY_INSTRUMENTATIONS, ...instrumentations].map(i => i.module.name));
+  return [
+    ...uniq([...SENTRY_INSTRUMENTATIONS, ...instrumentations].map(i => i.module.name)),
+    // Additional things that need to be bundled but are not covered by the above
+    // Remix needs to bundle this so @remix-run/server-runtime is _also_ bundled
+    '@remix-run/node',
+  ];
 }
 
 /** The instrumented module names from the default Sentry config, with no custom additions. */

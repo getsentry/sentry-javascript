@@ -128,9 +128,6 @@ export function subscribeToNestChannels(): void {
   // `start`, makes it the active context for the bootstrap, and ends it
   // on `asyncEnd` (or `end` if `create` throws synchronously).
   //
-  // `captureError: false`: a failed bootstrap surfaces to the caller.
-  // We just annotate the span.
-  //
   // `bindTracingChannelToSpan` uses `bindStore`, which needs the
   // async-context binding registered after integration `setupOnce`; defer
   // until it's available. Only this bind is deferred (it fires at
@@ -138,14 +135,10 @@ export function subscribeToNestChannels(): void {
   // calls below stay synchronous because the decorator channels fire at
   // module-load time, which a deferred subscription could miss.
   waitForTracingChannelBinding(() => {
-    bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_APP_CREATION),
-      data => {
-        const moduleCls = data.arguments?.[0] as { name?: string } | undefined;
-        return startInactiveSpan(getAppCreationSpanOptions(data.moduleVersion, moduleCls?.name));
-      },
-      { captureError: false },
-    );
+    bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_APP_CREATION), data => {
+      const moduleCls = data.arguments?.[0] as { name?: string } | undefined;
+      return startInactiveSpan(getAppCreationSpanOptions(data.moduleVersion, moduleCls?.name));
+    });
   });
 
   // request_context + request_handler. `RouterExecutionContext.create`

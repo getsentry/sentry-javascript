@@ -183,6 +183,24 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
    */
   enabled?: boolean;
 
+  // todo(v11): Update this JSDoc (and remove from experimental)
+  /**
+   * Experimental build-time options that may change or be removed without notice.
+   */
+  _experimental?: {
+    /**
+     * Enables build-time diagnostics-channel instrumentation for supported dependencies bundled into the Nitro server.
+     *
+     * 1. Call `Sentry.experimentalUseDiagnosticsChannelInjection()` just before `Sentry.init()`
+     * 2. Remove `--import ./.output/server/sentry.server.config.mjs` from your `start`script
+     * 3. Add `sentry.autoInjectServerSentry: 'top-level-import'` in `nuxt.config.ts` so Sentry's server configuration is automatically imported
+     *
+     * @default false
+     * @experimental May change or be removed in any release.
+     */
+    useDiagnosticsChannelInjection?: boolean;
+  };
+
   /**
    * Options for the Sentry Vite plugin to customize the source maps upload process.
    *

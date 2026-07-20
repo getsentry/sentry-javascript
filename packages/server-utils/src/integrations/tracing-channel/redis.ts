@@ -232,7 +232,6 @@ function bindNodeRedisCommandChannel(
       return startCommandSpan(commandName, wireArgs.slice(1), nodeRedisAttributes(options));
     },
     {
-      captureError: false,
       beforeSpanEnd(span, data) {
         if ('error' in data || !responseHook) {
           return;
@@ -269,18 +268,14 @@ function getExecutorArgs(data: CommandContext): Array<string | Buffer> | undefin
 
 function bindNodeRedisConnectChannel(): void {
   const channel = diagnosticsChannel.tracingChannel<CommandContext, CommandContext>(CHANNELS.NODE_REDIS_CONNECT);
-  bindTracingChannelToSpan(
-    channel,
-    data => {
-      const options = (data.self as NodeRedisClient | undefined)?.options;
-      return startInactiveSpan({
-        name: 'redis-connect',
-        kind: SPAN_KIND.CLIENT,
-        attributes: { ...nodeRedisAttributes(options), [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db' },
-      });
-    },
-    { captureError: false },
-  );
+  bindTracingChannelToSpan(channel, data => {
+    const options = (data.self as NodeRedisClient | undefined)?.options;
+    return startInactiveSpan({
+      name: 'redis-connect',
+      kind: SPAN_KIND.CLIENT,
+      attributes: { ...nodeRedisAttributes(options), [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db' },
+    });
+  });
 }
 
 // Batch (multi/pipeline): one span per `exec`. Batched commands bypass `sendCommand`, so
@@ -288,27 +283,23 @@ function bindNodeRedisConnectChannel(): void {
 // mirrors the native `node-redis:batch` span (see `redis-dc-subscriber.ts`).
 function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: CommandContext) => string): void {
   const channel = diagnosticsChannel.tracingChannel<CommandContext, CommandContext>(channelName);
-  bindTracingChannelToSpan(
-    channel,
-    data => {
-      const commands = data.arguments?.[0];
-      const size = Array.isArray(commands) ? commands.length : undefined;
-      const socket = (data.self as NodeRedisClient | undefined)?.options?.socket;
-      return startInactiveSpan({
-        name: getOperation(data),
-        kind: SPAN_KIND.CLIENT,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
-          [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
-          ...(size && size > 1 ? { [DB_OPERATION_BATCH_SIZE]: size } : {}),
-          ...(socket?.host != null ? { [SERVER_ADDRESS]: socket.host } : {}),
-          ...(socket?.port != null ? { [SERVER_PORT]: socket.port } : {}),
-        },
-      });
-    },
-    { captureError: false },
-  );
+  bindTracingChannelToSpan(channel, data => {
+    const commands = data.arguments?.[0];
+    const size = Array.isArray(commands) ? commands.length : undefined;
+    const socket = (data.self as NodeRedisClient | undefined)?.options?.socket;
+    return startInactiveSpan({
+      name: getOperation(data),
+      kind: SPAN_KIND.CLIENT,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
+        [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
+        ...(size && size > 1 ? { [DB_OPERATION_BATCH_SIZE]: size } : {}),
+        ...(socket?.host != null ? { [SERVER_ADDRESS]: socket.host } : {}),
+        ...(socket?.port != null ? { [SERVER_PORT]: socket.port } : {}),
+      },
+    });
+  });
 }
 
 const _redisChannelIntegration = ((options: RedisChannelIntegrationOptions = {}) => {

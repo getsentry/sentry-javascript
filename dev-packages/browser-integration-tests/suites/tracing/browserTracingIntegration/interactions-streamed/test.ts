@@ -105,7 +105,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: 'url',
       },
-      'sentry.span.source': {
+      'sentry.segment.name.source': {
         type: 'string',
         value: 'url',
       },
