@@ -396,6 +396,19 @@ describe('Anthropic integration', () => {
     });
   });
 
+  // Instrumenting the client must not hide its own methods from an outer wrapper (e.g. another
+  // library instrumenting the same client). `messages.stream()` delegates to `create` through
+  // `this`, so if our instrumentation rebinds `this` away from the client, that internal call is
+  // never observed by the wrapper. Regression test for the deep-proxy `this` rebinding.
+  createEsmAndCjsTests(__dirname, 'scenario-outer-wrapper.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('does not hide the client methods from an outer wrapper when stream() delegates internally', async () => {
+      await createRunner()
+        .expect({ event: { message: 'third-party wrapper observed messages.create' } })
+        .start()
+        .completed();
+    });
+  });
+
   // Non-streaming tool calls + available tools (PII true)
   createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('non-streaming sets available tools and tool calls with PII', async () => {
