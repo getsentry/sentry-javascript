@@ -82,9 +82,13 @@ test('reports a miss with notRestoredReasons when an unload listener blocks bfca
 
   const unloadReason = await unloadReasonPromise;
   expect(attr(unloadReason, 'browser.bfcache.frame')).toBe('top');
+  expect(attr(unloadReason, 'browser.bfcache.reason_category')).toBe('page_lifecycle');
+  expect(attr(unloadReason, 'browser.bfcache.actionable')).toBe(true);
 
   const maskedReason = await maskedReasonPromise;
   expect(attr(maskedReason, 'browser.bfcache.frame')).toBe('masked');
+  expect(attr(maskedReason, 'browser.bfcache.reason_category')).toBe('embed');
+  expect(attr(maskedReason, 'browser.bfcache.actionable')).toBe(false);
 
   const reloadDuration = await reloadDurationPromise;
   expect(reloadDuration.type).toBe('distribution');
@@ -126,6 +130,8 @@ test('reports a miss for an open WebSocket on Chrome < 149 (a hit from 149 on)',
   if (websocketReasonPromise) {
     const websocketReason = await websocketReasonPromise;
     expect(attr(websocketReason, 'browser.bfcache.frame')).toBe('top');
+    expect(attr(websocketReason, 'browser.bfcache.reason_category')).toBe('realtime');
+    expect(attr(websocketReason, 'browser.bfcache.actionable')).toBe(true);
   }
 });
 
@@ -157,6 +163,8 @@ test('reports a miss with an idbversionchangeevent reason when a connection bloc
 
   const reason = await reasonPromise;
   expect(attr(reason, 'browser.bfcache.frame')).toBe('top');
+  expect(attr(reason, 'browser.bfcache.reason_category')).toBe('storage');
+  expect(attr(reason, 'browser.bfcache.actionable')).toBe(true);
 });
 
 test('reports a miss with a response-cache-control-no-store reason when a CCNS page cookie changes', async ({
@@ -187,6 +195,8 @@ test('reports a miss with a response-cache-control-no-store reason when a CCNS p
 
   const reason = await reasonPromise;
   expect(attr(reason, 'browser.bfcache.frame')).toBe('top');
+  expect(attr(reason, 'browser.bfcache.reason_category')).toBe('network');
+  expect(attr(reason, 'browser.bfcache.actionable')).toBe(true);
 });
 
 test('does not treat an ordinary forward navigation as a restore', async ({ page }) => {

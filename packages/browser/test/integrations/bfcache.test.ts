@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { _collectNotRestoredReasons } from '../../src/integrations/bfcache';
+import { _classifyReason, _collectNotRestoredReasons } from '../../src/integrations/bfcache';
 
 describe('bfcacheMetricsIntegration', () => {
   describe('_collectNotRestoredReasons', () => {
@@ -107,6 +107,24 @@ describe('bfcacheMetricsIntegration', () => {
         { reason: 'a', frame: 'top' },
         { reason: 'b', frame: 'top' },
       ]);
+    });
+  });
+
+  describe('_classifyReason', () => {
+    it.each([
+      ['unload-listener', 'page_lifecycle', true],
+      ['response-cache-control-no-store', 'network', true],
+      ['idbversionchangeevent', 'storage', true],
+      ['websocket', 'realtime', true],
+      ['lock', 'realtime', true],
+      ['masked', 'embed', false],
+    ] as const)('classifies %s as %s (actionable=%s)', (reason, category, actionable) => {
+      expect(_classifyReason(reason)).toEqual({ category, actionable });
+    });
+
+    it('degrades unknown reasons to a non-actionable "unknown" category', () => {
+      expect(_classifyReason('some-future-reason')).toEqual({ category: 'unknown', actionable: false });
+      expect(_classifyReason('')).toEqual({ category: 'unknown', actionable: false });
     });
   });
 });

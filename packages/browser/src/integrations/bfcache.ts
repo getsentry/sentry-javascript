@@ -35,6 +35,39 @@ interface CollectedReason {
   frame: BFCacheFrame;
 }
 
+type BFCacheReasonCategory = 'page_lifecycle' | 'network' | 'storage' | 'realtime' | 'embed' | 'browser' | 'unknown';
+
+interface ReasonClassification {
+  category: BFCacheReasonCategory;
+  /** Whether the developer can plausibly fix this blocker (vs. browser-internal/opaque reasons). */
+  actionable: boolean;
+}
+
+// The browser's `notRestoredReasons` strings are a moving target that Chrome explicitly warns can
+// change, so this maps the common, stable ones and degrades to `unknown`/non-actionable for the rest.
+const REASON_CLASSIFICATIONS: Record<string, ReasonClassification> = {
+  'unload-listener': { category: 'page_lifecycle', actionable: true },
+  'response-cache-control-no-store': { category: 'network', actionable: true },
+  'keepalive-request': { category: 'network', actionable: true },
+  fetch: { category: 'network', actionable: true },
+  xhr: { category: 'network', actionable: true },
+  idbversionchangeevent: { category: 'storage', actionable: true },
+  websocket: { category: 'realtime', actionable: true },
+  webrtc: { category: 'realtime', actionable: true },
+  broadcastchannel: { category: 'realtime', actionable: true },
+  lock: { category: 'realtime', actionable: true },
+  masked: { category: 'embed', actionable: false },
+};
+
+/**
+ * Classifies a raw not-restored reason into a durable category and whether it is developer-actionable.
+ *
+ * Exported for tests only.
+ */
+export function _classifyReason(reason: string): ReasonClassification {
+  return REASON_CLASSIFICATIONS[reason] ?? { category: 'unknown', actionable: false };
+}
+
 /**
  * Captures bfcache hit/miss counters and Chromium notRestoredReasons when available.
  */
@@ -87,10 +120,13 @@ export const bfcacheMetricsIntegration = defineIntegration((options: Partial<BFC
 
           reasons.forEach(({ reason, frame }) => {
             const transactionName = _getTransactionName();
+            const { category, actionable } = _classifyReason(reason);
 
             metrics.count('browser.bfcache.not_restored', 1, {
               attributes: {
                 'browser.bfcache.reason': reason,
+                'browser.bfcache.reason_category': category,
+                'browser.bfcache.actionable': actionable,
                 'browser.bfcache.frame': frame,
                 ...(transactionName ? { 'sentry.transaction': transactionName } : {}),
               },
