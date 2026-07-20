@@ -4,6 +4,14 @@ import type { RouteManifest } from '../manifest/types';
 import type { JSONValue, TurbopackMatcherWithRule } from '../types';
 import { getPackageModules, supportsTurbopackRuleCondition } from '../util';
 
+// Marks the bundler (build-time) orchestrion injection as active at boot, without clobbering any
+// marker an earlier injector already set. It only creates `__SENTRY_ORCHESTRION__`/`.bundler` if
+// absent, so in a hybrid setup the runtime hook's `runtime` list (and any module already recorded by
+// the per-module loader prologue) survives. Mirrors the merge-safe pattern of the Bun banner and
+// `buildInjectPrologue`. Emitted as a single line so it never shifts the module's source-map mappings.
+const ORCHESTRION_BUNDLER_MARKER =
+  ';(function(){try{var g=(globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{});g.bundler=g.bundler||[];}catch(e){}})();';
+
 /**
  * Generate the value injection rules for client and server in turbopack config.
  */
@@ -47,15 +55,6 @@ export function generateValueInjectionRules({
   // Use process.cwd() to get the project directory at build time
   serverValues.__SENTRY_SERVER_MODULES__ = getPackageModules(process.cwd());
 
-  // Mark the bundler (build-time) orchestrion injection as active at boot. This runs at the top of the
-  // server `instrumentation` file — before `Sentry.init()` and before the runtime hook — so
-  // `isOrchestrionInjected()` is reliable for bundler-only setups too. Turbopack has no plugin/boot
-  // hook to emit the full transformed-module list the way the webpack plugin does, so we seed an empty
-  // array here; each transformed module then appends itself as it loads (see the orchestrion loader).
-  if (injectOrchestrionBundlerMarker) {
-    serverValues.__SENTRY_ORCHESTRION__ = { bundler: [] };
-  }
-
   if (Object.keys(isomorphicValues).length > 0) {
     clientValues = { ...clientValues, ...isomorphicValues };
     serverValues = { ...serverValues, ...isomorphicValues };
@@ -96,6 +95,11 @@ export function generateValueInjectionRules({
             loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
             options: {
               values: serverValues,
+              // Runs at the top of the server `instrumentation` file — before `Sentry.init()` — so
+              // `isOrchestrionInjected()` is reliable for bundler-only setups too. Turbopack has no
+              // plugin/boot hook to emit the full transformed-module list the way the webpack plugin
+              // does; each transformed module appends itself as it loads (see the orchestrion loader).
+              ...(injectOrchestrionBundlerMarker ? { prefixCode: ORCHESTRION_BUNDLER_MARKER } : {}),
             },
           },
         ],

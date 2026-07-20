@@ -219,6 +219,40 @@ describe.each([[clientConfigLoaderThis], [instrumentationLoaderThis]])('valueInj
   });
 });
 
+describe('valueInjectionLoader prefixCode', () => {
+  const prefixLoaderThis = {
+    ...defaultLoaderThis,
+    resourcePath: './instrumentation.js',
+    getOptions() {
+      return {
+        values: { foo: 'bar' },
+        prefixCode: ';globalThis.__MARKER__ = globalThis.__MARKER__ || {};',
+      };
+    },
+  } satisfies LoaderThis<ValueInjectionLoaderOptions>;
+
+  it('emits prefixCode verbatim before the value assignments', () => {
+    const userCode = "import * as Sentry from '@sentry/nextjs';\nSentry.init();";
+
+    const result = valueInjectionLoader.call(prefixLoaderThis, userCode);
+
+    const prefixIndex = result.indexOf('globalThis.__MARKER__ = globalThis.__MARKER__ || {};');
+    const valueIndex = result.indexOf('globalThis["foo"] = "bar";');
+
+    expect(prefixIndex).toBeGreaterThanOrEqual(0);
+    expect(valueIndex).toBeGreaterThan(prefixIndex);
+  });
+
+  it('does not emit any prefix when prefixCode is omitted', () => {
+    const userCode = "import * as Sentry from '@sentry/nextjs';\nSentry.init();";
+
+    const result = valueInjectionLoader.call(clientConfigLoaderThis, userCode);
+
+    expect(result).toContain(';globalThis["foo"] = "bar";');
+    expect(result).not.toContain('__MARKER__');
+  });
+});
+
 describe('findInjectionIndexAfterDirectives', () => {
   it('returns the position immediately after the last directive', () => {
     const userCode = '"use strict";\n"use client";\nimport React from \'react\';';

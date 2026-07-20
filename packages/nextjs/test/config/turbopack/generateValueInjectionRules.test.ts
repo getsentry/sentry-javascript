@@ -71,22 +71,31 @@ describe('generateValueInjectionRules', () => {
   });
 
   describe('orchestrion bundler marker', () => {
-    it('does not inject the orchestrion marker by default', () => {
-      const result = generateValueInjectionRules({});
-
+    function getServerLoaderOptions(result: ReturnType<typeof generateValueInjectionRules>): {
+      values: Record<string, unknown>;
+      prefixCode?: string;
+    } {
       const serverRule = result.find(rule => rule.matcher === '**/instrumentation.*');
-      const values = (serverRule?.rule as { loaders: [{ options: { values: Record<string, unknown> } }] }).loaders[0]
-        .options.values;
-      expect(values).not.toHaveProperty('__SENTRY_ORCHESTRION__');
+      return (serverRule?.rule as { loaders: [{ options: { values: Record<string, unknown>; prefixCode?: string } }] })
+        .loaders[0].options;
+    }
+
+    it('does not inject the orchestrion marker by default', () => {
+      const options = getServerLoaderOptions(generateValueInjectionRules({}));
+
+      expect(options.values).not.toHaveProperty('__SENTRY_ORCHESTRION__');
+      expect(options).not.toHaveProperty('prefixCode');
     });
 
-    it('seeds an empty bundler array at boot when injectOrchestrionBundlerMarker is set', () => {
-      const result = generateValueInjectionRules({ injectOrchestrionBundlerMarker: true });
+    it('seeds the bundler marker merge-safely at boot when injectOrchestrionBundlerMarker is set', () => {
+      const options = getServerLoaderOptions(generateValueInjectionRules({ injectOrchestrionBundlerMarker: true }));
 
-      const serverRule = result.find(rule => rule.matcher === '**/instrumentation.*');
-      const values = (serverRule?.rule as { loaders: [{ options: { values: Record<string, unknown> } }] }).loaders[0]
-        .options.values;
-      expect(values.__SENTRY_ORCHESTRION__).toEqual({ bundler: [] });
+      // The marker must not be a plain assignment (which would clobber an existing marker), so it is
+      // never emitted as a `values` entry.
+      expect(options.values).not.toHaveProperty('__SENTRY_ORCHESTRION__');
+      // It only creates the global if absent, preserving a runtime injector's `runtime` list.
+      expect(options.prefixCode).toContain('globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{}');
+      expect(options.prefixCode).toContain('g.bundler=g.bundler||[]');
     });
   });
 

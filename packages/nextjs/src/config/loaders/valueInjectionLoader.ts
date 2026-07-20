@@ -2,6 +2,10 @@ import type { LoaderThis } from './types';
 
 export type ValueInjectionLoaderOptions = {
   values: Record<string, unknown>;
+  // Raw JS prepended before the value assignments. Unlike `values` (plain `globalThis[key] = ...`
+  // assignments), this is emitted verbatim, so it can run merge-safe logic that a plain assignment
+  // can't express (e.g. seeding a global without clobbering an existing one).
+  prefixCode?: string;
 };
 
 /**
@@ -154,7 +158,7 @@ function findDirectiveTerminator(userCode: string, startIndex: number): number |
  */
 export default function valueInjectionLoader(this: LoaderThis<ValueInjectionLoaderOptions>, userCode: string): string {
   // We know one or the other will be defined, depending on the version of webpack being used
-  const { values } = 'getOptions' in this ? this.getOptions() : this.query;
+  const { values, prefixCode } = 'getOptions' in this ? this.getOptions() : this.query;
 
   // We do not want to cache injected values across builds
   this.cacheable(false);
@@ -163,6 +167,7 @@ export default function valueInjectionLoader(this: LoaderThis<ValueInjectionLoad
   const injectedCode =
     // eslint-disable-next-line prefer-template
     ';' +
+    (prefixCode ?? '') +
     Object.entries(values)
       .map(([key, value]) => `globalThis["${key}"] = ${JSON.stringify(value)};`)
       .join('');
