@@ -116,7 +116,8 @@
     "dotenv": "^17.4.2",
     "find-up": "^5.0.0",
     "glob": "^13.0.6",
-    "magic-string": "~0.30.8"
+    "magic-string": "~0.30.8",
+    "supports-color": "^8.1.1"
   },
   "peerDependencies": {
     "rollup": ">=3.2.0",
