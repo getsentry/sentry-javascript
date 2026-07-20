@@ -62,23 +62,21 @@ describe('subscribe-injection transform option', () => {
     const code =
       "'use strict';\nfunction Connection(){}\nConnection.prototype.query = function query(sql, cb){ return cb(); };\n";
     const result = t.transform(code, join(root, 'node_modules/mysql/lib/Connection.js'));
-    t.dispose?.();
 
     expect(result).not.toBeNull();
     expect(result!.code.split('\n')[0]).toContain("'use strict'");
+    // Imports ONLY the mysql factory plus the generic helper, from a single require.
     expect(result!.code).toMatch(
-      /const\s*\{\s*mysqlChannelIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
+      /const\s*\{\s*mysqlChannelIntegration,\s*registerOrchestrionChannelIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
     );
+    // The helper stores the factory on the marker AND live-registers it on an existing client, so a
+    // module that loads AFTER `init()` (mysql loads its instrumented file lazily) still subscribes
+    // for the in-flight request instead of only the next `init()`.
     expect(result!.code).toContain(
-      'globalThis.__SENTRY_ORCHESTRION__.integrations.set("mysqlChannelIntegration", mysqlChannelIntegration)',
+      'registerOrchestrionChannelIntegration("mysqlChannelIntegration", mysqlChannelIntegration)',
     );
-    // Also registers live on an existing client, so a module that loads AFTER
-    // `init()` (mysql loads its instrumented file lazily) still subscribes for
-    // the in-flight request instead of only the next `init()`.
-    expect(result!.code).toMatch(
-      /const\s*\{\s*getClient:\s*__sentryGetClient\s*\}\s*=\s*require\(["']@sentry\/core["']\)/,
-    );
-    expect(result!.code).toContain('__sentryGetClient()?.addIntegration(mysqlChannelIntegration())');
+    // No separate @sentry/core import at the injection site — the helper owns that.
+    expect(result!.code).not.toContain('@sentry/core');
     // It imports ONLY the mysql factory — no central dispatch pulling in others.
     expect(result!.code).not.toContain('pgChannelIntegration');
     expect(result!.code).not.toContain('subscribeOrchestrionChannel');
@@ -92,17 +90,15 @@ describe('subscribe-injection transform option', () => {
       'export class Client { query(){} connect(){} }\n',
       join(root, 'node_modules/pg/lib/client.js'),
     );
-    t.dispose?.();
 
     expect(result).not.toBeNull();
     expect(result!.code).toMatch(
-      /import\s*\{\s*postgresChannelIntegration\s*\}\s*from\s*["']@sentry\/server-utils\/orchestrion["']/,
+      /import\s*\{\s*postgresChannelIntegration,\s*registerOrchestrionChannelIntegration\s*\}\s*from\s*["']@sentry\/server-utils\/orchestrion["']/,
     );
-    expect(result!.code).toMatch(/import\s*\{\s*getClient as __sentryGetClient\s*\}\s*from\s*["']@sentry\/core["']/);
+    expect(result!.code).not.toContain('@sentry/core');
     expect(result!.code).toContain(
-      'globalThis.__SENTRY_ORCHESTRION__.integrations.set("postgresChannelIntegration", postgresChannelIntegration)',
+      'registerOrchestrionChannelIntegration("postgresChannelIntegration", postgresChannelIntegration)',
     );
-    expect(result!.code).toContain('__sentryGetClient()?.addIntegration(postgresChannelIntegration())');
   });
 
   it('registers the factory at most once per file', () => {
@@ -112,9 +108,9 @@ describe('subscribe-injection transform option', () => {
       'export class Client { query(){} connect(){} }\n',
       join(root, 'node_modules/pg/lib/client.js'),
     );
-    t.dispose?.();
 
-    const registrations = result!.code.match(/integrations\.set\("postgresChannelIntegration"/g) ?? [];
+    const registrations =
+      result!.code.match(/registerOrchestrionChannelIntegration\("postgresChannelIntegration"/g) ?? [];
     expect(registrations).toHaveLength(1);
   });
 });
