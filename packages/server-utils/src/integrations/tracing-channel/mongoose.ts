@@ -1,14 +1,15 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span } from '@sentry/core';
-import { debug, defineIntegration, getActiveSpan, waitForTracingChannelBinding } from '@sentry/core';
+import { defineIntegration, getActiveSpan, waitForTracingChannelBinding } from '@sentry/core';
 import { subscribeMongooseDiagnosticChannels } from '../../mongoose/mongoose-dc-subscriber';
 import type { MongooseLegacyCollection } from '../../mongoose/mongoose-legacy-span';
 import { startMongooseLegacySpan } from '../../mongoose/mongoose-legacy-span';
 import { CHANNELS } from '../../orchestrion/channels';
 import { MONGOOSE_CONTEXT_CAPTURE_CHANNELS } from '../../orchestrion/config/mongoose';
-import { DEBUG_BUILD } from '../../debug-build';
 import type { SentryTracingChannel } from '../../tracing-channel';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { mongooseModuleNames } from '../../orchestrion/config/mongoose';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 const INTEGRATION_NAME = 'Mongoose' as const;
 
@@ -59,20 +60,19 @@ const _mongooseIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      // mongoose >= 9.7 publishes via its own diagnostics_channel; reuse the
+      // shared native subscriber eagerly
       if (!diagnosticsChannel.tracingChannel) {
         return;
       }
-
       waitForTracingChannelBinding(() => {
-        // mongoose >= 9.7 publishes via its own diagnostics_channel; reuse
-        // the shared native subscriber so this single integration covers all
-        // versions after it replaces the OTel one. Idempotent and inert on
-        // < 9.7 (those channels just never get published to)
         subscribeMongooseDiagnosticChannels(diagnosticsChannel.tracingChannel);
-
-        // mongoose < 9.7 is covered by the orchestrion-injected channels.
-        subscribeOrchestrionMongooseChannels();
       });
+    },
+    setup(client) {
+      // mongoose < 9.7 is covered by the orchestrion-injected channels, so this
+      // half subscribes lazily, once mongoose is actually instrumented
+      invokeOrchestrionInstrumentation(client, mongooseModuleNames, subscribeOrchestrionMongooseChannels, []);
     },
   };
 }) satisfies IntegrationFn;
@@ -82,8 +82,6 @@ function subscribeOrchestrionMongooseChannels(): void {
     return;
   }
   orchestrionSubscribed = true;
-
-  DEBUG_BUILD && debug.log('[orchestrion:mongoose] subscribing to injected channels');
 
   // Context-capture builders: stash the active span at build time so `exec()`
   // can parent to it.

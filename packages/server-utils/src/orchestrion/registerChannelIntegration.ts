@@ -1,5 +1,6 @@
 import type { Integration } from '@sentry/core';
 import { getClient, GLOBAL_OBJ } from '@sentry/core';
+import { modulesForSubscriberExport } from './config/channel-integration-definitions';
 
 /**
  * Register an orchestrion channel-subscriber integration from an instrumented
@@ -33,6 +34,25 @@ import { getClient, GLOBAL_OBJ } from '@sentry/core';
  */
 export function registerOrchestrionChannelIntegration(name: string, integrationFn: () => Integration): void {
   const marker = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {});
+
+  // Record the instrumented package(s) as bundler-injected BEFORE adding the
+  // integration. The integration subscribes lazily, gated on its module showing
+  // up as injected (see `invokeOrchestrionInstrumentation`); this is that signal
+  // for the bundler path. Its module was just transformed and loaded, so the
+  // integration must subscribe immediately rather than wait for a runtime event
+  // that (being bundled, not loaded through the module hook) never fires. Skip
+  // when `bundler` is a non-array flag (Bun's banner sets `true`), which carries
+  // no module names. Those runtimes subscribe eagerly anyway.
+  const modules = modulesForSubscriberExport(name);
+  if (modules.length && (Array.isArray(marker.bundler) || marker.bundler === undefined)) {
+    const bundler = (marker.bundler ??= []);
+    for (const moduleName of modules) {
+      if (!bundler.includes(moduleName)) {
+        bundler.push(moduleName);
+      }
+    }
+  }
+
   (marker.integrations ??= new Map()).set(name, integrationFn);
   getClient()?.addIntegration(integrationFn());
 }

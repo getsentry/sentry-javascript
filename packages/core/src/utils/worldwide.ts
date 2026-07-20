@@ -72,6 +72,16 @@ export type InternalGlobal = {
      * `init()` and instantiates them.
      */
     integrations?: Map<string, () => Integration>;
+    /**
+     * Bridge installed at `init()` by `registerDiagnosticsChannelInjection`.
+     * The bundler's `injectDiagnostics` boot banner calls it for each
+     * transformed module, emitting the `orchestrion.module-runtime-injected`
+     * client event so channel integrations subscribe for force-bundled modules
+     * (which the runtime module hook never sees). Absent on bundler-only
+     * runtimes (e.g. `@sentry/cloudflare`), where the banner's call is a
+     * guarded no-op.
+     */
+    onInject?: (moduleName: string) => void;
   };
 } & Carrier;
 

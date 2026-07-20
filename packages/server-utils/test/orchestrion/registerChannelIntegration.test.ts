@@ -43,4 +43,27 @@ describe('registerOrchestrionChannelIntegration', () => {
     // still stored for the next init() to pick up
     expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.has('myChannelIntegration')).toBe(true);
   });
+
+  it('records the export name`s instrumented package(s) as bundler-injected', () => {
+    // `postgresIntegration` covers both `pg` and `pg-pool`.
+    registerOrchestrionChannelIntegration('postgresIntegration', factory('Postgres'));
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toEqual(['pg', 'pg-pool']);
+  });
+
+  it('deduplicates recorded modules across repeated registration', () => {
+    registerOrchestrionChannelIntegration('mysqlIntegration', factory('Mysql'));
+    registerOrchestrionChannelIntegration('mysqlIntegration', factory('Mysql'));
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toEqual(['mysql']);
+  });
+
+  it('leaves a non-array bundler flag (Bun sets `true`) untouched', () => {
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: true as unknown as string[] };
+    registerOrchestrionChannelIntegration('mysqlChannelIntegration', factory('Mysql'));
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toBe(true);
+  });
+
+  it('records nothing for an export name with no instrumented package mapping', () => {
+    registerOrchestrionChannelIntegration('myChannelIntegration', factory('X'));
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toBeUndefined();
+  });
 });

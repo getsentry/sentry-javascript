@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const pgConfig = [
   // `pg` (node-postgres).
@@ -41,6 +41,8 @@ export const pgConfig = [
     functionQuery: { className: 'Pool', methodName: 'connect', kind: 'Auto' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const pgModuleNames = getModuleNames(pgConfig);
 
 export const pgChannels = {
   PG_QUERY: 'orchestrion:pg:query',

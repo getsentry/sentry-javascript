@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 // Ports `@opentelemetry/instrumentation-mysql2` (which patches `query`/`execute` on the connection
 // prototype) to orchestrion channel injection.
@@ -42,6 +42,8 @@ export const mysql2Config = [
     functionQuery: { className: 'BaseConnection', methodName: 'execute', kind: 'Callback' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const mysql2ModuleNames = getModuleNames(mysql2Config);
 
 export const mysql2Channels = {
   MYSQL2_QUERY: 'orchestrion:mysql2:query',

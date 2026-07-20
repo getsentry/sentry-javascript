@@ -6,12 +6,10 @@ import { EventEmitter } from 'node:events';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
-  debug,
   defineIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
 import {
   DB_NAME,
@@ -22,8 +20,9 @@ import {
   NET_PEER_PORT,
   SENTRY_KIND,
 } from '@sentry/conventions/attributes';
-import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
+import { tediousModuleNames } from '../../orchestrion/config/tedious';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 // NOTE: this uses the same name as the OTel integration by design. When orchestrion injection is active,
 // `_init` swaps the OTel `Tedious` integration out of the defaults and appends this one (matched by name).
@@ -230,26 +229,23 @@ function once<Args extends unknown[]>(fn: (...args: Args) => void): (...args: Ar
 const _tediousIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      DEBUG_BUILD && debug.log(`[orchestrion:tedious] subscribing to channel "${CHANNELS.TEDIOUS_EXEC_SQL}"`);
-
-      waitForTracingChannelBinding(() => {
-        subscribeConnect();
-        subscribeQuery(CHANNELS.TEDIOUS_EXEC_SQL, 'execSql');
-        subscribeQuery(CHANNELS.TEDIOUS_EXEC_SQL_BATCH, 'execSqlBatch');
-        subscribeQuery(CHANNELS.TEDIOUS_CALL_PROCEDURE, 'callProcedure');
-        subscribeQuery(CHANNELS.TEDIOUS_EXEC_BULK_LOAD, 'execBulkLoad');
-        subscribeQuery(CHANNELS.TEDIOUS_PREPARE, 'prepare');
-        subscribeQuery(CHANNELS.TEDIOUS_EXECUTE, 'execute');
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, tediousModuleNames, instrumentTedious, [], {
+        requiresTracingChannelBinding: false,
       });
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentTedious(): void {
+  subscribeConnect();
+  subscribeQuery(CHANNELS.TEDIOUS_EXEC_SQL, 'execSql');
+  subscribeQuery(CHANNELS.TEDIOUS_EXEC_SQL_BATCH, 'execSqlBatch');
+  subscribeQuery(CHANNELS.TEDIOUS_CALL_PROCEDURE, 'callProcedure');
+  subscribeQuery(CHANNELS.TEDIOUS_EXEC_BULK_LOAD, 'execBulkLoad');
+  subscribeQuery(CHANNELS.TEDIOUS_PREPARE, 'prepare');
+  subscribeQuery(CHANNELS.TEDIOUS_EXECUTE, 'execute');
+}
 
 /**
  * Orchestrion-driven tedious integration.

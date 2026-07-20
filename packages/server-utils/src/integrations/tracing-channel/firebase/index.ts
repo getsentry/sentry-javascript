@@ -1,6 +1,7 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
+import { firebaseModuleNames } from '../../../orchestrion/config/firebase';
+import { invokeOrchestrionInstrumentation } from '../../../orchestrion/instrumentation';
 import { instrumentFirebase } from './instrumentation';
 
 const INTEGRATION_NAME = 'Firebase' as const;
@@ -8,15 +9,8 @@ const INTEGRATION_NAME = 'Firebase' as const;
 const _firebaseIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => {
-        instrumentFirebase();
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, firebaseModuleNames, instrumentFirebase, []);
     },
   };
 }) satisfies IntegrationFn;

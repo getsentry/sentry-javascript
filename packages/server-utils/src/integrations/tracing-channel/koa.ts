@@ -13,6 +13,8 @@ import {
 import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_NAME, KOA_TYPE } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
+import { koaModuleNames } from '../../orchestrion/config/koa';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 
 // Same name as the OTel integration. When enabled, the OTel 'Koa' integration is omitted from the default set.
@@ -29,11 +31,6 @@ type KoaLayerType = (typeof LAYER_TYPE)[keyof typeof LAYER_TYPE];
 // Keeps wrapping idempotent — the same middleware instance can be registered on
 // multiple routes (mirrors the vendored OTel instrumentation's symbol).
 const kLayerPatched: unique symbol = Symbol('sentry.koa.layer-patched');
-
-// Core dedupes `setupOnce` by integration name, but the Deno SDK also runs this
-// under the name `DenoKoa` (via `extendIntegration`), so guard against a second
-// subscription here.
-let subscribed = false;
 
 type Next = () => Promise<unknown>;
 
@@ -79,26 +76,25 @@ const _koaIntegration = ((options: KoaIntegrationOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel || subscribed) {
-        return;
-      }
-      subscribed = true;
-      DEBUG_BUILD && debug.log(`[orchestrion:koa] subscribing to channel "${CHANNELS.KOA_USE}"`);
-
-      diagnosticsChannel.tracingChannel(CHANNELS.KOA_USE).subscribe({
-        start(rawCtx) {
-          handleUse(rawCtx as KoaUseContext, ignoreLayersType);
-        },
-        end() {},
-        asyncStart() {},
-        asyncEnd() {},
-        error() {},
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, koaModuleNames, instrumentKoa, [ignoreLayersType], {
+        requiresTracingChannelBinding: false,
       });
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentKoa(ignoreLayersType: KoaLayerType[]): void {
+  diagnosticsChannel.tracingChannel(CHANNELS.KOA_USE).subscribe({
+    start(rawCtx) {
+      handleUse(rawCtx as KoaUseContext, ignoreLayersType);
+    },
+    end() {},
+    asyncStart() {},
+    asyncEnd() {},
+    error() {},
+  });
+}
 
 function handleUse(ctx: KoaUseContext, ignoreLayersType: KoaLayerType[]): void {
   const middleware = ctx.arguments[0];

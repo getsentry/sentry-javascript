@@ -18,19 +18,18 @@ import { DATABASE_DB_QUERY_SPAN_OP, DATABASE_DB_SPAN_OP } from '@sentry/conventi
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   isObjectLike,
-  debug,
   defineIntegration,
   getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
-  waitForTracingChannelBinding,
   withActiveSpan,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { defaultDbStatementSerializer } from '../../redis/redis-statement-serializer';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { redisModuleNames } from '../../orchestrion/config/redis';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 // A distinct name from the composite OTel `Redis` integration — they can't share one, and
 // `Redis` stays in the set for its native diagnostics_channel subscriber (node-redis >=5.12 /
@@ -308,35 +307,38 @@ function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: Com
 }
 
 const _redisChannelIntegration = ((options: RedisChannelIntegrationOptions = {}) => {
-  const responseHook = options.responseHook;
-
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      DEBUG_BUILD &&
-        debug.log(`[orchestrion:redis] subscribing to "${CHANNELS.REDIS_COMMAND}" and node-redis channels`);
-
-      // redis v2-v3 uses a nested callback rather than `bindStore`, so it can be
-      // subscribed synchronously here.
-      subscribeLegacyRedisCommand(responseHook);
-
-      waitForTracingChannelBinding(() => {
-        bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_COMMAND, getSendCommandArgs, responseHook);
-        bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_EXECUTOR, getExecutorArgs, responseHook);
-        bindNodeRedisConnectChannel();
-        bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_MULTI, () => 'MULTI');
-        bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_PIPELINE, () => 'PIPELINE');
-        bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_BATCH, data =>
-          data.arguments?.[2] !== undefined ? 'MULTI' : 'PIPELINE',
-        );
+    setup(client) {
+      // redis v2-v3 uses a nested callback, not `bindStore`, so it subscribes
+      // without the async-context binding. Kept separate so a missing binding
+      // never defers it: on the bundler path the wait would push subscription
+      // past `Sentry.init()` and early commands would emit with no subscriber
+      invokeOrchestrionInstrumentation(client, redisModuleNames, instrumentLegacyRedis, [options], {
+        requiresTracingChannelBinding: false,
       });
+      // node-redis v4/v5 binds spans into async context via `bindTracingChannelToSpan`.
+      invokeOrchestrionInstrumentation(client, redisModuleNames, instrumentNodeRedis, [options]);
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentLegacyRedis(options: RedisChannelIntegrationOptions): void {
+  subscribeLegacyRedisCommand(options.responseHook);
+}
+
+function instrumentNodeRedis(options: RedisChannelIntegrationOptions): void {
+  const responseHook = options.responseHook;
+
+  bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_COMMAND, getSendCommandArgs, responseHook);
+  bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_EXECUTOR, getExecutorArgs, responseHook);
+  bindNodeRedisConnectChannel();
+  bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_MULTI, () => 'MULTI');
+  bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_PIPELINE, () => 'PIPELINE');
+  bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_BATCH, data =>
+    data.arguments?.[2] !== undefined ? 'MULTI' : 'PIPELINE',
+  );
+}
 
 /**
  * Orchestrion-driven redis integration for `redis` v2-v3 and

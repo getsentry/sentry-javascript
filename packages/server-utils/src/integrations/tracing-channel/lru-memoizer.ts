@@ -1,9 +1,10 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
+import { defineIntegration } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { lruMemoizerModuleNames } from '../../orchestrion/config/lru-memoizer';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 // Same name as the OTel integration by design — when enabled, the OTel
 // 'LruMemoizer' integration is omitted from the default set.
@@ -16,24 +17,19 @@ interface LruMemoizerLoadContext {
 const _lruMemoizerIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      DEBUG_BUILD && debug.log(`[orchestrion:lru-memoizer] subscribing to channel "${CHANNELS.LRU_MEMOIZER_LOAD}"`);
-
-      waitForTracingChannelBinding(() => {
-        bindTracingChannelToSpan(
-          diagnosticsChannel.tracingChannel<LruMemoizerLoadContext>(CHANNELS.LRU_MEMOIZER_LOAD),
-          // We only want the helper's caller-context restore for the callback lru-memoizer fires from a detached `setImmediate`.
-          () => undefined,
-        );
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, lruMemoizerModuleNames, instrumentLruMemoizer, []);
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentLruMemoizer(): void {
+  bindTracingChannelToSpan(
+    diagnosticsChannel.tracingChannel<LruMemoizerLoadContext>(CHANNELS.LRU_MEMOIZER_LOAD),
+    // We only want the helper's caller-context restore for the callback lru-memoizer fires from a detached `setImmediate`.
+    () => undefined,
+  );
+}
 
 /**
  * Orchestrion-driven lru-memoizer integration. Subscribes to
