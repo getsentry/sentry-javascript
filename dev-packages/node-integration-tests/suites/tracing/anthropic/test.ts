@@ -425,10 +425,12 @@ describe('Anthropic integration', () => {
             expect(nestedSpan).toBeDefined();
             expect(nestedSpan.attributes['sentry.op'].value).toBe('gen_ai.chat');
 
-            const streamingSpan = container.items.find(
+            // The helper's own internal `create` delegation must be deduped: exactly one span
+            // for the streamed response, not a duplicate child span.
+            const streamingSpans = container.items.filter(
               span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'msg_stream_1',
             );
-            expect(streamingSpan).toBeDefined();
+            expect(streamingSpans).toHaveLength(1);
           },
         })
         .start()
