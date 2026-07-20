@@ -2,7 +2,7 @@ services:
   db:
     image: mysql:8.0
     restart: always
-    container_name: e2e-tests-remix-orchestrion-mysql
+    container_name: e2e-tests-create-remix-app-v2-mysql
     # The `mysql` 2.x driver doesn't speak MySQL 8's default
     # `caching_sha2_password` auth, so force the legacy plugin.
     command: ['--default-authentication-plugin=mysql_native_password']
@@ -20,7 +20,7 @@ services:
   redis:
     image: redis:7
     restart: always
-    container_name: e2e-tests-remix-orchestrion-redis
+    container_name: e2e-tests-create-remix-app-v2-redis
     ports:
       - '6379:6379'
     healthcheck:

@@ -13,7 +13,7 @@ export default async function globalSetup() {
   // recognize a leftover container from a previous (e.g. interrupted) run as
   // part of the same project - but the container names are fixed, so the daemon
   // still refuses to create new ones. Force-remove any stale leftovers first.
-  for (const container of ['e2e-tests-remix-orchestrion-mysql', 'e2e-tests-remix-orchestrion-redis']) {
+  for (const container of ['e2e-tests-create-remix-app-v2-mysql', 'e2e-tests-create-remix-app-v2-redis']) {
     try {
       execSync(`docker rm -f ${container}`, { stdio: 'ignore' });
     } catch {
