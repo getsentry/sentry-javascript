@@ -25,8 +25,7 @@ export function isExpectedError(exception: unknown): boolean {
     return true;
   }
 
-  // RpcException / WsException (same duck-type shape)
-  if (isWsException(exception)) {
+  if (isWsOrRpcException(exception)) {
     return true;
   }
 
@@ -34,12 +33,12 @@ export function isExpectedError(exception: unknown): boolean {
 }
 
 /**
- * Determines if the exception is a WsException (or RpcException, which has the same shape).
+ * Determines if the exception is a WsException or RpcException, which have the same shape.
  * Both have `getError()` and `initMessage()` methods.
  *
  * We use duck-typing to avoid importing from `@nestjs/websockets` or `@nestjs/microservices`.
  */
-export function isWsException(exception: unknown): boolean {
+export function isWsOrRpcException(exception: unknown): boolean {
   if (typeof exception !== 'object' || exception === null) {
     return false;
   }

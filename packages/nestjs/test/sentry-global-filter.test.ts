@@ -8,7 +8,7 @@ import { SentryGlobalFilter } from '../src/setup';
 
 vi.mock('../src/helpers', () => ({
   isExpectedError: vi.fn(),
-  isWsException: vi.fn(),
+  isWsOrRpcException: vi.fn(),
 }));
 
 vi.mock('@sentry/core', () => ({
@@ -28,7 +28,7 @@ describe('SentryGlobalFilter', () => {
   let mockLoggerError: any;
   let mockLoggerWarn: any;
   let isExpectedErrorMock: any;
-  let isWsExceptionMock: any;
+  let isWsOrRpcExceptionMock: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -59,7 +59,7 @@ describe('SentryGlobalFilter', () => {
     mockCaptureException = vi.spyOn(SentryCore, 'captureException').mockReturnValue('mock-event-id');
 
     isExpectedErrorMock = vi.mocked(Helpers.isExpectedError).mockImplementation(() => false);
-    isWsExceptionMock = vi.mocked(Helpers.isWsException).mockImplementation(() => false);
+    isWsOrRpcExceptionMock = vi.mocked(Helpers.isWsOrRpcException).mockImplementation(() => false);
   });
 
   describe('HTTP context', () => {
@@ -274,7 +274,7 @@ describe('SentryGlobalFilter', () => {
 
     it('does not capture expected WebSocket exceptions and emits their response', () => {
       isExpectedErrorMock.mockReturnValueOnce(true);
-      isWsExceptionMock.mockReturnValueOnce(true);
+      isWsOrRpcExceptionMock.mockReturnValueOnce(true);
       const exception = {
         getError: () => 'Expected WebSocket exception',
         initMessage: vi.fn(),

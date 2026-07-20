@@ -10,7 +10,7 @@ import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestj
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
 import { captureException, debug, getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
 import type { Observable } from 'rxjs';
-import { isExpectedError, isWsException } from './helpers';
+import { isExpectedError, isWsOrRpcException } from './helpers';
 
 // Partial extract of FastifyRequest interface
 // https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
@@ -164,7 +164,7 @@ class SentryGlobalFilter extends BaseExceptionFilter {
 
       const client = host.switchToWs().getClient<{ emit?: (event: string, data: unknown) => void }>();
 
-      if (isWsException(exception)) {
+      if (isWsOrRpcException(exception)) {
         const result = (exception as { getError: () => unknown }).getError();
         const response = typeof result === 'object' && result !== null ? result : { status: 'error', message: result };
         client.emit?.('exception', response);
