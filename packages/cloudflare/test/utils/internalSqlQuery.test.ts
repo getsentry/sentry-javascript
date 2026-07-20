@@ -60,6 +60,37 @@ describe('targetsCloudflareInternalTable', () => {
     });
   });
 
+  describe('allowlist (opt a cf_ table back into instrumentation)', () => {
+    it('returns false for an allowlisted table matched by exact string', () => {
+      expect(targetsCloudflareInternalTable(summarize('SELECT * FROM cf_my_table'), ['cf_my_table'])).toBe(false);
+    });
+
+    it('returns false for an allowlisted table matched by regex', () => {
+      expect(targetsCloudflareInternalTable(summarize('SELECT * FROM cf_reports_daily'), [/^cf_reports_/])).toBe(false);
+    });
+
+    it('requires an exact match for string entries', () => {
+      // Substring matches must not opt a table back in, otherwise `cf_` would allowlist everything.
+      expect(targetsCloudflareInternalTable(summarize('SELECT * FROM cf_agents_state'), ['cf_agents'])).toBe(true);
+    });
+
+    it('still skips genuine internal tables that are not allowlisted', () => {
+      expect(targetsCloudflareInternalTable(summarize('SELECT * FROM cf_agents_state'), ['cf_my_table'])).toBe(true);
+    });
+
+    it('still skips when an internal table is joined with an allowlisted table', () => {
+      expect(
+        targetsCloudflareInternalTable(summarize('SELECT * FROM cf_my_table t JOIN cf_agents_state s ON s.id = t.id'), [
+          'cf_my_table',
+        ]),
+      ).toBe(true);
+    });
+
+    it('ignores an empty allowlist', () => {
+      expect(targetsCloudflareInternalTable(summarize('SELECT * FROM cf_agents_state'), [])).toBe(true);
+    });
+  });
+
   describe('summaries without a resolvable table target (safe default: instrument)', () => {
     it.each([
       ['undefined', undefined],

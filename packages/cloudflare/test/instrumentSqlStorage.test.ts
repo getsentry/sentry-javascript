@@ -168,6 +168,20 @@ describe('instrumentSqlStorage', () => {
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
     });
+
+    it('creates a span for a cf_ table on the durableObjectSqlSpanAllowlist', () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      vi.spyOn(sentryCore, 'getClient').mockReturnValue({
+        getOptions: () => ({ durableObjectSqlSpanAllowlist: ['cf_my_table'] }),
+      } as unknown as ReturnType<typeof sentryCore.getClient>);
+
+      const mockSql = createMockSqlStorage();
+      const instrumented = instrumentSqlStorage(mockSql);
+
+      instrumented.exec('SELECT * FROM cf_my_table WHERE id = ?', 1);
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    });
   });
 });
 
