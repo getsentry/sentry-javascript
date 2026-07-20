@@ -2,7 +2,7 @@ import * as SentryBrowser from '@sentry/browser';
 import type { Span, SpanAttributes } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { NAVIGATION_ROUTE_ID, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Route } from '../src/router';
 import { instrumentVueRouter } from '../src/router';
@@ -463,6 +463,10 @@ function getAttributesForRoute(route: Route, urlTemplate?: string): SpanAttribut
 
   if (urlTemplate) {
     attributes[URL_TEMPLATE] = urlTemplate;
+  }
+
+  if (route.name) {
+    attributes[NAVIGATION_ROUTE_ID] = route.name.toString();
   }
 
   return attributes;
