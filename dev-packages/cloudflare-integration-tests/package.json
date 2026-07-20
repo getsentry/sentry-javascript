@@ -23,6 +23,7 @@
     "@prisma/adapter-d1": "6.15.0",
     "@prisma/client": "6.15.0",
     "@sentry/cloudflare": "10.66.0",
+    "@sentry/core": "10.66.0",
     "@sentry/hono": "10.66.0",
     "hono": "^4.12.25",
     "openai": "5.18.1"
