@@ -1,7 +1,6 @@
-import type { Client, IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { generateInstrumentOnce, getClient, spanToJSON } from '@sentry/node';
-import type { RemixOptions } from '../../utils/remixOptions';
+import type { Span } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { generateInstrumentOnce, spanToJSON } from '@sentry/node';
 import { RemixInstrumentation } from '../../vendor/instrumentation';
 
 const INTEGRATION_NAME = 'Remix';
@@ -10,33 +9,14 @@ interface RemixInstrumentationOptions {
   actionFormDataAttributes?: Record<string, string | boolean>;
 }
 
-const instrumentRemix = generateInstrumentOnce(INTEGRATION_NAME, (options?: RemixInstrumentationOptions) => {
-  return new RemixInstrumentation(options);
-});
+export const instrumentRemixWithOpenTelemetry = generateInstrumentOnce(
+  INTEGRATION_NAME,
+  (options?: RemixInstrumentationOptions) => {
+    return new RemixInstrumentation(options);
+  },
+);
 
-const _remixIntegration = (() => {
-  return {
-    name: 'Remix' as const,
-    setupOnce() {
-      const client = getClient();
-      const options = client?.getOptions() as RemixOptions | undefined;
-
-      instrumentRemix({
-        actionFormDataAttributes: client?.getDataCollectionOptions().httpBodies.includes('incomingRequest')
-          ? options?.captureActionFormDataKeys
-          : undefined,
-      });
-    },
-
-    setup(client: Client) {
-      client.on('spanStart', span => {
-        addRemixSpanAttributes(span);
-      });
-    },
-  };
-}) satisfies IntegrationFn;
-
-const addRemixSpanAttributes = (span: Span): void => {
+export function addRemixSpanAttributes(span: Span): void {
   const attributes = spanToJSON(span).data;
 
   // this is one of: loader, action, requestHandler
@@ -57,9 +37,4 @@ const addRemixSpanAttributes = (span: Span): void => {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.remix',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
   });
-};
-
-/**
- * Instrumentation for aws-sdk package
- */
-export const remixIntegration = defineIntegration(_remixIntegration);
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isD1Database, isDurableObjectNamespace, isJSRPC, isQueue } from '../../src/utils/isBinding';
+import { isD1Database, isDurableObjectNamespace, isJSRPC, isQueue, isRateLimit } from '../../src/utils/isBinding';
 
 describe('isJSRPC', () => {
   it('returns false for a plain object', () => {
@@ -208,5 +208,36 @@ describe('isD1Database', () => {
       },
     );
     expect(isD1Database(jsrpcProxy)).toBe(false);
+  });
+});
+
+describe('isRateLimit', () => {
+  it('returns true for an object with a limit method', () => {
+    expect(isRateLimit({ limit: async () => ({ success: true }) })).toBe(true);
+  });
+
+  it('returns false when limit is missing', () => {
+    expect(isRateLimit({ foo: 'bar' })).toBe(false);
+  });
+
+  it('returns false when limit is not a function', () => {
+    expect(isRateLimit({ limit: 'nope' })).toBe(false);
+  });
+
+  it('returns false for null and undefined', () => {
+    expect(isRateLimit(null)).toBe(false);
+    expect(isRateLimit(undefined)).toBe(false);
+  });
+
+  it('returns false for a JSRPC proxy even though it returns a function for limit', () => {
+    const jsrpcProxy = new Proxy(
+      {},
+      {
+        get(_target, _prop) {
+          return () => {};
+        },
+      },
+    );
+    expect(isRateLimit(jsrpcProxy)).toBe(false);
   });
 });

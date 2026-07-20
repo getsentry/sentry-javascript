@@ -88,7 +88,12 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
  * externalized and their transform never runs.
  */
 export function instrumentedModuleNames(instrumentations: InstrumentationConfig[] = []): string[] {
-  return uniq([...SENTRY_INSTRUMENTATIONS, ...instrumentations].map(i => i.module.name));
+  return [
+    ...uniq([...SENTRY_INSTRUMENTATIONS, ...instrumentations].map(i => i.module.name)),
+    // Additional things that need to be bundled but are not covered by the above
+    // Remix needs to bundle this so @remix-run/server-runtime is _also_ bundled
+    '@remix-run/node',
+  ];
 }
 
 /** The instrumented module names from the default Sentry config, with no custom additions. */

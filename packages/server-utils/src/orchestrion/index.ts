@@ -13,8 +13,10 @@ import { koaChannelIntegration } from '../integrations/tracing-channel/koa';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
 import { kafkajsChannelIntegration } from '../integrations/tracing-channel/kafkajs';
 import { knexChannelIntegration } from '../integrations/tracing-channel/knex';
+import { langChainChannelIntegration } from '../integrations/tracing-channel/langchain';
 import { langGraphChannelIntegration } from '../integrations/tracing-channel/langgraph';
 import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
+import { mongodbChannelIntegration } from '../integrations/tracing-channel/mongodb';
 import { mongooseChannelIntegration } from '../integrations/tracing-channel/mongoose';
 import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 import { mysql2ChannelIntegration } from '../integrations/tracing-channel/mysql2';
@@ -29,6 +31,9 @@ export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 // The `@nestjs/*` channel names live here alongside their transform config; the
 // listener that subscribes to them lives in `@sentry/nestjs`, which imports this.
 export { nestjsChannels } from './config/nestjs';
+// The remix channel names live here alongside their transform config; the
+// listener that subscribes to them lives in `@sentry/remix`, which imports this.
+export { remixChannels } from './config/remix';
 export {
   amqplibChannelIntegration,
   anthropicChannelIntegration,
@@ -42,8 +47,10 @@ export {
   ioredisChannelIntegration,
   kafkajsChannelIntegration,
   knexChannelIntegration,
+  langChainChannelIntegration,
   langGraphChannelIntegration,
   lruMemoizerChannelIntegration,
+  mongodbChannelIntegration,
   mongooseChannelIntegration,
   mysqlChannelIntegration,
   mysql2ChannelIntegration,
@@ -90,6 +97,7 @@ export type * from '../integrations/tracing-channel/graphql/graphql-types';
 export const channelIntegrations = {
   postgresIntegration: postgresChannelIntegration,
   postgresJsIntegration: postgresJsChannelIntegration,
+  mongoIntegration: mongodbChannelIntegration,
   mysqlIntegration: mysqlChannelIntegration,
   mysql2Integration: mysql2ChannelIntegration,
   genericPoolIntegration: genericPoolChannelIntegration,
@@ -98,6 +106,7 @@ export const channelIntegrations = {
   openaiIntegration: openaiChannelIntegration,
   anthropicIntegration: anthropicChannelIntegration,
   googleGenAIIntegration: googleGenAIChannelIntegration,
+  langChainIntegration: langChainChannelIntegration,
   langGraphIntegration: langGraphChannelIntegration,
   vercelAiIntegration: vercelAiChannelIntegration,
   amqplibIntegration: amqplibChannelIntegration,

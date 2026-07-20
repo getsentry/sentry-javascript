@@ -14,6 +14,8 @@ declare var global: any;
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
+const OTEL_API_GLOBAL_KEY = Symbol.for('opentelemetry.js.api.1');
+
 class MockIntegration implements Integration {
   public name: string;
   public setupOnce: Mock = vi.fn();
@@ -229,6 +231,73 @@ describe('init()', () => {
       const client = getClient<NodeClient>();
 
       expect(client?.traceProvider).toBeInstanceOf(BasicTracerProvider);
+    });
+
+    it('recreates the OTel API registry when it pre-exists with a different @opentelemetry/api version', () => {
+      // Simulate a host runtime (e.g. Neon Functions) pre-creating the registry with its own api version
+      global[OTEL_API_GLOBAL_KEY] = { version: '0.0.1' };
+
+      init({ dsn: PUBLIC_DSN });
+
+      const client = getClient<NodeClient>();
+      const registry = global[OTEL_API_GLOBAL_KEY];
+
+      expect(client?.traceProvider).toBeInstanceOf(SentryOpentelemetry.SentryTracerProvider);
+      expect(registry?.version).not.toBe('0.0.1');
+      expect(registry?.trace).toBeDefined();
+    });
+
+    it('recreates a version-mismatched OTel API registry also for the OpenTelemetry SDK tracer provider', () => {
+      global[OTEL_API_GLOBAL_KEY] = { version: '0.0.1' };
+
+      init({ dsn: PUBLIC_DSN, openTelemetryBasicTracerProvider: true });
+
+      const client = getClient<NodeClient>();
+      const registry = global[OTEL_API_GLOBAL_KEY];
+
+      expect(client?.traceProvider).toBeInstanceOf(BasicTracerProvider);
+      expect(registry?.version).not.toBe('0.0.1');
+      expect(registry?.trace).toBeDefined();
+    });
+
+    it('carries non-Sentry slots of a version-mismatched OTel API registry over into the recreated one', () => {
+      // Must be a complete DiagLogger: once carried over, the SDK's api copy resolves it and
+      // calls it for its own diag output.
+      const diagLogger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn(), verbose: vi.fn() };
+      const meterProvider = { getMeter: vi.fn() };
+      const propagator = { inject: vi.fn() };
+      global[OTEL_API_GLOBAL_KEY] = {
+        version: '0.0.1',
+        diag: diagLogger,
+        metrics: meterProvider,
+        propagation: propagator,
+      };
+
+      init({ dsn: PUBLIC_DSN });
+
+      const registry = global[OTEL_API_GLOBAL_KEY];
+
+      expect(registry?.trace).toBeDefined();
+      expect(registry?.diag).toBe(diagLogger);
+      expect(registry?.metrics).toBe(meterProvider);
+      // propagation is claimed by Sentry's own propagator, not carried over
+      expect(registry?.propagation).not.toBe(propagator);
+    });
+
+    it('does not recreate the OTel API registry when another tracer provider is already registered', () => {
+      const existingProvider = { getTracer: vi.fn() };
+      const existingRegistry = { version: '0.0.1', trace: existingProvider };
+      global[OTEL_API_GLOBAL_KEY] = existingRegistry;
+
+      init({ dsn: PUBLIC_DSN });
+
+      const client = getClient<NodeClient>();
+
+      expect(client?.traceProvider).not.toBeDefined();
+      expect(global[OTEL_API_GLOBAL_KEY]).toBe(existingRegistry);
+      expect(existingRegistry.trace).toBe(existingProvider);
+
+      global[OTEL_API_GLOBAL_KEY] = undefined;
     });
 
     it('does not mark SentryTracerProvider as set up when global registration fails', () => {

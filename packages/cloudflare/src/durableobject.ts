@@ -72,9 +72,11 @@ export function instrumentDurableObjectWithSentry<
 
       // Any other public methods on the Durable Object instance are RPC calls.
 
+      // Bind each built-in handler to this instance before wrapping.
+      // See https://github.com/getsentry/sentry-javascript/issues/22328
       if (obj.fetch && typeof obj.fetch === 'function') {
         obj.fetch = ensureInstrumented(
-          obj.fetch,
+          obj.fetch.bind(obj),
           original =>
             new Proxy(original, {
               apply(target, thisArg, args) {
@@ -89,26 +91,36 @@ export function instrumentDurableObjectWithSentry<
       if (obj.alarm && typeof obj.alarm === 'function') {
         // Alarms are independent invocations, so we start a new trace and link to the previous alarm
         obj.alarm = wrapMethodWithSentry(
-          { options, context, spanName: 'alarm', spanOp: 'function', startNewTrace: true },
-          obj.alarm,
+          {
+            options,
+            context,
+            spanName: 'alarm',
+            spanOp: 'function',
+            startNewTrace: true,
+            origin: 'auto.faas.cloudflare.durable_object',
+          },
+          obj.alarm.bind(obj),
         );
       }
 
       if (obj.webSocketMessage && typeof obj.webSocketMessage === 'function') {
         obj.webSocketMessage = wrapMethodWithSentry(
-          { options, context, spanName: 'webSocketMessage' },
-          obj.webSocketMessage,
+          { options, context, spanName: 'webSocketMessage', origin: 'auto.faas.cloudflare.durable_object' },
+          obj.webSocketMessage.bind(obj),
         );
       }
 
       if (obj.webSocketClose && typeof obj.webSocketClose === 'function') {
-        obj.webSocketClose = wrapMethodWithSentry({ options, context, spanName: 'webSocketClose' }, obj.webSocketClose);
+        obj.webSocketClose = wrapMethodWithSentry(
+          { options, context, spanName: 'webSocketClose', origin: 'auto.faas.cloudflare.durable_object' },
+          obj.webSocketClose.bind(obj),
+        );
       }
 
       if (obj.webSocketError && typeof obj.webSocketError === 'function') {
         obj.webSocketError = wrapMethodWithSentry(
-          { options, context, spanName: 'webSocketError' },
-          obj.webSocketError,
+          { options, context, spanName: 'webSocketError', origin: 'auto.faas.cloudflare.durable_object' },
+          obj.webSocketError.bind(obj),
           (_, error) =>
             captureException(error, {
               mechanism: {
@@ -174,7 +186,7 @@ export function instrumentDurableObjectWithSentry<
 
           // Pre-create the traced version
           const tracedMethod = wrapMethodWithSentry(
-            { options, context, spanName: prop, spanOp: 'rpc' },
+            { options, context, spanName: prop, spanOp: 'rpc', origin: 'auto.faas.cloudflare.durable_object' },
             boundMethod,
             undefined,
             true,

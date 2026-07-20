@@ -15,7 +15,8 @@ import {
   withScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
-import { flushAndDispose } from './flush';
+import type { ExecutionContextCompat } from './executionContext';
+import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { ensureInstrumented } from './instrument';
 import { init } from './sdk';
 import { extractRpcMeta } from './utils/rpcMeta';
@@ -65,6 +66,11 @@ type MethodWrapperOptions = {
    * @default false
    */
   startNewTrace?: boolean;
+  /**
+   * The trace origin identifying which instrumentation created the span, e.g. `auto.faas.cloudflare.durable_object`.
+   * Used both as the span's `sentry.origin` attribute and as the `mechanism.type` for captured exceptions.
+   */
+  origin: string;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,7 +98,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
     original =>
       new Proxy(original, {
         apply(target, thisArg, rawArgs: Parameters<T>) {
-          const { startNewTrace } = wrapperOptions;
+          const { startNewTrace, origin } = wrapperOptions;
 
           // For RPC methods, extract Sentry trace context from the trailing argument.
           // The caller side (instrumentDurableObjectStub / JSRPC proxy) appends it;
@@ -117,7 +123,10 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             // see: https://github.com/getsentry/sentry-javascript/issues/13217
             const context: typeof wrapperOptions.context | undefined = wrapperOptions.context;
 
-            const waitUntil = context?.waitUntil?.bind?.(context);
+            // see: https://github.com/getsentry/sentry-javascript/issues/22328
+            const waitUntil = context
+              ? getOriginalWaitUntil(context as ExecutionContextCompat)?.bind(context)
+              : undefined;
             const storage = resolveOriginalStorage(context, thisArg);
 
             let scopeClient = scope.getClient();
@@ -152,7 +161,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             const onRejected = (e: unknown) => {
               captureException(e, {
                 mechanism: {
-                  type: 'auto.faas.cloudflare.durable_object',
+                  type: origin,
                   handled: false,
                 },
               });
@@ -181,7 +190,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             const attributes = wrapperOptions.spanOp
               ? {
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.durable_object',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
                 }
               : {};
 

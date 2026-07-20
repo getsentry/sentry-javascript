@@ -8,7 +8,9 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
     );
   });
 
-  await fetch(`${baseURL}/api/db-ioredis`);
+  const response = await fetch(`${baseURL}/api/db-ioredis`);
+  expect(response.status).toBe(200);
+  expect(await response.text()).toBe('test-value');
 
   const transactionEvent = await transactionEventPromise;
 
@@ -50,7 +52,9 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
     );
   });
 
-  await fetch(`${baseURL}/api/db-mysql`);
+  const response = await fetch(`${baseURL}/api/db-mysql`);
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toEqual({ status: 'ok' });
 
   const transactionEvent = await transactionEventPromise;
 
