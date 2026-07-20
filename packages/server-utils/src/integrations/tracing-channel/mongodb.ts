@@ -1,6 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { MongodbNamespace, MongoV3Topology } from '../../mongodb/mongodb-span';
 import {
   getV3CommandOperation,
@@ -10,6 +10,8 @@ import {
 } from '../../mongodb/mongodb-span';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+import { mongodbModuleNames } from '../../orchestrion/config/mongodb';
 
 const INTEGRATION_NAME = 'Mongo' as const;
 
@@ -32,6 +34,12 @@ interface V3CallInfo {
   operation: string | undefined;
 }
 
+function instrumentMongoDB(): void {
+  subscribeV4Command();
+  subscribeV4Checkout();
+  subscribeV3Wireprotocol();
+}
+
 // Command doc first-keys whose span the `v3_command` channel must suppress.
 // The `insert`/`update`/`remove`/`query`/`getMore` functions call the shared
 // `command` function internally. Orchestrion transforms the `command` *source*
@@ -49,16 +57,8 @@ const V3_DEDICATED_COMMANDS = new Set(['insert', 'update', 'delete', 'find', 'ge
 const _mongodbChannelIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => {
-        subscribeV4Command();
-        subscribeV4Checkout();
-        subscribeV3Wireprotocol();
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, mongodbModuleNames, instrumentMongoDB, []);
     },
   };
 }) satisfies IntegrationFn;

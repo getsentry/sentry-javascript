@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { getModuleNames } from './utils';
 
 // `@langchain/langgraph` ships dual CJS/ESM builds (`.cjs` for `require`, `.js` for `import`) and the
 // matcher compares `filePath` exactly, so each hook is declared once per built file. `StateGraph.compile`
@@ -26,7 +27,8 @@ const createReactAgentConfig = ['dist/prebuilt/react_agent_executor.cjs', 'dist/
   }),
 );
 
-export const langgraphConfig = [...compileConfig, ...createReactAgentConfig] satisfies InstrumentationConfig[];
+export const langgraphConfig = [...compileConfig, ...createReactAgentConfig] as const satisfies InstrumentationConfig[];
+export const langgraphModuleNames = getModuleNames(langgraphConfig);
 
 export const langgraphChannels = {
   LANGGRAPH_STATE_GRAPH_COMPILE: 'orchestrion:@langchain/langgraph:stateGraphCompile',

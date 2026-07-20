@@ -16,6 +16,8 @@ import {
 import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_NAME, KOA_TYPE } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+import { koaModuleNames } from '../../orchestrion/config/koa';
 
 // Same name as the OTel integration. When enabled, the OTel 'Koa' integration is omitted from the default set.
 const INTEGRATION_NAME = 'Koa' as const;
@@ -31,11 +33,6 @@ type KoaLayerType = (typeof LAYER_TYPE)[keyof typeof LAYER_TYPE];
 // Keeps wrapping idempotent — the same middleware instance can be registered on
 // multiple routes (mirrors the vendored OTel instrumentation's symbol).
 const kLayerPatched: unique symbol = Symbol('sentry.koa.layer-patched');
-
-// Core dedupes `setupOnce` by integration name, but the Deno SDK also runs this
-// under the name `DenoKoa` (via `extendIntegration`), so guard against a second
-// subscription here.
-let subscribed = false;
 
 type Next = () => Promise<unknown>;
 
@@ -76,28 +73,25 @@ export interface KoaChannelIntegrationOptions {
   ignoreLayersType?: Array<'middleware' | 'router'>;
 }
 
-const _koaChannelIntegration = ((options: KoaChannelIntegrationOptions = {}) => {
+function instrumentKoa(options: KoaChannelIntegrationOptions): void {
   const ignoreLayersType = options.ignoreLayersType ?? [];
 
+  diagnosticsChannel.tracingChannel(CHANNELS.KOA_USE).subscribe({
+    start(rawCtx) {
+      handleUse(rawCtx as KoaUseContext, ignoreLayersType);
+    },
+    end() {},
+    asyncStart() {},
+    asyncEnd() {},
+    error() {},
+  });
+}
+
+const _koaChannelIntegration = ((options: KoaChannelIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel || subscribed) {
-        return;
-      }
-      subscribed = true;
-      DEBUG_BUILD && debug.log(`[orchestrion:koa] subscribing to channel "${CHANNELS.KOA_USE}"`);
-
-      diagnosticsChannel.tracingChannel(CHANNELS.KOA_USE).subscribe({
-        start(rawCtx) {
-          handleUse(rawCtx as KoaUseContext, ignoreLayersType);
-        },
-        end() {},
-        asyncStart() {},
-        asyncEnd() {},
-        error() {},
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, koaModuleNames, instrumentKoa, [options]);
     },
   };
 }) satisfies IntegrationFn;

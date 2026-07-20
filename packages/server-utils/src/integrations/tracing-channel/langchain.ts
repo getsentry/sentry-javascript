@@ -6,18 +6,16 @@ import {
   _INTERNAL_skipAiProviderWrapping,
   ANTHROPIC_AI_INTEGRATION_NAME,
   createLangChainCallbackHandler,
-  debug,
   defineIntegration,
   GOOGLE_GENAI_INTEGRATION_NAME,
   LANGCHAIN_INTEGRATION_NAME,
   OPENAI_INTEGRATION_NAME,
   startInactiveSpan,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
-import { langchainEmbeddingsChannels } from '../../orchestrion/config/langchain';
+import { langchainEmbeddingsChannels, langchainModuleNames } from '../../orchestrion/config/langchain';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 // Same name as the OTel integration by design: when enabled, the OTel 'LangChain' integration is
 // dropped from the default set (see the Node opt-in loader).
@@ -38,8 +36,6 @@ interface EmbeddingsChannelContext {
   arguments: unknown[];
 }
 
-let subscribed = false;
-
 // Registered lazily on the first LangChain call (not at `setupOnce`) so a direct provider call made
 // before any LangChain call still gets its own span — matches the OTel patch-on-import timing. It
 // also stops the underlying SDK from double-instrumenting embeddings, whose `embedQuery`/
@@ -48,57 +44,48 @@ function markProvidersSkipped(): void {
   _INTERNAL_skipAiProviderWrapping(SKIPPED_PROVIDERS);
 }
 
+function instrumentLangChain(options: LangChainOptions): void {
+  // One stateful handler tracks spans across the whole run tree, just like the OTel path.
+  const sentryHandler = createLangChainCallbackHandler(options);
+
+  // Chat models: inject the Sentry callback handler into the call options (arg 1). LangChain's own
+  // callback dispatch then creates the spans, exactly as in the OTel path, so no span is opened
+  // here — a `start` subscriber (which also makes orchestrion wrap the function) is enough.
+  const injectHandler = (message: unknown): void => {
+    markProvidersSkipped();
+
+    const args = (message as RunnableChannelContext).arguments;
+    if (!Array.isArray(args)) {
+      return;
+    }
+
+    let callOptions = args[1] as Record<string, unknown> | undefined;
+    if (!callOptions || typeof callOptions !== 'object' || Array.isArray(callOptions)) {
+      callOptions = {};
+      args[1] = callOptions;
+    }
+
+    callOptions.callbacks = _INTERNAL_mergeLangChainCallbackHandler(callOptions.callbacks, sentryHandler);
+  };
+
+  for (const channelName of [CHANNELS.LANGCHAIN_CHAT_MODEL_INVOKE, CHANNELS.LANGCHAIN_CHAT_MODEL_STREAM]) {
+    diagnosticsChannel.tracingChannel<RunnableChannelContext>(channelName).start.subscribe(injectHandler);
+  }
+
+  for (const channelName of langchainEmbeddingsChannels) {
+    bindTracingChannelToSpan(
+      diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName),
+      data => createEmbeddingsSpan(data, options),
+      { captureError: () => ({ mechanism: { handled: false, type: 'auto.ai.langchain' } }) },
+    );
+  }
+}
+
 const _langChainChannelIntegration = ((options: LangChainOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19, and a second `init()` would double-subscribe.
-      if (!diagnosticsChannel.tracingChannel || subscribed) {
-        return;
-      }
-      subscribed = true;
-
-      // One stateful handler tracks spans across the whole run tree, just like the OTel path.
-      const sentryHandler = createLangChainCallbackHandler(options);
-
-      // Chat models: inject the Sentry callback handler into the call options (arg 1). LangChain's own
-      // callback dispatch then creates the spans, exactly as in the OTel path, so no span is opened
-      // here — a `start` subscriber (which also makes orchestrion wrap the function) is enough.
-      const injectHandler = (message: unknown): void => {
-        markProvidersSkipped();
-
-        const args = (message as RunnableChannelContext).arguments;
-        if (!Array.isArray(args)) {
-          return;
-        }
-
-        let callOptions = args[1] as Record<string, unknown> | undefined;
-        if (!callOptions || typeof callOptions !== 'object' || Array.isArray(callOptions)) {
-          callOptions = {};
-          args[1] = callOptions;
-        }
-
-        callOptions.callbacks = _INTERNAL_mergeLangChainCallbackHandler(callOptions.callbacks, sentryHandler);
-      };
-
-      for (const channelName of [CHANNELS.LANGCHAIN_CHAT_MODEL_INVOKE, CHANNELS.LANGCHAIN_CHAT_MODEL_STREAM]) {
-        DEBUG_BUILD && debug.log(`[orchestrion:langchain] subscribing to channel "${channelName}"`);
-        diagnosticsChannel.tracingChannel<RunnableChannelContext>(channelName).start.subscribe(injectHandler);
-      }
-
-      // Embeddings don't use the callback system — the OTel path wraps the method in its own span, so
-      // do the same here. `bindTracingChannelToSpan` needs the async-context binding that
-      // `initOpenTelemetry()` registers after `setupOnce`, so wait for it before subscribing.
-      waitForTracingChannelBinding(() => {
-        for (const channelName of langchainEmbeddingsChannels) {
-          DEBUG_BUILD && debug.log(`[orchestrion:langchain] subscribing to channel "${channelName}"`);
-          bindTracingChannelToSpan(
-            diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName),
-            data => createEmbeddingsSpan(data, options),
-            { captureError: () => ({ mechanism: { handled: false, type: 'auto.ai.langchain' } }) },
-          );
-        }
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, langchainModuleNames, instrumentLangChain, [options]);
     },
   };
 }) satisfies IntegrationFn;
