@@ -17,8 +17,17 @@ Why this needs its own app rather than living in `browser-integration-tests`:
 - **Renderer-initiated navigation.** Restores are triggered with `history.back()` from the page;
   Playwright's CDP `goBack` bypasses bfcache.
 
-Blocker cases are version-sensitive (the pinned Chromium comes from the Playwright version):
-`unload` is a stable blocker; `Cache-Control: no-store` no longer blocks (CCNS bfcache landed); an
-open WebSocket blocks only before Chrome 149, so that assertion is gated on the browser version.
+Blocker cases are version-sensitive (the pinned Chromium comes from the Playwright version) and real
+Chrome is more permissive than web.dev's blocker list suggests. Verified against the pinned Chrome:
+
+- `unload` listener: blocks (stable across versions). Reason `unload-listener` (plus a `masked` one).
+- Open WebSocket: blocks only before Chrome 149, so that assertion is gated on the browser version.
+- IndexedDB: a plain open connection and even an in-flight transaction do NOT block; only a
+  connection holding up a version upgrade does (reason `idbversionchangeevent`).
+- `Cache-Control: no-store` and `beforeunload` no longer block.
+
+Reason extraction/classification (top/child/masked frames, nesting, caps) is exhaustively covered by
+the unit test at `packages/browser/test/integrations/bfcache.test.ts`; this app verifies the real
+end-to-end hit/miss + reason path for the deterministic blockers above.
 
 If other tests later fit these same constraints, this app can be renamed to something broader.

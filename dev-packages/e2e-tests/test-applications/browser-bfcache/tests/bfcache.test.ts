@@ -127,6 +127,36 @@ test('reports a miss for an open WebSocket on Chrome < 149 (a hit from 149 on)',
   }
 });
 
+test('reports a miss with an idbversionchangeevent reason when a connection blocks an upgrade', async ({ page }) => {
+  const missPromise = waitForMetric(PROXY_SERVER_NAME, metric => isNavigation(metric, 'miss'));
+  const reasonPromise = waitForMetric(
+    PROXY_SERVER_NAME,
+    metric =>
+      metric.name === 'browser.bfcache.not_restored' &&
+      attr(metric, 'browser.bfcache.reason') === 'idbversionchangeevent',
+  );
+
+  await page.goto('/?botch=indexeddb');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
+  // Only proceed once the version upgrade is actually blocked by the open connection.
+  await page.waitForFunction(() => (window as unknown as { __idbBlocked?: boolean }).__idbBlocked === true, {
+    timeout: 5000,
+  });
+
+  await page.click('#to-page-2');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
+  await page.waitForTimeout(500);
+
+  await page.evaluate(() => history.back());
+
+  const miss = await missPromise;
+  expect(miss.value).toBe(1);
+  expect(attr(miss, 'browser.bfcache.navigation_type')).toBe('back-forward');
+
+  const reason = await reasonPromise;
+  expect(attr(reason, 'browser.bfcache.frame')).toBe('top');
+});
+
 test('does not treat an ordinary forward navigation as a restore', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
