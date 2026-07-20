@@ -8,7 +8,7 @@ class MyBaseAgent extends Agent {
   }
 }
 
-export const MyAgent = Sentry.instrumentDurableObjectWithSentry(
+export const MyAgent = Sentry.instrumentAgentWithSentry(
   (env: Env) => ({
     traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
