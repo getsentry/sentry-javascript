@@ -45,7 +45,8 @@ test('reports a miss with notRestoredReasons when an unload listener blocks bfca
   const missPromise = waitForMetric(PROXY_SERVER_NAME, metric => isNavigation(metric, 'miss'));
   const unloadReasonPromise = waitForMetric(
     PROXY_SERVER_NAME,
-    metric => metric.name === 'browser.bfcache.not_restored' && attr(metric, 'browser.bfcache.reason') === 'unload-listener',
+    metric =>
+      metric.name === 'browser.bfcache.not_restored' && attr(metric, 'browser.bfcache.reason') === 'unload-listener',
   );
   // Chrome reports a privacy-masked reason alongside the real one; the integration must classify it
   // as a `masked` frame. This is our only real-browser coverage of the masked-frame path.
@@ -68,7 +69,8 @@ test('reports a miss with notRestoredReasons when an unload listener blocks bfca
   // The unload listener makes the page ineligible, so this back navigation is a fresh reload (a miss).
   await page.evaluate(() => history.back());
   await page.waitForFunction(
-    () => (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type ===
+    () =>
+      (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type ===
       'back_forward',
     { timeout: 5000 },
   );
@@ -140,6 +142,36 @@ test('reports a miss with an idbversionchangeevent reason when a connection bloc
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
   // Only proceed once the version upgrade is actually blocked by the open connection.
   await page.waitForFunction(() => (window as unknown as { __idbBlocked?: boolean }).__idbBlocked === true, {
+    timeout: 5000,
+  });
+
+  await page.click('#to-page-2');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
+  await page.waitForTimeout(500);
+
+  await page.evaluate(() => history.back());
+
+  const miss = await missPromise;
+  expect(miss.value).toBe(1);
+  expect(attr(miss, 'browser.bfcache.navigation_type')).toBe('back-forward');
+
+  const reason = await reasonPromise;
+  expect(attr(reason, 'browser.bfcache.frame')).toBe('top');
+});
+
+test('reports a miss with a response-cache-control-no-store reason when a CCNS page cookie changes', async ({
+  page,
+}) => {
+  const missPromise = waitForMetric(PROXY_SERVER_NAME, metric => isNavigation(metric, 'miss'));
+  const reasonPromise = waitForMetric(
+    PROXY_SERVER_NAME,
+    metric =>
+      metric.name === 'browser.bfcache.not_restored' &&
+      attr(metric, 'browser.bfcache.reason') === 'response-cache-control-no-store',
+  );
+
+  await page.goto('/?botch=nostore');
+  await page.waitForFunction(() => (window as unknown as { __nostoreReady?: boolean }).__nostoreReady === true, {
     timeout: 5000,
   });
 
