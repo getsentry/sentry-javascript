@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { getModuleNames } from './utils';
 
 const MODULE_NAME = 'tedious';
 
@@ -19,6 +20,8 @@ export const tediousConfig: InstrumentationConfig[] = METHODS.map(methodName => 
   module: { name: MODULE_NAME, versionRange: VERSION_RANGE, filePath: FILE_PATH },
   functionQuery: { className: 'Connection', methodName, kind: 'Sync' },
 }));
+
+export const tediousModuleNames = getModuleNames(tediousConfig);
 
 export const tediousChannels = {
   TEDIOUS_CONNECT: 'orchestrion:tedious:connect',

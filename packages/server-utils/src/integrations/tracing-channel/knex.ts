@@ -5,7 +5,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
-  debug,
   defineIntegration,
   getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -13,7 +12,6 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   truncate,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
 import {
   DB_NAME,
@@ -25,9 +23,10 @@ import {
   NET_PEER_PORT,
   NET_TRANSPORT,
 } from '@sentry/conventions/attributes';
-import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { knexModuleNames } from '../../orchestrion/config/knex';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 // NOTE: this uses the same name as the OTel integration by design. `@sentry/node`'s `knexIntegration`
 // picks this subscriber over the vendored OTel path when orchestrion injection is active.
@@ -100,23 +99,18 @@ interface KnexBuilderChannelContext {
   result?: KnexBuilder;
 }
 
+function instrumentKnex() {
+  subscribeBuilder(CHANNELS.KNEX_QUERY_BUILDER);
+  subscribeBuilder(CHANNELS.KNEX_SCHEMA_BUILDER);
+  subscribeBuilder(CHANNELS.KNEX_RAW);
+  subscribeQuery();
+}
+
 const _knexChannelIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      DEBUG_BUILD && debug.log(`[orchestrion:knex] subscribing to channel "${CHANNELS.KNEX_QUERY}"`);
-
-      waitForTracingChannelBinding(() => {
-        subscribeBuilder(CHANNELS.KNEX_QUERY_BUILDER);
-        subscribeBuilder(CHANNELS.KNEX_SCHEMA_BUILDER);
-        subscribeBuilder(CHANNELS.KNEX_RAW);
-        subscribeQuery();
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, knexModuleNames, instrumentKnex, []);
     },
   };
 }) satisfies IntegrationFn;

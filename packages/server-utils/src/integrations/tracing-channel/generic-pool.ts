@@ -1,13 +1,10 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import {
-  defineIntegration,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-  waitForTracingChannelBinding,
-} from '@sentry/core';
+import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+import { genericPoolModuleNames } from '../../orchestrion/config/generic-pool';
 
 // Same name as the OTel integration by design — when enabled, the OTel
 // 'GenericPool' integration is omitted from the default set.
@@ -20,13 +17,8 @@ interface GenericPoolAcquireContext {
 const _genericPoolChannelIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => instrumentGenericPool());
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, genericPoolModuleNames, instrumentGenericPool, []);
     },
   };
 }) satisfies IntegrationFn;

@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { getModuleNames } from './utils';
 
 export const anthropicAiConfig = [
   // One entry each for CJS/ESM
@@ -31,7 +32,9 @@ export const anthropicAiConfig = [
     module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
     functionQuery: { className: 'Messages', methodName: 'stream', kind: 'Sync' as const },
   })),
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const anthropicAiModuleNames = getModuleNames(anthropicAiConfig);
 
 export const anthropicAiChannels = {
   ANTHROPIC_CHAT: 'orchestrion:@anthropic-ai/sdk:chat',

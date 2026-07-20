@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { getModuleNames } from './utils';
 
 // `@langchain/*` packages ship dual CJS/ESM builds (`.cjs` for `require`, `.js` for `import`) and the
 // matcher compares `filePath` exactly, so each hook is declared once per built file.
@@ -59,7 +60,9 @@ const embeddingsConfig = EMBEDDINGS_PROVIDERS.flatMap(({ name, versionRange, met
   ),
 );
 
-export const langchainConfig = [...chatModelConfig, ...embeddingsConfig] satisfies InstrumentationConfig[];
+export const langchainConfig = [...chatModelConfig, ...embeddingsConfig] as const satisfies InstrumentationConfig[];
+
+export const langchainModuleNames = getModuleNames(langchainConfig);
 
 // The embeddings channel strings the subscriber binds to, derived from the provider list above so that
 // adding a provider is a single edit that both instruments it and subscribes the listener to it.

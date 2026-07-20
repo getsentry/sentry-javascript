@@ -1,22 +1,19 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span, StartSpanOptions } from '@sentry/core';
 import {
-  debug,
   defineIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_KIND,
   startInactiveSpan,
   startSpan,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
 import type { ChannelName } from '../../orchestrion/channels';
 import { CHANNELS } from '../../orchestrion/channels';
 import type { TracingChannelPayloadWithSpan } from '../../tracing-channel';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+import { dataloaderModuleNames } from '../../orchestrion/config/dataloader';
 
-// NOTE: this uses the same name as the OTel integration by design.
-// When enabled, the OTel 'Dataloader' integration is omitted from the default set.
 const INTEGRATION_NAME = 'Dataloader' as const;
 
 const MODULE_NAME = 'dataloader';
@@ -78,25 +75,20 @@ function makeSpanOptions(loader: DataLoaderInstance | undefined, operation: Oper
   };
 }
 
+function instrumentDataloader(): void {
+  subscribeConstruct();
+  subscribeLoad();
+  subscribeSimpleOperation(CHANNELS.DATALOADER_LOAD_MANY, 'loadMany');
+  subscribeSimpleOperation(CHANNELS.DATALOADER_PRIME, 'prime');
+  subscribeSimpleOperation(CHANNELS.DATALOADER_CLEAR, 'clear');
+  subscribeSimpleOperation(CHANNELS.DATALOADER_CLEAR_ALL, 'clearAll');
+}
+
 const _dataloaderChannelIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      DEBUG_BUILD && debug.log('[orchestrion:dataloader] subscribing to dataloader tracing channels');
-
-      waitForTracingChannelBinding(() => {
-        subscribeConstruct();
-        subscribeLoad();
-        subscribeSimpleOperation(CHANNELS.DATALOADER_LOAD_MANY, 'loadMany');
-        subscribeSimpleOperation(CHANNELS.DATALOADER_PRIME, 'prime');
-        subscribeSimpleOperation(CHANNELS.DATALOADER_CLEAR, 'clear');
-        subscribeSimpleOperation(CHANNELS.DATALOADER_CLEAR_ALL, 'clearAll');
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, dataloaderModuleNames, instrumentDataloader, []);
     },
   };
 }) satisfies IntegrationFn;

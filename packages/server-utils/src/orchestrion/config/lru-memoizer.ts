@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { getModuleNames } from './utils';
 
 export const lruMemoizerConfig = [
   {
@@ -7,7 +8,9 @@ export const lruMemoizerConfig = [
     module: { name: 'lru-memoizer', versionRange: '>=2.1.0 <4', filePath: 'lib/async.js' },
     functionQuery: { functionName: 'memoizedFunction', kind: 'Callback' },
   },
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const lruMemoizerModuleNames = getModuleNames(lruMemoizerConfig);
 
 export const lruMemoizerChannels = {
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',

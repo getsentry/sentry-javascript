@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { getModuleNames } from './utils';
 
 export const redisConfig = [
   // redis `>=2.6.0 <4` (standalone `redis`). `internal_send_command` is an
@@ -60,7 +61,9 @@ export const redisConfig = [
     module: { name: '@redis/client', versionRange: '^1.0.0', filePath: 'dist/lib/client/index.js' },
     functionQuery: { className: 'RedisClient', methodName: 'multiExecutor', kind: 'Async' },
   },
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const redisModuleNames = getModuleNames(redisConfig);
 
 export const redisChannels = {
   REDIS_COMMAND: 'orchestrion:redis:command',

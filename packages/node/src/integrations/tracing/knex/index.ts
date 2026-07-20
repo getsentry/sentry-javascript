@@ -9,16 +9,22 @@ const INTEGRATION_NAME = 'Knex' as const;
 export const instrumentKnex = generateInstrumentOnce(INTEGRATION_NAME, () => new KnexInstrumentation());
 
 const _knexIntegration = (() => {
+  // Decide in setup/setupOnce, not in the factory: the runtime channel injection runs inside `Sentry.init()`,
+  // after the integrations array has already been built, so `isOrchestrionInjected()` is only
+  // reliable by `setup`. When the diagnostics channels are injected (runtime hook or bundler
+  // plugin), subscribe to them (the channel integration needs the client to register its
+  // injection listener); otherwise fall back to the vendored OTel instrumentation.
+
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      // Prefer the diagnostics-channel subscriber when orchestrion injected its channels; otherwise
-      // fall back to the vendored OTel instrumentation. `isOrchestrionInjected()` is only reliable by
-      // `setupOnce` (the runtime injection runs during `Sentry.init()`, after integrations are built).
-      if (isOrchestrionInjected()) {
-        knexChannelIntegration().setupOnce?.();
-      } else {
+      if (!isOrchestrionInjected()) {
         instrumentKnex();
+      }
+    },
+    setup(client) {
+      if (isOrchestrionInjected()) {
+        knexChannelIntegration().setup?.(client);
       }
     },
   };

@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { uniq } from '@sentry/core';
+import { getModuleNames } from './utils';
 
 import { amqplibConfig } from './amqplib';
 import { anthropicAiConfig } from './anthropic-ai';
@@ -85,7 +85,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
  */
 export function instrumentedModuleNames(instrumentations: InstrumentationConfig[] = []): string[] {
   return [
-    ...uniq([...SENTRY_INSTRUMENTATIONS, ...instrumentations].map(i => i.module.name)),
+    ...getModuleNames([...SENTRY_INSTRUMENTATIONS, ...instrumentations]),
     // Additional things that need to be bundled but are not covered by the above
     // Remix needs to bundle this so @remix-run/server-runtime is _also_ bundled
     '@remix-run/node',

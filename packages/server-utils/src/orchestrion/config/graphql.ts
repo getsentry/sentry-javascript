@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { getModuleNames } from './utils';
 
 // `parse`/`validate`/`execute` are top-level named `function` declarations in graphql's compiled
 // files, stable across the supported majors, so `functionName` matches. `execute` returns
@@ -19,7 +20,9 @@ export const graphqlConfig = [
     module: { name: 'graphql', versionRange: '>=14.0.0 <17', filePath: 'execution/execute.js' },
     functionQuery: { functionName: 'execute', kind: 'Auto' },
   },
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const graphqlModuleNames = getModuleNames(graphqlConfig);
 
 export const graphqlChannels = {
   GRAPHQL_PARSE: 'orchestrion:graphql:parse',

@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { getModuleNames } from './utils';
 
 export const kafkajsConfig = [
   {
@@ -19,7 +20,9 @@ export const kafkajsConfig = [
     // `ctx.arguments` when invoking the original.
     functionQuery: { expressionName: 'run', kind: 'Async' },
   },
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const kafkajsModuleNames = getModuleNames(kafkajsConfig);
 
 export const kafkajsChannels = {
   KAFKAJS_SEND_BATCH: 'orchestrion:kafkajs:send_batch',

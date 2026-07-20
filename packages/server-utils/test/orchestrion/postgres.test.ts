@@ -4,8 +4,11 @@ import type { Scope, Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import {
   _INTERNAL_setSpanForScope,
+  Client,
+  createTransport,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
+  resolvedSyncPromise,
   setAsyncContextStrategy,
 } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
@@ -17,7 +20,28 @@ interface TestStore {
   isolationScope: Scope;
 }
 
-// `bindTracingChannelToSpan` only binds (and `setupOnce` only subscribes via
+class TestClient extends Client<any> {
+  public constructor(options: any) {
+    super(options);
+  }
+  public eventFromException(): PromiseLike<any> {
+    return resolvedSyncPromise({});
+  }
+  public eventFromMessage(): PromiseLike<any> {
+    return resolvedSyncPromise({});
+  }
+}
+
+function createTestClient(): Client {
+  return new TestClient({
+    dsn: 'https://username@domain/123',
+    integrations: [],
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, () => resolvedSyncPromise({})),
+    stackParser: () => [],
+  });
+}
+
+// `bindTracingChannelToSpan` only binds (and `setup` only subscribes via
 // `waitForTracingChannelBinding`) when an async-context strategy exposes a
 // `getTracingChannelBinding`. Install a minimal one so the channel
 // subscriptions actually register in this unit-test context (no SDK `init`).
@@ -61,6 +85,15 @@ function installTestAsyncContextStrategy(): void {
   });
 }
 
+// Channel subscribers only register once orchestrion reports a matching module
+// as injected (`invokeOrchestrionInstrumentation`). Emit that event after
+// `setup` so subscriptions land synchronously under the test strategy above.
+function setupPostgresChannelIntegration(options?: { ignoreConnectSpans?: boolean }): void {
+  const client = createTestClient();
+  postgresChannelIntegration(options).setup?.(client);
+  client.emit('orchestrion.module-runtime-injected', 'pg');
+}
+
 // The subscriber builds spans via `startInactiveSpan` and gates on
 // `getActiveSpan`. We spy both: `getActiveSpan` to satisfy the
 // requireParentSpan gate, and `startInactiveSpan` to capture the span
@@ -84,10 +117,10 @@ describe('postgresChannelIntegration', () => {
 
   // Subscribe once for the whole file so a single subscriber handles each
   // publish (avoids accumulating duplicate subscriptions across tests). The
-  // strategy must be installed first so `setupOnce`'s `waitForTracingChannelBinding` fires synchronously.
+  // strategy must be installed first so `setup`'s `waitForTracingChannelBinding` fires synchronously.
   beforeAll(() => {
     installTestAsyncContextStrategy();
-    postgresChannelIntegration().setupOnce?.();
+    setupPostgresChannelIntegration();
   });
 
   afterAll(() => {

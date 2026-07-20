@@ -1,8 +1,9 @@
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, extendIntegration, waitForTracingChannelBinding } from '@sentry/core';
+import { defineIntegration, extendIntegration } from '@sentry/core';
 import { vercelAiIntegration as baseVercelAiIntegration } from '../../vercel-ai';
-import * as dc from 'node:diagnostics_channel';
-import { subscribeVercelAiOrchestrionChannels } from '../../vercel-ai/vercel-ai-orchestrion-subscriber';
+import { instrumentVercelAi } from '../../vercel-ai/vercel-ai-orchestrion-subscriber';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+import { vercelAiModuleNames } from '../../orchestrion/config/vercel-ai';
 
 type VercelAiOptions = Parameters<typeof baseVercelAiIntegration>[0];
 
@@ -13,21 +14,13 @@ type VercelAiOptions = Parameters<typeof baseVercelAiIntegration>[0];
 // subscriber suppresses them at the source: it flips the wrapped call's
 // `experimental_telemetry.isEnabled` to `false`, so `ai` falls back to its
 // internal no-op tracer and never creates the native spans in the first place.
-// See `subscribeVercelAiOrchestrionChannels`.
 const _vercelAiChannelIntegration = ((options: VercelAiOptions = {}) => {
   const parentIntegration = baseVercelAiIntegration(options);
 
   return extendIntegration(parentIntegration, {
     options,
-    setupOnce() {
-      // Bail if this is not available
-      if (!dc.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => {
-        subscribeVercelAiOrchestrionChannels(dc.tracingChannel, options);
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, vercelAiModuleNames, instrumentVercelAi, [options]);
     },
   });
 }) satisfies IntegrationFn;

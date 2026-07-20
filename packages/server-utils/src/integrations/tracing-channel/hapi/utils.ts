@@ -25,10 +25,10 @@ import type {
   ServerRequestExtType,
   ServerRoute,
   ServerRouteOptions,
-} from './hapi-types';
+} from './types';
 // eslint-disable-next-line typescript/no-deprecated -- TODO(v11): Replace deprecated attributes
 import { HTTP_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
-import { AttributeNames, handlerPatched, HapiLayerType, HapiLifecycleMethodNames } from './hapi-types';
+import { AttributeNames, handlerPatched, HapiLayerType, HapiLifecycleMethodNames } from './types';
 
 type SpanAttributes = Record<string, string | undefined>;
 

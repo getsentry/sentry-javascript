@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Span } from '@sentry/core';
 import {
   addNonEnumerableProperty,
@@ -129,8 +130,6 @@ const operationErrorInfoBySpan = new WeakMap<Span, OperationErrorInfo>();
 // telemetry object we replaced on a prior call — would be misread as user-disabled and lose its span.
 const suppressedTelemetry = new WeakSet<object>();
 
-let subscribed = false;
-
 /**
  * Subscribe the v6 orchestrion channel adapter. Safe to always call: inert on
  * `ai` >= 7 (those channels are never published) and when orchestrion injection
@@ -140,15 +139,8 @@ let subscribed = false;
  * `subscribeVercelAiTracingChannel`); `options` pins the recording settings at
  * subscribe time so we never look the integration up per event.
  */
-export function subscribeVercelAiOrchestrionChannels(
-  tracingChannel: VercelAiTracingChannelFactory,
-  options: VercelAiChannelOptions = {},
-): void {
-  if (subscribed) {
-    return;
-  }
-  subscribed = true;
-
+export function instrumentVercelAi(options: VercelAiChannelOptions = {}): void {
+  const tracingChannel = diagnosticsChannel.tracingChannel;
   try {
     bindOperation(tracingChannel, CHANNELS.VERCEL_AI_GENERATE_TEXT, buildTextMessage('generateText'), options);
     bindOperation(tracingChannel, CHANNELS.VERCEL_AI_STREAM_TEXT, buildTextMessage('streamText'), options);

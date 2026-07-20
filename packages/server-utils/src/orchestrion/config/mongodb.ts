@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { getModuleNames } from './utils';
 
 // The mongodb driver's command architecture changed across majors, mirrored in the vendored OTel
 // instrumentation's version bands:
@@ -58,7 +59,9 @@ export const mongodbConfig = [
     module: { ...module, versionRange: '>=3.3.0 <4', filePath: 'lib/core/wireprotocol/get_more.js' },
     functionQuery: { functionName: 'getMore', kind: 'Callback' },
   },
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const mongodbModuleNames = getModuleNames(mongodbConfig);
 
 export const mongodbChannels = {
   MONGODB_COMMAND: 'orchestrion:mongodb:command',

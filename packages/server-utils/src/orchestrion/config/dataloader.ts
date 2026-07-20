@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { getModuleNames } from './utils';
 
 // `dataloader` ships a single transpiled CommonJS `index.js`. Its class methods are emitted as
 // `_proto.<name> = function <name>() {}` (named function *expressions*), so they match on
@@ -43,7 +44,9 @@ export const dataloaderConfig = [
     module,
     functionQuery: { expressionName: 'clearAll', kind: 'Sync' },
   },
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
+export const dataloaderModuleNames = getModuleNames(dataloaderConfig);
 
 export const dataloaderChannels = {
   DATALOADER_CONSTRUCT: 'orchestrion:dataloader:construct',

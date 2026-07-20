@@ -128,7 +128,8 @@ export const nestjsConfig = [
     },
     functionQuery: { functionName: 'Processor', kind: 'Sync' },
   },
-] satisfies InstrumentationConfig[];
+] as const satisfies InstrumentationConfig[];
+
 
 export const nestjsChannels = {
   NESTJS_APP_CREATION: 'orchestrion:@nestjs/core:nestFactoryCreate',
