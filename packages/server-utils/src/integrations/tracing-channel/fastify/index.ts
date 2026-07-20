@@ -40,7 +40,7 @@ interface FastifyIntegrationOptions {
   shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
 }
 
-const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationOptions>) => {
+const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationOptions> = {}) => {
   let _shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
 
   return {
