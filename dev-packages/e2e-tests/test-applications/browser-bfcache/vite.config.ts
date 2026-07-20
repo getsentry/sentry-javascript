@@ -17,4 +17,31 @@ export default defineConfig({
   define: {
     'process.env.E2E_TEST_DSN': JSON.stringify(process.env.E2E_TEST_DSN),
   },
+  plugins: [
+    {
+      // The `?botch=nostore` case needs the document served with `Cache-Control: no-store`; a later
+      // cookie mutation then makes the browser evict the CCNS page from bfcache. Neither the header
+      // nor the cookie change blocks on its own - only the combination does. A static server can't
+      // set per-request headers, so add it here for that URL only.
+      name: 'bfcache-nostore-headers',
+      configurePreviewServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url?.includes('botch=nostore')) {
+            res.setHeader('Cache-Control', 'no-store');
+            // vite's static handler runs after this and would otherwise reset Cache-Control to
+            // `no-cache`, so lock the header for this request only.
+            const originalSetHeader = res.setHeader.bind(res);
+            res.setHeader = (name, value) => {
+              if (String(name).toLowerCase() === 'cache-control') {
+                return res;
+              }
+
+              return originalSetHeader(name, value);
+            };
+          }
+          next();
+        });
+      },
+    },
+  ],
 });

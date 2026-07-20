@@ -42,6 +42,13 @@ if (botch === 'websocket') {
   w.__ws = ws;
 }
 
+if (botch === 'nostore') {
+  // The document is served with `Cache-Control: no-store` (see vite.config.ts). A CCNS page is
+  // cached but evicted once a cookie changes, so mutate a cookie to force the miss.
+  document.cookie = 'bf=1; Path=/';
+  (window as unknown as { __nostoreReady?: boolean }).__nostoreReady = true;
+}
+
 if (botch === 'indexeddb') {
   // A plain open IndexedDB connection (or even an in-flight transaction) does NOT block bfcache in
   // current Chrome. What still blocks is a connection holding up a version upgrade: open v1 without
