@@ -1,11 +1,12 @@
 import * as Sentry from '@sentry/cloudflare';
+import { instrumentWorkersAiClient } from '@sentry/core';
 import { MockAi } from './mocks';
 
 interface Env {
   SENTRY_DSN: string;
 }
 
-const ai = Sentry.instrumentWorkersAiClient(new MockAi());
+const ai = instrumentWorkersAiClient(new MockAi());
 
 export default Sentry.withSentry(
   (env: Env) => ({
