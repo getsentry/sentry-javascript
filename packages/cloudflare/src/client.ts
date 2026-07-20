@@ -217,6 +217,30 @@ interface BaseCloudflareOptions {
   enableRpcTracePropagation?: boolean;
 
   /**
+   * Table names that should stay instrumented even though they match the reserved `cf_` prefix used
+   * by Durable Object frameworks (`agents`, `partyserver`, ...) for their internal SQLite tables.
+   *
+   * By default, `exec` queries against `cf_`-prefixed tables are treated as framework noise and no
+   * `db.query` span is created for them. If one of your own tables happens to use this prefix, add it
+   * here to opt it back into instrumentation. Entries are matched against each table name in the
+   * query summary — strings must match exactly, while regular expressions give you prefix/pattern
+   * matching.
+   *
+   * @default []
+   * @example
+   * ```ts
+   * export default Sentry.withSentry(
+   *   (env) => ({
+   *     dsn: env.SENTRY_DSN,
+   *     durableObjectSqlSpanAllowlist: ['cf_my_table', /^cf_reports_/],
+   *   }),
+   *   handler,
+   * );
+   * ```
+   */
+  durableObjectSqlSpanAllowlist?: Array<string | RegExp>;
+
+  /**
    * @deprecated Use `enableRpcTracePropagation` instead. This option will be removed in a future major version.
    *
    * Enable instrumentation of prototype methods for DurableObjects.
