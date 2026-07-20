@@ -47,6 +47,12 @@ test('reports a miss with notRestoredReasons when an unload listener blocks bfca
     PROXY_SERVER_NAME,
     metric => metric.name === 'browser.bfcache.not_restored' && attr(metric, 'browser.bfcache.reason') === 'unload-listener',
   );
+  // Chrome reports a privacy-masked reason alongside the real one; the integration must classify it
+  // as a `masked` frame. This is our only real-browser coverage of the masked-frame path.
+  const maskedReasonPromise = waitForMetric(
+    PROXY_SERVER_NAME,
+    metric => metric.name === 'browser.bfcache.not_restored' && attr(metric, 'browser.bfcache.reason') === 'masked',
+  );
   const reloadDurationPromise = waitForMetric(
     PROXY_SERVER_NAME,
     metric => metric.name === 'browser.bfcache.reload.duration',
@@ -74,6 +80,9 @@ test('reports a miss with notRestoredReasons when an unload listener blocks bfca
 
   const unloadReason = await unloadReasonPromise;
   expect(attr(unloadReason, 'browser.bfcache.frame')).toBe('top');
+
+  const maskedReason = await maskedReasonPromise;
+  expect(attr(maskedReason, 'browser.bfcache.frame')).toBe('masked');
 
   const reloadDuration = await reloadDurationPromise;
   expect(reloadDuration.type).toBe('distribution');
