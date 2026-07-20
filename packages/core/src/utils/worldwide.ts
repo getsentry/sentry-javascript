@@ -64,6 +64,14 @@ export type InternalGlobal = {
     /** Empty array signifies bundler plugin ran */
     bundler?: string[];
   };
+  /**
+   * Bridge set by the SDK during `init` so that build-time (bundler) injected modules can announce
+   * themselves the moment they load. Bundlers that transform modules but provide no runtime boot hook
+   * (e.g. Turbopack, which only takes loaders) prepend a prologue to each instrumented module that
+   * calls this with the module name; the bridge emits `orchestrion.module-runtime-injected` so channel
+   * subscribers get wired up before the module publishes. Mirrors the runtime module hook's own event.
+   */
+  __SENTRY_ORCHESTRION_ON_INJECT__?: (moduleName: string) => void;
 } & Carrier;
 
 /** Get's the global object for the current JavaScript runtime */

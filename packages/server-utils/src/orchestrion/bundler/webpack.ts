@@ -29,6 +29,16 @@ export function getOrchestrionLoaderPath(): string {
 }
 
 /**
+ * Absolute path to the Sentry orchestrion loader — the code-transform loader wrapped so each
+ * instrumented module announces itself at runtime (see `./turbopack-loader`). Turbopack builds use
+ * this instead of the raw loader because Turbopack has no plugin/boot hook to emit the injected-module
+ * list. `createRequire().resolve` always picks the CJS build, which is what a loader must be.
+ */
+export function getSentryOrchestrionLoaderPath(): string {
+  return getOrchestrionRequire().resolve('@sentry/server-utils/orchestrion/turbopack-loader');
+}
+
+/**
  * Absolute path to the `@apm-js-collab/tracing-hooks` package directory, resolved from this
  * package's own dependency graph. SDKs inject it at build time so the runtime module hook can
  * load the package even where the bare specifier doesn't resolve (bundled SDK code under

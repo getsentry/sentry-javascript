@@ -928,6 +928,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'stopUIProfiler', callback: () => void): () => void;
 
   /**
+   * A hook that is called when the orchestrion runtime hook injects diagnostics
+   * channels into a module as it is loaded.
+   *
+   * The callback receives the name of the instrumented module.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'orchestrion.module-runtime-injected', callback: (moduleName: string) => void): () => void;
+
+  /**
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
@@ -1187,6 +1197,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for stopping the UI Profiler.
    */
   public emit(hook: 'stopUIProfiler'): void;
+
+  /**
+   * Emit a hook event when the orchestrion runtime hook injects diagnostics
+   * channels into a module as it is loaded.
+   */
+  public emit(hook: 'orchestrion.module-runtime-injected', moduleName: string): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.

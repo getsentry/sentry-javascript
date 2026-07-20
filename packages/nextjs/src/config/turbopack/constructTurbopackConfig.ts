@@ -1,15 +1,9 @@
 import { debug } from '@sentry/core';
 import * as path from 'path';
-import { getOrchestrionLoaderPath, getSentryInstrumentations } from '@sentry/server-utils/orchestrion/webpack';
+import { getSentryOrchestrionLoaderPath } from '@sentry/server-utils/orchestrion/webpack';
 import type { VercelCronsConfig } from '../../common/types';
 import type { RouteManifest } from '../manifest/types';
-import type {
-  JSONValue,
-  NextConfigObject,
-  SentryBuildOptions,
-  TurbopackMatcherWithRule,
-  TurbopackOptions,
-} from '../types';
+import type { NextConfigObject, SentryBuildOptions, TurbopackMatcherWithRule, TurbopackOptions } from '../types';
 import { supportsNativeDebugIds, supportsTurbopackRuleCondition } from '../util';
 import { generateValueInjectionRules } from './generateValueInjectionRules';
 
@@ -58,6 +52,10 @@ export function constructTurbopackConfig({
     nextJsVersion,
     tunnelPath,
     vercelCronsConfig,
+    // Mark the bundler injection path as active at boot (before `Sentry.init()`), so
+    // `isOrchestrionInjected()` is reliable even without the runtime hook. Individual modules add
+    // themselves to this list as they load; see the orchestrion loader's injected prologue.
+    injectOrchestrionBundlerMarker: !!userSentryOptions?._experimental?.useDiagnosticsChannelInjection,
   });
 
   for (const { matcher, rule } of valueInjectionRules) {
@@ -138,13 +136,9 @@ function maybeAddOrchestrionRule(
     matcher: '*.{js,mjs,cjs}',
     rule: {
       condition: 'node',
-      loaders: [
-        {
-          loader: getOrchestrionLoaderPath(),
-          // `instrumentations` is JSON-serializable
-          options: { instrumentations: getSentryInstrumentations() as unknown as JSONValue[] },
-        },
-      ],
+      // The Sentry loader reads the instrumentation config itself and appends a self-registration
+      // prologue to each transformed module, so it needs no `options` — use the string shortcut.
+      loaders: [getSentryOrchestrionLoaderPath()],
     },
   });
 }

@@ -12,11 +12,13 @@ export function generateValueInjectionRules({
   nextJsVersion,
   tunnelPath,
   vercelCronsConfig,
+  injectOrchestrionBundlerMarker,
 }: {
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
   tunnelPath?: string;
   vercelCronsConfig?: VercelCronsConfig;
+  injectOrchestrionBundlerMarker?: boolean;
 }): TurbopackMatcherWithRule[] {
   const rules: TurbopackMatcherWithRule[] = [];
   const isomorphicValues: Record<string, JSONValue> = {};
@@ -44,6 +46,15 @@ export function generateValueInjectionRules({
   // Inject server modules (matching webpack's __SENTRY_SERVER_MODULES__ behavior)
   // Use process.cwd() to get the project directory at build time
   serverValues.__SENTRY_SERVER_MODULES__ = getPackageModules(process.cwd());
+
+  // Mark the bundler (build-time) orchestrion injection as active at boot. This runs at the top of the
+  // server `instrumentation` file — before `Sentry.init()` and before the runtime hook — so
+  // `isOrchestrionInjected()` is reliable for bundler-only setups too. Turbopack has no plugin/boot
+  // hook to emit the full transformed-module list the way the webpack plugin does, so we seed an empty
+  // array here; each transformed module then appends itself as it loads (see the orchestrion loader).
+  if (injectOrchestrionBundlerMarker) {
+    serverValues.__SENTRY_ORCHESTRION__ = { bundler: [] };
+  }
 
   if (Object.keys(isomorphicValues).length > 0) {
     clientValues = { ...clientValues, ...isomorphicValues };

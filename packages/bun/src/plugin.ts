@@ -44,7 +44,7 @@ import {
 } from '@sentry/server-utils/orchestrion/config';
 
 const BUNDLER_MARKER_BANNER =
-  ';(globalThis.__SENTRY_ORCHESTRION__=(globalThis.__SENTRY_ORCHESTRION__||{})).bundler=true;';
+  ';(globalThis.__SENTRY_ORCHESTRION__=(globalThis.__SENTRY_ORCHESTRION__||{})).bundler=[];';
 
 // Minimal shape of Bun's `PluginBuilder` that we touch. Typed locally instead
 // of depending on `bun-types`, which would pull Bun's globals.
@@ -57,7 +57,7 @@ interface BunPluginBuilder {
  * with the central `SENTRY_INSTRUMENTATIONS`. The plugin injects
  * `diagnostics_channel.tracingChannel` calls into the instrumented libraries as
  * `bun build` bundles them, and injects a banner that sets
- * `globalThis.__SENTRY_ORCHESTRION__.bundler = true` when the bundle boots
+ * `globalThis.__SENTRY_ORCHESTRION__.bundler = []` when the bundle boots
  *
  * Pass the result to `Bun.build({ plugins: [...] })`.
  *
