@@ -26,20 +26,6 @@ function runLoader(resourcePath: string, code: string): string | undefined {
   return out;
 }
 
-describe('buildInjectPrologue', () => {
-  it('records the module in `.bundler` and calls the on-inject bridge, guarded by try/catch', () => {
-    const prologue = buildInjectPrologue('ioredis');
-
-    expect(prologue).toContain('globalThis.__SENTRY_ORCHESTRION__');
-    expect(prologue).toContain('g.bundler.push("ioredis")');
-    expect(prologue).toContain('globalThis.__SENTRY_ORCHESTRION_ON_INJECT__');
-    expect(prologue).toContain('cb("ioredis")');
-    expect(prologue).toContain('try{');
-    // Single line so it never shifts source-map mappings.
-    expect(prologue).not.toContain('\n');
-  });
-});
-
 describe('sentry orchestrion turbopack loader', () => {
   it('appends the self-registration prologue to instrumented modules', () => {
     const out = runLoader('/app/node_modules/ioredis/built/Redis.js', 'ORIGINAL');

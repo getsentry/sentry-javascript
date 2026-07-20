@@ -28,3 +28,28 @@ export function buildInjectPrologue(moduleName: string): string {
     '}catch(e){}})();'
   );
 }
+
+/**
+ * Boot-time snippet for bundlers that expose a build lifecycle hook (webpack/rollup/vite/esbuild via
+ * the `injectDiagnostics` plugin option). Unlike Turbopack — where {@link buildInjectPrologue} runs
+ * per-module as each loads — this runs once at bundle boot with the full list of transformed modules.
+ *
+ * It records the list in `__SENTRY_ORCHESTRION__.bundler` (so detection/reporting see it) AND calls
+ * the SDK bridge for each module. The bridge call is essential: when `Sentry.init()` runs before this
+ * snippet (e.g. loaded via `--require` ahead of the bundled server), the channel integrations have
+ * already set up and are waiting on `orchestrion.module-runtime-injected`; without the bridge call
+ * they never wire up their subscribers and no spans are recorded. Setting `.bundler` alone only covers
+ * the reverse ordering (snippet before init), where init's own detection check picks it up.
+ */
+export function buildInjectBootSnippet(moduleNames: string[]): string {
+  const names = JSON.stringify(moduleNames);
+  return (
+    ';(function(){try{' +
+    'var g=(globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{});' +
+    `var m=${names};` +
+    'g.bundler=m;' +
+    'var cb=globalThis.__SENTRY_ORCHESTRION_ON_INJECT__;' +
+    'if(typeof cb==="function")for(var i=0;i<m.length;i++)cb(m[i]);' +
+    '}catch(e){}})();'
+  );
+}
