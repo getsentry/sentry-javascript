@@ -20,15 +20,6 @@ export type PluginOptions = {
 };
 
 /**
- * The `@apm-js-collab/code-transformer-bundler-plugins` options shared by every
- * orchestrion bundler plugin.
- *
- * `injectDiagnostics` sets `globalThis.__SENTRY_ORCHESTRION__.bundler = ["mysql"]` at
- * app boot so the `_experimentalSetupOrchestrion()` detector can confirm the
- * bundler path ran (rather than relying on a build-time flag that wouldn't be
- * visible to the runtime).
- */
-/**
  * Whether an "external" config entry covers an instrumented module: an exact
  * package name (`'mysql'`) or a subpath (`'mysql/lib/...'`) — the transform may
  * target exactly the file a subpath entry externalizes. Mirrors the matching in
@@ -52,6 +43,15 @@ export function externalizedModulesWarning(externalizedModules: string[]): strin
   );
 }
 
+/**
+ * The `@apm-js-collab/code-transformer-bundler-plugins` options shared by every
+ * orchestrion bundler plugin.
+ *
+ * `injectDiagnostics` sets `globalThis.__SENTRY_ORCHESTRION__.bundler = ["mysql"]` at
+ * app boot so the `_experimentalSetupOrchestrion()` detector can confirm the
+ * bundler path ran (rather than relying on a build-time flag that wouldn't be
+ * visible to the runtime).
+ */
 export function orchestrionTransformOptions(options: PluginOptions): CodeTransformerPluginOptions {
   const instrumentations = [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])];
   const customTransforms = options.customTransforms;
