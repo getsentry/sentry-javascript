@@ -3,7 +3,6 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types/span';
-import { getActiveSpan } from '../../utils/spanUtils';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PROMPT_ATTRIBUTE,
@@ -33,12 +32,11 @@ import { instrumentAsyncIterableStream, instrumentMessageStream } from './stream
 import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
 import { handleResponseError, messagesFromParams, setMessagesAttribute } from './utils';
 
-// Spans created for streaming helper methods (e.g. `messages.stream()`). The Anthropic SDK
-// implements these helpers by internally calling `this.create()`, which we also instrument.
-// We track the helper span here so that the internal `create` call does not produce a duplicate
-// child span. This relies on the SDK invoking `create` synchronously while the helper span is
-// active, which is the case for the currently supported SDK versions.
-const STREAMING_HELPER_SPANS = new WeakSet<Span>();
+// Set only while a streaming helper (e.g. `messages.stream()`) synchronously delegates to the
+// underlying `create`. The SDK invokes that internal `create` synchronously, so a plain flag
+// suppresses exactly the duplicate delegation and nothing else: a `create` made later from a
+// stream event handler runs in a separate async continuation with the flag already cleared.
+let suppressDelegatedCreate = false;
 
 // Methods that have already been wrapped, so instrumenting the same client twice is a no-op.
 const INSTRUMENTED_METHODS = new WeakSet<object>();
@@ -245,16 +243,17 @@ function handleStreamingRequest<T extends unknown[], R>(
   } else {
     return startSpanManual(spanConfig, span => {
       try {
-        // Mark this as a streaming-helper span so the SDK's internal `create` delegation
-        // does not create a duplicate child span (see the dedup gate in `instrumentMethod`).
-        STREAMING_HELPER_SPANS.add(span);
-
         if (options.recordInputs && params) {
           addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
         }
+        // The helper synchronously delegates to `create`; suppress that one internal call so it
+        // does not produce a duplicate child span (see the dedup gate in `instrumentMethod`).
+        suppressDelegatedCreate = true;
         const messageStream = target.apply(invocationThis, args);
+        suppressDelegatedCreate = false;
         return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
       } catch (error) {
+        suppressDelegatedCreate = false;
         return handleStreamingError(error, span, methodPath);
       }
     });
@@ -283,14 +282,11 @@ function instrumentMethod<T extends unknown[], R>(
 
       const isStreamingMethod = instrumentedMethod.streaming === true;
 
-      // If this call is the SDK's internal delegation from a streaming helper (e.g.
+      // If this is the SDK's internal `create` delegation from a streaming helper (e.g.
       // `messages.stream()` invoking `this.create()`), skip instrumentation: the helper span
       // already represents this operation, so a second span would be a duplicate.
-      if (!isStreamingMethod) {
-        const activeSpan = getActiveSpan();
-        if (activeSpan && STREAMING_HELPER_SPANS.has(activeSpan)) {
-          return target.apply(invocationThis, args);
-        }
+      if (!isStreamingMethod && suppressDelegatedCreate) {
+        return target.apply(invocationThis, args);
       }
 
       const operationName = instrumentedMethod.operation || 'unknown';

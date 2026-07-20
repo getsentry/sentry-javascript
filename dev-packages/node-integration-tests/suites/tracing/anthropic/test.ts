@@ -409,6 +409,33 @@ describe('Anthropic integration', () => {
     });
   });
 
+  // The stream dedup must only suppress the helper's own internal `create` delegation, not a
+  // separate `create` a user makes from a stream event handler (which runs while the streaming
+  // helper span is still the active span). Regression test for over-suppression.
+  createEsmAndCjsTests(__dirname, 'scenario-stream-nested-create.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('traces a create() invoked from a stream event handler (dedup does not over-suppress)', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: { transaction: 'main' } })
+        .expect({
+          span: container => {
+            const nestedSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'msg_nested',
+            );
+            expect(nestedSpan).toBeDefined();
+            expect(nestedSpan.attributes['sentry.op'].value).toBe('gen_ai.chat');
+
+            const streamingSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'msg_stream_1',
+            );
+            expect(streamingSpan).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
   // Non-streaming tool calls + available tools (PII true)
   createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('non-streaming sets available tools and tool calls with PII', async () => {
