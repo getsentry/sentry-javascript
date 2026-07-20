@@ -26,6 +26,10 @@ import { vercelAiChannelIntegration } from '../integrations/tracing-channel/verc
 import { expressChannelIntegration } from '../integrations/tracing-channel/express';
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
+// The runtime target of the subscribe-injection snippet: instrumented modules
+// import this to self-register their channel subscriber on the global marker
+// (used by bundler-only SDKs).
+export { registerOrchestrionChannelIntegration } from './registerChannelIntegration';
 // The `@nestjs/*` channel names live here alongside their transform config; the
 // listener that subscribes to them lives in `@sentry/nestjs`, which imports this.
 export { nestjsChannels } from './config/nestjs';

@@ -17,47 +17,24 @@ interface ProgramNode {
 
 /**
  * Snippet injected into each instrumented module. It imports ONLY that package's
- * channel-subscriber factory from `@sentry/server-utils/orchestrion` plus the two
- * `@sentry/core` helpers it needs, then does two things when the module first
- * evaluates:
- *
- * 1. Stores the factory on the global orchestrion marker under its export name,
- *    so a later `init()` (a fresh isolate, or a client created after this module
- *    loads) picks it up via `getDefaultIntegrations()`.
- * 2. If a client already exists, registers the integration live on it right away.
- *
- * Step 2 is what makes this robust against module load order. Bundler-only SDKs
- * (e.g. `@sentry/cloudflare`) call `init()` per request, but a package like
- * `mysql` loads its instrumented file lazily on first use — i.e. AFTER that
- * request's `init()` already snapshotted the marker. Without the live add, the
- * first request that touches such a package would publish to a channel nobody
- * subscribed to yet. `addIntegration` dedupes by integration name and only runs
- * `setupOnce` once, so storing AND live-adding never double-subscribes.
- *
- * The marker is a `Map` keyed by export name so a package split across several
- * instrumented files (e.g. `pg`'s JS and native clients, or openai's per-resource
- * `.js`/`.mjs` files) registers its one subscriber once, no matter how many of
- * its files land in the bundle — `.set` on the shared key is idempotent.
+ * channel-subscriber factory (plus the `registerOrchestrionChannelIntegration`
+ * helper) from `@sentry/server-utils/orchestrion`, and hands both to the helper,
+ * which stores the factory on the global marker and live-registers it on any
+ * existing client (see that helper for the load-order and dedup rationale).
  *
  * Importing the single named factory (rather than a central dispatch that pulls
  * in every subscriber) is what makes this tree-shake: a bundle carries only the
- * subscriber code for packages actually transformed into it — the same
+ * subscriber code for packages actually transformed into it. The same
  * "only-active-when-bundled" property the runtime module hook gives unbundled
- * Node, but without a hook (workerd can't monkey-patch requires).
+ * Node, but without a hook (workerd can't monkey-patch requires). The helper is
+ * generic (references no factory), so importing it alongside doesn't pull siblings.
  */
 function subscribeSnippet(exportName: string, esm: boolean): string {
   const importStmt = esm
-    ? `import { ${exportName} } from '@sentry/server-utils/orchestrion';\nimport { getClient as __sentryGetClient } from '@sentry/core';`
-    : `const { ${exportName} } = require('@sentry/server-utils/orchestrion');\nconst { getClient: __sentryGetClient } = require('@sentry/core');`;
+    ? `import { ${exportName}, registerOrchestrionChannelIntegration } from '@sentry/server-utils/orchestrion';`
+    : `const { ${exportName}, registerOrchestrionChannelIntegration } = require('@sentry/server-utils/orchestrion');`;
 
-  // `??=` keeps the marker init a no-op after the first instrumented file
-  // creates the Map; keying by export name dedupes packages split across files.
-  return (
-    `${importStmt}\n` +
-    '(globalThis.__SENTRY_ORCHESTRION__ ??= {}).integrations ??= new Map();\n' +
-    `globalThis.__SENTRY_ORCHESTRION__.integrations.set(${JSON.stringify(exportName)}, ${exportName});\n` +
-    `__sentryGetClient()?.addIntegration(${exportName}());`
-  );
+  return `${importStmt}\nregisterOrchestrionChannelIntegration(${JSON.stringify(exportName)}, ${exportName});`;
 }
 
 /**
