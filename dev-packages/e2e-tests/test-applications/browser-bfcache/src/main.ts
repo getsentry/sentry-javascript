@@ -41,3 +41,25 @@ if (botch === 'websocket') {
   });
   w.__ws = ws;
 }
+
+if (botch === 'indexeddb') {
+  // A plain open IndexedDB connection (or even an in-flight transaction) does NOT block bfcache in
+  // current Chrome. What still blocks is a connection holding up a version upgrade: open v1 without
+  // closing it on `versionchange`, then request v2 - the upgrade is blocked and the page holds it up.
+  // A fresh db name per load avoids cross-run persistence.
+  const dbName = `bf_${Math.random().toString(36).slice(2)}`;
+  const w = window as unknown as { __idbBlocked?: boolean; __db?: IDBDatabase };
+  w.__idbBlocked = false;
+
+  const open1 = indexedDB.open(dbName, 1);
+  open1.addEventListener('upgradeneeded', event => {
+    (event.target as IDBOpenDBRequest).result.createObjectStore('s');
+  });
+  open1.addEventListener('success', event => {
+    w.__db = (event.target as IDBOpenDBRequest).result; // intentionally no `versionchange` handler
+    const open2 = indexedDB.open(dbName, 2);
+    open2.addEventListener('blocked', () => {
+      w.__idbBlocked = true;
+    });
+  });
+}
