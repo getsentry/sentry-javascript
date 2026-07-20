@@ -38,7 +38,6 @@ test('reports a hit on a genuine back/forward-cache restore', async ({ page }) =
   // No manual flush(): this asserts the real capture -> buffer -> send path.
   const hit = await hitPromise;
   expect(hit.value).toBe(1);
-  expect(attr(hit, 'browser.bfcache.navigation_type')).toBe('back-forward-cache');
 });
 
 test('reports a miss with notRestoredReasons when an unload listener blocks bfcache', async ({ page }) => {
@@ -77,7 +76,6 @@ test('reports a miss with notRestoredReasons when an unload listener blocks bfca
 
   const miss = await missPromise;
   expect(miss.value).toBe(1);
-  expect(attr(miss, 'browser.bfcache.navigation_type')).toBe('back-forward');
   expect(attr(miss, 'browser.bfcache.not_restored_reason_count')).toBeGreaterThanOrEqual(1);
 
   const unloadReason = await unloadReasonPromise;
@@ -153,8 +151,6 @@ test('reports a miss with an idbversionchangeevent reason when a connection bloc
 
   const miss = await missPromise;
   expect(miss.value).toBe(1);
-  expect(attr(miss, 'browser.bfcache.navigation_type')).toBe('back-forward');
-
   const reason = await reasonPromise;
   expect(attr(reason, 'browser.bfcache.frame')).toBe('top');
 });
@@ -183,8 +179,6 @@ test('reports a miss with a response-cache-control-no-store reason when a CCNS p
 
   const miss = await missPromise;
   expect(miss.value).toBe(1);
-  expect(attr(miss, 'browser.bfcache.navigation_type')).toBe('back-forward');
-
   const reason = await reasonPromise;
   expect(attr(reason, 'browser.bfcache.frame')).toBe('top');
 });

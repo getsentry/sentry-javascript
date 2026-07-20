@@ -53,10 +53,8 @@ export const bfcacheMetricsIntegration = defineIntegration((options: Partial<BFC
       WINDOW.addEventListener(
         'pageshow',
         event => {
-          const pageTransitionEvent = event as PageTransitionEvent;
-
-          if (pageTransitionEvent.persisted) {
-            _captureBFCacheNavigation('hit', 'back-forward-cache');
+          if (event.persisted) {
+            _captureBFCacheNavigation('hit');
             return;
           }
 
@@ -70,7 +68,7 @@ export const bfcacheMetricsIntegration = defineIntegration((options: Partial<BFC
 
           const reasons = _collectNotRestoredReasons(navigationEntry.notRestoredReasons, maxReasons);
 
-          _captureBFCacheNavigation('miss', 'back-forward', reasons.length);
+          _captureBFCacheNavigation('miss', reasons.length);
 
           // Measures how expensive the fallback reload was when a back/forward navigation missed bfcache.
           if (typeof navigationEntry.duration === 'number' && navigationEntry.duration > 0) {
@@ -79,7 +77,6 @@ export const bfcacheMetricsIntegration = defineIntegration((options: Partial<BFC
             metrics.distribution('browser.bfcache.reload.duration', navigationEntry.duration, {
               unit: 'millisecond',
               attributes: {
-                'browser.bfcache.navigation_type': 'back-forward',
                 ...(transactionName ? { 'sentry.transaction': transactionName } : {}),
               },
             });
@@ -103,17 +100,12 @@ export const bfcacheMetricsIntegration = defineIntegration((options: Partial<BFC
   };
 }) satisfies IntegrationFn;
 
-function _captureBFCacheNavigation(
-  outcome: 'hit' | 'miss',
-  navigationType: 'back-forward-cache' | 'back-forward',
-  reasonCount?: number,
-): void {
+function _captureBFCacheNavigation(outcome: 'hit' | 'miss', reasonCount?: number): void {
   const transactionName = _getTransactionName();
 
   metrics.count('browser.bfcache.navigation', 1, {
     attributes: {
       'browser.bfcache.outcome': outcome,
-      'browser.bfcache.navigation_type': navigationType,
       ...(reasonCount != null ? { 'browser.bfcache.not_restored_reason_count': reasonCount } : {}),
       ...(transactionName ? { 'sentry.transaction': transactionName } : {}),
     },
