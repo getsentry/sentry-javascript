@@ -29,6 +29,7 @@ describe('dataloader auto-instrumentation', () => {
             expect(loadSpan?.status).toBe('ok');
             expect(loadSpan?.data?.['sentry.origin']).toBe(ORIGIN);
             expect(loadSpan?.data?.['sentry.op']).toBe(CACHE_GET_OP);
+            expect(loadSpan?.data?.['cache.key']).toEqual(['user-1']);
             // A direct operation is a client call; the deferred `batch` below gets no kind
             expect(loadSpan?.data?.['otel.kind']).toBe('CLIENT');
 
@@ -37,6 +38,7 @@ describe('dataloader auto-instrumentation', () => {
             expect(batchSpan?.op).toBe(CACHE_GET_OP);
             expect(batchSpan?.origin).toBe(ORIGIN);
             expect(batchSpan?.status).toBe('ok');
+            expect(batchSpan?.data?.['cache.key']).toEqual(['user-1']);
             expect(batchSpan?.data?.['otel.kind']).toBeUndefined();
 
             // The batch span links back to the load span that triggered it
@@ -64,6 +66,7 @@ describe('dataloader auto-instrumentation', () => {
             expect(loadManySpan?.status).toBe('ok');
             expect(loadManySpan?.data?.['sentry.origin']).toBe(ORIGIN);
             expect(loadManySpan?.data?.['sentry.op']).toBe(CACHE_GET_OP);
+            expect(loadManySpan?.data?.['cache.key']).toEqual(['user-1', 'user-2']);
           },
         })
         .expect({
