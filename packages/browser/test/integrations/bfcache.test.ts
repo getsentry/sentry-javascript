@@ -71,15 +71,15 @@ describe('bfcacheMetricsIntegration', () => {
       expect(_collectNotRestoredReasons(tree, 5)).toEqual([{ reason: 'fetch', frame: 'child' }]);
     });
 
-    it('marks the "masked" reason as a masked frame regardless of depth', () => {
+    it('frames every reason by its position, without special-casing the reason value', () => {
       const tree = {
         reasons: [{ reason: 'masked' }],
         children: [{ reasons: [{ reason: 'masked' }] }],
       };
 
       expect(_collectNotRestoredReasons(tree, 5)).toEqual([
-        { reason: 'masked', frame: 'masked' },
-        { reason: 'masked', frame: 'masked' },
+        { reason: 'masked', frame: 'top' },
+        { reason: 'masked', frame: 'child' },
       ]);
     });
 

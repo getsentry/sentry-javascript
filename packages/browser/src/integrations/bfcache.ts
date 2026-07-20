@@ -6,7 +6,7 @@ import { WINDOW } from '../helpers';
 const INTEGRATION_NAME = 'BFCacheMetrics';
 const DEFAULT_MAX_REASONS = 5;
 
-type BFCacheFrame = 'top' | 'child' | 'masked' | 'unknown';
+type BFCacheFrame = 'top' | 'child';
 
 interface BFCacheIntegrationOptions {
   /**
@@ -158,7 +158,7 @@ function _collectReasonsFromFrame(
 
     collectedReasons.push({
       reason: reasonValue,
-      frame: reasonValue === 'masked' ? 'masked' : frameType,
+      frame: frameType,
     });
   });
 
