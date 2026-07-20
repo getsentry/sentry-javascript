@@ -75,6 +75,10 @@
 
 Work in this release was contributed by @PeterWadie and @akshitsinha. Thank you for your contributions!
 
+### Other Changes
+
+- fix(replay): Set `text/javascript` MIME type on the compression worker Blob ([#22377](https://github.com/getsentry/sentry-javascript/pull/22377))
+
 ## 10.66.0
 
 - chore(node-core): Deprecate `@sentry/node-core` package ([#22285](https://github.com/getsentry/sentry-javascript/pull/22285))
