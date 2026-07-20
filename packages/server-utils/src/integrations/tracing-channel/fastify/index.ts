@@ -1,7 +1,6 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import type { FastifyIntegration, FastifyReply, FastifyRequest } from './types';
-
 import { instrumentFastify as _instrumentFastify } from './instrumentation';
 import { defaultShouldHandleError, INTEGRATION_NAME } from './utils';
 import { subscribeToFastifyErrorChannel, handleFastifyError as _handleFastifyError } from './errors';
@@ -76,9 +75,7 @@ const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationO
  * })
  * ```
  */
-export const fastifyIntegration = defineIntegration((options: Partial<FastifyIntegrationOptions> = {}) =>
-  _fastifyIntegration(options),
-);
+export const fastifyIntegration = defineIntegration(_fastifyIntegration);
 
 /**
  * @deprecated This export is deprecated and will not longer be exposed in the next major version.
