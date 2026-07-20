@@ -1,6 +1,8 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/rollup';
+import type { NormalizedInputOptions, PluginContext } from 'rollup';
+import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
-import { orchestrionTransformOptions } from './options';
+import { externalizedModulesWarning, orchestrionTransformOptions } from './options';
 
 /**
  * Rollup plugin that runs the orchestrion code transform on the bundled output.
@@ -16,5 +18,19 @@ import { orchestrionTransformOptions } from './options';
  * ```
  */
 export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
-  return codeTransformer(orchestrionTransformOptions(options));
+  const moduleNames = instrumentedModuleNames(options.instrumentations);
+
+  return {
+    ...codeTransformer(orchestrionTransformOptions(options)),
+    buildStart(this: PluginContext, rollupOptions: NormalizedInputOptions): void {
+      // An externalized dependency never passes through the code transform, so
+      // its diagnostics_channel calls are silently never injected. By the time
+      // buildStart runs, Rollup has normalized `external` (string arrays,
+      // RegExps or user functions) into a single predicate we can probe.
+      const externalizedModules = moduleNames.filter(name => rollupOptions.external(name, undefined, false));
+      if (externalizedModules.length > 0) {
+        this.warn(externalizedModulesWarning(externalizedModules));
+      }
+    },
+  };
 }
