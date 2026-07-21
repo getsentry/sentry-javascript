@@ -70,6 +70,21 @@ describe('_INTERNAL_getTracingHeadersForFetchRequest', () => {
         });
       });
 
+      it('omits baggage from headers object when no baggage is available', () => {
+        vi.mocked(traceData.getTraceData).mockReturnValueOnce({
+          'sentry-trace': DEFAULT_SENTRY_TRACE,
+        });
+
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
+          headers: { 'custom-header': 'custom-value' },
+        });
+
+        expect(returnedHeaders).toStrictEqual({
+          'sentry-trace': DEFAULT_SENTRY_TRACE,
+          'custom-header': 'custom-value',
+        });
+      });
+
       it('attaches sentry headers to a Headers instance', () => {
         const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
           headers: new Headers({ 'custom-header': 'custom-value' }),
