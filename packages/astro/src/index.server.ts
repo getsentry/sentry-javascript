@@ -26,7 +26,6 @@ export {
   captureMessage,
   captureSession,
   close,
-  connectIntegration,
   consoleIntegration,
   contextLinesIntegration,
   continueTrace,
@@ -127,7 +126,6 @@ export {
   setTags,
   setAttribute,
   setAttributes,
-  setupConnectErrorHandler,
   setupExpressErrorHandler,
   setupHapiErrorHandler,
   // eslint-disable-next-line typescript/no-deprecated
