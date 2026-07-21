@@ -222,7 +222,11 @@ export function _INTERNAL_getTracingHeadersForFetchRequest(
   const originalHeaders = fetchOptionsObj.headers || (isRequest(request) ? request.headers : undefined);
 
   if (!originalHeaders) {
-    return { ...traceHeaders };
+    return {
+      'sentry-trace': sentryTrace,
+      ...(baggage && { baggage }),
+      ...(traceparent && { traceparent }),
+    };
   } else if (isHeaders(originalHeaders)) {
     const newHeaders = new Headers(originalHeaders);
 
