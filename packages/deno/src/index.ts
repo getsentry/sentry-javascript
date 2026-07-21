@@ -132,6 +132,7 @@ export {
   mongooseChannelIntegration,
   mysqlChannelIntegration,
   mysql2ChannelIntegration,
+  openaiChannelIntegration,
   postgresChannelIntegration,
   postgresJsChannelIntegration,
   tediousChannelIntegration,
