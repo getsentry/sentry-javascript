@@ -32,7 +32,7 @@ import type { ParameterizedString } from './types/parameterize';
 import type { ReplayEndEvent, ReplayStartEvent } from './types/replay';
 import type { RequestEventData } from './types/request';
 import type { SdkMetadata } from './types/sdkmetadata';
-import type { Session, SessionAggregates } from './types/session';
+import type { Session, SessionAggregates, SessionStatus } from './types/session';
 import type { SeverityLevel } from './types/severity';
 import type { Span, SpanAttributes, SpanContextData, SpanJSON, StreamedSpanJSON } from './types/span';
 import type { StartSpanOptions } from './types/startSpanOptions';
@@ -1280,11 +1280,21 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     if (shouldUpdateAndSend) {
       updateSession(session, {
-        ...(crashed && { status: 'crashed' }),
+        ...(crashed && { status: this._getUnhandledSessionStatus() }),
         errors: session.errors || Number(errored || crashed),
       });
       this.captureSession(session);
     }
+  }
+
+  /**
+   * The session status to set when an unhandled error terminates a session.
+   *
+   * Defaults to `'crashed'`. Browser SDKs override this to `'unhandled'` because unhandled errors
+   * don't actually crash the browser.
+   */
+  protected _getUnhandledSessionStatus(): SessionStatus {
+    return 'crashed';
   }
 
   /**
