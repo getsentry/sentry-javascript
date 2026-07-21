@@ -8,6 +8,9 @@ import type { InstrumentationConfig } from '..';
 import { instrumentedModuleNames, SENTRY_INSTRUMENTATIONS } from '../config';
 import codeTransformerWebpack from '@apm-js-collab/code-transformer-bundler-plugins/webpack';
 import type { PluginOptions } from './options';
+
+export { serializeInstrumentations } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+export type { SerializableInstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
 
 // Both branches use `createRequire` (never alias the CJS `require`) so bundlers consuming this
