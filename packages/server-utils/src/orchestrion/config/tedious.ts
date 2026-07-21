@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { toSubscribeInjections } from './subscribe-injection';
 
 const MODULE_NAME = 'tedious';
 
@@ -29,3 +30,5 @@ export const tediousChannels = {
   TEDIOUS_PREPARE: 'orchestrion:tedious:prepare',
   TEDIOUS_EXECUTE: 'orchestrion:tedious:execute',
 } as const;
+
+export const tediousSubscribeInjection = toSubscribeInjections(tediousConfig);

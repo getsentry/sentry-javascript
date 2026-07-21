@@ -6,29 +6,29 @@ import { amqplibConfig, amqplibSubscribeInjection } from './amqplib';
 import { anthropicAiConfig, anthropicAiSubscribeInjection } from './anthropic-ai';
 import { dataloaderConfig, dataloaderSubscribeInjection } from './dataloader';
 import { expressConfig, expressSubscribeInjection } from './express';
-import { firebaseConfig } from './firebase';
+import { firebaseConfig, firebaseSubscribeInjection } from './firebase';
 import { genericPoolConfig, genericPoolSubscribeInjection } from './generic-pool';
 import { googleGenAiConfig, googleGenAiSubscribeInjection } from './google-genai';
 import { graphqlConfig, graphqlSubscribeInjection } from './graphql';
 import { hapiConfig, hapiSubscribeInjection } from './hapi';
 import { ioredisConfig, ioredisSubscribeInjection } from './ioredis';
 import { kafkajsConfig, kafkajsSubscribeInjection } from './kafkajs';
-import { knexConfig } from './knex';
-import { koaConfig } from './koa';
-import { langchainConfig } from './langchain';
-import { langgraphConfig } from './langgraph';
+import { knexConfig, knexSubscribeInjection } from './knex';
+import { koaConfig, koaSubscribeInjection } from './koa';
+import { langchainConfig, langchainSubscribeInjection } from './langchain';
+import { langgraphConfig, langgraphSubscribeInjection } from './langgraph';
 import { lruMemoizerConfig, lruMemoizerSubscribeInjection } from './lru-memoizer';
-import { mongodbConfig } from './mongodb';
-import { mongooseConfig } from './mongoose';
+import { mongodbConfig, mongodbSubscribeInjection } from './mongodb';
+import { mongooseConfig, mongooseSubscribeInjection } from './mongoose';
 import { mysql2Config, mysql2SubscribeInjection } from './mysql2';
 import { mysqlConfig, mysqlSubscribeInjection } from './mysql';
-import { nestjsConfig } from './nestjs';
+import { nestjsConfig, nestjsSubscribeInjection } from './nestjs';
 import { openaiConfig, openaiSubscribeInjection } from './openai';
 import { pgConfig, pgSubscribeInjection } from './pg';
 import { postgresJsConfig, postgresJsSubscribeInjection } from './postgres';
 import { redisConfig, redisSubscribeInjection } from './redis';
-import { remixConfig } from './remix';
-import { tediousConfig } from './tedious';
+import { remixConfig, remixSubscribeInjection } from './remix';
+import { tediousConfig, tediousSubscribeInjection } from './tedious';
 import { vercelAiConfig, vercelAiSubscribeInjection } from './vercel-ai';
 // Kept sorted alphabetically by module so concurrent additions insert at different
 // points rather than all appending to the end (fewer merge conflicts).
@@ -89,19 +89,29 @@ export const SUBSCRIBE_INJECTIONS: InstrumentationConfig[] = [
   ...awsSdkSubscribeInjection,
   ...dataloaderSubscribeInjection,
   ...expressSubscribeInjection,
+  ...firebaseSubscribeInjection,
   ...genericPoolSubscribeInjection,
   ...googleGenAiSubscribeInjection,
   ...graphqlSubscribeInjection,
   ...hapiSubscribeInjection,
   ...ioredisSubscribeInjection,
   ...kafkajsSubscribeInjection,
+  ...knexSubscribeInjection,
+  ...koaSubscribeInjection,
+  ...langchainSubscribeInjection,
+  ...langgraphSubscribeInjection,
   ...lruMemoizerSubscribeInjection,
+  ...mongodbSubscribeInjection,
+  ...mongooseSubscribeInjection,
   ...mysql2SubscribeInjection,
   ...mysqlSubscribeInjection,
+  ...nestjsSubscribeInjection,
   ...openaiSubscribeInjection,
   ...pgSubscribeInjection,
   ...postgresJsSubscribeInjection,
   ...redisSubscribeInjection,
+  ...remixSubscribeInjection,
+  ...tediousSubscribeInjection,
   ...vercelAiSubscribeInjection,
 ];
 

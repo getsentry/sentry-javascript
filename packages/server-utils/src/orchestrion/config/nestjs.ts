@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { toSubscribeInjections } from './subscribe-injection';
 
 /**
  * Wrap an instrumentation that targets nodes via a raw esquery selector
@@ -141,3 +142,5 @@ export const nestjsChannels = {
   NESTJS_ONEVENT: 'orchestrion:@nestjs/event-emitter:onEventDecorator',
   NESTJS_PROCESSOR: 'orchestrion:@nestjs/bullmq:processorDecorator',
 } as const;
+
+export const nestjsSubscribeInjection = toSubscribeInjections(nestjsConfig);
