@@ -3,11 +3,12 @@
 
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
+import type { Compiler } from 'webpack';
 import type { InstrumentationConfig } from '..';
-import { SENTRY_INSTRUMENTATIONS } from '../config';
+import { instrumentedModuleNames, SENTRY_INSTRUMENTATIONS } from '../config';
 import codeTransformerWebpack from '@apm-js-collab/code-transformer-bundler-plugins/webpack';
 import type { PluginOptions } from './options';
-import { orchestrionTransformOptions } from './options';
+import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
 
 // Both branches use `createRequire` (never alias the CJS `require`) so bundlers consuming this
 // module don't emit a "Critical dependency" warning.
@@ -44,9 +45,47 @@ export function getSentryInstrumentations(): InstrumentationConfig[] {
   return SENTRY_INSTRUMENTATIONS;
 }
 
+// Handles the declarative `externals` shapes (string, RegExp, object, arrays
+// thereof). Function externals (e.g. webpack-node-externals) are skipped: they
+// may resolve asynchronously, so they can't be probed reliably here.
+function externalizedWebpackModules(externals: unknown, moduleNames: string[]): string[] {
+  const entries = Array.isArray(externals) ? externals : [externals];
+  return moduleNames.filter(name =>
+    entries.some(entry => {
+      if (typeof entry === 'string') {
+        return externalEntryMatchesModule(entry, name);
+      }
+      if (entry instanceof RegExp) {
+        return entry.test(name);
+      }
+      if (entry && typeof entry === 'object') {
+        return name in entry;
+      }
+      return false;
+    }),
+  );
+}
+
 /**
- * The code-transform webpack plugin, pre-fed the instrumentation config
+ * The code-transform webpack plugin, pre-fed the instrumentation config.
+ *
+ * Instrumented packages marked as `externals` never pass through the code
+ * transform, so a compilation warning is emitted for them.
  */
 export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformerWebpack> {
-  return codeTransformerWebpack(orchestrionTransformOptions(options));
+  const plugin = codeTransformerWebpack(orchestrionTransformOptions(options));
+  const moduleNames = instrumentedModuleNames(options.instrumentations);
+  // The upstream plugin is a class instance, so `apply` is overridden in place
+  // rather than spread into a new object (which would lose prototype methods).
+  const apply = plugin.apply.bind(plugin);
+  plugin.apply = (compiler: Compiler): void => {
+    const externalizedModules = externalizedWebpackModules(compiler.options.externals, moduleNames);
+    if (externalizedModules.length > 0) {
+      compiler.hooks.thisCompilation.tap('SentryOrchestrionExternalsCheck', compilation => {
+        compilation.warnings.push(new compiler.webpack.WebpackError(externalizedModulesWarning(externalizedModules)));
+      });
+    }
+    apply(compiler);
+  };
+  return plugin;
 }

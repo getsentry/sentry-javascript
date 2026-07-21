@@ -2,7 +2,7 @@ import { defineIntegration, waitForTracingChannelBinding, type IntegrationFn } f
 import { subscribeVercelAiTracingChannel } from './vercel-ai-dc-subscriber';
 import * as dc from 'node:diagnostics_channel';
 
-type VercelAiOptions = {
+export interface VercelAiOptions {
   /**
    * Enable or disable input recording. Enabled if `dataCollection.genAI.inputs` (or the deprecated `sendDefaultPii` option) is `true`
    * or if you set `isEnabled` to `true` in your ai SDK method telemetry settings.
@@ -22,7 +22,7 @@ type VercelAiOptions = {
    * Defaults to `true`.
    */
   enableTruncation?: boolean;
-};
+}
 
 const _vercelAiIntegration = ((options: VercelAiOptions = {}) => {
   return {
