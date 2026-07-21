@@ -1,8 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { debug } from '@sentry/core';
-import { DEBUG_BUILD } from '../../../debug-build';
 import { CHANNELS } from '../../../orchestrion/channels';
-import { bindTracingChannelToSpan } from '../../../tracing-channel';
+import { bindTracingChannelToSpan, safeChannelCallback as safe } from '../../../tracing-channel';
 import type { FirestoreReference } from './firestore-types';
 import { startFirestoreSpan } from './firestore';
 import { wrapFunctionsRegistration } from './functions';
@@ -42,20 +40,6 @@ const FUNCTIONS_TRIGGERS: Array<{ channel: string; triggerType: string }> = [
 ];
 
 const NOOP = (): void => {};
-
-/**
- * Runs a span-building callback so a throw inside it can never break the user's firebase call: these run
- * inside the `tracingChannel(...)` machinery wrapping the real function, where an unguarded throw would
- * propagate into the traced call.
- */
-function safe<T>(fn: () => T): T | undefined {
-  try {
-    return fn();
-  } catch (error) {
-    DEBUG_BUILD && debug.warn('[orchestrion:firebase] error handling channel event', error);
-    return undefined;
-  }
-}
 
 export function instrumentFirebase() {
   for (const { channel, spanName, useParent } of FIRESTORE_OPERATIONS) {

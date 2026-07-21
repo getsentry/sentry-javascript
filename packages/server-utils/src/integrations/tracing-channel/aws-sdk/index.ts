@@ -17,7 +17,7 @@ import {
 import { DEBUG_BUILD } from '../../../debug-build';
 import { CHANNELS } from '../../../orchestrion/channels';
 import type { TracingChannelLifeCycleOptions } from '../../../tracing-channel';
-import { bindTracingChannelToSpan } from '../../../tracing-channel';
+import { bindTracingChannelToSpan, safeChannelCallback as safe } from '../../../tracing-channel';
 import { AWS_SDK_ORIGIN } from './constants';
 import { ServicesExtensions } from './services';
 import type { NormalizedRequest, NormalizedResponse, RequestMetadata } from './types';
@@ -47,16 +47,6 @@ interface AwsClientConfig {
 interface AwsV3Command {
   input?: Record<string, unknown>;
   constructor?: { name?: string };
-}
-
-/** Runs a span-building callback so a throw inside it can never break the user's aws-sdk call. */
-function safe<T>(fn: () => T): T | undefined {
-  try {
-    return fn();
-  } catch (error) {
-    DEBUG_BUILD && debug.warn('[orchestrion:aws-sdk] error building span', error);
-    return undefined;
-  }
 }
 
 // `metadata` is smithy's `ResponseMetadata`, read off the untyped channel result/error (`any` for the

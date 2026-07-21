@@ -1,11 +1,10 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration, extendIntegration, waitForTracingChannelBinding } from '@sentry/core';
-import { DEBUG_BUILD } from '../../../debug-build';
+import { defineIntegration, extendIntegration, waitForTracingChannelBinding } from '@sentry/core';
 import { graphqlIntegration as graphqlNativeIntegration } from '../../../graphql';
 import type { GraphqlDiagnosticChannelsOptions } from '../../../graphql/graphql-dc-subscriber';
 import { CHANNELS } from '../../../orchestrion/channels';
-import { bindTracingChannelToSpan } from '../../../tracing-channel';
+import { bindTracingChannelToSpan, safeChannelCallback as safe } from '../../../tracing-channel';
 import {
   finalizeExecuteSpan,
   finalizeValidateSpan,
@@ -33,20 +32,6 @@ function getOptionsWithDefaults(options: GraphqlDiagnosticChannelsOptions): Grap
     ignoreTrivialResolveSpans: options.ignoreTrivialResolveSpans !== false,
     useOperationNameForRootSpan: options.useOperationNameForRootSpan !== false,
   };
-}
-
-/**
- * Runs a span-building callback so a throw inside it can never break the user's graphql call: these
- * run inside the `tracingChannel(...).trace*` machinery wrapping the real function (as the `getSpan`
- * producer / `beforeSpanEnd` handler), where an unguarded throw would propagate into the traced call.
- */
-function safe<T>(fn: () => T): T | undefined {
-  try {
-    return fn();
-  } catch (error) {
-    DEBUG_BUILD && debug.warn('[orchestrion:graphql] error building span', error);
-    return undefined;
-  }
 }
 
 const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) => {
