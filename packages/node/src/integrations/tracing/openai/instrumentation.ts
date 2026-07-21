@@ -5,12 +5,7 @@ import {
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
 import type { Integration, OpenAiClient, OpenAiOptions } from '@sentry/core';
-import {
-  _INTERNAL_shouldSkipAiProviderWrapping,
-  instrumentOpenAiClient,
-  OPENAI_INTEGRATION_NAME,
-  SDK_VERSION,
-} from '@sentry/core';
+import { instrumentOpenAiClient, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=4.0.0 <7'];
 
@@ -67,11 +62,6 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<OpenAiInstr
     const config = this.getConfig();
 
     const WrappedOpenAI = function (this: unknown, ...args: unknown[]) {
-      // Check if wrapping should be skipped (e.g., when LangChain is handling instrumentation)
-      if (_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)) {
-        return Reflect.construct(Original, args) as OpenAiClient;
-      }
-
       const instance = Reflect.construct(Original, args);
 
       return instrumentOpenAiClient(instance as OpenAiClient, config);

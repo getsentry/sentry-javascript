@@ -8,12 +8,9 @@ import { InstrumentationNodeModuleFile } from '../InstrumentationNodeModuleFile'
 import type { LangChainOptions } from '@sentry/core';
 import {
   _INTERNAL_mergeLangChainCallbackHandler,
-  _INTERNAL_skipAiProviderWrapping,
-  ANTHROPIC_AI_INTEGRATION_NAME,
+  _INTERNAL_withSuppressedAiProviderSpans,
   createLangChainCallbackHandler,
-  GOOGLE_GENAI_INTEGRATION_NAME,
   instrumentLangChainEmbeddings,
-  OPENAI_INTEGRATION_NAME,
   SDK_VERSION,
 } from '@sentry/core';
 
@@ -57,8 +54,10 @@ function wrapRunnableMethod(
       // Inject our callback handler into options.callbacks (request time callbacks)
       options.callbacks = _INTERNAL_mergeLangChainCallbackHandler(options.callbacks, sentryHandler);
 
-      // Call original method with augmented options
-      return Reflect.apply(target, thisArg, args);
+      // LangChain records the span itself via the injected callback handler, so suppress the
+      // underlying provider SDK's own instrumentation for the duration of this call to avoid
+      // double spans. Scope-based, so direct provider calls outside LangChain keep their spans.
+      return _INTERNAL_withSuppressedAiProviderSpans(() => Reflect.apply(target, thisArg, args));
     },
   }) as (...args: unknown[]) => unknown;
 }
@@ -141,14 +140,6 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
    * This is called when a LangChain provider package is loaded
    */
   private _patch(exports: PatchedLangChainExports): PatchedLangChainExports | void {
-    // Skip AI provider wrapping now that LangChain is actually being used
-    // This prevents duplicate spans from Anthropic/OpenAI/GoogleGenAI standalone integrations
-    _INTERNAL_skipAiProviderWrapping([
-      OPENAI_INTEGRATION_NAME,
-      ANTHROPIC_AI_INTEGRATION_NAME,
-      GOOGLE_GENAI_INTEGRATION_NAME,
-    ]);
-
     const config = this.getConfig();
 
     // Create a shared handler instance for chat model callbacks

@@ -247,32 +247,30 @@ describe('LangChain integration', () => {
     },
   );
 
-  createEsmTests(__dirname, 'scenario-openai-before-langchain.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('demonstrates timing issue with duplicate spans', async () => {
+  createEsmTests(__dirname, 'scenario-anthropic-before-langchain.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('suppresses provider spans inside LangChain calls but keeps direct calls', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(2);
-            const anthropicSpan = container.items.find(
-              span =>
-                span.attributes['sentry.origin'].value ===
-                (isOrchestrionEnabled() ? 'auto.ai.orchestrion.anthropic' : 'auto.ai.anthropic'),
-            );
-            expect(anthropicSpan).toBeDefined();
-            expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
+            expect(container.items).toHaveLength(3);
 
-            // LangChain call is instrumented by LangChain.
-            const langchainSpan = container.items.find(
+            const anthropicOrigin = isOrchestrionEnabled() ? 'auto.ai.orchestrion.anthropic' : 'auto.ai.anthropic';
+
+            // Both direct Anthropic calls (before and after the LangChain import) are instrumented.
+            // Suppression is scoped to the LangChain call, so direct calls keep their spans.
+            const anthropicSpans = container.items.filter(
+              span => span.attributes['sentry.origin'].value === anthropicOrigin,
+            );
+            expect(anthropicSpans).toHaveLength(2);
+
+            // The LangChain call produces exactly one LangChain span; the nested Anthropic call is suppressed.
+            const langchainSpans = container.items.filter(
               span => span.attributes['sentry.origin'].value === 'auto.ai.langchain',
             );
-            expect(langchainSpan).toBeDefined();
-            expect(langchainSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-
-            // Third call (not present): Direct Anthropic call made AFTER LangChain import
-            // is NOT instrumented, which demonstrates the skip mechanism works for NEW
-            // clients. We should only have ONE Anthropic span (the first one), not two.
+            expect(langchainSpans).toHaveLength(1);
+            expect(langchainSpans[0]!.name).toBe('chat claude-3-5-sonnet-20241022');
           },
         })
         .start()

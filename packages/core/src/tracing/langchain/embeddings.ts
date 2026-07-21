@@ -11,6 +11,7 @@ import {
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
+import { _INTERNAL_withSuppressedAiProviderSpans } from '../ai/suppression';
 import { resolveAIRecordingOptions } from '../ai/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type { LangChainOptions } from './types';
@@ -93,12 +94,17 @@ export function instrumentEmbeddingMethod(
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
       return startSpan(_INTERNAL_getLangChainEmbeddingsSpanOptions(thisArg, args[0], options), () => {
-        return Reflect.apply(target, thisArg, args).then(undefined, error => {
-          captureException(error, {
-            mechanism: { handled: false, type: 'auto.ai.langchain' },
-          });
-          throw error;
-        });
+        // `embedQuery`/`embedDocuments` call the underlying provider SDK (e.g. openai) internally, so
+        // suppress that SDK's own instrumentation for this call to avoid a duplicate span.
+        return _INTERNAL_withSuppressedAiProviderSpans(() => Reflect.apply(target, thisArg, args)).then(
+          undefined,
+          error => {
+            captureException(error, {
+              mechanism: { handled: false, type: 'auto.ai.langchain' },
+            });
+            throw error;
+          },
+        );
       });
     },
   }) as (...args: unknown[]) => Promise<unknown>;

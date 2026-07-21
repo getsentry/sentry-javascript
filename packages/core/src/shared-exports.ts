@@ -73,6 +73,10 @@ export {
   installedIntegrations,
 } from './integration';
 export {
+  _INTERNAL_isAiProviderSpanSuppressed,
+  _INTERNAL_withSuppressedAiProviderSpans,
+} from './tracing/ai/suppression';
+export {
   _INTERNAL_skipAiProviderWrapping,
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,

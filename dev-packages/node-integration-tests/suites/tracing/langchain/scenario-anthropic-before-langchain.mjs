@@ -38,9 +38,7 @@ async function run() {
   const baseURL = `http://localhost:${server.address().port}`;
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    // EDGE CASE: Import and instantiate Anthropic client BEFORE LangChain is imported
-    // This simulates the timing issue where a user creates an Anthropic client in one file
-    // before importing LangChain in another file
+    // Direct Anthropic call made BEFORE LangChain is imported/used
     const { default: Anthropic } = await import('@anthropic-ai/sdk');
     const anthropicClient = new Anthropic({
       apiKey: 'mock-api-key',
@@ -55,8 +53,8 @@ async function run() {
       max_tokens: 100,
     });
 
-    // NOW import LangChain - at this point it will mark Anthropic to be skipped
-    // But the client created above is already instrumented
+    // Import and use LangChain - its own instrumentation records the span and suppresses the nested
+    // Anthropic SDK span only for the duration of the call.
     const { ChatAnthropic } = await import('@langchain/anthropic');
 
     // Create a LangChain model - this uses Anthropic under the hood
@@ -73,8 +71,8 @@ async function run() {
     // Use LangChain - this will be instrumented by LangChain integration
     await langchainModel.invoke('LangChain Anthropic call');
 
-    // Create ANOTHER Anthropic client after LangChain was imported
-    // This one should NOT be instrumented (skip mechanism works correctly)
+    // Direct Anthropic call made AFTER LangChain was used - still instrumented, since suppression
+    // is scoped to the LangChain call and does not leak to direct provider calls.
     const anthropicClient2 = new Anthropic({
       apiKey: 'mock-api-key',
       baseURL,

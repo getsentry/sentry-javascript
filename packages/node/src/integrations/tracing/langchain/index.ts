@@ -25,9 +25,9 @@ const _langChainIntegration = ((options: LangChainOptions = {}) => {
  * When configured, this integration automatically instruments LangChain runnable instances
  * to capture telemetry data by injecting Sentry callback handlers into all LangChain calls.
  *
- * **Important:** This integration automatically skips wrapping the OpenAI, Anthropic, and Google GenAI
- * providers to prevent duplicate spans when using LangChain with these AI providers.
- * LangChain handles the instrumentation for all underlying AI providers.
+ * **Important:** While a LangChain call is executing, this integration suppresses the OpenAI, Anthropic,
+ * and Google GenAI provider instrumentations for that call to prevent duplicate spans. The suppression is
+ * scoped to the LangChain call, so direct provider SDK calls outside of LangChain keep their own spans.
  *
  * @example
  * ```javascript

@@ -27,6 +27,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
+import { _INTERNAL_isAiProviderSpanSuppressed } from '../ai/suppression';
 import type { InstrumentedMethodEntry } from '../ai/utils';
 import { stringify } from '../../utils/string';
 import {
@@ -281,6 +282,10 @@ function instrumentMethod<T extends unknown[], R>(
 
   return new Proxy(originalMethod, {
     apply(target, _, args: T): R | Promise<R> {
+      if (_INTERNAL_isAiProviderSpanSuppressed()) {
+        return Reflect.apply(target, _, args);
+      }
+
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
       const requestAttributes = extractRequestAttributes(operationName, params, context);

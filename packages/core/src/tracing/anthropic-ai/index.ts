@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
@@ -20,6 +21,7 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
+import { _INTERNAL_isAiProviderSpanSuppressed } from '../ai/suppression';
 import type { InstrumentedMethodEntry } from '../ai/utils';
 import {
   resolveAIRecordingOptions,
@@ -279,6 +281,12 @@ function instrumentMethod<T extends unknown[], R>(
       // `messages.stream()` calling `this.create()`) must resolve against the same object it
       // would on an uninstrumented client. Fall back to the wrap-time owner for unbound calls.
       const invocationThis = thisArg !== undefined ? thisArg : context;
+
+      // A higher-level integration (e.g. LangChain) is recording the span itself, so skip the
+      // provider span to avoid a duplicate.
+      if (_INTERNAL_isAiProviderSpanSuppressed()) {
+        return target.apply(invocationThis, args);
+      }
 
       const isStreamingMethod = instrumentedMethod.streaming === true;
 
