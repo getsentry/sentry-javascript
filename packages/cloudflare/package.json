@@ -46,6 +46,16 @@
         "types": "./build/types/nodejs_compat/index.d.ts",
         "default": "./build/cjs/nodejs_compat/index.js"
       }
+    },
+    "./vite": {
+      "import": {
+        "types": "./build/types/vite/index.d.ts",
+        "default": "./build/esm/vite/index.js"
+      },
+      "require": {
+        "types": "./build/types/vite/index.d.ts",
+        "default": "./build/cjs/vite/index.js"
+      }
     }
   },
   "typesVersions": {
