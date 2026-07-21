@@ -129,6 +129,7 @@ export {
   kafkajsChannelIntegration,
   knexChannelIntegration,
   koaChannelIntegration,
+  langChainChannelIntegration,
   lruMemoizerChannelIntegration,
   mongodbChannelIntegration,
   mongooseChannelIntegration,
