@@ -1,7 +1,7 @@
 ---
 name: backport-pr
 description: Backport a merged PR to a maintenance major branch (v10 by default) in getsentry/sentry-javascript. Cherry-picks the PR's squash-merge commit onto the target branch, namespaces the commit/PR title scope (e.g. fix(core) -> fix(v10/core)), and opens a draft backport PR. Use when asked to backport a PR, or port a fix to v10 (or an older major like v9). Trigger phrases include "backport", "port to v10", "release this on v10".
-argument-hint: '<pr-number> [target-major]  # e.g. 18211 v10; target defaults to v10'
+argument-hint: '<pr-url-or-number> [target-major]  # e.g. https://github.com/getsentry/sentry-javascript/pull/18211 v10; target defaults to v10'
 ---
 
 # Backport a PR to a maintenance major branch
@@ -13,11 +13,13 @@ backports.
 
 ## Inputs
 
-- **PR number** (required): the already-merged PR on `develop` to backport.
+- **PR** (required): the already-merged PR on `develop` to backport, given as either a full
+  GitHub URL or a bare number. `gh pr view` accepts both, so pass whichever the user gave
+  through unchanged; `<PR>` in the commands below is that value.
 - **Target major** (optional, default `v10`): the maintenance branch to backport onto.
   Accept `v10`, `10`, `v9`, etc. Normalize to a branch name like `v10`.
 
-If the PR number is missing, ask for it. Do not guess.
+If no PR is given, ask for it. Do not guess.
 
 ## Convention (learned from the v9 backports)
 
@@ -51,7 +53,9 @@ Verify:
 - Its `baseRefName` is `develop` (or the expected parent major). If it targeted something
   else, confirm with the user before continuing.
 
-Grab `mergeCommit.oid` — this is the squash commit to cherry-pick.
+Grab `mergeCommit.oid` — this is the squash commit to cherry-pick. Also grab `number`: use
+that bare number (not the raw input) wherever `#<PR>` appears below, so `Backport of:` reads
+`Backport of: #18211` even when the user passed a URL.
 
 Make sure the target branch exists and is up to date:
 
