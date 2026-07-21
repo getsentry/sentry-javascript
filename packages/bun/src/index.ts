@@ -125,8 +125,6 @@ export {
   firebaseIntegration,
   koaIntegration,
   setupKoaErrorHandler,
-  connectIntegration,
-  setupConnectErrorHandler,
   genericPoolIntegration,
   graphqlIntegration,
   knexIntegration,

@@ -18,7 +18,6 @@ export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/h
 // eslint-disable-next-line typescript/no-deprecated
 export { honoIntegration, setupHonoErrorHandler } from './integrations/tracing/hono';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
-export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { knexIntegration } from './integrations/tracing/knex';
 export { tediousIntegration } from './integrations/tracing/tedious';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
