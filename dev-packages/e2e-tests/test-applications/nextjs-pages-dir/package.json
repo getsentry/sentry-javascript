@@ -11,7 +11,6 @@
     "test:build": "pnpm install && pnpm build",
     "test:test-build": "pnpm ts-node --script-mode assert-build.ts",
     "test:build-15": "pnpm install && pnpm add next@15 && pnpm add react@latest && pnpm add react-dom@latest && pnpm build",
-    "test:build-13": "pnpm install && pnpm add next@13.5.11 && pnpm build",
     "test:assert": "pnpm test:test-build && pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
@@ -35,10 +34,6 @@
   },
   "sentryTest": {
     "variants": [
-      {
-        "build-command": "pnpm test:build-13",
-        "label": "nextjs-pages-dir (next@13)"
-      },
       {
         "build-command": "pnpm test:build-15",
         "label": "nextjs-pages-dir (next@15)"
