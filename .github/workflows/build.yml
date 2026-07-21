@@ -803,9 +803,9 @@ jobs:
           - node: 24
             typescript: '3.8'
           # No need to test orchestrion for v18
-          - node: 20
+          - node: 20.19
             use_orchestrion: 'true'
-          - node: 22
+          - node: 22.12
             use_orchestrion: 'true'
           - node: 24
             use_orchestrion: 'true'
