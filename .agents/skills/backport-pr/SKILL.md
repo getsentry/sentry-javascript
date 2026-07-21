@@ -31,10 +31,9 @@ If the PR number is missing, ask for it. Do not guess.
     `fix(cloudflare,deno,node): ...` -> `fix(v10/cloudflare,deno,node): ...`.
 - **PR body** is a single line: `Backport of: #<original-pr-number>`.
 - **PR is opened as a draft.**
-- **Branch name**: `backport/<major>-<short-slug>`, where `<short-slug>` comes from the
-  original PR title, e.g. `backport/v10-fix-log-flush-starvation`. If you already use a
-  personal branch prefix (some contributors do, e.g. `<initials>/...`), keep using it — only
-  the base branch and commit/PR title conventions below are load-bearing.
+- **Working branch**: any local branch off the target major works — the name isn't
+  load-bearing (GitHub ignores it and contributors use varied prefixes). Just pick something
+  descriptive. What matters is the base branch and the commit/PR title conventions.
 - The changes come from the PR's **squash-merge commit** on `develop` (one commit per PR),
   so a single `git cherry-pick` normally covers the whole PR.
 
@@ -76,7 +75,7 @@ producing an empty commit.
 ### 2. Create the backport branch off the target major
 
 ```bash
-git checkout -b backport/<major>-<slug> origin/<major>
+git checkout -b <branch> origin/<major>
 ```
 
 ### 3. Cherry-pick the merge commit
@@ -137,7 +136,7 @@ git status --porcelain   # expect no output
 ### 6. Push and open the draft PR
 
 ```bash
-git push -u origin backport/<major>-<slug>
+git push -u origin <branch>
 
 gh pr create \
   --draft \
@@ -156,8 +155,8 @@ gh pr comment <PR> --body "<major> backport: #<new-backport-pr>"
 
 ## Notes
 
-- Never push directly to `develop`, `master`, or the major branch. Work only on the
-  `backport/<major>-...` branch and open a PR.
+- Never push directly to `develop`, `master`, or the major branch. Work only on your
+  backport branch and open a PR.
 - One PR per backport. If asked to backport several PRs, repeat the whole flow per PR (each
   gets its own branch and draft PR).
 - If asked to backport to multiple majors at once (e.g. v10 and v9), do them as separate
