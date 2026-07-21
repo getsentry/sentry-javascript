@@ -89,7 +89,7 @@ function makeSpanOptions(
     onlyIfParent: true,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-      ...(isCacheGet && { [CACHE_KEY]: getCacheKey(keyArg) }),
+      [CACHE_KEY]: isCacheGet ? getCacheKey(keyArg) : undefined,
     },
   };
 }
