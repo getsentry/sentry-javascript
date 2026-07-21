@@ -232,7 +232,7 @@ describe('firebaseChannelIntegration', () => {
       expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'firebase.function.http.request',
-          op: 'http.request',
+          op: 'function.firebase',
           attributes: expect.objectContaining({
             'sentry.origin': 'auto.firebase.orchestrion.functions',
             'faas.trigger': 'http.request',

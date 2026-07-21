@@ -3,11 +3,14 @@ import { toSubscribeInjections } from './subscribe-injection';
 
 // firebase 9+ ships firestore as `@firebase/firestore` (matches the OTel integration's range). Only the
 // `lite` SDK exposes the free `addDoc`/`getDocs`/`setDoc`/`deleteDoc` functions we trace, and only the
-// two `node` entry points (CJS `require`, ESM `import`) are reachable from `@sentry/node`; the
-// browser/react-native builds are irrelevant here. Each is a top-level `function <name>` declaration, so
-// `functionName` matches. They return promises, so `Auto` settles the span on `asyncEnd`.
+// `node` entry points (CJS `require`, ESM `import`) are reachable from `@sentry/node`; the
+// browser/react-native builds are irrelevant here. `addDoc` & co. are top-level `function <name>`
+// declarations, so `functionName` matches; they return promises, so `Auto` settles the span on
+// `asyncEnd`. firebase <12.8 declares them in `index.node.{cjs.js,mjs}`; firebase >=12.8 (firestore
+// >=4.10) moved them into a hash-named shared chunk `common-<hash>.node.{cjs.js,mjs}` — the RegExp
+// matches both, so injection keeps working across the version range without pinning a build hash.
 const FIRESTORE_VERSION_RANGE = '>=3.0.0 <5';
-const FIRESTORE_FILES = ['dist/lite/index.node.cjs.js', 'dist/lite/index.node.mjs'];
+const FIRESTORE_FILE = /dist\/lite\/(index|common-[^/]+)\.node\.(cjs\.js|mjs)$/;
 const FIRESTORE_OPERATIONS = [
   { functionName: 'addDoc', channelName: 'add-doc' },
   { functionName: 'getDocs', channelName: 'get-docs' },
@@ -59,13 +62,11 @@ const FUNCTIONS_TRIGGERS = [
 ] as const;
 
 export const firebaseConfig = [
-  ...FIRESTORE_FILES.flatMap(filePath =>
-    FIRESTORE_OPERATIONS.map(({ functionName, channelName }) => ({
-      channelName,
-      module: { name: '@firebase/firestore', versionRange: FIRESTORE_VERSION_RANGE, filePath },
-      functionQuery: { functionName, kind: 'Auto' as const },
-    })),
-  ),
+  ...FIRESTORE_OPERATIONS.map(({ functionName, channelName }) => ({
+    channelName,
+    module: { name: '@firebase/firestore', versionRange: FIRESTORE_VERSION_RANGE, filePath: FIRESTORE_FILE },
+    functionQuery: { functionName, kind: 'Auto' as const },
+  })),
   ...FUNCTIONS_TRIGGERS.map(({ file, functionName, channelName }) => ({
     channelName,
     module: { name: 'firebase-functions', versionRange: FUNCTIONS_VERSION_RANGE, filePath: file },
