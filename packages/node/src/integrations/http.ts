@@ -1,12 +1,6 @@
 import type { RequestOptions } from 'node:http';
 import type { HttpClientRequest, HttpIncomingMessage, HttpServerResponse, Span } from '@sentry/core';
-import {
-  defineIntegration,
-  hasSpansEnabled,
-  SEMANTIC_ATTRIBUTE_URL_FULL,
-  stripDataUrlContent,
-  getRequestUrlFromClientRequest,
-} from '@sentry/core';
+import { defineIntegration, hasSpansEnabled, stripDataUrlContent, getRequestUrlFromClientRequest } from '@sentry/core';
 import type {
   NodeClient,
   SentryHttpInstrumentationOptions,
@@ -14,6 +8,7 @@ import type {
   HttpServerSpansIntegrationOptions,
 } from '@sentry/node-core';
 import { httpServerIntegration, httpServerSpansIntegration, instrumentHttpOutgoingRequests } from '@sentry/node-core';
+import { URL_FULL } from '@sentry/conventions/attributes';
 
 const INTEGRATION_NAME = 'Http' as const;
 
@@ -210,7 +205,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
             // TODO(v11): Update these to the Sentry semantic attributes.
             // https://getsentry.github.io/sentry-conventions/attributes/
             span.setAttribute('http.url', sanitizedUrl);
-            span.setAttribute(SEMANTIC_ATTRIBUTE_URL_FULL, sanitizedUrl);
+            span.setAttribute(URL_FULL, sanitizedUrl);
             span.updateName(`${request.method || 'GET'} ${sanitizedUrl}`);
           }
           options.instrumentation?.requestHook?.(span, request);
