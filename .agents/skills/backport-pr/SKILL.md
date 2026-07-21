@@ -31,8 +31,10 @@ If the PR number is missing, ask for it. Do not guess.
     `fix(cloudflare,deno,node): ...` -> `fix(v10/cloudflare,deno,node): ...`.
 - **PR body** is a single line: `Backport of: #<original-pr-number>`.
 - **PR is opened as a draft.**
-- **Branch name**: `ab/<major>-<short-slug>` (personal rule is the `ab/` prefix). Derive
-  `<short-slug>` from the original PR title, e.g. `ab/v10-fix-log-flush-starvation`.
+- **Branch name**: `backport/<major>-<short-slug>`, where `<short-slug>` comes from the
+  original PR title, e.g. `backport/v10-fix-log-flush-starvation`. If you already use a
+  personal branch prefix (some contributors do, e.g. `<initials>/...`), keep using it — only
+  the base branch and commit/PR title conventions below are load-bearing.
 - The changes come from the PR's **squash-merge commit** on `develop` (one commit per PR),
   so a single `git cherry-pick` normally covers the whole PR.
 
@@ -74,7 +76,7 @@ producing an empty commit.
 ### 2. Create the backport branch off the target major
 
 ```bash
-git checkout -b ab/<major>-<slug> origin/<major>
+git checkout -b backport/<major>-<slug> origin/<major>
 ```
 
 ### 3. Cherry-pick the merge commit
@@ -95,21 +97,12 @@ git cherry-pick <mergeCommit-oid>
 - If the PR was **not** squash-merged (multiple commits, e.g. a merge commit), cherry-pick
   each relevant commit in order, or use `git cherry-pick -m 1 <merge-oid>` for a merge commit.
 
-### 4. Reword the commit to namespace the scope
+### 4. Build and verify
 
-Rewrite only the subject line's scope to include the major; keep the body. Do **not** add a
-`Co-Authored-By` line or conventional prefix beyond what's described here — the backport
-branch's first commit mirrors an existing commit rather than being new authored work.
-
-```bash
-git commit --amend -m "<prefix>(<major>/<scope>): <original subject>" -m "Backport of: #<PR>"
-```
-
-Example: `fix(v10/core): Fix logs flush timeout starvation with continuous logging`
-
-### 5. Build and verify before pushing
-
-Run the repo's pre-commit checks so the backport branch is green:
+Run the repo's pre-commit checks. Do this **before** finalizing the commit in step 5, because
+`yarn format` writes changes to the working tree — those fixes must end up inside the backport
+commit, not left dangling after it (otherwise you'd push an unformatted tree and CI would fail
+on a commit that doesn't match your local state).
 
 ```bash
 yarn format
@@ -121,10 +114,30 @@ Run tests scoped to the touched packages when possible (full `yarn test` if unsu
 target major's toolchain differs and a check fails for reasons unrelated to the change, note
 it for the user rather than silently skipping.
 
+### 5. Finalize the commit (reword scope + fold in verification changes)
+
+Stage anything `yarn format`/`yarn lint` changed, then amend in one step: this both namespaces
+the subject scope with the major and captures the formatting fixes. Rewrite only the subject's
+scope; keep the body. Do **not** add a `Co-Authored-By` line — the backport commit mirrors an
+existing commit rather than being new authored work.
+
+```bash
+git add -A
+git commit --amend -m "<prefix>(<major>/<scope>): <original subject>" -m "Backport of: #<PR>"
+```
+
+Example subject: `fix(v10/core): Fix logs flush timeout starvation with continuous logging`
+
+Confirm the tree is clean so nothing is left uncommitted before you push:
+
+```bash
+git status --porcelain   # expect no output
+```
+
 ### 6. Push and open the draft PR
 
 ```bash
-git push -u origin ab/<major>-<slug>
+git push -u origin backport/<major>-<slug>
 
 gh pr create \
   --draft \
@@ -144,7 +157,7 @@ gh pr comment <PR> --body "<major> backport: #<new-backport-pr>"
 ## Notes
 
 - Never push directly to `develop`, `master`, or the major branch. Work only on the
-  `ab/<major>-...` branch and open a PR.
+  `backport/<major>-...` branch and open a PR.
 - One PR per backport. If asked to backport several PRs, repeat the whole flow per PR (each
   gets its own branch and draft PR).
 - If asked to backport to multiple majors at once (e.g. v10 and v9), do them as separate
