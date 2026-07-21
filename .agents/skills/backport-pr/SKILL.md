@@ -8,8 +8,7 @@ argument-hint: '<pr-number-or-url> [target-major]  # e.g. 18211 v10; target defa
 
 `develop` is the current major (v11). A change that also needs to ship on a still-maintained
 older major has to land on that major's branch too (`v10` by default). This skill cherry-picks
-a merged `develop` PR onto that branch and opens a draft backport PR, following the same
-convention used for the v9 backports.
+a merged `develop` PR onto that branch and opens a draft backport PR.
 
 ## Inputs
 
@@ -21,7 +20,7 @@ convention used for the v9 backports.
 
 If no PR is given, ask for it. Do not guess.
 
-## Convention (learned from the v9 backports)
+## Convention
 
 - **Base branch** = the target major branch (`v10`), which must already exist on `origin`.
 - **Commit + PR title**: keep the original conventional-commit prefix but namespace the
