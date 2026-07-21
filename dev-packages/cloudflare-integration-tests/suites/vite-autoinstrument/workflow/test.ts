@@ -13,6 +13,7 @@ it('auto-instruments a Workflow class', async ({ signal }) => {
       expect(transactionEvent.transaction).toBe('step-one');
       expect(transactionEvent.contexts?.trace?.op).toBe('function.step.do');
       expect(transactionEvent.contexts?.trace?.origin).toBe('auto.faas.cloudflare.workflow');
+      expect(transactionEvent.spans).toHaveLength(0);
     })
     .start(signal);
 
