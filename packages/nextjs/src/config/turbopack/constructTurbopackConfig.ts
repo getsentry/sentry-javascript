@@ -30,6 +30,15 @@ export function constructTurbopackConfig({
   nextJsVersion?: string;
   vercelCronsConfig?: VercelCronsConfig;
 }): TurbopackOptions {
+  // The orchestrion code-transform loader only runs on Next.js versions that support Turbopack rule
+  // conditions. Gate the boot-time marker on the same condition so `isOrchestrionInjected()` can't
+  // report `true` when no module was actually transformed (which would make integrations subscribe to
+  // diagnostics channels that never publish).
+  const orchestrionInjectionActive =
+    !!userSentryOptions?._experimental?.useDiagnosticsChannelInjection &&
+    !!nextJsVersion &&
+    supportsTurbopackRuleCondition(nextJsVersion);
+
   // If sourcemaps are disabled, we don't need to enable native debug ids as this will add build time.
   const shouldEnableNativeDebugIds =
     (supportsNativeDebugIds(nextJsVersion ?? '') && userNextConfig?.turbopack?.debugIds) ??
@@ -55,7 +64,7 @@ export function constructTurbopackConfig({
     // Mark the bundler injection path as active at boot (before `Sentry.init()`), so
     // `isOrchestrionInjected()` is reliable even without the runtime hook. Individual modules add
     // themselves to this list as they load; see the orchestrion loader's injected prologue.
-    injectOrchestrionBundlerMarker: !!userSentryOptions?._experimental?.useDiagnosticsChannelInjection,
+    injectOrchestrionBundlerMarker: orchestrionInjectionActive,
   });
 
   for (const { matcher, rule } of valueInjectionRules) {
@@ -111,24 +120,19 @@ export function constructTurbopackConfig({
     });
   }
 
-  newConfig.rules = maybeAddOrchestrionRule(newConfig.rules, userSentryOptions, nextJsVersion);
+  newConfig.rules = maybeAddOrchestrionRule(newConfig.rules, orchestrionInjectionActive);
 
   return newConfig;
 }
 
 /**
- * Adds the orchestrion code-transform loader rule when diagnostics-channel injection is enabled.
+ * Adds the orchestrion code-transform loader rule when diagnostics-channel injection is active.
  */
 function maybeAddOrchestrionRule(
   rules: TurbopackOptions['rules'],
-  userSentryOptions: SentryBuildOptions | undefined,
-  nextJsVersion: string | undefined,
+  orchestrionInjectionActive: boolean,
 ): TurbopackOptions['rules'] {
-  if (
-    !userSentryOptions?._experimental?.useDiagnosticsChannelInjection ||
-    !nextJsVersion ||
-    !supportsTurbopackRuleCondition(nextJsVersion)
-  ) {
+  if (!orchestrionInjectionActive) {
     return rules;
   }
 

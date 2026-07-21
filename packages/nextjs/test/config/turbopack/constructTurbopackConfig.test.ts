@@ -1599,5 +1599,39 @@ describe('safelyAddTurbopackRule', () => {
       expect(rule?.loaders).toHaveLength(1);
       expect(typeof rule?.loaders?.[0]).toBe('string');
     });
+
+    const getServerPrefixCode = (result: ReturnType<typeof constructTurbopackConfig>): string | undefined => {
+      const serverRule = result.rules?.['**/instrumentation.*'] as
+        | { loaders?: [{ options?: { prefixCode?: string } }] }
+        | undefined;
+      return serverRule?.loaders?.[0]?.options?.prefixCode;
+    };
+
+    it('seeds the bundler marker when the loader rule is actually added', () => {
+      const result = constructTurbopackConfig({
+        userNextConfig: {},
+        userSentryOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+        nextJsVersion: '16.0.0',
+      });
+
+      expect(result.rules?.['*.{js,mjs,cjs}']).toBeDefined();
+      expect(getServerPrefixCode(result)).toContain('__SENTRY_ORCHESTRION__');
+    });
+
+    it.each([
+      ['an unsupported Next.js version', '15.0.0'],
+      ['an unknown Next.js version', undefined],
+    ])('does not seed the bundler marker with %s (loader rule cannot run)', (_label, nextJsVersion) => {
+      const result = constructTurbopackConfig({
+        userNextConfig: {},
+        userSentryOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+        nextJsVersion,
+      });
+
+      // The code-transform loader rule is not added, so `isOrchestrionInjected()` must not be
+      // seeded either - otherwise integrations subscribe to channels that never publish.
+      expect(result.rules?.['*.{js,mjs,cjs}']).toBeUndefined();
+      expect(getServerPrefixCode(result)).toBeUndefined();
+    });
   });
 });
