@@ -116,13 +116,17 @@ it for the user rather than silently skipping.
 ### 5. Finalize the commit (reword scope + fold in verification changes)
 
 Stage anything `yarn format`/`yarn lint` changed, then amend in one step: this both namespaces
-the subject scope with the major and captures the formatting fixes. Rewrite only the subject's
-scope; keep the body. Do **not** add a `Co-Authored-By` line — the backport commit mirrors an
-existing commit rather than being new authored work.
+the subject scope with the major and captures the formatting fixes. The final message is the
+namespaced subject plus the one-line `Backport of:` body (this replaces the squash-merge body,
+matching the convention above). Do **not** add a `Co-Authored-By` line — the backport commit
+mirrors an existing commit rather than being new authored work.
+
+Build the namespaced title as in the convention above: `<prefix>(<major>/<scope>):` when the
+original had a scope, or `<prefix>(<major>):` when it didn't (never emit an empty `<major>/`).
 
 ```bash
 git add -A
-git commit --amend -m "<prefix>(<major>/<scope>): <original subject>" -m "Backport of: #<PR>"
+git commit --amend -m "<namespaced-title>" -m "Backport of: #<PR>"
 ```
 
 Example subject: `fix(v10/core): Fix logs flush timeout starvation with continuous logging`
@@ -141,7 +145,7 @@ git push -u origin <branch>
 gh pr create \
   --draft \
   --base <major> \
-  --title "<prefix>(<major>/<scope>): <original subject>" \
+  --title "<namespaced-title>" \
   --body "Backport of: #<PR>"
 ```
 
