@@ -109,6 +109,27 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(result).toBeUndefined();
   });
 
+  it('wraps a configured workflow class in the entry', () => {
+    const dir = writeTempDir({
+      'wrangler.toml': [
+        'main = "index.ts"',
+        '',
+        '[[workflows]]',
+        'name = "my-workflow"',
+        'binding = "MY_WF"',
+        'class_name = "MyWorkflow"',
+      ].join('\n'),
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const code = ['class WorkflowEntrypoint {}', 'export class MyWorkflow extends WorkflowEntrypoint {}'].join('\n');
+    const result = plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
+
+    expect(result).toBeDefined();
+    expect(result.code).toContain('__SENTRY__.instrumentWorkflowWithSentry(');
+  });
+
   it('warns when a configured DO class cannot be wrapped', () => {
     const dir = writeTempDir({
       'wrangler.toml': [
