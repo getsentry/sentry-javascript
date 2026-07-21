@@ -13,6 +13,7 @@ import {
 } from '@sentry/core';
 import {
   amqplibChannelIntegration,
+  anthropicChannelIntegration,
   awsChannelIntegration,
   expressChannelIntegration,
   firebaseChannelIntegration,
@@ -89,6 +90,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     ...(MODULE_REGISTER_HOOKS_SUPPORTED
       ? [
           amqplibChannelIntegration(),
+          anthropicChannelIntegration(),
           awsChannelIntegration(),
           expressChannelIntegration(),
           firebaseChannelIntegration(),
