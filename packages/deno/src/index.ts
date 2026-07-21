@@ -120,6 +120,7 @@ export {
   dataloaderChannelIntegration,
   expressChannelIntegration,
   genericPoolChannelIntegration,
+  graphqlDiagnosticsChannelIntegration,
   hapiChannelIntegration,
   kafkajsChannelIntegration,
   knexChannelIntegration,

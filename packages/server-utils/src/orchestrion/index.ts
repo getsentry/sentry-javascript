@@ -47,6 +47,7 @@ export {
   genericPoolChannelIntegration,
   googleGenAIChannelIntegration,
   graphqlChannelIntegration,
+  graphqlDiagnosticsChannelIntegration,
   hapiChannelIntegration,
   koaChannelIntegration,
   ioredisChannelIntegration,
