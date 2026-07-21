@@ -27,14 +27,13 @@ export interface RegisterDiagnosticsChannelInjectionOptions {
 
 /** `Module.registerHooks` only became stable in Node 24.13 / 25.1 and Deno 2.8. */
 function hasStableSyncModuleHooks(denoVersionString: string | undefined): boolean {
-  const { major: nodeMajor = 0, minor: nodeMinor = 0 } = parseSemver(process.versions.node ?? '0.0.0');
-
-  if (nodeMajor > 25 || (nodeMajor === 25 && nodeMinor >= 1) || (nodeMajor === 24 && nodeMinor >= 13)) {
-    return true;
+  if (denoVersionString) {
+    const { major = 0, minor = 0 } = parseSemver(denoVersionString);
+    return major > 2 || (major === 2 && minor >= 8);
   }
 
-  const { major: denoMajor = 0, minor: denoMinor = 0 } = parseSemver(denoVersionString ?? '0.0.0');
-  return denoMajor > 2 || (denoMajor === 2 && denoMinor >= 8);
+  const { major = 0, minor = 0 } = parseSemver(process.versions.node ?? '0.0.0');
+  return major > 25 || (major === 25 && minor >= 1) || (major === 24 && minor >= 13);
 }
 
 /**
