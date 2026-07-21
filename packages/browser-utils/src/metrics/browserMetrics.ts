@@ -8,7 +8,6 @@ import {
   isPrimitive,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_URL_FULL,
   setMeasurement,
   spanToJSON,
   stringMatchesSomePattern,
@@ -30,6 +29,7 @@ import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
 import { DEBUG_BUILD } from '../debug-build';
+import { URL_FULL } from '@sentry/conventions/attributes';
 interface NavigatorNetworkInformation {
   readonly connection?: NetworkInformation;
 }
@@ -775,7 +775,7 @@ export function _addResourceSpans(
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
 
-  attributes[SEMANTIC_ATTRIBUTE_URL_FULL] = resourceUrl;
+  attributes[URL_FULL] = resourceUrl;
 
   _setResourceRequestAttributes(entry, attributes, [
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus

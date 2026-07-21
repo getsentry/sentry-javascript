@@ -40,6 +40,7 @@ import {
 } from '@sentry/browser-utils';
 import type { BrowserClient } from '../client';
 import { baggageHeaderHasSentryValues, createHeadersSafely, getFullURL, isPerformanceResourceTiming } from './utils';
+import { HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -172,10 +173,11 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         const host = fullUrl ? parseUrl(fullUrl).host : undefined;
         const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
         createdSpan.setAttributes({
-          'http.url': sanitizedFullUrl,
+          // oxlint-disable-next-line typescript/no-deprecated
+          [HTTP_URL]: sanitizedFullUrl,
           // `url.full` must match `http.url`. Setting it here ensures parentless `http.client`
           // segment spans don't get `url.full` backfilled with the host page URL (see httpContextIntegration).
-          'url.full': sanitizedFullUrl,
+          [URL_FULL]: sanitizedFullUrl,
           'server.address': host,
         });
 
@@ -393,7 +395,7 @@ function xhrCallback(
             'http.url': sanitizedFullUrl,
             // `url.full` must match `http.url`. Setting it here ensures parentless `http.client`
             // segment spans don't get `url.full` backfilled with the host page URL (see httpContextIntegration).
-            'url.full': sanitizedFullUrl,
+            [URL_FULL]: sanitizedFullUrl,
             'server.address': parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
