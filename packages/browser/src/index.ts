@@ -72,13 +72,6 @@ export {
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
   featureFlagsIntegration,
-  instrumentAnthropicAiClient,
-  instrumentOpenAiClient,
-  instrumentGoogleGenAIClient,
-  instrumentLangGraph,
-  instrumentCreateReactAgent,
-  createLangChainCallbackHandler,
-  instrumentLangChainEmbeddings,
   logger,
 } from '@sentry/core/browser';
 export type { Span, FeatureFlagsIntegration } from '@sentry/core/browser';
