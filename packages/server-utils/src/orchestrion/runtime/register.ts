@@ -13,18 +13,6 @@ type NodeModule = {
   register?: typeof register;
 };
 
-export interface RegisterDiagnosticsChannelInjectionOptions {
-  /**
-   * Absolute directory of the `@apm-js-collab/tracing-hooks` package (forward slashes).
-   *
-   * Needed when SDK code is bundled into an app's server build: the default bare-specifier
-   * require then resolves from the emitted chunk, which fails under isolated installs (pnpm).
-   * Framework SDKs (e.g. `@sentry/nextjs`) resolve the package at build time and pass its
-   * location here; it is loaded through an opaque `createRequire` that bundlers can't trace.
-   */
-  tracingHooksDir?: string;
-}
-
 /** `Module.registerHooks` only became stable in Node 24.13 / 25.1 and Deno 2.8. */
 function hasStableSyncModuleHooks(denoVersionString: string | undefined): boolean {
   if (denoVersionString) {
@@ -48,7 +36,7 @@ function hasStableSyncModuleHooks(denoVersionString: string | undefined): boolea
  * Libraries imported *after* this call publish the `tracingChannel` events that
  * the channel-based integrations subscribe to.
  */
-export function registerDiagnosticsChannelInjection(_options?: RegisterDiagnosticsChannelInjectionOptions): void {
+export function registerDiagnosticsChannelInjection(): void {
   // Skip Node's internal loader (hooks) threads, recognizable as the only threads without a
   // `parentPort`. Node re-runs `--require` preloads (though not `--import` ones) on the loader
   // thread it spawns for `Module.register()`, so this function runs there too — but that thread
@@ -96,9 +84,6 @@ export function registerDiagnosticsChannelInjection(_options?: RegisterDiagnosti
       // `Module.register` + the `_compile` patch is Node 18.19–24.12 / 25.0
       // path. Bun/Deno are excluded: they don't support this combination and
       // must use the stable `registerHooks` path above (or none at all).
-      // `Module.register` resolves ESM-style: a bare package specifier is resolved against
-      // `parentURL`, but a filesystem path (the `tracingHooksDir` override) is not a valid ESM
-      // specifier and must be passed as a file:// URL.
       const diagnosticsPort = createDiagnosticsPort();
 
       let parentURL: string;

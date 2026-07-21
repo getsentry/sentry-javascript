@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { sentryOrchestrionPlugin as esbuildPlugin } from '../../src/orchestrion/bundler/esbuild';
 import { sentryOrchestrionPlugin as rollupPlugin } from '../../src/orchestrion/bundler/rollup';
 import { sentryOrchestrionPlugin as vitePlugin } from '../../src/orchestrion/bundler/vite';
-import { getTracingHooksDirectory, sentryOrchestrionWebpackPlugin } from '../../src/orchestrion/bundler/webpack';
+import { sentryOrchestrionWebpackPlugin } from '../../src/orchestrion/bundler/webpack';
 
 // The upstream transform plugins are mocked so tests exercise only the hooks
 // added on top of them (the externalized-modules warnings).
@@ -133,17 +133,5 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     expect(runConfigResolved(true)).not.toHaveBeenCalled();
     expect(runConfigResolved(['lodash'])).not.toHaveBeenCalled();
     expect(runConfigResolved(undefined)).not.toHaveBeenCalled();
-  });
-});
-
-describe('getTracingHooksDirectory', () => {
-  it('returns the tracing-hooks package directory with the runtime hook entry points', () => {
-    const dir = getTracingHooksDirectory();
-
-    expect(dir).not.toContain('\\');
-    // The runtime module hook loads these files by joining them onto the directory.
-    expect(existsSync(join(dir, 'hook-sync.mjs'))).toBe(true);
-    expect(existsSync(join(dir, 'hook.mjs'))).toBe(true);
-    expect(existsSync(join(dir, 'package.json'))).toBe(true);
   });
 });

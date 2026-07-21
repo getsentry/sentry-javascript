@@ -16,7 +16,7 @@ export const BUNDLE_SAFE_INSTRUMENTED_PACKAGES = ['ioredis'];
  * bare-specifier `require`/`import` of the (also-external) tracing-hooks packages resolve
  * correctly. If `@sentry/server-utils` were bundled into an app server chunk instead, its code
  * would be relocated away from `node_modules`, and those same specifiers would fail to resolve
- * under isolated installs (pnpm) — exactly the problem `tracingHooksDir` used to paper over.
+ * under isolated installs (pnpm).
  */
 export const ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES = [
   '@apm-js-collab/tracing-hooks',

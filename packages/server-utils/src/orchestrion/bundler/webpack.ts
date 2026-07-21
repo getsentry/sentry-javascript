@@ -2,7 +2,6 @@
 // separately because Turbopack can only take webpack loaders (via `turbopack.rules`), not plugins.
 
 import { createRequire } from 'node:module';
-import { dirname } from 'node:path';
 import type { Compiler } from 'webpack';
 import type { InstrumentationConfig } from '..';
 import { instrumentedModuleNames, SENTRY_INSTRUMENTATIONS } from '../config';
@@ -29,18 +28,6 @@ function getOrchestrionRequire(): ReturnType<typeof createRequire> {
 /** Absolute path to the code-transform loader (a webpack loader; also usable as a Turbopack loader). */
 export function getOrchestrionLoaderPath(): string {
   return getOrchestrionRequire().resolve('@apm-js-collab/code-transformer-bundler-plugins/webpack-loader');
-}
-
-/**
- * Absolute path to the `@apm-js-collab/tracing-hooks` package directory, resolved from this
- * package's own dependency graph. SDKs inject it at build time so the runtime module hook can
- * load the package even where the bare specifier doesn't resolve (bundled SDK code under
- * isolated installs, e.g. pnpm).
- */
-export function getTracingHooksDirectory(): string {
-  const packageJsonPath = getOrchestrionRequire().resolve('@apm-js-collab/tracing-hooks/package.json');
-  // This avoids any backslash-escaping concerns on Windows
-  return dirname(packageJsonPath).replace(/\\/g, '/');
 }
 
 /** The central instrumentation config, to pass as the loader's `instrumentations` option. */

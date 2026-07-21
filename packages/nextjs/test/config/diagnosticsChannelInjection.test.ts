@@ -58,8 +58,6 @@ describe('setUpBuildTimeVariables (diagnostics-channel injection)', () => {
 
     expect(nextConfig.env).toMatchObject({
       _sentryUseDiagnosticsChannelInjection: 'true',
-      // The runtime module hook joins subpaths onto this, so it must be an absolute directory.
-      _sentryOrchestrionTracingHooksDir: expect.stringMatching(/@apm-js-collab[/+]tracing-hooks/),
     });
   });
 
@@ -68,6 +66,5 @@ describe('setUpBuildTimeVariables (diagnostics-channel injection)', () => {
     setUpBuildTimeVariables(nextConfig, {}, undefined);
 
     expect(nextConfig.env).not.toHaveProperty('_sentryUseDiagnosticsChannelInjection');
-    expect(nextConfig.env).not.toHaveProperty('_sentryOrchestrionTracingHooksDir');
   });
 });

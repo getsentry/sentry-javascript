@@ -1,6 +1,4 @@
 // Ambient declarations for `@apm-js-collab/tracing-hooks`, which ships no types of its own.
-// `register.ts` loads these modules through `require`/`createRequire`, but the static
-// `import` of the package entry still needs the module to resolve at type-check time.
 
 declare module '@apm-js-collab/tracing-hooks' {
   type InstrumentationConfig = unknown;
