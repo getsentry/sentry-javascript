@@ -15,6 +15,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { ServeOptions } from 'bun';
+import { URL_FULL } from '@sentry/conventions/attributes';
 
 const INTEGRATION_NAME = 'BunServer' as const;
 
