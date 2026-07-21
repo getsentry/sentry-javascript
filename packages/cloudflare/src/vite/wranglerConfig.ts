@@ -11,6 +11,13 @@ export interface WranglerConfig {
   main?: string;
   durableObjects: Array<{ name: string; className: string }>;
   workflows: Array<{ name: string; className: string }>;
+  /**
+   * Named `WorkerEntrypoint` exports this worker binds to itself via a service
+   * binding (`services[]` whose `service` is this worker's own `name`). Only
+   * self-bindings appear here: a service binding's `entrypoint` otherwise names
+   * an export on a *different* worker, which this build can't wrap.
+   */
+  workerEntrypoints: string[];
 }
 
 /**
@@ -54,9 +61,29 @@ export function resolveWranglerConfig(
       main: raw.main,
       durableObjects: collectClassBindings(raw.durable_objects?.bindings),
       workflows: collectClassBindings(raw.workflows),
+      workerEntrypoints: collectSelfBoundEntrypoints(raw),
     },
     configDir: dirname(raw.configPath ?? configPath),
   };
+}
+
+/**
+ * Collect named `WorkerEntrypoint` exports the worker binds to itself. A service
+ * binding's `entrypoint` normally names an export on the *target* worker, so it
+ * is only ours when `service` equals this worker's own `name`. Without a `name`
+ * there is nothing to match against, so no entrypoints are derivable.
+ */
+function collectSelfBoundEntrypoints(raw: Unstable_Config): string[] {
+  if (!raw.name) {
+    return [];
+  }
+  const entrypoints = new Set<string>();
+  for (const binding of raw.services ?? []) {
+    if (binding?.service === raw.name && typeof binding.entrypoint === 'string') {
+      entrypoints.add(binding.entrypoint);
+    }
+  }
+  return [...entrypoints];
 }
 
 /**
