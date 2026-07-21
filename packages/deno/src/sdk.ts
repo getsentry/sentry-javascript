@@ -20,6 +20,7 @@ import {
   mysql2ChannelIntegration,
   postgresChannelIntegration,
   postgresJsChannelIntegration,
+  tediousChannelIntegration,
 } from '@sentry/server-utils/orchestrion';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
@@ -81,6 +82,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
           mysql2ChannelIntegration(),
           postgresChannelIntegration(),
           postgresJsChannelIntegration(),
+          tediousChannelIntegration(),
         ]
       : []),
     contextLinesIntegration(),
