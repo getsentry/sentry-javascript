@@ -52,12 +52,64 @@
       "require": {
         "default": "./build/cjs/preload.js"
       }
+    },
+    "./vite": {
+      "import": {
+        "types": "./build/types/bundler-plugin/vite.d.ts",
+        "default": "./build/esm/bundler-plugin/vite.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/vite.d.ts",
+        "default": "./build/cjs/bundler-plugin/vite.js"
+      }
+    },
+    "./rollup": {
+      "import": {
+        "types": "./build/types/bundler-plugin/rollup.d.ts",
+        "default": "./build/esm/bundler-plugin/rollup.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/rollup.d.ts",
+        "default": "./build/cjs/bundler-plugin/rollup.js"
+      }
+    },
+    "./webpack": {
+      "import": {
+        "types": "./build/types/bundler-plugin/webpack.d.ts",
+        "default": "./build/esm/bundler-plugin/webpack.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/webpack.d.ts",
+        "default": "./build/cjs/bundler-plugin/webpack.js"
+      }
+    },
+    "./esbuild": {
+      "import": {
+        "types": "./build/types/bundler-plugin/esbuild.d.ts",
+        "default": "./build/esm/bundler-plugin/esbuild.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/esbuild.d.ts",
+        "default": "./build/cjs/bundler-plugin/esbuild.js"
+      }
     }
   },
   "typesVersions": {
     "<5.0": {
       "build/types/index.d.ts": [
         "build/types-ts3.8/index.d.ts"
+      ],
+      "vite": [
+        "build/types-ts3.8/bundler-plugin/vite.d.ts"
+      ],
+      "rollup": [
+        "build/types-ts3.8/bundler-plugin/rollup.d.ts"
+      ],
+      "webpack": [
+        "build/types-ts3.8/bundler-plugin/webpack.d.ts"
+      ],
+      "esbuild": [
+        "build/types-ts3.8/bundler-plugin/esbuild.d.ts"
       ]
     }
   },
@@ -73,6 +125,7 @@
     "@sentry/node-core": "10.67.0",
     "@sentry/opentelemetry": "10.67.0",
     "@sentry/server-utils": "10.67.0",
+    "@sentry/bundler-plugins": "10.67.0",
     "import-in-the-middle": "^3.0.0"
   },
   "devDependencies": {

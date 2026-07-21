@@ -1,4 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
+import { CACHE_KEY } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span, StartSpanOptions } from '@sentry/core';
 import {
   debug,
@@ -61,7 +62,21 @@ function getSpanName(loader: DataLoaderInstance | undefined, operation: Operatio
   return name ? `${MODULE_NAME}.${operation} ${name}` : `${MODULE_NAME}.${operation}`;
 }
 
-function makeSpanOptions(loader: DataLoaderInstance | undefined, operation: Operation): StartSpanOptions {
+// `load` receives a single key, `loadMany`/`batch` receive a key array. Normalize both to the
+// `string[]` shape `cache.key` expects.
+function getCacheKey(keyArg: unknown): string[] | undefined {
+  if (Array.isArray(keyArg)) {
+    return keyArg.map(key => String(key));
+  }
+
+  return keyArg == null ? undefined : [String(keyArg)];
+}
+
+function makeSpanOptions(
+  loader: DataLoaderInstance | undefined,
+  operation: Operation,
+  keyArg?: unknown,
+): StartSpanOptions {
   const isCacheGet = operation === 'load' || operation === 'loadMany' || operation === 'batch';
 
   return {
@@ -74,6 +89,7 @@ function makeSpanOptions(loader: DataLoaderInstance | undefined, operation: Oper
     onlyIfParent: true,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+      [CACHE_KEY]: isCacheGet ? getCacheKey(keyArg) : undefined,
     },
   };
 }
@@ -117,7 +133,8 @@ function subscribeConstruct(): void {
 
       const original = batchLoadFn as (...args: unknown[]) => unknown;
       const wrapped = function (this: DataLoaderInstance, ...args: unknown[]): unknown {
-        return startSpan({ ...makeSpanOptions(this, 'batch'), links: this._batch?.spanLinks }, () =>
+        // `batchLoadFn` receives the batched keys as its first argument.
+        return startSpan({ ...makeSpanOptions(this, 'batch', args[0]), links: this._batch?.spanLinks }, () =>
           original.apply(this, args),
         );
       };
@@ -139,7 +156,9 @@ function subscribeConstruct(): void {
 function subscribeLoad(): void {
   const channel = diagnosticsChannel.tracingChannel<DataLoaderChannelContext>(CHANNELS.DATALOADER_LOAD);
 
-  bindTracingChannelToSpan(channel, data => startInactiveSpanFor(data.self, 'load'), { requiresParentSpan: true });
+  bindTracingChannelToSpan(channel, data => startInactiveSpanFor(data.self, 'load', data.arguments[0]), {
+    requiresParentSpan: true,
+  });
 
   channel.end.subscribe(message => {
     const data = message as TracingChannelPayloadWithSpan<DataLoaderChannelContext>;
@@ -154,13 +173,13 @@ function subscribeLoad(): void {
 function subscribeSimpleOperation(channelName: ChannelName, operation: Operation): void {
   bindTracingChannelToSpan(
     diagnosticsChannel.tracingChannel<DataLoaderChannelContext>(channelName),
-    data => startInactiveSpanFor(data.self, operation),
+    data => startInactiveSpanFor(data.self, operation, data.arguments[0]),
     { requiresParentSpan: true },
   );
 }
 
-function startInactiveSpanFor(loader: DataLoaderInstance | undefined, operation: Operation): Span {
-  return startInactiveSpan(makeSpanOptions(loader, operation));
+function startInactiveSpanFor(loader: DataLoaderInstance | undefined, operation: Operation, keyArg?: unknown): Span {
+  return startInactiveSpan(makeSpanOptions(loader, operation, keyArg));
 }
 
 /**

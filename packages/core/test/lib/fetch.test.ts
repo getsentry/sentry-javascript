@@ -1,3 +1,4 @@
+import { URL_FULL } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HandlerDataFetch } from '../../src';
 import { _INTERNAL_getTracingHeadersForFetchRequest, instrumentFetchRequest } from '../../src/fetch';
@@ -65,6 +66,21 @@ describe('_INTERNAL_getTracingHeadersForFetchRequest', () => {
         ).toEqual({
           'sentry-trace': DEFAULT_SENTRY_TRACE,
           baggage: DEFAULT_BAGGAGE,
+          'custom-header': 'custom-value',
+        });
+      });
+
+      it('omits baggage from headers object when no baggage is available', () => {
+        vi.mocked(traceData.getTraceData).mockReturnValueOnce({
+          'sentry-trace': DEFAULT_SENTRY_TRACE,
+        });
+
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
+          headers: { 'custom-header': 'custom-value' },
+        });
+
+        expect(returnedHeaders).toStrictEqual({
+          'sentry-trace': DEFAULT_SENTRY_TRACE,
           'custom-header': 'custom-value',
         });
       });
@@ -444,6 +460,49 @@ describe('_INTERNAL_getTracingHeadersForFetchRequest', () => {
 });
 
 describe('instrumentFetchRequest', () => {
+  describe('span attributes', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('sets url.full for absolute URLs', () => {
+      const url = 'https://api.example.com/users/42?include=profile#bio';
+      const activeSpan = new SentryNonRecordingSpan();
+      const fetchSpan = new SentryNonRecordingSpan();
+      hasSpansEnabled.mockReturnValue(true);
+      vi.spyOn(spanUtils, 'getActiveSpan').mockReturnValue(activeSpan);
+      const startInactiveSpanSpy = vi.spyOn(tracing, 'startInactiveSpan').mockReturnValue(fetchSpan);
+
+      instrumentFetchRequest(
+        {
+          fetchData: { url, method: 'GET' },
+          args: [url],
+          startTimestamp: Date.now(),
+        },
+        () => true,
+        () => false,
+        {},
+        { spanOrigin: 'auto.http.fetch' },
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+        name: 'GET https://api.example.com/users/42',
+        attributes: {
+          url,
+          type: 'fetch',
+          'http.method': 'GET',
+          'sentry.origin': 'auto.http.fetch',
+          'sentry.op': 'http.client',
+          'http.url': url,
+          [URL_FULL]: url,
+          'server.address': 'api.example.com',
+          'http.query': '?include=profile',
+          'http.fragment': '#bio',
+        },
+      });
+    });
+  });
+
   describe('trace header span', () => {
     beforeEach(() => {
       vi.clearAllMocks();

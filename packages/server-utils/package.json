@@ -119,7 +119,8 @@
     "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.1",
     "@apm-js-collab/tracing-hooks": "^0.13.0",
     "@sentry/conventions": "^0.16.0",
-    "@sentry/core": "10.67.0"
+    "@sentry/core": "10.67.0",
+    "meriyah": "^6.1.4"
   },
   "devDependencies": {
     "@types/node": "^18.19.1",

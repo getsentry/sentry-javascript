@@ -90,6 +90,16 @@ export interface TracingChannelBindingHandle<TData extends object = object> {
 
 const NOOP = (): void => {};
 
+/** Runs a span-building callback so a throw inside it can never break the user's traced call. */
+export function safeChannelCallback<T>(fn: () => T): T | undefined {
+  try {
+    return fn();
+  } catch (error) {
+    DEBUG_BUILD && debug.warn('[orchestrion] error handling channel event', error);
+    return undefined;
+  }
+}
+
 /**
  * Bind a span and its lifecycle to a tracing channel so the span becomes the active async context
  * for the traced operation and is ended when the operation completes.

@@ -14,10 +14,7 @@ import {
 import type { Client, Span } from '@sentry/core';
 import type { EmberRouterMain } from '../types';
 import { getBackburner } from './performance';
-
-const URL_FULL = 'url.full';
-const URL_PATH = 'url.path';
-const URL_TEMPLATE = 'url.template';
+import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 type TransitionWithIntent = Transition & { intent?: { url?: string } };
 

@@ -10,7 +10,7 @@ export type ModuleMetadataInjectionLoaderOptions = {
  * `thirdPartyErrorFilterIntegration` can tell first-party code from
  * third-party code.
  *
- * This is the Turbopack equivalent of what `@sentry/webpack-plugin` does
+ * This is the Turbopack equivalent of what `@sentry/bundler-plugins/webpack` does
  * via its `moduleMetadata` option.
  *
  * Options:
@@ -25,7 +25,7 @@ export default function moduleMetadataInjectionLoader(
   // We do not want to cache injected values across builds
   this.cacheable(false);
 
-  // The snippet mirrors what @sentry/webpack-plugin injects for moduleMetadata.
+  // The snippet mirrors what @sentry/bundler-plugins/webpack injects for moduleMetadata.
   // It is wrapped in a try-catch IIFE (matching the webpack plugin's CodeInjection pattern)
   // so that injection failures in node_modules or unusual environments never break the module.
   // The IIFE resolves the global object and stores metadata keyed by (new Error).stack

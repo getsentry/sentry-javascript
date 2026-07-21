@@ -128,9 +128,6 @@ targets:
     id: '@sentry/sveltekit'
     includeNames: /^sentry-sveltekit-\d.*\.tgz$/
   - name: npm
-    id: '@sentry/tanstackstart'
-    includeNames: /^sentry-tanstackstart-\d.*\.tgz$/
-  - name: npm
     id: '@sentry/tanstackstart-react'
     includeNames: /^sentry-tanstackstart-react-\d.*\.tgz$/
   - name: npm

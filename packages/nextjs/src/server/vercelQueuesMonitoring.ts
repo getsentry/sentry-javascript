@@ -1,3 +1,4 @@
+import { URL_FULL } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import { getIsolationScope, spanToJSON } from '@sentry/core';
 
@@ -76,7 +77,7 @@ export function maybeEnrichQueueProducerSpan(span: Span): void {
   const spanData = spanToJSON(span).data;
 
   // http.client spans have url.full attribute
-  const urlFull = spanData?.['url.full'] as string | undefined;
+  const urlFull = spanData?.[URL_FULL] as string | undefined;
   if (!urlFull) {
     return;
   }

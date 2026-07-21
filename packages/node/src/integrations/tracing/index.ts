@@ -3,7 +3,6 @@ import { prismaIntegration } from '@sentry/server-utils';
 import { instrumentSentryHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { anthropicAIIntegration, instrumentAnthropicAi } from './anthropic-ai';
-import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastifyV3 } from './fastify';
 import { firebaseIntegration, instrumentFirebase } from './firebase';
@@ -47,7 +46,6 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     prismaIntegration(),
     hapiIntegration(),
     koaIntegration(),
-    connectIntegration(),
     tediousIntegration(),
     genericPoolIntegration(),
     kafkaIntegration(),
@@ -74,7 +72,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
   return [
     instrumentSentryHttp,
     instrumentExpress,
-    instrumentConnect,
     instrumentFastifyV3,
     instrumentHapi,
     instrumentHono,
