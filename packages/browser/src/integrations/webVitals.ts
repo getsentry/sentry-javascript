@@ -41,7 +41,6 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
       const trackClsOnPageloadSpan = !spanStreamingEnabled && !ignored.has('cls');
       const trackLcpOnPageloadSpan = !spanStreamingEnabled && !ignored.has('lcp');
 
-      // eslint-disable-next-line typescript/no-deprecated
       const finalizeWebVitals = startTrackingWebVitals({
         trackCls: trackClsOnPageloadSpan,
         trackLcp: trackLcpOnPageloadSpan,
