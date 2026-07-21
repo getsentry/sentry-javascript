@@ -1,7 +1,7 @@
 import type { Integration, IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry-internal/replay';
-import { CanvasManager } from '@sentry-internal/rrweb';
+import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry/replay';
+import { CanvasManager } from '@sentry/rrweb';
 
 interface SnapshotOptions {
   skipRequestAnimationFrame?: boolean;

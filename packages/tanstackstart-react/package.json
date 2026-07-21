@@ -1,6 +1,6 @@
 {
   "name": "@sentry/tanstackstart-react",
-  "version": "10.55.0",
+  "version": "10.67.0",
   "description": "Official Sentry SDK for TanStack Start React",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tanstackstart-react",
@@ -52,35 +52,26 @@
       "require": "./build/cjs/vite/index.js"
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@opentelemetry/semantic-conventions": "^1.40.0",
-    "@sentry-internal/browser-utils": "10.55.0",
-    "@sentry/core": "10.55.0",
-    "@sentry/node": "10.55.0",
-    "@sentry/react": "10.55.0",
-    "@sentry/vite-plugin": "^5.3.0"
+    "@sentry/browser-utils": "10.67.0",
+    "@sentry/conventions": "^0.16.0",
+    "@sentry/core": "10.67.0",
+    "@sentry/node": "10.67.0",
+    "@sentry/react": "10.67.0",
+    "@sentry/bundler-plugins": "10.67.0"
   },
   "devDependencies": {
-    "vite": "^5.4.11"
+    "vite": "^6.4.3"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",

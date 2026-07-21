@@ -50,23 +50,30 @@ export const TestDurableObject = Sentry.instrumentDurableObjectWithSentry(
   TestDurableObjectBase,
 );
 
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const id: DurableObjectId = env.TEST_DURABLE_OBJECT.idFromName('test');
-    const stub = env.TEST_DURABLE_OBJECT.get(id) as unknown as TestDurableObjectBase;
+export default Sentry.withSentry(
+  (env: Env) => ({
+    dsn: env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
+    enableRpcTracePropagation: true,
+  }),
+  {
+    async fetch(request: Request, env: Env): Promise<Response> {
+      const id: DurableObjectId = env.TEST_DURABLE_OBJECT.idFromName('test');
+      const stub = env.TEST_DURABLE_OBJECT.get(id) as unknown as TestDurableObjectBase;
 
-    if (request.url.includes('hello')) {
-      const greeting = await stub.sayHello('world');
-      return new Response(greeting);
-    }
+      if (request.url.includes('hello')) {
+        const greeting = await stub.sayHello('world');
+        return new Response(greeting);
+      }
 
-    // Test endpoint that modifies and reads a private field via RPC
-    if (request.url.includes('custom-greeting')) {
-      await stub.setGreeting('Howdy');
-      const greeting = await stub.sayHello('partner');
-      return new Response(greeting);
-    }
+      // Test endpoint that modifies and reads a private field via RPC
+      if (request.url.includes('custom-greeting')) {
+        await stub.setGreeting('Howdy');
+        const greeting = await stub.sayHello('partner');
+        return new Response(greeting);
+      }
 
-    return new Response('Usual response');
-  },
-};
+      return new Response('Usual response');
+    },
+  } satisfies ExportedHandler<Env>,
+);

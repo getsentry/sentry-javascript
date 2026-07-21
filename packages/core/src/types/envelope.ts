@@ -89,7 +89,7 @@ type ReplayEventItemHeaders = { type: 'replay_event' };
 type ReplayRecordingItemHeaders = { type: 'replay_recording'; length: number };
 type CheckInItemHeaders = { type: 'check_in' };
 type ProfileItemHeaders = { type: 'profile' };
-type ProfileChunkItemHeaders = { type: 'profile_chunk' };
+type ProfileChunkItemHeaders = { type: 'profile_chunk'; platform: ProfileChunk['platform'] };
 type SpanItemHeaders = { type: 'span' };
 type SpanContainerItemHeaders = {
   /**

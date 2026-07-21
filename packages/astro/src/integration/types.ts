@@ -1,5 +1,5 @@
 import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import type { RouteData } from 'astro';
 
 type SdkInitPaths = {
@@ -101,7 +101,7 @@ type SourceMapsOptions = {
   filesToDeleteAfterUpload?: string | Array<string>;
 
   /**
-   * Options to further customize the Sentry Vite Plugin (@sentry/vite-plugin) behavior directly.
+   * Options to further customize the Sentry Vite Plugin (@sentry/bundler-plugins/vite) behavior directly.
    * Options specified in this object take precedence over all other options.
    *
    * @see https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options which lists all available options.
@@ -194,9 +194,9 @@ export type SentryOptions = Omit<BuildTimeOptionsBase, 'release'> &
      * @deprecated This option was deprecated. Please move the options to the top-level configuration.
      * See the migration guide in the SourceMapsOptions type documentation.
      */
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     sourceMapsUploadOptions?: SourceMapsOptions;
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
   } & DeprecatedRuntimeOptions;
 
 /**

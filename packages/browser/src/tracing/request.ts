@@ -22,6 +22,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   setHttpStatus,
+  spanIsIgnored,
   spanToJSON,
   startInactiveSpan,
   stringMatchesSomePattern,
@@ -29,16 +30,17 @@ import {
   stripUrlQueryAndFragment,
   timestampInSeconds,
 } from '@sentry/core/browser';
-import type { XhrHint } from '@sentry-internal/browser-utils';
+import type { XhrHint } from '@sentry/browser-utils';
 import {
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
   parseXhrResponseHeaders,
   resourceTimingToSpanAttributes,
   SENTRY_XHR_DATA_KEY,
-} from '@sentry-internal/browser-utils';
+} from '@sentry/browser-utils';
 import type { BrowserClient } from '../client';
 import { baggageHeaderHasSentryValues, createHeadersSafely, getFullURL, isPerformanceResourceTiming } from './utils';
+import { HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -169,8 +171,13 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       if (createdSpan) {
         const fullUrl = getFullURL(handlerData.fetchData.url);
         const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+        const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
         createdSpan.setAttributes({
-          'http.url': fullUrl ? stripDataUrlContent(fullUrl) : undefined,
+          // oxlint-disable-next-line typescript/no-deprecated
+          [HTTP_URL]: sanitizedFullUrl,
+          // `url.full` must match `http.url`. Setting it here ensures parentless `http.client`
+          // segment spans don't get `url.full` backfilled with the host page URL (see httpContextIntegration).
+          [URL_FULL]: sanitizedFullUrl,
           'server.address': host,
         });
 
@@ -321,6 +328,7 @@ export function shouldAttachHeaders(
  *
  * @returns Span if a span was created, otherwise void.
  */
+// oxlint-disable-next-line complexity
 function xhrCallback(
   handlerData: HandlerDataXhr,
   shouldCreateSpan: (url: string) => boolean,
@@ -367,6 +375,7 @@ function xhrCallback(
 
   const fullUrl = getFullURL(url);
   const parsedUrl = fullUrl ? parseUrl(fullUrl) : parseUrl(url);
+  const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
 
   const urlForSpanName = stripDataUrlContent(stripUrlQueryAndFragment(url));
 
@@ -383,7 +392,10 @@ function xhrCallback(
             url: stripDataUrlContent(url),
             type: 'xhr',
             'http.method': method,
-            'http.url': fullUrl ? stripDataUrlContent(fullUrl) : undefined,
+            'http.url': sanitizedFullUrl,
+            // `url.full` must match `http.url`. Setting it here ensures parentless `http.client`
+            // segment spans don't get `url.full` backfilled with the host page URL (see httpContextIntegration).
+            [URL_FULL]: sanitizedFullUrl,
             'server.address': parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
@@ -392,6 +404,10 @@ function xhrCallback(
           },
         })
       : new SentryNonRecordingSpan();
+
+  // If the span is ignored, we don't want to continue the trace from it (NonRecordingSpan) but rather
+  // from the active span. Passing `undefined` here will make `getTraceData` use the active span instead.
+  const spanForTraceHeaders = spanIsIgnored(span) && hasParent ? undefined : span;
 
   if (shouldCreateSpanResult && !shouldEmitSpan) {
     client?.recordDroppedEvent('no_parent_span', 'span');
@@ -406,7 +422,7 @@ function xhrCallback(
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
-      hasSpansEnabled() && shouldEmitSpan ? span : undefined,
+      hasSpansEnabled() && shouldEmitSpan ? spanForTraceHeaders : undefined,
       propagateTraceparent,
     );
   }

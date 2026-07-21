@@ -49,11 +49,12 @@ describe('createSentryHandleRequest', () => {
     },
     routeModules: {},
     future: {
-      unstable_subResourceIntegrity: false,
       v8_middleware: false,
-      unstable_trailingSlashAwareDataRequests: false,
+      v8_passThroughRequests: false,
+      v8_trailingSlashAwareDataRequests: false,
     },
     isSpaMode: false,
+    branches: [],
     staticHandlerContext: {
       matches: [
         {

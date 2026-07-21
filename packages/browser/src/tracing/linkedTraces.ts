@@ -141,9 +141,10 @@ export function addPreviousTraceSpanLink(
 
   function getSampleRate(): number {
     try {
-      return (
-        Number(oldPropagationContext.dsc?.sample_rate) ?? Number(spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE])
+      const oldSampleRate = Number(
+        spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] ?? oldPropagationContext.dsc?.sample_rate,
       );
+      return Number.isNaN(oldSampleRate) ? 0 : oldSampleRate;
     } catch {
       return 0;
     }

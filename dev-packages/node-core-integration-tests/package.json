@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-core-integration-tests",
-  "version": "10.55.0",
+  "version": "10.67.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -27,20 +27,20 @@
     "@nestjs/core": "^11",
     "@nestjs/platform-express": "^11",
     "@opentelemetry/api": "^1.9.1",
-    "@opentelemetry/core": "^2.6.1",
-    "@opentelemetry/instrumentation": "^0.214.0",
-    "@opentelemetry/instrumentation-http": "0.214.0",
-    "@opentelemetry/resources": "^2.6.1",
-    "@opentelemetry/sdk-trace-base": "^2.6.1",
-    "@opentelemetry/semantic-conventions": "^1.40.0",
-    "@sentry/core": "10.55.0",
-    "@sentry/node-core": "10.55.0",
-    "body-parser": "^2.2.2",
+    "@opentelemetry/core": "^2.9.0",
+    "@opentelemetry/instrumentation": "^0.220.0",
+    "@opentelemetry/instrumentation-http": "0.220.0",
+    "@opentelemetry/resources": "^2.9.0",
+    "@opentelemetry/sdk-trace-base": "^2.9.0",
+    "@opentelemetry/semantic-conventions": "^1.43.0",
+    "@sentry/core": "10.67.0",
+    "@sentry/node-core": "10.67.0",
+    "body-parser": "^2.3.0",
     "cors": "^2.8.5",
     "cron": "^3.1.6",
     "express": "^4.21.2",
     "http-terminator": "^3.2.0",
-    "nock": "^13.5.5",
+    "nock": "^14.0.16",
     "node-cron": "^3.0.3",
     "node-schedule": "^2.1.1",
     "proxy": "^2.1.1",
@@ -50,9 +50,10 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
+    "@sentry/conventions": "0.16.0",
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",
-    "eslint-plugin-regexp": "^1.15.0",
+    "eslint-plugin-regexp": "^3.1.0",
     "globby": "11"
   },
   "config": {

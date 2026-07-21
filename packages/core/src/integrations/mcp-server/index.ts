@@ -61,11 +61,11 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
 
   const serverInstance = mcpServerInstance as MCPServerInstance;
   const client = getClient();
-  const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
+  const genAI = client?.getDataCollectionOptions().genAI;
 
   const resolvedOptions: ResolvedMcpOptions = {
-    recordInputs: options?.recordInputs ?? sendDefaultPii,
-    recordOutputs: options?.recordOutputs ?? sendDefaultPii,
+    recordInputs: options?.recordInputs ?? genAI?.inputs ?? false,
+    recordOutputs: options?.recordOutputs ?? genAI?.outputs ?? false,
   };
 
   fill(serverInstance, 'connect', originalConnect => {

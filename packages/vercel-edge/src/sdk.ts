@@ -16,7 +16,6 @@ import {
   linkedErrorsIntegration,
   nodeStackLineParser,
   requestDataIntegration,
-  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
@@ -45,25 +44,27 @@ declare const process: {
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
 /** Get the default integrations for the browser SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  // todo(v11): remove options parameter
   return [
     dedupeIntegration(),
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
     linkedErrorsIntegration(),
     winterCGFetchIntegration(),
     consoleIntegration(),
-    // TODO(v11): integration can be included - but integration should not add IP address etc
-    ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
+    requestDataIntegration(),
   ];
 }
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): Client | undefined {
-  setOpenTelemetryContextAsyncContextStrategy();
+  // We force skipOpenTelemetrySetup: true here, because this triggers the custom lookup for the AsyncLocalStorage instance
+  // Since we use a custom Context Manager here (because AsyncLocalStorage is looked up differently than in Node), we need to do this
+  setOpenTelemetryContextAsyncContextStrategy({ skipOpenTelemetrySetup: true });
 
   const scope = getCurrentScope();
   scope.update(options.initialScope);
@@ -93,15 +94,10 @@ export function init(options: VercelEdgeOptions = {}): Client | undefined {
   options.environment =
     options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
 
-  const resolvedIntegrations = getIntegrationsToSetup(options);
-  if (options.traceLifecycle === 'stream' && !resolvedIntegrations.some(i => i.name === 'SpanStreaming')) {
-    resolvedIntegrations.push(spanStreamingIntegration());
-  }
-
   const client = new VercelEdgeClient({
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || nodeStackParser),
-    integrations: resolvedIntegrations,
+    integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeEdgeTransport,
   });
   // The client is on the current scope, from where it generally is inherited
@@ -165,10 +161,12 @@ export function setupOtel(client: VercelEdgeClient): void {
     spanProcessors: [
       new SentrySpanProcessor({
         timeout: client.getOptions().maxSpanWaitDuration,
+        client,
       }),
     ],
   });
 
+  // eslint-disable-next-line typescript/no-deprecated
   const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
 
   trace.setGlobalTracerProvider(provider);

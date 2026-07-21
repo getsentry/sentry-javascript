@@ -1,36 +1,25 @@
 import { KnexInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
-import { generateInstrumentOnce, instrumentWhenWrapped } from '@sentry/node-core';
+import { defineIntegration } from '@sentry/core';
+import { generateInstrumentOnce } from '@sentry/node-core';
+import { isOrchestrionInjected, knexChannelIntegration } from '@sentry/server-utils/orchestrion';
 
-const INTEGRATION_NAME = 'Knex';
+const INTEGRATION_NAME = 'Knex' as const;
 
-export const instrumentKnex = generateInstrumentOnce(
-  INTEGRATION_NAME,
-  () => new KnexInstrumentation({ requireParentSpan: true }),
-);
+export const instrumentKnex = generateInstrumentOnce(INTEGRATION_NAME, () => new KnexInstrumentation());
 
 const _knexIntegration = (() => {
-  let instrumentationWrappedCallback: undefined | ((callback: () => void) => void);
-
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      const instrumentation = instrumentKnex();
-      instrumentationWrappedCallback = instrumentWhenWrapped(instrumentation);
-    },
-
-    setup(client) {
-      instrumentationWrappedCallback?.(() =>
-        client.on('spanStart', span => {
-          const { data } = spanToJSON(span);
-          // knex.version is always set in the span data
-          // https://github.com/open-telemetry/opentelemetry-js-contrib/blob/0309caeafc44ac9cb13a3345b790b01b76d0497d/plugins/node/opentelemetry-instrumentation-knex/src/instrumentation.ts#L138
-          if ('knex.version' in data) {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.knex');
-          }
-        }),
-      );
+      // Prefer the diagnostics-channel subscriber when orchestrion injected its channels; otherwise
+      // fall back to the vendored OTel instrumentation. `isOrchestrionInjected()` is only reliable by
+      // `setupOnce` (the runtime injection runs during `Sentry.init()`, after integrations are built).
+      if (isOrchestrionInjected()) {
+        knexChannelIntegration().setupOnce?.();
+      } else {
+        instrumentKnex();
+      }
     },
   };
 }) satisfies IntegrationFn;

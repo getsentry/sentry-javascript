@@ -1,7 +1,13 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as currentScopes from '../../../src/currentScopes';
 import { fill, getClient, getCurrentScope, setCurrentClient } from '../../../src';
 import { functionToStringIntegration } from '../../../src/integrations/functiontostring';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+
+vi.mock('../../../src/currentScopes', async importOriginal => {
+  const actual = await importOriginal<typeof currentScopes>();
+  return { ...actual, getClient: vi.fn(actual.getClient) };
+});
 
 describe('FunctionToString', () => {
   beforeEach(() => {
@@ -9,8 +15,13 @@ describe('FunctionToString', () => {
     setCurrentClient(testClient);
   });
 
+  afterEach(() => {
+    vi.mocked(currentScopes.getClient).mockClear();
+  });
+
   afterAll(() => {
     getCurrentScope().setClient(undefined);
+    vi.restoreAllMocks();
   });
 
   it('it works as expected', () => {
@@ -54,5 +65,25 @@ describe('FunctionToString', () => {
     testClient.addIntegration(fts);
 
     expect(foo.bar.toString()).not.toBe(originalFunction);
+  });
+
+  it('falls back to native toString and does not throw when the carrier read throws', () => {
+    const foo = {
+      bar(wat: boolean): boolean {
+        return wat;
+      },
+    };
+    const nativeString = foo.bar.toString();
+
+    const fts = functionToStringIntegration();
+    getClient()?.addIntegration(fts);
+
+    // Simulate a `SecurityError` thrown while reading the Sentry carrier off a cross-origin `WindowProxy`.
+    vi.mocked(currentScopes.getClient).mockImplementation(() => {
+      throw new Error('SecurityError: Blocked a frame from accessing a cross-origin frame.');
+    });
+
+    expect(() => foo.bar.toString()).not.toThrow();
+    expect(foo.bar.toString()).toBe(nativeString);
   });
 });

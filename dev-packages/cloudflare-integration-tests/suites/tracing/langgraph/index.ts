@@ -9,7 +9,7 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    sendDefaultPii: true,
+    dataCollection: { genAI: { inputs: true, outputs: true } },
     streamGenAiSpans: true,
   }),
   {

@@ -1,7 +1,7 @@
 import { rm } from 'node:fs/promises';
 import type { Config } from '@react-router/dev/config';
 import SentryCli from '@sentry/cli';
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import { glob } from 'glob';
 import type { SentryReactRouterBuildOptions } from '../types';
 
@@ -48,7 +48,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
       ...unstableSentryVitePluginOptions?.sourcemaps,
       ...sentryConfig.sourcemaps,
       ...sourceMapsUploadOptions,
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
       disable: sourceMapsUploadOptions?.enabled === false ? true : sentryConfig.sourcemaps?.disable,
     },
     release: {

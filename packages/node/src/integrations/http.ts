@@ -1,26 +1,16 @@
 import type { RequestOptions } from 'node:http';
 import type { HttpClientRequest, HttpIncomingMessage, HttpServerResponse, Span } from '@sentry/core';
-import {
-  defineIntegration,
-  hasSpansEnabled,
-  SEMANTIC_ATTRIBUTE_URL_FULL,
-  stripDataUrlContent,
-  getRequestUrlFromClientRequest,
-} from '@sentry/core';
+import { defineIntegration, hasSpansEnabled, stripDataUrlContent, getRequestUrlFromClientRequest } from '@sentry/core';
 import type {
   NodeClient,
   SentryHttpInstrumentationOptions,
   HttpServerIntegrationOptions,
   HttpServerSpansIntegrationOptions,
 } from '@sentry/node-core';
-import {
-  generateInstrumentOnce,
-  httpServerIntegration,
-  httpServerSpansIntegration,
-  SentryHttpInstrumentation,
-} from '@sentry/node-core';
+import { httpServerIntegration, httpServerSpansIntegration, instrumentHttpOutgoingRequests } from '@sentry/node-core';
+import { URL_FULL } from '@sentry/conventions/attributes';
 
-const INTEGRATION_NAME = 'Http';
+const INTEGRATION_NAME = 'Http' as const;
 
 // TODO(v11): Consolidate all the various HTTP integration options into one,
 // and deprecate the duplicated and aliased options.
@@ -158,12 +148,9 @@ interface HttpOptions {
   };
 }
 
-export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
-  `${INTEGRATION_NAME}.sentry`,
-  options => {
-    return new SentryHttpInstrumentation(options);
-  },
-);
+export const instrumentSentryHttp = Object.assign(instrumentHttpOutgoingRequests, {
+  id: `${INTEGRATION_NAME}.sentry`,
+});
 
 /**
  * The http integration instruments Node's internal http and https modules.
@@ -218,7 +205,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
             // TODO(v11): Update these to the Sentry semantic attributes.
             // https://getsentry.github.io/sentry-conventions/attributes/
             span.setAttribute('http.url', sanitizedUrl);
-            span.setAttribute(SEMANTIC_ATTRIBUTE_URL_FULL, sanitizedUrl);
+            span.setAttribute(URL_FULL, sanitizedUrl);
             span.updateName(`${request.method || 'GET'} ${sanitizedUrl}`);
           }
           options.instrumentation?.requestHook?.(span, request);
@@ -231,7 +218,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       // breadcrumbs & trace propagation. It uses the diagnostic channels on
       // node versions that support it, falling back to monkey-patching when
       // needed.
-      instrumentSentryHttp(sentryHttpInstrumentationOptions);
+      instrumentHttpOutgoingRequests(sentryHttpInstrumentationOptions);
     },
     processEvent(event) {
       // Always run this, even if spans are disabled

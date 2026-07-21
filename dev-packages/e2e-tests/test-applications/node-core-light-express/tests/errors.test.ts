@@ -14,6 +14,6 @@ test('should capture errors', async ({ request }) => {
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Test error from light mode');
   expect(errorEvent.tags?.test).toBe('error');
 
-  // Ensure IP address is not leaked when sendDefaultPii is not set
+  // Ensure IP address is not leaked when dataCollection.userInfo is not enabled
   expect(errorEvent.user?.ip_address).toBeUndefined();
 });

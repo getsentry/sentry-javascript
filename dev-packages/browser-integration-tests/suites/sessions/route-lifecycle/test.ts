@@ -3,7 +3,7 @@ import { sentryTest } from '../../../utils/fixtures';
 import { waitForSession } from '../../../utils/helpers';
 
 sentryTest(
-  'should start new sessions on pushState navigation with route lifecycle (default).',
+  'should start new sessions on pushState navigation with route lifecycle.',
   async ({ getLocalTestUrl, page }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
 

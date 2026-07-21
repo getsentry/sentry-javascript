@@ -21,7 +21,9 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { createEsmTests } from '../../../utils/runner/createEsmAndCjsTests';
 
 describe('LangChain integration', () => {
   afterAll(() => {
@@ -29,7 +31,7 @@ describe('LangChain integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates langchain related spans with sendDefaultPii: false', async () => {
+    test('creates langchain related spans with genAI recording disabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -107,7 +109,7 @@ describe('LangChain integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates langchain related spans with sendDefaultPii: true', async () => {
+    test('creates langchain related spans with genAI recording enabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -199,7 +201,7 @@ describe('LangChain integration', () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario-message-truncation.mjs',
-    'instrument-with-pii.mjs',
+    'instrument-with-truncation.mjs',
     (createRunner, test) => {
       test('truncates messages when they exceed byte limit', async () => {
         await createRunner()
@@ -220,7 +222,7 @@ describe('LangChain integration', () => {
               const arrayInputSpan = container.items.find(
                 span =>
                   span.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]?.value === 2 &&
-                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.match(
+                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
                     /^\[\{"role":"user","content":"C+"\}\]$/,
                   ),
               );
@@ -245,43 +247,38 @@ describe('LangChain integration', () => {
     },
   );
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-openai-before-langchain.mjs',
-    'instrument.mjs',
-    (createRunner, test) => {
-      test('demonstrates timing issue with duplicate spans (ESM only)', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(2);
-              const anthropicSpan = container.items.find(
-                span => span.attributes['sentry.origin'].value === 'auto.ai.anthropic',
-              );
-              expect(anthropicSpan).toBeDefined();
-              expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
+  createEsmTests(__dirname, 'scenario-openai-before-langchain.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('demonstrates timing issue with duplicate spans', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: { transaction: 'main' } })
+        .expect({
+          span: container => {
+            expect(container.items).toHaveLength(2);
+            const anthropicSpan = container.items.find(
+              span =>
+                span.attributes['sentry.origin'].value ===
+                (isOrchestrionEnabled() ? 'auto.ai.orchestrion.anthropic' : 'auto.ai.anthropic'),
+            );
+            expect(anthropicSpan).toBeDefined();
+            expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
 
-              // LangChain call is instrumented by LangChain.
-              const langchainSpan = container.items.find(
-                span => span.attributes['sentry.origin'].value === 'auto.ai.langchain',
-              );
-              expect(langchainSpan).toBeDefined();
-              expect(langchainSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
+            // LangChain call is instrumented by LangChain.
+            const langchainSpan = container.items.find(
+              span => span.attributes['sentry.origin'].value === 'auto.ai.langchain',
+            );
+            expect(langchainSpan).toBeDefined();
+            expect(langchainSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
 
-              // Third call (not present): Direct Anthropic call made AFTER LangChain import
-              // is NOT instrumented, which demonstrates the skip mechanism works for NEW
-              // clients. We should only have ONE Anthropic span (the first one), not two.
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    // This test fails on CJS because we use dynamic imports to simulate importing LangChain after the Anthropic client is created
-    { failsOnCjs: true },
-  );
+            // Third call (not present): Direct Anthropic call made AFTER LangChain import
+            // is NOT instrumented, which demonstrates the skip mechanism works for NEW
+            // clients. We should only have ONE Anthropic span (the first one), not two.
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 
   createEsmAndCjsTests(
     __dirname,
@@ -358,7 +355,7 @@ describe('LangChain integration', () => {
   // =========================================================================
 
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates embedding spans with sendDefaultPii: false', async () => {
+    test('creates embedding spans with genAI recording disabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -414,7 +411,7 @@ describe('LangChain integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates embedding spans with sendDefaultPii: true', async () => {
+    test('creates embedding spans with genAI recording enabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
@@ -498,7 +495,9 @@ describe('LangChain integration', () => {
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                streamingLongContent,
+              ),
             );
             expect(chatSpan).toBeDefined();
           },
@@ -521,12 +520,14 @@ describe('LangChain integration', () => {
 
               // With explicit enableTruncation: true, content should be truncated despite streaming.
               const chatSpan = spans.find(s =>
-                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('[{"role":"user","content":"AAAA'),
+                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
+                  '[{"role":"user","content":"AAAA',
+                ),
               );
               expect(chatSpan).toBeDefined();
-              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
-                streamingLongContent.length,
-              );
+              expect(
+                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value) ?? '').length,
+              ).toBeLessThan(streamingLongContent.length);
             },
           })
           .start()

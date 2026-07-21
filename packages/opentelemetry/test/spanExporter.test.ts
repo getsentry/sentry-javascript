@@ -1,4 +1,4 @@
-import { ATTR_HTTP_RESPONSE_STATUS_CODE } from '@opentelemetry/semantic-conventions';
+import { HTTP_RESPONSE_STATUS_CODE } from '@sentry/conventions/attributes';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_OP, startInactiveSpan, startSpanManual } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createTransactionForOtelSpan } from '../src/spanExporter';
@@ -62,7 +62,7 @@ describe('createTransactionForOtelSpan', () => {
       startTime: 1733821670000,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-        [ATTR_HTTP_RESPONSE_STATUS_CODE]: 200,
+        [HTTP_RESPONSE_STATUS_CODE]: 200,
       },
     });
     span.end(1733821672000);

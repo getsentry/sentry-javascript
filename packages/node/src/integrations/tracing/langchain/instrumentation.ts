@@ -3,8 +3,8 @@ import {
   type InstrumentationConfig,
   type InstrumentationModuleDefinition,
   InstrumentationNodeModuleDefinition,
-  InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
+import { InstrumentationNodeModuleFile } from '../InstrumentationNodeModuleFile';
 import type { LangChainOptions } from '@sentry/core';
 import {
   _INTERNAL_mergeLangChainCallbackHandler,

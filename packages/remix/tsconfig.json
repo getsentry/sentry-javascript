@@ -4,8 +4,6 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    "jsx": "react",
-    "module": "esnext",
-    "moduleResolution": "bundler"
+    "jsx": "react"
   }
 }

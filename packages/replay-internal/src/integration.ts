@@ -298,13 +298,25 @@ export class Replay implements Integration {
   /**
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK
    * does not support a teardown
+   *
+   * @param options.flush - Whether to flush the pending replay segment when stopping.
+   * When recording in `session` mode, `stop()` flushes the buffered-but-unsent segment by
+   * default (`flush: true`), matching the previous behavior. Pass `flush: false` to stop
+   * recording without sending that pending segment — useful when a user withdraws consent
+   * and no further data should leave the browser.
+   *
+   * Note: `flush: false` only prevents the *pending* (final) segment from being sent. It does
+   * **not** retract segments that were already sent earlier during `session` recording.
    */
-  public stop(): Promise<void> {
+  public stop(options?: { flush?: boolean }): Promise<void> {
     if (!this._replay) {
       return Promise.resolve();
     }
 
-    return this._replay.stop({ forceFlush: this._replay.recordingMode === 'session', reason: 'manual' });
+    return this._replay.stop({
+      forceFlush: options?.flush ?? this._replay.recordingMode === 'session',
+      reason: 'manual',
+    });
   }
 
   /**
@@ -363,6 +375,9 @@ export class Replay implements Integration {
     const replayId = this.getReplayId(true);
     if (replayId) {
       safeSetSpanJSONAttributes(span, { 'sentry.replay_id': replayId });
+      if (this.getRecordingMode() === 'buffer') {
+        safeSetSpanJSONAttributes(span, { 'sentry._internal.replay_is_buffering': true });
+      }
     }
   }
 

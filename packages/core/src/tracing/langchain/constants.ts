@@ -1,4 +1,4 @@
-export const LANGCHAIN_INTEGRATION_NAME = 'LangChain';
+export const LANGCHAIN_INTEGRATION_NAME = 'LangChain' as const;
 export const LANGCHAIN_ORIGIN = 'auto.ai.langchain';
 
 export const ROLE_MAP: Record<string, string> = {

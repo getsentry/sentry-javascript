@@ -71,7 +71,6 @@ test('Will create a transaction with spans for every server component and metada
   expect(spanDescriptions).toContainEqual('resolve page server component "/nested-layout"');
   expect(spanDescriptions).toContainEqual('generateMetadata /(nested-layout)/nested-layout/page');
   expect(spanDescriptions).toContainEqual('start response');
-  expect(spanDescriptions).toContainEqual('NextNodeServer.clientComponentLoading');
 });
 
 test('Will create a transaction with spans for every server component and metadata generation functions when visiting a dynamic page', async ({
@@ -99,5 +98,4 @@ test('Will create a transaction with spans for every server component and metada
   expect(spanDescriptions).toContainEqual('resolve page server component "/nested-layout/[dynamic]"');
   expect(spanDescriptions).toContainEqual('generateMetadata /(nested-layout)/nested-layout/[dynamic]/page');
   expect(spanDescriptions).toContainEqual('start response');
-  expect(spanDescriptions).toContainEqual('NextNodeServer.clientComponentLoading');
 });

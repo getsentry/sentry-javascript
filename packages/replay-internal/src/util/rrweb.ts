@@ -1,5 +1,5 @@
 /**
- * Vendored in from @sentry-internal/rrweb.
+ * Vendored in from @sentry/rrweb.
  *
  * This is a copy of the function from rrweb, it is not nicely exported there.
  */

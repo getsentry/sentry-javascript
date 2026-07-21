@@ -115,7 +115,29 @@ router1.post('/test-post', async ctx => {
   ctx.body = { status: 'ok', body: ctx.request.body };
 });
 
+// RegExp route - exercises the @koa/router dispatch patch with a non-string layer path.
+router1.get(/^\/test-regexp/, ctx => {
+  ctx.body = { matched: 'regexp' };
+});
+
+// Same middleware instance passed twice - the second occurrence must be skipped (kLayerPatched dedup).
+const sharedRouteMiddleware = async (ctx, next) => {
+  await next();
+};
+router1.get('/test-dedup', sharedRouteMiddleware, sharedRouteMiddleware, ctx => {
+  ctx.body = { ok: true };
+});
+
 app1.use(router1.routes()).use(router1.allowedMethods());
+
+// Nested router - the routed span's http.route is the composed parent + child path.
+const nestedRouter = new Router();
+nestedRouter.get('/details/:id', ctx => {
+  ctx.body = { id: ctx.params.id };
+});
+const outerRouter = new Router();
+outerRouter.use('/:first', nestedRouter.routes());
+app1.use(outerRouter.routes()).use(outerRouter.allowedMethods());
 
 app1.listen(port1);
 

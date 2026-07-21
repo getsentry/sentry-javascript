@@ -74,6 +74,22 @@ describe('internal wrap()', () => {
     expect(wrapped.__sentry_original__).toBe(fn);
   });
 
+  it('ignores __sentry_wrapped__ inherited from Function.prototype', () => {
+    // Wrapping Function.prototype puts __sentry_wrapped__ on it, which every
+    // function then inherits. wrap() must only trust own wrapper metadata.
+    const prototypeWrapper = wrap(Function.prototype as () => unknown);
+    try {
+      const fresh = vi.fn(() => 'fresh');
+      const wrapped = wrap(fresh);
+
+      expect(wrapped).not.toBe(prototypeWrapper);
+      wrapped();
+      expect(fresh).toHaveBeenCalledTimes(1);
+    } finally {
+      delete (Function.prototype as unknown as { __sentry_wrapped__?: unknown }).__sentry_wrapped__;
+    }
+  });
+
   it('keeps original functions properties', () => {
     const fn = Object.assign(() => 1337, {
       some: 1337,

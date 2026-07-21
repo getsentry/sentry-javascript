@@ -1,6 +1,6 @@
 import type { Event } from '@sentry/core';
 import { addItemToEnvelope, createEnvelope, uuid4 } from '@sentry/core';
-import type { RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
+import type { RawThreadCpuProfile } from '@sentry/node-cpu-profiler';
 import { describe, expect, it } from 'vitest';
 import {
   addProfilesToEnvelope,

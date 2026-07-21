@@ -102,7 +102,7 @@ export const localVariablesAsyncIntegration = defineIntegration(((
   }
 
   return {
-    name: 'LocalVariablesAsync',
+    name: 'LocalVariablesAsync' as const,
     async setup(client: NodeClient) {
       const clientOptions = client.getOptions();
 

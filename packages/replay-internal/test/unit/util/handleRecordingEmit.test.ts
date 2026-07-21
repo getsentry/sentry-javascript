@@ -3,8 +3,8 @@
  */
 
 import '../../utils/mock-internal-setTimeout';
-import { EventType, IncrementalSource, record } from '@sentry-internal/rrweb';
-import { NodeType, type serializedElementNodeWithId } from '@sentry-internal/rrweb-snapshot';
+import { EventType, IncrementalSource, record } from '@sentry/rrweb';
+import { NodeType, type serializedElementNodeWithId } from '@sentry/rrweb-snapshot';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleDom } from '../../../src/coreHandlers/handleDom';
@@ -101,6 +101,63 @@ describe('Unit | util | handleRecordingEmit', () => {
     expect(addEventMock).toBeCalledTimes(4);
     expect(addEventMock).toHaveBeenNthCalledWith(3, replay, event, true);
     expect(addEventMock).toHaveBeenLastCalledWith(replay, { ...optionsEvent, timestamp: BASE_TIMESTAMP }, false);
+  });
+
+  it('is exception-safe: a throw in a sub-handler is caught and does not escape into rrweb', function () {
+    const replay = setupReplayContainer({
+      options: {
+        errorSampleRate: 0,
+        sessionSampleRate: 1,
+      },
+    });
+
+    const handleExceptionSpy = vi.spyOn(replay, 'handleException');
+    const handler = getHandleRecordingEmit(replay);
+
+    // Make `syncMirrorAttributesFromMutationEvent` throw: seed the mirror with an
+    // Element meta so the loop reaches `Object.entries(mutation.attributes)`, then
+    // feed a mutation whose `attributes` is null so `Object.entries(null)` throws.
+    vi.spyOn(record.mirror, 'getNode').mockReturnValue(document.createElement('button'));
+    vi.spyOn(record.mirror, 'getMeta').mockReturnValue({
+      type: NodeType.Element,
+      attributes: {},
+    } as serializedElementNodeWithId);
+
+    const badMutationEvent = {
+      type: EventType.IncrementalSnapshot,
+      timestamp: BASE_TIMESTAMP + 10,
+      data: {
+        source: IncrementalSource.Mutation,
+        texts: [],
+        // `attributes: null` makes `Object.entries(null)` throw inside the handler
+        attributes: [{ id: 42, attributes: null }],
+        removes: [],
+        adds: [],
+      },
+    };
+
+    // The throw is caught instead of escaping to rrweb (which would re-throw it and
+    // tear down recording). It is surfaced via `handleException`.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(() => handler(badMutationEvent as any)).not.toThrow();
+    expect(handleExceptionSpy).toHaveBeenCalled();
+
+    // And recording keeps working: a subsequent valid event is still added.
+    const goodEvent = {
+      type: EventType.IncrementalSnapshot,
+      timestamp: BASE_TIMESTAMP + 20,
+      data: {
+        source: IncrementalSource.Mutation,
+        texts: [],
+        attributes: [],
+        removes: [],
+        adds: [],
+      },
+    };
+    addEventMock.mockClear();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    handler(goodEvent as any);
+    expect(addEventMock).toHaveBeenCalled();
   });
 
   it('syncs mirror attributes from mutation events', function () {

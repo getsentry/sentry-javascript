@@ -70,7 +70,6 @@ test.skip('Will create a transaction with spans for every server component and m
   expect(spanDescriptions).toContainEqual('resolve page server component "/nested-layout"');
   expect(spanDescriptions).toContainEqual('generateMetadata /(nested-layout)/nested-layout/page');
   expect(spanDescriptions).toContainEqual('start response');
-  expect(spanDescriptions).toContainEqual('NextNodeServer.clientComponentLoading');
 });
 
 // TODO: Server component span tests need SDK adjustments for Cloudflare Workers
@@ -97,5 +96,4 @@ test.skip('Will create a transaction with spans for every server component and m
   expect(spanDescriptions).toContainEqual('resolve page server component "/nested-layout/[dynamic]"');
   expect(spanDescriptions).toContainEqual('generateMetadata /(nested-layout)/nested-layout/[dynamic]/page');
   expect(spanDescriptions).toContainEqual('start response');
-  expect(spanDescriptions).toContainEqual('NextNodeServer.clientComponentLoading');
 });

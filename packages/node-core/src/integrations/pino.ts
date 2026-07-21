@@ -6,6 +6,7 @@ import {
   captureException,
   captureMessage,
   defineIntegration,
+  isObjectLike,
   severityLevelFromString,
   withScope,
 } from '@sentry/core';
@@ -152,8 +153,24 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
         }
 
         if (options.error.levels.includes(level)) {
+          const errorKey = getPinoKey(self, 'pino.errorKey', 'err');
+
+          // Attach the log message and remaining log fields (e.g. child logger
+          // bindings, merge object fields) to the event. The serialized error is
+          // excluded since it is captured as the event exception itself.
+          const pinoContext: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(resultObj)) {
+            if (key !== errorKey && key !== messageKey) {
+              pinoContext[key] = value;
+            }
+          }
+          if (logMessage) {
+            pinoContext[messageKey] = logMessage;
+          }
+
           const captureContext = {
             level: severityLevelFromString(level),
+            contexts: { pino: pinoContext },
           };
 
           withScope(scope => {
@@ -168,7 +185,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
               return event;
             });
 
-            const error = captureObj[getPinoKey(self, 'pino.errorKey', 'err')];
+            const error = captureObj[errorKey];
             if (error) {
               captureException(error, captureContext);
               return;
@@ -219,12 +236,12 @@ interface PinoIntegrationFunction {
  */
 export const pinoIntegration = Object.assign(_pinoIntegration, {
   trackLogger(logger: unknown): void {
-    if (logger && typeof logger === 'object' && 'levels' in logger) {
+    if (isObjectLike(logger) && 'levels' in logger) {
       (logger as Pino)[SENTRY_TRACK_SYMBOL] = 'track';
     }
   },
   untrackLogger(logger: unknown): void {
-    if (logger && typeof logger === 'object' && 'levels' in logger) {
+    if (isObjectLike(logger) && 'levels' in logger) {
       (logger as Pino)[SENTRY_TRACK_SYMBOL] = 'ignore';
     }
   },

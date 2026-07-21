@@ -93,7 +93,7 @@ export function maybeCreateRouteManifest(
   userSentryOptions: SentryBuildOptions,
 ): RouteManifest | undefined {
   // Handle deprecated option with warning
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   if (userSentryOptions.disableManifestInjection) {
     // eslint-disable-next-line no-console
     console.warn(
@@ -107,7 +107,7 @@ export function maybeCreateRouteManifest(
   }
 
   // Still check the deprecated option if the new option is not set
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   if (userSentryOptions.routeManifestInjection === undefined && userSentryOptions.disableManifestInjection) {
     return undefined;
   }
@@ -154,6 +154,16 @@ export function maybeSetClientTraceMetadataOption(
   incomingUserNextConfigObject: NextConfigObject,
   nextJsVersion: string | undefined,
 ): void {
+  // With Cache Components enabled, the page shell — and therefore the document's `sentry-trace`/
+  // `baggage` meta tags — can be prerendered and rendered in an async context detached from the
+  // runtime `http.server` request. The trace captured into those meta tags is therefore stale and
+  // unrelated to the actual request. If we enabled `clientTraceMetadata`, the browser pageload would
+  // continue that stale trace, producing a misleading distributed trace. So we don't enable the meta
+  // tags here; the browser pageload starts a fresh trace instead.
+  if (incomingUserNextConfigObject.cacheComponents) {
+    return;
+  }
+
   // Add the `clientTraceMetadata` experimental option based on Next.js version. The option got introduced in Next.js version 15.0.0 (actually 14.3.0-canary.64).
   // Adding the option on lower versions will cause Next.js to print nasty warnings we wouldn't confront our users with.
   if (nextJsVersion) {

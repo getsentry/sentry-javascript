@@ -1,6 +1,6 @@
 {
   "name": "@sentry/wasm",
-  "version": "10.55.0",
+  "version": "10.67.0",
   "description": "Support for WASM.",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/wasm",
@@ -28,28 +28,19 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "10.55.0",
-    "@sentry/core": "10.55.0"
+    "@sentry/browser": "10.67.0",
+    "@sentry/core": "10.67.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
     "build:bundle": "rollup --config rollup.bundle.config.mjs",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:bundle:watch",
     "build:bundle:watch": "rollup --config rollup.bundle.config.mjs --watch",
     "build:dev:watch": "run-p build:transpile:watch",

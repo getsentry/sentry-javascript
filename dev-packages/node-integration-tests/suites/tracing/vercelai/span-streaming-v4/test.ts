@@ -19,6 +19,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
+import { getStringAttributeValue, isOrchestrionEnabled } from '../../../../utils';
 
 /**
  * Helper to match a typed attribute value in a SerializedStreamedSpan.
@@ -29,7 +30,15 @@ function attr(value: unknown) {
   return expect.objectContaining({ value });
 }
 
-describe('Vercel AI integration (streaming)', () => {
+const expectedOrigin = isOrchestrionEnabled() ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
+
+// v4's OTel path serializes tool-call arguments from the provider's raw JSON string (whitespace
+// preserved); the channel path serializes the SDK-parsed args object (compact). Same data, different spacing.
+const toolCallArgs = isOrchestrionEnabled()
+  ? '{\\"location\\":\\"San Francisco\\"}'
+  : '{ \\"location\\": \\"San Francisco\\" }';
+
+describe('Vercel AI integration (streaming v4)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -48,9 +57,7 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(30),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
-          'vercel.ai.pipeline.name': attr('generateText'),
-          'vercel.ai.streaming': attr(false),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Second span - generate_content for simple generateText
@@ -65,9 +72,7 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(30),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('generate_content'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
-          'vercel.ai.pipeline.name': attr('generateText.doGenerate'),
-          'vercel.ai.streaming': attr(false),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Third span - invoke_agent for explicit telemetry generateText
@@ -81,7 +86,7 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(30),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Fourth span - tool call invoke_agent
@@ -95,7 +100,7 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(40),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Fifth span - tool call generate_content
@@ -109,11 +114,11 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(40),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('generate_content'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Sixth span - execute_tool
-      // Note: gen_ai.tool.description is NOT present when sendDefaultPii: false because ai.prompt.tools is not recorded
+      // Note: gen_ai.tool.description is NOT present when genAI recording disabled because ai.prompt.tools is not recorded
       expect.objectContaining({
         name: 'execute_tool getWeather',
         status: 'ok',
@@ -123,7 +128,7 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_TOOL_TYPE_ATTRIBUTE]: attr('function'),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.execute_tool'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
     ]),
@@ -148,9 +153,7 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(30),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
-          'vercel.ai.pipeline.name': attr('generateText'),
-          'vercel.ai.streaming': attr(false),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Second span - generate_content with input/output messages
@@ -169,7 +172,7 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(30),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('generate_content'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Third span - explicit telemetry invoke_agent with messages
@@ -187,7 +190,7 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(30),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Fourth span - tool call invoke_agent with messages
@@ -199,7 +202,7 @@ describe('Vercel AI integration (streaming)', () => {
             '[{"role":"user","content":"What is the weather in San Francisco?"}]',
           ),
           [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]: attr(
-            '[{"role":"assistant","parts":[{"type":"text","content":"Tool call completed!"},{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"{ \\"location\\": \\"San Francisco\\" }"}],"finish_reason":"tool_call"}]',
+            `[{"role":"assistant","parts":[{"type":"text","content":"Tool call completed!"},{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"${toolCallArgs}"}],"finish_reason":"tool_call"}]`,
           ),
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: attr('mock-model-id'),
           [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: attr(15),
@@ -207,7 +210,7 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(40),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Fifth span - tool call generate_content with available_tools
@@ -224,7 +227,7 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(40),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('generate_content'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Sixth span - execute_tool with description and input/output
@@ -240,7 +243,7 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_TOOL_TYPE_ATTRIBUTE]: attr('function'),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.execute_tool'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
     ]),
@@ -254,7 +257,7 @@ describe('Vercel AI integration (streaming)', () => {
         attributes: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       expect.objectContaining({
@@ -267,7 +270,7 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(40),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('generate_content'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       expect.objectContaining({
@@ -279,20 +282,20 @@ describe('Vercel AI integration (streaming)', () => {
           [GEN_AI_TOOL_TYPE_ATTRIBUTE]: attr('function'),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.execute_tool'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
     ]),
   };
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates ai related spans in streaming mode with sendDefaultPii: false', async () => {
+    test('creates ai related spans in streaming mode with genAI recording disabled', async () => {
       await createRunner().expect({ span: EXPECTED_SPANS_DEFAULT_PII_FALSE }).start().completed();
     });
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates ai related spans in streaming mode with sendDefaultPii: true', async () => {
+    test('creates ai related spans in streaming mode with genAI recording enabled', async () => {
       await createRunner().expect({ span: EXPECTED_SPANS_DEFAULT_PII_TRUE }).start().completed();
     });
   });
@@ -313,7 +316,9 @@ describe('Vercel AI integration (streaming)', () => {
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+                streamingLongContent,
+              ),
             );
             expect(chatSpan).toBeDefined();
           },
@@ -332,12 +337,14 @@ describe('Vercel AI integration (streaming)', () => {
 
             // With explicit enableTruncation: true, content should be truncated despite streaming.
             const chatSpan = spans.find(s =>
-              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('[{"role":"user","content":"AAAA'),
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
+                '[{"role":"user","content":"AAAA',
+              ),
             );
             expect(chatSpan).toBeDefined();
-            expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
-              streamingLongContent.length,
-            );
+            expect(
+              (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value) ?? '').length,
+            ).toBeLessThan(streamingLongContent.length);
           },
         })
         .start()

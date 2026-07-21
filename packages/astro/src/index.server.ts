@@ -13,10 +13,10 @@ export {
   addIntegration,
   amqplibIntegration,
   anthropicAIIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   anrIntegration,
   googleGenAIIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
@@ -26,7 +26,6 @@ export {
   captureMessage,
   captureSession,
   close,
-  connectIntegration,
   consoleIntegration,
   contextLinesIntegration,
   continueTrace,
@@ -65,11 +64,12 @@ export {
   winterCGHeadersToDict,
   graphqlIntegration,
   hapiIntegration,
+  // eslint-disable-next-line typescript/no-deprecated
   honoIntegration,
   httpIntegration,
   httpServerIntegration,
   httpServerSpansIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   eventFiltersIntegration,
   initOpenTelemetry,
@@ -124,9 +124,11 @@ export {
   setMeasurement,
   setTag,
   setTags,
-  setupConnectErrorHandler,
+  setAttribute,
+  setAttributes,
   setupExpressErrorHandler,
   setupHapiErrorHandler,
+  // eslint-disable-next-line typescript/no-deprecated
   setupHonoErrorHandler,
   setupKoaErrorHandler,
   setUser,
@@ -136,6 +138,7 @@ export {
   spotlightIntegration,
   startInactiveSpan,
   startNewTrace,
+  bindScopeToEmitter,
   suppressTracing,
   startSession,
   startSpan,

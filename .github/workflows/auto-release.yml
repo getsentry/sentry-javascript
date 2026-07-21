@@ -21,10 +21,10 @@ jobs:
         id: token
         uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
         with:
-          app-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
+          client-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
           private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           token: ${{ steps.token.outputs.token }}
           fetch-depth: 0
@@ -51,7 +51,7 @@ jobs:
           node-version-file: 'package.json'
 
       - name: Prepare release
-        uses: getsentry/craft@3dc647fee3586e57c7c31eb900fdec7cbb44f23f # v2.26.2
+        uses: getsentry/craft@cdb657d4bbc70cd497876ad158984b4d345a48ae # v2.26.14
         if:
           github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' &&
           steps.get_version.outputs.version != ''

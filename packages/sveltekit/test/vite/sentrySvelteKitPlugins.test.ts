@@ -30,7 +30,7 @@ function getSentrySvelteKitPlugins(options?: Parameters<typeof sentrySvelteKit>[
       authToken: 'token',
       org: 'org',
       project: 'project',
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
       ...options?.sourceMapsUploadOptions,
     },
     ...options,
@@ -42,14 +42,17 @@ describe('sentrySvelteKit()', () => {
     const plugins = await getSentrySvelteKitPlugins();
 
     expect(plugins).toBeInstanceOf(Array);
-    // 1 auto instrument plugin + 1 global values injection plugin + 1 modified main plugin + 3 custom plugins
-    expect(plugins).toHaveLength(6);
+    // 1 browser-tracing variant resolver + 1 auto instrument plugin + 1 global values injection plugin
+    // + 1 modified main plugin + 3 custom plugins
+    expect(plugins).toHaveLength(7);
   });
 
   it('returns the custom sentry source maps upload plugin, unmodified sourcemaps plugins and the auto-instrument plugin by default', async () => {
     const plugins = await getSentrySvelteKitPlugins();
     const pluginNames = plugins.map(plugin => plugin.name);
     expect(pluginNames).toEqual([
+      // browser-tracing variant resolver:
+      'sentry-sveltekit-browser-tracing-variant',
       // auto instrument plugin:
       'sentry-auto-instrumentation',
       // global values injection plugin:
@@ -65,7 +68,7 @@ describe('sentrySvelteKit()', () => {
 
   it("doesn't return the sentry source maps plugins if autoUploadSourcemaps is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
-    expect(plugins).toHaveLength(1); // auto instrument
+    expect(plugins).toHaveLength(2); // browser-tracing variant resolver + auto instrument
   });
 
   it("doesn't return the sentry source maps plugins if `NODE_ENV` is development", async () => {
@@ -73,9 +76,9 @@ describe('sentrySvelteKit()', () => {
 
     process.env.NODE_ENV = 'development';
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: true, autoInstrument: true });
-    const instrumentPlugin = plugins[0];
+    const instrumentPlugin = plugins[1];
 
-    expect(plugins).toHaveLength(2); // auto instrument + global values injection
+    expect(plugins).toHaveLength(3); // browser-tracing variant resolver + auto instrument + global values injection
     expect(instrumentPlugin?.name).toEqual('sentry-auto-instrumentation');
 
     process.env.NODE_ENV = previousEnv;
@@ -84,7 +87,7 @@ describe('sentrySvelteKit()', () => {
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoInstrument: false });
     const pluginNames = plugins.map(plugin => plugin.name);
-    expect(plugins).toHaveLength(5); // global values injection + 1 modified main plugin + 3 custom plugins
+    expect(plugins).toHaveLength(6); // browser-tracing variant resolver + global values injection + 1 modified main plugin + 3 custom plugins
     expect(pluginNames).not.toContain('sentry-auto-instrumentation');
   });
 
@@ -188,7 +191,7 @@ describe('sentrySvelteKit()', () => {
       // just to ignore the source maps plugin:
       autoUploadSourceMaps: false,
     });
-    const plugin = plugins[0]!;
+    const plugin = plugins[1]!;
 
     expect(plugin.name).toEqual('sentry-auto-instrumentation');
     expect(makePluginSpy).toHaveBeenCalledWith({

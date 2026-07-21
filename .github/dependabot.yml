@@ -23,6 +23,11 @@ updates:
       remix:
         patterns:
           - '@remix-run/*'
+      react-router:
+        patterns:
+          - 'react-router'
+          - 'react-router-dom'
+          - '@react-router/*'
     versioning-strategy: increase
     commit-message:
       prefix: feat

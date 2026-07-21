@@ -10,9 +10,14 @@ import {
   validateNitroSourceMapSettings,
 } from '../../src/vite/sourceMaps';
 
-vi.mock('@sentry/core', () => ({
-  consoleSandbox: (callback: () => void) => callback(),
-}));
+vi.mock('@sentry/core', async importOriginal => {
+  const actual = await importOriginal();
+  return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ...(actual as any),
+    consoleSandbox: (callback: () => void) => callback(),
+  };
+});
 
 describe('getPluginOptions', () => {
   beforeEach(() => {

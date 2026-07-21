@@ -3,7 +3,12 @@ import * as currentScopes from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import { filterMcpPiiFromSpanData } from '../../../../src/integrations/mcp-server/piiFiltering';
 import * as tracingModule from '../../../../src/tracing';
-import { createMockMcpServer, createMockTransport } from './testUtils';
+import {
+  createMockClient,
+  createMockMcpServer,
+  createMockTransport,
+  createTestClientWithSendDefaultPii,
+} from './testUtils';
 
 describe('MCP Server PII Filtering', () => {
   const startInactiveSpanSpy = vi.spyOn(tracingModule, 'startInactiveSpan');
@@ -23,12 +28,8 @@ describe('MCP Server PII Filtering', () => {
       mockTransport.sessionId = 'test-session-123';
     });
 
-    it('should include network PII when sendDefaultPii is true', async () => {
-      getClientSpy.mockReturnValue({
-        getOptions: () => ({ sendDefaultPii: true }),
-        getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
-        emit: vi.fn(),
-      } as unknown as ReturnType<typeof currentScopes.getClient>);
+    it('should include network PII when dataCollection.userInfo is true', async () => {
+      getClientSpy.mockReturnValue(createMockClient(true));
 
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
       await wrappedMcpServer.connect(mockTransport);
@@ -59,12 +60,8 @@ describe('MCP Server PII Filtering', () => {
       );
     });
 
-    it('should exclude network PII when sendDefaultPii is false', async () => {
-      getClientSpy.mockReturnValue({
-        getOptions: () => ({ sendDefaultPii: false }),
-        getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
-        emit: vi.fn(),
-      } as unknown as ReturnType<typeof currentScopes.getClient>);
+    it('should exclude network PII when dataCollection.userInfo is false', async () => {
+      getClientSpy.mockReturnValue(createMockClient(false));
 
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
       await wrappedMcpServer.connect(mockTransport);
@@ -105,8 +102,69 @@ describe('MCP Server PII Filtering', () => {
     });
   });
 
+  describe('Integration Tests - Network PII (sendDefaultPii bridge)', () => {
+    let mockMcpServer: ReturnType<typeof createMockMcpServer>;
+    let mockTransport: ReturnType<typeof createMockTransport>;
+
+    beforeEach(() => {
+      mockMcpServer = createMockMcpServer();
+      mockTransport = createMockTransport();
+      mockTransport.sessionId = 'test-session-123';
+    });
+
+    it('should include network PII when sendDefaultPii is true', async () => {
+      getClientSpy.mockReturnValue(createTestClientWithSendDefaultPii(true));
+
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      await wrappedMcpServer.connect(mockTransport);
+
+      const extraWithClientInfo = {
+        requestInfo: { remoteAddress: '192.168.1.100', remotePort: 54321 },
+      };
+
+      mockTransport.onmessage?.(
+        { jsonrpc: '2.0', method: 'tools/call', id: 'req-pii-true', params: { name: 'weather', arguments: {} } },
+        extraWithClientInfo,
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'client.address': '192.168.1.100',
+            'client.port': 54321,
+          }),
+        }),
+      );
+    });
+
+    it('should exclude network PII when sendDefaultPii is false', async () => {
+      getClientSpy.mockReturnValue(createTestClientWithSendDefaultPii(false));
+
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      await wrappedMcpServer.connect(mockTransport);
+
+      const extraWithClientInfo = {
+        requestInfo: { remoteAddress: '192.168.1.100', remotePort: 54321 },
+      };
+
+      mockTransport.onmessage?.(
+        { jsonrpc: '2.0', method: 'tools/call', id: 'req-pii-false', params: { name: 'weather', arguments: {} } },
+        extraWithClientInfo,
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({
+            'client.address': expect.anything(),
+            'client.port': expect.anything(),
+          }),
+        }),
+      );
+    });
+  });
+
   describe('filterMcpPiiFromSpanData Function', () => {
-    it('should preserve all data when sendDefaultPii is true', () => {
+    it('should preserve all data when userInfo is true', () => {
       const spanData = {
         'client.address': '192.168.1.100',
         'client.port': 54321,
@@ -120,7 +178,7 @@ describe('MCP Server PII Filtering', () => {
       expect(result).toEqual(spanData);
     });
 
-    it('should only remove network PII when sendDefaultPii is false', () => {
+    it('should only remove network PII when userInfo is false', () => {
       const spanData = {
         'client.address': '192.168.1.100',
         'client.port': 54321,

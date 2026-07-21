@@ -7,5 +7,6 @@ Sentry.init({
   tracesSampleRate: 1.0,
   transport: loggingTransport,
   traceLifecycle: 'stream',
+  // todo(v11): bridge-regression counterpart to instrument-with-datacollection.mjs; remove when sendDefaultPii is dropped in v11
   sendDefaultPii: true,
 });

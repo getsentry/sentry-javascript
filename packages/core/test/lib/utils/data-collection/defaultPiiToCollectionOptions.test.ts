@@ -8,10 +8,12 @@ describe('defaultPiiToCollectionOptions', () => {
       cookies: true,
       httpHeaders: { request: true, response: true },
       httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
-      queryParams: true,
+      urlQueryParams: true,
+      graphQL: { document: true, variables: true },
       genAI: { inputs: true, outputs: true },
+      databaseQueryData: true,
       stackFrameVariables: true,
-      frameContextLines: 5,
+      frameContextLines: 7,
     });
   });
 
@@ -24,10 +26,12 @@ describe('defaultPiiToCollectionOptions', () => {
         response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       },
       httpBodies: [],
-      queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      graphQL: { document: true, variables: true },
       genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
       stackFrameVariables: true,
-      frameContextLines: 5,
+      frameContextLines: 7,
     });
   });
 
@@ -40,10 +44,12 @@ describe('defaultPiiToCollectionOptions', () => {
         response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       },
       httpBodies: [],
-      queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      graphQL: { document: true, variables: true },
       genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
       stackFrameVariables: true,
-      frameContextLines: 5,
+      frameContextLines: 7,
     });
   });
 
@@ -56,10 +62,12 @@ describe('defaultPiiToCollectionOptions', () => {
         response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
       },
       httpBodies: [],
-      queryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      graphQL: { document: true, variables: true },
       genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
       stackFrameVariables: true,
-      frameContextLines: 5,
+      frameContextLines: 7,
     });
   });
 });

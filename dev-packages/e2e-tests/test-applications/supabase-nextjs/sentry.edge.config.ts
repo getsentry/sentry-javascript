@@ -7,7 +7,7 @@ import * as Sentry from '@sentry/nextjs';
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   environment: 'qa', // dynamic sampling bias to keep transactions
-  sendDefaultPii: true,
+  dataCollection: { userInfo: true },
   tracesSampleRate: 1,
   tunnel: 'http://localhost:3031/', // proxy server
   transportOptions: {

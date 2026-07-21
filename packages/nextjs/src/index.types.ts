@@ -24,6 +24,8 @@ export declare function init(
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 export declare const consoleIntegration: typeof serverSdk.consoleIntegration;
+// Node-only at runtime; the edge build exports an inert shim so named imports resolve in edge-compiled modules.
+export declare const pinoIntegration: typeof serverSdk.pinoIntegration;
 export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
 export declare const withStreamedSpan: typeof clientSdk.withStreamedSpan;
 

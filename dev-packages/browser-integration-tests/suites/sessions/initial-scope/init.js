@@ -5,6 +5,7 @@ window.Sentry = Sentry;
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '0.1',
+  integrations: [Sentry.browserSessionIntegration({ lifecycle: 'route' })],
   initialScope: {
     user: {
       id: '1337',

@@ -81,7 +81,7 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
     tunnel: `http://localhost:3031/`, // proxy server
     tracesSampleRate: 1.0,
     traceLifecycle: 'stream',
-    sendDefaultPii: true,
+    dataCollection: { userInfo: true },
     transportOptions: {
       // We are doing a lot of events at once in this test
       bufferSize: 1000,
@@ -98,7 +98,7 @@ export default Sentry.withSentry(
     tunnel: `http://localhost:3031/`, // proxy server
     tracesSampleRate: 1.0,
     traceLifecycle: 'stream',
-    sendDefaultPii: true,
+    dataCollection: { userInfo: true },
     transportOptions: {
       // We are doing a lot of events at once in this test
       bufferSize: 1000,

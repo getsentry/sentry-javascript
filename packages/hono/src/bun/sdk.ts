@@ -3,6 +3,7 @@ import { applySdkMetadata, consoleSandbox, getClient } from '@sentry/core';
 import { init as initBun } from '@sentry/bun';
 import type { HonoBunOptions } from './middleware';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
+import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../shared/lowQualityTransactionPatterns';
 
 /**
  * Initializes Sentry for Hono running in a Bun runtime environment.
@@ -23,9 +24,10 @@ export function init(options: HonoBunOptions): Client | undefined {
 
   applySdkMetadata(options, 'hono', ['hono', 'bun']);
 
-  // Remove Hono from the SDK defaults to prevent double instrumentation: @sentry/bun
   const filteredOptions: HonoBunOptions = {
     ...options,
+    ignoreSpans: [...(options.ignoreSpans || []), ...LOW_QUALITY_TRANSACTION_PATTERNS],
+    // Remove Hono from the SDK defaults to prevent double instrumentation: @sentry/bun
     integrations: buildFilteredIntegrations(options.integrations, false),
   };
 

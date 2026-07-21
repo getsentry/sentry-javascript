@@ -62,10 +62,31 @@ describe('createSentryServerInstrumentation', () => {
     expect(typeof instrumentation.route).toBe('function');
   });
 
-  it('should set the global flag when created', () => {
+  it('should NOT set the global flag when created (only when React Router invokes the registration)', () => {
     expect((globalThis as any).__sentryReactRouterServerInstrumentationUsed).toBeUndefined();
 
     createSentryServerInstrumentation();
+
+    // Creating the instrumentation must not mark the API active. On React Router versions that
+    // don't support the instrumentations API, the registration callbacks are never invoked, so
+    // the legacy OTel data-loader path and wrapServerLoader/wrapServerAction must stay active.
+    expect((globalThis as any).__sentryReactRouterServerInstrumentationUsed).toBeUndefined();
+  });
+
+  it('should set the global flag when React Router invokes the handler registration', () => {
+    const instrumentation = createSentryServerInstrumentation();
+    expect((globalThis as any).__sentryReactRouterServerInstrumentationUsed).toBeUndefined();
+
+    instrumentation.handler?.({ instrument: vi.fn() });
+
+    expect((globalThis as any).__sentryReactRouterServerInstrumentationUsed).toBe(true);
+  });
+
+  it('should set the global flag when React Router invokes the route registration', () => {
+    const instrumentation = createSentryServerInstrumentation();
+    expect((globalThis as any).__sentryReactRouterServerInstrumentationUsed).toBeUndefined();
+
+    instrumentation.route?.({ id: 'test-route', index: false, path: '/test', instrument: vi.fn() });
 
     expect((globalThis as any).__sentryReactRouterServerInstrumentationUsed).toBe(true);
   });
@@ -582,9 +603,14 @@ describe('isInstrumentationApiUsed', () => {
     expect(isInstrumentationApiUsed()).toBe(true);
   });
 
-  it('should return true after createSentryServerInstrumentation is called', () => {
+  it('should return true only after React Router invokes the instrumentation registration', () => {
     expect(isInstrumentationApiUsed()).toBe(false);
-    createSentryServerInstrumentation();
+
+    const instrumentation = createSentryServerInstrumentation();
+    // Not active yet - React Router has not invoked the registration callbacks.
+    expect(isInstrumentationApiUsed()).toBe(false);
+
+    instrumentation.handler?.({ instrument: vi.fn() });
     expect(isInstrumentationApiUsed()).toBe(true);
   });
 });

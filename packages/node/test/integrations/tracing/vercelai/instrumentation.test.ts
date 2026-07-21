@@ -11,7 +11,8 @@ describe('determineRecordingSettings', () => {
       { recordInputs: true, recordOutputs: false }, // integrationRecordingOptions
       {}, // methodTelemetryOptions
       undefined, // telemetryExplicitlyEnabled
-      false, // defaultRecordingEnabled
+      false, // defaultInputsEnabled
+      false, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
@@ -25,7 +26,8 @@ describe('determineRecordingSettings', () => {
       { recordInputs: false, recordOutputs: true }, // integrationRecordingOptions
       {}, // methodTelemetryOptions
       true, // telemetryExplicitlyEnabled
-      true, // defaultRecordingEnabled
+      true, // defaultInputsEnabled
+      true, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
@@ -39,7 +41,8 @@ describe('determineRecordingSettings', () => {
       {}, // integrationRecordingOptions
       { recordInputs: true, recordOutputs: false }, // methodTelemetryOptions
       undefined, // telemetryExplicitlyEnabled
-      false, // defaultRecordingEnabled
+      false, // defaultInputsEnabled
+      false, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
@@ -53,7 +56,8 @@ describe('determineRecordingSettings', () => {
       { recordInputs: false, recordOutputs: false }, // integrationRecordingOptions
       { recordInputs: true, recordOutputs: true }, // methodTelemetryOptions
       undefined, // telemetryExplicitlyEnabled
-      true, // defaultRecordingEnabled
+      true, // defaultInputsEnabled
+      true, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
@@ -67,7 +71,8 @@ describe('determineRecordingSettings', () => {
       {}, // integrationRecordingOptions
       {}, // methodTelemetryOptions
       true, // telemetryExplicitlyEnabled
-      false, // defaultRecordingEnabled
+      false, // defaultInputsEnabled
+      false, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
@@ -81,7 +86,8 @@ describe('determineRecordingSettings', () => {
       {}, // integrationRecordingOptions
       {}, // methodTelemetryOptions
       false, // telemetryExplicitlyEnabled
-      true, // defaultRecordingEnabled
+      true, // defaultInputsEnabled
+      true, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
@@ -95,7 +101,8 @@ describe('determineRecordingSettings', () => {
       {}, // integrationRecordingOptions
       {}, // methodTelemetryOptions
       undefined, // telemetryExplicitlyEnabled
-      true, // defaultRecordingEnabled
+      true, // defaultInputsEnabled
+      true, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
@@ -109,7 +116,8 @@ describe('determineRecordingSettings', () => {
       {}, // integrationRecordingOptions
       {}, // methodTelemetryOptions
       undefined, // telemetryExplicitlyEnabled
-      false, // defaultRecordingEnabled
+      false, // defaultInputsEnabled
+      false, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
@@ -123,12 +131,13 @@ describe('determineRecordingSettings', () => {
       { recordInputs: true }, // integrationRecordingOptions
       {}, // methodTelemetryOptions
       false, // telemetryExplicitlyEnabled
-      false, // defaultRecordingEnabled
+      false, // defaultInputsEnabled
+      false, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
       recordInputs: true,
-      recordOutputs: false, // falls back to defaultRecordingEnabled
+      recordOutputs: false, // falls back to defaultOutputsEnabled
     });
   });
 
@@ -137,11 +146,12 @@ describe('determineRecordingSettings', () => {
       { recordOutputs: true }, // integrationRecordingOptions
       {}, // methodTelemetryOptions
       false, // telemetryExplicitlyEnabled
-      false, // defaultRecordingEnabled
+      false, // defaultInputsEnabled
+      false, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
-      recordInputs: false, // falls back to defaultRecordingEnabled
+      recordInputs: false, // falls back to defaultInputsEnabled
       recordOutputs: true,
     });
   });
@@ -151,12 +161,13 @@ describe('determineRecordingSettings', () => {
       {}, // integrationRecordingOptions
       { recordInputs: true }, // methodTelemetryOptions
       false, // telemetryExplicitlyEnabled
-      false, // defaultRecordingEnabled
+      false, // defaultInputsEnabled
+      false, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
       recordInputs: true,
-      recordOutputs: false, // falls back to defaultRecordingEnabled
+      recordOutputs: false, // falls back to defaultOutputsEnabled
     });
   });
 
@@ -165,11 +176,12 @@ describe('determineRecordingSettings', () => {
       {}, // integrationRecordingOptions
       { recordOutputs: true }, // methodTelemetryOptions
       false, // telemetryExplicitlyEnabled
-      false, // defaultRecordingEnabled
+      false, // defaultInputsEnabled
+      false, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
-      recordInputs: false, // falls back to defaultRecordingEnabled
+      recordInputs: false, // falls back to defaultInputsEnabled
       recordOutputs: true,
     });
   });
@@ -179,7 +191,8 @@ describe('determineRecordingSettings', () => {
       { recordInputs: false }, // integrationRecordingOptions
       { recordInputs: true, recordOutputs: true }, // methodTelemetryOptions
       false, // telemetryExplicitlyEnabled
-      true, // defaultRecordingEnabled
+      true, // defaultInputsEnabled
+      true, // defaultOutputsEnabled
     );
 
     expect(result).toEqual({
@@ -188,12 +201,13 @@ describe('determineRecordingSettings', () => {
     });
   });
 
-  test('complex scenario: sendDefaultPii enabled, telemetry enablement undefined, mixed options', () => {
+  test('complex scenario: dataCollection.genAI enabled, telemetry enablement undefined, mixed options', () => {
     const result = determineRecordingSettings(
       { recordOutputs: false }, // integrationRecordingOptions
       { recordInputs: false }, // methodTelemetryOptions
       undefined, // telemetryExplicitlyEnabled
-      true, // defaultRecordingEnabled (sendDefaultPii: true)
+      true, // defaultInputsEnabled (dataCollection.genAI.inputs: true)
+      true, // defaultOutputsEnabled (dataCollection.genAI.outputs: true)
     );
 
     expect(result).toEqual({
@@ -202,17 +216,33 @@ describe('determineRecordingSettings', () => {
     });
   });
 
-  test('complex scenario: explicit telemetry enabled overrides sendDefaultPii disabled', () => {
+  test('complex scenario: explicit telemetry enabled overrides dataCollection.genAI disabled', () => {
     const result = determineRecordingSettings(
       {}, // integrationRecordingOptions
       {}, // methodTelemetryOptions
       true, // telemetryExplicitlyEnabled
-      false, // defaultRecordingEnabled (sendDefaultPii: false)
+      false, // defaultInputsEnabled (dataCollection.genAI.inputs: false)
+      false, // defaultOutputsEnabled (dataCollection.genAI.outputs: false)
     );
 
     expect(result).toEqual({
       recordInputs: true,
       recordOutputs: true,
+    });
+  });
+
+  test('supports asymmetric defaults: inputs enabled, outputs disabled', () => {
+    const result = determineRecordingSettings(
+      {}, // integrationRecordingOptions
+      {}, // methodTelemetryOptions
+      undefined, // telemetryExplicitlyEnabled
+      true, // defaultInputsEnabled (dataCollection.genAI.inputs: true)
+      false, // defaultOutputsEnabled (dataCollection.genAI.outputs: false)
+    );
+
+    expect(result).toEqual({
+      recordInputs: true,
+      recordOutputs: false,
     });
   });
 });

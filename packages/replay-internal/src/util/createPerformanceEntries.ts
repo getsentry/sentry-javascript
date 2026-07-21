@@ -1,5 +1,5 @@
 import { browserPerformanceTimeOrigin } from '@sentry/core';
-import { record } from '@sentry-internal/rrweb';
+import { record } from '@sentry/rrweb';
 import { WINDOW } from '../constants';
 import type {
   AllPerformanceEntry,

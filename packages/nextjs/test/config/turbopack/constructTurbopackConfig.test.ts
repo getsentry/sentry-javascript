@@ -1307,6 +1307,47 @@ describe('componentAnnotation with turbopackReactComponentAnnotation', () => {
   });
 });
 
+describe('orchestrion diagnostics-channel injection', () => {
+  function getOrchestrionOptions(result: ReturnType<typeof constructTurbopackConfig>): {
+    instrumentations: Array<{ module: { name: string; filePath: unknown } }>;
+  } {
+    const rule = result.rules!['*.{js,mjs,cjs}'] as {
+      loaders: Array<{ options: { instrumentations: Array<{ module: { name: string; filePath: unknown } }> } }>;
+    };
+    return rule.loaders[0]!.options;
+  }
+
+  it('serializes a RegExp filePath so it survives Turbopack JSON loader options', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+      nextJsVersion: '16.0.0',
+    });
+
+    const firestore = getOrchestrionOptions(result).instrumentations.find(i => i.module.name === '@firebase/firestore');
+
+    expect(firestore).toBeDefined();
+    expect(firestore!.module.filePath).toEqual({
+      type: 'RegExp',
+      source: expect.any(String),
+      flags: expect.any(String),
+    });
+    expect(firestore!.module.filePath).not.toBeInstanceOf(RegExp);
+    // A raw RegExp would `JSON.stringify` to `{}`, dropping the match entirely.
+    expect(JSON.parse(JSON.stringify(firestore!.module.filePath))).not.toEqual({});
+  });
+
+  it('does not add the orchestrion rule when injection is not opted in', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {},
+      nextJsVersion: '16.0.0',
+    });
+
+    expect(result.rules!['*.{js,mjs,cjs}']).toBeUndefined();
+  });
+});
+
 describe('safelyAddTurbopackRule', () => {
   const mockRule = {
     loaders: [

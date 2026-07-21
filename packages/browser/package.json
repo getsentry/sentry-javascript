@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "10.55.0",
+  "version": "10.67.0",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -19,6 +19,7 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/npm/types/index.d.ts",
+      "react-native": "./build/npm/esm/prod/index.js",
       "development": {
         "import": "./build/npm/esm/dev/index.js",
         "require": "./build/npm/cjs/dev/index.js"
@@ -33,25 +34,19 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/browser-utils": "10.55.0",
-    "@sentry-internal/feedback": "10.55.0",
-    "@sentry-internal/replay": "10.55.0",
-    "@sentry-internal/replay-canvas": "10.55.0",
-    "@sentry/core": "10.55.0"
+    "@sentry/browser-utils": "10.67.0",
+    "@sentry/conventions": "^0.16.0",
+    "@sentry/feedback": "10.67.0",
+    "@sentry/replay": "10.67.0",
+    "@sentry/replay-canvas": "10.67.0",
+    "@sentry/core": "10.67.0"
   },
   "devDependencies": {
-    "@sentry-internal/integration-shims": "10.55.0",
+    "@sentry-internal/integration-shims": "10.67.0",
     "fake-indexeddb": "^6.2.4"
   },
   "scripts": {
@@ -59,9 +54,7 @@
     "build:dev": "run-p build:transpile build:types",
     "build:bundle": "rollup -c rollup.bundle.config.mjs",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:bundle:watch",
     "build:dev:watch": "run-p build:transpile:watch",
     "build:bundle:watch": "rollup -c rollup.bundle.config.mjs --watch",

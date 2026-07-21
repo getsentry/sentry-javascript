@@ -4,6 +4,7 @@ import {
   calculateCacheItemSize,
   GET_COMMANDS,
   getCacheKeySafely,
+  REMOVE_COMMANDS,
   SET_COMMANDS,
   shouldConsiderForCache,
 } from '../../../src/utils/redisCache';
@@ -256,7 +257,7 @@ describe('Redis', () => {
       expect(result).toBe(false);
     });
 
-    GET_COMMANDS.concat(SET_COMMANDS).forEach(command => {
+    GET_COMMANDS.concat(SET_COMMANDS, REMOVE_COMMANDS).forEach(command => {
       it(`should return true for ${command} command with matching prefix`, () => {
         const key = ['cache:test-key'];
         const result = shouldConsiderForCache(command, key, prefixes);

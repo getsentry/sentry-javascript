@@ -15,11 +15,12 @@ import {
 } from '../ai/gen-ai-attributes';
 import {
   extractSystemInstructions,
-  getJsonString,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   shouldEnableTruncation,
 } from '../ai/utils';
+import { stringify } from '../../utils/string';
+import type { SpanAttributeValue } from '../../types/span';
 import { createLangChainCallbackHandler } from '../langchain';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
@@ -38,6 +39,34 @@ import { _INTERNAL_mergeLangChainCallbackHandler } from '../langchain/utils';
 let _insideCreateReactAgent = false;
 
 const SENTRY_PATCHED = '__sentry_patched__';
+
+/**
+ * Builds the span options for a LangGraph `create_agent` span.
+ *
+ * @internal Exported so the diagnostics-channel (orchestrion) instrumentation can open the same span
+ * as the prototype-patching path below without re-declaring the semantic attribute keys.
+ */
+export function _INTERNAL_getLangGraphCreateAgentSpanOptions(agentName?: string): {
+  op: string;
+  name: string;
+  attributes: Record<string, SpanAttributeValue>;
+} {
+  const attributes: Record<string, SpanAttributeValue> = {
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
+  };
+
+  if (agentName) {
+    attributes[GEN_AI_AGENT_NAME_ATTRIBUTE] = agentName;
+  }
+
+  return {
+    op: 'gen_ai.create_agent',
+    name: agentName ? `create_agent ${agentName}` : 'create_agent',
+    attributes,
+  };
+}
 
 /**
  * Instruments StateGraph's compile method to create spans for agent creation and invocation
@@ -64,53 +93,42 @@ export function instrumentStateGraphCompile(
         return Reflect.apply(target, thisArg, args);
       }
 
-      return startSpan(
-        {
-          op: 'gen_ai.create_agent',
-          name: 'create_agent',
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
-            [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
-          },
-        },
-        span => {
-          try {
-            const compiledGraph = Reflect.apply(target, thisArg, args);
-            const compileOptions = args.length > 0 ? (args[0] as Record<string, unknown>) : {};
+      return startSpan(_INTERNAL_getLangGraphCreateAgentSpanOptions(), span => {
+        try {
+          const compiledGraph = Reflect.apply(target, thisArg, args);
+          const compileOptions = args.length > 0 ? (args[0] as Record<string, unknown>) : {};
 
-            // Extract graph name
-            if (compileOptions?.name && typeof compileOptions.name === 'string') {
-              span.setAttribute(GEN_AI_AGENT_NAME_ATTRIBUTE, compileOptions.name);
-              span.updateName(`create_agent ${compileOptions.name}`);
-            }
-
-            // Instrument agent invoke method on the compiled graph
-            const originalInvoke = compiledGraph.invoke;
-            if (originalInvoke && typeof originalInvoke === 'function') {
-              compiledGraph.invoke = instrumentCompiledGraphInvoke(
-                originalInvoke.bind(compiledGraph) as (...args: unknown[]) => Promise<unknown>,
-                compiledGraph,
-                compileOptions,
-                options,
-                undefined,
-                sentryHandler,
-              ) as typeof originalInvoke;
-            }
-
-            return compiledGraph;
-          } catch (error) {
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: 'auto.ai.langgraph.error',
-              },
-            });
-            throw error;
+          // Extract graph name
+          if (compileOptions?.name && typeof compileOptions.name === 'string') {
+            span.setAttribute(GEN_AI_AGENT_NAME_ATTRIBUTE, compileOptions.name);
+            span.updateName(`create_agent ${compileOptions.name}`);
           }
-        },
-      );
+
+          // Instrument agent invoke method on the compiled graph
+          const originalInvoke = compiledGraph.invoke;
+          if (originalInvoke && typeof originalInvoke === 'function') {
+            compiledGraph.invoke = instrumentCompiledGraphInvoke(
+              originalInvoke.bind(compiledGraph) as (...args: unknown[]) => Promise<unknown>,
+              compiledGraph,
+              compileOptions,
+              options,
+              undefined,
+              sentryHandler,
+            ) as typeof originalInvoke;
+          }
+
+          return compiledGraph;
+        } catch (error) {
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          captureException(error, {
+            mechanism: {
+              handled: false,
+              type: 'auto.ai.langgraph.error',
+            },
+          });
+          throw error;
+        }
+      });
     },
   }) as (...args: unknown[]) => CompiledGraph;
 
@@ -123,7 +141,7 @@ export function instrumentStateGraphCompile(
  *
  * Creates a `gen_ai.invoke_agent` span when invoke() is called
  */
-function instrumentCompiledGraphInvoke(
+export function instrumentCompiledGraphInvoke(
   originalInvoke: (...args: unknown[]) => Promise<unknown>,
   graphInstance: CompiledGraph,
   compileOptions: Record<string, unknown>,
@@ -210,7 +228,7 @@ function instrumentCompiledGraphInvoke(
               span.setAttributes({
                 [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
                   ? getTruncatedJsonString(filteredMessages)
-                  : getJsonString(filteredMessages),
+                  : stringify(filteredMessages),
                 [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
               });
             }

@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/nextjs';
 export const dynamic = 'force-dynamic';
 
 async function runAITest() {
-  // First span - telemetry should be enabled automatically but no input/output recorded when sendDefaultPii: true
+  // First span - telemetry should be enabled automatically but no input/output recorded when dataCollection: { userInfo: true }
   const result1 = await generateText({
     model: new MockLanguageModelV1({
       doGenerate: async () => ({

@@ -31,7 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import type { DurableObjectNamespace, Queue } from '@cloudflare/workers-types';
+import type { Ai, D1Database, DurableObjectNamespace, Queue, R2Bucket, RateLimit } from '@cloudflare/workers-types';
 
 /**
  * Checks if a value is a JSRPC proxy (service binding).
@@ -66,4 +66,57 @@ export function isDurableObjectNamespace(item: unknown): item is DurableObjectNa
  */
 export function isQueue(item: unknown): item is Queue {
   return item != null && isNotJSRPC(item) && typeof item.send === 'function' && typeof item.sendBatch === 'function';
+}
+
+/**
+ * Duck-type check for D1Database bindings.
+ * D1Database has `prepare`, `batch`, and `exec` methods.
+ */
+export function isD1Database(item: unknown): item is D1Database {
+  return (
+    item != null &&
+    isNotJSRPC(item) &&
+    typeof item.prepare === 'function' &&
+    typeof item.batch === 'function' &&
+    typeof item.exec === 'function'
+  );
+}
+
+/**
+ * Duck-type check for Workers AI bindings.
+ * The Ai binding has `run`, `gateway`, and `toMarkdown` methods.
+ */
+export function isAiBinding(item: unknown): item is Ai {
+  return (
+    item != null &&
+    isNotJSRPC(item) &&
+    typeof item.run === 'function' &&
+    typeof item.gateway === 'function' &&
+    typeof item.toMarkdown === 'function'
+  );
+}
+
+/**
+ * Duck-type check for R2 Bucket bindings.
+ * R2Bucket has `head`, `put`, and `createMultipartUpload` methods.
+ */
+export function isR2Bucket(item: unknown): item is R2Bucket {
+  return (
+    item != null &&
+    isNotJSRPC(item) &&
+    typeof item.head === 'function' &&
+    typeof item.put === 'function' &&
+    typeof item.createMultipartUpload === 'function'
+  );
+}
+
+/**
+ * Duck-type check for RateLimit bindings.
+ * RateLimit only exposes a single `limit` method. Because that is a fairly
+ * common method name, this check is intentionally run after the more specific
+ * binding checks (Queue, R2, D1) in `instrumentEnv`, so those win when a binding
+ * also happens to expose `limit`.
+ */
+export function isRateLimit(item: unknown): item is RateLimit {
+  return item != null && isNotJSRPC(item) && typeof item.limit === 'function';
 }

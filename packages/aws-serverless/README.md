@@ -41,9 +41,9 @@ import * as Sentry from '@sentry/aws-serverless';
 
 Sentry.init({
   dsn: '__DSN__',
-  // Adds request headers and IP for users, for more info visit:
-  // https://docs.sentry.io/platforms/javascript/guides/aws-lambda/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,
+  // Adds HTTP request headers and IP for users, for more info visit:
+  // https://docs.sentry.io/platforms/javascript/guides/aws-lambda/configuration/options/#dataCollection
+  dataCollection: { userInfo: true, httpHeaders: { request: true } },
   // Add Tracing by setting tracesSampleRate and adding integration
   // Set tracesSampleRate to 1.0 to capture 100% of transactions
   // We recommend adjusting this value in production

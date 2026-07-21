@@ -6,7 +6,7 @@ import {
   spanToJSON,
   updateSpanName,
 } from '@sentry/core';
-import type { TanStackMiddlewareBase } from '../common/types';
+import type { SentryGlobalFunctionMiddleware, SentryGlobalRequestMiddleware } from '../common/types';
 import { SENTRY_INTERNAL } from './middleware';
 
 type ServerFnMeta = {
@@ -67,8 +67,10 @@ function createSentryFunctionMiddlewareHandler(mechanismType: string) {
  * Global request middleware that captures errors from API route requests.
  * Should be added as the first entry in the `requestMiddleware` array of `createStart()`.
  */
-export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
-  '~types': undefined,
+export const sentryGlobalRequestMiddleware: SentryGlobalRequestMiddleware = {
+  // `~types`/`_types` only exist on the type level in TanStack Start middlewares and hold no runtime value
+  '~types': undefined as unknown as SentryGlobalRequestMiddleware['~types'],
+  _types: undefined as unknown as SentryGlobalRequestMiddleware['_types'],
 
   options: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -80,8 +82,10 @@ export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
  * Global function middleware that captures errors from server function invocations.
  * Should be added as the first entry in the `functionMiddleware` array of `createStart()`.
  */
-export const sentryGlobalFunctionMiddleware: TanStackMiddlewareBase = {
-  '~types': undefined,
+export const sentryGlobalFunctionMiddleware: SentryGlobalFunctionMiddleware = {
+  // `~types`/`_types` only exist on the type level in TanStack Start middlewares and hold no runtime value
+  '~types': undefined as unknown as SentryGlobalFunctionMiddleware['~types'],
+  _types: undefined as unknown as SentryGlobalFunctionMiddleware['_types'],
 
   options: {
     server: createSentryFunctionMiddlewareHandler('auto.middleware.tanstackstart.server_function') as (

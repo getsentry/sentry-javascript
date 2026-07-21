@@ -68,6 +68,13 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
       strippedFilename = basename(filename);
     }
     frame.filename = `${prefix}${strippedFilename}`;
+  } else if (isAppRelativeSourceFrame(frame.filename)) {
+    // SvelteKit 3 (Vite/Rolldown) source-maps server frames to relative project paths such as
+    // `src/routes/+page.ts` instead of the previous bundled absolute chunk paths. These skip the
+    // branch above, so the default parser marks them as `in_app: false` (relative paths look like
+    // Node internals). Prefix them like the absolute frames and flag them as app code.
+    frame.filename = `${prefix}${frame.filename.replace(/^\.\//, '')}`;
+    frame.in_app = true;
   }
 
   delete frame.module;
@@ -79,4 +86,13 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
   }
 
   return frame;
+}
+
+/**
+ * Whether a (non-absolute) frame filename is an app-relative source path like `src/routes/+page.ts`,
+ * as opposed to a dependency or a Node built-in. Excludes `node_modules` and any scheme/drive prefix
+ * (e.g. `node:`, `data:`, `C:/`).
+ */
+function isAppRelativeSourceFrame(filename: string): boolean {
+  return !filename.includes('node_modules/') && !/^[a-zA-Z][a-zA-Z0-9.+-]*:/.test(filename);
 }

@@ -5,7 +5,7 @@ import { readFileSync } from 'fs';
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   transport: loggingTransport,
-  sendDefaultPii: true,
+  dataCollection: { userInfo: true },
 });
 
 readFileSync('non-existent-file.txt');

@@ -386,17 +386,21 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default false
    *
-   * NOTE: This option currently controls only a few data points in a selected
-   * set of SDKs. The goal for this option is to eventually control all sensitive
-   * data the SDK sets by default. However, this would be a breaking change so
-   * until the next major update this option only controls data points which were
-   * added in versions above `7.9.0`.
+   * @deprecated Use the {@link ClientOptions.dataCollection} option instead, which lets you control
+   * each category of collected data individually. `sendDefaultPii` will be removed in the next major
+   * version (v11). For backwards compatibility, setting `sendDefaultPii: true` currently behaves like
+   * enabling all `dataCollection` categories. If both `sendDefaultPii` and `dataCollection` are set,
+   * `sendDefaultPii` will be ignored.
    */
   sendDefaultPii?: boolean;
 
   /**
    * Controls what data the SDK collects and sends to Sentry.
    * All fields are optional — omitted fields use the documented defaults.
+   *
+   * This replaces the deprecated {@link ClientOptions.sendDefaultPii} option and lets you control
+   * each category of collected data (user info, cookies, headers, query params, request/response
+   * bodies, gen AI inputs/outputs, etc.) individually.
    */
   dataCollection?: DataCollection;
 
@@ -561,11 +565,16 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   orgId?: `${number}` | number;
 
   /**
-   * If set to `true`, gen_ai spans will be extracted from transactions and sent as v2 span envelope items.
+   * Unless set to `false`, gen_ai spans will be extracted from transactions and sent as v2 span envelope items.
    *
    * This enables streaming gen_ai spans, avoiding payload size limits of usual transactions.
    *
-   * @default false
+   * Because the v2 span format is not subject to the transaction payload-size limits that gen_ai message
+   * truncation exists to work around, this also disables gen_ai input truncation by default. Set
+   * `enableTruncation: true` on the respective AI integration to opt back into truncation, or set this
+   * option to `false` to send gen_ai spans as part of the transaction (which re-enables truncation by default).
+   *
+   * @default true
    */
   streamGenAiSpans?: boolean;
 

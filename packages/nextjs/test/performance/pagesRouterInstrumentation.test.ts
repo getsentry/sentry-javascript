@@ -8,6 +8,7 @@ import {
   pagesRouterInstrumentNavigation,
   pagesRouterInstrumentPageLoad,
 } from '../../src/client/routing/pagesRouterRoutingInstrumentation';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const globalObject = WINDOW as typeof WINDOW & {
   __BUILD_MANIFEST?: {
@@ -112,9 +113,9 @@ describe('pagesRouterInstrumentPageLoad', () => {
 
   it.each([
     [
-      'https://example.com/lforst/posts/1337?q=42',
+      'https://example.com/chargome/posts/1337?q=42',
       '/[user]/posts/[id]',
-      { user: 'lforst', id: '1337', q: '42' },
+      { user: 'chargome', id: '1337', q: '42' },
       {
         pageProps: {
           _sentryTraceData: 'c82b8554881b4d28ad977de04a4fb40a-a755953cd3394d5f-1',
@@ -128,6 +129,10 @@ describe('pagesRouterInstrumentPageLoad', () => {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
           'sentry.source': 'route',
+          [URL_TEMPLATE]: '/[user]/posts/[id]',
+          user: 'chargome',
+          id: '1337',
+          q: '42',
         },
       },
     ],
@@ -148,6 +153,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
           'sentry.source': 'route',
+          [URL_TEMPLATE]: '/some-page',
         },
       },
     ],
@@ -163,6 +169,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
           'sentry.source': 'route',
+          [URL_TEMPLATE]: '/',
         },
       },
     ],
@@ -328,6 +335,7 @@ describe('pagesRouterInstrumentNavigation', () => {
           'sentry.op': 'navigation',
           'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
           'sentry.source': expectedTransactionSource,
+          ...(expectedTransactionSource === 'route' ? { [URL_TEMPLATE]: expectedTransactionName } : {}),
         },
       };
       expect(emit).toHaveBeenCalledWith(
@@ -335,10 +343,12 @@ describe('pagesRouterInstrumentNavigation', () => {
         expect.objectContaining(expectedStartSpanOptions),
         {
           isRedirect: undefined,
+          url: `https://example.com${targetLocation}`,
         },
       );
       expect(emit).toHaveBeenCalledWith('startNavigationSpan', expect.objectContaining(expectedStartSpanOptions), {
         isRedirect: undefined,
+        url: `https://example.com${targetLocation}`,
       });
     },
   );

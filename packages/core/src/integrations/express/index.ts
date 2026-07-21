@@ -103,6 +103,7 @@ export function patchExpressModule(
   let getOptions: () => ExpressIntegrationOptions;
   let moduleExports: ExpressModuleExport;
   if (!maybeGetOptions && isLegacyOptions(optionsOrExports)) {
+    // eslint-disable-next-line typescript/no-deprecated
     const { express, ...options } = optionsOrExports;
     moduleExports = express;
     getOptions = () => options;

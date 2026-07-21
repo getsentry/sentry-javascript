@@ -1,6 +1,6 @@
 {
   "name": "@sentry/core",
-  "version": "10.55.0",
+  "version": "10.67.0",
   "description": "Base implementation for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/core",
@@ -22,6 +22,10 @@
   "exports": {
     "./package.json": "./package.json",
     "./server": {
+      "react-native": {
+        "types": "./build/types/server.d.ts",
+        "default": "./build/esm/server.js"
+      },
       "import": {
         "types": "./build/types/server.d.ts",
         "default": "./build/esm/server.js"
@@ -32,6 +36,10 @@
       }
     },
     "./browser": {
+      "react-native": {
+        "types": "./build/types/browser.d.ts",
+        "default": "./build/esm/browser.js"
+      },
       "import": {
         "types": "./build/types/browser.d.ts",
         "default": "./build/esm/browser.js"
@@ -42,6 +50,10 @@
       }
     },
     ".": {
+      "react-native": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/esm/index.js"
+      },
       "import": {
         "types": "./build/types/index.d.ts",
         "default": "./build/esm/index.js"
@@ -52,19 +64,6 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ],
-      "browser": [
-        "build/types-ts3.8/browser.d.ts"
-      ],
-      "server": [
-        "build/types-ts3.8/server.d.ts"
-      ]
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
@@ -72,9 +71,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
@@ -94,5 +91,8 @@
   "sideEffects": false,
   "devDependencies": {
     "zod": "^3.24.1"
+  },
+  "dependencies": {
+    "@sentry/conventions": "^0.16.0"
   }
 }

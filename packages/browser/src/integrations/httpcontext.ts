@@ -1,5 +1,6 @@
-import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core/browser';
+import { defineIntegration, safeSetSpanJSONAttributes, SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core/browser';
 import { getHttpRequestData, WINDOW } from '../helpers';
+import { URL_FULL } from '@sentry/conventions/attributes';
 
 /**
  * Collects information about HTTP request headers and
@@ -7,7 +8,7 @@ import { getHttpRequestData, WINDOW } from '../helpers';
  */
 export const httpContextIntegration = defineIntegration(() => {
   return {
-    name: 'HttpContext',
+    name: 'HttpContext' as const,
     preprocessEvent(event) {
       // if none of the information we want exists, don't bother
       if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {
@@ -27,6 +28,8 @@ export const httpContextIntegration = defineIntegration(() => {
       };
     },
     processSegmentSpan(span) {
+      const spanOp = span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+
       // if none of the information we want exists, don't bother
       if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {
         return;
@@ -37,7 +40,7 @@ export const httpContextIntegration = defineIntegration(() => {
       safeSetSpanJSONAttributes(span, {
         // Coerce empty string to undefined so the helper's nullish check drops it,
         // rather than writing an empty `url.full` attribute onto the span.
-        'url.full': reqData.url || undefined,
+        [URL_FULL]: spanOp !== 'http.client' ? reqData.url : undefined,
         'http.request.header.user_agent': reqData.headers['User-Agent'],
         'http.request.header.referer': reqData.headers['Referer'],
       });

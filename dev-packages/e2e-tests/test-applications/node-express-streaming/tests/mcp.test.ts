@@ -25,9 +25,9 @@ test.skip('Should record streamed spans for mcp handlers', async ({ baseURL }) =
     const initializeSpan = await initializeSpanPromise;
     expect(initializeSpan).toBeDefined();
     expect(getSpanOp(initializeSpan)).toBe('mcp.server');
-    expect(initializeSpan.attributes?.['mcp.method.name']?.value).toBe('initialize');
-    expect(initializeSpan.attributes?.['mcp.client.name']?.value).toBe('test-client');
-    expect(initializeSpan.attributes?.['mcp.server.name']?.value).toBe('Echo');
+    expect(initializeSpan.attributes['mcp.method.name']?.value).toBe('initialize');
+    expect(initializeSpan.attributes['mcp.client.name']?.value).toBe('test-client');
+    expect(initializeSpan.attributes['mcp.server.name']?.value).toBe('Echo');
   });
 
   await test.step('tool handler', async () => {
@@ -61,7 +61,7 @@ test.skip('Should record streamed spans for mcp handlers', async ({ baseURL }) =
     const toolSpan = await toolSpanPromise;
     expect(toolSpan).toBeDefined();
     expect(getSpanOp(toolSpan)).toBe('mcp.server');
-    expect(toolSpan.attributes?.['mcp.method.name']?.value).toBe('tools/call');
+    expect(toolSpan.attributes['mcp.method.name']?.value).toBe('tools/call');
   });
 
   await test.step('registerTool handler', async () => {
@@ -95,8 +95,8 @@ test.skip('Should record streamed spans for mcp handlers', async ({ baseURL }) =
     const toolSpan = await toolSpanPromise;
     expect(toolSpan).toBeDefined();
     expect(getSpanOp(toolSpan)).toBe('mcp.server');
-    expect(toolSpan.attributes?.['mcp.method.name']?.value).toBe('tools/call');
-    expect(toolSpan.attributes?.['mcp.tool.name']?.value).toBe('echo-register');
+    expect(toolSpan.attributes['mcp.method.name']?.value).toBe('tools/call');
+    expect(toolSpan.attributes['mcp.tool.name']?.value).toBe('echo-register');
   });
 
   await test.step('resource handler', async () => {
@@ -122,7 +122,7 @@ test.skip('Should record streamed spans for mcp handlers', async ({ baseURL }) =
     const resourceSpan = await resourceSpanPromise;
     expect(resourceSpan).toBeDefined();
     expect(getSpanOp(resourceSpan)).toBe('mcp.server');
-    expect(resourceSpan.attributes?.['mcp.method.name']?.value).toBe('resources/read');
+    expect(resourceSpan.attributes['mcp.method.name']?.value).toBe('resources/read');
   });
 
   await test.step('prompt handler', async () => {
@@ -159,7 +159,7 @@ test.skip('Should record streamed spans for mcp handlers', async ({ baseURL }) =
     const promptSpan = await promptSpanPromise;
     expect(promptSpan).toBeDefined();
     expect(getSpanOp(promptSpan)).toBe('mcp.server');
-    expect(promptSpan.attributes?.['mcp.method.name']?.value).toBe('prompts/get');
+    expect(promptSpan.attributes['mcp.method.name']?.value).toBe('prompts/get');
   });
 
   await test.step('error tool sets span status to error', async () => {
@@ -192,7 +192,7 @@ test('Should record streamed spans for streamable HTTP transport (wrapper transp
     return (
       span.name === 'initialize' &&
       getSpanOp(span) === 'mcp.server' &&
-      span.attributes?.['mcp.server.name']?.value === 'Echo-Streamable'
+      span.attributes['mcp.server.name']?.value === 'Echo-Streamable'
     );
   });
 
@@ -202,10 +202,10 @@ test('Should record streamed spans for streamable HTTP transport (wrapper transp
     const initializeSpan = await initializeSpanPromise;
     expect(initializeSpan).toBeDefined();
     expect(getSpanOp(initializeSpan)).toBe('mcp.server');
-    expect(initializeSpan.attributes?.['mcp.method.name']?.value).toBe('initialize');
-    expect(initializeSpan.attributes?.['mcp.client.name']?.value).toBe('test-client-streamable');
-    expect(initializeSpan.attributes?.['mcp.server.name']?.value).toBe('Echo-Streamable');
-    expect(String(initializeSpan.attributes?.['mcp.transport']?.value)).toMatch(/StreamableHTTPServerTransport/);
+    expect(initializeSpan.attributes['mcp.method.name']?.value).toBe('initialize');
+    expect(initializeSpan.attributes['mcp.client.name']?.value).toBe('test-client-streamable');
+    expect(initializeSpan.attributes['mcp.server.name']?.value).toBe('Echo-Streamable');
+    expect(String(initializeSpan.attributes['mcp.transport']?.value)).toMatch(/StreamableHTTPServerTransport/);
   });
 
   await test.step('tool handler (tests wrapper transport correlation)', async () => {
@@ -213,7 +213,7 @@ test('Should record streamed spans for streamable HTTP transport (wrapper transp
       return (
         span.name === 'tools/call echo' &&
         getSpanOp(span) === 'mcp.server' &&
-        String(span.attributes?.['mcp.transport']?.value).includes('StreamableHTTPServerTransport')
+        String(span.attributes['mcp.transport']?.value).includes('StreamableHTTPServerTransport')
       );
     });
 
@@ -236,9 +236,9 @@ test('Should record streamed spans for streamable HTTP transport (wrapper transp
     const toolSpan = await toolSpanPromise;
     expect(toolSpan).toBeDefined();
     expect(getSpanOp(toolSpan)).toBe('mcp.server');
-    expect(toolSpan.attributes?.['mcp.method.name']?.value).toBe('tools/call');
-    expect(toolSpan.attributes?.['mcp.tool.name']?.value).toBe('echo');
-    expect(toolSpan.attributes?.['mcp.tool.result.content_count']?.value).toBe(1);
+    expect(toolSpan.attributes['mcp.method.name']?.value).toBe('tools/call');
+    expect(toolSpan.attributes['mcp.tool.name']?.value).toBe('echo');
+    expect(toolSpan.attributes['mcp.tool.result.content_count']?.value).toBe(1);
   });
 
   await test.step('resource handler', async () => {
@@ -246,7 +246,7 @@ test('Should record streamed spans for streamable HTTP transport (wrapper transp
       return (
         span.name === 'resources/read echo://streamable-test' &&
         getSpanOp(span) === 'mcp.server' &&
-        String(span.attributes?.['mcp.transport']?.value).includes('StreamableHTTPServerTransport')
+        String(span.attributes['mcp.transport']?.value).includes('StreamableHTTPServerTransport')
       );
     });
 
@@ -261,7 +261,7 @@ test('Should record streamed spans for streamable HTTP transport (wrapper transp
     const resourceSpan = await resourceSpanPromise;
     expect(resourceSpan).toBeDefined();
     expect(getSpanOp(resourceSpan)).toBe('mcp.server');
-    expect(resourceSpan.attributes?.['mcp.method.name']?.value).toBe('resources/read');
+    expect(resourceSpan.attributes['mcp.method.name']?.value).toBe('resources/read');
   });
 
   await test.step('prompt handler', async () => {
@@ -269,7 +269,7 @@ test('Should record streamed spans for streamable HTTP transport (wrapper transp
       return (
         span.name === 'prompts/get echo' &&
         getSpanOp(span) === 'mcp.server' &&
-        String(span.attributes?.['mcp.transport']?.value).includes('StreamableHTTPServerTransport')
+        String(span.attributes['mcp.transport']?.value).includes('StreamableHTTPServerTransport')
       );
     });
 
@@ -295,7 +295,7 @@ test('Should record streamed spans for streamable HTTP transport (wrapper transp
     const promptSpan = await promptSpanPromise;
     expect(promptSpan).toBeDefined();
     expect(getSpanOp(promptSpan)).toBe('mcp.server');
-    expect(promptSpan.attributes?.['mcp.method.name']?.value).toBe('prompts/get');
+    expect(promptSpan.attributes['mcp.method.name']?.value).toBe('prompts/get');
   });
 
   await client.close();

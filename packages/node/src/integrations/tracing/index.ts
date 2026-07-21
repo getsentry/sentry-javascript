@@ -1,10 +1,10 @@
 import type { Integration } from '@sentry/core';
+import { prismaIntegration } from '@sentry/server-utils';
 import { instrumentSentryHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { anthropicAIIntegration, instrumentAnthropicAi } from './anthropic-ai';
-import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress } from './express';
-import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
+import { fastifyIntegration, instrumentFastifyV3 } from './fastify';
 import { firebaseIntegration, instrumentFirebase } from './firebase';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { googleGenAIIntegration, instrumentGoogleGenAI } from './google-genai';
@@ -23,7 +23,6 @@ import { instrumentMysql2, mysql2Integration } from './mysql2';
 import { instrumentOpenAi, openAIIntegration } from './openai';
 import { instrumentPostgres, postgresIntegration } from './postgres';
 import { instrumentPostgresJs, postgresJsIntegration } from './postgresjs';
-import { prismaIntegration } from './prisma';
 import { instrumentRedis, redisIntegration } from './redis';
 import { instrumentTedious, tediousIntegration } from './tedious';
 import { instrumentVercelAi, vercelAIIntegration } from './vercelai';
@@ -36,6 +35,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     expressIntegration(),
     fastifyIntegration(),
     graphqlIntegration(),
+    // eslint-disable-next-line typescript/no-deprecated
     honoIntegration(),
     mongoIntegration(),
     mongooseIntegration(),
@@ -46,7 +46,6 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     prismaIntegration(),
     hapiIntegration(),
     koaIntegration(),
-    connectIntegration(),
     tediousIntegration(),
     genericPoolIntegration(),
     kafkaIntegration(),
@@ -73,8 +72,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
   return [
     instrumentSentryHttp,
     instrumentExpress,
-    instrumentConnect,
-    instrumentFastify,
     instrumentFastifyV3,
     instrumentHapi,
     instrumentHono,

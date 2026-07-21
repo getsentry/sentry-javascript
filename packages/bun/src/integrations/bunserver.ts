@@ -15,8 +15,9 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { ServeOptions } from 'bun';
+import { URL_FULL } from '@sentry/conventions/attributes';
 
-const INTEGRATION_NAME = 'BunServer';
+const INTEGRATION_NAME = 'BunServer' as const;
 
 const _bunServerIntegration = (() => {
   return {
@@ -207,9 +208,10 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
       routeName = route;
     }
 
-    const sendDefaultPii = getClient()?.getOptions().sendDefaultPii ?? false;
+    const client = getClient();
+    const dataCollection = client?.getDataCollectionOptions();
 
-    Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), sendDefaultPii));
+    Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), dataCollection));
 
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: {
@@ -242,7 +244,7 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
                   status_code: response.status,
                 });
 
-                span.setAttributes(httpHeadersToSpanAttributes(response.headers.toJSON(), sendDefaultPii, 'response'));
+                span.setAttributes(httpHeadersToSpanAttributes(response.headers.toJSON(), dataCollection, 'response'));
               }
               return response;
             } catch (e) {
@@ -281,7 +283,7 @@ function getSpanAttributesFromParsedUrl(
       attributes['url.path'] = parsedUrl.pathname;
     }
     if (!isURLObjectRelative(parsedUrl)) {
-      attributes['url.full'] = parsedUrl.href;
+      attributes[URL_FULL] = parsedUrl.href;
       if (parsedUrl.port) {
         attributes['url.port'] = parsedUrl.port;
       }

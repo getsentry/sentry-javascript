@@ -37,13 +37,15 @@ export function conditionalTest(allowedVersion: {
   min?: number;
   max?: number;
 }): typeof describe | typeof describe.skip {
+  return describe.skipIf(!matchesNodeVersion(allowedVersion));
+}
+
+function matchesNodeVersion({ min, max }: { min?: number; max?: number }): boolean {
   if (!NODE_VERSION) {
-    return describe.skip;
+    return false;
   }
 
-  return NODE_VERSION < (allowedVersion.min || -Infinity) || NODE_VERSION > (allowedVersion.max || Infinity)
-    ? describe.skip
-    : describe;
+  return !(NODE_VERSION < (min || -Infinity) || NODE_VERSION > (max || Infinity));
 }
 
 /**
@@ -55,3 +57,19 @@ export function conditionalTest(allowedVersion: {
 export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
   return body.split('\n').map(e => JSON.parse(e));
 };
+
+/** Returns true if orchestrion is enabled in env vars. */
+export function isOrchestrionEnabled(): boolean {
+  return process.env.INJECT_ORCHESTRION === 'true' || process.env.INJECT_ORCHESTRION === '1';
+}
+
+/**
+ * Narrows a typed span attribute value to a string.
+ *
+ * Streamed span attribute values are a union (`string | number | boolean | string[] | ...`), so
+ * assertions that call string methods (`includes`, `startsWith`, `match`, `length`) need the value
+ * narrowed first. Returns `undefined` if the value is not a string.
+ */
+export function getStringAttributeValue(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}

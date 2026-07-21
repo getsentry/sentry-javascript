@@ -3,6 +3,7 @@ import { applySdkMetadata, debug, getClient } from '@sentry/core';
 import { init as initNode } from '@sentry/node';
 import type { HonoNodeOptions } from './middleware';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
+import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../shared/lowQualityTransactionPatterns';
 
 /**
  * Initializes Sentry for Hono running in a Node runtime environment.
@@ -20,6 +21,7 @@ export function init(options: HonoNodeOptions): Client | undefined {
 
   const filteredOptions: HonoNodeOptions = {
     ...options,
+    ignoreSpans: [...(options.ignoreSpans || []), ...LOW_QUALITY_TRANSACTION_PATTERNS],
     integrations: buildFilteredIntegrations(options.integrations, false),
   };
 

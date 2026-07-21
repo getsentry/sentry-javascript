@@ -85,9 +85,11 @@ export function getFinalConfigObject(
 
   maybeEnableTurbopackSourcemaps(incomingUserNextConfigObject, userSentryOptions, bundlerInfo);
 
+  const useDiagnosticsChannelInjection = userSentryOptions._experimental?.useDiagnosticsChannelInjection ?? false;
+
   return {
     ...incomingUserNextConfigObject,
-    ...getServerExternalPackagesPatch(incomingUserNextConfigObject, nextMajor),
+    ...getServerExternalPackagesPatch(incomingUserNextConfigObject, nextMajor, useDiagnosticsChannelInjection),
     ...getWebpackPatch({
       incomingUserNextConfigObject,
       userSentryOptions,

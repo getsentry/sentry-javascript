@@ -1,5 +1,5 @@
 import { getClient } from '@sentry/core';
-import { EventType } from '@sentry-internal/rrweb';
+import { EventType } from '@sentry/rrweb';
 import { DEBUG_BUILD } from '../debug-build';
 import { EventBufferSizeExceededError } from '../eventBuffer/error';
 import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent, ReplayPluginOptions } from '../types';
@@ -81,6 +81,15 @@ async function _addEvent(
 
     return await eventBuffer.addEvent(eventAfterPossibleCallback);
   } catch (error) {
+    // If replay is no longer enabled, the buffer was torn down by `stop()`
+    // (session refresh, mutation limit, etc.), which rejects any in-flight
+    // `addEvent` with "Worker destroyed". Any error that is thrown after stopping
+    // should not result in a client report
+    if (!replay.isEnabled()) {
+      replay.handleException(error);
+      return null;
+    }
+
     const isExceeded = error && error instanceof EventBufferSizeExceededError;
     const reason = isExceeded ? 'eventBufferOverflow' : 'eventBufferError';
     const client = getClient();

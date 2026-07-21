@@ -32,7 +32,7 @@
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "sentryTest": {
-    "optional": true
+    "skip": true
   },
   "volta": {
     "extends": "../../package.json",

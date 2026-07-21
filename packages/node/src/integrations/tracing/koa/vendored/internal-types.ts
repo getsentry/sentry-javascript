@@ -1,37 +1,25 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-koa
  * - Upstream version: @opentelemetry/instrumentation-koa@0.66.0
  * - Some types vendored from @types/koa, @types/koa-compose, and @types/koa__router with simplifications
  */
-/* eslint-disable */
 
 interface DefaultState {}
 
-export type Next = () => Promise<any>;
+export type Next = () => Promise<unknown>;
 
 type ParameterizedContext<_StateT = DefaultState, ContextT = {}, _ResponseBodyT = unknown> = {
-  [key: string]: any;
+  [key: string]: unknown;
 } & ContextT;
 
-type Middleware<StateT = DefaultState, ContextT = {}, ResponseBodyT = any> = (
+type Middleware<StateT = DefaultState, ContextT = {}, ResponseBodyT = unknown> = (
   context: ParameterizedContext<StateT, ContextT, ResponseBodyT>,
   next: Next,
-) => any;
+) => unknown;
 
 interface RouterParamContext<StateT = DefaultState, ContextT = {}> {
   params: Record<string, string>;
@@ -42,7 +30,7 @@ interface RouterParamContext<StateT = DefaultState, ContextT = {}> {
 
 interface Layer {
   path: string | RegExp;
-  stack: any[];
+  stack: KoaMiddleware[];
 }
 
 export interface Router<_StateT = DefaultState, _ContextT = {}> {

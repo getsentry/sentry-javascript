@@ -1,11 +1,6 @@
 import type { Span } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import {
-  ATTR_HTTP_REQUEST_METHOD,
-  ATTR_URL_FULL,
-  SEMATTRS_HTTP_METHOD,
-  SEMATTRS_HTTP_URL,
-} from '@opentelemetry/semantic-conventions';
+import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
 import type { SanitizedRequestData } from '@sentry/core';
 import { getSanitizedUrlString, parseUrl } from '@sentry/core';
 import { spanHasAttributes } from './spanTypes';
@@ -19,17 +14,13 @@ export function getRequestSpanData(span: Span | ReadableSpan): Partial<Sanitized
     return {};
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  const maybeUrlAttribute = (span.attributes[ATTR_URL_FULL] || span.attributes[SEMATTRS_HTTP_URL]) as
-    | string
-    | undefined;
+  // eslint-disable-next-line typescript/no-deprecated
+  const maybeUrlAttribute = (span.attributes[URL_FULL] || span.attributes[HTTP_URL]) as string | undefined;
 
   const data: Partial<SanitizedRequestData> = {
     url: maybeUrlAttribute,
-    // eslint-disable-next-line deprecation/deprecation
-    'http.method': (span.attributes[ATTR_HTTP_REQUEST_METHOD] || span.attributes[SEMATTRS_HTTP_METHOD]) as
-      | string
-      | undefined,
+    // eslint-disable-next-line typescript/no-deprecated
+    'http.method': (span.attributes[HTTP_REQUEST_METHOD] || span.attributes[HTTP_METHOD]) as string | undefined,
   };
 
   // Default to GET if URL is set but method is not

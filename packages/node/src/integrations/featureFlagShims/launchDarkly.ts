@@ -13,7 +13,7 @@ export const launchDarklyIntegrationShim = defineIntegration((_options?: unknown
   }
 
   return {
-    name: 'LaunchDarkly',
+    name: 'LaunchDarkly' as const,
   };
 });
 

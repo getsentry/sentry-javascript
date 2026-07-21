@@ -36,18 +36,19 @@ const _openAiIntegration = ((options: OpenAiOptions = {}) => {
  *
  * ## Options
  *
- * - `recordInputs`: Whether to record prompt messages (default: respects `sendDefaultPii` client option)
- * - `recordOutputs`: Whether to record response text (default: respects `sendDefaultPii` client option)
+ * - `recordInputs`: Whether to record input messages/prompts (default: follows `dataCollection.genAI.inputs`, or the deprecated `sendDefaultPii` option)
+ * - `recordOutputs`: Whether to record response text (default: follows `dataCollection.genAI.outputs`, or the deprecated `sendDefaultPii` option)
  *
  * ### Default Behavior
  *
  * By default, the integration will:
- * - Record inputs and outputs ONLY if `sendDefaultPii` is set to `true` in your Sentry client options
- * - Otherwise, inputs and outputs are NOT recorded unless explicitly enabled
+ * - Record inputs and outputs based on `dataCollection.genAI` in your Sentry client options
+ *   (or the deprecated `sendDefaultPii` option, for backwards compatibility)
+ * - Integration-level `recordInputs`/`recordOutputs` options take precedence over global config
  *
  * @example
  * ```javascript
- * // Record inputs and outputs when sendDefaultPii is false
+ * // Always record inputs and outputs regardless of global dataCollection config
  * Sentry.init({
  *   integrations: [
  *     Sentry.openAIIntegration({
@@ -57,9 +58,9 @@ const _openAiIntegration = ((options: OpenAiOptions = {}) => {
  *   ],
  * });
  *
- * // Never record inputs/outputs regardless of sendDefaultPii
+ * // Never record inputs/outputs regardless of global dataCollection config
  * Sentry.init({
- *   sendDefaultPii: true,
+ *   dataCollection: { genAI: { inputs: true, outputs: true } },
  *   integrations: [
  *     Sentry.openAIIntegration({
  *       recordInputs: false,

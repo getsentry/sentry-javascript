@@ -45,26 +45,37 @@ export interface InstrumentedMethodEntry {
 export type InstrumentedMethodRegistry = Record<string, InstrumentedMethodEntry>;
 
 /**
- * Resolves AI recording options by falling back to the client's `sendDefaultPii` setting.
- * Precedence: explicit option > sendDefaultPii > false
+ * Resolves AI recording options by falling back to the client's `dataCollection.genAI` settings.
+ * Precedence: explicit option > dataCollection.genAI > sendDefaultPii > false
  */
 export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?: T): T & Required<AIRecordingOptions> {
-  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+  const genAI = getClient()?.getDataCollectionOptions().genAI;
   return {
     ...options,
-    recordInputs: options?.recordInputs ?? sendDefaultPii,
-    recordOutputs: options?.recordOutputs ?? sendDefaultPii,
+    recordInputs: options?.recordInputs ?? genAI?.inputs ?? false,
+    recordOutputs: options?.recordOutputs ?? genAI?.outputs ?? false,
   } as T & Required<AIRecordingOptions>;
 }
 
 /**
  * Resolves whether truncation should be enabled.
  * If the user explicitly set `enableTruncation`, that value is used.
- * Otherwise, truncation is disabled when span streaming is active.
+ * Otherwise, truncation is disabled whenever gen_ai spans are sent through the span streaming / v2
+ * span path, i.e. full span streaming (`traceLifecycle: 'stream'`) or `streamGenAiSpans`. That path
+ * is not subject to the transaction payload-size limits that truncation works around, so the full
+ * message data can be retained. `streamGenAiSpans` is opt-out (on unless explicitly set to `false`).
  */
 export function shouldEnableTruncation(enableTruncation: boolean | undefined): boolean {
+  if (enableTruncation !== undefined) {
+    return enableTruncation;
+  }
+
   const client = getClient();
-  return enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
+  if (!client) {
+    return true;
+  }
+
+  return !hasSpanStreamingEnabled(client) && client.getOptions().streamGenAiSpans === false;
 }
 
 /**
@@ -181,20 +192,9 @@ export function endStreamSpan(span: Span, state: StreamResponseState, recordOutp
 }
 
 /**
- * Serialize a value to a JSON string without truncation.
- * Strings are returned as-is, arrays and objects are JSON-stringified.
- */
-export function getJsonString<T>(value: T | T[]): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  return JSON.stringify(value);
-}
-
-/**
- * Get the truncated JSON string for a string or array of strings.
+ * Get the truncated JSON string for a string, an array of messages, or an object.
  *
- * @param value - The string or array of strings to truncate
+ * @param value - The value to truncate and serialize
  * @returns The truncated JSON string
  */
 export function getTruncatedJsonString<T>(value: T | T[]): string {
@@ -202,13 +202,13 @@ export function getTruncatedJsonString<T>(value: T | T[]): string {
     // Some values are already JSON strings, so we don't need to duplicate the JSON parsing
     return truncateGenAiStringInput(value);
   }
-  if (Array.isArray(value)) {
-    // truncateGenAiMessages returns an array of strings, so we need to stringify it
-    const truncatedMessages = truncateGenAiMessages(value);
-    return JSON.stringify(truncatedMessages);
+  // Both truncation (media stripping recurses the value) and `JSON.stringify` can throw on
+  // circular refs or non-serializable values (e.g. BigInt); never let that crash instrumentation.
+  try {
+    return JSON.stringify(Array.isArray(value) ? truncateGenAiMessages(value) : value);
+  } catch {
+    return '[unserializable]';
   }
-  // value is an object, so we need to stringify it
-  return JSON.stringify(value);
 }
 
 /**

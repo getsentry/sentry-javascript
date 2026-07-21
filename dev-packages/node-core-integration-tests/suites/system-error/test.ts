@@ -6,7 +6,7 @@ afterAll(() => {
 });
 
 describe('SystemError integration', () => {
-  test('sendDefaultPii: false', async () => {
+  test('userInfo: false', async () => {
     await createRunner(__dirname, 'basic.mjs')
       .expect({
         event: {
@@ -31,7 +31,7 @@ describe('SystemError integration', () => {
       .completed();
   });
 
-  test('sendDefaultPii: true', async () => {
+  test('userInfo: true', async () => {
     await createRunner(__dirname, 'basic-pii.mjs')
       .expect({
         event: {

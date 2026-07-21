@@ -1,11 +1,12 @@
 import type { Scope } from '../scope';
 import type { Span } from '../types/span';
 import { addNonEnumerableProperty } from '../utils/object';
+import { derefWeakRef, makeWeakRef, type MaybeWeakRef } from './weakRef';
 
 const SCOPE_SPAN_FIELD = '_sentrySpan';
 
 type ScopeWithMaybeSpan = Scope & {
-  [SCOPE_SPAN_FIELD]?: Span;
+  [SCOPE_SPAN_FIELD]?: MaybeWeakRef<Span>;
 };
 
 /**
@@ -14,7 +15,8 @@ type ScopeWithMaybeSpan = Scope & {
  */
 export function _setSpanForScope(scope: Scope, span: Span | undefined): void {
   if (span) {
-    addNonEnumerableProperty(scope as ScopeWithMaybeSpan, SCOPE_SPAN_FIELD, span);
+    // Use WeakRef to avoid circular reference with span holding scope
+    addNonEnumerableProperty(scope as ScopeWithMaybeSpan, SCOPE_SPAN_FIELD, makeWeakRef(span));
   } else {
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete (scope as ScopeWithMaybeSpan)[SCOPE_SPAN_FIELD];
@@ -26,5 +28,5 @@ export function _setSpanForScope(scope: Scope, span: Span | undefined): void {
  * NOTE: This should NOT be used directly, but is only used internally by the trace methods.
  */
 export function _getSpanForScope(scope: ScopeWithMaybeSpan): Span | undefined {
-  return scope[SCOPE_SPAN_FIELD];
+  return derefWeakRef(scope[SCOPE_SPAN_FIELD]);
 }

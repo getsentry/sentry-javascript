@@ -5,7 +5,8 @@
       "{workspaceRoot}/*.js",
       "{workspaceRoot}/*.json",
       "{workspaceRoot}/yarn.lock",
-      "{workspaceRoot}/dev-packages/rollup-utils/**"
+      "{workspaceRoot}/dev-packages/rollup-utils/**",
+      "{workspaceRoot}/packages/typescript/**"
     ],
     "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md", "!{projectRoot}/*.tgz"]
   },
@@ -39,12 +40,7 @@
     "build:types": {
       "inputs": ["production", "^production"],
       "dependsOn": ["^build:types"],
-      "outputs": [
-        "{projectRoot}/build/types",
-        "{projectRoot}/build/types-ts3.8",
-        "{projectRoot}/build/npm/types",
-        "{projectRoot}/build/npm/types-ts3.8"
-      ],
+      "outputs": ["{projectRoot}/build/types", "{projectRoot}/build/npm/types"],
       "cache": true
     },
     "lint": {

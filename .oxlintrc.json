@@ -7,7 +7,7 @@
   "jsPlugins": [
     {
       "name": "sdk",
-      "specifier": "@sentry-internal/eslint-plugin-sdk"
+      "specifier": "@sentry/eslint-plugin-sdk"
     }
   ],
   "categories": {},
@@ -38,6 +38,7 @@
     "test/manual/**",
     "types/**",
     "scripts/*.js",
-    "node_modules/**"
+    "node_modules/**",
+    "packages/bundler-plugins/test/core/fixtures/**"
   ]
 }

@@ -9,7 +9,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '@sentry/core';
-import { render } from '@testing-library/react';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { fireEvent, render } from '@testing-library/react';
 import * as React from 'react';
 import type { RouteObject } from 'react-router-6';
 import {
@@ -23,6 +24,7 @@ import {
   RouterProvider,
   Routes,
   useLocation,
+  useNavigate,
   useNavigationType,
   useRoutes,
 } from 'react-router-6';
@@ -329,10 +331,60 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/about',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/about',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
+    });
+
+    it('starts the navigation span before the navigated-to route component runs its mount effect', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      let navigationSpanCallsAtChildMount: number | undefined;
+      function NavigatedRoute(): React.ReactElement {
+        React.useEffect(() => {
+          navigationSpanCallsAtChildMount = mockStartBrowserTracingNavigationSpan.mock.calls.length;
+        }, []);
+        return <div>Navigated</div>;
+      }
+
+      function Home(): React.ReactElement {
+        const navigate = useNavigate();
+        return (
+          <button type="button" onClick={() => navigate('/about')}>
+            to about
+          </button>
+        );
+      }
+
+      const { getByText } = render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<NavigatedRoute />} />
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      // Navigate via a user click (matching real usage) - not `<Navigate>`, which would redirect
+      // from within a passive effect and not exercise the same commit ordering.
+      fireEvent.click(getByText('to about'));
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(navigationSpanCallsAtChildMount).toBe(1);
     });
 
     it('works with nested routes', () => {
@@ -366,6 +418,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/about/us',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/about/us',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -403,6 +456,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/about/:page',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/about/:page',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -442,6 +496,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/stores/:storeId/products/:productId',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/stores/:storeId/products/:productId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -489,6 +544,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/projects/:projectId/views/:viewId',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/projects/:projectId/views/:viewId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -538,6 +594,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/projects/:projectId/views/:viewId',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/projects/:projectId/views/:viewId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -589,6 +646,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/projects/:projectId/views/:viewId',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/projects/:projectId/views/:viewId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -628,6 +686,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/issues/:groupId/',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/issues/:groupId/',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -667,6 +726,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/issues/:groupId/',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/issues/:groupId/',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -890,6 +950,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/about',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/about',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -941,6 +1002,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/about/us',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/about/us',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -992,6 +1054,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/about/:page',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/about/:page',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -1049,6 +1112,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/stores/:storeId/products/:productId',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/stores/:storeId/products/:productId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -1130,6 +1194,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/projects/:projectId/views/:viewId',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/projects/:projectId/views/:viewId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -1209,6 +1274,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/param-page/:id/details/:superId',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/param-page/:id/details/:superId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -1365,6 +1431,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/issues/:groupId/',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/issues/:groupId/',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
@@ -1404,6 +1471,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: '/issues/:groupId/',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/issues/:groupId/',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },

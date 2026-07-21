@@ -15,6 +15,9 @@ const Index = () => {
       <Link to="/user/5" id="navigation">
         navigate
       </Link>
+      <Link to="/products" id="navigation-products">
+        products
+      </Link>
     </>
   );
 };

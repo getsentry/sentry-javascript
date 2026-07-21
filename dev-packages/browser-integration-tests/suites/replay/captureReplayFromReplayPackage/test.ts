@@ -3,7 +3,7 @@ import { SDK_VERSION } from '@sentry/browser';
 import { sentryTest, TEST_HOST } from '../../../utils/fixtures';
 import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('should capture replays (@sentry-internal/replay export)', async ({ getLocalTestUrl, page }) => {
+sentryTest('should capture replays (@sentry/replay export)', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -29,6 +29,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
     replay_id: expect.stringMatching(/\w{32}/),
     replay_start_timestamp: expect.any(Number),
     segment_id: 0,
+    segment_names: [],
     replay_type: 'session',
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
@@ -77,6 +78,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
     replay_id: expect.stringMatching(/\w{32}/),
     replay_start_timestamp: expect.any(Number),
     segment_id: 1,
+    segment_names: [],
     replay_type: 'session',
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',

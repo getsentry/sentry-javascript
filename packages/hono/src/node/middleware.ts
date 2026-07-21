@@ -1,4 +1,5 @@
 import { type BaseTransportOptions, consoleSandbox, debug, getClient, type Options } from '@sentry/core';
+import { getConnInfo } from '@hono/node-server/conninfo';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { applyPatches } from '../shared/applyPatches';
@@ -42,7 +43,7 @@ export const sentry = <E extends Env>(app: Hono<E>, options?: SentryHonoMiddlewa
   applyPatches(app);
 
   return async (context, next) => {
-    requestHandler(context);
+    requestHandler(context, getConnInfo);
 
     await next(); // Handler runs in between Request above ⤴ and Response below ⤵
 

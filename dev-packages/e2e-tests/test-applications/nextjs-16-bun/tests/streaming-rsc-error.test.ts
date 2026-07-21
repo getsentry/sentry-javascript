@@ -12,7 +12,9 @@ test('Should capture errors for crashing streaming promises in server components
     return transactionEvent?.transaction === 'GET /streaming-rsc-error/[param]';
   });
 
-  await page.goto(`/streaming-rsc-error/123`);
+  // The streaming RSC error can interrupt the HTTP response, causing the navigation to reject
+  // (e.g. net::ERR_ABORTED) even though the error and transaction are still captured.
+  await page.goto(`/streaming-rsc-error/123`).catch(() => {});
   const errorEvent = await errorEventPromise;
   const serverTransactionEvent = await serverTransactionPromise;
 

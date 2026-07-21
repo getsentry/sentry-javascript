@@ -1,19 +1,24 @@
 import { expect } from '@playwright/test';
 import {
   SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
-  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
+import {
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_TRACE_LIFECYCLE,
+} from '@sentry/conventions/attributes';
 
 sentryTest(
   'sends a streamed span envelope if spanStreamingIntegration is enabled',
@@ -78,21 +83,29 @@ sentryTest(
             type: 'string',
             value: 'manual',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: {
+          [SENTRY_SDK_NAME]: {
             type: 'string',
             value: 'sentry.javascript.browser',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: {
+          [SENTRY_SDK_VERSION]: {
             type: 'string',
             value: SDK_VERSION,
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: {
+          [SENTRY_SEGMENT_ID]: {
             type: 'string',
             value: segmentSpanId,
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: {
+          [SENTRY_SEGMENT_NAME]: {
             type: 'string',
             value: 'test-span',
+          },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+            type: 'string',
+            value: 'production',
+          },
+          [SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
           },
         },
         end_timestamp: expect.any(Number),
@@ -110,21 +123,29 @@ sentryTest(
             type: 'string',
             value: 'manual',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: {
+          [SENTRY_SDK_NAME]: {
             type: 'string',
             value: 'sentry.javascript.browser',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: {
+          [SENTRY_SDK_VERSION]: {
             type: 'string',
             value: SDK_VERSION,
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: {
+          [SENTRY_SEGMENT_ID]: {
             type: 'string',
             value: segmentSpanId,
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: {
+          [SENTRY_SEGMENT_NAME]: {
             type: 'string',
             value: 'test-span',
+          },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+            type: 'string',
+            value: 'production',
+          },
+          [SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
           },
         },
         end_timestamp: expect.any(Number),
@@ -142,21 +163,33 @@ sentryTest(
             type: 'string',
             value: 'manual',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: {
+          [SENTRY_SDK_NAME]: {
             type: 'string',
             value: 'sentry.javascript.browser',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: {
+          [SENTRY_SDK_VERSION]: {
             type: 'string',
             value: SDK_VERSION,
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: {
+          [SENTRY_SEGMENT_ID]: {
             type: 'string',
             value: segmentSpanId,
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: {
+          [SENTRY_SEGMENT_NAME]: {
             type: 'string',
             value: 'test-span',
+          },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+            type: 'string',
+            value: 'production',
+          },
+          [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: {
+            type: 'string',
+            value: 'Connection Refused',
+          },
+          [SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
           },
         },
         end_timestamp: expect.any(Number),
@@ -165,7 +198,7 @@ sentryTest(
         parent_span_id: segmentSpanId,
         span_id: expect.stringMatching(/^[\da-f]{16}$/),
         start_timestamp: expect.any(Number),
-        status: 'ok',
+        status: 'error',
         trace_id: traceId,
       },
       {
@@ -202,11 +235,11 @@ sentryTest(
             type: 'integer',
             value: 1,
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: {
+          [SENTRY_SDK_NAME]: {
             type: 'string',
             value: 'sentry.javascript.browser',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: {
+          [SENTRY_SDK_VERSION]: {
             type: 'string',
             value: SDK_VERSION,
           },
@@ -214,11 +247,11 @@ sentryTest(
             type: 'array',
             value: expect.arrayContaining(['SpanStreaming']),
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: {
+          [SENTRY_SEGMENT_ID]: {
             type: 'string',
             value: segmentSpanId,
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: {
+          [SENTRY_SEGMENT_NAME]: {
             type: 'string',
             value: 'test-span',
           },
@@ -226,9 +259,17 @@ sentryTest(
             type: 'string',
             value: 'custom',
           },
-          'sentry.span.source': {
+          'sentry.segment.name.source': {
             type: 'string',
             value: 'custom',
+          },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+            type: 'string',
+            value: 'production',
+          },
+          [SENTRY_TRACE_LIFECYCLE]: {
+            type: 'string',
+            value: 'stream',
           },
         },
         end_timestamp: expect.any(Number),

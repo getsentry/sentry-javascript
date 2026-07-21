@@ -76,4 +76,20 @@ describe('handleError (client)', () => {
     // Check that the default handler wasn't invoked
     expect(consoleErrorSpy).toHaveBeenCalledTimes(0);
   });
+
+  it.each([400, 401, 403, 404, 429, 499])(
+    "doesn't capture %s errors embedded in __data.json (HTTP 200 wrapper)",
+    async statusCode => {
+      const wrappedHandleError = handleErrorWithSentry(handleError);
+      await wrappedHandleError({
+        // SvelteKit resolves get_status() to 500 for plain deserialized error objects
+        status: 500,
+        error: { type: 'error', error: { message: `Error: ${statusCode}` }, status: statusCode },
+        event: navigationEvent,
+        message: `Error: ${statusCode}`,
+      });
+
+      expect(mockCaptureException).not.toHaveBeenCalled();
+    },
+  );
 });

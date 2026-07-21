@@ -1,5 +1,6 @@
 import {
   browserTracingIntegration as originalBrowserTracingIntegration,
+  getAbsoluteUrl,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
   WINDOW,
@@ -11,6 +12,19 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core/browser';
 import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
+import {
+  PARAMS_KEY_BASE,
+  URL_FULL,
+  URL_PATH,
+  URL_PATH_PARAMETER_KEY_BASE,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
+
+interface TanstackRouterLocation {
+  pathname: string;
+  search: Record<string, unknown>;
+  state?: unknown;
+}
 
 /**
  * A custom browser tracing integration for TanStack Router.
@@ -40,87 +54,135 @@ export function tanstackRouterBrowserTracingIntegration(
     afterAllSetup(client) {
       browserTracingIntegrationInstance.afterAllSetup(client);
 
-      const initialWindowLocation = WINDOW.location;
-      if (instrumentPageLoad && initialWindowLocation) {
-        const matchedRoutes = castRouterInstance.matchRoutes(
-          initialWindowLocation.pathname,
-          castRouterInstance.options.parseSearch(initialWindowLocation.search),
-          { preload: false, throwOnError: false },
-        );
-
+      const resolveRouteMatch = (pathname: string, search: unknown): VendoredTanstackRouterRouteMatch | undefined => {
+        const matchedRoutes = castRouterInstance.matchRoutes(pathname, search as {}, {
+          preload: false,
+          throwOnError: false,
+        });
         const lastMatch = matchedRoutes[matchedRoutes.length - 1];
         // If we only match __root__, we ended up not matching any route at all, so
         // we fall back to the pathname.
-        const routeMatch = lastMatch?.routeId !== '__root__' ? lastMatch : undefined;
+        return lastMatch?.routeId !== '__root__' ? lastMatch : undefined;
+      };
 
-        startBrowserTracingPageLoadSpan(client, {
+      const applyRouteMatch = (
+        span: NonNullable<ReturnType<typeof startBrowserTracingPageLoadSpan>>,
+        match: VendoredTanstackRouterRouteMatch | undefined,
+        toLocation: TanstackRouterLocation,
+        fallbackName: string,
+      ): void => {
+        span.updateName(match ? match.routeId : fallbackName);
+        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, match ? 'route' : 'url');
+        span.setAttributes({
+          ...(match && { [URL_TEMPLATE]: match.routeId }),
+          ...locationToSpanUrlAttributes(castRouterInstance, toLocation),
+          ...routeMatchToParamSpanAttributes(match),
+        });
+      };
+
+      const initialWindowLocation = WINDOW.location;
+      if (instrumentPageLoad && initialWindowLocation) {
+        const routeMatch = resolveRouteMatch(
+          initialWindowLocation.pathname,
+          castRouterInstance.options.parseSearch(initialWindowLocation.search),
+        );
+
+        const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
           name: routeMatch ? routeMatch.routeId : initialWindowLocation.pathname,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.tanstack_router',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+            ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
             ...routeMatchToParamSpanAttributes(routeMatch),
           },
+        });
+
+        // A redirect thrown during the initial pageload leaves the span named after the pre-redirect
+        // route, so correct it to the resolved route once.
+        const unsubscribePageloadResolved = castRouterInstance.subscribe('onResolved', onResolvedArgs => {
+          unsubscribePageloadResolved();
+          if (!pageloadSpan) {
+            return;
+          }
+          const { toLocation } = onResolvedArgs;
+          const resolvedMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
+          applyRouteMatch(pageloadSpan, resolvedMatch, toLocation, toLocation.pathname);
         });
       }
 
       if (instrumentNavigation) {
-        // The onBeforeNavigate hook is called at the very beginning of a navigation and is only called once per navigation, even when the user is redirected
-        castRouterInstance.subscribe('onBeforeNavigate', onBeforeNavigateArgs => {
-          // onBeforeNavigate is called during pageloads. We can avoid creating navigation spans by:
-          // 1. Checking if there's no fromLocation (initial pageload)
-          // 2. Comparing the states of the to and from arguments
-          if (
-            !onBeforeNavigateArgs.fromLocation ||
-            onBeforeNavigateArgs.toLocation.state === onBeforeNavigateArgs.fromLocation.state
-          ) {
+        // Navigation is driven by `onBeforeLoad` (accurate start) + `onResolved` (final route), not
+        // `onBeforeNavigate`, which TanStack stops firing after any loader redirect (TanStack/router#3920).
+        // A redirect chain emits one `onBeforeLoad` per load but a single `onResolved`, so we start the
+        // span on the first `onBeforeLoad`, rename it on later ones, and clear it on `onResolved`.
+        let inFlightNavigationSpan: ReturnType<typeof startBrowserTracingNavigationSpan> | undefined;
+
+        castRouterInstance.subscribe('onBeforeLoad', onBeforeLoadArgs => {
+          const { toLocation, fromLocation } = onBeforeLoadArgs;
+          // Skip the initial pageload (no fromLocation) and no-op reloads (same state).
+          if (!fromLocation || toLocation.state === fromLocation.state) {
             return;
           }
 
-          const matchedRoutesOnBeforeNavigate = castRouterInstance.matchRoutes(
-            onBeforeNavigateArgs.toLocation.pathname,
-            onBeforeNavigateArgs.toLocation.search,
-            { preload: false, throwOnError: false },
-          );
+          const routeMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
+          const fallbackName = WINDOW.location?.pathname || toLocation.pathname;
 
-          const onBeforeNavigateLastMatch = matchedRoutesOnBeforeNavigate[matchedRoutesOnBeforeNavigate.length - 1];
-          const onBeforeNavigateRouteMatch =
-            onBeforeNavigateLastMatch?.routeId !== '__root__' ? onBeforeNavigateLastMatch : undefined;
+          if (inFlightNavigationSpan) {
+            // Redirect continuation within the same navigation: keep the span, update the target.
+            applyRouteMatch(inFlightNavigationSpan, routeMatch, toLocation, fallbackName);
+            return;
+          }
 
-          const navigationLocation = WINDOW.location;
-          const navigationSpan = startBrowserTracingNavigationSpan(client, {
-            name: onBeforeNavigateRouteMatch ? onBeforeNavigateRouteMatch.routeId : navigationLocation.pathname,
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.tanstack_router',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: onBeforeNavigateRouteMatch ? 'route' : 'url',
+          inFlightNavigationSpan = startBrowserTracingNavigationSpan(
+            client,
+            {
+              name: routeMatch ? routeMatch.routeId : fallbackName,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.tanstack_router',
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+                ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
+                ...routeMatchToParamSpanAttributes(routeMatch),
+              },
             },
-          });
+            { url: locationToAbsoluteUrl(castRouterInstance, toLocation) },
+          );
+        });
 
-          // In case the user is redirected during navigation we want to update the span with the right value.
-          const unsubscribeOnResolved = castRouterInstance.subscribe('onResolved', onResolvedArgs => {
-            unsubscribeOnResolved();
-            if (navigationSpan) {
-              const matchedRoutesOnResolved = castRouterInstance.matchRoutes(
-                onResolvedArgs.toLocation.pathname,
-                onResolvedArgs.toLocation.search,
-                { preload: false, throwOnError: false },
-              );
-
-              const onResolvedLastMatch = matchedRoutesOnResolved[matchedRoutesOnResolved.length - 1];
-              const onResolvedRouteMatch =
-                onResolvedLastMatch?.routeId !== '__root__' ? onResolvedLastMatch : undefined;
-
-              if (onResolvedRouteMatch) {
-                navigationSpan.updateName(onResolvedRouteMatch.routeId);
-                navigationSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-                navigationSpan.setAttributes(routeMatchToParamSpanAttributes(onResolvedRouteMatch));
-              }
-            }
-          });
+        castRouterInstance.subscribe('onResolved', onResolvedArgs => {
+          const span = inFlightNavigationSpan;
+          inFlightNavigationSpan = undefined;
+          if (!span) {
+            return;
+          }
+          const { toLocation } = onResolvedArgs;
+          const resolvedMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
+          if (resolvedMatch) {
+            applyRouteMatch(span, resolvedMatch, toLocation, WINDOW.location?.pathname || toLocation.pathname);
+          }
         });
       }
     },
+  };
+}
+
+function locationToAbsoluteUrl(router: VendoredTanstackRouter, location: TanstackRouterLocation): string {
+  const search = router.options.stringifySearch?.(location.search) ?? '';
+  const pathWithSearch = `${location.pathname}${search && search !== '?' ? search : ''}`;
+
+  return getAbsoluteUrl(pathWithSearch);
+}
+
+function locationToSpanUrlAttributes(
+  router: VendoredTanstackRouter,
+  location: TanstackRouterLocation,
+): Record<string, string> {
+  const absoluteUrl = locationToAbsoluteUrl(router, location);
+
+  return {
+    [URL_PATH]: location.pathname,
+    [URL_FULL]: absoluteUrl,
   };
 }
 
@@ -132,8 +194,8 @@ function routeMatchToParamSpanAttributes(match: VendoredTanstackRouterRouteMatch
   const paramAttributes: Record<string, string> = {};
   Object.entries(match.params).forEach(([key, value]) => {
     paramAttributes[`url.path.params.${key}`] = value; // TODO(v11): remove attribute which does not adhere to Sentry's semantic convention
-    paramAttributes[`url.path.parameter.${key}`] = value;
-    paramAttributes[`params.${key}`] = value; // params.[key] is an alias
+    paramAttributes[`${URL_PATH_PARAMETER_KEY_BASE}.${key}`] = value;
+    paramAttributes[`${PARAMS_KEY_BASE}.${key}`] = value; // params.[key] is an alias
   });
 
   return paramAttributes;

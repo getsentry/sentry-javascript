@@ -8,8 +8,10 @@
 /dev-packages/browser-integration-tests/ @getsentry/team-javascript-sdks-browser
 
 # Node/server runtimes and related packages
-/packages/node/                     @getsentry/team-javascript-sdks-server
-/packages/node-core/                @getsentry/team-javascript-sdks-server
+# TEMP: whole JS SDK team reviews orchestrion work; revert to team-javascript-sdks-server after
+/packages/node/                     @getsentry/team-javascript-sdks
+/packages/node-core/                @getsentry/team-javascript-sdks
+/packages/server-utils/             @getsentry/team-javascript-sdks
 /packages/node-native/              @getsentry/team-javascript-sdks-server
 /packages/profiling-node/           @getsentry/team-javascript-sdks-server
 /packages/opentelemetry/            @getsentry/team-javascript-sdks-server
@@ -23,6 +25,7 @@
 /dev-packages/node-core-integration-tests/ @getsentry/team-javascript-sdks-server
 /dev-packages/cloudflare-integration-tests/ @getsentry/team-javascript-sdks-server
 /dev-packages/bun-integration-tests/ @getsentry/team-javascript-sdks-server
+/dev-packages/deno-integration-tests/ @getsentry/team-javascript-sdks-server
 
 # Framework integration packages
 /packages/angular/                  @getsentry/team-javascript-sdks-framework
@@ -43,6 +46,5 @@
 /packages/solidstart/               @getsentry/team-javascript-sdks-framework
 /packages/svelte/                   @getsentry/team-javascript-sdks-framework
 /packages/sveltekit/                @getsentry/team-javascript-sdks-framework
-/packages/tanstackstart/            @getsentry/team-javascript-sdks-framework
 /packages/tanstackstart-react/      @getsentry/team-javascript-sdks-framework
 /packages/vue/                      @getsentry/team-javascript-sdks-framework

@@ -40,7 +40,7 @@ export function getNativeImplementation<T extends keyof CacheableImplementations
   }
 
   const document = WINDOW.document;
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   if (document && typeof document.createElement === 'function') {
     try {
       const sandbox = document.createElement('iframe');

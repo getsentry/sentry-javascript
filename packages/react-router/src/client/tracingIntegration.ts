@@ -13,16 +13,10 @@ import { instrumentHydratedRouter } from './hydratedRouter';
 export interface ReactRouterTracingIntegrationOptions {
   /**
    * Options for React Router's instrumentation API.
-   * @experimental
    */
   instrumentationOptions?: CreateSentryClientInstrumentationOptions;
 
-  /**
-   * Enable React Router's instrumentation API.
-   * When true, prepares for use with HydratedRouter's `instrumentations` prop.
-   * @experimental
-   * @default false
-   */
+  /** @deprecated `clientInstrumentation` is always built, so this flag is a no-op. Will be removed in a future major. */
   useInstrumentationAPI?: boolean;
 }
 
@@ -31,9 +25,7 @@ export interface ReactRouterTracingIntegrationOptions {
  */
 export interface ReactRouterTracingIntegration extends Integration {
   /**
-   * Client instrumentation for React Router's instrumentation API.
-   * Lazily initialized on first access.
-   * @experimental HydratedRouter doesn't invoke these hooks in Framework Mode yet.
+   * Client instrumentation to pass to `HydratedRouter`'s `instrumentations` prop.
    */
   readonly clientInstrumentation: ClientInstrumentation;
 }
@@ -50,18 +42,9 @@ export function reactRouterTracingIntegration(
     instrumentNavigation: false,
   });
 
-  let clientInstrumentationInstance: ClientInstrumentation | undefined;
-
-  if (options.useInstrumentationAPI || options.instrumentationOptions) {
-    clientInstrumentationInstance = createSentryClientInstrumentation(options.instrumentationOptions);
-  }
-
-  const getClientInstrumentation = (): ClientInstrumentation => {
-    if (!clientInstrumentationInstance) {
-      clientInstrumentationInstance = createSentryClientInstrumentation(options.instrumentationOptions);
-    }
-    return clientInstrumentationInstance;
-  };
+  // Built eagerly so it can be passed to HydratedRouter's `instrumentations` prop. This has no
+  // side effects - the API is only marked "used" once React Router invokes the `router()` hook.
+  const clientInstrumentationInstance = createSentryClientInstrumentation(options.instrumentationOptions);
 
   return {
     ...browserTracingIntegrationInstance,
@@ -71,7 +54,7 @@ export function reactRouterTracingIntegration(
       instrumentHydratedRouter();
     },
     get clientInstrumentation(): ClientInstrumentation {
-      return getClientInstrumentation();
+      return clientInstrumentationInstance;
     },
   };
 }

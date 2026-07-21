@@ -1,11 +1,9 @@
 {
   "extends": "../../tsconfig.json",
 
-  "include": ["src/**/*", "build.config.ts"],
+  "include": ["src/**/*"],
 
   "compilerOptions": {
     // package-specific options
-    "module": "esnext",
-    "moduleResolution": "bundler"
   }
 }

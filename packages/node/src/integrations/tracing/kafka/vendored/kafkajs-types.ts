@@ -3,39 +3,6 @@
  * Only includes members accessed by this instrumentation.
  */
 
-export interface InstrumentationEvent<T> {
-  id: string;
-  type: string;
-  timestamp: number;
-  payload: T;
-}
-
-export type RequestEvent = InstrumentationEvent<{
-  apiKey: number;
-  apiName: string;
-  apiVersion: number;
-  broker: string;
-  clientId: string;
-  correlationId: number;
-  createdAt: number;
-  duration: number;
-  pendingDuration: number;
-  sentAt: number;
-  size: number;
-}>;
-
-export type RemoveInstrumentationEventListener<_T> = () => void;
-
-export type ConsumerEvents = {
-  REQUEST: 'consumer.network.request';
-  [key: string]: string;
-};
-
-export type ProducerEvents = {
-  REQUEST: 'producer.network.request';
-  [key: string]: string;
-};
-
 type Sender = {
   send(record: any): Promise<any>;
   sendBatch(batch: any): Promise<any>;
@@ -45,8 +12,6 @@ export type Producer = Sender & {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
   isIdempotent(): boolean;
-  readonly events: ProducerEvents;
-  on(eventName: string, listener: (...args: any[]) => void): RemoveInstrumentationEventListener<any>;
   transaction(): Promise<Transaction>;
   [key: string]: any;
 };
@@ -63,8 +28,6 @@ export type Consumer = {
   disconnect(): Promise<void>;
   subscribe(subscription: any): Promise<void>;
   run(config?: any): Promise<void>;
-  readonly events: ConsumerEvents;
-  on(eventName: string, listener: (...args: any[]) => void): RemoveInstrumentationEventListener<any>;
   [key: string]: any;
 };
 

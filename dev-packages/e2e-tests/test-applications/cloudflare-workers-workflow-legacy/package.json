@@ -1,0 +1,27 @@
+{
+  "name": "cloudflare-workers-workflow-legacy",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
+    "build": "wrangler deploy --dry-run",
+    "typecheck": "tsc --noEmit",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm typecheck && pnpm test:dev",
+    "test:dev": "TEST_ENV=development playwright test"
+  },
+  "dependencies": {
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@cloudflare/workers-types": "^4.20260303.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "typescript": "^5.5.2",
+    "wrangler": "4.70.0"
+  },
+  "volta": {
+    "node": "24.15.0",
+    "extends": "../../package.json"
+  }
+}

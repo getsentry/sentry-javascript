@@ -5,7 +5,6 @@
  * If React Router changes these types, this file must be updated.
  *
  * @see https://reactrouter.com/how-to/instrumentation
- * @experimental
  */
 
 export type InstrumentationResult = { status: 'success'; error: undefined } | { status: 'error'; error: unknown };

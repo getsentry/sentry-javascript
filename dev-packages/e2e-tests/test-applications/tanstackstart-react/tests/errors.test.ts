@@ -43,7 +43,13 @@ test('Sends client-side error to Sentry with auto-instrumentation', async ({ pag
 
 test('Sends server-side function error to Sentry with auto-instrumentation', async ({ page }) => {
   const errorEventPromise = waitForError('tanstackstart-react', errorEvent => {
-    return errorEvent?.exception?.values?.[0]?.value === 'Sentry Server Function Test Error';
+    // The thrown error propagates back to the client over the server-function RPC and is also
+    // captured there as an `onunhandledrejection` with the same message. Match on the server-function
+    // mechanism so we deterministically pick the server-side event instead of racing the client one.
+    return (
+      errorEvent?.exception?.values?.[0]?.value === 'Sentry Server Function Test Error' &&
+      errorEvent?.exception?.values?.[0]?.mechanism?.type === 'auto.middleware.tanstackstart.server_function'
+    );
   });
 
   await page.goto(`/`);
@@ -74,7 +80,12 @@ test('Sends server-side function error to Sentry with auto-instrumentation', asy
 
 test('Sends API route error to Sentry with auto-instrumentation', async ({ page }) => {
   const errorEventPromise = waitForError('tanstackstart-react', errorEvent => {
-    return errorEvent?.exception?.values?.[0]?.value === 'Sentry API Route Test Error';
+    // As with the server-function test, guard against a same-message client-side duplicate by
+    // matching the server request mechanism, so we always assert against the server-side event.
+    return (
+      errorEvent?.exception?.values?.[0]?.value === 'Sentry API Route Test Error' &&
+      errorEvent?.exception?.values?.[0]?.mechanism?.type === 'auto.middleware.tanstackstart.request'
+    );
   });
 
   await page.goto(`/`);

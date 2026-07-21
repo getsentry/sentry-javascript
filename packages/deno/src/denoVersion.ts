@@ -20,3 +20,13 @@ export const HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED = gte(2, 7, 13);
 
 /** Whether `http.server.request.start` fires (Deno 2.8.0+). */
 export const HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED = gte(2, 8, 0);
+
+/** Whether `node:diagnostics_channel.tracingChannel` exists (Deno 1.44.3+). */
+export const TRACING_CHANNEL_SUPPORTED = gte(1, 44, 3);
+
+/**
+ * Whether `Module.registerHooks` is available (Deno 2.8.0+), which the
+ * orchestrion runtime hook (`@sentry/deno/import`) needs to transform libraries
+ * like `mysql` so they publish to their tracing channels.
+ */
+export const MODULE_REGISTER_HOOKS_SUPPORTED = gte(2, 8, 0);

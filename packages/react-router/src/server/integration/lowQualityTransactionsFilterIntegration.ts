@@ -13,7 +13,7 @@ const LOW_QUALITY_TRANSACTIONS_FILTERS = [
 
 // TODO(v11): Remove the `_options` parameter (unused and only kept for back-compat with the previous signature)
 const _lowQualityTransactionsFilterIntegration = ((_options?: NodeOptions) => ({
-  name: 'LowQualityTransactionsFilter',
+  name: 'LowQualityTransactionsFilter' as const,
   beforeSetup(client) {
     const opts = client.getOptions();
     opts.ignoreSpans = [...(opts.ignoreSpans || []), ...LOW_QUALITY_TRANSACTIONS_FILTERS];

@@ -38,6 +38,8 @@ test('Sends a pageload transaction', async ({ page }) => {
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
             'sentry.source': 'url',
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
+            'url.path': '/',
           }),
         },
       }),
@@ -49,6 +51,8 @@ test('Sends a pageload transaction', async ({ page }) => {
       },
     }),
   );
+
+  expect(transactionEvent.contexts?.trace?.data).not.toHaveProperty('url.template');
 });
 
 test('Should send a transaction for instrumented server actions', async ({ page }) => {
@@ -148,6 +152,9 @@ test('Should not capture "NEXT_REDIRECT" control-flow errors for server actions 
 
   const serverActionTransactionEvent = await serverActionTransactionPromise;
   expect(serverActionTransactionEvent).toBeDefined();
+
+  // Redirects are normal control flow, so the transaction must not be flagged as errored
+  expect(serverActionTransactionEvent.contexts?.trace?.status).toBe('ok');
 
   // By the time the server action span finishes the error should already have been sent
   expect(controlFlowErrorCaptured).toBe(false);

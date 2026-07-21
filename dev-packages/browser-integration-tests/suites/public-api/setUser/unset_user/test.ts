@@ -10,7 +10,7 @@ sentryTest('should unset user', async ({ getLocalTestUrl, page }) => {
 
   expect(eventData[0].message).toBe('no_user');
 
-  // because sendDefaultPii: true
+  // because dataCollection.userInfo: true
   expect(eventData[0].sdk?.settings?.infer_ip).toBe('auto');
 
   expect(eventData[1].message).toBe('user');
@@ -22,6 +22,6 @@ sentryTest('should unset user', async ({ getLocalTestUrl, page }) => {
 
   expect(eventData[2].message).toBe('unset_user');
 
-  // because sendDefaultPii: true
+  // because dataCollection.userInfo: true
   expect(eventData[2].sdk?.settings?.infer_ip).toBe('auto');
 });

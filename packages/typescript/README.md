@@ -6,9 +6,14 @@
 
 # Sentry TypeScript Configuration
 
-[![npm version](https://img.shields.io/npm/v/@sentry-internal/typescript.svg)](https://www.npmjs.com/package/@sentry-internal/typescript)
-[![npm dm](https://img.shields.io/npm/dm/@sentry-internal/typescript.svg)](https://www.npmjs.com/package/@sentry-internal/typescript)
-[![npm dt](https://img.shields.io/npm/dt/@sentry-internal/typescript.svg)](https://www.npmjs.com/package/@sentry-internal/typescript)
+[![npm version](https://img.shields.io/npm/v/@sentry/typescript.svg)](https://www.npmjs.com/package/@sentry/typescript)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/typescript.svg)](https://www.npmjs.com/package/@sentry/typescript)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/typescript.svg)](https://www.npmjs.com/package/@sentry/typescript)
+
+> [!NOTE]
+> This package is an internal library published for use by Sentry-owned JavaScript SDK packages and repositories. It is
+> not part of the public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on
+> it directly.
 
 ## Links
 
@@ -22,10 +27,10 @@ Shared typescript configuration used at Sentry.
 
 ```sh
 # With Yarn:
-yarn add --dev @sentry-internal/typescript
+yarn add --dev @sentry/typescript
 
 # With NPM:
-npm install --save-dev @sentry-internal/typescript
+npm install --save-dev @sentry/typescript
 ```
 
 ## Usage
@@ -36,7 +41,7 @@ Add the following config files to your project's root directory:
 
 ```json
 {
-  "extends": "./node_modules/@sentry-internal/typescript/tsconfig.json",
+  "extends": "./node_modules/@sentry/typescript/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": "src",

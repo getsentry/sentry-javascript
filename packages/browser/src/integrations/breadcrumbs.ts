@@ -29,14 +29,14 @@ import {
   safeJoin,
   severityLevelFromString,
 } from '@sentry/core/browser';
-import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
+import type { FetchHint, XhrHint } from '@sentry/browser-utils';
 import {
   addClickKeypressInstrumentationHandler,
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
   htmlTreeAsString,
   SENTRY_XHR_DATA_KEY,
-} from '@sentry-internal/browser-utils';
+} from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
@@ -57,7 +57,7 @@ interface BreadcrumbsOptions {
 /** maxStringLength gets capped to prevent 100 breadcrumbs exceeding 1MB event payload size */
 const MAX_ALLOWED_STRING_LENGTH = 1024;
 
-const INTEGRATION_NAME = 'Breadcrumbs';
+const INTEGRATION_NAME = 'Breadcrumbs' as const;
 
 const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
   const _options = {

@@ -1,8 +1,8 @@
-/* eslint-disable deprecation/deprecation */
+/* eslint-disable typescript/no-deprecated */
 import type { CustomSamplingContext, Span } from '@sentry/core';
 import { debug, spanIsSampled, spanToJSON, uuid4 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import { CpuProfilerBindings, type RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
+import { CpuProfilerBindings, type RawThreadCpuProfile } from '@sentry/node-cpu-profiler';
 import { isMainThread } from 'worker_threads';
 import { DEBUG_BUILD } from './debug-build';
 import { isValidSampleRate } from './utils';

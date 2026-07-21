@@ -11,7 +11,7 @@
 import type { IntegrationFn } from '@sentry/core';
 import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
 
-const INTEGRATION_NAME = 'VercelAI';
+const INTEGRATION_NAME = 'VercelAI' as const;
 
 interface VercelAiOptions {
   /**
@@ -19,6 +19,11 @@ interface VercelAiOptions {
    * Defaults to `true`.
    */
   enableTruncation?: boolean;
+
+  // `recordInputs`/`recordOutputs` are intentionally omitted: this entrypoint only post-processes
+  // spans the AI SDK already emitted (no OTel patch or tracing channel in the edge runtime), so it
+  // cannot decide whether inputs/outputs are recorded. Control this per call via
+  // `experimental_telemetry.recordInputs`/`recordOutputs`.
 }
 
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
@@ -56,5 +61,7 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
  *  model: openai('gpt-4-turbo'),
  *  experimental_telemetry: { isEnabled: true, recordInputs: true, recordOutputs: true },
  * });
+ *
+ * Note: This does not support ai v7, as this is tracing channel based which is not supported in edge.
  */
 export const vercelAIIntegration = defineIntegration(_vercelAIIntegration);

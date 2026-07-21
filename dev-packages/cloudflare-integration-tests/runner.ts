@@ -20,7 +20,9 @@ process.on('exit', cleanupChildProcesses);
 
 // Wrangler can report "Ready" before it can actually handle requests.
 // This retries fetch on connection errors and transient 500 responses to handle this race condition.
-async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 10, retryDelayMs = 200): Promise<Response> {
+// The budget (maxRetries * retryDelayMs) must cover the "ready-but-not-serving" window, which can be
+// several seconds on a loaded CI runner — hence a generous default.
+async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 25, retryDelayMs = 200): Promise<Response> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const res = await fetch(url, init);
@@ -142,11 +144,30 @@ export function createRunner(...paths: string[]) {
     },
     start: function (signal?: AbortSignal): StartResult {
       const { resolve, reject, promise: isComplete } = deferredPromise(cleanupChildProcesses);
+
+      // `reject` is called from background event handlers (child process `error`/`exit`, mock server
+      // callbacks) that fire at arbitrary times relative to the test's `await` points. If `reject` runs
+      // while nothing is awaiting `isComplete` yet (e.g. a child transiently exits while the test is
+      // parked in `makeRequest`), the rejection has no handler attached and surfaces as an unhandled
+      // promise rejection — which Vitest reports as a spurious "Unhandled error" that fails the whole
+      // suite. Attaching a no-op catch keeps the promise "handled"; the real rejection is still delivered
+      // to callers via `completed()`, so genuine failures still fail the test.
+      isComplete.catch(() => {
+        // handled in `completed()`
+      });
+
       const expectedEnvelopeCount = expectedEnvelopes.length;
 
       let envelopeCount = 0;
       const envelopeWaiters: { expected: Expected; resolve: () => void; reject: (e: unknown) => void }[] = [];
-      const { resolve: setWorkerPort, promise: workerPortPromise } = deferredPromise<number>();
+      const {
+        resolve: setWorkerPort,
+        reject: rejectWorkerPort,
+        promise: workerPortPromise,
+      } = deferredPromise<number>();
+      workerPortPromise.catch(() => {
+        // handled in `makeRequest`
+      });
       let child: ReturnType<typeof spawn> | undefined;
       let childSubWorker: ReturnType<typeof spawn> | undefined;
 
@@ -265,6 +286,10 @@ export function createRunner(...paths: string[]) {
                   resolve(parseInt(new URL(match[1]).port, 10));
                 }
               });
+
+              childProcess.on('close', (code, sig) => {
+                reject(new Error(`wrangler exited with code ${code} (signal ${sig}) before becoming ready`));
+              });
             });
           }
 
@@ -328,7 +353,10 @@ export function createRunner(...paths: string[]) {
 
           setWorkerPort(workerPort);
         })
-        .catch(e => reject(e));
+        .catch(e => {
+          rejectWorkerPort(e);
+          reject(e);
+        });
 
       return {
         completed: async function (): Promise<void> {
@@ -382,7 +410,10 @@ export function createRunner(...paths: string[]) {
           expected: Expected | Expected[],
           options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
-          const expectations = Array.isArray(expected) ? expected : [expected];
+          // `Expected` includes `Envelope`, which is itself an array, so `Array.isArray` can't
+          // distinguish a single `Envelope` from an `Expected[]`. Callers pass expectation
+          // callbacks (or an array of them), so the narrowed value is always `Expected[]`.
+          const expectations = (Array.isArray(expected) ? expected : [expected]) as Expected[];
           const envelopePromises = expectations.map(e => waitForEnvelope(e));
           const result = await this.makeRequest<T>(method, path, options);
           await Promise.all(envelopePromises);

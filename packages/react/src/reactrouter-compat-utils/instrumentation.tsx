@@ -47,6 +47,7 @@ import {
   setNavigationContext,
   transactionNameHasWildcard,
 } from './utils';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 let _useEffect: UseEffect;
 let _useLocation: UseLocation;
@@ -60,6 +61,12 @@ let _lazyRouteManifest: string[] | undefined;
 let _basename: string = '';
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
+
+// Detect navigations in a layout effect so the navigation trace is set up before child route components'
+// passive mount effects fire requests (else they propagate the stale pageload trace).
+// Guard on `document` (present in real browsers and jsdom) so we only fall back to `useEffect` in true
+// SSR, where `useLayoutEffect` warns and effects don't run anyway.
+const useIsomorphicLayoutEffect = WINDOW?.document ? React.useLayoutEffect : React.useEffect;
 
 // Prevents duplicate spans when router.subscribe fires multiple times
 const activeNavigationSpans = new WeakMap<
@@ -219,7 +226,7 @@ export interface ReactRouterOptions {
   lazyRouteManifest?: string[];
 }
 
-type V6CompatibleVersion = '6' | '7';
+type V6CompatibleVersion = '6' | '7' | '';
 
 export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
   const existingChildren = parentRoute.children || [];
@@ -392,6 +399,9 @@ export function updateNavigationSpan(
     if (isImprovement) {
       activeRootSpan.updateName(name);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+      if (source === 'route') {
+        activeRootSpan.setAttribute(URL_TEMPLATE, name);
+      }
 
       // Only mark as finalized for non-wildcard route names (allows URL→route upgrades).
       if (!transactionNameHasWildcard(name) && source === 'route') {
@@ -494,7 +504,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
   if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
     DEBUG_BUILD &&
       debug.warn(
-        `reactRouterV${version}Instrumentation was unable to wrap the \`createRouter\` function because of one or more missing parameters.`,
+        `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createRouter\` function because of one or more missing parameters.`,
       );
 
     return createRouterFunction;
@@ -566,7 +576,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
   if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
     DEBUG_BUILD &&
       debug.warn(
-        `reactRouterV${version}Instrumentation was unable to wrap the \`createMemoryRouter\` function because of one or more missing parameters.`,
+        `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createMemoryRouter\` function because of one or more missing parameters.`,
       );
 
     return createRouterFunction;
@@ -729,7 +739,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.reactrouter_v${version}`,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.reactrouter${version ? `_v${version}` : ''}`,
           },
         });
       }
@@ -768,7 +778,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
     const stableLocationParam =
       typeof locationArg === 'string' || locationArg?.pathname ? (locationArg as { pathname: string }) : location;
 
-    _useEffect(() => {
+    useIsomorphicLayoutEffect(() => {
       const normalizedLocation =
         typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
 
@@ -991,6 +1001,9 @@ export function handleNavigation(opts: {
           // Update existing real span from wildcard to parameterized route name
           trackedNav.span.updateName(name);
           trackedNav.span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source as 'route' | 'url' | 'custom');
+          if (source === 'route') {
+            trackedNav.span.setAttribute(URL_TEMPLATE, name);
+          }
           addNonEnumerableProperty(
             trackedNav.span as { __sentry_navigation_name_set__?: boolean },
             '__sentry_navigation_name_set__',
@@ -1025,7 +1038,8 @@ export function handleNavigation(opts: {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter${version ? `_v${version}` : ''}`,
+          ...(source === 'route' && { [URL_TEMPLATE]: placeholderEntry.routeName }),
         },
       });
     } catch (e) {
@@ -1114,6 +1128,9 @@ function updatePageloadTransaction({
     if (activeRootSpan) {
       activeRootSpan.updateName(name);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+      if (source === 'route') {
+        activeRootSpan.setAttribute(URL_TEMPLATE, name);
+      }
 
       // Patch span.end() to ensure we update the name one last time before the span is sent
       patchSpanEnd(activeRootSpan, location, routes, basename, 'pageload');
@@ -1210,6 +1227,9 @@ function tryUpdateSpanNameBeforeEnd(
     if (isImprovement && spanNotEnded) {
       span.updateName(name);
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+      if (source === 'route') {
+        span.setAttribute(URL_TEMPLATE, name);
+      }
     }
   } catch (error) {
     DEBUG_BUILD && debug.warn(`Error updating span details before ending: ${error}`);
@@ -1351,7 +1371,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
     const location = _useLocation();
     const navigationType = _useNavigationType();
 
-    _useEffect(
+    useIsomorphicLayoutEffect(
       () => {
         const routes = _createRoutesFromChildren(props.children) as RouteObject[];
 

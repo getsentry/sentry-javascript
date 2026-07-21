@@ -93,9 +93,13 @@ export async function errorHandleDataFunction(
   return handleCallbackErrors(
     async () => {
       if (name === 'action' && span) {
-        const options = getClient()?.getOptions() as RemixOptions | undefined;
+        const client = getClient();
+        const options = client?.getOptions() as RemixOptions | undefined;
 
-        if (options?.sendDefaultPii && options.captureActionFormDataKeys) {
+        if (
+          client?.getDataCollectionOptions().httpBodies.includes('incomingRequest') &&
+          options?.captureActionFormDataKeys
+        ) {
           await storeFormDataKeys(args, span, options.captureActionFormDataKeys);
         }
       }

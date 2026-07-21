@@ -13,11 +13,11 @@ export { mysql2Integration } from './integrations/tracing/mysql2';
 export { redisIntegration } from './integrations/tracing/redis';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { postgresJsIntegration } from './integrations/tracing/postgresjs';
-export { prismaIntegration } from './integrations/tracing/prisma';
+export { prismaIntegration } from '@sentry/server-utils';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
+// eslint-disable-next-line typescript/no-deprecated
 export { honoIntegration, setupHonoErrorHandler } from './integrations/tracing/hono';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
-export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { knexIntegration } from './integrations/tracing/knex';
 export { tediousIntegration } from './integrations/tracing/tedious';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
@@ -45,7 +45,13 @@ export {
   getDefaultIntegrations,
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
+  applyDiagnosticsChannelInjectionIntegrations,
 } from './sdk';
+export {
+  experimentalUseDiagnosticsChannelInjection,
+  diagnosticsChannelInjectionIntegrations,
+} from './sdk/experimentalUseDiagnosticsChannelInjection';
+export { isDiagnosticsChannelInjectionEnabled } from './sdk/diagnosticsChannelInjection';
 export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 
@@ -72,7 +78,7 @@ export {
   withMonitor,
   requestDataIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
@@ -82,6 +88,8 @@ export {
   setExtras,
   setTag,
   setTags,
+  setAttribute,
+  setAttributes,
   setUser,
   setConversationId,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -119,6 +127,7 @@ export {
   startSpanManual,
   startInactiveSpan,
   startNewTrace,
+  bindScopeToEmitter,
   suppressTracing,
   getActiveSpan,
   withActiveSpan,
@@ -182,9 +191,9 @@ export {
   modulesIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   anrIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   disableAnrDetectionForCallback,
   spotlightIntegration,
   childProcessIntegration,

@@ -17,6 +17,15 @@ sentryTest('logs debug messages correctly', async ({ getLocalTestUrl, page }) =>
 
   await page.goto(url);
 
+  if (hasDebug) {
+    // The initial session capture is deferred to the browser's idle period, so its
+    // "Discarded session" warning is emitted asynchronously. Wait for it before
+    // logging so the console message order stays deterministic.
+    await expect
+      .poll(() => consoleMessages)
+      .toContain('Sentry Logger [warn]: Discarded session because of missing or non-string release');
+  }
+
   await page.evaluate(() => console.log('test log'));
 
   expect(consoleMessages).toEqual(
@@ -34,8 +43,8 @@ sentryTest('logs debug messages correctly', async ({ getLocalTestUrl, page }) =>
           'Sentry Logger [log]: Integration installed: Dedupe',
           'Sentry Logger [log]: Integration installed: HttpContext',
           'Sentry Logger [log]: Integration installed: CultureContext',
-          'Sentry Logger [warn]: Discarded session because of missing or non-string release',
           'Sentry Logger [log]: Integration installed: BrowserSession',
+          'Sentry Logger [warn]: Discarded session because of missing or non-string release',
           'test log',
         ]
       : ['[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.', 'test log'],

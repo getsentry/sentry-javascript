@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 
 const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
-export const SAM_PORT = 3001;
+export const SAM_PORT = Number(process.env.SAM_PORT) || 7120;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
 function samLambdaArchitecture(): 'arm64' | 'x86_64' {
@@ -55,19 +55,28 @@ export class LocalLambdaStack extends Stack {
       const packageLockPath = path.join(lambdaPath, 'package-lock.json');
       const nodeModulesPath = path.join(lambdaPath, 'node_modules');
 
-      const packagesToLink = ['aws-serverless', 'node', 'core', 'node-core', 'opentelemetry'];
+      // `dir` is the package directory under `packages/`; `name` is the published
+      // npm name (most are `@sentry/<dir>`, but `server-utils` is `@sentry-internal`).
+      const packagesToLink: Array<{ dir: string; name: string }> = [
+        { dir: 'aws-serverless', name: '@sentry/aws-serverless' },
+        { dir: 'node', name: '@sentry/node' },
+        { dir: 'core', name: '@sentry/core' },
+        { dir: 'node-core', name: '@sentry/node-core' },
+        { dir: 'opentelemetry', name: '@sentry/opentelemetry' },
+        { dir: 'server-utils', name: '@sentry/server-utils' },
+      ];
       const dependencies: Record<string, string> = {};
 
       const packagesDir = resolvePackagesDir();
-      for (const pkgName of packagesToLink) {
-        const pkgDir = path.join(packagesDir, pkgName);
+      for (const { dir, name } of packagesToLink) {
+        const pkgDir = path.join(packagesDir, dir);
         if (!fs.existsSync(pkgDir)) {
           throw new Error(
-            `[LocalLambdaStack] Workspace package ${pkgName} not found at ${pkgDir}. Did you run the build?`,
+            `[LocalLambdaStack] Workspace package ${name} not found at ${pkgDir}. Did you run the build?`,
           );
         }
         const relativePath = path.relative(lambdaPath, pkgDir);
-        dependencies[`@sentry/${pkgName}`] = `file:${relativePath.replace(/\\/g, '/')}`;
+        dependencies[name] = `file:${relativePath.replace(/\\/g, '/')}`;
       }
 
       console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);
@@ -114,7 +123,9 @@ export class LocalLambdaStack extends Stack {
     }
   }
 
-  static async waitForStack(timeout = 60000, port = SAM_PORT) {
+  // Generous timeout: with `--warm-containers EAGER`, SAM boots every function container
+  // before the endpoint responds, which can take well over a minute on slow CI runners.
+  static async waitForStack(timeout = 180000, port = SAM_PORT) {
     const startTime = Date.now();
     const maxWaitTime = timeout;
 

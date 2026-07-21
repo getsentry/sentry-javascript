@@ -3,6 +3,7 @@ node_modules/
 packages/*/package-lock.json
 dev-packages/*/package-lock.json
 package-lock.json
+.pnpm-store
 
 # build and test
 # SDK builds
@@ -53,6 +54,7 @@ tmp.js
 packages/deno/build-types
 packages/deno/build-test
 packages/deno/lib.deno.d.ts
+dev-packages/deno-integration-tests/lib.deno.d.ts
 deno.lock
 
 # gatsby
@@ -68,9 +70,17 @@ packages/**/*.junit.xml
 # Local Claude Code settings that should not be committed
 .claude/settings.local.json
 .claude/worktrees
+.claude/scheduled_tasks.lock
 
 # Triage report
 **/triage_report.md
+
+# Dependabot auto-triage run artifacts
+noise.json
+fix-candidates-runtime.json
+fix-candidates-dev.json
+pr-body-*.md
+fix-result-*.md
 
 # Environment variables
 .env

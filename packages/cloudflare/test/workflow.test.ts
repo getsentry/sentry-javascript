@@ -12,7 +12,7 @@ import { instrumentEnv } from '../src/instrumentations/worker/instrumentEnv';
 
 const NODE_MAJOR_VERSION = parseInt(process.versions.node.split('.')[0]!);
 
-const MOCK_STEP_CTX = { attempt: 1 };
+const MOCK_STEP_CTX = { attempt: 1, config: { retries: { limit: 3 }, timeout: 60000 } };
 
 const mockStep: WorkflowStep = {
   do: vi
@@ -23,16 +23,18 @@ const mockStep: WorkflowStep = {
         configOrCallback: WorkflowStepConfig | ((...args: unknown[]) => Promise<any>),
         maybeCallback?: (...args: unknown[]) => Promise<any>,
       ) => {
-        let count = 0;
+        const retryLimit = 3;
+        let attempt = 0;
 
-        while (count <= 5) {
-          count += 1;
+        while (attempt <= retryLimit) {
+          attempt += 1;
+          const stepCtx = { attempt, config: { retries: { limit: retryLimit }, timeout: 60000 } };
 
           try {
             if (typeof configOrCallback === 'function') {
-              return await configOrCallback(MOCK_STEP_CTX);
+              return await configOrCallback(stepCtx);
             } else {
-              return await (maybeCallback ? maybeCallback(MOCK_STEP_CTX) : Promise.resolve());
+              return await (maybeCallback ? maybeCallback(stepCtx) : Promise.resolve());
             }
           } catch {
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -150,20 +152,20 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
           expect.objectContaining({
             event_id: expect.any(String),
             contexts: {
-              trace: {
+              trace: expect.objectContaining({
                 parent_span_id: undefined,
                 span_id: expect.any(String),
                 trace_id: TRACE_ID,
-                data: {
+                data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
                   'sentry.op': 'function.step.do',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
-                },
+                }),
                 op: 'function.step.do',
                 status: 'ok',
                 origin: 'auto.faas.cloudflare.workflow',
-              },
+              }),
               cloud_resource: { 'cloud.provider': 'cloudflare' },
               runtime: { name: 'cloudflare' },
             },
@@ -267,20 +269,20 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
           expect.objectContaining({
             event_id: expect.any(String),
             contexts: {
-              trace: {
+              trace: expect.objectContaining({
                 parent_span_id: undefined,
                 span_id: expect.any(String),
                 trace_id: '0d2b6d1743ce6d53af4f5ee416ad5d1b',
-                data: {
+                data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
                   'sentry.op': 'function.step.do',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
-                },
+                }),
                 op: 'function.step.do',
                 status: 'ok',
                 origin: 'auto.faas.cloudflare.workflow',
-              },
+              }),
               cloud_resource: { 'cloud.provider': 'cloudflare' },
               runtime: { name: 'cloudflare' },
             },
@@ -311,7 +313,9 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     }
   }
 
-  test('Captures step errors', async () => {
+  test('Does not capture error on non-final retry attempt (step eventually succeeds)', async () => {
+    // ErrorTestWorkflow fails on first attempt, succeeds on second
+    // With step context (attempt 1, limit 3), first failure is not final, so no error captured
     const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, ErrorTestWorkflow as any);
     const workflow = new TestWorkflowInstrumented(mockContext, {}) as ErrorTestWorkflow;
     const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
@@ -319,13 +323,13 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('sometimes error step', expect.any(Function));
-    // One flush for the error transaction, one for the retry success, one at end of run
+    // One flush for the failed attempt, one for the retry success, one at end of run
     expect(mockContext.waitUntil).toHaveBeenCalledTimes(3);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
-    // error event + failed transaction + successful retry transaction
-    expect(mockTransport.send).toHaveBeenCalledTimes(3);
+    // No error event (not final attempt), only failed transaction + successful retry transaction
+    expect(mockTransport.send).toHaveBeenCalledTimes(2);
 
-    // First we should get the error event
+    // First: the failed transaction (no error event since not final attempt)
     expect(mockTransport.send).toHaveBeenNthCalledWith(1, [
       expect.objectContaining({
         trace: expect.objectContaining({
@@ -337,35 +341,38 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
       [
         [
           {
-            type: 'event',
+            type: 'transaction',
           },
           expect.objectContaining({
             event_id: expect.any(String),
             contexts: {
-              trace: {
+              trace: expect.objectContaining({
                 parent_span_id: undefined,
                 span_id: expect.any(String),
                 trace_id: TRACE_ID,
-              },
+                data: expect.objectContaining({
+                  'sentry.origin': 'auto.faas.cloudflare.workflow',
+                  'sentry.op': 'function.step.do',
+                  'sentry.source': 'task',
+                  'sentry.sample_rate': 1,
+                }),
+                op: 'function.step.do',
+                status: 'internal_error',
+                origin: 'auto.faas.cloudflare.workflow',
+              }),
               cloud_resource: { 'cloud.provider': 'cloudflare' },
               runtime: { name: 'cloudflare' },
             },
+            type: 'transaction',
+            transaction_info: { source: 'task' },
+            start_timestamp: expect.any(Number),
             timestamp: expect.any(Number),
-            exception: {
-              values: [
-                expect.objectContaining({
-                  type: 'Error',
-                  value: 'Test error',
-                  mechanism: { type: 'auto.faas.cloudflare.workflow', handled: true },
-                }),
-              ],
-            },
           }),
         ],
       ],
     ]);
 
-    // The the failed transaction
+    // Second: the successful transaction
     expect(mockTransport.send).toHaveBeenNthCalledWith(2, [
       expect.objectContaining({
         trace: expect.objectContaining({
@@ -382,63 +389,20 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
           expect.objectContaining({
             event_id: expect.any(String),
             contexts: {
-              trace: {
+              trace: expect.objectContaining({
                 parent_span_id: undefined,
                 span_id: expect.any(String),
                 trace_id: TRACE_ID,
-                data: {
+                data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
                   'sentry.op': 'function.step.do',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
-                },
-                op: 'function.step.do',
-                status: 'internal_error',
-                origin: 'auto.faas.cloudflare.workflow',
-              },
-              cloud_resource: { 'cloud.provider': 'cloudflare' },
-              runtime: { name: 'cloudflare' },
-            },
-            type: 'transaction',
-            transaction_info: { source: 'task' },
-            start_timestamp: expect.any(Number),
-            timestamp: expect.any(Number),
-          }),
-        ],
-      ],
-    ]);
-
-    // The the successful transaction
-    expect(mockTransport.send).toHaveBeenNthCalledWith(3, [
-      expect.objectContaining({
-        trace: expect.objectContaining({
-          transaction: 'sometimes error step',
-          trace_id: TRACE_ID,
-          sample_rand: SAMPLE_RAND,
-        }),
-      }),
-      [
-        [
-          {
-            type: 'transaction',
-          },
-          expect.objectContaining({
-            event_id: expect.any(String),
-            contexts: {
-              trace: {
-                parent_span_id: undefined,
-                span_id: expect.any(String),
-                trace_id: TRACE_ID,
-                data: {
-                  'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
-                  'sentry.source': 'task',
-                  'sentry.sample_rate': 1,
-                },
+                }),
                 op: 'function.step.do',
                 status: 'ok',
                 origin: 'auto.faas.cloudflare.workflow',
-              },
+              }),
               cloud_resource: { 'cloud.provider': 'cloudflare' },
               runtime: { name: 'cloudflare' },
             },
@@ -452,7 +416,127 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     ]);
   });
 
-  test('Sampled random via instanceId', async () => {
+  test('emits a single error event on final retry attempt (with step context)', async () => {
+    const retryLimit = 2;
+    // Mock that always throws — simulates a step that fails through every retry
+    // Passes step context with incrementing attempt and config.retries.limit
+    const alwaysFailStep: WorkflowStep = {
+      do: vi
+        .fn()
+        .mockImplementation(
+          async (
+            _name: string,
+            configOrCallback: WorkflowStepConfig | ((...args: unknown[]) => Promise<any>),
+            maybeCallback?: (...args: unknown[]) => Promise<any>,
+          ) => {
+            const callback = (typeof configOrCallback === 'function' ? configOrCallback : maybeCallback)!;
+            // Simulate attempts: 1 (initial) + 2 retries = 3 total, then surface the final error
+            let lastError: unknown;
+            for (let attempt = 1; attempt <= retryLimit + 1; attempt++) {
+              try {
+                return await callback({ attempt, config: { retries: { limit: retryLimit }, timeout: 60000 } });
+              } catch (err) {
+                lastError = err;
+              }
+            }
+            throw lastError;
+          },
+        ),
+      sleep: vi.fn(),
+      sleepUntil: vi.fn(),
+      waitForEvent: vi.fn(),
+    };
+
+    class AlwaysFailWorkflow {
+      constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+      async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        await step.do('always failing step', async () => {
+          throw new Error('boom');
+        });
+      }
+    }
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(() => getSentryOptions(), AlwaysFailWorkflow as any);
+    const workflow = new TestWorkflowInstrumented(mockContext, {}) as AlwaysFailWorkflow;
+    const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+    await expect(workflow.run(event, alwaysFailStep)).rejects.toThrow('boom');
+
+    // Exactly one error event on the final attempt (attempt 3 > limit 2)
+    const errorEnvelopes = mockTransport.send.mock.calls.filter(call => {
+      const items = (call[0] as any)[1] as any[];
+      return items.some(i => i[0].type === 'event');
+    });
+    expect(errorEnvelopes).toHaveLength(1);
+    expect(errorEnvelopes[0]![0][1][0][1]).toMatchObject({
+      exception: {
+        values: [
+          expect.objectContaining({
+            type: 'Error',
+            value: 'boom',
+            mechanism: { type: 'auto.faas.cloudflare.workflow', handled: true },
+          }),
+        ],
+      },
+    });
+  });
+
+  test('emits error per attempt on older Cloudflare without step context', async () => {
+    // Mock that always throws — simulates a step that fails through every retry
+    // Does NOT pass step context (simulates older Cloudflare versions)
+    const alwaysFailStepNoContext: WorkflowStep = {
+      do: vi
+        .fn()
+        .mockImplementation(
+          async (
+            _name: string,
+            configOrCallback: WorkflowStepConfig | ((...args: unknown[]) => Promise<any>),
+            maybeCallback?: (...args: unknown[]) => Promise<any>,
+          ) => {
+            const callback = (typeof configOrCallback === 'function' ? configOrCallback : maybeCallback)!;
+            // Simulate 3 retry attempts that all fail, no step context passed
+            let lastError: unknown;
+            for (let i = 0; i < 3; i++) {
+              try {
+                return await callback();
+              } catch (err) {
+                lastError = err;
+              }
+            }
+            throw lastError;
+          },
+        ),
+      sleep: vi.fn(),
+      sleepUntil: vi.fn(),
+      waitForEvent: vi.fn(),
+    };
+
+    class AlwaysFailWorkflow {
+      constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+      async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        await step.do('always failing step', async () => {
+          throw new Error('boom');
+        });
+      }
+    }
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(() => getSentryOptions(), AlwaysFailWorkflow as any);
+    const workflow = new TestWorkflowInstrumented(mockContext, {}) as AlwaysFailWorkflow;
+    const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+    await expect(workflow.run(event, alwaysFailStepNoContext)).rejects.toThrow('boom');
+
+    // 3 error events, one per attempt (legacy behavior without step context)
+    const errorEnvelopes = mockTransport.send.mock.calls.filter(call => {
+      const items = (call[0] as any)[1] as any[];
+      return items.some(i => i[0].type === 'event');
+    });
+    expect(errorEnvelopes).toHaveLength(3);
+  });
+
+  test('Sampled random via instanceId (no events when sampled out and no final error)', async () => {
+    // ErrorTestWorkflow fails once then succeeds. With step context, non-final errors
+    // are not captured. With low tracesSampleRate, transactions are also not sent.
     const TestWorkflowInstrumented = instrumentWorkflowWithSentry(
       // Override the tracesSampleRate to 0.4 to be below the sampleRand
       // calculated from the instanceId
@@ -465,50 +549,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('sometimes error step', expect.any(Function));
-    // One flush for the error event and one at end of run
     expect(mockContext.waitUntil).toHaveBeenCalledTimes(3);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
 
-    // We should get the error event and then nothing else. No transactions should be sent
-    expect(mockTransport.send).toHaveBeenCalledTimes(1);
-
-    expect(mockTransport.send).toHaveBeenCalledWith([
-      expect.objectContaining({
-        trace: expect.objectContaining({
-          transaction: 'sometimes error step',
-          trace_id: TRACE_ID,
-          sample_rand: SAMPLE_RAND,
-        }),
-      }),
-      [
-        [
-          {
-            type: 'event',
-          },
-          expect.objectContaining({
-            event_id: expect.any(String),
-            contexts: {
-              trace: {
-                parent_span_id: undefined,
-                span_id: expect.any(String),
-                trace_id: TRACE_ID,
-              },
-              cloud_resource: { 'cloud.provider': 'cloudflare' },
-              runtime: { name: 'cloudflare' },
-            },
-            timestamp: expect.any(Number),
-            exception: {
-              values: [
-                expect.objectContaining({
-                  type: 'Error',
-                  value: 'Test error',
-                }),
-              ],
-            },
-          }),
-        ],
-      ],
-    ]);
+    // No error events (not final attempt) and no transactions (sampled out)
+    expect(mockTransport.send).toHaveBeenCalledTimes(0);
   });
 
   test('Forwards step context (ctx) to user callback', async () => {

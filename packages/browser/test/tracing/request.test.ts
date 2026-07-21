@@ -1,6 +1,6 @@
 import type { Client } from '@sentry/core/browser';
 import * as utils from '@sentry/core/browser';
-import * as browserUtils from '@sentry-internal/browser-utils';
+import * as browserUtils from '@sentry/browser-utils';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/tracing/request';
@@ -16,6 +16,8 @@ class MockClient implements Partial<Client> {
   public getOptions() {
     return {};
   }
+
+  public emit(): void {}
 }
 
 describe('instrumentOutgoingRequests', () => {
@@ -50,6 +52,53 @@ describe('instrumentOutgoingRequests', () => {
     instrumentOutgoingRequests(client, { traceXHR: false });
 
     expect(addXhrSpy).not.toHaveBeenCalled();
+  });
+
+  describe('XHR trace header span', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('uses the active propagation context for an ignored child span', () => {
+      const activeSpan = new utils.SentryNonRecordingSpan();
+      const ignoredSpan = new utils.SentryNonRecordingSpan({ dropReason: 'ignored' });
+      let xhrHandler: ((data: utils.HandlerDataXhr) => void) | undefined;
+
+      vi.spyOn(browserUtils, 'addXhrInstrumentationHandler').mockImplementation(handler => {
+        xhrHandler = handler;
+      });
+      vi.spyOn(utils, 'getClient').mockReturnValue(client);
+      vi.spyOn(utils, 'getActiveSpan').mockReturnValue(activeSpan);
+      vi.spyOn(utils, 'hasSpansEnabled').mockReturnValue(true);
+      vi.spyOn(utils, 'hasSpanStreamingEnabled').mockReturnValue(true);
+      vi.spyOn(utils, 'startInactiveSpan').mockReturnValue(ignoredSpan);
+      const getTraceDataSpy = vi.spyOn(utils, 'getTraceData').mockReturnValue({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+      });
+
+      instrumentOutgoingRequests(client, {
+        traceFetch: false,
+        tracePropagationTargets: ['example.com'],
+        enableHTTPTimings: false,
+      });
+      xhrHandler?.({
+        xhr: {
+          [browserUtils.SENTRY_XHR_DATA_KEY]: {
+            method: 'GET',
+            url: 'https://example.com/outgoing',
+            request_headers: {},
+          },
+          setRequestHeader: vi.fn(),
+        },
+        startTimestamp: Date.now(),
+      } as utils.HandlerDataXhr);
+
+      expect(xhrHandler).toBeDefined();
+      expect(getTraceDataSpy).toHaveBeenCalledWith({
+        span: undefined,
+        propagateTraceparent: undefined,
+      });
+    });
   });
 });
 

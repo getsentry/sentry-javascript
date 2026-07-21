@@ -1,5 +1,5 @@
 import type { FeedbackEvent } from '@sentry/core';
-import { EventType } from '@sentry-internal/rrweb';
+import { EventType } from '@sentry/rrweb';
 import type { ReplayBreadcrumbFrameEvent, ReplayContainer } from '../../types';
 
 /**

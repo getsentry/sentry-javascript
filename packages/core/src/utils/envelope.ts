@@ -17,6 +17,7 @@ import type { SdkMetadata } from '../types/sdkmetadata';
 import type { SpanJSON } from '../types/span';
 import { dsnToString } from './dsn';
 import { normalize } from './normalize';
+import { safeDateNow } from './randomSafeContext';
 import { GLOBAL_OBJ } from './worldwide';
 
 /**
@@ -255,7 +256,7 @@ export function createEventEnvelopeHeaders(
   const dynamicSamplingContext = event.sdkProcessingMetadata?.dynamicSamplingContext;
   return {
     event_id: event.event_id as string,
-    sent_at: new Date().toISOString(),
+    sent_at: new Date(safeDateNow()).toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
     ...(dynamicSamplingContext && {

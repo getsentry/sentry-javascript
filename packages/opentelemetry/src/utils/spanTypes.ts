@@ -1,6 +1,7 @@
 import type { SpanKind, SpanStatus } from '@opentelemetry/api';
 import type { ReadableSpan, TimedEvent } from '@opentelemetry/sdk-trace-base';
 import type { AbstractSpan } from '../types';
+import { isObjectLike } from '@sentry/core';
 import { getParentSpanId } from './getParentSpanId';
 
 /**
@@ -12,7 +13,7 @@ export function spanHasAttributes<SpanType extends AbstractSpan>(
   span: SpanType,
 ): span is SpanType & { attributes: ReadableSpan['attributes'] } {
   const castSpan = span as ReadableSpan;
-  return !!castSpan.attributes && typeof castSpan.attributes === 'object';
+  return isObjectLike(castSpan.attributes);
 }
 
 /**

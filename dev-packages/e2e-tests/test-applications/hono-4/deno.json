@@ -1,0 +1,11 @@
+{
+  "imports": {
+    "@sentry/hono": "npm:@sentry/hono",
+    "@sentry/hono/deno": "npm:@sentry/hono/deno",
+    "@sentry/deno": "npm:@sentry/deno",
+    "@sentry/core": "npm:@sentry/core",
+    "@opentelemetry/api": "npm:@opentelemetry/api@^1.9.0",
+    "hono": "npm:hono@^4.12.14"
+  },
+  "nodeModulesDir": "manual"
+}

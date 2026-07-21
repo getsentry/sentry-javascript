@@ -1,6 +1,7 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import type { SerializedTraceData } from '@sentry/core';
 import {
+  isObjectLike,
   captureException,
   continueTrace,
   getClient,
@@ -14,7 +15,8 @@ import {
   withScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
-import { flushAndDispose } from './flush';
+import type { ExecutionContextCompat } from './executionContext';
+import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { ensureInstrumented } from './instrument';
 import { init } from './sdk';
 import { extractRpcMeta } from './utils/rpcMeta';
@@ -23,6 +25,29 @@ import { buildSpanLinks, getStoredSpanContext, storeSpanContext } from './utils/
 /** Extended DurableObjectState with originalStorage exposed by instrumentContext */
 interface InstrumentedDurableObjectState extends DurableObjectState {
   originalStorage?: DurableObjectStorage;
+}
+
+/**
+ * Resolves uninstrumented DO storage for the current invocation.
+ * Prefer `thisArg.ctx` (the live Durable Object instance) over the context captured at
+ * construction time to avoid cross-DO I/O errors in the same isolate.
+ */
+function resolveOriginalStorage(
+  context: ExecutionContext | InstrumentedDurableObjectState | undefined,
+  thisArg: unknown,
+): DurableObjectStorage | undefined {
+  if (isObjectLike(thisArg) && 'ctx' in thisArg) {
+    const doCtx = (thisArg as { ctx: InstrumentedDurableObjectState }).ctx;
+    if (doCtx?.originalStorage) {
+      return doCtx.originalStorage;
+    }
+  }
+
+  if (context && 'originalStorage' in context && context.originalStorage) {
+    return context.originalStorage;
+  }
+
+  return undefined;
 }
 
 type MethodWrapperOptions = {
@@ -41,6 +66,11 @@ type MethodWrapperOptions = {
    * @default false
    */
   startNewTrace?: boolean;
+  /**
+   * The trace origin identifying which instrumentation created the span, e.g. `auto.faas.cloudflare.durable_object`.
+   * Used both as the span's `sentry.origin` attribute and as the `mechanism.type` for captured exceptions.
+   */
+  origin: string;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,7 +98,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
     original =>
       new Proxy(original, {
         apply(target, thisArg, rawArgs: Parameters<T>) {
-          const { startNewTrace } = wrapperOptions;
+          const { startNewTrace, origin } = wrapperOptions;
 
           // For RPC methods, extract Sentry trace context from the trailing argument.
           // The caller side (instrumentDurableObjectStub / JSRPC proxy) appends it;
@@ -93,8 +123,11 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             // see: https://github.com/getsentry/sentry-javascript/issues/13217
             const context: typeof wrapperOptions.context | undefined = wrapperOptions.context;
 
-            const waitUntil = context?.waitUntil?.bind?.(context);
-            const storage = context && 'originalStorage' in context ? context.originalStorage : undefined;
+            // see: https://github.com/getsentry/sentry-javascript/issues/22328
+            const waitUntil = context
+              ? getOriginalWaitUntil(context as ExecutionContextCompat)?.bind(context)
+              : undefined;
+            const storage = resolveOriginalStorage(context, thisArg);
 
             let scopeClient = scope.getClient();
             // Check if client exists AND is still usable (transport not disposed)
@@ -115,9 +148,25 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
             const teardown = async (): Promise<void> => {
               if (startNewTrace && storage) {
-                await storeSpanContext(storage, methodName);
+                storeSpanContext(storage, methodName);
               }
               await flushAndDispose(clientToDispose);
+            };
+
+            const onFulfilled = (res: unknown) => {
+              waitUntil?.(teardown());
+              return res;
+            };
+
+            const onRejected = (e: unknown) => {
+              captureException(e, {
+                mechanism: {
+                  type: origin,
+                  handled: false,
+                },
+              });
+              waitUntil?.(teardown());
+              throw e;
             };
 
             if (!wrapperOptions.spanName) {
@@ -129,101 +178,51 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                 const result = Reflect.apply(target, thisArg, args);
 
                 if (isThenable(result)) {
-                  return result.then(
-                    (res: unknown) => {
-                      waitUntil?.(teardown());
-                      return res;
-                    },
-                    (e: unknown) => {
-                      captureException(e, {
-                        mechanism: {
-                          type: 'auto.faas.cloudflare.durable_object',
-                          handled: false,
-                        },
-                      });
-                      waitUntil?.(teardown());
-                      throw e;
-                    },
-                  );
+                  return result.then(onFulfilled, onRejected);
                 } else {
-                  waitUntil?.(teardown());
-                  return result;
+                  return onFulfilled(result);
                 }
               } catch (e) {
-                captureException(e, {
-                  mechanism: {
-                    type: 'auto.faas.cloudflare.durable_object',
-                    handled: false,
-                  },
-                });
-                waitUntil?.(teardown());
-                throw e;
+                return onRejected(e);
               }
             }
 
             const attributes = wrapperOptions.spanOp
               ? {
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.durable_object',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
                 }
               : {};
 
             const executeSpan = (): unknown => {
               return startSpan({ name: methodName, attributes }, span => {
-                // When linking to previous trace, fetch the stored context and add links asynchronously
-                // This avoids blocking the response while fetching from storage
                 if (startNewTrace && storage) {
-                  waitUntil?.(
-                    getStoredSpanContext(storage, methodName).then(storedContext => {
-                      if (storedContext) {
-                        span.addLinks(buildSpanLinks(storedContext));
-                        // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
-                        // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
-                        // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
-                        // to check this at v11 time :)
-                        const sampledFlag = storedContext.sampled ? '1' : '0';
-                        span.setAttribute(
-                          'sentry.previous_trace',
-                          `${storedContext.traceId}-${storedContext.spanId}-${sampledFlag}`,
-                        );
-                      }
-                    }),
-                  );
+                  const storedContext = getStoredSpanContext(storage, methodName);
+
+                  if (storedContext) {
+                    span.addLinks(buildSpanLinks(storedContext));
+                    // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
+                    // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
+                    // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
+                    // to check this at v11 time :)
+                    const sampledFlag = storedContext.sampled ? '1' : '0';
+                    span.setAttribute(
+                      'sentry.previous_trace',
+                      `${storedContext.traceId}-${storedContext.spanId}-${sampledFlag}`,
+                    );
+                  }
                 }
 
                 try {
                   const result = Reflect.apply(target, thisArg, args);
 
                   if (isThenable(result)) {
-                    return result.then(
-                      (res: unknown) => {
-                        waitUntil?.(teardown());
-                        return res;
-                      },
-                      (e: unknown) => {
-                        captureException(e, {
-                          mechanism: {
-                            type: 'auto.faas.cloudflare.durable_object',
-                            handled: false,
-                          },
-                        });
-                        waitUntil?.(teardown());
-                        throw e;
-                      },
-                    );
+                    return result.then(onFulfilled, onRejected);
                   } else {
-                    waitUntil?.(teardown());
-                    return result;
+                    return onFulfilled(result);
                   }
                 } catch (e) {
-                  captureException(e, {
-                    mechanism: {
-                      type: 'auto.faas.cloudflare.durable_object',
-                      handled: false,
-                    },
-                  });
-                  waitUntil?.(teardown());
-                  throw e;
+                  return onRejected(e);
                 }
               });
             };

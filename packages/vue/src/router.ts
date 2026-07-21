@@ -1,4 +1,10 @@
-import { captureException } from '@sentry/browser';
+import { captureException, getAbsoluteUrl } from '@sentry/browser';
+import {
+  NAVIGATION_ROUTE_ID,
+  PARAMS_KEY_BASE,
+  URL_PATH_PARAMETER_KEY_BASE,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
   getActiveSpan,
@@ -14,6 +20,8 @@ import {
 export type Route = {
   /** Unparameterized URL */
   path: string;
+  /** Resolved URL including query and hash */
+  fullPath?: string;
   /**
    * Query params (keys map to null when there is no value associated, e.g. "?foo" and to an array when there are
    * multiple query params that have the same key, e.g. "?foo&foo=bar")
@@ -51,7 +59,7 @@ export function instrumentVueRouter(
     instrumentPageLoad: boolean;
     instrumentNavigation: boolean;
   },
-  startNavigationSpanFn: (context: StartSpanOptions) => void,
+  startNavigationSpanFn: (context: StartSpanOptions, destinationUrl: string) => void,
 ): void {
   let hasHandledFirstPageLoad = false;
 
@@ -71,8 +79,8 @@ export function instrumentVueRouter(
     const attributes: SpanAttributes = {};
 
     for (const key of Object.keys(to.params)) {
-      attributes[`url.path.parameter.${key}`] = to.params[key];
-      attributes[`params.${key}`] = to.params[key]; // params.[key] is an alias
+      attributes[`${URL_PATH_PARAMETER_KEY_BASE}.${key}`] = to.params[key];
+      attributes[`${PARAMS_KEY_BASE}.${key}`] = to.params[key]; // params.[key] is an alias
     }
     for (const key of Object.keys(to.query)) {
       const value = to.query[key];
@@ -92,6 +100,14 @@ export function instrumentVueRouter(
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       spanName = to.matched[lastIndex]!.path;
       transactionSource = 'route';
+    }
+
+    if (transactionSource === 'route') {
+      attributes[URL_TEMPLATE] = spanName;
+    }
+
+    if (to.name) {
+      attributes[NAVIGATION_ROUTE_ID] = to.name.toString();
     }
 
     getCurrentScope().setTransactionName(spanName);
@@ -115,15 +131,18 @@ export function instrumentVueRouter(
     }
 
     if (options.instrumentNavigation && !activePageLoadSpan) {
-      startNavigationSpanFn({
-        name: spanName,
-        op: 'navigation',
-        attributes: {
-          ...attributes,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: transactionSource,
+      startNavigationSpanFn(
+        {
+          name: spanName,
+          op: 'navigation',
+          attributes: {
+            ...attributes,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: transactionSource,
+          },
         },
-      });
+        getAbsoluteUrl(to.fullPath ?? to.path),
+      );
     }
 
     // Vue Router 3 requires `next()` to be called to resolve the navigation guard.

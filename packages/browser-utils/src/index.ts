@@ -8,19 +8,24 @@ export {
 
 export {
   addPerformanceEntries,
+  addWebVitalsToSpan,
   startTrackingInteractions,
   startTrackingLongTasks,
   startTrackingLongAnimationFrames,
+  // eslint-disable-next-line typescript/no-deprecated
   startTrackingWebVitals,
   startTrackingINP,
   registerInpInteractionListener,
 } from './metrics/browserMetrics';
 
+// eslint-disable-next-line typescript/no-deprecated
 export { elementTimingIntegration, startTrackingElementTiming } from './metrics/elementTiming';
 
 export { extractNetworkProtocol } from './metrics/utils';
 
 export { trackClsAsSpan, trackInpAsSpan, trackLcpAsSpan } from './metrics/webVitalSpans';
+
+export { whenIdleOrHidden } from './metrics/web-vitals/lib/whenIdleOrHidden';
 
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';
 
@@ -37,5 +42,7 @@ export { resourceTimingToSpanAttributes } from './metrics/resourceTiming';
 export { htmlTreeAsString } from './htmlTreeAsString';
 
 export { isElement } from './is';
+
+export { getAbsoluteUrl } from './instrument/location';
 
 export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';

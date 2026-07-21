@@ -16,10 +16,11 @@ Sentry.init({
   tracePropagationTargets: [/^\//],
 });
 
-// Get the client instrumentation from the Sentry integration
-// NOTE: As of React Router 7.x, HydratedRouter does NOT invoke these hooks in Framework Mode.
-// The client-side instrumentation is prepared for when React Router adds support.
-// Client-side navigation is currently handled by the legacy instrumentHydratedRouter() approach.
+// Get the client instrumentation from the Sentry integration.
+// As of React Router 7.15+, HydratedRouter invokes the client instrumentation hooks (`navigate`
+// and `fetch`) in Framework Mode, so navigation and fetcher spans are created via the
+// instrumentation API (origin `auto.*.react_router.instrumentation_api`). The legacy
+// instrumentHydratedRouter() subscribe still runs to parameterize navigation span names.
 const sentryClientInstrumentation = [tracing.clientInstrumentation];
 
 startTransition(() => {

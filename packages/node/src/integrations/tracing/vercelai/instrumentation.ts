@@ -158,13 +158,14 @@ export function cleanupToolCallSpanContexts(content: Array<object>): void {
  * 1. The vercel ai integration options
  * 2. The experimental_telemetry options in the vercel ai method calls
  * 3. When telemetry is explicitly enabled (isEnabled: true), default to recording
- * 4. Otherwise, use the sendDefaultPii option from client options
+ * 4. Otherwise, use the dataCollection.genAI settings from client options
  */
 export function determineRecordingSettings(
   integrationRecordingOptions: RecordingOptions | undefined,
   methodTelemetryOptions: RecordingOptions,
   telemetryExplicitlyEnabled: boolean | undefined,
-  defaultRecordingEnabled: boolean,
+  defaultInputsEnabled: boolean,
+  defaultOutputsEnabled: boolean,
 ): { recordInputs: boolean; recordOutputs: boolean } {
   const recordInputs =
     integrationRecordingOptions?.recordInputs !== undefined
@@ -173,7 +174,7 @@ export function determineRecordingSettings(
         ? methodTelemetryOptions.recordInputs
         : telemetryExplicitlyEnabled === true
           ? true // When telemetry is explicitly enabled, default to recording inputs
-          : defaultRecordingEnabled;
+          : defaultInputsEnabled;
 
   const recordOutputs =
     integrationRecordingOptions?.recordOutputs !== undefined
@@ -181,8 +182,8 @@ export function determineRecordingSettings(
       : methodTelemetryOptions.recordOutputs !== undefined
         ? methodTelemetryOptions.recordOutputs
         : telemetryExplicitlyEnabled === true
-          ? true // When telemetry is explicitly enabled, default to recording inputs
-          : defaultRecordingEnabled;
+          ? true // When telemetry is explicitly enabled, default to recording outputs
+          : defaultOutputsEnabled;
 
   return { recordInputs, recordOutputs };
 }
@@ -239,13 +240,14 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
           const client = getClient();
           const integration = client?.getIntegrationByName<VercelAiIntegration>(INTEGRATION_NAME);
           const integrationOptions = integration?.options;
-          const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
+          const genAI = integration ? client?.getDataCollectionOptions().genAI : undefined;
 
           const { recordInputs, recordOutputs } = determineRecordingSettings(
             integrationOptions,
             existingExperimentalTelemetry,
             isEnabled,
-            shouldRecordInputsAndOutputs,
+            Boolean(genAI?.inputs),
+            Boolean(genAI?.outputs),
           );
 
           args[0].experimental_telemetry = {

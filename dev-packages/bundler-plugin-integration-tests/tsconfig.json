@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.json",
+  "include": ["./**/*"],
+  // We exclude the Vite files for now.
+  // Because the Vite plugin 'references" a different `vite` package when devDeps are loaded, it doesn't
+  // match all the tested Vite versions. This isn't an issue when the plugin is used with end-users Vite versions.
+  "exclude": ["./fixtures/vite*/**/*"],
+  "compilerOptions": {
+    "types": ["node"],
+    "module": "es2020",
+    "lib": ["ES2021"]
+  }
+}

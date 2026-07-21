@@ -2,7 +2,7 @@ import type { ProfileChunk, ProfilingIntegration, Transport } from '@sentry/core
 import { createEnvelope, debug, getMainCarrier, GLOBAL_OBJ } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
-import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
+import { CpuProfilerBindings } from '@sentry/node-cpu-profiler';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _nodeProfilingIntegration } from '../src/integration';
 import { NODE_VERSION } from '../src/nodeVersion';
@@ -655,6 +655,9 @@ describe('ProfilingIntegration', () => {
 
       const nonProfiledTransaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
       nonProfiledTransaction.end();
+      // The transaction is captured on a debounce (deferred so children ending after the root still
+      // join it), so advance the fake timers to emit the envelope before asserting on it.
+      vi.advanceTimersByTime(1);
 
       expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1]).not.toMatchObject({
         contexts: {
@@ -670,6 +673,8 @@ describe('ProfilingIntegration', () => {
       integration._profiler.start();
       const profiledTransaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
       profiledTransaction.end();
+      // Drain the deferred capture while the profiler is still running so the profile context attaches.
+      vi.advanceTimersByTime(1);
       Sentry.profiler.stopProfiler();
 
       expect(transportSpy.mock.calls?.[1]?.[0]?.[1]?.[0]?.[1]).toMatchObject({

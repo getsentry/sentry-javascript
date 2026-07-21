@@ -1,0 +1,42 @@
+import * as Sentry from '@sentry/node';
+import mysql from 'mysql';
+
+const connection = mysql.createConnection({
+  port: Number(process.env.MYSQL_PORT),
+  user: 'root',
+  password: 'docker',
+});
+
+connection.connect(function (err) {
+  if (err) {
+    return;
+  }
+});
+
+Sentry.startSpanManual(
+  {
+    op: 'transaction',
+    name: 'Test Transaction',
+  },
+  span => {
+    const query = connection.query('SELECT 1 + 1 AS solution');
+
+    // This should _not_ be the parent of the listener-child!
+    Sentry.startSpanManual({ name: 'inner-span' }, innerSpan => {
+      // The instrumentation registers its own `end` listener (which finishes the query span) when
+      // `query()` is called, before this one — so by the time we run here, the query span is finished.
+      query.on('end', () => {
+        // A span started from inside a stream listener should be a child of the parent context that was
+        // active when the query was issued (the transaction here), not of the query span itself. This
+        // verifies the instrumentation re-binds the streamed query's events to the parent context.
+        Sentry.startSpan({ name: 'listener-child' }, () => {
+          // noop
+        });
+
+        innerSpan.end();
+        span.end();
+        connection.end();
+      });
+    });
+  },
+);

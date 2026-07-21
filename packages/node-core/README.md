@@ -4,7 +4,10 @@
   </a>
 </p>
 
-# Official Sentry SDK for Node-Core
+# Official Sentry SDK for Node-Core (DEPRECATED)
+
+> DEPRECATION NOTICE: The `@sentry/node-core` package is deprecated and will be removed in the next major version.
+> Its functionality will be merged back into the `@sentry/node` SDK.
 
 [![npm version](https://img.shields.io/npm/v/@sentry/node-core.svg)](https://www.npmjs.com/package/@sentry/node-core)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/node-core.svg)](https://www.npmjs.com/package/@sentry/node-core)
@@ -15,17 +18,15 @@ Unlike the `@sentry/node` SDK, this SDK comes with no OpenTelemetry auto-instrum
 - `@opentelemetry/api`
 - `@opentelemetry/core`
 - `@opentelemetry/instrumentation`
-- `@opentelemetry/resources`
 - `@opentelemetry/sdk-trace-base`
-- `@opentelemetry/semantic-conventions`.
 
 ## Installation
 
 ```bash
-npm install @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/instrumentation @opentelemetry/resources @opentelemetry/sdk-trace-base @opentelemetry/semantic-conventions
+npm install @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/instrumentation @opentelemetry/sdk-trace-base
 
 # Or yarn
-yarn add @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/instrumentation @opentelemetry/resources @opentelemetry/sdk-trace-base @opentelemetry/semantic-conventions
+yarn add @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/instrumentation @opentelemetry/sdk-trace-base
 ```
 
 ## Usage

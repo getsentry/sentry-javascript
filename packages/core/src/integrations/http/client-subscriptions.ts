@@ -16,6 +16,7 @@
 import type { SpanStatus } from '../../types/spanStatus';
 import { addOutgoingRequestBreadcrumb } from './add-outgoing-request-breadcrumb';
 import {
+  bindScopeToEmitter,
   getSpanStatusFromHttpCode,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_UNSET,
@@ -156,6 +157,7 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
         response.resume();
       }
       setIncomingResponseSpanData(response, span);
+      bindScopeToEmitter(response);
       options.outgoingResponseHook?.(span, response);
 
       let finished = false;

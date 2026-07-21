@@ -33,36 +33,36 @@ test('should create AI spans with correct attributes', async ({ page }) => {
   expect(aiGenerateSpans.length).toBeGreaterThanOrEqual(1);
   expect(toolCallSpans.length).toBeGreaterThanOrEqual(0);
 
-  // First AI call - should have telemetry enabled and record inputs/outputs (sendDefaultPii: true)
+  // First AI call - should have telemetry enabled and record inputs/outputs (dataCollection: { userInfo: true })
   /* const firstPipelineSpan = aiPipelineSpans[0];
-  expect(firstPipelineSpan?.attributes?.['vercel.ai.model.id']?.value).toBe('mock-model-id');
-  expect(firstPipelineSpan?.attributes?.['vercel.ai.model.provider']?.value).toBe('mock-provider');
-  expect(firstPipelineSpan?.attributes?.['vercel.ai.prompt']?.value).toContain('Where is the first span?');
-  expect(firstPipelineSpan?.attributes?.['gen_ai.output.messages']?.value).toContain('First span here!');
-  expect(firstPipelineSpan?.attributes?.['gen_ai.usage.input_tokens']?.value).toBe(10);
-  expect(firstPipelineSpan?.attributes?.['gen_ai.usage.output_tokens']?.value).toBe(20); */
+  expect(firstPipelineSpan?.attributes['vercel.ai.model.id']?.value).toBe('mock-model-id');
+  expect(firstPipelineSpan?.attributes['vercel.ai.model.provider']?.value).toBe('mock-provider');
+  expect(firstPipelineSpan?.attributes['vercel.ai.prompt']?.value).toContain('Where is the first span?');
+  expect(firstPipelineSpan?.attributes['gen_ai.output.messages']?.value).toContain('First span here!');
+  expect(firstPipelineSpan?.attributes['gen_ai.usage.input_tokens']?.value).toBe(10);
+  expect(firstPipelineSpan?.attributes['gen_ai.usage.output_tokens']?.value).toBe(20); */
 
   // Second AI call - explicitly enabled telemetry
   const secondPipelineSpan = aiPipelineSpans[0];
-  expect(secondPipelineSpan?.attributes?.['vercel.ai.prompt']?.value).toContain('Where is the second span?');
-  expect(secondPipelineSpan?.attributes?.['gen_ai.output.messages']?.value).toContain('Second span here!');
+  expect(secondPipelineSpan?.attributes['vercel.ai.prompt']?.value).toContain('Where is the second span?');
+  expect(secondPipelineSpan?.attributes['gen_ai.output.messages']?.value).toContain('Second span here!');
 
   // Third AI call - with tool calls
   /*  const thirdPipelineSpan = aiPipelineSpans[2];
-  expect(thirdPipelineSpan?.attributes?.['vercel.ai.response.finishReason']?.value).toBe('tool-calls');
-  expect(thirdPipelineSpan?.attributes?.['gen_ai.usage.input_tokens']?.value).toBe(15);
-  expect(thirdPipelineSpan?.attributes?.['gen_ai.usage.output_tokens']?.value).toBe(25); */
+  expect(thirdPipelineSpan?.attributes['vercel.ai.response.finishReason']?.value).toBe('tool-calls');
+  expect(thirdPipelineSpan?.attributes['gen_ai.usage.input_tokens']?.value).toBe(15);
+  expect(thirdPipelineSpan?.attributes['gen_ai.usage.output_tokens']?.value).toBe(25); */
 
   // Tool call span
   /*  const toolSpan = toolCallSpans[0];
-  expect(toolSpan?.attributes?.['vercel.ai.toolCall.name']?.value).toBe('getWeather');
-  expect(toolSpan?.attributes?.['vercel.ai.toolCall.id']?.value).toBe('call-1');
-  expect(toolSpan?.attributes?.['vercel.ai.toolCall.args']?.value).toContain('San Francisco');
-  expect(toolSpan?.attributes?.['vercel.ai.toolCall.result']?.value).toContain('Sunny, 72°F'); */
+  expect(toolSpan?.attributes['vercel.ai.toolCall.name']?.value).toBe('getWeather');
+  expect(toolSpan?.attributes['vercel.ai.toolCall.id']?.value).toBe('call-1');
+  expect(toolSpan?.attributes['vercel.ai.toolCall.args']?.value).toContain('San Francisco');
+  expect(toolSpan?.attributes['vercel.ai.toolCall.result']?.value).toContain('Sunny, 72°F'); */
 
   // Verify the fourth call was not captured (telemetry disabled)
   const promptsInSpans = genAiSpans
-    .map(span => span.attributes?.['vercel.ai.prompt']?.value)
+    .map(span => span.attributes['vercel.ai.prompt']?.value)
     .filter((prompt): prompt is string => typeof prompt === 'string');
   const hasDisabledPrompt = promptsInSpans.some(prompt => prompt.includes('Where is the third span?'));
   expect(hasDisabledPrompt).toBe(false);

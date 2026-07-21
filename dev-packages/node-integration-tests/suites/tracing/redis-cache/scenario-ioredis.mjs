@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 import Redis from 'ioredis';
 
-const redis = new Redis({ port: 6379 });
+const redis = new Redis({ port: 6383 });
 
 async function run() {
   await Sentry.startSpan(
@@ -22,6 +22,8 @@ async function run() {
         await redis.get('ioredis-cache:unavailable-data');
 
         await redis.mget('test-key', 'ioredis-cache:test-key', 'ioredis-cache:unavailable-data');
+
+        await redis.del('ioredis-cache:test-key');
       } finally {
         await redis.disconnect();
       }

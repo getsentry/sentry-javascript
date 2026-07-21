@@ -1,0 +1,138 @@
+{
+  "name": "@sentry/server-utils",
+  "version": "10.67.0",
+  "description": "Server Utilities for all Sentry JavaScript SDKs",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/server-utils",
+  "author": "Sentry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "/build"
+  ],
+  "main": "build/cjs/index.js",
+  "module": "build/esm/index.js",
+  "types": "build/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./build/types/index.d.ts",
+      "import": "./build/esm/index.js",
+      "require": "./build/cjs/index.js"
+    },
+    "./orchestrion": {
+      "types": "./build/types/orchestrion/index.d.ts",
+      "import": "./build/esm/orchestrion/index.js",
+      "require": "./build/cjs/orchestrion/index.js"
+    },
+    "./orchestrion/config": {
+      "types": "./build/types/orchestrion/config/index.d.ts",
+      "import": "./build/esm/orchestrion/config/index.js",
+      "require": "./build/cjs/orchestrion/config/index.js"
+    },
+    "./orchestrion/register": {
+      "types": "./build/types/orchestrion/runtime/register.d.ts",
+      "import": "./build/esm/orchestrion/runtime/register.js",
+      "require": "./build/cjs/orchestrion/runtime/register.js"
+    },
+    "./orchestrion/vite": {
+      "types": "./build/types/orchestrion/bundler/vite.d.ts",
+      "import": "./build/esm/orchestrion/bundler/vite.js",
+      "require": "./build/cjs/orchestrion/bundler/vite.js"
+    },
+    "./orchestrion/rollup": {
+      "types": "./build/types/orchestrion/bundler/rollup.d.ts",
+      "import": "./build/esm/orchestrion/bundler/rollup.js",
+      "require": "./build/cjs/orchestrion/bundler/rollup.js"
+    },
+    "./orchestrion/webpack": {
+      "types": "./build/types/orchestrion/bundler/webpack.d.ts",
+      "import": "./build/esm/orchestrion/bundler/webpack.js",
+      "require": "./build/cjs/orchestrion/bundler/webpack.js"
+    },
+    "./orchestrion/esbuild": {
+      "types": "./build/types/orchestrion/bundler/esbuild.d.ts",
+      "import": "./build/esm/orchestrion/bundler/esbuild.js",
+      "require": "./build/cjs/orchestrion/bundler/esbuild.js"
+    },
+    "./orchestrion/import-hook": {
+      "import": "./build/orchestrion/import-hook.mjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "orchestrion": [
+        "build/types/orchestrion/index.d.ts"
+      ],
+      "orchestrion/config": [
+        "build/types/orchestrion/config/index.d.ts"
+      ],
+      "orchestrion/register": [
+        "build/types/orchestrion/runtime/register.d.ts"
+      ],
+      "orchestrion/vite": [
+        "build/types/orchestrion/bundler/vite.d.ts"
+      ],
+      "orchestrion/rollup": [
+        "build/types/orchestrion/bundler/rollup.d.ts"
+      ],
+      "orchestrion/webpack": [
+        "build/types/orchestrion/bundler/webpack.d.ts"
+      ],
+      "orchestrion/esbuild": [
+        "build/types/orchestrion/bundler/esbuild.d.ts"
+      ]
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.1",
+    "@apm-js-collab/tracing-hooks": "^0.13.0",
+    "@sentry/conventions": "^0.16.0",
+    "@sentry/core": "10.67.0",
+    "meriyah": "^6.1.4"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.1",
+    "vite": "^6.4.3"
+  },
+  "scripts": {
+    "build": "run-p build:transpile build:types",
+    "build:dev": "yarn build",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:watch": "run-p build:transpile:watch",
+    "build:dev:watch": "run-p build:transpile:watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
+    "build:tarball": "npm pack",
+    "clean": "rimraf build coverage sentry-server-utils-*.tgz",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
+    "test:unit": "vitest run",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "yalc:publish": "yalc publish --push --sig"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sideEffects": false,
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "outputs": [
+          "{projectRoot}/build/esm",
+          "{projectRoot}/build/cjs",
+          "{projectRoot}/build/npm/esm",
+          "{projectRoot}/build/npm/cjs",
+          "{projectRoot}/build/orchestrion"
+        ]
+      }
+    }
+  }
+}

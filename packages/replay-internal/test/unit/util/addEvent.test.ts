@@ -11,14 +11,26 @@ import { addEvent, shouldAddEvent } from '../../../src/util/addEvent';
 import { BASE_TIMESTAMP } from '../..';
 import { getTestEventIncremental } from '../../utils/getTestEvent';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
+import { getDefaultClientOptions, init } from '../../utils/TestClient';
+import { getCurrentScope } from '@sentry/core';
 
 describe('Unit | util | addEvent', () => {
   beforeAll(() => {
     vi.useFakeTimers();
   });
 
+  beforeEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
   it('stops when encountering a compression error', async function () {
     vi.setSystemTime(BASE_TIMESTAMP);
+
+    const client = init(
+      getDefaultClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+      }),
+    );
 
     const replay = setupReplayContainer({
       options: {
@@ -29,6 +41,9 @@ describe('Unit | util | addEvent', () => {
     await vi.runAllTimersAsync();
     await (replay.eventBuffer as EventBufferProxy).ensureWorkerIsLoaded();
 
+    const handleExceptionSpy = vi.spyOn(replay, 'handleException');
+    const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
     // @ts-expect-error Mock this private so it triggers an error
     vi.spyOn(replay.eventBuffer._compression._worker, 'postMessage').mockImplementationOnce(() => {
       return Promise.reject('test worker error');
@@ -37,6 +52,49 @@ describe('Unit | util | addEvent', () => {
     await addEvent(replay, { data: {}, timestamp: BASE_TIMESTAMP + 10, type: 2 });
 
     expect(replay.isEnabled()).toEqual(false);
+    expect(handleExceptionSpy).toHaveBeenCalledWith('test worker error');
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('internal_sdk_error', 'replay');
+  });
+
+  it('does not surface an error when the buffer is torn down mid-add', async function () {
+    vi.setSystemTime(BASE_TIMESTAMP);
+
+    const client = init(
+      getDefaultClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+      }),
+    );
+
+    const replay = setupReplayContainer({
+      options: {
+        useCompression: true,
+      },
+    });
+
+    await vi.runAllTimersAsync();
+    await (replay.eventBuffer as EventBufferProxy).ensureWorkerIsLoaded();
+
+    const handleExceptionSpy = vi.spyOn(replay, 'handleException');
+    const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+    // Simulate the teardown race: while an `addEvent` is in-flight, a concurrent
+    // `stop()` (e.g. session refresh) disables replay and destroys the worker,
+    // rejecting the pending request with "Worker destroyed". This must be treated
+    // as benign - no dropped-event outcome, no exception, no redundant stop.
+    vi.spyOn(
+      // @ts-expect-error Access private worker to simulate the teardown race
+      replay.eventBuffer._compression._worker,
+      'postMessage',
+    ).mockImplementationOnce(async () => {
+      await replay.stop({ reason: 'sessionExpired' });
+      throw new Error('Worker destroyed');
+    });
+
+    await addEvent(replay, getTestEventIncremental({ timestamp: BASE_TIMESTAMP + 10 }));
+
+    expect(replay.isEnabled()).toEqual(false);
+    expect(handleExceptionSpy).toHaveBeenCalledWith(new Error('Worker destroyed'));
+    expect(recordDroppedEventSpy).not.toHaveBeenCalled();
   });
 
   it('stops when exceeding buffer size limit', async function () {

@@ -3,6 +3,7 @@ import type { Envelope } from '../types/envelope';
 import type { InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types/transport';
 import { debug } from '../utils/debug-logger';
 import { envelopeContainsItemType } from '../utils/envelope';
+import { safeDateNow } from '../utils/randomSafeContext';
 import { parseRetryAfterHeader } from '../utils/ratelimit';
 import { safeUnref } from '../utils/timer';
 
@@ -108,7 +109,7 @@ export function makeOfflineTransport<TO>(
             log('Attempting to send previously queued event');
 
             // We should to update the sent_at timestamp to the current time.
-            found[0].sent_at = new Date().toISOString();
+            found[0].sent_at = new Date(safeDateNow()).toISOString();
 
             void send(found, true).catch(e => {
               log('Failed to retry sending', e);

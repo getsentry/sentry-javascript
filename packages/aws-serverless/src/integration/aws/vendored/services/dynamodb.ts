@@ -1,32 +1,13 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-aws-sdk
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
-/* eslint-disable */
 
-import { Attributes, DiagLogger, Span, SpanKind, Tracer } from '@opentelemetry/api';
-import { SemconvStability } from '@opentelemetry/instrumentation';
-import {
-  ATTR_DB_NAMESPACE,
-  ATTR_DB_OPERATION_NAME,
-  ATTR_DB_QUERY_TEXT,
-  ATTR_DB_SYSTEM_NAME,
-} from '@opentelemetry/semantic-conventions';
+import { Attributes, DiagLogger, Span, SpanKind } from '@opentelemetry/api';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import {
   ATTR_AWS_DYNAMODB_ATTRIBUTE_DEFINITIONS,
@@ -50,13 +31,9 @@ import {
   ATTR_AWS_DYNAMODB_TABLE_COUNT,
   ATTR_AWS_DYNAMODB_TABLE_NAMES,
   ATTR_AWS_DYNAMODB_TOTAL_SEGMENTS,
-  ATTR_DB_NAME,
-  ATTR_DB_OPERATION,
-  ATTR_DB_STATEMENT,
-  ATTR_DB_SYSTEM,
-  DB_SYSTEM_NAME_VALUE_DYNAMODB,
   DB_SYSTEM_VALUE_DYNAMODB,
 } from '../semconv';
+import { DB_NAME, DB_OPERATION, DB_SYSTEM } from '@sentry/conventions/attributes';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
 
 export class DynamodbServiceExtension implements ServiceExtension {
@@ -66,45 +43,22 @@ export class DynamodbServiceExtension implements ServiceExtension {
 
   requestPreSpanHook(
     normalizedRequest: NormalizedRequest,
-    config: AwsSdkInstrumentationConfig,
-    diag: DiagLogger,
-    dbSemconvStability?: SemconvStability,
+    _config: AwsSdkInstrumentationConfig,
+    _diag: DiagLogger,
   ): RequestMetadata {
     const spanKind: SpanKind = SpanKind.CLIENT;
-    let spanName: string | undefined;
     const isIncoming = false;
     const operation = normalizedRequest.commandName;
     const tableName = normalizedRequest.commandInput?.TableName;
 
     const spanAttributes: Attributes = {};
 
-    if (dbSemconvStability === undefined || dbSemconvStability & SemconvStability.OLD) {
-      spanAttributes[ATTR_DB_SYSTEM] = DB_SYSTEM_VALUE_DYNAMODB;
-      spanAttributes[ATTR_DB_NAME] = tableName;
-      spanAttributes[ATTR_DB_OPERATION] = operation;
-    }
-    if (dbSemconvStability !== undefined && dbSemconvStability & SemconvStability.STABLE) {
-      spanAttributes[ATTR_DB_SYSTEM_NAME] = DB_SYSTEM_NAME_VALUE_DYNAMODB;
-      spanAttributes[ATTR_DB_NAMESPACE] = tableName;
-      spanAttributes[ATTR_DB_OPERATION_NAME] = operation;
-    }
-
-    if (config.dynamoDBStatementSerializer) {
-      try {
-        const sanitizedStatement = config.dynamoDBStatementSerializer(operation, normalizedRequest.commandInput);
-
-        if (typeof sanitizedStatement === 'string') {
-          if (dbSemconvStability === undefined || dbSemconvStability & SemconvStability.OLD) {
-            spanAttributes[ATTR_DB_STATEMENT] = sanitizedStatement;
-          }
-          if (dbSemconvStability !== undefined && dbSemconvStability & SemconvStability.STABLE) {
-            spanAttributes[ATTR_DB_QUERY_TEXT] = sanitizedStatement;
-          }
-        }
-      } catch (err) {
-        diag.error('failed to sanitize DynamoDB statement', err);
-      }
-    }
+    // oxlint-disable-next-line typescript/no-deprecated
+    spanAttributes[DB_SYSTEM] = DB_SYSTEM_VALUE_DYNAMODB;
+    // oxlint-disable-next-line typescript/no-deprecated
+    spanAttributes[DB_NAME] = tableName;
+    // oxlint-disable-next-line typescript/no-deprecated
+    spanAttributes[DB_OPERATION] = operation;
 
     // normalizedRequest.commandInput.RequestItems) is undefined when no table names are returned
     // keys in this object are the table names
@@ -215,11 +169,10 @@ export class DynamodbServiceExtension implements ServiceExtension {
       isIncoming,
       spanAttributes,
       spanKind,
-      spanName,
     };
   }
 
-  responseHook(response: NormalizedResponse, span: Span, _tracer: Tracer, _config: AwsSdkInstrumentationConfig) {
+  responseHook(response: NormalizedResponse, span: Span) {
     if (response.data?.ConsumedCapacity) {
       span.setAttribute(
         ATTR_AWS_DYNAMODB_CONSUMED_CAPACITY,

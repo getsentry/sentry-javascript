@@ -1,6 +1,7 @@
 import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import type { ReadableSpan, Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
+import type { Client } from '@sentry/core';
 import {
   addChildSpanToSpan,
   getClient,
@@ -13,6 +14,7 @@ import {
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { SentrySpanExporter } from './spanExporter';
+import { backfillStreamedSpanDataFromOtel } from './utils/backfillStreamedSpanData';
 import { getScopesFromContext } from './utils/contextData';
 import { setIsSetup } from './utils/setupCheck';
 /**
@@ -21,10 +23,21 @@ import { setIsSetup } from './utils/setupCheck';
  */
 export class SentrySpanProcessor implements SpanProcessorInterface {
   private _exporter: SentrySpanExporter;
+  private _client: Client | undefined;
+  private _unsubscribePreprocessSpan: (() => void) | undefined = undefined;
 
-  public constructor(options?: { timeout?: number }) {
+  public constructor(options?: { timeout?: number; client?: Client }) {
     setIsSetup('SentrySpanProcessor');
     this._exporter = new SentrySpanExporter(options);
+    this._client = options?.client ?? getClient();
+
+    if (this._client && hasSpanStreamingEnabled(this._client)) {
+      // Streamed spans skip the exporter, so they don't get op/source/name inferred from OTel
+      // semantic conventions. We backfill them here, reusing the same inference as the exporter.
+      // This runs as a `preprocessSpan` subscriber so the inferred data is available to all
+      // `processSpan`/`processSegmentSpan` hooks (incl. integrations) and `beforeSendSpan`.
+      this._unsubscribePreprocessSpan = this._client.on('preprocessSpan', backfillStreamedSpanDataFromOtel);
+    }
   }
 
   /**
@@ -38,6 +51,7 @@ export class SentrySpanProcessor implements SpanProcessorInterface {
    * @inheritDoc
    */
   public async shutdown(): Promise<void> {
+    this._unsubscribePreprocessSpan?.();
     this._exporter.clear();
   }
 
@@ -76,19 +90,17 @@ export class SentrySpanProcessor implements SpanProcessorInterface {
 
     logSpanStart(span);
 
-    const client = getClient();
-    client?.emit('spanStart', span);
+    this._client?.emit('spanStart', span);
   }
 
   /** @inheritDoc */
   public onEnd(span: Span & ReadableSpan): void {
     logSpanEnd(span);
 
-    const client = getClient();
-    client?.emit('spanEnd', span);
+    this._client?.emit('spanEnd', span);
 
-    if (client && hasSpanStreamingEnabled(client)) {
-      client.emit('afterSpanEnd', span);
+    if (this._client && hasSpanStreamingEnabled(this._client)) {
+      this._client.emit('afterSpanEnd', span);
     } else {
       this._exporter.export(span);
     }

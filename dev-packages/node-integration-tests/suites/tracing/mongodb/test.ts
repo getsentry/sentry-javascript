@@ -2,9 +2,11 @@ import type { TransactionEvent } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { assertSentryTransaction } from '../../../utils/assertions';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('MongoDB auto-instrumentation', () => {
+  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongo' : 'auto.db.otel.mongo';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -21,7 +23,7 @@ describe('MongoDB auto-instrumentation', () => {
 
   const SPAN_FIND_MATCHER = expect.objectContaining({
     data: {
-      'sentry.origin': 'auto.db.otel.mongo',
+      'sentry.origin': origin,
       'sentry.op': 'db',
       'db.system': 'mongodb',
       'db.name': 'admin',
@@ -35,12 +37,12 @@ describe('MongoDB auto-instrumentation', () => {
     },
     description: '{"title":"?"}',
     op: 'db',
-    origin: 'auto.db.otel.mongo',
+    origin,
   });
 
   const SPAN_INSERT_MATCHER = expect.objectContaining({
     data: {
-      'sentry.origin': 'auto.db.otel.mongo',
+      'sentry.origin': origin,
       'sentry.op': 'db',
       'db.system': 'mongodb',
       'db.name': 'admin',
@@ -54,12 +56,12 @@ describe('MongoDB auto-instrumentation', () => {
     },
     description: '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
     op: 'db',
-    origin: 'auto.db.otel.mongo',
+    origin,
   });
 
   const SPAN_ISMASTER_MATCHER = expect.objectContaining({
     data: {
-      'sentry.origin': 'auto.db.otel.mongo',
+      'sentry.origin': origin,
       'sentry.op': 'db',
       'db.system': 'mongodb',
       'db.name': 'admin',
@@ -75,12 +77,12 @@ describe('MongoDB auto-instrumentation', () => {
     description:
       '{"ismaster":"?","client":{"driver":{"name":"?","version":"?"},"os":{"type":"?","name":"?","architecture":"?","version":"?"},"platform":"?"},"compression":[],"helloOk":"?"}',
     op: 'db',
-    origin: 'auto.db.otel.mongo',
+    origin,
   });
 
   const SPAN_UPDATE_MATCHER = expect.objectContaining({
     data: {
-      'sentry.origin': 'auto.db.otel.mongo',
+      'sentry.origin': origin,
       'sentry.op': 'db',
       'db.system': 'mongodb',
       'db.name': 'admin',
@@ -94,12 +96,28 @@ describe('MongoDB auto-instrumentation', () => {
     },
     description: '{"title":"?"}',
     op: 'db',
-    origin: 'auto.db.otel.mongo',
+    origin,
+  });
+
+  // A query the server rejects: same attributes as a successful find, but with an error status.
+  const SPAN_FIND_ERROR_MATCHER = expect.objectContaining({
+    data: expect.objectContaining({
+      'sentry.origin': origin,
+      'sentry.op': 'db',
+      'db.system': 'mongodb',
+      'db.operation': 'find',
+      'db.statement': '{"$thisOperatorDoesNotExist":"?"}',
+      'otel.kind': 'CLIENT',
+    }),
+    description: '{"$thisOperatorDoesNotExist":"?"}',
+    op: 'db',
+    origin,
+    status: 'internal_error',
   });
 
   const SPAN_ENDSESSIONS_MATCHER = expect.objectContaining({
     data: {
-      'sentry.origin': 'auto.db.otel.mongo',
+      'sentry.origin': origin,
       'sentry.op': 'db',
       'db.system': 'mongodb',
       'db.name': 'admin',
@@ -112,7 +130,7 @@ describe('MongoDB auto-instrumentation', () => {
     },
     description: '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
     op: 'db',
-    origin: 'auto.db.otel.mongo',
+    origin,
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
@@ -147,7 +165,7 @@ describe('MongoDB auto-instrumentation', () => {
             }, {});
 
             expect(operationCounts).toEqual({
-              find: 3,
+              find: 4,
               isMaster: 2,
               insert: 1,
               update: 1,
@@ -158,6 +176,7 @@ describe('MongoDB auto-instrumentation', () => {
             expect(spans).toContainEqual(SPAN_INSERT_MATCHER);
             expect(spans).toContainEqual(SPAN_ISMASTER_MATCHER);
             expect(spans).toContainEqual(SPAN_UPDATE_MATCHER);
+            expect(spans).toContainEqual(SPAN_FIND_ERROR_MATCHER);
             expect(spans).toContainEqual(SPAN_ENDSESSIONS_MATCHER);
           },
         })

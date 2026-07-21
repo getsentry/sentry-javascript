@@ -225,9 +225,9 @@ export type SessionData = {
  * Options for configuring the MCP server wrapper.
  */
 export type McpServerWrapperOptions = {
-  /** Whether to capture tool/prompt input arguments in spans. Defaults to sendDefaultPii. */
+  /** Whether to capture tool/prompt input arguments in spans. Defaults to `dataCollection.genAI.inputs` (or `sendDefaultPii` when `dataCollection` is not configured). */
   recordInputs?: boolean;
-  /** Whether to capture tool/prompt output results in spans. Defaults to sendDefaultPii. */
+  /** Whether to capture tool/prompt output results in spans. Defaults to `dataCollection.genAI.outputs` (or `sendDefaultPii` when `dataCollection` is not configured). */
   recordOutputs?: boolean;
 };
 

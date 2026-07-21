@@ -7,11 +7,16 @@ export type { HttpServerIntegrationOptions } from './integrations/http/httpServe
 export type { HttpServerSpansIntegrationOptions } from './integrations/http/httpServerSpansIntegration';
 
 export {
+  // oxlint-disable-next-line typescript/no-deprecated
   SentryHttpInstrumentation,
+  instrumentHttpOutgoingRequests,
   type SentryHttpInstrumentationOptions,
 } from './integrations/http/SentryHttpInstrumentation';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
+export type { NodeFetchOptions } from './integrations/node-fetch/types';
+export { instrumentUndici } from './integrations/node-fetch/undici-instrumentation';
 export {
+  // oxlint-disable-next-line typescript/no-deprecated
   SentryNodeFetchInstrumentation,
   type SentryNodeFetchInstrumentationOptions,
 } from './integrations/node-fetch/SentryNodeFetchInstrumentation';
@@ -34,9 +39,9 @@ export {
 } from '@sentry/opentelemetry';
 
 // Deprecated exports (do not add to common-exports.ts)
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line typescript/no-deprecated
 export { anrIntegration, disableAnrDetectionForCallback } from './integrations/anr';
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line typescript/no-deprecated
 export { inboundFiltersIntegration } from '@sentry/core';
 
 export type { ExclusiveEventHintOrCaptureContext, CaptureContext } from '@sentry/core';

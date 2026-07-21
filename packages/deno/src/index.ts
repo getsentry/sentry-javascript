@@ -49,6 +49,8 @@ export {
   setExtras,
   setTag,
   setTags,
+  setAttribute,
+  setAttributes,
   setUser,
   getSpanStatusFromHttpCode,
   setHttpStatus,
@@ -65,8 +67,9 @@ export {
   startInactiveSpan,
   startSpanManual,
   startNewTrace,
+  bindScopeToEmitter,
   suppressTracing,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
@@ -106,6 +109,16 @@ export { getDefaultIntegrations, init } from './sdk';
 export { denoServeIntegration } from './integrations/deno-serve';
 export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
+export { denoRedisIntegration } from './integrations/redis';
+export type { DenoRedisIntegrationOptions } from './integrations/redis';
+export { denoMysqlIntegration } from './integrations/mysql';
+export { denoPostgresIntegration } from './integrations/postgres';
+export { denoAmqplibIntegration } from './integrations/amqplib';
+export { denoDataloaderIntegration } from './integrations/dataloader';
+export { denoKnexIntegration } from './integrations/knex';
+export { denoKoaIntegration } from './integrations/koa';
+export { denoMongoIntegration } from './integrations/mongo';
+export { denoMongooseIntegration } from './integrations/mongoose';
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { normalizePathsIntegration } from './integrations/normalizepaths';

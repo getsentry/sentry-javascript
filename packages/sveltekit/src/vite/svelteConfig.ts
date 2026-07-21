@@ -15,10 +15,13 @@ export type SvelteKitTracingConfig = {
 };
 
 /**
- * Experimental tracing and instrumentation config is available @since 2.31.0
- * // TODO: Once instrumentation and tracing is promoted stable, adjust this type!s
+ * The location of SvelteKit's native tracing config differs by version:
+ * - SvelteKit 2.31+ and early Kit 3 prereleases nest it under `kit.experimental.tracing`
+ * - SvelteKit 3 (>= 3.0.0-next.8) promoted it to `kit.tracing`
+ * We type (and read) both so detection works across the supported peer range.
  */
-type BackwardsForwardsCompatibleKitConfig = Config['kit'] & { experimental?: SvelteKitTracingConfig };
+type BackwardsForwardsCompatibleKitConfig = Config['kit'] &
+  Pick<SvelteKitTracingConfig, 'tracing'> & { experimental?: SvelteKitTracingConfig };
 
 export interface BackwardsForwardsCompatibleSvelteConfig extends Config {
   kit?: BackwardsForwardsCompatibleKitConfig;
@@ -61,7 +64,7 @@ export function getHooksFileName(svelteConfig: Config, hookType: 'client' | 'ser
   // `files` is deprecated in favour of unchangeable file names. Once it is removed, only the
   // fallback will be necessary. We can remove the curstom files path once we drop support
   // for that version range (presumably sveltekit 2).
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   return svelteConfig.kit?.files?.hooks?.[hookType] || `src/hooks.${hookType}`;
 }
 

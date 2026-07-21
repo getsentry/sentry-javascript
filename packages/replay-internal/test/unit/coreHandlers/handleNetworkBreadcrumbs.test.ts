@@ -10,7 +10,7 @@ import type {
   SentryWrappedXMLHttpRequest,
   XhrBreadcrumbHint,
 } from '@sentry/core';
-import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
+import { SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NETWORK_BODY_MAX_SIZE } from '../../../src/constants';
 import { beforeAddNetworkBreadcrumb } from '../../../src/coreHandlers/handleNetworkBreadcrumbs';

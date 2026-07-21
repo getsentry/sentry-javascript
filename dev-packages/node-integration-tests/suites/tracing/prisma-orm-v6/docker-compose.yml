@@ -4,13 +4,15 @@ services:
   db:
     image: postgres:13
     restart: always
-    container_name: integration-tests-prisma-v6
     ports:
       - '5434:5432'
     environment:
       POSTGRES_USER: prisma
       POSTGRES_PASSWORD: prisma
       POSTGRES_DB: tests
+    # Create the schema on first init instead of running `prisma migrate` at test time.
+    volumes:
+      - ./prisma/migrations/sentry_test/migration.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U prisma -d tests']
       interval: 2s

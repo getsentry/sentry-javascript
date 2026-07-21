@@ -4,14 +4,17 @@ services:
   db_mysql2:
     image: mysql:8
     restart: always
-    container_name: integration-tests-knex-mysql2
     ports:
       - '3307:3306'
     environment:
       MYSQL_ROOT_PASSWORD: docker
       MYSQL_DATABASE: tests
     healthcheck:
-      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -pdocker']
+      # `mysqladmin ping` reports "alive" even during MySQL's init bootstrap (it treats
+      # access-denied as alive), so `--wait` can return before the real server, root
+      # password and `tests` database are ready. Run an authenticated query against
+      # `tests` instead, mirroring the pg sibling's `pg_isready -d tests` check.
+      test: ['CMD-SHELL', 'mysql -h 127.0.0.1 -uroot -pdocker -e "SELECT 1" tests']
       interval: 2s
       timeout: 3s
       retries: 30

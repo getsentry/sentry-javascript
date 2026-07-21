@@ -1,6 +1,8 @@
-import type { DurableObjectStorage } from '@cloudflare/workers-types';
+import type { DurableObjectStorage, SyncKvStorage, SqlStorage } from '@cloudflare/workers-types';
 import { isThenable, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import { storeSpanContext } from '../utils/traceLinks';
+import { instrumentDurableObjectSyncKvStorage } from './instrumentDurableObjectSyncKvStorage';
+import { instrumentSqlStorage } from './instrumentSqlStorage';
 
 const STORAGE_METHODS_TO_INSTRUMENT = ['get', 'put', 'delete', 'list', 'setAlarm', 'getAlarm', 'deleteAlarm'] as const;
 
@@ -35,6 +37,14 @@ export function instrumentDurableObjectStorage(
       // reference" errors.
       const original = Reflect.get(target, prop, target);
 
+      if (prop === 'kv' && original != null && 'get' in original && 'put' in original) {
+        return instrumentDurableObjectSyncKvStorage(original as SyncKvStorage);
+      }
+
+      if (prop === 'sql' && original != null && 'databaseSize' in original && 'exec' in original) {
+        return instrumentSqlStorage(original as SqlStorage);
+      }
+
       if (typeof original !== 'function') {
         return original;
       }
@@ -63,7 +73,7 @@ export function instrumentDurableObjectStorage(
               // We use the original (uninstrumented) storage (target) to avoid creating a span
               // for this internal operation. The storage is deferred via waitUntil to not block.
               if (methodName === 'setAlarm') {
-                await storeSpanContext(target, 'alarm');
+                storeSpanContext(target, 'alarm');
               }
             };
 

@@ -1,26 +1,15 @@
 /*
  * Copyright The OpenTelemetry Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * NOTICE from the Sentry authors:
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-aws-sdk
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
-/* eslint-disable */
 
-import { Span, Tracer, SpanKind, Attributes } from '@opentelemetry/api';
-import { ATTR_AWS_SNS_TOPIC_ARN, ATTR_MESSAGING_SYSTEM } from '../semconv';
+import { Span, SpanKind, Attributes } from '@opentelemetry/api';
+import { MESSAGING_SYSTEM } from '@sentry/conventions/attributes';
+import { ATTR_AWS_SNS_TOPIC_ARN } from '../semconv';
 import {
   ATTR_MESSAGING_DESTINATION,
   ATTR_MESSAGING_DESTINATION_KIND,
@@ -35,18 +24,21 @@ export class SnsServiceExtension implements ServiceExtension {
     let spanKind: SpanKind = SpanKind.CLIENT;
     let spanName = `SNS ${request.commandName}`;
     const spanAttributes: Attributes = {
-      [ATTR_MESSAGING_SYSTEM]: 'aws.sns',
+      [MESSAGING_SYSTEM]: 'aws.sns',
     };
 
     if (request.commandName === 'Publish') {
       spanKind = SpanKind.PRODUCER;
 
+      // eslint-disable-next-line typescript/no-deprecated
       spanAttributes[ATTR_MESSAGING_DESTINATION_KIND] = MESSAGING_DESTINATION_KIND_VALUE_TOPIC;
       const { TopicArn, TargetArn, PhoneNumber } = request.commandInput;
+      // eslint-disable-next-line typescript/no-deprecated
       spanAttributes[ATTR_MESSAGING_DESTINATION] = this.extractDestinationName(TopicArn, TargetArn, PhoneNumber);
       // ToDO: Use ATTR_MESSAGING_DESTINATION_NAME when implemented
       spanAttributes['messaging.destination.name'] = TopicArn || TargetArn || PhoneNumber || 'unknown';
 
+      // eslint-disable-next-line typescript/no-deprecated
       spanName = `${PhoneNumber ? 'phone_number' : spanAttributes[ATTR_MESSAGING_DESTINATION]} send`;
     }
 
@@ -72,7 +64,7 @@ export class SnsServiceExtension implements ServiceExtension {
     }
   }
 
-  responseHook(response: NormalizedResponse, span: Span, tracer: Tracer, config: AwsSdkInstrumentationConfig): void {
+  responseHook(response: NormalizedResponse, span: Span): void {
     const topicArn = response.data?.TopicArn;
     if (topicArn) {
       span.setAttribute(ATTR_AWS_SNS_TOPIC_ARN, topicArn);
@@ -84,7 +76,7 @@ export class SnsServiceExtension implements ServiceExtension {
       const arn = topicArn ?? targetArn;
       try {
         return arn.substring(arn.lastIndexOf(':') + 1);
-      } catch (err) {
+      } catch {
         return arn;
       }
     } else if (phoneNumber) {

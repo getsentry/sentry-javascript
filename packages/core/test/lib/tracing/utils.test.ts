@@ -44,17 +44,16 @@ describe('tracing utils', () => {
       expect(retrieved.isolationScope).toBeUndefined();
     });
 
-    it('uses WeakRef only for isolation scopes', () => {
+    it('uses WeakRef only for isolation scope, stores scope directly', () => {
       const span = createMockSpan();
       const scope = new Scope();
       const isolationScope = new Scope();
 
       setCapturedScopesOnSpan(span, scope, isolationScope);
 
-      // Check that only isolation scope is wrapped with WeakRef
       const spanWithScopes = span as any;
-      expect(spanWithScopes._sentryScope).toBe(scope); // Regular scope stored directly
-      expect(spanWithScopes._sentryIsolationScope).toBeInstanceOf(WeakRef); // Isolation scope wrapped
+      expect(spanWithScopes._sentryScope).toBe(scope);
+      expect(spanWithScopes._sentryIsolationScope).toBeInstanceOf(WeakRef);
 
       // Verify we can still retrieve the scopes
       const retrieved = getCapturedScopesOnSpan(span);
@@ -77,14 +76,8 @@ describe('tracing utils', () => {
 
         // Check that both scopes are stored directly when WeakRef is not available
         const spanWithScopes = span as any;
-        expect(spanWithScopes._sentryScope).toBe(scope); // Regular scope always stored directly
-        expect(spanWithScopes._sentryIsolationScope).toBe(isolationScope); // Isolation scope falls back to direct storage
-
-        // When WeakRef is available, ensure regular scope is not wrapped but isolation scope would be
-        if (originalWeakRef) {
-          expect(spanWithScopes._sentryScope).not.toBeInstanceOf(originalWeakRef);
-          expect(spanWithScopes._sentryIsolationScope).not.toBeInstanceOf(originalWeakRef);
-        }
+        expect(spanWithScopes._sentryScope).toBe(scope);
+        expect(spanWithScopes._sentryIsolationScope).toBe(isolationScope);
 
         // Verify we can still retrieve the scopes
         const retrieved = getCapturedScopesOnSpan(span);
@@ -96,37 +89,33 @@ describe('tracing utils', () => {
       }
     });
 
-    it('handles WeakRef deref returning undefined gracefully', () => {
+    it('handles WeakRef deref returning undefined gracefully for isolation scope', () => {
       const span = createMockSpan();
       const scope = new Scope();
       const isolationScope = new Scope();
 
       setCapturedScopesOnSpan(span, scope, isolationScope);
 
-      // Mock WeakRef.deref to return undefined for isolation scope (simulating garbage collection)
-      // Regular scope is stored directly, so it should always be available
+      // Mock isolation scope WeakRef to return undefined (simulating garbage collection)
       const spanWithScopes = span as any;
       const mockIsolationScopeWeakRef = {
         deref: vi.fn().mockReturnValue(undefined),
       };
 
-      // Keep the regular scope as is (stored directly)
-      // Only replace the isolation scope with a mock WeakRef
       spanWithScopes._sentryIsolationScope = mockIsolationScopeWeakRef;
 
       const retrieved = getCapturedScopesOnSpan(span);
-      expect(retrieved.scope).toBe(scope); // Regular scope should still be available
-      expect(retrieved.isolationScope).toBeUndefined(); // Isolation scope should be undefined due to GC
+      expect(retrieved.scope).toBe(scope);
+      expect(retrieved.isolationScope).toBeUndefined();
       expect(mockIsolationScopeWeakRef.deref).toHaveBeenCalled();
     });
 
-    it('handles corrupted WeakRef objects gracefully', () => {
+    it('handles corrupted WeakRef objects gracefully for isolation scope', () => {
       const span = createMockSpan();
       const scope = new Scope();
 
-      // Set up a regular scope (stored directly) and a corrupted isolation scope WeakRef
       const spanWithScopes = span as any;
-      spanWithScopes._sentryScope = scope; // Regular scope stored directly
+      spanWithScopes._sentryScope = scope;
       spanWithScopes._sentryIsolationScope = {
         deref: vi.fn().mockImplementation(() => {
           throw new Error('WeakRef deref failed');
@@ -134,8 +123,8 @@ describe('tracing utils', () => {
       };
 
       const retrieved = getCapturedScopesOnSpan(span);
-      expect(retrieved.scope).toBe(scope); // Regular scope should still be available
-      expect(retrieved.isolationScope).toBeUndefined(); // Isolation scope should be undefined due to error
+      expect(retrieved.scope).toBe(scope);
+      expect(retrieved.isolationScope).toBeUndefined();
     });
 
     it('preserves scope data when using WeakRef', () => {

@@ -1,4 +1,4 @@
-import { EventType } from '@sentry-internal/rrweb';
+import { EventType } from '@sentry/rrweb';
 import type { AddEventResult, AllEntryData, ReplayContainer, ReplayPerformanceEntry } from '../types';
 
 /**

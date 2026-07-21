@@ -6,6 +6,46 @@ type SimpleNode = {
   parentNode: SimpleNode;
 } | null;
 
+// Native DOM accessors cached at module load. Calling these instead of reading
+// instance properties bypasses user-defined getters that shadow the prototypes.
+// Stored unbound and rebound via .call(el) — the unbound-method lint is expected.
+// See https://github.com/getsentry/sentry-javascript/issues/21353
+type AccessorKey = 'parentNode' | 'tagName' | 'id' | 'className' | 'getAttribute' | 'dataset';
+const accessors: Partial<Record<AccessorKey, Function>> = {};
+
+// oxlint-disable typescript-eslint(unbound-method)
+try {
+  if (typeof Node !== 'undefined') {
+    accessors.parentNode = Object.getOwnPropertyDescriptor(Node.prototype, 'parentNode')!.get!;
+  }
+  if (typeof Element !== 'undefined') {
+    accessors.tagName = Object.getOwnPropertyDescriptor(Element.prototype, 'tagName')!.get!;
+    accessors.id = Object.getOwnPropertyDescriptor(Element.prototype, 'id')!.get!;
+    accessors.className = Object.getOwnPropertyDescriptor(Element.prototype, 'className')!.get!;
+    accessors.getAttribute = Element.prototype.getAttribute;
+  }
+  if (typeof HTMLElement !== 'undefined') {
+    accessors.dataset = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'dataset')!.get!;
+  }
+} catch {
+  // Polyfilled or stubbed prototypes may not have the expected descriptors.
+  // _safeRead falls back to direct property access.
+}
+// oxlint-enable typescript-eslint(unbound-method)
+
+function _safeRead<T>(el: unknown, prop: AccessorKey, arg?: string): T {
+  const fn = accessors[prop];
+  if (fn) {
+    try {
+      return fn.call(el, arg) as T;
+    } catch {
+      // Fall through to direct access
+    }
+  }
+  const val = (el as Record<string, unknown>)[prop];
+  return typeof val === 'function' ? val.call(el, arg) : (val as T);
+}
+
 /**
  * Given a child DOM element, returns a query-selector statement describing that
  * and its ancestors
@@ -49,7 +89,7 @@ export function htmlTreeAsString(
       out.push(nextStr);
 
       len += nextStr.length;
-      currentElem = currentElem.parentNode;
+      currentElem = _safeRead<SimpleNode>(currentElem, 'parentNode');
     }
 
     return out.reverse().join(separator);
@@ -64,36 +104,35 @@ export function htmlTreeAsString(
  * @returns generated DOM path
  */
 function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
-  const elem = el as {
-    tagName?: string;
-    id?: string;
-    className?: string;
-    getAttribute(key: string): string;
-  };
-
   const out = [];
 
-  if (!elem?.tagName) {
+  const tagName = _safeRead<string | undefined>(el, 'tagName');
+  if (!tagName) {
     return '';
   }
 
   if (typeof HTMLElement !== 'undefined') {
     // If using the component name annotation plugin, this value may be available on the DOM node
-    if (elem instanceof HTMLElement && elem.dataset) {
-      if (elem.dataset['sentryComponent']) {
-        return elem.dataset['sentryComponent'];
-      }
-      if (elem.dataset['sentryElement']) {
-        return elem.dataset['sentryElement'];
+    if (el instanceof HTMLElement) {
+      const dataset = _safeRead<DOMStringMap | undefined>(el, 'dataset');
+      if (dataset) {
+        if (dataset['sentryComponent']) {
+          return dataset['sentryComponent'];
+        }
+        if (dataset['sentryElement']) {
+          return dataset['sentryElement'];
+        }
       }
     }
   }
 
-  out.push(elem.tagName.toLowerCase());
+  out.push(tagName.toLowerCase());
 
   // Pairs of attribute keys defined in `serializeAttribute` and their values on element.
   const keyAttrPairs = keyAttrs?.length
-    ? keyAttrs.filter(keyAttr => elem.getAttribute(keyAttr)).map(keyAttr => [keyAttr, elem.getAttribute(keyAttr)])
+    ? keyAttrs
+        .filter(keyAttr => _safeRead<string | null>(el, 'getAttribute', keyAttr))
+        .map(keyAttr => [keyAttr, _safeRead<string | null>(el, 'getAttribute', keyAttr)])
     : null;
 
   if (keyAttrPairs?.length) {
@@ -101,11 +140,12 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
       out.push(`[${keyAttrPair[0]}="${keyAttrPair[1]}"]`);
     });
   } else {
-    if (elem.id) {
-      out.push(`#${elem.id}`);
+    const id = _safeRead<string | undefined>(el, 'id');
+    if (id) {
+      out.push(`#${id}`);
     }
 
-    const className = elem.className;
+    const className = _safeRead<string | undefined>(el, 'className');
     if (className && isString(className)) {
       const classes = className.split(/\s+/);
       for (const c of classes) {
@@ -114,7 +154,7 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
     }
   }
   for (const k of ['aria-label', 'type', 'name', 'title', 'alt']) {
-    const attr = elem.getAttribute(k);
+    const attr = _safeRead<string | null>(el, 'getAttribute', k);
     if (attr) {
       out.push(`[${k}="${attr}"]`);
     }

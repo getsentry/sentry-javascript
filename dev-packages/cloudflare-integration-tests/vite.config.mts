@@ -10,7 +10,10 @@ export default defineConfig({
     },
     isolate: false,
     include: ['./suites/**/test.ts'],
-    testTimeout: 20_000,
+    // Each test spawns its own `wrangler dev` (cold workerd boot) and waits for envelopes to be
+    // delivered — there is no internal runner timeout, so this ceiling covers cold-start + async work +
+    // delivery. Cold-start is slow and highly variable on CI, so give it generous headroom to de-flake.
+    testTimeout: 60_000,
     // Ensure we can see debug output when DEBUG=true
     ...(process.env.DEBUG
       ? {

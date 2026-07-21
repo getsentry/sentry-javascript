@@ -1,7 +1,8 @@
 import type { ErrorEvent, Event, TransactionEvent, TransportMakeRequestResponse } from '@sentry/core';
-import { setTimeout } from '@sentry-internal/browser-utils';
+import { setTimeout } from '@sentry/browser-utils';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isTransactionEvent } from '../util/eventUtils';
+import { addSegmentDetailsToContext } from './util/addSegmentDetailsToContext';
 
 type AfterSendEventCallback = (event: Event, sendResponse: TransportMakeRequestResponse) => void;
 
@@ -32,14 +33,7 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
 }
 
 function handleTransactionEvent(replay: ReplayContainer, event: TransactionEvent): void {
-  const replayContext = replay.getContext();
-
-  // Collect traceIds in _context regardless of `recordingMode`
-  // In error mode, _context gets cleared on every checkout
-  // We limit to max. 100 transactions linked
-  if (event.contexts?.trace?.trace_id && replayContext.traceIds.size < 100) {
-    replayContext.traceIds.add(event.contexts.trace.trace_id);
-  }
+  addSegmentDetailsToContext(replay, event.contexts?.trace?.trace_id, event.transaction);
 }
 
 function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {

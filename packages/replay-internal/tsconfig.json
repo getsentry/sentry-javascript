@@ -1,8 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "lib": ["DOM", "es2020"],
-    "module": "esnext"
+    "lib": ["DOM", "es2020"]
   },
   "include": ["src/**/*.ts"]
 }

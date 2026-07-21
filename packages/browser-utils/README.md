@@ -6,9 +6,13 @@
 
 # Sentry JavaScript SDK Browser Utilities
 
-[![npm version](https://img.shields.io/npm/v/@sentry-internal/browser-utils.svg)](https://www.npmjs.com/package/@sentry-internal/browser-utils)
-[![npm dm](https://img.shields.io/npm/dm/@sentry-internal/browser-utils.svg)](https://www.npmjs.com/package/@sentry-internal/browser-utils)
-[![npm dt](https://img.shields.io/npm/dt/@sentry-internal/browser-utils.svg)](https://www.npmjs.com/package/@sentry-internal/browser-utils)
+[![npm version](https://img.shields.io/npm/v/@sentry/browser-utils.svg)](https://www.npmjs.com/package/@sentry/browser-utils)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/browser-utils.svg)](https://www.npmjs.com/package/@sentry/browser-utils)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/browser-utils.svg)](https://www.npmjs.com/package/@sentry/browser-utils)
+
+> [!NOTE]
+> This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
+> public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
 
 ## Links
 
@@ -17,6 +21,3 @@
 ## General
 
 Common utilities used by the Sentry JavaScript SDKs.
-
-Note: This package is only meant to be used internally, and as such is not part of our public API contract and does not
-follow semver.

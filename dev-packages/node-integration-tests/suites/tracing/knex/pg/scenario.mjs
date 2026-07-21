@@ -29,6 +29,12 @@ async function run() {
 
         await pgClient('User').insert({ name: 'bob', email: 'bob@domain.com' });
         await pgClient('User').select('*');
+
+        // Trigger a failing query to capture the error span (table does not exist).
+        await pgClient('DoesNotExist')
+          .select('*')
+          .catch(() => {});
+        await pgClient.schema.dropTable('User');
       } finally {
         await pgClient.destroy();
       }

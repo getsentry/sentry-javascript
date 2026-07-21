@@ -60,7 +60,7 @@ jobs:
           echo "Processing issue #$ISSUE_NUM in CI mode"
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: develop
 
@@ -77,9 +77,11 @@ jobs:
 
       - name: Try to fix the issue with Claude
         id: triage
-        uses: anthropics/claude-code-action@24492741e0ccfdef4c1d19da8e11e0f373d07494 # v1
+        uses: anthropics/claude-code-action@fad22eb3fa582b7357fc0ea48af6645851b884fd # v1
+        env:
+          ANTHROPIC_BASE_URL: https://openrouter.ai/api
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          anthropic_api_key: ${{ secrets.OPENROUTER_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_non_write_users: '*'
           show_full_output: ${{ github.event.inputs.show_full_output || 'false' }}

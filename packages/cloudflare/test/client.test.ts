@@ -3,6 +3,8 @@ import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 import { CloudflareClient, type CloudflareClientOptions } from '../src/client';
 import { makeFlushLock } from '../src/flush';
 
+const TRACE_FLAG_SAMPLED = 0x1;
+
 const MOCK_CLIENT_OPTIONS: CloudflareClientOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   stackParser: () => [],
@@ -232,7 +234,7 @@ describe('CloudflareClient', () => {
 
       // Emit spanStart
       const mockSpan = {
-        spanContext: () => ({ spanId: 'test-span-id' }),
+        spanContext: () => ({ spanId: 'test-span-id', traceFlags: TRACE_FLAG_SAMPLED }),
       };
       client.emit('spanStart', mockSpan as any);
 
@@ -249,7 +251,7 @@ describe('CloudflareClient', () => {
       };
 
       const mockSpan = {
-        spanContext: () => ({ spanId: 'test-span-id' }),
+        spanContext: () => ({ spanId: 'test-span-id', traceFlags: TRACE_FLAG_SAMPLED }),
       };
 
       // Start span
@@ -269,8 +271,12 @@ describe('CloudflareClient', () => {
         _spanCompletionPromise: Promise<void> | null;
       };
 
-      const mockSpan1 = { spanContext: () => ({ spanId: 'span-1' }) };
-      const mockSpan2 = { spanContext: () => ({ spanId: 'span-2' }) };
+      const mockSpan1 = {
+        spanContext: () => ({ spanId: 'span-1', traceFlags: TRACE_FLAG_SAMPLED }),
+      };
+      const mockSpan2 = {
+        spanContext: () => ({ spanId: 'span-2', traceFlags: TRACE_FLAG_SAMPLED }),
+      };
 
       // Start both spans
       client.emit('spanStart', mockSpan1 as any);
@@ -289,6 +295,24 @@ describe('CloudflareClient', () => {
 
       // The original promise should resolve
       await expect(completionPromise).resolves.toBeUndefined();
+    });
+
+    it('does not track negatively sampled spans', () => {
+      const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
+
+      const privateClient = client as unknown as {
+        _pendingSpans: Set<string>;
+        _spanCompletionPromise: Promise<void> | null;
+      };
+
+      const nonRecordingSpan = {
+        spanContext: () => ({ spanId: 'non-recording-span-id', traceFlags: 0 }),
+      };
+
+      client.emit('spanStart', nonRecordingSpan as any);
+
+      expect(privateClient._pendingSpans.has('non-recording-span-id')).toBe(false);
+      expect(privateClient._spanCompletionPromise).toBeNull();
     });
 
     it('does not track spans after dispose', () => {

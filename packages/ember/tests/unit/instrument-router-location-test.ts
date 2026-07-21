@@ -1,5 +1,5 @@
 import type { EmberRouterMain } from '@sentry/ember/addon/types';
-import { _getLocationURL } from '@sentry/ember/utils/instrumentEmberAppInstanceForPerformance';
+import { _getLocationURL, _getRouteUrlAttributes } from '@sentry/ember/utils/instrumentEmberAppInstanceForPerformance';
 import { setupTest } from 'ember-qunit';
 import { module, test } from 'qunit';
 import type { SentryTestContext } from '../helpers/setup-sentry';
@@ -96,5 +96,38 @@ module('Unit | Utility | instrument-router-location', function (hooks) {
 
     const result = _getLocationURL(mockLocation);
     assert.strictEqual(result, '', 'Should return empty string when formatURL is not available');
+  });
+
+  test('_getRouteUrlAttributes handles history location paths', function (this: SentryTestContext, assert) {
+    const result = _getRouteUrlAttributes('/tracing');
+
+    assert.strictEqual(result['url.path'], '/tracing');
+    assert.strictEqual(result['url.template'], '/tracing');
+    assert.ok(result['url.full']?.includes('/tracing'), 'url.full includes the path');
+  });
+
+  test('_getRouteUrlAttributes parameterizes dynamic segments', function (this: SentryTestContext, assert) {
+    const result = _getRouteUrlAttributes('/users/123', { user_id: '123' });
+
+    assert.strictEqual(result['url.path'], '/users/123');
+    assert.strictEqual(result['url.template'], '/users/:user_id');
+    assert.ok(result['url.full']?.includes('/users/123'), 'url.full includes the path');
+  });
+
+  test('_getRouteUrlAttributes handles hash location paths', function (this: SentryTestContext, assert) {
+    const result = _getRouteUrlAttributes('/#/tracing');
+
+    assert.strictEqual(result['url.path'], '/tracing');
+    assert.strictEqual(result['url.template'], '/tracing');
+    assert.ok(result['url.full']?.includes('/#/tracing'), 'url.full preserves the hash fragment');
+  });
+
+  test('_getRouteUrlAttributes sources url.full from an explicit fullUrl', function (this: SentryTestContext, assert) {
+    // Mirrors `routeDidChange`, where the route path (`currentURL`) has no hash but the location URL does.
+    const result = _getRouteUrlAttributes('/tracing', {}, '/#/tracing');
+
+    assert.strictEqual(result['url.path'], '/tracing');
+    assert.strictEqual(result['url.template'], '/tracing');
+    assert.ok(result['url.full']?.includes('/#/tracing'), 'url.full preserves the hash fragment from fullUrl');
   });
 });

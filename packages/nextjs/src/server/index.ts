@@ -1,7 +1,7 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import { ATTR_URL_QUERY, SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
+import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
 import type { EventProcessor } from '@sentry/core';
 import {
   applySdkMetadata,
@@ -12,7 +12,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
+import {
+  experimentalUseDiagnosticsChannelInjection as nodeExperimentalUseDiagnosticsChannelInjection,
+  getDefaultIntegrations,
+  httpIntegration,
+  init as nodeInit,
+  isDiagnosticsChannelInjectionEnabled,
+} from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -21,6 +27,7 @@ import { isBuild } from '../common/utils/isBuild';
 import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
 import { enhanceHandleRequestRootSpan } from './enhanceHandleRequestRootSpan';
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
@@ -28,6 +35,9 @@ import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
 import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
 export * from '@sentry/node';
+
+// Explicitly re-export so it is statically detectable by turbopack
+export { pinoIntegration } from '@sentry/node';
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
@@ -37,7 +47,28 @@ export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/n
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
+  _sentryUseDiagnosticsChannelInjection?: string;
+  _sentryOrchestrionTracingHooksDir?: string;
 };
+
+/**
+ * EXPERIMENTAL: Next.js-aware variant of `Sentry.experimentalUseDiagnosticsChannelInjection()`
+ * from `@sentry/node` (see its docs for behavior and caveats).
+ *
+ * Next.js bundles the SDK into the server build, from where the runtime module hook can't resolve
+ * the `@apm-js-collab/tracing-hooks` bare specifier under isolated installs (pnpm). This variant
+ * points the hook at the package location that `withSentryConfig` resolved at build time.
+ *
+ * @experimental May change or be removed in any release.
+ */
+export function experimentalUseDiagnosticsChannelInjection(): void {
+  const tracingHooksDir =
+    process.env._sentryOrchestrionTracingHooksDir || globalWithInjectedValues._sentryOrchestrionTracingHooksDir;
+  nodeExperimentalUseDiagnosticsChannelInjection(tracingHooksDir ? { tracingHooksDir } : undefined);
+}
+
+// Call at module level so `next build` prerender workers still register the runner without `init`
+prepareSafeIdGeneratorContext();
 
 /**
  * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
@@ -131,6 +162,17 @@ export function init(options: NodeOptions): NodeClient | undefined {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
+  // The build wired the orchestrion loader but the runtime opt-in is missing → no DB spans.
+  const useDiagnosticsChannelInjection =
+    process.env._sentryUseDiagnosticsChannelInjection || globalWithInjectedValues._sentryUseDiagnosticsChannelInjection;
+  if (DEBUG_BUILD && useDiagnosticsChannelInjection && !isDiagnosticsChannelInjectionEnabled()) {
+    debug.warn(
+      '[@sentry/nextjs] `useDiagnosticsChannelInjection` is enabled in `withSentryConfig`, but ' +
+        '`Sentry.experimentalUseDiagnosticsChannelInjection()` was not called before `Sentry.init()`. ' +
+        'Server DB spans will not be recorded.',
+    );
+  }
+
   // Detect if running on OpenNext/Cloudflare and get runtime config
   const cloudflareConfig = getCloudflareRuntimeConfig();
 
@@ -182,15 +224,15 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
     // We need to drop these spans.
     if (
-      // eslint-disable-next-line deprecation/deprecation
-      (typeof spanAttributes[SEMATTRS_HTTP_TARGET] === 'string' &&
-        // eslint-disable-next-line deprecation/deprecation
-        spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_key') &&
-        // eslint-disable-next-line deprecation/deprecation
-        spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_client')) ||
-      (typeof spanAttributes[ATTR_URL_QUERY] === 'string' &&
-        spanAttributes[ATTR_URL_QUERY].includes('sentry_key') &&
-        spanAttributes[ATTR_URL_QUERY].includes('sentry_client'))
+      // eslint-disable-next-line typescript/no-deprecated
+      (typeof spanAttributes[HTTP_TARGET] === 'string' &&
+        // eslint-disable-next-line typescript/no-deprecated
+        spanAttributes[HTTP_TARGET].includes('sentry_key') &&
+        // eslint-disable-next-line typescript/no-deprecated
+        spanAttributes[HTTP_TARGET].includes('sentry_client')) ||
+      (typeof spanAttributes[URL_QUERY] === 'string' &&
+        spanAttributes[URL_QUERY].includes('sentry_key') &&
+        spanAttributes[URL_QUERY].includes('sentry_client'))
     ) {
       samplingDecision.decision = false;
     }
@@ -243,16 +285,18 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // Span streaming bypasses event processors entirely - see the `processSegmentSpan` hook below for that path.
   client?.on('preprocessEvent', event => {
     if (event.type === 'transaction' && event.contexts?.trace?.data) {
-      enhanceHandleRequestRootSpan({
+      const mutableRootSpan = {
         attributes: event.contexts.trace.data,
         getName: () => event.transaction,
-        setName: name => {
+        setName: (name: string) => {
           event.transaction = name;
         },
-        setOp: op => {
+        setOp: (op: string) => {
           event.contexts!.trace!.op = op;
         },
-      });
+      };
+      enhanceHandleRequestRootSpan(mutableRootSpan);
+      enhanceMiddlewareRootSpan(mutableRootSpan);
     }
 
     setUrlProcessingMetadata(event);
@@ -262,18 +306,20 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // transaction events, so the same enhancement has to be applied here directly on the span JSON.
   client?.on('processSegmentSpan', span => {
     const attributes = (span.attributes ??= {});
-    enhanceHandleRequestRootSpan({
+    const mutableRootSpan = {
       attributes,
       getName: () => span.name,
-      setName: name => {
+      setName: (name: string) => {
         span.name = name;
       },
       // For streamed spans, op lives in `attributes['sentry.op']` - mirror it there so middleware
       // overrides land somewhere readable (the legacy path uses a separate `event.contexts.trace.op`).
-      setOp: op => {
+      setOp: (op: string) => {
         attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
       },
-    });
+    };
+    enhanceHandleRequestRootSpan(mutableRootSpan);
+    enhanceMiddlewareRootSpan(mutableRootSpan);
   });
 
   if (process.env.NODE_ENV === 'development') {

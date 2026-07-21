@@ -16,7 +16,6 @@ export const attachErrorHandler = (app: Vue, options?: Partial<VueOptions>): voi
       trace,
     };
 
-    // TODO(v11): guard via sendDefaultPii?
     if (options?.attachProps !== false && vm) {
       // Vue2 - $options.propsData
       // Vue3 - $props

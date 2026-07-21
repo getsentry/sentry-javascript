@@ -3,7 +3,7 @@ import * as currentScopes from '../../../../src/currentScopes';
 import * as exports from '../../../../src/exports';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import { captureError } from '../../../../src/integrations/mcp-server/errorCapture';
-import { createMockMcpServer } from './testUtils';
+import { createMockClient, createMockMcpServer } from './testUtils';
 
 describe('MCP Server Error Capture', () => {
   const captureExceptionSpy = vi.spyOn(exports, 'captureException');
@@ -11,9 +11,7 @@ describe('MCP Server Error Capture', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    getClientSpy.mockReturnValue({
-      getOptions: () => ({ sendDefaultPii: true }),
-    } as ReturnType<typeof currentScopes.getClient>);
+    getClientSpy.mockReturnValue(createMockClient(true));
   });
 
   describe('captureError', () => {

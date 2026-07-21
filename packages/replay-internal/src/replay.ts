@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import type { ReplayRecordingMode, ReplayStopReason, Span } from '@sentry/core';
 import { getActiveSpan, getClient, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import { EventType, record } from '@sentry-internal/rrweb';
+import { EventType, record } from '@sentry/rrweb';
 import {
   BUFFER_CHECKOUT_TIME,
   SESSION_IDLE_EXPIRE_DURATION,
@@ -195,6 +195,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._context = {
       errorIds: new Set(),
       traceIds: new Set(),
+      segmentNames: new Set(),
       urls: [],
       initialTimestamp: Date.now(),
       initialUrl: '',
@@ -1122,6 +1123,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // XXX: `initialTimestamp` and `initialUrl` do not get cleared
     this._context.errorIds.clear();
     this._context.traceIds.clear();
+    this._context.segmentNames.clear();
     this._context.urls = [];
   }
 
@@ -1154,6 +1156,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       initialUrl: this._context.initialUrl,
       errorIds: Array.from(this._context.errorIds),
       traceIds: Array.from(this._context.traceIds),
+      segmentNames: Array.from(this._context.segmentNames),
       urls: this._context.urls,
     };
 

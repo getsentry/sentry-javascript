@@ -28,10 +28,10 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../ai/utils';
+import { stringify } from '../../utils/string';
 import {
   buildMethodPath,
   extractSystemInstructions,
-  getJsonString,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   shouldEnableTruncation,
@@ -101,7 +101,7 @@ function extractConfigAttributes(config: Record<string, unknown>): Record<string
  * Extract request attributes from method arguments
  * Builds the base attributes for span creation including system info, model, and config
  */
-function extractRequestAttributes(
+export function extractRequestAttributes(
   operationName: string,
   params?: Record<string, unknown>,
   context?: unknown,
@@ -140,13 +140,13 @@ function extractRequestAttributes(
  * This is only recorded if recordInputs is true.
  * Handles different parameter formats for different Google GenAI methods.
  */
-function addPrivateRequestAttributes(
+export function addPrivateRequestAttributes(
   span: Span,
   params: Record<string, unknown>,
-  isEmbeddings: boolean,
+  operationName: string,
   enableTruncation: boolean,
 ): void {
-  if (isEmbeddings) {
+  if (operationName === 'embeddings') {
     const contents = params.contents;
     if (contents != null) {
       span.setAttribute(
@@ -197,7 +197,7 @@ function addPrivateRequestAttributes(
       [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
       [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
         ? getTruncatedJsonString(filteredMessages)
-        : getJsonString(filteredMessages),
+        : stringify(filteredMessages),
     });
   }
 }
@@ -206,7 +206,7 @@ function addPrivateRequestAttributes(
  * Add response attributes from the Google GenAI response
  * @see https://github.com/googleapis/js-genai/blob/v1.19.0/src/types.ts#L2313
  */
-function addResponseAttributes(span: Span, response: GoogleGenAIResponse, recordOutputs?: boolean): void {
+export function addResponseAttributes(span: Span, response: GoogleGenAIResponse, recordOutputs?: boolean): void {
   if (!response || typeof response !== 'object') return;
 
   if (response.modelVersion) {
@@ -301,7 +301,7 @@ function instrumentMethod<T extends unknown[], R>(
                 addPrivateRequestAttributes(
                   span,
                   params,
-                  isEmbeddings,
+                  operationName,
                   shouldEnableTruncation(options.enableTruncation),
                 );
               }
@@ -331,7 +331,7 @@ function instrumentMethod<T extends unknown[], R>(
         },
         (span: Span) => {
           if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params, isEmbeddings, shouldEnableTruncation(options.enableTruncation));
+            addPrivateRequestAttributes(span, params, operationName, shouldEnableTruncation(options.enableTruncation));
           }
 
           return handleCallbackErrors(

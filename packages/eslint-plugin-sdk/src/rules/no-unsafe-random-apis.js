@@ -59,6 +59,8 @@ module.exports = {
         '`crypto.randomUUID()` should be wrapped with `withRandomSafeContext()` to ensure safe random value generation. Use: `withRandomSafeContext(() => crypto.randomUUID())`. You can disable this rule with an eslint-disable comment if this usage is intentional.',
       unsafeCryptoGetRandomValues:
         '`crypto.getRandomValues()` should be wrapped with `withRandomSafeContext()` to ensure safe random value generation. Use: `withRandomSafeContext(() => crypto.getRandomValues(...))`. You can disable this rule with an eslint-disable comment if this usage is intentional.',
+      unsafeDateConstructor:
+        '`new Date()` reads the ambient clock and should be replaced with `new Date(safeDateNow())` (with `safeDateNow()` from `@sentry/core`) to ensure safe time value generation. You can disable this rule with an eslint-disable comment if this usage is intentional.',
     },
   },
   create: function (context) {
@@ -140,6 +142,25 @@ module.exports = {
               messageId: unsafeApi.messageId,
             });
           }
+        }
+      },
+      // Flag the `new Date()` constructor with no arguments, which reads the ambient clock.
+      // `new Date(<number>)` is safe because it does not read the current time.
+      NewExpression(node) {
+        if (isInSafeRandomGeneratorRunner(node)) {
+          return;
+        }
+
+        if (
+          node.callee.type === 'Identifier' &&
+          node.callee.name === 'Date' &&
+          node.arguments.length === 0 &&
+          !isInsidewithRandomSafeContext(node)
+        ) {
+          context.report({
+            node,
+            messageId: 'unsafeDateConstructor',
+          });
         }
       },
     };

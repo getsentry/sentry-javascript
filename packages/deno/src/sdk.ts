@@ -9,16 +9,27 @@ import {
   linkedErrorsIntegration,
   nodeStackLineParser,
   requestDataIntegration,
-  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
-import { HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED, HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED } from './denoVersion';
+import {
+  HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
+  HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
+  MODULE_REGISTER_HOOKS_SUPPORTED,
+  TRACING_CHANNEL_SUPPORTED,
+} from './denoVersion';
 import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
+import { denoAmqplibIntegration } from './integrations/amqplib';
+import { denoKoaIntegration } from './integrations/koa';
+import { denoMongoIntegration } from './integrations/mongo';
+import { denoMongooseIntegration } from './integrations/mongoose';
+import { denoMysqlIntegration } from './integrations/mysql';
+import { denoPostgresIntegration } from './integrations/postgres';
+import { denoRedisIntegration } from './integrations/redis';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
@@ -31,7 +42,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
   return [
     // Common
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line deprecation/deprecation
+    // eslint-disable-next-line typescript/no-deprecated
     inboundFiltersIntegration(),
     requestDataIntegration(),
     functionToStringIntegration(),
@@ -46,6 +57,22 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     // Include in defaults if at least one is available
     ...(HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED || HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED
       ? [denoHttpIntegration()]
+      : []),
+    // node:diagnostics_channel.tracingChannel exists on Deno 1.44.3+.
+    ...(TRACING_CHANNEL_SUPPORTED ? [denoRedisIntegration()] : []),
+    // orchestrion-based instrumentations.
+    // It's possible that the orchestrion channels will be injected AFTER
+    // (or in parallel to) loading the SDK, so we only gate on whether the
+    // feature is possible. If they're never loaded, it'll just be a no-op.
+    ...(MODULE_REGISTER_HOOKS_SUPPORTED
+      ? [
+          denoAmqplibIntegration(),
+          denoKoaIntegration(),
+          denoMongoIntegration(),
+          denoMongooseIntegration(),
+          denoMysqlIntegration(),
+          denoPostgresIntegration(),
+        ]
       : []),
     contextLinesIntegration(),
     normalizePathsIntegration(),
@@ -104,15 +131,10 @@ export function init(options: DenoOptions = {}): Client {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }
 
-  const resolvedIntegrations = getIntegrationsToSetup(options);
-  if (options.traceLifecycle === 'stream' && !resolvedIntegrations.some(i => i.name === 'SpanStreaming')) {
-    resolvedIntegrations.push(spanStreamingIntegration());
-  }
-
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: resolvedIntegrations,
+    integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeFetchTransport,
   };
 

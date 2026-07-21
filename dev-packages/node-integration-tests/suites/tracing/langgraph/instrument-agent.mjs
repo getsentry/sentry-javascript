@@ -5,7 +5,9 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,
-  sendDefaultPii: true,
+  dataCollection: { genAI: { inputs: true, outputs: true } },
+  // This suite asserts on gen_ai spans embedded in the transaction, so opt out of span streaming.
+  streamGenAiSpans: false,
   transport: loggingTransport,
   beforeSendTransaction: event => {
     // Filter out mock express server transactions

@@ -12,11 +12,11 @@ vi.mock('@sentry/core', async importOriginal => {
   };
 });
 
-const { createSentryTunnelRoute } = await import('../../src/server/tunnelRoute');
+const { createSentryTunnelRoute, registerSentryServerTunnelRoute } = await import('../../src/server/tunnelRoute');
 
 describe('createSentryTunnelRoute', () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('returns a server route config with only a POST handler', () => {
@@ -49,10 +49,12 @@ describe('createSentryTunnelRoute', () => {
   });
 
   it('derives the allowed DSN from the active server Sentry client when allowedDsns is omitted', async () => {
-    const request = new Request('http://localhost:3000/monitoring', { method: 'POST', body: 'envelope' });
+    const request = new Request('http://localhost:3000/derive-dsn', { method: 'POST', body: 'envelope' });
     const response = new Response('ok', { status: 200 });
 
-    getClientSpy.mockReturnValueOnce({
+    // `getClient` is called both by the path self-registration and the DSN derivation.
+    getClientSpy.mockReturnValue({
+      getOptions: () => ({}),
       getDsn: () => ({
         protocol: 'http',
         publicKey: 'public',
@@ -77,6 +79,21 @@ describe('createSentryTunnelRoute', () => {
     expect(result).toBe(response);
   });
 
+  it('self-registers the request path so the streamed-span sampler can drop it', async () => {
+    const request = new Request('http://localhost:3000/handler-selfreg', { method: 'POST', body: 'envelope' });
+    const options: { ignoreSpans?: unknown[] } = {};
+    getClientSpy.mockReturnValue({ getOptions: () => options, getDsn: () => undefined });
+    handleTunnelRequestSpy.mockResolvedValueOnce(new Response('ok', { status: 200 }));
+
+    await createSentryTunnelRoute({ allowedDsns: ['https://public@o0.ingest.sentry.io/0'] }).handlers.POST({ request });
+
+    const matcher = options.ignoreSpans?.find(
+      (entry): entry is { attributes: { 'http.target': RegExp } } =>
+        !!(entry as { attributes?: { 'http.target'?: unknown } })?.attributes?.['http.target'],
+    );
+    expect(matcher?.attributes['http.target'].test('/handler-selfreg')).toBe(true);
+  });
+
   it('returns 500 when allowedDsns is omitted and no active server Sentry client DSN exists', async () => {
     const request = new Request('http://localhost:3000/monitoring', { method: 'POST', body: 'envelope' });
 
@@ -88,5 +105,45 @@ describe('createSentryTunnelRoute', () => {
     expect(handleTunnelRequestSpy).not.toHaveBeenCalled();
     expect(result.status).toBe(500);
     await expect(result.text()).resolves.toContain('Tunnel route requires Sentry server SDK initialized with a DSN');
+  });
+});
+
+describe('registerSentryServerTunnelRoute', () => {
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('adds an http.target ignoreSpans matcher for the tunnel route path so the transaction is dropped at span start', () => {
+    const options: { ignoreSpans?: unknown[] } = { ignoreSpans: [/existing/] };
+    getClientSpy.mockReturnValue({ getOptions: () => options });
+
+    // Unique path per test to avoid the module-level dedupe Set across tests.
+    registerSentryServerTunnelRoute('/abcd1234');
+
+    expect(options.ignoreSpans).toHaveLength(2);
+    const matcher = options.ignoreSpans?.[1] as { attributes: { 'http.target': RegExp } };
+    const pattern = matcher.attributes['http.target'];
+
+    expect(pattern.test('/abcd1234')).toBe(true);
+    expect(pattern.test('/abcd1234?o=1&p=2')).toBe(true);
+    expect(pattern.test('/abcd1234/')).toBe(true);
+    // Must not match an unrelated route that merely shares the prefix.
+    expect(pattern.test('/abcd1234extra')).toBe(false);
+  });
+
+  it('does not register the same tunnel route path twice', () => {
+    const options: { ignoreSpans?: unknown[] } = {};
+    getClientSpy.mockReturnValue({ getOptions: () => options });
+
+    registerSentryServerTunnelRoute('/dedupe-me');
+    registerSentryServerTunnelRoute('/dedupe-me');
+
+    expect(options.ignoreSpans).toHaveLength(1);
+  });
+
+  it('is a no-op when there is no active client', () => {
+    getClientSpy.mockReturnValue(undefined);
+
+    expect(() => registerSentryServerTunnelRoute('/no-client')).not.toThrow();
   });
 });

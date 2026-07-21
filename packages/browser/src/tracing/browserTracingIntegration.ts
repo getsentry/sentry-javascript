@@ -24,6 +24,7 @@ import {
   GLOBAL_OBJ,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
+  isURLObjectRelative,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -40,22 +41,18 @@ import {
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
-  registerInpInteractionListener,
-  startTrackingINP,
   startTrackingInteractions,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
-  startTrackingWebVitals,
-  trackClsAsSpan,
-  trackInpAsSpan,
-  trackLcpAsSpan,
-} from '@sentry-internal/browser-utils';
+} from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import { fetchStreamPerformanceIntegration } from '../integrations/fetchStreamPerformance';
+import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integrations/webVitals';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -395,6 +392,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     markBackgroundSpan,
     traceFetch,
     traceXHR,
+    // eslint-disable-next-line typescript/no-deprecated
     trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
@@ -415,13 +413,12 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
   const _isBot = isBotUserAgent();
 
-  let _collectWebVitals: undefined | (() => void);
   let lastInteractionTimestamp: number | undefined;
 
   let _pageloadSpan: Span | undefined;
 
   /** Create routing idle transaction. */
-  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true): void {
+  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true, url?: string): void {
     const isPageloadSpan = startSpanOptions.op === 'pageload';
 
     const initialSpanName = startSpanOptions.name;
@@ -429,14 +426,23 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       ? beforeStartSpan(startSpanOptions)
       : startSpanOptions;
 
-    const attributes = finalStartSpanOptions.attributes || {};
+    // For navigations, `url` is the destination URL, so we use it to reflect the post-navigation location.
+    // For pageloads (and manual navigation spans without a URL) we fall back to the current location.
+    const urlObject = parseStringToURLObject(url || getLocationHref());
+
+    const attributes = {
+      ...(urlObject?.pathname && { [URL_PATH]: urlObject.pathname }),
+      ...(urlObject && !isURLObjectRelative(urlObject) && { [URL_FULL]: urlObject.href }),
+      ...finalStartSpanOptions.attributes,
+    };
 
     // If `finalStartSpanOptions.name` is different than `startSpanOptions.name`
     // it is because `beforeStartSpan` set a custom name. Therefore we set the source to 'custom'.
     if (initialSpanName !== finalStartSpanOptions.name) {
       attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'custom';
-      finalStartSpanOptions.attributes = attributes;
     }
+
+    finalStartSpanOptions.attributes = attributes;
 
     if (!makeActive) {
       // We want to ensure this has 0s duration
@@ -458,16 +464,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadSpan,
       beforeSpanEnd: span => {
-        // This will generally always be defined here, because it is set in `setup()` of the integration
-        // but technically, it is optional, so we guard here to be extra safe
-        _collectWebVitals?.();
-        const spanStreamingEnabled = hasSpanStreamingEnabled(client);
         addPerformanceEntries(span, {
-          recordClsOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneClsSpans,
-          recordLcpOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneLcpSpans,
           ignoreResourceSpans,
           ignorePerformanceApiSpans,
-          spanStreamingEnabled,
+          spanStreamingEnabled: hasSpanStreamingEnabled(client),
         });
         setActiveIdleSpan(client, undefined);
 
@@ -501,14 +501,16 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     function emitFinish(): void {
       if (optionalWindowDocument && ['interactive', 'complete'].includes(optionalWindowDocument.readyState)) {
         client.emit('idleSpanEnableAutoFinish', idleSpan);
+        // Once the finish signal has been emitted, the listener is no longer needed. Removing it here (rather than
+        // relying on `{ once: true }`) also covers the common case where the document is already loaded when the span
+        // starts, so the listener never fires and would otherwise leak together with the `idleSpan` it closes over.
+        optionalWindowDocument.removeEventListener('readystatechange', emitFinish);
       }
     }
 
     // Enable auto finish of the pageload span if users are not explicitly ending it
     if (isPageloadSpan && !enableReportPageLoaded && optionalWindowDocument) {
-      optionalWindowDocument.addEventListener('readystatechange', () => {
-        emitFinish();
-      });
+      optionalWindowDocument.addEventListener('readystatechange', emitFinish);
 
       emitFinish();
     }
@@ -523,24 +525,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       }
 
       registerSpanErrorInstrumentation();
-
-      const spanStreamingEnabled = hasSpanStreamingEnabled(client);
-
-      _collectWebVitals = startTrackingWebVitals({
-        recordClsStandaloneSpans: spanStreamingEnabled ? undefined : enableStandaloneClsSpans || false,
-        recordLcpStandaloneSpans: spanStreamingEnabled ? undefined : enableStandaloneLcpSpans || false,
-        client,
-      });
-
-      if (spanStreamingEnabled) {
-        trackLcpAsSpan(client);
-        trackClsAsSpan(client);
-        if (enableInp) {
-          trackInpAsSpan();
-        }
-      } else if (enableInp) {
-        startTrackingINP();
-      }
 
       if (
         enableLongAnimationFrame &&
@@ -590,6 +574,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
               ...startSpanOptions,
             },
             false,
+            navigationOptions.url,
           );
           return;
         }
@@ -620,13 +605,18 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           normalizedRequest: undefined,
         });
 
-        _createRouteSpan(client, {
-          op: 'navigation',
-          ...startSpanOptions,
-          // Navigation starts a new trace and is NOT parented under any active interaction (e.g. ui.action.click)
-          parentSpan: null,
-          forceTransaction: true,
-        });
+        _createRouteSpan(
+          client,
+          {
+            op: 'navigation',
+            ...startSpanOptions,
+            // Navigation starts a new trace and is NOT parented under any active interaction (e.g. ui.action.click)
+            parentSpan: null,
+            forceTransaction: true,
+          },
+          true,
+          navigationOptions?.url,
+        );
       });
 
       client.on('startPageLoadSpan', (startSpanOptions, traceOptions = {}) => {
@@ -673,6 +663,21 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     afterAllSetup(client) {
       if (_isBot) {
         return;
+      }
+
+      // Auto-register webVitalsIntegration if the user hasn't added one. We do this in
+      // afterAllSetup so that a user-provided webVitalsIntegration - which may be ordered after
+      // browserTracingIntegration in the integrations array - has already been installed.
+      if (client.addIntegration && !client.getIntegrationByName?.(WEB_VITALS_INTEGRATION_NAME)) {
+        client.addIntegration(
+          webVitalsIntegration({
+            ignore: enableInp ? [] : ['inp'],
+            _experiments: {
+              enableStandaloneClsSpans,
+              enableStandaloneLcpSpans,
+            },
+          }),
+        );
       }
 
       let startingUrl: string | undefined = getLocationHref();
@@ -740,10 +745,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         registerInteractionListener(client, idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
       }
 
-      if (enableInp) {
-        registerInpInteractionListener();
-      }
-
       instrumentOutgoingRequests(client, {
         traceFetch,
         traceXHR,
@@ -795,8 +796,8 @@ export function startBrowserTracingNavigationSpan(
   options?: { url?: string; isRedirect?: boolean },
 ): Span | undefined {
   const { url, isRedirect } = options || {};
-  client.emit('beforeStartNavigationSpan', spanOptions, { isRedirect });
-  client.emit('startNavigationSpan', spanOptions, { isRedirect });
+  client.emit('beforeStartNavigationSpan', spanOptions, { isRedirect, url });
+  client.emit('startNavigationSpan', spanOptions, { isRedirect, url });
 
   const scope = getCurrentScope();
   scope.setTransactionName(spanOptions.name);

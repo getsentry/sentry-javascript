@@ -20,7 +20,9 @@ import type {
   WebpackConfigObject,
   WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
+  WebpackPluginInstance,
 } from './types';
+import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
 import { getNextjsVersion, getPackageModules } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
 
@@ -356,8 +358,9 @@ export function constructWebpackConfigFunction({
     // We don't want to do any webpack plugin stuff OR any source maps stuff in dev mode or for the server on static-only builds.
     // Symbolication for dev-mode errors is done elsewhere.
     if (!(isDev || (isStaticExport && isServer))) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { sentryWebpackPlugin } = loadModule<{ sentryWebpackPlugin: any }>('@sentry/webpack-plugin', module) ?? {};
+      const { sentryWebpackPlugin } =
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        loadModule<{ sentryWebpackPlugin: any }>('@sentry/bundler-plugins/webpack', module) ?? {};
 
       if (sentryWebpackPlugin) {
         if (!userSentryOptions.sourcemaps?.disable) {
@@ -428,6 +431,11 @@ export function constructWebpackConfigFunction({
         __SENTRY_SERVER_MODULES__: JSON.stringify(getPackageModules(projectDir)),
       }),
     );
+
+    // Orchestrion code-transform loader — Node server runtime only, never the edge compilation
+    if (runtime === 'server' && userSentryOptions._experimental?.useDiagnosticsChannelInjection) {
+      newConfig.plugins.push(sentryOrchestrionWebpackPlugin() as unknown as WebpackPluginInstance);
+    }
 
     return newConfig;
   };

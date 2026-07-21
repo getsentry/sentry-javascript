@@ -1,3 +1,6 @@
+import { consoleSandbox } from '@sentry/core';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { Plugin } from 'vite';
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
@@ -29,11 +32,11 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     adapter: options.adapter || (await detectAdapter(svelteConfig, options.debug)),
   };
 
-  const sentryPlugins: Plugin[] = [];
+  const sentryPlugins: Plugin[] = [makeBrowserTracingVariantResolverPlugin()];
 
   if (mergedOptions.autoInstrument) {
-    // TODO: Once tracing is promoted stable, we need to adjust this check!
-    const kitTracingEnabled = !!svelteConfig.kit?.experimental?.tracing?.server;
+    // SvelteKit 3 (>= next.8) promoted `tracing` out of `experimental`; older versions nest it there.
+    const kitTracingEnabled = !!(svelteConfig.kit?.tracing?.server || svelteConfig.kit?.experimental?.tracing?.server);
 
     const pluginOptions: AutoInstrumentSelection = {
       load: true,
@@ -71,6 +74,93 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   return sentryPlugins;
 }
 
+// A bare subpath (not a relative import) so this plugin's `resolveId` can intercept it.
+const BROWSER_TRACING_VARIANT_ID = '@sentry/sveltekit/browser-tracing-variant';
+
+/**
+ * Redirects the browser-tracing variant import to the Svelte 4 (`$app/stores`) or Svelte 5
+ * (`$app/state`) variant per installed SvelteKit version, so only the matching one is bundled and
+ * instrumentation runs eagerly (no dynamic import).
+ */
+function makeBrowserTracingVariantResolverPlugin(): Plugin {
+  return {
+    name: 'sentry-sveltekit-browser-tracing-variant',
+    enforce: 'pre',
+    // Dev only: esbuild pre-bundles deps before `resolveId` runs, so exclude the SDK to let us
+    // redirect the import (not needed for build).
+    config(_config, { command }) {
+      if (command === 'serve') {
+        return { optimizeDeps: { exclude: ['@sentry/sveltekit'] } };
+      }
+      return undefined;
+    },
+    async resolveId(id) {
+      if (id !== BROWSER_TRACING_VARIANT_ID) {
+        return null;
+      }
+
+      const variantModule = (await isSvelteKit3(id => this.resolve(id, undefined, { skipSelf: true })))
+        ? 'svelte5BrowserTracing'
+        : 'svelte4BrowserTracing';
+
+      // Point at the variant file next to the SDK's resolved entry (absolute path, so it stays internal).
+      const sdkEntry = await this.resolve('@sentry/sveltekit', undefined, { skipSelf: true });
+      if (!sdkEntry) {
+        return null;
+      }
+
+      return path.join(path.dirname(sdkEntry.id), 'client', `${variantModule}.js`);
+    },
+  };
+}
+
+/**
+ * Whether to use the SvelteKit 3 (`$app/state`) variant, from the installed `@sveltejs/kit` version
+ * (resolved via the bundler, not `process.cwd()`).
+ *
+ * If the Kit version can't be read, fall back to the Svelte major and warn (never throw): Svelte < 5
+ * can't be Kit 3 (use `$app/stores`); on Svelte 5 use `$app/state`, which works on both Kit 2.12+ and
+ * Kit 3 — the safe direction, since `$app/stores` hard-breaks on Kit 3.
+ */
+async function isSvelteKit3(resolve: (id: string) => Promise<{ id: string } | null>): Promise<boolean> {
+  const kitMajor = await readPackageMajor(resolve, '@sveltejs/kit/package.json');
+  if (kitMajor !== undefined) {
+    return kitMajor >= 3;
+  }
+
+  const svelteMajor = await readPackageMajor(resolve, 'svelte/package.json');
+  const useKit3Variant = svelteMajor === undefined || svelteMajor >= 5;
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[@sentry/sveltekit] Couldn't read the installed `@sveltejs/kit` version to set up browser " +
+        `tracing; falling back to the Svelte ${svelteMajor ?? '?'} based variant ` +
+        `(${useKit3Variant ? '`$app/state`' : '`$app/stores`'}). ` +
+        'If browser tracing misbehaves, please report this to the Sentry SDK team.',
+    );
+  });
+  return useKit3Variant;
+}
+
+async function readPackageMajor(
+  resolve: (id: string) => Promise<{ id: string } | null>,
+  packageJsonId: string,
+): Promise<number | undefined> {
+  try {
+    const resolved = await resolve(packageJsonId);
+    if (resolved) {
+      const { version } = JSON.parse(fs.readFileSync(resolved.id, 'utf8')) as { version: string };
+      const major = parseInt(version.split('.')[0] || '', 10);
+      if (!Number.isNaN(major)) {
+        return major;
+      }
+    }
+  } catch {
+    // ignore — caller handles the `undefined` case
+  }
+  return undefined;
+}
+
 /**
  * This function creates the options for the custom Sentry Vite plugin.
  * The options are derived from the Sentry SvelteKit plugin options, where the `_unstable` options take precedence.
@@ -96,14 +186,14 @@ export function generateVitePluginOptions(
   // Source Maps
   if (svelteKitPluginOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
     const {
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
       unstable_sentryVitePluginOptions: deprecated_unstableSourceMapUploadOptions,
       ...deprecatedSourceMapUploadOptions
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
     } = svelteKitPluginOptions.sourceMapsUploadOptions || {};
 
     const {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars,deprecation/deprecation
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars,typescript/no-deprecated
       sourceMapsUploadOptions: _filtered1,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       unstable_sentryVitePluginOptions: _filtered2,
@@ -135,14 +225,14 @@ export function generateVitePluginOptions(
 
     // Handle sourcemaps options - merge deprecated and new, with new taking precedence
     if (
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
       deprecatedSourceMapUploadOptions.sourcemaps ||
       svelteKitPluginOptions.sourcemaps ||
       deprecated_unstableSourceMapUploadOptions?.sourcemaps ||
       unstable_sentryVitePluginOptions?.sourcemaps
     ) {
       sentryVitePluginsOptions.sourcemaps = {
-        // eslint-disable-next-line deprecation/deprecation
+        // eslint-disable-next-line typescript/no-deprecated
         ...deprecatedSourceMapUploadOptions.sourcemaps,
         ...svelteKitPluginOptions.sourcemaps,
         // Also handle nested deprecated options from unstable plugin options
@@ -153,14 +243,14 @@ export function generateVitePluginOptions(
 
     // Handle release options - merge deprecated and new, with new taking precedence
     if (
-      // eslint-disable-next-line deprecation/deprecation
+      // eslint-disable-next-line typescript/no-deprecated
       deprecatedSourceMapUploadOptions.release ||
       svelteKitPluginOptions.release ||
       deprecated_unstableSourceMapUploadOptions?.release ||
       unstable_sentryVitePluginOptions?.release
     ) {
       sentryVitePluginsOptions.release = {
-        // eslint-disable-next-line deprecation/deprecation
+        // eslint-disable-next-line typescript/no-deprecated
         ...deprecatedSourceMapUploadOptions.release,
         ...svelteKitPluginOptions.release,
         // Also handle nested deprecated options from unstable plugin options

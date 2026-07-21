@@ -35,7 +35,7 @@ export function migrateDeprecatedWebpackOptions(userSentryOptions: SentryBuildOp
     return message;
   };
 
-  /* eslint-disable deprecation/deprecation */
+  /* eslint-disable typescript/no-deprecated */
   // Migrate each deprecated option to the new path, but only if the new path isn't already set
   webpack.autoInstrumentServerFunctions = withDeprecatedFallback(
     webpack.autoInstrumentServerFunctions,

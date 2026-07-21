@@ -1,7 +1,7 @@
 /**
  * PII filtering for MCP server spans
  *
- * Removes network-level sensitive data when sendDefaultPii is false.
+ * Removes network-level sensitive data when dataCollection.userInfo is false.
  * Input/output data (request arguments, tool/prompt results) is controlled
  * separately via recordInputs/recordOutputs options.
  */
@@ -9,7 +9,7 @@ import type { SpanAttributeValue } from '../../types/span';
 import { CLIENT_ADDRESS_ATTRIBUTE, CLIENT_PORT_ATTRIBUTE, MCP_RESOURCE_URI_ATTRIBUTE } from './attributes';
 
 /**
- * Network PII attributes that should be removed when sendDefaultPii is false
+ * Network PII attributes that should be removed when dataCollection.userInfo is false
  * @internal
  */
 const NETWORK_PII_ATTRIBUTES = new Set([CLIENT_ADDRESS_ATTRIBUTE, CLIENT_PORT_ATTRIBUTE, MCP_RESOURCE_URI_ATTRIBUTE]);
@@ -31,16 +31,16 @@ function isNetworkPiiAttribute(key: string): boolean {
 }
 
 /**
- * Removes network PII attributes from span data when sendDefaultPii is false
+ * Removes network PII attributes from span data when dataCollection.userInfo is false
  * @param spanData - Raw span attributes
- * @param sendDefaultPii - Whether to include PII data
+ * @param userInfo - Whether to include user identity data (IP, port, resource URIs)
  * @returns Filtered span attributes
  */
 export function filterMcpPiiFromSpanData(
   spanData: Record<string, unknown>,
-  sendDefaultPii: boolean,
+  userInfo: boolean,
 ): Record<string, SpanAttributeValue> {
-  if (sendDefaultPii) {
+  if (userInfo) {
     return spanData as Record<string, SpanAttributeValue>;
   }
 

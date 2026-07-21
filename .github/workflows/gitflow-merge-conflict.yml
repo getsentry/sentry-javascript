@@ -16,7 +16,7 @@ jobs:
       issues: write
     steps:
       - name: Check for merge conflicts with retry
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const initialDelay = 60_000; // Wait 1 minute before first check to let CI start

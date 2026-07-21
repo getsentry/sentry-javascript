@@ -1,4 +1,4 @@
-import * as _SentryReplay from '@sentry-internal/replay';
+import * as _SentryReplay from '@sentry/replay';
 import * as _SentryBrowser from '@sentry/browser';
 import * as _SentryCore from '@sentry/core';
 import * as _SentryNode from '@sentry/node';

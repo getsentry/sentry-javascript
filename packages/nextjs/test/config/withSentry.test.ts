@@ -23,7 +23,7 @@ describe('withSentry', () => {
         this.end();
       },
       end: function (this: AugmentedNextApiResponse) {
-        // eslint-disable-next-line deprecation/deprecation
+        // eslint-disable-next-line typescript/no-deprecated
         this.finished = true;
         // @ts-expect-error This is a mock
         this.writableEnded = true;

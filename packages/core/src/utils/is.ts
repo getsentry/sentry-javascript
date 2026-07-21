@@ -120,6 +120,19 @@ export function isPlainObject(wat: unknown): wat is Record<string, unknown> {
 }
 
 /**
+ * Checks whether given value is a non-null object (i.e. `typeof` is `'object'` and it is not `null`).
+ * Unlike {@link isPlainObject}, this also accepts arrays and class instances - it only rules out
+ * `null`, primitives, and functions.
+ * {@link isObjectLike}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isObjectLike(wat: unknown): wat is Record<PropertyKey, unknown> {
+  return typeof wat === 'object' && wat !== null;
+}
+
+/**
  * Checks whether given value's type is an Event instance
  * {@link isEvent}.
  *
@@ -137,7 +150,7 @@ export function isEvent(wat: unknown): wat is PolymorphicEvent {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  * @deprecated This is browser-specific and will be removed from `@sentry/core` in a future major version.
- * Import `isElement` from `@sentry-internal/browser-utils` instead.
+ * Import `isElement` from `@sentry/browser-utils` instead.
  */
 export function isElement(wat: unknown): boolean {
   return typeof Element !== 'undefined' && isInstanceOf(wat, Element);

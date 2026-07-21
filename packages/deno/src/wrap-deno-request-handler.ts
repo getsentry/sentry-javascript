@@ -63,8 +63,8 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     assignIfSet(attributes, 'http.request.body.size', contentLength && parseInt(contentLength, 10));
     assignIfSet(attributes, 'user_agent.original', request.headers.get('user-agent'));
 
-    const sendDefaultPii = client.getOptions().sendDefaultPii ?? false;
-    if (sendDefaultPii) {
+    const dataCollection = client.getDataCollectionOptions();
+    if (dataCollection.userInfo) {
       assignIfSet(
         attributes,
         'client.address',
@@ -73,7 +73,7 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
       assignIfSet(attributes, 'client.port', (info?.remoteAddr as Deno.NetAddr)?.port);
     }
 
-    Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), sendDefaultPii));
+    Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), dataCollection));
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: winterCGRequestToRequestData(request),
@@ -95,7 +95,7 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
               status_code: res.status,
             });
             span.setAttributes(
-              httpHeadersToSpanAttributes(Object.fromEntries(res.headers), sendDefaultPii, 'response'),
+              httpHeadersToSpanAttributes(Object.fromEntries(res.headers), dataCollection, 'response'),
             );
           } catch (e) {
             span.end();

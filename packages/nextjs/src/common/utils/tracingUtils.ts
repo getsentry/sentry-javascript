@@ -1,6 +1,7 @@
-import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type { PropagationContext, Span, SpanAttributes } from '@sentry/core';
 import {
+  isObjectLike,
   debug,
   getActiveSpan,
   getClient,
@@ -30,7 +31,7 @@ export function commonObjectToPropagationContext(
   commonObject: unknown,
   propagationContext: PropagationContext,
 ): PropagationContext {
-  if (typeof commonObject === 'object' && commonObject) {
+  if (isObjectLike(commonObject)) {
     const memoPropagationContext = commonPropagationContextMap.get(commonObject);
     if (memoPropagationContext) {
       return memoPropagationContext;
@@ -53,7 +54,7 @@ const commonIsolationScopeMap = new WeakMap<object, Scope>();
  * @returns the shared isolation scope.
  */
 export function commonObjectToIsolationScope(commonObject: unknown): Scope {
-  if (typeof commonObject === 'object' && commonObject) {
+  if (isObjectLike(commonObject)) {
     const memoIsolationScope = commonIsolationScopeMap.get(commonObject);
     if (memoIsolationScope) {
       return memoIsolationScope;
@@ -177,7 +178,7 @@ export function maybeEnhanceServerComponentSpanName(
   }
 
   const segment = spanAttributes[ATTR_NEXT_SEGMENT] as string;
-  const route = rootSpanAttributes[ATTR_HTTP_ROUTE];
+  const route = rootSpanAttributes[HTTP_ROUTE];
   const enhancedName = getEnhancedResolveSegmentSpanName({ segment, route: typeof route === 'string' ? route : '' });
   activeSpan.updateName(enhancedName);
   activeSpan.setAttributes({

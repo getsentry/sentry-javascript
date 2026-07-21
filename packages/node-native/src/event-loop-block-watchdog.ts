@@ -16,7 +16,7 @@ import {
   uuid4,
 } from '@sentry/core';
 import { makeNodeTransport } from '@sentry/node';
-import { captureStackTrace, getThreadsLastSeen } from '@sentry-internal/node-native-stacktrace';
+import { captureStackTrace, getThreadsLastSeen } from '@sentry/node-native-stacktrace';
 import type { ThreadState, WorkerStartData } from './common';
 import { POLL_RATIO } from './common';
 
@@ -225,6 +225,21 @@ function getExceptionAndThreads(
   };
 }
 
+/**
+ * Rehydrates a Scope from serialized ScopeData that has been passed over a JSON serialization boundary.
+ *
+ * `Scope.update()` only handles `ScopeContext` fields, so breadcrumbs have to be carried over separately.
+ * Attachments are deliberately not carried over since their binary data does not survive JSON serialization.
+ */
+function hydrateScope(data: Partial<ScopeData> | undefined): Scope {
+  const scope = new Scope();
+  if (data) {
+    scope.update(data);
+    data.breadcrumbs?.forEach(breadcrumb => scope.addBreadcrumb(breadcrumb));
+  }
+  return scope;
+}
+
 function applyScopeToEvent(event: Event, scope: ScopeData): void {
   applyScopeDataToEvent(event, scope);
 
@@ -274,9 +289,7 @@ async function sendBlockEvent(crashedThreadId: string): Promise<void> {
     ...getExceptionAndThreads(crashedThreadId, threads),
   };
 
-  const scope = crashedThread.pollState?.scope
-    ? new Scope().update(crashedThread.pollState.scope).getScopeData()
-    : new Scope().getScopeData();
+  const scope = hydrateScope(crashedThread.pollState?.scope).getScopeData();
 
   if (crashedThread?.asyncState?.isolationScope) {
     // We need to rehydrate the scope from the serialized object with properties beginning with _user, etc

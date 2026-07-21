@@ -1,9 +1,17 @@
 import {
   browserTracingIntegration as originalBrowserTracingIntegration,
+  getAbsoluteUrl,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
   WINDOW,
 } from '@sentry/browser';
+import {
+  PARAMS_KEY_BASE,
+  URL_FULL,
+  URL_PATH,
+  URL_PATH_PARAMETER_KEY_BASE,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
 import type { Integration } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -13,6 +21,17 @@ import {
 import type { AnyRouter } from '@tanstack/vue-router';
 
 type RouteMatch = ReturnType<AnyRouter['matchRoutes']>[number];
+
+interface TanstackRouterLocation {
+  pathname: string;
+  search: Record<string, unknown>;
+  state?: unknown;
+}
+
+interface TanstackRouterSubscribeArgs {
+  toLocation: TanstackRouterLocation;
+  fromLocation?: { state: unknown };
+}
 
 /**
  * A custom browser tracing integration for TanStack Router.
@@ -39,100 +58,135 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
     afterAllSetup(client) {
       browserTracingIntegrationInstance.afterAllSetup(client);
 
-      const initialWindowLocation = WINDOW.location;
-      if (instrumentPageLoad && initialWindowLocation) {
-        const matchedRoutes = router.matchRoutes(
-          initialWindowLocation.pathname,
-          router.options.parseSearch(initialWindowLocation.search),
-          { preload: false, throwOnError: false },
-        );
-
+      const resolveRouteMatch = (pathname: string, search: unknown): RouteMatch | undefined => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const matchedRoutes = router.matchRoutes(pathname, search as any, { preload: false, throwOnError: false });
         const lastMatch = matchedRoutes[matchedRoutes.length - 1];
         // If we only match __root__, we ended up not matching any route at all, so
         // we fall back to the pathname.
-        const routeMatch = lastMatch?.routeId !== '__root__' ? lastMatch : undefined;
+        return lastMatch?.routeId !== '__root__' ? lastMatch : undefined;
+      };
 
-        startBrowserTracingPageLoadSpan(client, {
+      const applyRouteMatch = (
+        span: NonNullable<ReturnType<typeof startBrowserTracingPageLoadSpan>>,
+        match: RouteMatch | undefined,
+        toLocation: TanstackRouterLocation,
+        fallbackName: string,
+      ): void => {
+        span.updateName(match ? match.routeId : fallbackName);
+        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, match ? 'route' : 'url');
+        span.setAttributes({
+          [URL_TEMPLATE]: match?.routeId,
+          ...locationToSpanUrlAttributes(router, toLocation),
+          ...routeMatchToParamSpanAttributes(match),
+        });
+      };
+
+      const initialWindowLocation = WINDOW.location;
+      if (instrumentPageLoad && initialWindowLocation) {
+        const routeMatch = resolveRouteMatch(
+          initialWindowLocation.pathname,
+          router.options.parseSearch(initialWindowLocation.search),
+        );
+
+        const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
           name: routeMatch ? routeMatch.routeId : initialWindowLocation.pathname,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue.tanstack_router',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+            ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
             ...routeMatchToParamSpanAttributes(routeMatch),
           },
+        });
+
+        // A redirect thrown during the initial pageload leaves the span named after the pre-redirect
+        // route, so correct it to the resolved route once.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const unsubscribePageloadResolved = router.subscribe('onResolved', (onResolvedArgs: any) => {
+          unsubscribePageloadResolved();
+          if (!pageloadSpan) {
+            return;
+          }
+          const { toLocation } = onResolvedArgs as TanstackRouterSubscribeArgs;
+          const resolvedMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
+          applyRouteMatch(pageloadSpan, resolvedMatch, toLocation, toLocation.pathname);
         });
       }
 
       if (instrumentNavigation) {
-        // The onBeforeNavigate hook is called at the very beginning of a navigation and is only called once per navigation, even when the user is redirected
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        router.subscribe('onBeforeNavigate', (onBeforeNavigateArgs: any) => {
-          // onBeforeNavigate is called during pageloads. We can avoid creating navigation spans by:
-          // 1. Checking if there's no fromLocation (initial pageload)
-          // 2. Comparing the states of the to and from arguments
+        // Navigation is driven by `onBeforeLoad` (accurate start) + `onResolved` (final route), not
+        // `onBeforeNavigate`, which TanStack stops firing after any loader redirect (TanStack/router#3920).
+        // A redirect chain emits one `onBeforeLoad` per load but a single `onResolved`, so we start the
+        // span on the first `onBeforeLoad`, rename it on later ones, and clear it on `onResolved`.
+        let inFlightNavigationSpan: ReturnType<typeof startBrowserTracingNavigationSpan> | undefined;
 
-          if (
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            !onBeforeNavigateArgs.fromLocation ||
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            onBeforeNavigateArgs.toLocation.state === onBeforeNavigateArgs.fromLocation.state
-          ) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.subscribe('onBeforeLoad', (onBeforeLoadArgs: any) => {
+          const { toLocation, fromLocation } = onBeforeLoadArgs as TanstackRouterSubscribeArgs;
+          // Skip the initial pageload (no fromLocation) and no-op reloads (same state).
+          if (!fromLocation || toLocation.state === fromLocation.state) {
             return;
           }
 
-          const onResolvedMatchedRoutes = router.matchRoutes(
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            onBeforeNavigateArgs.toLocation.pathname,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            onBeforeNavigateArgs.toLocation.search,
-            { preload: false, throwOnError: false },
-          );
+          const routeMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
+          // In SSR/non-browser contexts, WINDOW.location may be undefined, so fall back to the router's location.
+          const fallbackName = WINDOW.location?.pathname || toLocation.pathname;
 
-          const onBeforeNavigateLastMatch = onResolvedMatchedRoutes[onResolvedMatchedRoutes.length - 1];
-          const onBeforeNavigateRouteMatch =
-            onBeforeNavigateLastMatch?.routeId !== '__root__' ? onBeforeNavigateLastMatch : undefined;
+          if (inFlightNavigationSpan) {
+            // Redirect continuation within the same navigation: keep the span, update the target.
+            applyRouteMatch(inFlightNavigationSpan, routeMatch, toLocation, fallbackName);
+            return;
+          }
 
-          const navigationLocation = WINDOW.location;
-          const navigationSpan = startBrowserTracingNavigationSpan(client, {
-            name: onBeforeNavigateRouteMatch
-              ? onBeforeNavigateRouteMatch.routeId
-              : // In SSR/non-browser contexts, WINDOW.location may be undefined, so fall back to the router's location
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                navigationLocation?.pathname || onBeforeNavigateArgs.toLocation.pathname,
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue.tanstack_router',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: onBeforeNavigateRouteMatch ? 'route' : 'url',
+          inFlightNavigationSpan = startBrowserTracingNavigationSpan(
+            client,
+            {
+              name: routeMatch ? routeMatch.routeId : fallbackName,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue.tanstack_router',
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+                ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
+                ...routeMatchToParamSpanAttributes(routeMatch),
+              },
             },
-          });
+            { url: locationToAbsoluteUrl(router, toLocation) },
+          );
+        });
 
-          // In case the user is redirected during navigation we want to update the span with the right value.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const unsubscribeOnResolved = router.subscribe('onResolved', (onResolvedArgs: any) => {
-            unsubscribeOnResolved();
-            if (navigationSpan) {
-              const onResolvedMatchedRoutes = router.matchRoutes(
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                onResolvedArgs.toLocation.pathname,
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                onResolvedArgs.toLocation.search,
-                { preload: false, throwOnError: false },
-              );
-
-              const onResolvedLastMatch = onResolvedMatchedRoutes[onResolvedMatchedRoutes.length - 1];
-              const onResolvedRouteMatch =
-                onResolvedLastMatch?.routeId !== '__root__' ? onResolvedLastMatch : undefined;
-
-              if (onResolvedRouteMatch) {
-                navigationSpan.updateName(onResolvedRouteMatch.routeId);
-                navigationSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-                navigationSpan.setAttributes(routeMatchToParamSpanAttributes(onResolvedRouteMatch));
-              }
-            }
-          });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.subscribe('onResolved', (onResolvedArgs: any) => {
+          const span = inFlightNavigationSpan;
+          inFlightNavigationSpan = undefined;
+          if (!span) {
+            return;
+          }
+          const { toLocation } = onResolvedArgs as TanstackRouterSubscribeArgs;
+          const resolvedMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
+          applyRouteMatch(span, resolvedMatch, toLocation, WINDOW.location?.pathname || toLocation.pathname);
         });
       }
     },
+  };
+}
+
+function locationToAbsoluteUrl<R extends AnyRouter>(router: R, location: TanstackRouterLocation): string {
+  const search = router.options.stringifySearch(location.search);
+  const pathWithSearch = `${location.pathname}${search && search !== '?' ? search : ''}`;
+
+  return getAbsoluteUrl(pathWithSearch);
+}
+
+function locationToSpanUrlAttributes<R extends AnyRouter>(
+  router: R,
+  location: TanstackRouterLocation,
+): Record<string, string> {
+  const absoluteUrl = locationToAbsoluteUrl(router, location);
+
+  return {
+    [URL_PATH]: location.pathname,
+    [URL_FULL]: absoluteUrl,
   };
 }
 
@@ -143,8 +197,8 @@ function routeMatchToParamSpanAttributes(match: RouteMatch | undefined): Record<
 
   const paramAttributes: Record<string, string> = {};
   Object.entries(match.params as Record<string, string>).forEach(([key, value]) => {
-    paramAttributes[`url.path.parameter.${key}`] = value;
-    paramAttributes[`params.${key}`] = value; // params.[key] is an alias
+    paramAttributes[`${URL_PATH_PARAMETER_KEY_BASE}.${key}`] = value;
+    paramAttributes[`${PARAMS_KEY_BASE}.${key}`] = value; // params.[key] is an alias
   });
 
   return paramAttributes;

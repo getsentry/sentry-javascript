@@ -13,6 +13,7 @@ const startCommands: Record<Runtime, string> = {
   cloudflare: `pnpm dev:cf --port ${APP_PORT}`,
   node: `pnpm dev:node`,
   bun: `pnpm dev:bun`,
+  deno: `pnpm dev:deno`,
 };
 
 const config = getPlaywrightConfig(

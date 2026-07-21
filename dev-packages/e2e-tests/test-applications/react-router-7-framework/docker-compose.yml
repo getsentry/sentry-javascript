@@ -1,0 +1,12 @@
+services:
+  redis:
+    image: redis:8
+    restart: always
+    container_name: e2e-tests-react-router-7-redis
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 1s
+      timeout: 3s
+      retries: 30

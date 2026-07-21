@@ -1,5 +1,31 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForEnvelopeItem, waitForTransaction } from '@sentry-internal/test-utils';
+
+test('Sends an app_creation transaction', async () => {
+  // The app_creation span is emitted once at startup (NestFactory.create), before any request is
+  // made, so we look back through the buffered envelopes rather than waiting for a new transaction.
+  const envelopeItem = await waitForEnvelopeItem(
+    'nestjs-basic',
+    item => item[0].type === 'transaction' && (item[1] as { transaction?: string }).transaction === 'Create Nest App',
+    0,
+  );
+
+  const transaction = envelopeItem[1] as {
+    contexts: { trace: { op?: string; origin?: string; data?: Record<string, unknown> } };
+  };
+
+  expect(transaction.contexts.trace.op).toBe('app_creation.nestjs');
+  expect(transaction.contexts.trace.origin).toBe('auto.http.otel.nestjs');
+  expect(transaction.contexts.trace.data).toEqual(
+    expect.objectContaining({
+      component: '@nestjs/core',
+      'nestjs.type': 'app_creation',
+      'nestjs.module': 'AppModule',
+      'sentry.op': 'app_creation.nestjs',
+      'sentry.origin': 'auto.http.otel.nestjs',
+    }),
+  );
+});
 
 test('Sends an API route transaction', async ({ baseURL }) => {
   const pageloadTransactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {

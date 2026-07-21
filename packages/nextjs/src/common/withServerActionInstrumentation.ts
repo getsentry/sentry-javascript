@@ -10,6 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
@@ -70,7 +71,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
   callback: A,
 ): Promise<ReturnType<A>> {
   return withIsolationScope(async isolationScope => {
-    const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
+    const shouldRecordResponse = getClient()?.getDataCollectionOptions().httpBodies.includes('outgoingResponse');
 
     let sentryTraceHeader;
     let baggageHeader;
@@ -126,7 +127,11 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
                   // We don't want to report "not-found"s
                   span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
                 } else if (isRedirectNavigationError(error)) {
-                  // Don't do anything for redirects
+                  // Redirects are normal Next.js control flow, not errors. Mark the span as OK and end it
+                  // early so the surrounding `startSpan` error handler doesn't override the status to
+                  // `internal_error`
+                  span.setStatus({ code: SPAN_STATUS_OK });
+                  span.end();
                 } else {
                   span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                   captureException(error, {
@@ -138,7 +143,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
                 }
               });
 
-              if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
+              if (options.recordResponse !== undefined ? options.recordResponse : shouldRecordResponse) {
                 getIsolationScope().setExtra('server_action_result', result);
               }
 

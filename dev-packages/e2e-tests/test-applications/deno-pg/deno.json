@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "@sentry/deno": "npm:@sentry/deno",
+    "pg": "npm:pg@8.16.0"
+  },
+  "nodeModulesDir": "manual"
+}

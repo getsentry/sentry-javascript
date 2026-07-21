@@ -1,6 +1,6 @@
 import type { Client, Envelope, IntegrationFn } from '@sentry/core/browser';
 import { debug, defineIntegration, serializeEnvelope } from '@sentry/core/browser';
-import { getNativeImplementation } from '@sentry-internal/browser-utils';
+import { getNativeImplementation } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { WINDOW } from '../helpers';
 
@@ -12,7 +12,7 @@ export type SpotlightConnectionOptions = {
   sidecarUrl?: string;
 };
 
-export const INTEGRATION_NAME = 'SpotlightBrowser';
+export const INTEGRATION_NAME = 'SpotlightBrowser' as const;
 
 export const SPOTLIGHT_IGNORE_SPANS = [{ op: 'ui.interaction.click', name: '#sentry-spotlight' }];
 

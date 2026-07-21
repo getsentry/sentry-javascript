@@ -1,7 +1,7 @@
 import type { Client, IntegrationFn, MaxRequestBodySize } from '@sentry/core';
 import { captureBodyFromWinterCGRequest, defineIntegration, getIsolationScope } from '@sentry/core';
 
-const INTEGRATION_NAME = 'HttpServer';
+const INTEGRATION_NAME = 'HttpServer' as const;
 
 export interface HttpServerIntegrationOptions {
   /**
@@ -85,6 +85,8 @@ export async function captureIncomingRequestBody(client: Client, request: Reques
     return;
   }
 
+  // TODO(v11): Gate incoming request body capture on `dataCollection.httpBodies` (capture only when
+  // `'incomingRequest'` is listed) instead of defaulting to `'medium'`.
   const maxRequestBodySize = integration.maxRequestBodySize;
 
   if (maxRequestBodySize === 'none') {

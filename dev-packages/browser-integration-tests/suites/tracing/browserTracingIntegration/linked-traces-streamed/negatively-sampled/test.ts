@@ -34,7 +34,7 @@ sentryTest('includes a span link to a previously negatively sampled span', async
       },
     ]);
 
-    expect(navigationSpan.attributes?.['sentry.previous_trace']).toEqual({
+    expect(navigationSpan.attributes['sentry.previous_trace']).toEqual({
       type: 'string',
       value: expect.stringMatching(/[a-f\d]{32}-[a-f\d]{16}-0/),
     });

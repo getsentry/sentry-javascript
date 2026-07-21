@@ -10,9 +10,9 @@ export * from './index.bundle.base';
 // TODO(v11): Export metrics here once we remove it from the base bundle.
 export { logger, consoleLoggingIntegration } from '@sentry/core/browser';
 
-export { replayIntegration, getReplay } from '@sentry-internal/replay';
+export { replayIntegration, getReplay } from '@sentry/replay';
 
-export { elementTimingIntegration } from '@sentry-internal/browser-utils';
+export { elementTimingIntegration } from '@sentry/browser-utils';
 
 export {
   browserTracingIntegrationShim as browserTracingIntegration,

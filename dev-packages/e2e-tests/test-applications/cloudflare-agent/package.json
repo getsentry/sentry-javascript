@@ -1,0 +1,42 @@
+{
+  "name": "cloudflare-agent",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "cf-typegen": "wrangler types --include-runtime=false",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:dev && pnpm test:prod",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test"
+  },
+  "dependencies": {
+    "@cloudflare/ai-chat": "^0.7.1",
+    "@sentry/cloudflare": "^10.53.1",
+    "agents": "^0.13.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@cloudflare/vite-plugin": "^1.37.2",
+    "@cloudflare/workers-types": "^4.20260520.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^24.12.4",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "globals": "^17.6.0",
+    "typescript": "~6.0.3",
+    "vite": "^8.0.14",
+    "wrangler": "^4.93.0",
+    "ws": "^8.20.1"
+  },
+  "volta": {
+    "node": "24.15.0",
+    "extends": "../../package.json"
+  }
+}

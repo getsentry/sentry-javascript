@@ -1,13 +1,12 @@
 import * as Sentry from '@sentry/cloudflare';
 import { DurableObject } from 'cloudflare:workers';
-import type { RpcTarget } from 'cloudflare:workers';
 
 interface Env {
   SENTRY_DSN: string;
   MY_DURABLE_OBJECT: DurableObjectNamespace<MyDurableObjectBase>;
 }
 
-class MyDurableObjectBase extends DurableObject<Env> implements RpcTarget {
+class MyDurableObjectBase extends DurableObject<Env> {
   async sayHello(name: string): Promise<string> {
     return `Hello, ${name}!`;
   }

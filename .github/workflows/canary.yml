@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -69,18 +69,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - test-application: 'angular-21'
+          - test-application: 'angular-22'
             build-command: 'test:build-canary'
-            label: 'angular-21 (next)'
+            label: 'angular-22 (next)'
           - test-application: 'create-react-app'
             build-command: 'test:build-canary'
             label: 'create-react-app (canary)'
           - test-application: 'nextjs-app-dir'
             build-command: 'test:build-15'
             label: 'nextjs-app-dir (next@15)'
-          - test-application: 'nextjs-13'
-            build-command: 'test:build-latest'
-            label: 'nextjs-13 (latest)'
           - test-application: 'nextjs-14'
             build-command: 'test:build-canary'
             label: 'nextjs-14 (canary)'
@@ -123,10 +120,10 @@ jobs:
 
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 9.15.9
       - name: Set up Node

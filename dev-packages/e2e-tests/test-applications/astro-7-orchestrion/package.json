@@ -1,0 +1,33 @@
+{
+  "name": "astro-7-orchestrion",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "start": "node ./dist/server/entry.mjs",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "TEST_ENV=production playwright test"
+  },
+  "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
+  "dependencies": {
+    "@astrojs/node": "^11.0.2",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
+    "astro": "^7.0.6",
+    "ioredis": "5.10.1",
+    "mysql": "^2.18.1"
+  },
+  "devDependencies": {
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.1"
+  },
+  "volta": {
+    "node": "22.22.0",
+    "extends": "../../package.json"
+  }
+}

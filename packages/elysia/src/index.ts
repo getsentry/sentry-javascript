@@ -31,6 +31,8 @@ export {
   setExtras,
   setTag,
   setTags,
+  setAttribute,
+  setAttributes,
   setUser,
   getSpanStatusFromHttpCode,
   setHttpStatus,
@@ -48,9 +50,9 @@ export {
   instrumentLangChainEmbeddings,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   anrIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
@@ -69,7 +71,7 @@ export {
   requestDataIntegration,
   fsIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
@@ -79,6 +81,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   startNewTrace,
+  bindScopeToEmitter,
   suppressTracing,
   withActiveSpan,
   getRootSpan,
@@ -100,8 +103,6 @@ export {
   firebaseIntegration,
   koaIntegration,
   setupKoaErrorHandler,
-  connectIntegration,
-  setupConnectErrorHandler,
   genericPoolIntegration,
   graphqlIntegration,
   knexIntegration,
@@ -119,7 +120,9 @@ export {
   processSessionIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
+  // eslint-disable-next-line typescript/no-deprecated
   honoIntegration,
+  // eslint-disable-next-line typescript/no-deprecated
   setupHonoErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,

@@ -33,18 +33,22 @@ sentryTest('captures CLS as a streamed span with source attributes', async ({ ge
   const clsSpan = await clsSpanPromise;
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(clsSpan.attributes?.['sentry.op']).toEqual({ type: 'string', value: 'ui.webvital.cls' });
-  expect(clsSpan.attributes?.['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.cls' });
-  expect(clsSpan.attributes?.['sentry.exclusive_time']).toEqual({ type: 'integer', value: 0 });
-  expect(clsSpan.attributes?.['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
+  expect(clsSpan.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.webvital.cls' });
+  expect(clsSpan.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.cls' });
+  expect(clsSpan.attributes['sentry.exclusive_time']).toEqual({ type: 'integer', value: 0 });
+  expect(clsSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
+
+  // Check the CLS span carries the transaction/segment name it belongs to
+  expect(clsSpan.attributes['sentry.transaction']).toEqual({ type: 'string', value: '/index.html' });
+  expect(clsSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: '/index.html' });
 
   // Check browser.web_vital.cls.source attributes
-  expect(clsSpan.attributes?.['browser.web_vital.cls.source.1']?.value).toEqual(
+  expect(clsSpan.attributes['browser.web_vital.cls.source.1']?.value).toEqual(
     expect.stringContaining('body > div#content > p'),
   );
 
   // Check pageload span id is present
-  expect(clsSpan.attributes?.['sentry.pageload.span_id']?.value).toBe(pageloadSpan.span_id);
+  expect(clsSpan.attributes['sentry.pageload.span_id']?.value).toBe(pageloadSpan.span_id);
 
   // CLS is a point-in-time metric
   expect(clsSpan.start_timestamp).toEqual(clsSpan.end_timestamp);
@@ -68,9 +72,9 @@ sentryTest('CLS streamed span has web vital value attribute', async ({ getLocalT
   const clsSpan = await clsSpanPromise;
 
   // The CLS value should be set as a browser.web_vital.cls.value attribute
-  expect(clsSpan.attributes?.['browser.web_vital.cls.value']?.type).toBe('double');
+  expect(clsSpan.attributes['browser.web_vital.cls.value']?.type).toBe('double');
   // Flakey value dependent on timings -> we check for a range
-  const clsValue = clsSpan.attributes?.['browser.web_vital.cls.value']?.value as number;
+  const clsValue = clsSpan.attributes['browser.web_vital.cls.value']?.value as number;
   expect(clsValue).toBeGreaterThan(0.05);
   expect(clsValue).toBeLessThan(0.15);
 });

@@ -1,6 +1,6 @@
 import { _INTERNAL_safeDateNow, defineIntegration, metrics } from '@sentry/core';
 
-const INTEGRATION_NAME = 'DenoRuntimeMetrics';
+const INTEGRATION_NAME = 'DenoRuntimeMetrics' as const;
 const DEFAULT_INTERVAL_MS = 30_000;
 const MIN_INTERVAL_MS = 1_000;
 
