@@ -74,4 +74,24 @@ export type SentryReactRouterBuildOptions = BuildTimeOptionsBase &
      */
     sourceMapsUploadOptions?: SourceMapsOptions;
     // todo(v11): Remove this option (all options already exist in BuildTimeOptionsBase)
+
+    /**
+     * Prepends a top-level import of your server instrumentation file (see {@link serverInstrumentationFile}) to the
+     * built server entry.
+     *
+     * Requires `buildEnd: sentryOnBuildEnd` in `react-router.config.ts`.
+     * no-ops for CJS/SPA/serverless/Cloudflare targets. Do not also use `--import`, or Sentry initializes twice.
+     *
+     * @default false
+     */
+    // todo(v11): Default this to `true`.
+    autoInjectServerInstrumentation?: boolean;
+
+    /**
+     * Path (relative to the project root) to the server instrumentation file that calls `Sentry.init`.
+     * Only used when {@link autoInjectServerInstrumentation} is enabled.
+     *
+     * @default './instrument.server.mjs'
+     */
+    serverInstrumentationFile?: string;
   };

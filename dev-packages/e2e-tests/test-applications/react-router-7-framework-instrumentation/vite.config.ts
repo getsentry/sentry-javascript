@@ -6,6 +6,13 @@ export default defineConfig(async config => ({
   plugins: [
     reactRouter(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ...((await sentryReactRouter({ sourcemaps: { disable: true } }, config)) as any[]),
+    ...((await sentryReactRouter(
+      {
+        sourcemaps: { disable: true },
+        // Auto-inject server instrumentation into the build output - no `NODE_OPTIONS='--import ...'` needed.
+        autoInjectServerInstrumentation: true,
+      },
+      config,
+    )) as any[]),
   ],
 }));

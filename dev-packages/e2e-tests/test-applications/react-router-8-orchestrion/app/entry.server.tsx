@@ -1,4 +1,3 @@
-import '../instrument.mjs';
 import { createReadableStreamFromReadable } from '@react-router/node';
 import * as Sentry from '@sentry/react-router';
 import { renderToPipeableStream } from 'react-dom/server';

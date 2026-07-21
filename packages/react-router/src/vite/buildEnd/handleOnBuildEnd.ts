@@ -4,13 +4,48 @@ import SentryCli from '@sentry/cli';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { glob } from 'glob';
 import type { SentryReactRouterBuildOptions } from '../types';
+import { DEFAULT_SERVER_INSTRUMENTATION_FILE, injectServerInstrumentation } from './injectServerInstrumentation';
 
 type BuildEndHook = NonNullable<Config['buildEnd']>;
+type BuildEndHookArgs = Parameters<BuildEndHook>[0];
+
+/**
+ * Auto-injects Sentry server instrumentation into the build output when `autoInjectServerInstrumentation` is enabled.
+ * Extracted from `sentryOnBuildEnd` to keep that hook's complexity manageable.
+ */
+async function maybeAutoInjectServerInstrumentation(
+  sentryConfig: SentryReactRouterBuildOptions,
+  reactRouterConfig: BuildEndHookArgs['reactRouterConfig'],
+  viteConfig: BuildEndHookArgs['viteConfig'],
+  debug: boolean,
+): Promise<void> {
+  if (!sentryConfig.autoInjectServerInstrumentation) {
+    return;
+  }
+
+  try {
+    await injectServerInstrumentation({
+      root: viteConfig.root,
+      buildDirectory: reactRouterConfig.buildDirectory,
+      serverBuildFile: reactRouterConfig.serverBuildFile,
+      serverModuleFormat: reactRouterConfig.serverModuleFormat,
+      ssr: reactRouterConfig.ssr,
+      hasServerBundles: !!reactRouterConfig.serverBundles,
+      serverInstrumentationFile: sentryConfig.serverInstrumentationFile ?? DEFAULT_SERVER_INSTRUMENTATION_FILE,
+      debug,
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[Sentry] Could not auto-inject server instrumentation', error);
+  }
+}
 
 function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
   if (!viteConfig || typeof viteConfig !== 'object' || !('sentryConfig' in viteConfig)) {
     // eslint-disable-next-line no-console
     console.error('[Sentry] sentryConfig not found - it needs to be passed to vite.config.ts');
+    // Fall back to an empty config so the build hook degrades gracefully instead of throwing on destructuring.
+    return {};
   }
 
   return (viteConfig as { sentryConfig: SentryReactRouterBuildOptions }).sentryConfig;
@@ -148,4 +183,8 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
       console.error('Error deleting files after sourcemap upload:', error);
     }
   }
+
+  // Auto-inject server instrumentation into the built server bundle (after source maps are handled, so we never
+  // interfere with debug-id injection / upload).
+  await maybeAutoInjectServerInstrumentation(sentryConfig, reactRouterConfig, viteConfig, debug);
 };

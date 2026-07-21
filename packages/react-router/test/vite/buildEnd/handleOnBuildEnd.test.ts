@@ -365,4 +365,16 @@ describe('sentryOnBuildEnd', () => {
       url: 'https://custom-instance.ejemplo.es',
     });
   });
+
+  it('does not throw when sentryConfig is missing from viteConfig', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        build: { sourcemap: true },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await expect(sentryOnBuildEnd(config)).resolves.toBeUndefined();
+  });
 });
