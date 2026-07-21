@@ -1,3 +1,4 @@
+import { HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
 import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, spanIsIgnored, startInactiveSpan } from './tracing';
@@ -388,7 +389,9 @@ function getFetchSpanAttributes(
   };
   if (parsedUrl) {
     if (!isURLObjectRelative(parsedUrl)) {
-      attributes['http.url'] = stripDataUrlContent(parsedUrl.href);
+      // oxlint-disable-next-line typescript/no-deprecated
+      attributes[HTTP_URL] = stripDataUrlContent(parsedUrl.href);
+      attributes[URL_FULL] = stripDataUrlContent(parsedUrl.href);
       attributes['server.address'] = parsedUrl.host;
     }
     if (parsedUrl.search) {

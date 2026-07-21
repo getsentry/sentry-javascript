@@ -75,6 +75,7 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
           type: 'fetch',
           url: 'http://localhost:3030/',
           'http.url': 'http://localhost:3030/',
+          'url.full': 'http://localhost:3030/',
           'server.address': 'localhost:3030',
           'sentry.op': 'http.client',
           'sentry.origin': 'auto.http.wintercg_fetch',
