@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { toSubscribeInjections } from './subscribe-injection';
 
 // Four concepts, one channel each:
 //   - `requestHandler`    → the async handler returned by `createRequestHandler` (the server span)
@@ -57,3 +58,5 @@ export const remixChannels = {
   REMIX_CALL_ROUTE_LOADER: 'orchestrion:@remix-run/server-runtime:callRouteLoader',
   REMIX_CALL_ROUTE_ACTION: 'orchestrion:@remix-run/server-runtime:callRouteAction',
 } as const;
+
+export const remixSubscribeInjection = toSubscribeInjections(remixConfig);
