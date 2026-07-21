@@ -1,6 +1,8 @@
 import { isObjectLike } from '@sentry/core';
+import { instrumentWorkersAiClient } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import {
+  isAiBinding,
   isD1Database,
   isDurableObjectNamespace,
   isJSRPC,
@@ -33,6 +35,7 @@ const instrumentedBindings = new WeakMap<object, unknown>();
  * - Queue producers (via `send` + `sendBatch` duck-typing)
  * - R2 Buckets (via `head` + `put` + `createMultipartUpload` duck-typing)
  * - Rate limiters (via `limit` duck-typing)
+ * - Workers AI (via `run` + `gateway` + `toMarkdown` duck-typing)
  *
  * @param env - The Cloudflare env object to instrument
  * @param options - Optional CloudflareOptions to control RPC trace propagation
@@ -81,6 +84,12 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
       if (isRateLimit(item)) {
         const bindingName = typeof prop === 'string' ? prop : String(prop);
         const instrumented = instrumentRateLimit(item, bindingName);
+        instrumentedBindings.set(item, instrumented);
+        return instrumented;
+      }
+
+      if (isAiBinding(item)) {
+        const instrumented = instrumentWorkersAiClient(item);
         instrumentedBindings.set(item, instrumented);
         return instrumented;
       }

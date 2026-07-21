@@ -1,4 +1,4 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import { type Plugin } from 'vite';
 import type { SentryReactRouterBuildOptions } from './types';
 

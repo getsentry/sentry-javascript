@@ -117,6 +117,7 @@ export { denoAmqplibIntegration } from './integrations/amqplib';
 export { denoDataloaderIntegration } from './integrations/dataloader';
 export { denoKnexIntegration } from './integrations/knex';
 export { denoKoaIntegration } from './integrations/koa';
+export { denoMongoIntegration } from './integrations/mongo';
 export { denoMongooseIntegration } from './integrations/mongoose';
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';

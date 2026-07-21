@@ -1,9 +1,8 @@
 import * as Sentry from '@sentry/nuxt';
 
-// Opt into diagnostics-channel-based auto-instrumentation. This registers the
-// channel subscribers (e.g. for `mysql`) that turn the diagnostics-channel
-// events — injected at build time by the orchestrion Rollup plugin (see
-// `nuxt.config.ts`) — into Sentry spans. Must run before `Sentry.init()`.
+// The Nuxt module transforms supported Nitro dependencies when enabled in
+// `nuxt.config.ts`. In v10, register Node's matching channel subscribers before
+// initializing the SDK so those events become spans.
 Sentry.experimentalUseDiagnosticsChannelInjection();
 
 Sentry.init({

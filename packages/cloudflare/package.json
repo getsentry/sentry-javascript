@@ -1,6 +1,6 @@
 {
   "name": "@sentry/cloudflare",
-  "version": "10.66.0",
+  "version": "10.67.0",
   "description": "Official Sentry SDK for Cloudflare Workers and Pages",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/cloudflare",
@@ -46,6 +46,16 @@
         "types": "./build/types/nodejs_compat/index.d.ts",
         "default": "./build/cjs/nodejs_compat/index.js"
       }
+    },
+    "./vite": {
+      "import": {
+        "types": "./build/types/vite/index.d.ts",
+        "default": "./build/esm/vite/index.js"
+      },
+      "require": {
+        "types": "./build/types/vite/index.d.ts",
+        "default": "./build/cjs/vite/index.js"
+      }
     }
   },
   "typesVersions": {
@@ -60,9 +70,9 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/core": "10.66.0",
-    "@sentry/node": "10.66.0",
-    "@sentry/server-utils": "10.66.0"
+    "@sentry/core": "10.67.0",
+    "@sentry/node": "10.67.0",
+    "@sentry/server-utils": "10.67.0"
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x || ^5.x"

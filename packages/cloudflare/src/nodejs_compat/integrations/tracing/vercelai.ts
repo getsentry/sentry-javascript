@@ -7,16 +7,8 @@
 
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { vercelAiIntegration as serverUtilsVercelAiIntegration } from '@sentry/server-utils';
+import { vercelAiIntegration as serverUtilsVercelAiIntegration, type VercelAiOptions } from '@sentry/server-utils';
 import { vercelAIIntegration as cloudflareVercelAIIntegration } from '../../../integrations/tracing/vercelai';
-
-interface VercelAiOptions {
-  /**
-   * Enable or disable truncation of recorded input messages.
-   * Defaults to `true`.
-   */
-  enableTruncation?: boolean;
-}
 
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
   const inner = serverUtilsVercelAiIntegration(options);

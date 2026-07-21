@@ -1,5 +1,10 @@
 import { captureException, getAbsoluteUrl } from '@sentry/browser';
-import { PARAMS_KEY, URL_PATH_PARAMETER_KEY, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  NAVIGATION_ROUTE_ID,
+  PARAMS_KEY_BASE,
+  URL_PATH_PARAMETER_KEY_BASE,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
   getActiveSpan,
@@ -74,8 +79,8 @@ export function instrumentVueRouter(
     const attributes: SpanAttributes = {};
 
     for (const key of Object.keys(to.params)) {
-      attributes[URL_PATH_PARAMETER_KEY.replace('<key>', key)] = to.params[key];
-      attributes[PARAMS_KEY.replace('<key>', key)] = to.params[key]; // params.[key] is an alias
+      attributes[`${URL_PATH_PARAMETER_KEY_BASE}.${key}`] = to.params[key];
+      attributes[`${PARAMS_KEY_BASE}.${key}`] = to.params[key]; // params.[key] is an alias
     }
     for (const key of Object.keys(to.query)) {
       const value = to.query[key];
@@ -99,6 +104,10 @@ export function instrumentVueRouter(
 
     if (transactionSource === 'route') {
       attributes[URL_TEMPLATE] = spanName;
+    }
+
+    if (to.name) {
+      attributes[NAVIGATION_ROUTE_ID] = to.name.toString();
     }
 
     getCurrentScope().setTransactionName(spanName);

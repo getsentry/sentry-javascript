@@ -1,4 +1,4 @@
-import { defineEnvVars } from '@sveltejs/kit/hooks';
+import { defineEnvVars } from '@sveltejs/kit/env';
 
 // SvelteKit 3 makes "explicit environment variables" the default and removes the
 // legacy `$env/*` virtual modules. Declared vars are imported from `$app/env/private`

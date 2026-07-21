@@ -9,6 +9,7 @@
  */
 
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
+import { CACHE_KEY } from '@sentry/conventions/attributes';
 import type { BatchLoadFn, DataLoader, DataLoaderConstructor } from './types';
 import {
   SDK_VERSION,
@@ -59,6 +60,16 @@ function getSpanOp(operation: 'load' | 'loadMany' | 'batch' | 'prime' | 'clear' 
   return undefined;
 }
 
+// `load` receives a single key, `loadMany`/`batch` receive a key array. Normalize both to the
+// `string[]` shape `cache.key` expects.
+function getCacheKey(keyArg: unknown): string[] | undefined {
+  if (Array.isArray(keyArg)) {
+    return keyArg.map(key => String(key));
+  }
+
+  return keyArg == null ? undefined : [String(keyArg)];
+}
+
 export class DataloaderInstrumentation extends InstrumentationBase {
   constructor(config = {}) {
     super(PACKAGE_NAME, SDK_VERSION, config);
@@ -107,6 +118,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('batch'),
+            [CACHE_KEY]: getCacheKey(args[0]),
           },
           onlyIfParent: true,
         },
@@ -161,6 +173,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('load'),
+            [CACHE_KEY]: getCacheKey(args[0]),
           },
           onlyIfParent: true,
         },
@@ -199,6 +212,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('loadMany'),
+            [CACHE_KEY]: getCacheKey(args[0]),
           },
           onlyIfParent: true,
         },

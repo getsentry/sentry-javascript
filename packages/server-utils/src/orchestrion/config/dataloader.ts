@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { toSubscribeInjections } from './subscribe-injection';
 
 // `dataloader` ships a single transpiled CommonJS `index.js`. Its class methods are emitted as
 // `_proto.<name> = function <name>() {}` (named function *expressions*), so they match on
@@ -53,3 +54,5 @@ export const dataloaderChannels = {
   DATALOADER_CLEAR: 'orchestrion:dataloader:clear',
   DATALOADER_CLEAR_ALL: 'orchestrion:dataloader:clearAll',
 } as const;
+
+export const dataloaderSubscribeInjection = toSubscribeInjections(dataloaderConfig);

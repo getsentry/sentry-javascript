@@ -1,4 +1,5 @@
 import type { Integration } from '@sentry/core';
+import type { VercelAiOptions as VercelAiBaseOptions } from '@sentry/server-utils';
 
 /**
  * Telemetry configuration.
@@ -45,31 +46,12 @@ export declare type AttributeValue =
   | Array<null | undefined | number>
   | Array<null | undefined | boolean>;
 
-export interface VercelAiOptions {
-  /**
-   * Enable or disable input recording. Enabled if `dataCollection.genAI.inputs` (or the deprecated `sendDefaultPii` option) is `true`
-   * or if you set `isEnabled` to `true` in your ai SDK method telemetry settings.
-   * Integration-level options take precedence over global `dataCollection` config.
-   */
-  recordInputs?: boolean;
-  /**
-   * Enable or disable output recording. Enabled if `dataCollection.genAI.outputs` (or the deprecated `sendDefaultPii` option) is `true`
-   * or if you set `isEnabled` to `true` in your ai SDK method telemetry settings.
-   * Integration-level options take precedence over global `dataCollection` config.
-   */
-  recordOutputs?: boolean;
-
+export interface VercelAiOptions extends VercelAiBaseOptions {
   /**
    * By default, the instrumentation will register span processors only when the ai package is used.
    * If you want to register the span processors even when the ai package usage cannot be detected, you can set `force` to `true`.
    */
   force?: boolean;
-
-  /**
-   * Enable or disable truncation of recorded input messages.
-   * Defaults to `true`.
-   */
-  enableTruncation?: boolean;
 }
 
 export interface VercelAiIntegration extends Integration {

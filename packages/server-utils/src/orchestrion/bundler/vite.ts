@@ -1,7 +1,8 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
+import type { ResolvedConfig } from 'vite';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
-import { orchestrionTransformOptions } from './options';
+import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
 
 /**
  * Vite plugin that runs the orchestrion code transform on the bundled output.
@@ -29,6 +30,22 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType
       // `noExternal` entries with the user's config, so we don't overwrite
       // their additions.
       return { ssr: { noExternal: instrumentedModuleNames(options.instrumentations) } };
+    },
+    configResolved(config: ResolvedConfig): void {
+      // Explicit `ssr.external` string entries take priority over `noExternal`
+      // in Vite, so they defeat the force-bundling above. (`ssr.external: true`
+      // does not — `noExternal` entries still win there.)
+      const external = config.ssr?.external;
+      if (!Array.isArray(external)) {
+        return;
+      }
+      const moduleNames = instrumentedModuleNames(options.instrumentations);
+      const externalizedModules = moduleNames.filter(name =>
+        external.some(entry => externalEntryMatchesModule(entry, name)),
+      );
+      if (externalizedModules.length > 0) {
+        config.logger.warn(`[Sentry] ${externalizedModulesWarning(externalizedModules)}`);
+      }
     },
   };
 }

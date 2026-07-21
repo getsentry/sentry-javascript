@@ -130,6 +130,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 ## Coding Standards
 
 - Follow existing conventions — check neighboring files
+- Reach for existing utils before writing a new one. Most shared helpers live in `@sentry/core` (`packages/core/src/utils/`), with browser helpers in `packages/browser-utils/`. Search first (LSP `workspaceSymbol` or grep) for common needs (type guards in `is.ts`, object/array helpers, `normalize`, `dsn`, `merge`, string/url helpers). Reuse or extend the existing util rather than adding a near-duplicate; only introduce a new util when nothing fits.
 - Only use libraries already in the codebase
 - Never expose secrets or keys
 - When modifying files, cover all occurrences (including `src/` and `test/`)
