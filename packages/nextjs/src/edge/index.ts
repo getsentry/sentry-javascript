@@ -106,10 +106,11 @@ export function init(options: VercelEdgeOptions = {}): void {
       return;
     }
 
-    const normalizedRequest = getNormalizedRequestFromAttributes(spanAttributes);
-    if (normalizedRequest) {
-      getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
-    }
+    // Always write, so that a request without usable HTTP attributes clears stale data left on the
+    // (potentially shared) isolation scope by a previous request on a warm worker.
+    getIsolationScope().setSDKProcessingMetadata({
+      normalizedRequest: getNormalizedRequestFromAttributes(spanAttributes),
+    });
   });
 
   client?.on('spanStart', span => {

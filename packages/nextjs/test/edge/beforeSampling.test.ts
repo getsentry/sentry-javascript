@@ -115,7 +115,11 @@ describe('edge beforeSampling handler', () => {
     expect(getNormalizedRequest()).toBeUndefined();
   });
 
-  it('is a no-op when there are no usable HTTP attributes', () => {
+  it('clears stale normalizedRequest when there are no usable HTTP attributes', () => {
+    getIsolationScope().setSDKProcessingMetadata({
+      normalizedRequest: { method: 'GET', url: '/previous-request' },
+    });
+
     beforeSamplingHandler!({
       spanAttributes: {
         [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute',
