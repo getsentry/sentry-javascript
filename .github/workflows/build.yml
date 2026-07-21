@@ -567,7 +567,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20.19, 22.12, 24, 26]
+        node: [20.19, 22, 24, 26]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -793,7 +793,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20.19, 22.12, 24, 26]
+        node: [20.19, 22, 24, 26]
         typescript:
           - false
         use_orchestrion:
@@ -805,7 +805,7 @@ jobs:
           # No need to test orchestrion for v18
           - node: 20.19
             use_orchestrion: 'true'
-          - node: 22.12
+          - node: 22
             use_orchestrion: 'true'
           - node: 24
             use_orchestrion: 'true'
@@ -860,7 +860,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20.19, 22.12, 24, 26]
+        node: [20.19, 22, 24, 26]
         typescript:
           - false
         include:
@@ -923,7 +923,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20.19, 22.12, 24, 26]
+        node: [20.19, 22, 24, 26]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
