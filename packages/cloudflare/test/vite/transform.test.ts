@@ -11,6 +11,11 @@ function doWrappers(...names: string[]): Map<string, ClassWrapperKind> {
   return new Map(names.map(name => [name, 'durableObject']));
 }
 
+/** Build a `classWrappers` map with every given class name marked as a Workflow. */
+function workflowWrappers(...names: string[]): Map<string, ClassWrapperKind> {
+  return new Map(names.map(name => [name, 'workflow']));
+}
+
 function transform(code: string, ctx: TransformContext) {
   return applyAutoInstrumentTransforms(code, parseJS(code), ctx);
 }
@@ -231,7 +236,70 @@ describe('Durable Object class wrapping', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Combined transforms (DO + default export)
+// Workflow class wrapping
+// ---------------------------------------------------------------------------
+
+describe('Workflow class wrapping', () => {
+  const ctx: TransformContext = {
+    classWrappers: workflowWrappers('MyWorkflow'),
+    optionsFn: '(env) => ({})',
+  };
+
+  it('wraps an exported workflow class with instrumentWorkflowWithSentry', () => {
+    const code = [
+      'class WorkflowEntrypoint {}',
+      'export class MyWorkflow extends WorkflowEntrypoint {',
+      '  async run(event, step) {}',
+      '}',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result).toBeDefined();
+    expect(result.code).toContain('class __SENTRY_ORIGINAL_MyWorkflow__');
+    expect(result.code).not.toContain('export class MyWorkflow');
+    expect(result.code).toContain('export const MyWorkflow = __SENTRY__.instrumentWorkflowWithSentry(');
+    // A workflow must never be wrapped with the DO helper.
+    expect(result.code).not.toContain('instrumentDurableObjectWithSentry');
+    expect(result.wrappedClasses).toEqual(new Set(['MyWorkflow']));
+  });
+
+  it('wraps a workflow class exported via a specifier', () => {
+    const code = [
+      'class WorkflowEntrypoint {}',
+      'class MyWorkflow extends WorkflowEntrypoint {}',
+      'export { MyWorkflow };',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toContain(
+      'const MyWorkflow = __SENTRY__.instrumentWorkflowWithSentry((env) => ({}), __SENTRY_ORIGINAL_MyWorkflow__);',
+    );
+    expect(result.code).toContain('export { MyWorkflow };');
+    expect(result.wrappedClasses).toEqual(new Set(['MyWorkflow']));
+  });
+
+  it('counts a manually wrapped workflow export as wrapped without touching it', () => {
+    const code = [
+      "import { instrumentWorkflowWithSentry } from '@sentry/cloudflare';",
+      'class Impl {}',
+      'export const MyWorkflow = instrumentWorkflowWithSentry((env) => ({}), Impl);',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.wrappedClasses).toEqual(new Set(['MyWorkflow']));
+    expect(result.code).toBe(code);
+  });
+
+  it('ignores workflow classes not listed in wrangler config', () => {
+    const code = ['class WorkflowEntrypoint {}', 'export class SomeOtherWorkflow extends WorkflowEntrypoint {}'].join(
+      '\n',
+    );
+    expect(transform(code, ctx)).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Combined transforms (DO + Workflow + default export)
 // ---------------------------------------------------------------------------
 
 describe('combined transforms', () => {
@@ -239,6 +307,30 @@ describe('combined transforms', () => {
     classWrappers: doWrappers('MyDO'),
     optionsFn: '(env) => ({ dsn: env.SENTRY_DSN })',
   };
+
+  it('wraps a DO and a Workflow with their respective helpers', () => {
+    const mixed: TransformContext = {
+      classWrappers: new Map<string, ClassWrapperKind>([
+        ['MyDO', 'durableObject'],
+        ['MyWorkflow', 'workflow'],
+      ]),
+      optionsFn: '(env) => ({})',
+    };
+
+    const code = [
+      'class DurableObject {}',
+      'class WorkflowEntrypoint {}',
+      'export class MyDO extends DurableObject {}',
+      'export class MyWorkflow extends WorkflowEntrypoint {}',
+    ].join('\n');
+
+    const result = transform(code, mixed)!;
+    expect(result.code).toContain('export const MyDO = __SENTRY__.instrumentDurableObjectWithSentry(');
+    expect(result.code).toContain('export const MyWorkflow = __SENTRY__.instrumentWorkflowWithSentry(');
+    expect(result.wrappedClasses).toEqual(new Set(['MyDO', 'MyWorkflow']));
+    const importCount = (result.code.match(/import \* as __SENTRY__/g) ?? []).length;
+    expect(importCount).toBe(1);
+  });
 
   it('wraps both DO class and default export', () => {
     const code = [

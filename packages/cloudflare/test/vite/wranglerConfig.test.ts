@@ -2,6 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { unstable_readConfig } from 'wrangler';
 import { resolveWranglerConfig } from '../../src/vite/wranglerConfig';
 
 function writeTempDir(files: Record<string, string>): string {
@@ -246,5 +247,137 @@ describe('resolveWranglerConfig', () => {
       if (previous === undefined) delete process.env.CLOUDFLARE_ENV;
       else process.env.CLOUDFLARE_ENV = previous;
     }
+  });
+
+  it('parses workflow bindings', () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({
+        main: 'src/index.ts',
+        workflows: [
+          { name: 'my-workflow', binding: 'MY_WF', class_name: 'MyWorkflow' },
+          { name: 'other', binding: 'OTHER_WF', class_name: 'OtherWorkflow' },
+        ],
+      }),
+    });
+
+    const result = resolveWranglerConfig(dir);
+    expect(result!.config.workflows).toEqual([
+      { name: 'my-workflow', className: 'MyWorkflow' },
+      { name: 'other', className: 'OtherWorkflow' },
+    ]);
+  });
+
+  it('parses workflow bindings from TOML', () => {
+    const dir = writeTempDir({
+      'wrangler.toml': [
+        'main = "src/index.ts"',
+        '',
+        '[[workflows]]',
+        'name = "my-workflow"',
+        'binding = "MY_WF"',
+        'class_name = "MyWorkflow"',
+      ].join('\n'),
+    });
+
+    const result = resolveWranglerConfig(dir);
+    expect(result!.config.workflows).toEqual([{ name: 'my-workflow', className: 'MyWorkflow' }]);
+  });
+
+  it('skips workflow bindings with a script_name (class lives in another worker)', () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({
+        main: 'src/index.ts',
+        workflows: [
+          { name: 'local', binding: 'LOCAL_WF', class_name: 'LocalWorkflow' },
+          { name: 'external', binding: 'EXT_WF', class_name: 'ExternalWorkflow', script_name: 'other-worker' },
+        ],
+      }),
+    });
+
+    const result = resolveWranglerConfig(dir);
+    expect(result!.config.workflows).toEqual([{ name: 'local', className: 'LocalWorkflow' }]);
+  });
+
+  it('defaults workflows to an empty array when none are configured', () => {
+    const dir = writeTempDir({ 'wrangler.json': JSON.stringify({ main: 'src/index.ts' }) });
+
+    const result = resolveWranglerConfig(dir);
+    expect(result!.config.workflows).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// What `unstable_readConfig` exposes about service-binding `entrypoint`.
+//
+// These characterize the wrangler API directly (not our wrapper) to justify a
+// design decision: a service binding's `entrypoint` names a *named export on
+// the target worker being bound to*, not an entrypoint this worker exposes.
+// So it cannot, in general, tell auto-wrap which of *this* worker's exports is
+// a handler — with one exception: a self-binding (`service === own name`).
+// ---------------------------------------------------------------------------
+
+describe('unstable_readConfig: service-binding entrypoint semantics', () => {
+  function readConfig(files: Record<string, string>) {
+    const dir = writeTempDir(files);
+    return unstable_readConfig({ config: join(dir, Object.keys(files)[0]!) }, { hideWarnings: true });
+  }
+
+  it('resolves `main` to an absolute path', () => {
+    const raw = readConfig({
+      'wrangler.json': JSON.stringify({ main: 'src/index.ts', compatibility_date: '2024-01-01' }),
+    });
+    // Not the literal `src/index.ts` from the file — wrangler resolves it.
+    expect(raw.main).not.toBe('src/index.ts');
+    expect(raw.main?.endsWith(join('src', 'index.ts'))).toBe(true);
+  });
+
+  it("an outward service binding names the *target* worker's export, not ours", () => {
+    const raw = readConfig({
+      'wrangler.json': JSON.stringify({
+        name: 'worker-a',
+        main: 'src/index.ts',
+        compatibility_date: '2024-01-01',
+        services: [{ binding: 'MY_SVC', service: 'worker-b', entrypoint: 'SomeEntry' }],
+      }),
+    });
+
+    expect(raw.name).toBe('worker-a');
+    // `entrypoint` belongs to `worker-b`, a different worker this build isn't
+    // compiling — nothing in *our* entry file to wrap from this.
+    expect(raw.services).toEqual([{ binding: 'MY_SVC', service: 'worker-b', entrypoint: 'SomeEntry' }]);
+    expect(raw.services?.[0]?.service).not.toBe(raw.name);
+  });
+
+  it('a self-binding (service === own name) does name one of *our* exports', () => {
+    const raw = readConfig({
+      'wrangler.json': JSON.stringify({
+        name: 'worker-self',
+        main: 'src/index.ts',
+        compatibility_date: '2024-01-01',
+        services: [
+          { binding: 'SELF', service: 'worker-self', entrypoint: 'InternalEntry' },
+          { binding: 'OTHER', service: 'worker-x', entrypoint: 'RemoteEntry' },
+        ],
+      }),
+    });
+
+    // Only the self-bound entrypoint is ours; the other points at `worker-x`.
+    const ownEntrypoints = (raw.services ?? []).filter(s => s.service === raw.name).map(s => s.entrypoint);
+    expect(ownEntrypoints).toEqual(['InternalEntry']);
+  });
+
+  it('leaves `name` undefined when the config omits it (no self-binding is derivable)', () => {
+    const raw = readConfig({
+      'wrangler.json': JSON.stringify({
+        main: 'src/index.ts',
+        compatibility_date: '2024-01-01',
+        services: [{ binding: 'S', service: 'x', entrypoint: 'E' }],
+      }),
+    });
+
+    // Without a worker name there is no `service === name` to match against, so
+    // even self-bindings can't be identified.
+    expect(raw.name).toBeUndefined();
+    expect(raw.topLevelName).toBeUndefined();
   });
 });
