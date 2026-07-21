@@ -1,0 +1,33 @@
+{
+  "name": "cloudflare-autoinstrument",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
+    "test": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.35.0",
+    "@playwright/test": "~1.56.0",
+    "@cloudflare/workers-types": "^4.20260629.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^24.12.4",
+    "typescript": "^5.5.2",
+    "vite": "7.3.2",
+    "wrangler": "^4.61.0",
+    "ws": "^8.18.3"
+  },
+  "volta": {
+    "node": "24.15.0",
+    "extends": "../../package.json"
+  }
+}
