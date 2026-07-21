@@ -54,11 +54,11 @@ function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
   });
 }
 
-Deno.test('denoPostgresIntegration: included in default integrations (Deno 2.8.0+)', () => {
+Deno.test('pg instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
   const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
-  assert(names.includes('DenoPostgres'), `DenoPostgres should be in defaults, got ${names.join(', ')}`);
+  assert(names.includes('Postgres'), `Postgres should be in defaults, got ${names.join(', ')}`);
 });
 
 // The orchestrion runtime hook (`@sentry/deno/import`) only works as a FIRST
@@ -95,13 +95,7 @@ Deno.test('@sentry/deno/import: transforms pg so it publishes the orchestrion ch
   assert(line.includes('"runtime":["pg","pg-pool"]'), `expected runtime marker, got: ${line}`);
 });
 
-// Exercises the SDK path end-to-end: `init()` wires `denoPostgresIntegration`
-// (which installs the AsyncLocalStorage context strategy and subscribes to the
-// channel), and we drive the `orchestrion:pg:query` channel manually — the
-// same events the orchestrion transform publishes around `client.query()` —
-// so no live database is needed. Asserting a nested `db` span proves the
-// subscriber, the emitted attributes, AND the context-strategy wiring all work.
-Deno.test('denoPostgresIntegration: orchestrion:pg:query channel produces a nested db span', async () => {
+Deno.test('pg instrumentation: orchestrion:pg:query channel produces a nested db span', async () => {
   resetGlobals();
   const sink = transactionSink();
   init({

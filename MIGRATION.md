@@ -527,6 +527,19 @@ The `childProcessIntegration` was split into a `childProcessIntegration` (for `c
 > **TODO(v11):** Document how the two integrations are configured and what users who customized
 > `childProcessIntegration` need to change.
 
+### Deno default integrations renamed to match the other SDKs
+
+Affected SDKs: `@sentry/deno`.
+
+Several default integrations were renamed to match the names used by the other SDKs. The old `deno*Integration` exports are kept as deprecated aliases. If you relied on the old names (for example, to disable an integration), update them:
+
+- `DenoAmqplib` => `Amqplib`
+- `DenoKoa` => `Koa`
+- `DenoMongodb` => `Mongodb`
+- `DenoMongoose` => `Mongoose`
+- `DenoMysql` => `Mysql`
+- `DenoPostgres` => `Postgres`
+
 ## 6. Type Changes
 
 - Several public types that used `any` now use `unknown` — including `StackFrame`, `SamplingContext`,
