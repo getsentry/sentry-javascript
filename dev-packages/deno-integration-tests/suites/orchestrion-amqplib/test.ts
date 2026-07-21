@@ -61,13 +61,6 @@ Deno.test('amqplib instrumentation: included in default integrations (Deno 2.8.0
   assert(names.includes('Amqplib'), `Amqplib should be in defaults, got ${names.join(', ')}`);
 });
 
-// Exercises the SDK path end-to-end: `init()` installs the AsyncLocalStorage
-// context strategy and wires the default `amqplibChannelIntegration` (which
-// subscribes to the channel), and we drive the `orchestrion:amqplib:publish`
-// channel manually — the same events the orchestrion transform publishes around
-// `Channel.prototype.publish` — so no live broker is needed. Asserting a nested
-// producer `message` span proves the subscriber, the emitted attributes, AND the
-// context-strategy wiring all work.
 Deno.test('amqplib instrumentation: orchestrion:amqplib:publish channel produces a nested message span', async () => {
   resetGlobals();
   const sink = transactionSink();

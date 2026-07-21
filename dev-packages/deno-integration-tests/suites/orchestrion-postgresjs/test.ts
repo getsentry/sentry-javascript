@@ -54,14 +54,14 @@ function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
   });
 }
 
-Deno.test('koa instrumentation: included in default integrations (Deno 2.8.0+)', () => {
+Deno.test('postgres.js instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
   const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
-  assert(names.includes('Koa'), `Koa should be in defaults, got ${names.join(', ')}`);
+  assert(names.includes('PostgresJs'), `PostgresJs should be in defaults, got ${names.join(', ')}`);
 });
 
-Deno.test('koa instrumentation: orchestrion:koa:use channel wraps middleware into a span', async () => {
+Deno.test('postgres.js instrumentation: orchestrion:postgres:handle channel produces a nested db span', async () => {
   resetGlobals();
   const sink = transactionSink();
   init({
@@ -70,17 +70,23 @@ Deno.test('koa instrumentation: orchestrion:koa:use channel wraps middleware int
     beforeSendTransaction: sink.beforeSendTransaction,
   });
 
-  function myMiddleware(_context: unknown, next: () => Promise<unknown>): Promise<unknown> {
-    return next();
-  }
+  const channel = tracingChannel('orchestrion:postgres:handle');
 
-  // Publishing `start` runs the subscriber, which patches `arguments[0]` in place.
-  const ctx = { arguments: [myMiddleware] as unknown[] };
-  tracingChannel('orchestrion:koa:use').start.publish(ctx);
-  const wrappedMiddleware = ctx.arguments[0] as typeof myMiddleware;
+  // `self` is the postgres.js `Query`; `strings` is its tagged-template SQL parts.
+  // The span ends when postgres.js calls `query.resolve`, which the subscriber wraps.
+  const query = {
+    strings: ['SELECT name FROM users'],
+    executed: false,
+    resolve: (..._args: unknown[]) => undefined,
+    reject: (..._args: unknown[]) => undefined,
+  };
+  const ctx = { self: query };
 
-  await startSpan({ name: 'parent', op: 'test' }, async () => {
-    await wrappedMiddleware({}, () => Promise.resolve());
+  startSpan({ name: 'parent', op: 'test' }, () => {
+    // `start` creates the span and wraps `query.resolve`/`query.reject`.
+    channel.start.runStores(ctx, () => undefined);
+    // postgres.js signals completion by calling `resolve`; the wrapper ends the span.
+    query.resolve({ command: 'SELECT' });
   });
 
   const parent = await withTimeout(
@@ -89,8 +95,12 @@ Deno.test('koa instrumentation: orchestrion:koa:use channel wraps middleware int
     "'parent' transaction",
   );
 
-  const koaSpan = parent.spans?.find(s => s.op === 'middleware.koa');
-  assertExists(koaSpan, `expected a middleware.koa child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(koaSpan!.description, 'myMiddleware');
-  assertEquals(koaSpan!.data?.['sentry.origin'], 'auto.http.orchestrion.koa');
+  const pgSpan = parent.spans?.find(s => s.op === 'db');
+  assertExists(pgSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
+  assertEquals(pgSpan!.description, 'SELECT name FROM users');
+  assertEquals(pgSpan!.data?.['db.system.name'], 'postgres');
+  assertEquals(pgSpan!.data?.['db.query.text'], 'SELECT name FROM users');
+  // Set by the resolve wrapper from the `command` passed to `query.resolve`.
+  assertEquals(pgSpan!.data?.['db.operation.name'], 'SELECT');
+  assertEquals(pgSpan!.data?.['sentry.origin'], 'auto.db.orchestrion.postgresjs');
 });

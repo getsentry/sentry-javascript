@@ -112,8 +112,9 @@ export type { DenoHttpIntegrationOptions } from './integrations/http';
 export { denoRedisIntegration } from './integrations/redis';
 export type { DenoRedisIntegrationOptions } from './integrations/redis';
 // The orchestrion channel integrations, re-exported from `@sentry/server-utils`.
-// The first six are in the default set; `dataloader` and `knex` are opt-in (add
-// them to `integrations` to enable), matching Node.
+// Most are in the default set; `dataloader` and `knex` are opt-in (add them to
+// `integrations` to enable), matching Node. Re-export every one that `sdk.ts`
+// adds to the defaults, so users who customize `defaultIntegrations` can re-add it.
 export {
   amqplibChannelIntegration,
   dataloaderChannelIntegration,
@@ -123,6 +124,7 @@ export {
   mongooseChannelIntegration,
   mysqlChannelIntegration,
   postgresChannelIntegration,
+  postgresJsChannelIntegration,
 } from '@sentry/server-utils/orchestrion';
 // Deprecated aliases kept for back-compat. Each forwards to the shared
 // integration above, so its name is the shared name (e.g. `Mysql`), not the old
