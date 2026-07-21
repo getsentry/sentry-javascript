@@ -25,7 +25,7 @@
     "@sentry/cloudflare": "10.67.0",
     "@sentry/core": "10.67.0",
     "@sentry/hono": "10.67.0",
-    "hono": "^4.12.25",
+    "hono": "^4.12.27",
     "openai": "5.18.1"
   },
   "devDependencies": {
