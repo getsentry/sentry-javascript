@@ -282,7 +282,7 @@ function getSpanAttributesFromParsedUrl(
       attributes['url.path'] = parsedUrl.pathname;
     }
     if (!isURLObjectRelative(parsedUrl)) {
-      attributes['url.full'] = parsedUrl.href;
+      attributes[URL_FULL] = parsedUrl.href;
       if (parsedUrl.port) {
         attributes['url.port'] = parsedUrl.port;
       }
