@@ -53,7 +53,8 @@ export default [
           // turns `import * as x` into a copy, which breaks in-place monkey-patching that other
           // packages (e.g. the OTel fs instrumentation) depend on.
           interop: id =>
-            id?.startsWith('@apm-js-collab/code-transformer-bundler-plugins') || id?.startsWith('@apm-js-collab/tracing-hooks')
+            id?.startsWith('@apm-js-collab/code-transformer-bundler-plugins') ||
+            id?.startsWith('@apm-js-collab/tracing-hooks')
               ? 'auto'
               : 'esModule',
         },

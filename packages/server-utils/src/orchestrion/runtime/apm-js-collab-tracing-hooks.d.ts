@@ -3,7 +3,7 @@
 // `import` of the package entry still needs the module to resolve at type-check time.
 
 declare module '@apm-js-collab/tracing-hooks' {
-  import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+  type InstrumentationConfig = unknown;
 
   type PatchConfig = { instrumentations: InstrumentationConfig[] };
 
