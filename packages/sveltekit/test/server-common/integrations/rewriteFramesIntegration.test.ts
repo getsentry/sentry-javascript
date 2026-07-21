@@ -53,6 +53,45 @@ describe('rewriteFramesIteratee', () => {
   });
 
   it.each([
+    ['src/routes/universal-load-error/+page.ts', 'app:///src/routes/universal-load-error/+page.ts'],
+    ['./src/routes/server-load-error/+page.server.ts', 'app:///src/routes/server-load-error/+page.server.ts'],
+    ['src/hooks.server.ts', 'app:///src/hooks.server.ts'],
+  ])('rewrites and flags SvelteKit 3 app-relative source frames as in_app (%s)', (frameFilename, modifiedFilename) => {
+    const frame: StackFrame = {
+      filename: frameFilename,
+      lineno: 2,
+      colno: 9,
+      function: 'load',
+    };
+
+    const result = rewriteFramesIteratee({ ...frame });
+
+    expect(result).toStrictEqual({
+      filename: modifiedFilename,
+      lineno: 2,
+      colno: 9,
+      function: 'load',
+      in_app: true,
+    });
+  });
+
+  it.each([['node_modules/@sveltejs/kit/src/runtime/server/index.js'], ['node:internal/process/task_queues']])(
+    'does not rewrite or flag dependency/internal relative frames (%s)',
+    frameFilename => {
+      const frame: StackFrame = {
+        filename: frameFilename,
+        lineno: 1,
+        colno: 1,
+      };
+
+      const result = rewriteFramesIteratee({ ...frame });
+
+      expect(result.filename).toBe(frameFilename);
+      expect(result.in_app).toBeUndefined();
+    },
+  );
+
+  it.each([
     ['adapter-node', 'build', '/absolute/path/to/build/server/chunks/3-ab34d22f.js', 'app:///chunks/3-ab34d22f.js'],
     [
       'adapter-auto',
