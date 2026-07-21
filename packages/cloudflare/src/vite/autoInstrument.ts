@@ -88,6 +88,9 @@ export function sentryCloudflareAutoInstrumentPlugin(): UnknownPlugin {
       for (const { className } of wranglerConfig.workflows) {
         classWrappers.set(className, 'workflow');
       }
+      for (const className of wranglerConfig.workerEntrypoints) {
+        classWrappers.set(className, 'workerEntrypoint');
+      }
 
       // No registration import is injected here: the orchestrion plugin's
       // subscribe-injection makes each bundled package self-register its channel

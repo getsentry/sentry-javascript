@@ -1,4 +1,5 @@
 import MagicString from 'magic-string';
+import { detectWorkerEntrypointClasses } from './workerEntrypoint';
 
 // ---------------------------------------------------------------------------
 // Minimal ESTree node types for the AST nodes we inspect.
@@ -68,17 +69,27 @@ function isCallToMethod(node: BaseNode, methodName: string): boolean {
 }
 
 /**
- * The kind of Sentry wrapper to apply to a configured class export. Which kind
- * a class gets is decided by the wrangler config section its name was read from
- * (`durable_objects.bindings`, …) — never by inspecting the class body — so the
- * transform stays a purely syntactic rewrite.
+ * The kind of Sentry wrapper to apply to an exported class.
+ *
+ * `durableObject` and `workflow` are keyed by name from the wrangler config
+ * (`durable_objects.bindings`, `workflows`), since those class names are
+ * authoritative there. `workerEntrypoint` is different: a worker's own
+ * entrypoints aren't enumerated in its config, so they're detected structurally
+ * (a class extending `WorkerEntrypoint` from `cloudflare:workers`), with the
+ * config providing only a fallback for self-bound entrypoints whose base class
+ * lives in another module.
  */
-export type ClassWrapperKind = 'durableObject' | 'workflow';
+export type ClassWrapperKind = 'durableObject' | 'workflow' | 'workerEntrypoint';
 
-/** The `@sentry/cloudflare` helper each wrapper kind emits. */
+/**
+ * The `@sentry/cloudflare` helper each wrapper kind emits. All share the same
+ * `(optionsCallback, Class)` signature. `WorkerEntrypoint` classes use
+ * `withSentry`, which runtime-detects the class type and routes accordingly.
+ */
 const WRAPPER_METHODS: Record<ClassWrapperKind, string> = {
   durableObject: 'instrumentDurableObjectWithSentry',
   workflow: 'instrumentWorkflowWithSentry',
+  workerEntrypoint: 'withSentry',
 };
 
 export interface TransformContext {
@@ -126,20 +137,30 @@ export function applyAutoInstrumentTransforms(
   ctx: TransformContext,
 ): TransformResult | undefined {
   const ms = new MagicString(code);
+  const topLevelClasses = collectTopLevelClasses(ast);
   const state: TransformState = {
     ms,
     needsImport: false,
     wrappedClasses: new Set<string>(),
-    topLevelClasses: collectTopLevelClasses(ast),
+    topLevelClasses,
     renamedLocals: new Set<string>(),
+    classWrappers: ctx.classWrappers,
+    workerEntrypointClasses: detectWorkerEntrypointClasses(ast),
   };
   const { wrappedClasses } = state;
 
+  // Named exports first, regardless of source order: the default-export handler
+  // needs to know which local bindings a named export already wrapped, so it can
+  // skip a class that is both exported by name and re-exported as default (which
+  // would otherwise wrap it twice).
+  for (const node of ast.body) {
+    if (node.type === 'ExportNamedDeclaration') {
+      handleNamedExport(node as ExportNamedNode, ctx, state);
+    }
+  }
   for (const node of ast.body) {
     if (node.type === 'ExportDefaultDeclaration') {
       wrapDefaultExport(node as ExportDefaultNode, ctx, state);
-    } else if (node.type === 'ExportNamedDeclaration') {
-      handleNamedExport(node as ExportNamedNode, ctx, state);
     }
   }
 
@@ -175,6 +196,33 @@ interface TransformState {
    * the same class don't produce duplicate bindings.
    */
   renamedLocals: Set<string>;
+  /** Class name → wrapper kind, keyed by the *exported* name (from config). */
+  classWrappers: Map<string, ClassWrapperKind>;
+  /**
+   * Local class names detected as `WorkerEntrypoint` subclasses in this module,
+   * so they can be wrapped without a config entry.
+   */
+  workerEntrypointClasses: Set<string>;
+}
+
+/**
+ * Resolve the wrapper kind for a class export.
+ *
+ * Config (`classWrappers`) wins — it's authoritative for Durable Objects and
+ * Workflows, and provides the self-binding fallback for WorkerEntrypoints whose
+ * base class this module can't see. Otherwise a structurally-detected
+ * `WorkerEntrypoint` subclass (matched by its *local* name) gets wrapped with
+ * `withSentry`.
+ */
+function resolveWrapperKind(
+  exportedName: string,
+  localName: string | undefined,
+  state: TransformState,
+): ClassWrapperKind | undefined {
+  const configured = state.classWrappers.get(exportedName);
+  if (configured) return configured;
+  if (localName && state.workerEntrypointClasses.has(localName)) return 'workerEntrypoint';
+  return undefined;
 }
 
 function collectTopLevelClasses(ast: ProgramBody): Map<string, ClassDeclarationNode> {
@@ -192,6 +240,11 @@ function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state
 
   // Already wrapped — leave it alone
   if (isCallToMethod(decl, 'withSentry')) return;
+
+  // `export default Foo` where `Foo` is a local class already wrapped by a named
+  // export (e.g. a self-bound WorkerEntrypoint also used as the default handler).
+  // Wrapping again would produce `withSentry(withSentry(...))`.
+  if (decl.type === 'Identifier' && state.renamedLocals.has((decl as IdentifierNode).name)) return;
 
   // `export default <expr>` → `const __SENTRY_DEFAULT_EXPORT__ = <expr>`
   // MagicString positions are always relative to the original source.
@@ -246,7 +299,8 @@ function wrapInlineClassExport(
   state: TransformState,
 ): void {
   const classId = classDecl.id;
-  const kind = classId ? ctx.classWrappers.get(classId.name) : undefined;
+  // Inline export: the exported name and the local class name are the same.
+  const kind = classId ? resolveWrapperKind(classId.name, classId.name, state) : undefined;
   if (!classId || !kind) return;
 
   const className = classId.name;
@@ -272,10 +326,12 @@ function wrapInlineClassExport(
 function wrapSpecifierExport(specifier: ExportSpecifierNode, ctx: TransformContext, state: TransformState): void {
   if (specifier.type !== 'ExportSpecifier' || specifier.exported?.type !== 'Identifier') return;
   const exportedName = specifier.exported.name;
-  const kind = exportedName ? ctx.classWrappers.get(exportedName) : undefined;
-  if (!exportedName || !kind) return;
+  if (!exportedName) return;
 
   const localName = specifier.local?.type === 'Identifier' ? specifier.local.name : undefined;
+  const kind = resolveWrapperKind(exportedName, localName, state);
+  if (!kind) return;
+
   const localClass = localName ? state.topLevelClasses.get(localName) : undefined;
   if (!localName || !localClass?.id) return;
 
