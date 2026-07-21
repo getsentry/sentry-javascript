@@ -111,22 +111,16 @@ export async function injectServerInstrumentation(options: InjectServerInstrumen
     return;
   }
 
+  // Read the server entry directly rather than `existsSync`-then-read: checking first opens a
+  // file-system race (the file could change between check and use) and CodeQL flags it.
   const serverEntryPath = path.resolve(buildDirectory, 'server', serverBuildFile);
-  if (!fs.existsSync(serverEntryPath)) {
-    warn(`Could not find server build entry at \`${serverEntryPath}\` - skipping auto-injection.`);
+  let originalContent: string;
+  try {
+    originalContent = fs.readFileSync(serverEntryPath, 'utf-8');
+  } catch {
+    warn(`Could not read server build entry at \`${serverEntryPath}\` - skipping auto-injection.`);
     return;
   }
-
-  const instrumentationSourcePath = path.resolve(root, serverInstrumentationFile);
-  if (!fs.existsSync(instrumentationSourcePath)) {
-    warn(
-      `Could not find server instrumentation file at \`${instrumentationSourcePath}\`. ` +
-        'Create it (calling `Sentry.init`) or set the `autoInjectServerInstrumentation` option to `false`.',
-    );
-    return;
-  }
-
-  const originalContent = fs.readFileSync(serverEntryPath, 'utf-8');
 
   // Idempotency: if we already injected (e.g. a rebuild without cleaning the output dir), do nothing.
   if (originalContent.includes(SENTRY_AUTO_INJECT_MARKER)) {
@@ -135,9 +129,19 @@ export async function injectServerInstrumentation(options: InjectServerInstrumen
   }
 
   // Copy the user's instrumentation file next to the server entry so the build output is self-contained.
+  // Attempt the copy directly (no prior `existsSync` check) to avoid a check-then-use race.
   const copiedInstrumentationFileName = 'instrument.server.mjs';
   const copiedInstrumentationPath = path.resolve(buildDirectory, 'server', copiedInstrumentationFileName);
-  fs.copyFileSync(instrumentationSourcePath, copiedInstrumentationPath);
+  const instrumentationSourcePath = path.resolve(root, serverInstrumentationFile);
+  try {
+    fs.copyFileSync(instrumentationSourcePath, copiedInstrumentationPath);
+  } catch {
+    warn(
+      `Could not read server instrumentation file at \`${instrumentationSourcePath}\`. ` +
+        'Create it (calling `Sentry.init`) or set the `autoInjectServerInstrumentation` option to `false`.',
+    );
+    return;
+  }
   const instrumentationImportPath = `./${copiedInstrumentationFileName}`;
 
   fs.writeFileSync(serverEntryPath, generateTopLevelImportPrefix(instrumentationImportPath) + originalContent);
