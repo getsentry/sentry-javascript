@@ -82,8 +82,7 @@ export function getPortAndAddress(settings: FirestoreSettings): {
 function buildAttributes(reference: FirestoreReference): SpanAttributes {
   const firestoreApp: FirebaseApp = reference.firestore.app;
   const firestoreOptions: FirebaseOptions = firestoreApp.options;
-  const json: { settings?: FirestoreSettings } = reference.firestore.toJSON() || {};
-  const settings: FirestoreSettings = json.settings || {};
+  const settings: FirestoreSettings = reference.firestore.toJSON()?.settings || {};
 
   const attributes: SpanAttributes = {
     [DB_COLLECTION_NAME]: reference.path,
