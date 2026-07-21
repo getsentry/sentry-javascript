@@ -5,6 +5,7 @@ import {
   dedupeIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
+  GLOBAL_OBJ,
   inboundFiltersIntegration,
   initAndBind,
   linkedErrorsIntegration,
@@ -20,6 +21,23 @@ import { honoIntegration } from './integrations/hono';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
+
+/**
+ * Instantiate the channel-subscriber factories the `@sentry/cloudflare/vite`
+ * plugin registered on the global marker. The plugin splices a small snippet
+ * into each instrumented module that `.set`s its factory here (keyed by export
+ * name), so the marker holds one factory per package actually bundled.
+ *
+ * The marker is read directly instead of importing the factories, so a worker
+ * built without the plugin — where the channels never fire — ships none of this
+ * code.
+ * TODO(v11): Use `@sentry/server-utils/orchestrion` once we move to `nodejs_compat` by default.
+ */
+function getRegisteredChannelIntegrations(): Integration[] {
+  const registered = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations;
+
+  return registered ? [...registered.values()].map(factory => factory()) : [];
+}
 
 /** Get the default integrations for the Cloudflare SDK. */
 export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
@@ -44,6 +62,13 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     httpServerIntegration(),
     requestDataIntegration(cookiesEnabled ? undefined : { include: { cookies: false } }),
     consoleIntegration(),
+    // The orchestrion diagnostics-channel subscribers (mysql, pg, …). The
+    // `@sentry/cloudflare/vite` plugin injects the channels at build time and,
+    // next to each, a snippet that registers the matching subscriber factory on
+    // the global marker. Read from there instead of importing them so bundles
+    // built without the plugin — where the channels would never fire — don't
+    // ship the code.
+    ...getRegisteredChannelIntegrations(),
   ];
 }
 

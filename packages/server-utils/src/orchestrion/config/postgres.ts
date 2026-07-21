@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { toSubscribeInjections } from './subscribe-injection';
 
 // postgres.js (`postgres` npm package, v3.x). Named after the npm package;
 // `postgres` doesn't collide with `pg.ts` (that file instruments `pg`/`pg-pool`).
@@ -53,3 +54,5 @@ export const postgresJsChannels = {
   POSTGRESJS_EXECUTE: 'orchestrion:postgres:execute',
   POSTGRESJS_CONNECT: 'orchestrion:postgres:connect',
 } as const;
+
+export const postgresJsSubscribeInjection = toSubscribeInjections(postgresJsConfig);

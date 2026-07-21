@@ -19,6 +19,11 @@ interface VercelAiOptions {
    * Defaults to `true`.
    */
   enableTruncation?: boolean;
+
+  // `recordInputs`/`recordOutputs` are intentionally omitted: this entrypoint only post-processes
+  // spans the AI SDK already emitted, so it cannot decide whether inputs/outputs are recorded.
+  // Control this per call via `experimental_telemetry.recordInputs`/`recordOutputs`, or use the
+  // `@sentry/cloudflare/nodejs_compat` entrypoint for integration-level control on ai >= 7.
 }
 
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {

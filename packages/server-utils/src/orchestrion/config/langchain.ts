@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { toSubscribeInjections } from './subscribe-injection';
 
 // `@langchain/*` packages ship dual CJS/ESM builds (`.cjs` for `require`, `.js` for `import`) and the
 // matcher compares `filePath` exactly, so each hook is declared once per built file.
@@ -71,3 +72,5 @@ export const langchainChannels = {
   LANGCHAIN_CHAT_MODEL_INVOKE: 'orchestrion:@langchain/core:chatModelInvoke',
   LANGCHAIN_CHAT_MODEL_STREAM: 'orchestrion:@langchain/core:chatModelStream',
 } as const;
+
+export const langchainSubscribeInjection = toSubscribeInjections(langchainConfig);
