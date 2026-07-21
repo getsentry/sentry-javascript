@@ -123,6 +123,7 @@ export {
   mongodbChannelIntegration,
   mongooseChannelIntegration,
   mysqlChannelIntegration,
+  mysql2ChannelIntegration,
   postgresChannelIntegration,
   postgresJsChannelIntegration,
 } from '@sentry/server-utils/orchestrion';

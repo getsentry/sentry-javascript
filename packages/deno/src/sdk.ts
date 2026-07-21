@@ -17,6 +17,7 @@ import {
   mongodbChannelIntegration,
   mongooseChannelIntegration,
   mysqlChannelIntegration,
+  mysql2ChannelIntegration,
   postgresChannelIntegration,
   postgresJsChannelIntegration,
 } from '@sentry/server-utils/orchestrion';
@@ -77,6 +78,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
           mongodbChannelIntegration(),
           mongooseChannelIntegration(),
           mysqlChannelIntegration(),
+          mysql2ChannelIntegration(),
           postgresChannelIntegration(),
           postgresJsChannelIntegration(),
         ]
