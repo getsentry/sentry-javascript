@@ -223,7 +223,11 @@ export function _INTERNAL_getTracingHeadersForFetchRequest(
   const originalHeaders = fetchOptionsObj.headers || (isRequest(request) ? request.headers : undefined);
 
   if (!originalHeaders) {
-    return { ...traceHeaders };
+    return {
+      'sentry-trace': sentryTrace,
+      ...(baggage && { baggage }),
+      ...(traceparent && { traceparent }),
+    };
   } else if (isHeaders(originalHeaders)) {
     const newHeaders = new Headers(originalHeaders);
 
@@ -293,11 +297,11 @@ export function _INTERNAL_getTracingHeadersForFetchRequest(
 
     const newHeaders: {
       'sentry-trace': string;
-      baggage: string | undefined;
+      baggage?: string;
       traceparent?: string;
     } = Object.assign({}, originalHeaders, {
       'sentry-trace': (existingSentryTraceHeader as string | undefined) ?? sentryTrace,
-      baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
+      ...(newBaggageHeaders.length > 0 && { baggage: newBaggageHeaders.join(',') }),
     });
 
     if (propagateTraceparent && traceparent && !existingTraceparentHeader) {
