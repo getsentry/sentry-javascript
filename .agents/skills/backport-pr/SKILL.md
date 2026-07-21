@@ -6,10 +6,10 @@ argument-hint: '<pr-number-or-url> [target-major]  # e.g. 18211 v10; target defa
 
 # Backport a PR to a maintenance major branch
 
-`develop` is the current major (v11). Released changes now go onto the previous major's
-maintenance branch (`v10` by default). This skill cherry-picks a merged PR's changes onto
-that branch and opens a draft backport PR, following the same convention used for the v9
-backports.
+`develop` is the current major (v11). A change that also needs to ship on a still-maintained
+older major has to land on that major's branch too (`v10` by default). This skill cherry-picks
+a merged `develop` PR onto that branch and opens a draft backport PR, following the same
+convention used for the v9 backports.
 
 ## Inputs
 
