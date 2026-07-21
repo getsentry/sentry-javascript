@@ -32,9 +32,7 @@ If no PR is given, ask for it. Do not guess.
     `fix(cloudflare,deno,node): ...` -> `fix(v10/cloudflare,deno,node): ...`.
 - **PR body** is a single line: `Backport of: #<original-pr-number>`.
 - **PR is opened as a draft.**
-- **Working branch**: any local branch off the target major works — the name isn't
-  load-bearing (GitHub ignores it and contributors use varied prefixes). Just pick something
-  descriptive. What matters is the base branch and the commit/PR title conventions.
+- **Working branch**: branch off the target major and give it a descriptive name.
 - The changes come from the PR's **squash-merge commit** on `develop` (one commit per PR),
   so a single `git cherry-pick` normally covers the whole PR.
 
