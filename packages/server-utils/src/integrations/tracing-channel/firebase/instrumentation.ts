@@ -1,6 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { CHANNELS } from '../../../orchestrion/channels';
-import { bindTracingChannelToSpan, safeChannelCallback as safe } from '../../../tracing-channel';
+import { bindTracingChannelToSpan, safeChannelCallback } from '../../../tracing-channel';
 import type { FirestoreReference } from './firestore-types';
 import { startFirestoreSpan } from './firestore';
 import { wrapFunctionsRegistration } from './functions';
@@ -44,7 +44,7 @@ const NOOP = (): void => {};
 export function instrumentFirebase() {
   for (const { channel, spanName, useParent } of FIRESTORE_OPERATIONS) {
     bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<FirestoreChannelContext>(channel), data =>
-      safe(() => {
+      safeChannelCallback(() => {
         const reference = data.arguments[0] as FirestoreReference | undefined;
         if (!reference) {
           return undefined;
@@ -60,7 +60,7 @@ export function instrumentFirebase() {
     // registration call, so we only rewrap the handler argument here (in `start`) and open the
     // span inside that wrapper. The other lifecycle events are irrelevant, so no-op them.
     diagnosticsChannel.tracingChannel(channel).subscribe({
-      start: data => void safe(() => wrapFunctionsRegistration(data as { arguments: unknown[] }, triggerType)),
+      start: data => void safeChannelCallback(() => wrapFunctionsRegistration(data as { arguments: unknown[] }, triggerType)),
       end: NOOP,
       asyncStart: NOOP,
       asyncEnd: NOOP,

@@ -4,7 +4,7 @@ import { defineIntegration, extendIntegration, waitForTracingChannelBinding } fr
 import { graphqlIntegration as graphqlNativeIntegration } from '../../../graphql';
 import type { GraphqlDiagnosticChannelsOptions } from '../../../graphql/graphql-dc-subscriber';
 import { CHANNELS } from '../../../orchestrion/channels';
-import { bindTracingChannelToSpan, safeChannelCallback as safe } from '../../../tracing-channel';
+import { bindTracingChannelToSpan, safeChannelCallback } from '../../../tracing-channel';
 import {
   finalizeExecuteSpan,
   finalizeValidateSpan,
@@ -47,19 +47,19 @@ const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions =
 
       waitForTracingChannelBinding(() => {
         bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_PARSE), () =>
-          safe(() => startParseSpan()),
+          safeChannelCallback(() => startParseSpan()),
         );
 
         bindTracingChannelToSpan(
           diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_VALIDATE),
-          data => safe(() => startValidateSpan(data.arguments[1])),
-          { beforeSpanEnd: (span, data) => void safe(() => finalizeValidateSpan(span, data.result)) },
+          data => safeChannelCallback(() => startValidateSpan(data.arguments[1])),
+          { beforeSpanEnd: (span, data) => void safeChannelCallback(() => finalizeValidateSpan(span, data.result)) },
         );
 
         bindTracingChannelToSpan(
           diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_EXECUTE),
-          data => safe(() => startExecuteSpan(data.arguments, data.self, config, getConfig)),
-          { beforeSpanEnd: (span, data) => void safe(() => finalizeExecuteSpan(span, data.result)) },
+          data => safeChannelCallback(() => startExecuteSpan(data.arguments, data.self, config, getConfig)),
+          { beforeSpanEnd: (span, data) => void safeChannelCallback(() => finalizeExecuteSpan(span, data.result)) },
         );
       });
     },
