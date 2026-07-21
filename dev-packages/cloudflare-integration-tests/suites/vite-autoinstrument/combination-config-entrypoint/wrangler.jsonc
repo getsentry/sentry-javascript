@@ -1,0 +1,17 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-vite-autoinstrument-combination-config-entrypoint",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_als"],
+  // Self-binding names `AdminEntrypoint`; its base class is imported from another
+  // module, so structural detection can't see it and this config entry is what
+  // identifies it as a WorkerEntrypoint to wrap.
+  "services": [
+    {
+      "binding": "SELF",
+      "service": "cloudflare-vite-autoinstrument-combination-config-entrypoint",
+      "entrypoint": "AdminEntrypoint",
+    },
+  ],
+}

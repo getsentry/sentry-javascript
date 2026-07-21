@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-vite-autoinstrument-combination-entrypoint-do",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_als"],
+  "durable_objects": {
+    "bindings": [{ "name": "COUNTER", "class_name": "Counter" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Counter"] }],
+  // Self-binding so the worker's own `GreeterEntrypoint` is reachable.
+  "services": [
+    {
+      "binding": "SELF",
+      "service": "cloudflare-vite-autoinstrument-combination-entrypoint-do",
+      "entrypoint": "GreeterEntrypoint",
+    },
+  ],
+}
