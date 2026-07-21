@@ -94,7 +94,6 @@
     "packages/solidstart",
     "packages/svelte",
     "packages/sveltekit",
-    "packages/tanstackstart",
     "packages/tanstackstart-react",
     "packages/types",
     "packages/typescript",
