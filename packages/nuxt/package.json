@@ -59,9 +59,8 @@
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/node-core": "10.67.0",
-    "@sentry/rollup-plugin": "^5.3.0",
+    "@sentry/bundler-plugins": "10.67.0",
     "@sentry/server-utils": "10.67.0",
-    "@sentry/vite-plugin": "^5.3.0",
     "@sentry/vue": "10.67.0",
     "local-pkg": "^1.1.2"
   },

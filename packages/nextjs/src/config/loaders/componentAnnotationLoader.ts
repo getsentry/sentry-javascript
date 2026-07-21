@@ -1,4 +1,4 @@
-import { createComponentNameAnnotateHooks } from '@sentry/bundler-plugin-core';
+import { createComponentNameAnnotateHooks } from '@sentry/bundler-plugins/core';
 import type { LoaderThis } from './types';
 
 export type ComponentAnnotationLoaderOptions = {
@@ -9,7 +9,7 @@ export type ComponentAnnotationLoaderOptions = {
  * Turbopack loader that annotates React components with `data-sentry-component`,
  * `data-sentry-element`, and `data-sentry-source-file` attributes.
  *
- * This is the Turbopack equivalent of what `@sentry/webpack-plugin` does
+ * This is the Turbopack equivalent of what `@sentry/bundler-plugins/webpack` does
  * via the `reactComponentAnnotation` option and `@sentry/babel-plugin-component-annotate`.
  *
  * Options:

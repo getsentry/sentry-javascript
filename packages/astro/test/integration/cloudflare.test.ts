@@ -25,7 +25,7 @@ vi.mock('fs', async requireActual => {
   };
 });
 
-vi.mock('@sentry/vite-plugin', () => ({
+vi.mock('@sentry/bundler-plugins/vite', () => ({
   sentryVitePlugin: vi.fn(() => 'sentryVitePlugin'),
 }));
 

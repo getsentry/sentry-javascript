@@ -5,7 +5,7 @@ import type { SentryOptions } from '../../src/integration/types';
 
 const sentryVitePluginSpy = vi.fn(() => 'sentryVitePlugin');
 
-vi.mock('@sentry/vite-plugin', () => ({
+vi.mock('@sentry/bundler-plugins/vite', () => ({
   // @ts-expect-error - just mocking around
   sentryVitePlugin: vi.fn(args => sentryVitePluginSpy(args)),
 }));
