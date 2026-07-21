@@ -130,6 +130,7 @@ export {
   knexChannelIntegration,
   koaChannelIntegration,
   langChainChannelIntegration,
+  langGraphChannelIntegration,
   lruMemoizerChannelIntegration,
   mongodbChannelIntegration,
   mongooseChannelIntegration,
