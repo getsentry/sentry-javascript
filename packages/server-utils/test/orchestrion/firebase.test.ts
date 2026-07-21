@@ -9,6 +9,7 @@ import {
   setAsyncContextStrategy,
 } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
+import { getPortAndAddress } from '../../src/integrations/tracing-channel/firebase/firestore';
 import { firebaseChannelIntegration } from '../../src/orchestrion';
 import { CHANNELS } from '../../src/orchestrion/channels';
 
@@ -287,6 +288,82 @@ describe('firebaseChannelIntegration', () => {
       tracingChannel(CHANNELS.FIREBASE_FUNCTIONS_HTTP_REQUEST).traceSync(() => undefined, ctx);
 
       expect(ctx.arguments[0]).toBe(wrappedOnce);
+    });
+  });
+});
+
+describe('getPortAndAddress', () => {
+  describe('IPv6 addresses', () => {
+    it('parses an IPv6 address without a port', () => {
+      const { address, port } = getPortAndAddress({ host: '[2001:db8::1]' });
+
+      expect(address).toBe('2001:db8::1');
+      expect(port).toBeUndefined();
+    });
+
+    it('parses an IPv6 address with a port', () => {
+      const { address, port } = getPortAndAddress({ host: '[2001:db8::1]:8080' });
+
+      expect(address).toBe('2001:db8::1');
+      expect(port).toBe(8080);
+    });
+
+    it('parses IPv6 localhost without a port', () => {
+      const { address, port } = getPortAndAddress({ host: '[::1]' });
+
+      expect(address).toBe('::1');
+      expect(port).toBeUndefined();
+    });
+
+    it('parses IPv6 localhost with a port', () => {
+      const { address, port } = getPortAndAddress({ host: '[::1]:3000' });
+
+      expect(address).toBe('::1');
+      expect(port).toBe(3000);
+    });
+  });
+
+  describe('IPv4 and hostname addresses', () => {
+    it('parses an IPv4 address with a port', () => {
+      const { address, port } = getPortAndAddress({ host: '192.168.1.1:8080' });
+
+      expect(address).toBe('192.168.1.1');
+      expect(port).toBe(8080);
+    });
+
+    it('parses a hostname with a port', () => {
+      const { address, port } = getPortAndAddress({ host: 'localhost:3000' });
+
+      expect(address).toBe('localhost');
+      expect(port).toBe(3000);
+    });
+
+    it('parses a hostname without a port', () => {
+      const { address, port } = getPortAndAddress({ host: 'example.com' });
+
+      expect(address).toBe('example.com');
+      expect(port).toBeUndefined();
+    });
+
+    it('parses a fully-qualified hostname with a port', () => {
+      const { address, port } = getPortAndAddress({ host: 'example.com:4000' });
+
+      expect(address).toBe('example.com');
+      expect(port).toBe(4000);
+    });
+
+    it('handles an empty host string', () => {
+      const { address, port } = getPortAndAddress({ host: '' });
+
+      expect(address).toBe('');
+      expect(port).toBeUndefined();
+    });
+
+    it('returns no address or port when host is absent', () => {
+      const { address, port } = getPortAndAddress({});
+
+      expect(address).toBeUndefined();
+      expect(port).toBeUndefined();
     });
   });
 });
