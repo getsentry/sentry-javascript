@@ -1,0 +1,100 @@
+// <reference lib="deno.ns" />
+
+import { tracingChannel } from 'node:diagnostics_channel';
+import type { TransactionEvent } from '@sentry/core';
+import type { DenoClient } from '@sentry/deno';
+import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '@sentry/deno';
+import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
+import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
+import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
+
+function resetGlobals(): void {
+  getCurrentScope().clear();
+  getCurrentScope().setClient(undefined);
+  getIsolationScope().clear();
+  getGlobalScope().clear();
+}
+
+/** See deno-redis.test.ts — same sink shape, deduped for clarity. */
+function transactionSink(): {
+  beforeSendTransaction: (event: TransactionEvent) => null;
+  waitFor: (predicate: (event: TransactionEvent) => boolean) => Promise<TransactionEvent>;
+} {
+  const transactions: TransactionEvent[] = [];
+  const waiters: { predicate: (e: TransactionEvent) => boolean; resolve: (e: TransactionEvent) => void }[] = [];
+  return {
+    beforeSendTransaction(event) {
+      transactions.push(event);
+      for (let i = waiters.length - 1; i >= 0; i--) {
+        const w = waiters[i]!;
+        if (w.predicate(event)) {
+          waiters.splice(i, 1);
+          w.resolve(event);
+        }
+      }
+      return null;
+    },
+    waitFor(predicate) {
+      const already = transactions.find(predicate);
+      if (already) return Promise.resolve(already);
+      return new Promise<TransactionEvent>(resolve => {
+        waiters.push({ predicate, resolve });
+      });
+    },
+  };
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Timed out waiting for ${what} after ${ms}ms`)), ms);
+  });
+  return Promise.race([p, timeout]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
+}
+
+Deno.test('generic-pool instrumentation: included in default integrations (Deno 2.8.0+)', () => {
+  resetGlobals();
+  const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
+  const names = client.getOptions().integrations.map(i => i.name);
+  assert(names.includes('GenericPool'), `GenericPool should be in defaults, got ${names.join(', ')}`);
+});
+
+Deno.test('generic-pool instrumentation: orchestrion:generic-pool:acquire channel produces a nested span', async () => {
+  resetGlobals();
+  const sink = transactionSink();
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    beforeSendTransaction: sink.beforeSendTransaction,
+  });
+
+  const channel = tracingChannel('orchestrion:generic-pool:acquire');
+
+  // The subscriber ignores the payload; the span is a fixed `generic-pool.acquire`.
+  const ctx = { arguments: [] };
+
+  startSpan({ name: 'parent', op: 'test' }, () => {
+    channel.start.runStores(ctx, () => {
+      channel.end.publish(ctx);
+    });
+    channel.asyncStart.runStores(ctx, () => {
+      channel.asyncEnd.publish(ctx);
+    });
+  });
+
+  const parent = await withTimeout(
+    sink.waitFor(t => t.transaction === 'parent'),
+    5000,
+    "'parent' transaction",
+  );
+
+  // generic-pool sets a name + origin but no `op`, so match on description.
+  const poolSpan = parent.spans?.find(s => s.description === 'generic-pool.acquire');
+  assertExists(
+    poolSpan,
+    `expected a generic-pool.acquire span, got descriptions: ${parent.spans?.map(s => s.description).join(', ')}`,
+  );
+  assertEquals(poolSpan!.data?.['sentry.origin'], 'auto.db.orchestrion.generic_pool');
+});

@@ -13,6 +13,7 @@ import {
 } from '@sentry/core';
 import {
   amqplibChannelIntegration,
+  genericPoolChannelIntegration,
   koaChannelIntegration,
   mongodbChannelIntegration,
   mongooseChannelIntegration,
@@ -75,6 +76,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     ...(MODULE_REGISTER_HOOKS_SUPPORTED
       ? [
           amqplibChannelIntegration(),
+          genericPoolChannelIntegration(),
           koaChannelIntegration(),
           mongodbChannelIntegration(),
           mongooseChannelIntegration(),
