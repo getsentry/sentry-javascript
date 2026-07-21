@@ -1,7 +1,7 @@
 ---
 name: backport-pr
 description: Backport a merged PR to a maintenance major branch (v10 by default) in getsentry/sentry-javascript. Cherry-picks the PR's squash-merge commit onto the target branch, namespaces the commit/PR title scope (e.g. fix(core) -> fix(v10/core)), and opens a draft backport PR. Use when asked to backport a PR, or port a fix to v10 (or an older major like v9). Trigger phrases include "backport", "port to v10", "release this on v10".
-argument-hint: '<pr-url-or-number> [target-major]  # e.g. https://github.com/getsentry/sentry-javascript/pull/18211 v10; target defaults to v10'
+argument-hint: '<pr-number-or-url> [target-major]  # e.g. 18211 v10; target defaults to v10'
 ---
 
 # Backport a PR to a maintenance major branch
