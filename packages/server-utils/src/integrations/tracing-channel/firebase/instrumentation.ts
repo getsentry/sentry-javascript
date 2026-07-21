@@ -60,7 +60,8 @@ export function instrumentFirebase() {
     // registration call, so we only rewrap the handler argument here (in `start`) and open the
     // span inside that wrapper. The other lifecycle events are irrelevant, so no-op them.
     diagnosticsChannel.tracingChannel(channel).subscribe({
-      start: data => void safeChannelCallback(() => wrapFunctionsRegistration(data as { arguments: unknown[] }, triggerType)),
+      start: data =>
+        void safeChannelCallback(() => wrapFunctionsRegistration(data as { arguments: unknown[] }, triggerType)),
       end: NOOP,
       asyncStart: NOOP,
       asyncEnd: NOOP,
