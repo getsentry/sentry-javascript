@@ -121,6 +121,7 @@ export {
   expressChannelIntegration,
   genericPoolChannelIntegration,
   hapiChannelIntegration,
+  kafkajsChannelIntegration,
   knexChannelIntegration,
   koaChannelIntegration,
   lruMemoizerChannelIntegration,
