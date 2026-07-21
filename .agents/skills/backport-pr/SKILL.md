@@ -106,9 +106,12 @@ on a commit that doesn't match your local state).
 
 ```bash
 yarn format
-yarn lint
+yarn lint:fix
 yarn build:dev
 ```
+
+Use `lint:fix`, not `lint` — plain `yarn lint` only reports, so auto-fixable issues would
+otherwise survive to fail CI.
 
 Run tests scoped to the touched packages when possible (full `yarn test` if unsure). If the
 target major's toolchain differs and a check fails for reasons unrelated to the change, note
@@ -116,17 +119,21 @@ it for the user rather than silently skipping.
 
 ### 5. Finalize the commit (reword scope + fold in verification changes)
 
-Stage anything `yarn format`/`yarn lint` changed, then amend in one step: this both namespaces
-the subject scope with the major and captures the formatting fixes. The final message is the
-namespaced subject plus the one-line `Backport of:` body (this replaces the squash-merge body,
-matching the convention above). Do **not** add a `Co-Authored-By` line — the backport commit
-mirrors an existing commit rather than being new authored work.
+Stage the format/lint fixes, then amend in one step: this both namespaces the subject scope
+with the major and captures those fixes. The final message is the namespaced subject plus the
+one-line `Backport of:` body (this replaces the squash-merge body, matching the convention
+above). Do **not** add a `Co-Authored-By` line — the backport commit mirrors an existing commit
+rather than being new authored work.
 
 Build the namespaced title as in the convention above: `<prefix>(<major>/<scope>):` when the
 original had a scope, or `<prefix>(<major>):` when it didn't (never emit an empty `<major>/`).
 
+Stage only the files the cherry-pick and verification touched — `git add -u` restages tracked
+files without sweeping in unrelated local edits. Sanity-check the staged set with
+`git status` first if `yarn format` may have reformatted files outside the backport.
+
 ```bash
-git add -A
+git add -u
 git commit --amend -m "<namespaced-title>" -m "Backport of: #<PR>"
 ```
 
@@ -140,22 +147,27 @@ git status --porcelain   # expect no output
 
 ### 6. Push and open the draft PR
 
+`gh pr create` prints the new PR's URL — capture it, since step 7 needs its number.
+
 ```bash
 git push -u origin <branch>
 
-gh pr create \
+backport_url=$(gh pr create \
   --draft \
   --base <major> \
   --title "<namespaced-title>" \
-  --body "Backport of: #<PR>"
+  --body "Backport of: #<PR>")
+echo "$backport_url"
 ```
 
 ### 7. Cross-link on the original PR
 
-Add a note to the original PR pointing at the backport (mirrors `v9 backport: #NNNN`):
+Comment on the original PR with a link to the backport (e.g. `v10 backport: #NNNN`). Pass the
+URL captured above — `gh pr comment` accepts it directly, so you don't have to parse the number
+out:
 
 ```bash
-gh pr comment <PR> --body "<major> backport: #<new-backport-pr>"
+gh pr comment <PR> --body "<major> backport: $backport_url"
 ```
 
 ## Notes
