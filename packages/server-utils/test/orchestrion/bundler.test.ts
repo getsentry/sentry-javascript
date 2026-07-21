@@ -1,5 +1,3 @@
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import type { OnStartResult, PluginBuild } from 'esbuild';
 import type { NormalizedInputOptions, PluginContext } from 'rollup';
 import type { ResolvedConfig } from 'vite';

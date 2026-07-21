@@ -4,7 +4,6 @@ import {
   redisChannelIntegration,
   detectOrchestrionSetup,
 } from '@sentry/server-utils/orchestrion';
-import type { RegisterDiagnosticsChannelInjectionOptions } from '@sentry/server-utils/orchestrion/register';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import { cacheResponseHook } from '../integrations/tracing/redis/cache';
 import type { DiagnosticsChannelInjection } from './diagnosticsChannelInjection';
