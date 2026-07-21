@@ -26,6 +26,7 @@ import { postgresJsChannelIntegration } from '../integrations/tracing-channel/po
 import { tediousChannelIntegration } from '../integrations/tracing-channel/tedious';
 import { vercelAiChannelIntegration } from '../integrations/tracing-channel/vercel-ai';
 import { expressChannelIntegration } from '../integrations/tracing-channel/express';
+import { firebaseChannelIntegration } from '../integrations/tracing-channel/firebase';
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 // The runtime target of the subscribe-injection snippet: instrumented modules
@@ -64,6 +65,7 @@ export {
   tediousChannelIntegration,
   vercelAiChannelIntegration,
   expressChannelIntegration,
+  firebaseChannelIntegration,
 };
 export type { KoaChannelIntegrationOptions } from '../integrations/tracing-channel/koa';
 export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/tracing-channel/ioredis';
@@ -121,4 +123,5 @@ export const channelIntegrations = {
   kafkajsIntegration: kafkajsChannelIntegration,
   tediousIntegration: tediousChannelIntegration,
   awsIntegration: awsChannelIntegration,
+  firebaseIntegration: firebaseChannelIntegration,
 } as const;
