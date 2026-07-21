@@ -103,6 +103,25 @@ describe('edge beforeSampling handler', () => {
     });
   });
 
+  it('does not keep stale fields when the new request yields a partial normalizedRequest', () => {
+    getIsolationScope().setSDKProcessingMetadata({
+      normalizedRequest: { method: 'GET', url: '/previous-request?a=1', query_string: 'a=1' },
+    });
+
+    beforeSamplingHandler!({
+      spanAttributes: {
+        [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute',
+        'http.method': 'POST',
+        'http.target': '/current-request',
+      },
+    });
+
+    expect(getNormalizedRequest()).toEqual({
+      method: 'POST',
+      url: '/current-request',
+    });
+  });
+
   it('is a no-op for non-request span types', () => {
     beforeSamplingHandler!({
       spanAttributes: {

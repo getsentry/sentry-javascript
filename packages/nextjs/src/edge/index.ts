@@ -106,11 +106,16 @@ export function init(options: VercelEdgeOptions = {}): void {
       return;
     }
 
-    // Always write, so that a request without usable HTTP attributes clears stale data left on the
-    // (potentially shared) isolation scope by a previous request on a warm worker.
-    getIsolationScope().setSDKProcessingMetadata({
-      normalizedRequest: getNormalizedRequestFromAttributes(spanAttributes),
-    });
+    // Clear the key before writing: `setSDKProcessingMetadata` merges into nested objects, so a partial request
+    // (or none at all) would otherwise keep stale fields (e.g. `query_string`) left on the (potentially shared)
+    // isolation scope by a previous request on a warm worker.
+    const isolationScope = getIsolationScope();
+    isolationScope.setSDKProcessingMetadata({ normalizedRequest: undefined });
+
+    const normalizedRequest = getNormalizedRequestFromAttributes(spanAttributes);
+    if (normalizedRequest) {
+      isolationScope.setSDKProcessingMetadata({ normalizedRequest });
+    }
   });
 
   client?.on('spanStart', span => {
