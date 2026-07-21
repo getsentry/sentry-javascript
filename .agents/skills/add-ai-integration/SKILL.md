@@ -64,8 +64,8 @@ Reference: `packages/node/src/integrations/tracing/vercelai/`
 
 **Use when:** SDK has no native OTel support (OpenAI, Anthropic, Google GenAI)
 
-1. **Core:** Create `instrument{Provider}Client()` in `packages/core/src/tracing/{provider}/index.ts` — Proxy to wrap client methods, create spans manually
-2. **Node.js `instrumentation.ts`:** Patch module exports, wrap client constructor. Check `_INTERNAL_shouldSkipAiProviderWrapping()` for LangChain compatibility.
+1. **Core:** Create `instrument{Provider}Client()` in `packages/core/src/tracing/{provider}/index.ts` — Proxy to wrap client methods, create spans manually. As the lowest-level integration, bail out of span creation when `_INTERNAL_isAiProviderSpanSuppressed()` returns `true` (see Provider Span Suppression).
+2. **Node.js `instrumentation.ts`:** Patch module exports, wrap client constructor.
 3. **Node.js `index.ts`:** Export integration function using `generateInstrumentOnce()` helper
 
 Reference: `packages/node/src/integrations/tracing/openai/`
@@ -75,9 +75,16 @@ Reference: `packages/node/src/integrations/tracing/openai/`
 **Use when:** SDK provides lifecycle hooks (LangChain, LangGraph)
 
 1. **Core:** Create `create{Provider}CallbackHandler()` — implement SDK's callback interface, create spans in callbacks
-2. **Node.js `instrumentation.ts`:** Auto-inject callbacks by patching runnable methods. Disable underlying AI provider wrapping.
+2. **Node.js `instrumentation.ts`:** Auto-inject callbacks by patching runnable methods. Wrap the underlying call in `_INTERNAL_withSuppressedAiProviderSpans()` so the lower-level provider SDK doesn't create duplicate spans (see Provider Span Suppression).
 
 Reference: `packages/node/src/integrations/tracing/langchain/`
+
+## Provider Span Suppression
+
+When a higher-level integration (LangChain, LangGraph) drives a provider SDK, both would create spans for one call. Coordinate via the scope-based helpers in `packages/core/src/tracing/ai/suppression.ts`:
+
+- **Higher-level integration:** wrap the underlying call in `_INTERNAL_withSuppressedAiProviderSpans(() => ...)`.
+- **Lowest-level integration (talks to the provider SDK):** bail out of span creation when `_INTERNAL_isAiProviderSpanSuppressed()` is `true`, including embeddings paths that call the SDK internally.
 
 ## Auto-Instrumentation (Node.js)
 
@@ -99,6 +106,7 @@ Reference: `packages/node/src/integrations/tracing/langchain/`
 2. Set `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'auto.ai.{provider}'` (alphanumerics, `_`, `.` only)
 3. Truncate large data with helper functions from `utils.ts`
 4. `gen_ai.invoke_agent` for parent ops, `gen_ai.chat` for child ops
+5. Lowest-level provider integrations must check `_INTERNAL_isAiProviderSpanSuppressed()` before creating spans (see Provider Span Suppression)
 
 ## Checklist
 
