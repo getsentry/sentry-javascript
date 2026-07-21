@@ -1,26 +1,15 @@
-import { debug, GLOBAL_OBJ } from '@sentry/core';
-import { createRequire } from 'node:module';
+import { debug, GLOBAL_OBJ, parseSemver } from '@sentry/core';
 import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { isMainThread, MessageChannel, parentPort } from 'node:worker_threads';
+import { isMainThread, parentPort } from 'node:worker_threads';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 import type { register } from 'node:module';
-import type { InstrumentationConfig } from '..';
-
-type DiagnosticsEvent = { url: string; moduleName: string; error?: Error };
-
-type TracingHooksSync = {
-  initialize: (opts: { instrumentations: InstrumentationConfig[] }) => void;
-  resolve: Function;
-  load: Function;
-};
-
-type TracingHooksDiagnostics = {
-  setDiagnosticsHook: (callback: (event: DiagnosticsEvent) => void) => void;
-};
+import ModulePatch from '@apm-js-collab/tracing-hooks';
+import { initialize, load, resolve, createDiagnosticsPort } from '@apm-js-collab/tracing-hooks/hook-sync.mjs';
+import { setDiagnosticsHook } from '@apm-js-collab/tracing-hooks/lib/diagnostics.js';
 
 type NodeModule = {
-  registerHooks?: (options: unknown) => { deregister: () => void };
+  registerHooks?: (options: { load: Function; resolve: Function }) => { deregister: () => void };
   register?: typeof register;
 };
 
@@ -38,16 +27,14 @@ export interface RegisterDiagnosticsChannelInjectionOptions {
 
 /** `Module.registerHooks` only became stable in Node 24.13 / 25.1 and Deno 2.8. */
 function hasStableSyncModuleHooks(denoVersionString: string | undefined): boolean {
-  const parseVersion = (v: string): number[] => v.split('.').map(n => parseInt(n, 10));
-  const nodeVersion = parseVersion(process.versions.node ?? '0.0.0');
-  const denoVersion = parseVersion(denoVersionString ?? '0.0.0');
-  return (
-    (nodeVersion[0] ?? 0) > 25 ||
-    (nodeVersion[0] === 25 && (nodeVersion[1] ?? 0) >= 1) ||
-    (nodeVersion[0] === 24 && (nodeVersion[1] ?? 0) >= 13) ||
-    (denoVersion[0] ?? 0) > 2 ||
-    (denoVersion[0] === 2 && (denoVersion[1] ?? 0) >= 8)
-  );
+  const { major: nodeMajor = 0, minor: nodeMinor = 0 } = parseSemver(process.versions.node ?? '0.0.0');
+
+  if (nodeMajor > 25 || (nodeMajor === 25 && nodeMinor >= 1) || (nodeMajor === 24 && nodeMinor >= 13)) {
+    return true;
+  }
+
+  const { major: denoMajor = 0, minor: denoMinor = 0 } = parseSemver(denoVersionString ?? '0.0.0');
+  return denoMajor > 2 || (denoMajor === 2 && denoMinor >= 8);
 }
 
 /**
@@ -62,7 +49,7 @@ function hasStableSyncModuleHooks(denoVersionString: string | undefined): boolea
  * Libraries imported *after* this call publish the `tracingChannel` events that
  * the channel-based integrations subscribe to.
  */
-export function registerDiagnosticsChannelInjection(options?: RegisterDiagnosticsChannelInjectionOptions): void {
+export function registerDiagnosticsChannelInjection(_options?: RegisterDiagnosticsChannelInjectionOptions): void {
   // Skip Node's internal loader (hooks) threads, recognizable as the only threads without a
   // `parentPort`. Node re-runs `--require` preloads (though not `--import` ones) on the loader
   // thread it spawns for `Module.register()`, so this function runs there too — but that thread
@@ -82,34 +69,19 @@ export function registerDiagnosticsChannelInjection(options?: RegisterDiagnostic
   const globalAny = globalThis as { Bun?: unknown; Deno?: { version?: { deno?: string } } };
   const stableSyncHooks = hasStableSyncModuleHooks(globalAny.Deno?.version?.deno);
 
-  let thisModuleUrl: string;
-  /*! rollup-include-cjs-only */
-  thisModuleUrl = pathToFileURL(__filename).href;
-  /*! rollup-include-cjs-only-end */
-  /*! rollup-include-esm-only */
-  thisModuleUrl = import.meta.url;
-  /*! rollup-include-esm-only-end */
-
-  // Default: bare specifiers via a plain (aliased) `require`, so bundlers see and resolve them
-  // like any other dependency. Override: with `tracingHooksDir`, absolute paths are loaded through
-  // `createRequire`, which bundlers leave as a true runtime require — they must not statically
-  // resolve these (Turbopack fails the build on an absolute request, and the machinery breaks when
-  // bundled anyway). `createRequire` rather than ignore-comments because webpack only honors
-  // `webpackIgnore` on `import()`, not `require()` (it compiles the call to a broken module stub).
-  let nodeRequire: (specifier: string) => unknown;
-  /*! rollup-include-cjs-only */
-  nodeRequire = require;
-  /*! rollup-include-cjs-only-end */
-  /*! rollup-include-esm-only */
-  nodeRequire = createRequire(import.meta.url);
-  /*! rollup-include-esm-only-end */
-
-  const tracingHooksDir = options?.tracingHooksDir;
-  const requireFromHooksDir = tracingHooksDir ? createRequire(thisModuleUrl) : undefined;
-
   // `Module.registerHooks` / `Module.register` are newer than the @types/node
   // we build against, hence the cast.
   const mod = Module as NodeModule;
+
+  setDiagnosticsHook(({ moduleName, error }): void => {
+    if (error) {
+      debug.warn(`[orchestrion] failed to inject diagnostics-channel into ${moduleName}:`, error);
+    } else {
+      GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ || {};
+      GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime = GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime || [];
+      GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime.push(moduleName);
+    }
+  });
 
   // runs both at `--import` time and (synchronously) inside `Sentry.init()`,
   // so an unguarded throw would either abort startup or make `init()` throw.
@@ -117,39 +89,7 @@ export function registerDiagnosticsChannelInjection(options?: RegisterDiagnostic
   // incompatibility) we warn (DEBUG only) and continue without channel
   // injection
   try {
-    // `lib/diagnostics.js` is plain CJS, so unlike the ESM hook entry points it can be
-    // require()d on every supported Node version. It holds the hook state shared by
-    // everything that can transform a module on this thread (the sync ESM hooks and the
-    // `_compile` patch), so setting the hook once here covers both branches below.
-    const { setDiagnosticsHook } = (
-      requireFromHooksDir
-        ? requireFromHooksDir(`${tracingHooksDir}/lib/diagnostics.js`)
-        : nodeRequire('@apm-js-collab/tracing-hooks/lib/diagnostics.js')
-    ) as TracingHooksDiagnostics;
-
-    const onDiagnostics = ({ moduleName, error }: DiagnosticsEvent): void => {
-      if (error) {
-        debug.warn(`[orchestrion] failed to inject diagnostics-channel into ${moduleName}:`, error);
-      } else {
-        GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ || {};
-        GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime = GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime || [];
-        GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime.push(moduleName);
-      }
-    };
-
-    setDiagnosticsHook(onDiagnostics);
-
     if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
-      // Sync hooks cover CJS and ESM, no separate `_compile` patch needed.
-      // We require() this ESM module so that we can synchronously load it,
-      // including from a CommonJS Sentry build; all versions in
-      // stableSyncHooks support require(esm).
-      const { initialize, resolve, load } = (
-        requireFromHooksDir
-          ? requireFromHooksDir(`${tracingHooksDir}/hook-sync.mjs`)
-          : nodeRequire('@apm-js-collab/tracing-hooks/hook-sync.mjs')
-      ) as TracingHooksSync;
-
       initialize({ instrumentations: SENTRY_INSTRUMENTATIONS });
       mod.registerHooks({ resolve, load });
       debug.log('Registered diagnostics-channel injection via Module.registerHooks()');
@@ -160,23 +100,20 @@ export function registerDiagnosticsChannelInjection(options?: RegisterDiagnostic
       // `Module.register` resolves ESM-style: a bare package specifier is resolved against
       // `parentURL`, but a filesystem path (the `tracingHooksDir` override) is not a valid ESM
       // specifier and must be passed as a file:// URL.
-      const hookSpecifier = tracingHooksDir
-        ? pathToFileURL(`${tracingHooksDir}/hook.mjs`).href
-        : '@apm-js-collab/tracing-hooks/hook.mjs';
+      const diagnosticsPort = createDiagnosticsPort();
 
-      // The `Module.register` hooks run on a loader thread with its own copy of
-      // `lib/diagnostics.js`, so the hook set above never fires there; the loader thread
-      // posts diagnostics back over a MessagePort instead. This replicates
-      // `createDiagnosticsPort` from hook.mjs, which is ESM and therefore not
-      // synchronously loadable on all Node versions that take this branch.
-      const { port1, port2 } = new MessageChannel();
-      port1.on('message', onDiagnostics);
-      // The diagnostics channel must not keep the process alive.
-      port1.unref();
-      mod.register(hookSpecifier, {
-        parentURL: thisModuleUrl,
-        data: { instrumentations: SENTRY_INSTRUMENTATIONS, diagnosticsPort: port2 },
-        transferList: [port2],
+      let parentURL: string;
+      /*! rollup-include-cjs-only */
+      parentURL = pathToFileURL(__filename).href;
+      /*! rollup-include-cjs-only-end */
+      /*! rollup-include-esm-only */
+      parentURL = import.meta.url;
+      /*! rollup-include-esm-only-end */
+
+      mod.register('@apm-js-collab/tracing-hooks/hook.mjs', {
+        parentURL,
+        data: { instrumentations: SENTRY_INSTRUMENTATIONS, diagnosticsPort },
+        transferList: [diagnosticsPort],
       });
 
       // ALSO patch `Module.prototype._compile` for the CJS side: when an ESM
@@ -184,13 +121,6 @@ export function registerDiagnosticsChannelInjection(options?: RegisterDiagnostic
       // are resolved through the CJS machinery and never reach the ESM
       // register hook, so without this patch the file we want to instrument
       // loads untransformed.
-      const ModulePatch = (
-        requireFromHooksDir && tracingHooksDir
-          ? requireFromHooksDir(tracingHooksDir)
-          : nodeRequire('@apm-js-collab/tracing-hooks')
-      ) as new (opts: { instrumentations: unknown }) => {
-        patch: () => void;
-      };
       new ModulePatch({ instrumentations: SENTRY_INSTRUMENTATIONS }).patch();
       debug.log('Registered diagnostics-channel injection via Module.register()');
     } else {
