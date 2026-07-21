@@ -123,6 +123,7 @@ export {
   expressChannelIntegration,
   firebaseChannelIntegration,
   genericPoolChannelIntegration,
+  googleGenAIChannelIntegration,
   graphqlDiagnosticsChannelIntegration,
   hapiChannelIntegration,
   kafkajsChannelIntegration,
