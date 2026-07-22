@@ -152,12 +152,21 @@ function _init(
 ): NodeClient | undefined {
   applySdkMetadata(options, 'node');
 
+  // Resolve the tracing-affecting options (e.g. `SENTRY_TRACES_SAMPLE_RATE`) up front so that both
+  // the span-enablement gate below and default-integration selection see the final values. Without
+  // this, enabling tracing purely via env would leave `hasSpansEnabled` false at this point and skip
+  // the performance integrations. `getClientOptions` resolves the remaining options later.
+  const optionsWithResolvedTracing = {
+    ...options,
+    tracesSampleRate: getTracesSampleRate(options.tracesSampleRate),
+  };
+
   // EXPERIMENTAL: diagnostics-channel injection, opted into via
   // `experimentalUseDiagnosticsChannelInjection()`. Gated on span recording to
   // match the OTel integrations it replaces. With tracing off there are no
   // channel subscribers, so injecting is pointless work.
   const diagnosticsChannelInjection =
-    isDiagnosticsChannelInjectionEnabled() && hasSpansEnabled(options)
+    isDiagnosticsChannelInjectionEnabled() && hasSpansEnabled(optionsWithResolvedTracing)
       ? resolveDiagnosticsChannelInjection()
       : undefined;
 
@@ -168,7 +177,7 @@ function _init(
   }
 
   // Only use Node SDK defaults if none provided.
-  let defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(options);
+  let defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(optionsWithResolvedTracing);
 
   // When opted into diagnostics-channel injection, swap the channel-based
   // integrations in place of their OTel equivalents so the two don't both

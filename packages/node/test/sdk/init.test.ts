@@ -148,6 +148,29 @@ describe('init()', () => {
       );
     });
 
+    it('installs performance default instrumentations if tracing is enabled via `SENTRY_TRACES_SAMPLE_RATE`', () => {
+      const autoPerformanceIntegration = new MockIntegration('Some mock integration 4.5');
+      mockAutoPerformanceIntegrations.mockReset().mockImplementation(() => [autoPerformanceIntegration]);
+
+      process.env.SENTRY_TRACES_SAMPLE_RATE = '1';
+
+      try {
+        init({ dsn: PUBLIC_DSN });
+      } finally {
+        delete process.env.SENTRY_TRACES_SAMPLE_RATE;
+      }
+
+      expect(autoPerformanceIntegration.setupOnce).toHaveBeenCalledTimes(1);
+      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(1);
+
+      const client = getClient();
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          integrations: expect.arrayContaining([autoPerformanceIntegration]),
+        }),
+      );
+    });
+
     it('installs spanStreaming integration when traceLifecycle is "stream"', () => {
       init({ dsn: PUBLIC_DSN, traceLifecycle: 'stream' });
       const client = getClient();
