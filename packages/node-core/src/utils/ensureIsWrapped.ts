@@ -16,7 +16,7 @@ import { createMissingInstrumentationContext } from './createMissingInstrumentat
  */
 export function ensureIsWrapped(
   maybeWrappedFunction: unknown,
-  name: 'express' | 'connect' | 'fastify' | 'hapi' | 'koa' | 'hono',
+  name: 'express' | 'connect' | 'fastify' | 'hapi' | 'koa',
 ): void {
   const clientOptions = getClient<NodeClient>()?.getOptions();
   if (
