@@ -22,6 +22,8 @@ test('Sends successful transaction', async ({ baseURL }) => {
       'otel.kind': 'SERVER',
       'http.response.status_code': 200,
       'http.url': 'http://localhost:3030/test-success',
+      'url.full': 'http://localhost:3030/test-success',
+      'url.path': '/test-success',
       'http.host': 'localhost:3030',
       'net.host.name': 'localhost',
       'http.method': 'GET',

@@ -23,6 +23,8 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
       'otel.kind': 'SERVER',
       'http.response.status_code': 200,
       'http.url': 'http://localhost:3030/example-module/transaction',
+      'url.full': 'http://localhost:3030/example-module/transaction',
+      'url.path': '/example-module/transaction',
       'http.host': 'localhost:3030',
       'net.host.name': 'localhost',
       'http.method': 'GET',
