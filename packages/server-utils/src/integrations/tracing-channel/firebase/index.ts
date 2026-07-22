@@ -28,7 +28,8 @@ const _firebaseChannelIntegration = (() => {
  * diagnostics_channels the orchestrion code transform injects into firestore's `addDoc`/`getDocs`/
  * `setDoc`/`deleteDoc` and firebase-functions' `onX` registration functions, emitting spans identical
  * to the OTel integration — with a distinct `auto.firebase.orchestrion.*` origin. Requires the
- * orchestrion runtime hook or bundler plugin — wire it up via `experimentalUseDiagnosticsChannelInjection()`.
+ * orchestrion runtime hook or bundler plugin; `@sentry/node`'s `Sentry.init()` installs the runtime
+ * hook by default.
  *
  * @experimental
  */

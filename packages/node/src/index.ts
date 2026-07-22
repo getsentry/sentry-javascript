@@ -6,6 +6,7 @@ export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tra
 export {
   amqplibChannelIntegration as amqplibIntegration,
   expressChannelIntegration as expressIntegration,
+  firebaseChannelIntegration as firebaseIntegration,
   genericPoolChannelIntegration as genericPoolIntegration,
   graphqlDiagnosticsChannelIntegration as graphqlIntegration,
   hapiChannelIntegration as hapiIntegration,
@@ -41,7 +42,6 @@ export {
   unleashIntegration,
   growthbookIntegration,
 } from './integrations/featureFlagShims';
-export { firebaseIntegration } from './integrations/tracing/firebase';
 
 export {
   init,
