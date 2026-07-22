@@ -102,8 +102,6 @@ export {
   instrumentStateGraphCompile,
   instrumentCreateReactAgent,
   instrumentStateGraph,
-  // eslint-disable-next-line typescript/no-deprecated
-  instrumentLangGraph,
   instrumentCompiledGraphInvoke,
   _INTERNAL_getLangGraphCreateAgentSpanOptions,
 } from './tracing/langgraph';
