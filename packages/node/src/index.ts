@@ -8,10 +8,10 @@ export {
   expressChannelIntegration as expressIntegration,
   hapiChannelIntegration as hapiIntegration,
   koaChannelIntegration as koaIntegration,
+  mongodbChannelIntegration as mongoIntegration,
 } from '@sentry/server-utils/orchestrion';
 export { kafkaIntegration } from './integrations/tracing/kafka';
 export { lruMemoizerIntegration } from './integrations/tracing/lrumemoizer';
-export { mongoIntegration } from './integrations/tracing/mongo';
 export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
