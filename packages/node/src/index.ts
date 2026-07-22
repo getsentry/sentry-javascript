@@ -1,9 +1,12 @@
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
-export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
+export { expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export { graphqlIntegration } from './integrations/tracing/graphql';
+export {
+  expressChannelIntegration as expressIntegration,
+} from '@sentry/server-utils/orchestrion';
 export { kafkaIntegration } from './integrations/tracing/kafka';
 export { lruMemoizerIntegration } from './integrations/tracing/lrumemoizer';
 export { mongoIntegration } from './integrations/tracing/mongo';

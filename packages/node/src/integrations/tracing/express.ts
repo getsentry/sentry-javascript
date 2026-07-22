@@ -6,11 +6,9 @@ import { generateInstrumentOnce } from '../../otel/instrument';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 import {
   type ExpressIntegrationOptions,
-  type IntegrationFn,
   debug,
   patchExpressModule,
   SDK_VERSION,
-  defineIntegration,
   setupExpressErrorHandler as coreSetupExpressErrorHandler,
   type ExpressHandlerOptions,
 } from '@sentry/core';
@@ -67,13 +65,3 @@ export class ExpressInstrumentation extends InstrumentationBase<ExpressInstrumen
     return module;
   }
 }
-const _expressIntegration = ((options?: ExpressInstrumentationConfig) => {
-  return {
-    name: INTEGRATION_NAME,
-    setupOnce() {
-      instrumentExpress(options);
-    },
-  };
-}) satisfies IntegrationFn;
-
-export const expressIntegration = defineIntegration(_expressIntegration);
