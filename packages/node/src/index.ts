@@ -5,6 +5,7 @@ export { expressErrorHandler, setupExpressErrorHandler } from './integrations/tr
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export {
   amqplibChannelIntegration as amqplibIntegration,
+  anthropicChannelIntegration as anthropicAIIntegration,
   expressChannelIntegration as expressIntegration,
   firebaseChannelIntegration as firebaseIntegration,
   genericPoolChannelIntegration as genericPoolIntegration,
@@ -29,7 +30,6 @@ export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export { knexIntegration } from './integrations/tracing/knex';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
-export { anthropicAIIntegration } from './integrations/tracing/anthropic-ai';
 export { googleGenAIIntegration } from './integrations/tracing/google-genai';
 export { langChainIntegration } from './integrations/tracing/langchain';
 export { langGraphIntegration } from './integrations/tracing/langgraph';
