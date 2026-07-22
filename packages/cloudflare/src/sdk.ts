@@ -17,7 +17,6 @@ import { CloudflareClient } from './client';
 import { makeFlushLock } from './flush';
 import { httpServerIntegration } from './integrations/httpServer';
 import { fetchIntegration } from './integrations/fetch';
-import { honoIntegration } from './integrations/hono';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
@@ -57,8 +56,6 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     conversationIdIntegration(),
     linkedErrorsIntegration(),
     fetchIntegration(),
-    // eslint-disable-next-line typescript/no-deprecated
-    honoIntegration(),
     httpServerIntegration(),
     requestDataIntegration(cookiesEnabled ? undefined : { include: { cookies: false } }),
     consoleIntegration(),
