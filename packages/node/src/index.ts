@@ -6,6 +6,7 @@ export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tra
 export { graphqlIntegration } from './integrations/tracing/graphql';
 export {
   expressChannelIntegration as expressIntegration,
+  koaChannelIntegration as koaIntegration,
 } from '@sentry/server-utils/orchestrion';
 export { kafkaIntegration } from './integrations/tracing/kafka';
 export { lruMemoizerIntegration } from './integrations/tracing/lrumemoizer';
@@ -18,7 +19,7 @@ export { postgresIntegration } from './integrations/tracing/postgres';
 export { postgresJsIntegration } from './integrations/tracing/postgresjs';
 export { prismaIntegration } from '@sentry/server-utils';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
-export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
+export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export { knexIntegration } from './integrations/tracing/knex';
 export { tediousIntegration } from './integrations/tracing/tedious';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
