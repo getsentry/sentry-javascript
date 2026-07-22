@@ -16,6 +16,7 @@ const reexportedPluggableIntegrationFiles = [
   'instrumentanthropicaiclient',
   'instrumentopenaiclient',
   'instrumentgooglegenaiclient',
+  'instrumentstategraph',
   'instrumentlanggraph',
   'createlangchaincallbackhandler',
   'instrumentlangchainembeddings',

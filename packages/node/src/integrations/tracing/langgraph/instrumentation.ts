@@ -6,7 +6,7 @@ import {
 } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleFile } from '../InstrumentationNodeModuleFile';
 import type { CompiledGraph, LangGraphOptions } from '@sentry/core';
-import { getClient, instrumentCreateReactAgent, instrumentLangGraph, SDK_VERSION } from '@sentry/core';
+import { getClient, instrumentCreateReactAgent, instrumentStateGraph, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=0.0.0 <2.0.0'];
 
@@ -100,7 +100,7 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
 
     // Patch StateGraph.compile to instrument both compile() and invoke()
     if (exports.StateGraph && typeof exports.StateGraph === 'function') {
-      instrumentLangGraph(exports.StateGraph.prototype as { compile: (...args: unknown[]) => unknown }, options);
+      instrumentStateGraph(exports.StateGraph.prototype as { compile: (...args: unknown[]) => unknown }, options);
     }
 
     // Patch createReactAgent to instrument agent creation and invocation
