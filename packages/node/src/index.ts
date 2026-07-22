@@ -9,13 +9,13 @@ export {
   expressChannelIntegration as expressIntegration,
   genericPoolChannelIntegration as genericPoolIntegration,
   hapiChannelIntegration as hapiIntegration,
+  kafkajsChannelIntegration as kafkaIntegration,
   koaChannelIntegration as koaIntegration,
   lruMemoizerChannelIntegration as lruMemoizerIntegration,
   mongodbChannelIntegration as mongoIntegration,
   mongooseChannelIntegration as mongooseIntegration,
   tediousChannelIntegration as tediousIntegration,
 } from '@sentry/server-utils/orchestrion';
-export { kafkaIntegration } from './integrations/tracing/kafka';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
 export { redisIntegration } from './integrations/tracing/redis';

@@ -102,8 +102,8 @@ const _kafkajsChannelIntegration = (() => {
  *
  * Subscribes to the `orchestrion:kafkajs:*` diagnostics_channels that the orchestrion code transform
  * injects into `kafkajs`'s `producer/messageProducer.js` (`sendBatch`) and `consumer/index.js` (`run`).
- * Requires the orchestrion runtime hook or bundler plugin to be active — wire that up via
- * `experimentalUseDiagnosticsChannelInjection`.
+ * Requires the orchestrion runtime hook or bundler plugin to be active; `@sentry/node`'s
+ * `Sentry.init()` installs the runtime hook by default.
  *
  * Known limitation vs. the OTel integration it replaces: the wrapping producer-`transaction` span is
  * not emitted (the transformer can't replace `transaction()`'s return value to patch commit/abort).
