@@ -1,12 +1,9 @@
-import { instrumentUndici, type NodeFetchOptions } from '@sentry/node-core';
-import type { NodeClientOptions } from '../types';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
+import type { NodeClientOptions } from '../../types';
+import type { NodeFetchOptions } from './types';
+import { instrumentUndici } from './undici-instrumentation';
 
-/**
- * This is a variant of the node-core integration where the default for spans is different.
- * In v11, this will be the only implementation.
- */
 const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   return {
     name: 'NodeFetch' as const,

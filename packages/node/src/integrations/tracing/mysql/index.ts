@@ -1,7 +1,7 @@
 import { MySQLInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 
 const INTEGRATION_NAME = 'Mysql' as const;
 

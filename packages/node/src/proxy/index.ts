@@ -98,7 +98,7 @@ export class HttpsProxyAgent<Uri extends string> extends Agent {
   }
 
   /**
-   * Called when the node-core HTTP client library is creating a
+   * Called when the HTTP client library is creating a
    * new HTTP request.
    */
   async connect(req: http.ClientRequest, opts: AgentConnectOpts): Promise<net.Socket> {

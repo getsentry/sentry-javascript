@@ -1,7 +1,7 @@
 import { MySQL2Instrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { mysql2Integration as mysql2ChannelIntegration } from '@sentry/server-utils';
 
 const INTEGRATION_NAME = 'Mysql2' as const;

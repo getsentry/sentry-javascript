@@ -1,6 +1,6 @@
 import type { GoogleGenAIOptions, IntegrationFn } from '@sentry/core';
 import { defineIntegration, GOOGLE_GENAI_INTEGRATION_NAME } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { SentryGoogleGenAiInstrumentation } from './instrumentation';
 
 export const instrumentGoogleGenAI = generateInstrumentOnce<GoogleGenAIOptions>(

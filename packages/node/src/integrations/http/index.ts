@@ -1,14 +1,14 @@
 import type { RequestOptions } from 'node:http';
 import type { HttpClientRequest, HttpIncomingMessage, HttpServerResponse, Span } from '@sentry/core';
-import { defineIntegration, hasSpansEnabled, stripDataUrlContent, getRequestUrlFromClientRequest } from '@sentry/core';
-import type {
-  NodeClient,
-  SentryHttpInstrumentationOptions,
-  HttpServerIntegrationOptions,
-  HttpServerSpansIntegrationOptions,
-} from '@sentry/node-core';
-import { httpServerIntegration, httpServerSpansIntegration, instrumentHttpOutgoingRequests } from '@sentry/node-core';
 import { URL_FULL } from '@sentry/conventions/attributes';
+import { defineIntegration, getRequestUrlFromClientRequest, hasSpansEnabled, stripDataUrlContent } from '@sentry/core';
+import type { NodeClient } from '../../sdk/client';
+import type { HttpServerIntegrationOptions } from './httpServerIntegration';
+import { httpServerIntegration } from './httpServerIntegration';
+import type { HttpServerSpansIntegrationOptions } from './httpServerSpansIntegration';
+import { httpServerSpansIntegration } from './httpServerSpansIntegration';
+import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
+import { instrumentHttpOutgoingRequests } from './SentryHttpInstrumentation';
 
 const INTEGRATION_NAME = 'Http' as const;
 

@@ -1,6 +1,6 @@
 import type { IntegrationFn, LangGraphOptions } from '@sentry/core';
 import { defineIntegration, LANGGRAPH_INTEGRATION_NAME } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { SentryLangGraphInstrumentation } from './instrumentation';
 
 export const instrumentLangGraph = generateInstrumentOnce<LangGraphOptions>(

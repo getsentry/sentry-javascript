@@ -234,7 +234,7 @@ function instrumentHttpOutgoingRequestsViaMonkeyPatching(options: HttpInstrument
  * - Span creation for outgoing requests (when createSpansForOutgoingRequests is enabled)
  *
  * Span creation requires Node 22+ and uses diagnostic channels to avoid monkey-patching.
- * By default, this is only enabled in the node SDK, not in node-core or other runtime SDKs.
+ * By default, this is only enabled in the node SDK, not in other runtime SDKs that reuse this instrumentation.
  *
  * Important note: Contrary to other OTEL instrumentation, this one cannot be unwrapped.
  *
