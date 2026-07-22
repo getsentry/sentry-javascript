@@ -221,6 +221,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected readonly _dataCollection: ResolvedDataCollection;
 
   /**
+   * The session status to set when an unhandled error terminates a session.
+   *
+   * Defaults to `'crashed'`. Browser SDKs override this to `'unhandled'` because unhandled errors
+   * don't actually crash the browser.
+   */
+  protected _unhandledSessionStatus: SessionStatus;
+
+  /**
    * Initializes this client instance.
    *
    * @param options Options for the client.
@@ -234,6 +242,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._eventProcessors = [];
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
     this._dataCollection = resolveDataCollectionOptions(options);
+    this._unhandledSessionStatus = 'crashed';
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -1280,21 +1289,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     if (shouldUpdateAndSend) {
       updateSession(session, {
-        ...(crashed && { status: this._getUnhandledSessionStatus() }),
+        ...(crashed && { status: this._unhandledSessionStatus }),
         errors: session.errors || Number(errored || crashed),
       });
       this.captureSession(session);
     }
-  }
-
-  /**
-   * The session status to set when an unhandled error terminates a session.
-   *
-   * Defaults to `'crashed'`. Browser SDKs override this to `'unhandled'` because unhandled errors
-   * don't actually crash the browser.
-   */
-  protected _getUnhandledSessionStatus(): SessionStatus {
-    return 'crashed';
   }
 
   /**

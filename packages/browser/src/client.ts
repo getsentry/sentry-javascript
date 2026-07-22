@@ -7,7 +7,6 @@ import type {
   Options as CoreOptions,
   ParameterizedString,
   Scope,
-  SessionStatus,
   SeverityLevel,
 } from '@sentry/core/browser';
 import { addAutoIpAddressToSession, applySdkMetadata, Client, getSDKSource } from '@sentry/core/browser';
@@ -87,6 +86,9 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     super(opts);
 
+    // Unhandled errors don't actually crash the browser, so we report `unhandled` rather than `crashed`.
+    this._unhandledSessionStatus = 'unhandled';
+
     const { userInfo } = this.getDataCollectionOptions();
 
     if (opts._metadata?.sdk) {
@@ -157,14 +159,6 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     event.platform = event.platform || 'javascript';
 
     return super._prepareEvent(event, hint, currentScope, isolationScope);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  protected _getUnhandledSessionStatus(): SessionStatus {
-    // Unhandled errors don't actually crash the browser, so we report `unhandled` rather than `crashed`.
-    return 'unhandled';
   }
 }
 
