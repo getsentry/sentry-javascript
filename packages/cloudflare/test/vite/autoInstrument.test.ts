@@ -53,7 +53,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       "import { withSentry } from '@sentry/cloudflare';",
       'export default withSentry((env) => ({}), { fetch() {} });',
     ].join('\n');
-    // Nothing to wrap → no transform result.
+    // No DO classes configured and nothing to wrap → no transform result.
     expect(tx(code, entryPath)).toBeUndefined();
   });
 
@@ -107,6 +107,31 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       entryPath,
     );
     expect(result).toBeUndefined();
+  });
+
+  it('warns when a configured DO class cannot be wrapped', () => {
+    const dir = writeTempDir({
+      'wrangler.toml': [
+        'main = "index.ts"',
+        '',
+        '[[durable_objects.bindings]]',
+        'name = "MY_DO"',
+        'class_name = "MyDO"',
+      ].join('\n'),
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const warnings: string[] = [];
+    const code = "export { MyDO } from './do';";
+    plugin.transform.call(
+      { parse: (c: string) => parseJS(c), warn: (msg: string) => warnings.push(msg) },
+      code,
+      join(dir, 'index.ts'),
+    );
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('MyDO');
   });
 });
 
@@ -171,5 +196,22 @@ describe('instrument file auto-detection', () => {
     const result = tx(code, entryPath)!;
     expect(result.code).not.toContain('__SENTRY_OPTIONS_CALLBACK__');
     expect(result.code).toContain('__SENTRY__.withSentry(() => undefined,');
+  });
+
+  it('applies the detected callback to Durable Object classes too', () => {
+    const { transform: tx, entryPath } = createPluginWithDir({
+      'wrangler.toml': [
+        'main = "index.ts"',
+        '',
+        '[[durable_objects.bindings]]',
+        'name = "MY_DO"',
+        'class_name = "MyDO"',
+      ].join('\n'),
+      'instrument.server.ts': 'export default (env) => ({ dsn: env.SENTRY_DSN });',
+    });
+
+    const code = ['class DurableObject {}', 'export class MyDO extends DurableObject {}'].join('\n');
+    const result = tx(code, entryPath)!;
+    expect(result.code).toContain('__SENTRY__.instrumentDurableObjectWithSentry(__SENTRY_OPTIONS_CALLBACK__,');
   });
 });
