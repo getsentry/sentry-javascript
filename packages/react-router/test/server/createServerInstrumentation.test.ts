@@ -1,4 +1,5 @@
 import * as otelApi from '@opentelemetry/api';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import * as core from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -116,6 +117,8 @@ describe('createSentryServerInstrumentation', () => {
       'sentry.op': 'http.server',
       'sentry.origin': 'auto.http.react_router.instrumentation_api',
       'sentry.source': 'url',
+      [URL_FULL]: 'http://example.com/test-path',
+      [URL_PATH]: '/test-path',
     });
     expect(mockHandleRequest).toHaveBeenCalled();
     expect(core.flushIfServerless).toHaveBeenCalled();

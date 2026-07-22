@@ -1,3 +1,4 @@
+// oxlint-disable max-lines
 /**
  * Provide the `http.server.request.start` subscription function that we use
  * to instrument incoming HTTP requests that use the `node:http` module.
@@ -40,6 +41,7 @@ import { safeMathRandom } from '../../utils/randomSafeContext';
 import { SPAN_KIND } from '../../spanKind';
 import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
+import { HTTP_URL, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -298,7 +300,10 @@ function buildServerSpanWrap(
             'net.peer.port': remotePort,
             'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
             // Old Semantic Conventions attributes for compatibility
-            'http.url': fullUrl,
+            [URL_FULL]: fullUrl,
+            [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
+            // oxlint-disable-next-line typescript-eslint(no-deprecated)
+            [HTTP_URL]: fullUrl,
             'http.method': method,
             'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
             'http.host': host,

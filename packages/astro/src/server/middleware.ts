@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
@@ -218,6 +219,8 @@ async function instrumentRequestStartHttpServerSpan(
             [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
             // This is here for backwards compatibility, we used to set this here before
             method,
+            [URL_FULL]: ctx.url.href,
+            [URL_PATH]: ctx.url.pathname,
             url: stripUrlQueryAndFragment(ctx.url.href),
             ...httpHeadersToSpanAttributes(
               winterCGHeadersToDict(request.headers),

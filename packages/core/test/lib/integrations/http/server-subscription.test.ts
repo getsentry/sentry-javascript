@@ -1,3 +1,4 @@
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import * as http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -107,6 +108,8 @@ describe('getHttpServerSubscriptions', () => {
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.server',
           'sentry.source': 'url',
+          [URL_FULL]: expect.stringMatching(/\/users\/42\?foo=bar$/),
+          [URL_PATH]: '/users/42',
         }),
       }),
     );
