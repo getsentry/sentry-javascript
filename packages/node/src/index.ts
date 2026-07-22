@@ -9,6 +9,7 @@ export {
   expressChannelIntegration as expressIntegration,
   firebaseChannelIntegration as firebaseIntegration,
   genericPoolChannelIntegration as genericPoolIntegration,
+  googleGenAIChannelIntegration as googleGenAIIntegration,
   graphqlDiagnosticsChannelIntegration as graphqlIntegration,
   hapiChannelIntegration as hapiIntegration,
   kafkajsChannelIntegration as kafkaIntegration,
@@ -30,7 +31,6 @@ export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export { knexIntegration } from './integrations/tracing/knex';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
-export { googleGenAIIntegration } from './integrations/tracing/google-genai';
 export { langChainIntegration } from './integrations/tracing/langchain';
 export { langGraphIntegration } from './integrations/tracing/langgraph';
 export {
