@@ -1,5 +1,5 @@
 import type { Debugger, InspectorNotification, Runtime, Session } from 'node:inspector';
-import type { Event, Exception, IntegrationFn, StackFrame, StackParser } from '@sentry/core';
+import type { CollectBehavior, Event, Exception, IntegrationFn, StackFrame, StackParser } from '@sentry/core';
 import { debug, defineIntegration, getClient, LRUMap } from '@sentry/core';
 import { NODE_MAJOR } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
@@ -11,7 +11,7 @@ import type {
   RateLimitIncrement,
   Variables,
 } from './common';
-import { createRateLimiter, functionNamesMatch } from './common';
+import { createRateLimiter, filterFrameVariables, functionNamesMatch } from './common';
 
 /** Creates a unique hash from stack frames */
 export function hashFrames(frames: StackFrame[] | undefined): string | undefined {
@@ -234,7 +234,7 @@ const _localVariablesSyncIntegration = ((
   let rateLimiter: RateLimitIncrement | undefined;
   let shouldProcessEvent = false;
 
-  function addLocalVariablesToException(exception: Exception): void {
+  function addLocalVariablesToException(exception: Exception, behavior: CollectBehavior): void {
     const hash = hashFrames(exception.stacktrace?.frames);
 
     if (hash === undefined) {
@@ -245,7 +245,8 @@ const _localVariablesSyncIntegration = ((
     // remove is identical to get but also removes the entry from the cache
     const cachedFrame = cachedFrames.remove(hash);
 
-    if (cachedFrame === undefined) {
+    // When disabled, nothing is collected so we don't attach empty `vars` to frames
+    if (cachedFrame === undefined || behavior === false) {
       return;
     }
 
@@ -276,13 +277,13 @@ const _localVariablesSyncIntegration = ((
         continue;
       }
 
-      frameVariable.vars = cachedFrameVariable.vars;
+      frameVariable.vars = filterFrameVariables(cachedFrameVariable.vars, behavior);
     }
   }
 
   function addLocalVariablesToEvent(event: Event): Event {
     for (const exception of event.exception?.values || []) {
-      addLocalVariablesToException(exception);
+      addLocalVariablesToException(exception, getClient()?.getDataCollectionOptions().stackFrameVariables ?? true);
     }
 
     return event;
