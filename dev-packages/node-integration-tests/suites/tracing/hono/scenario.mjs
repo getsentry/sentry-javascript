@@ -1,6 +1,6 @@
 import { serve } from '@hono/node-server';
 import * as Sentry from '@sentry/node';
-import { sendPortToRunner } from '@sentry-internal/node-core-integration-tests';
+import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 

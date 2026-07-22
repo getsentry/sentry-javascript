@@ -12,7 +12,7 @@ vi.mock('../../../src/sdk/diagnosticsChannelInjection', () => ({
 
 // Record which instrumentations actually get generated, without registering real
 // OTel module hooks (the creator is never invoked).
-vi.mock('@sentry/node-core', async importOriginal => {
+vi.mock('../../../src/otel/instrument', async importOriginal => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,

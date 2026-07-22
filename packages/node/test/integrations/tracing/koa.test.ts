@@ -1,6 +1,6 @@
-import { KoaInstrumentation } from '../../../src/integrations/tracing/koa/vendored/instrumentation';
-import { INSTRUMENTED } from '@sentry/node-core';
 import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
+import { KoaInstrumentation } from '../../../src/integrations/tracing/koa/vendored/instrumentation';
+import { INSTRUMENTED } from '../../../src/otel/instrument';
 import { instrumentKoa, koaIntegration } from '../../../src/integrations/tracing/koa';
 import { isLayerIgnored } from '../../../src/integrations/tracing/koa/vendored/utils';
 import { KoaLayerType, type KoaInstrumentationConfig } from '../../../src/integrations/tracing/koa/vendored/types';
