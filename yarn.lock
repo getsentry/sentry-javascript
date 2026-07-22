@@ -6794,10 +6794,17 @@
     valibot "^1.2.0"
     vite-node "^3.2.2"
 
-"@react-router/node@7.17.0", "@react-router/node@^7.13.1":
+"@react-router/node@7.17.0":
   version "7.17.0"
   resolved "https://registry.yarnpkg.com/@react-router/node/-/node-7.17.0.tgz#35a4ae90435589d4ae5bd77b28ddee89f6f347c4"
   integrity sha512-RYR47qM9gJ8zV8Ntial5Rkgcst2YnwWXt0Ai34FezzkDK6AILpxpVatEzFEhNRwbSh6JO6iweY7XhfM4/K5dBA==
+  dependencies:
+    "@mjackson/node-fetch-server" "^0.2.0"
+
+"@react-router/node@^7.15.0":
+  version "7.18.1"
+  resolved "https://registry.yarnpkg.com/@react-router/node/-/node-7.18.1.tgz#4df1148cb777d4363c2999ef493b573a25cb5e21"
+  integrity sha512-2GhAwa90z/+GMFM8Q5HsgwzakYogbQcZpqpNonhN4YWDRjWkSz+t5jgwNAFvG8ENR8fKGEVEsOHIaNVDfW9Ouw==
   dependencies:
     "@mjackson/node-fetch-server" "^0.2.0"
 
