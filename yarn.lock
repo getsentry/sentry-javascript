@@ -4748,10 +4748,10 @@
     "@hapi/bourne" "^3.0.0"
     "@hapi/hoek" "^11.0.2"
 
-"@hono/node-server@^2.0.5":
-  version "2.0.5"
-  resolved "https://registry.yarnpkg.com/@hono/node-server/-/node-server-2.0.5.tgz#54c58f722032ccb7394d8860277cfd0415cd6ce5"
-  integrity sha512-yQFvDmyDo3y6rEOJZDUYPJ49DIKTPpIk4kGvm40xx4Ejne0Pu9a1+exxPN+C1UppWK/WGZX9F++/Xs231tE86g==
+"@hono/node-server@^2.0.10":
+  version "2.0.10"
+  resolved "https://registry.yarnpkg.com/@hono/node-server/-/node-server-2.0.10.tgz#cead0d97639ab138c2f5a38128931763e992afd5"
+  integrity sha512-ZcnNVhKTmyDJeg0UlnZjvM73JBsTAuhrH/J4fjwGOw59PwOW51r4J+p6CsKZWXdKSme4MFqU62CZMOsdDrU4CA==
 
 "@humanwhocodes/config-array@^0.11.14":
   version "0.11.14"
