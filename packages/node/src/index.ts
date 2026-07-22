@@ -16,10 +16,10 @@ export {
   mongooseChannelIntegration as mongooseIntegration,
   mysqlChannelIntegration as mysqlIntegration,
   mysql2ChannelIntegration as mysql2Integration,
+  postgresChannelIntegration as postgresIntegration,
   tediousChannelIntegration as tediousIntegration,
 } from '@sentry/server-utils/orchestrion';
 export { redisIntegration } from './integrations/tracing/redis';
-export { postgresIntegration } from './integrations/tracing/postgres';
 export { postgresJsIntegration } from './integrations/tracing/postgresjs';
 export { prismaIntegration } from '@sentry/server-utils';
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
