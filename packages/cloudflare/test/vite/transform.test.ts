@@ -16,6 +16,11 @@ function workflowWrappers(...names: string[]): Map<string, ClassWrapperKind> {
   return new Map(names.map(name => [name, 'workflow']));
 }
 
+/** Build a `classWrappers` map with every given class name marked as a WorkerEntrypoint. */
+function entrypointWrappers(...names: string[]): Map<string, ClassWrapperKind> {
+  return new Map(names.map(name => [name, 'workerEntrypoint']));
+}
+
 function transform(code: string, ctx: TransformContext) {
   return applyAutoInstrumentTransforms(code, parseJS(code), ctx);
 }
@@ -299,6 +304,125 @@ describe('Workflow class wrapping', () => {
 });
 
 // ---------------------------------------------------------------------------
+// WorkerEntrypoint class wrapping (structural detection)
+//
+// A worker's own entrypoints aren't listed in its wrangler config, so these are
+// detected by their `extends WorkerEntrypoint` clause (the identifier imported
+// from `cloudflare:workers`) rather than by a config entry.
+// ---------------------------------------------------------------------------
+
+describe('WorkerEntrypoint class wrapping (structural)', () => {
+  // No config entry — detection is purely structural.
+  const ctx: TransformContext = { classWrappers: new Map(), optionsFn: '(env) => ({})' };
+
+  it('wraps a directly-exported class extending the imported WorkerEntrypoint', () => {
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      'export class AdminEntry extends WorkerEntrypoint {',
+      '  fetch(request) { return new Response("admin"); }',
+      '}',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result).toBeDefined();
+    expect(result.code).toContain('class __SENTRY_ORIGINAL_AdminEntry__');
+    expect(result.code).not.toContain('export class AdminEntry');
+    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
+  });
+
+  it('wraps a class extending an aliased WorkerEntrypoint import', () => {
+    const code = [
+      "import { WorkerEntrypoint as WE } from 'cloudflare:workers';",
+      'export class AdminEntry extends WE {}',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+  });
+
+  it('wraps a class extending a namespace-imported WorkerEntrypoint', () => {
+    const code = [
+      "import * as cf from 'cloudflare:workers';",
+      'export class AdminEntry extends cf.WorkerEntrypoint {}',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+  });
+
+  it('wraps a class via an indirect same-file base chain', () => {
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      'class Base extends WorkerEntrypoint {}',
+      'export class AdminEntry extends Base {}',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
+  });
+
+  it('wraps an entrypoint exported via a specifier', () => {
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      'class AdminEntry extends WorkerEntrypoint {}',
+      'export { AdminEntry };',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toContain(
+      'const AdminEntry = __SENTRY__.withSentry((env) => ({}), __SENTRY_ORIGINAL_AdminEntry__);',
+    );
+    expect(result.code).toContain('export { AdminEntry };');
+    expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
+  });
+
+  it('does not wrap a class extending a same-named local class (not the import)', () => {
+    // `WorkerEntrypoint` here is a local class, not the `cloudflare:workers`
+    // import, so it must not be mistaken for an entrypoint.
+    const code = ['class WorkerEntrypoint {}', 'export class NotAnEntry extends WorkerEntrypoint {}'].join('\n');
+    expect(transform(code, ctx)).toBeUndefined();
+  });
+
+  it('does not wrap a non-exported entrypoint class', () => {
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      'class Unexported extends WorkerEntrypoint {}',
+    ].join('\n');
+    expect(transform(code, ctx)).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// WorkerEntrypoint class wrapping (config self-binding fallback)
+//
+// When the base class lives in another module, structural detection can't see
+// it; a self-bound service entrypoint in the config supplies the name instead.
+// ---------------------------------------------------------------------------
+
+describe('WorkerEntrypoint class wrapping (config fallback)', () => {
+  const ctx: TransformContext = {
+    classWrappers: entrypointWrappers('AdminEntry'),
+    optionsFn: '(env) => ({})',
+  };
+
+  it('wraps a configured entrypoint whose base class is imported from another module', () => {
+    const code = ["import { BaseEntry } from './base';", 'export class AdminEntry extends BaseEntry {}'].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
+  });
+
+  it('ignores an entrypoint that is neither structurally detected nor configured', () => {
+    const other: TransformContext = { classWrappers: new Map(), optionsFn: '(env) => ({})' };
+    const code = ["import { BaseEntry } from './base';", 'export class AdminEntry extends BaseEntry {}'].join('\n');
+    expect(transform(code, other)).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Combined transforms (DO + Workflow + default export)
 // ---------------------------------------------------------------------------
 
@@ -357,6 +481,39 @@ describe('combined transforms', () => {
     // Single import
     const importCount = (result.code.match(/import \* as __SENTRY__/g) ?? []).length;
     expect(importCount).toBe(1);
+  });
+
+  it('does not double-wrap a class exported both by name and as default', () => {
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      'class AdminEntry extends WorkerEntrypoint {}',
+      'export { AdminEntry };',
+      'export default AdminEntry;',
+    ].join('\n');
+
+    const result = transform(code, { classWrappers: new Map(), optionsFn: '(env) => ({})' })!;
+
+    // The named export wraps it once; the default re-export must not wrap again.
+    const wrapCount = (result.code.match(/withSentry\(/g) ?? []).length;
+    expect(wrapCount).toBe(1);
+    expect(result.code).toContain('const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).not.toContain('__SENTRY_DEFAULT_EXPORT__');
+    // The default export still points at the (single-)wrapped binding.
+    expect(result.code).toContain('export default AdminEntry;');
+  });
+
+  it('handles the default export appearing before its named wrap in source order', () => {
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      'class AdminEntry extends WorkerEntrypoint {}',
+      'export default AdminEntry;',
+      'export { AdminEntry };',
+    ].join('\n');
+
+    const result = transform(code, { classWrappers: new Map(), optionsFn: '(env) => ({})' })!;
+
+    const wrapCount = (result.code.match(/withSentry\(/g) ?? []).length;
+    expect(wrapCount).toBe(1);
   });
 
   it('wraps DO but skips already-wrapped default export', () => {

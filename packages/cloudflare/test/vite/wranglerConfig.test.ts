@@ -1,12 +1,21 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { unstable_readConfig } from 'wrangler';
 import { resolveWranglerConfig } from '../../src/vite/wranglerConfig';
 
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  while (tempDirs.length) {
+    rmSync(tempDirs.pop()!, { recursive: true, force: true });
+  }
+});
+
 function writeTempDir(files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), 'sentry-cf-'));
+  tempDirs.push(dir);
   for (const [name, content] of Object.entries(files)) {
     writeFileSync(join(dir, name), content);
   }
@@ -303,6 +312,76 @@ describe('resolveWranglerConfig', () => {
 
     const result = resolveWranglerConfig(dir);
     expect(result!.config.workflows).toEqual([]);
+  });
+
+  it('collects a self-bound service entrypoint', () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({
+        name: 'worker-self',
+        main: 'src/index.ts',
+        services: [{ binding: 'SELF', service: 'worker-self', entrypoint: 'InternalEntry' }],
+      }),
+    });
+
+    const result = resolveWranglerConfig(dir);
+    expect(result!.config.workerEntrypoints).toEqual(['InternalEntry']);
+  });
+
+  it('collects multiple self-bound entrypoints from a wrangler.jsonc', () => {
+    // Mirrors the `worker-workerentrypoint-rpc` integration test's config shape:
+    // several `services[].entrypoint` entries in a JSONC file (comments +
+    // trailing commas), all self-bound to this worker.
+    const dir = writeTempDir({
+      'wrangler.jsonc': [
+        '{',
+        '  // Worker exposing two named entrypoints to itself',
+        '  "name": "my-worker",',
+        '  "main": "index.ts",',
+        '  "services": [',
+        '    { "binding": "SELF_A", "service": "my-worker", "entrypoint": "BindingEntrypoint" },',
+        '    { "binding": "SELF_B", "service": "my-worker", "entrypoint": "NoPropagationEntrypoint" },',
+        '  ],',
+        '}',
+      ].join('\n'),
+    });
+
+    const result = resolveWranglerConfig(dir);
+    expect(result!.config.workerEntrypoints).toEqual(['BindingEntrypoint', 'NoPropagationEntrypoint']);
+  });
+
+  it("ignores outward service entrypoints (they name another worker's export)", () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({
+        name: 'worker-self',
+        main: 'src/index.ts',
+        services: [
+          { binding: 'SELF', service: 'worker-self', entrypoint: 'InternalEntry' },
+          { binding: 'OTHER', service: 'worker-x', entrypoint: 'RemoteEntry' },
+        ],
+      }),
+    });
+
+    const result = resolveWranglerConfig(dir);
+    expect(result!.config.workerEntrypoints).toEqual(['InternalEntry']);
+  });
+
+  it('derives no entrypoints when the worker has no name', () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({
+        main: 'src/index.ts',
+        services: [{ binding: 'S', service: 'x', entrypoint: 'E' }],
+      }),
+    });
+
+    const result = resolveWranglerConfig(dir);
+    expect(result!.config.workerEntrypoints).toEqual([]);
+  });
+
+  it('defaults workerEntrypoints to an empty array when no services are configured', () => {
+    const dir = writeTempDir({ 'wrangler.json': JSON.stringify({ name: 'w', main: 'src/index.ts' }) });
+
+    const result = resolveWranglerConfig(dir);
+    expect(result!.config.workerEntrypoints).toEqual([]);
   });
 });
 
