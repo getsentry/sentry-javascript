@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { SerializedSession } from '@sentry/core/src';
+import type { SerializedSession } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
 import {
   envelopeRequestParser,
