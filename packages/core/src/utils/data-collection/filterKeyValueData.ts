@@ -13,18 +13,18 @@ function isSensitiveKey(lower: string, denySnippets: string[]): boolean {
  *
  * @param additionalDenyTerms - Additional sensitive snippets to check beyond the built-in denylist.
  */
-export function filterKeyValueData(
-  data: Record<string, string>,
+export function filterKeyValueData<T>(
+  data: Record<string, T>,
   behavior: CollectBehavior,
   additionalDenyTerms?: string[],
-): Record<string, string> {
+): Record<string, T | string> {
   if (behavior === false) {
     return {};
   }
 
   const denySnippets =
     additionalDenyTerms != null ? [...SENSITIVE_KEY_SNIPPETS, ...additionalDenyTerms] : SENSITIVE_KEY_SNIPPETS;
-  const result: Record<string, string> = {};
+  const result: Record<string, T | string> = {};
 
   if (behavior === true) {
     for (const key of Object.keys(data)) {
