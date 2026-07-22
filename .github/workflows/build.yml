@@ -157,9 +157,6 @@ jobs:
       changed_node_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/node-integration-tests') }}
-      changed_node_core_integration:
-        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
-        '@sentry-internal/node-core-integration-tests') }}
       changed_node:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/node') }}
@@ -849,47 +846,6 @@ jobs:
         env:
           INJECT_ORCHESTRION: ${{ matrix.use_orchestrion }}
 
-  job_node_core_integration_tests:
-    name:
-      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Node-Core
-      Integration Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_node_core_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [20.19, 22, 24, 26]
-        typescript:
-          - false
-        include:
-          # Only check typescript for latest version (to streamline CI)
-          - node: 24
-            typescript: '5.0'
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ matrix.node }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Overwrite typescript version
-        if: matrix.typescript == '5.0'
-        run: node ./scripts/use-ts-5_0.js
-        working-directory: dev-packages/node-core-integration-tests
-
-      - name: Run integration tests
-        working-directory: dev-packages/node-core-integration-tests
-        run: yarn test
-
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests
     needs: [job_get_metadata, job_build]
@@ -1299,7 +1255,6 @@ jobs:
         job_deno_unit_tests,
         job_node_unit_tests,
         job_node_integration_tests,
-        job_node_core_integration_tests,
         job_cloudflare_integration_tests,
         job_bundler_plugin_integration_tests,
         job_bun_integration_tests,

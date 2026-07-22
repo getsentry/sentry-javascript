@@ -68,7 +68,7 @@ Unless explicitly noted (e.g. in the `Testing Conventions` section), only flag t
   - Race conditions when waiting on multiple requests. Ensure that waiting checks are unique enough and don't depend on a hard order when there's a chance that telemetry can be sent in arbitrary order.
   - Timeouts or sleeps in tests. Instead suggest concrete events or other signals to wait on.
 - Flag usage of `getFirstEnvelope*`, `getMultipleEnvelope*` or related test helpers in E2E tests. These are NOT reliable anymore. Instead suggest helpers like `waitForTransaction`, `waitForError`, `waitForSpans`, etc.
-- Flag any new or modified `docker-compose.yml` under `dev-packages/node-integration-tests/suites/` or `dev-packages/node-core-integration-tests/suites/` where a service does not define a `healthcheck:`. The runner uses `docker compose up --wait` and relies on healthchecks to know when services are actually ready; without one the test will race the service's startup.
+- Flag any new or modified `docker-compose.yml` under `dev-packages/node-integration-tests/suites/` where a service does not define a `healthcheck:`. The runner uses `docker compose up --wait` and relies on healthchecks to know when services are actually ready; without one the test will race the service's startup.
 
 ## Platform-safe code
 
