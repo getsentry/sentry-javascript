@@ -2,7 +2,10 @@ import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type { Client, Event, EventType, StreamedSpanJSON } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReactRouterInstrumentation } from '../../../src/server/instrumentation/reactRouter';
-import { reactRouterServerIntegration } from '../../../src/server/integration/reactRouterServer';
+import {
+  instrumentReactRouterServer,
+  reactRouterServerIntegration,
+} from '../../../src/server/integration/reactRouterServer';
 import * as serverBuild from '../../../src/server/serverBuild';
 import * as serverGlobals from '../../../src/server/serverGlobals';
 
@@ -51,6 +54,14 @@ describe('reactRouterServerIntegration', () => {
     integration.setupOnce!();
 
     expect(registerServerBuildGlobalSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not register the server build global from the OTEL instrumentation setup', () => {
+    // Guards against re-coupling: the Vite-plugin capture registration must not depend on the
+    // OTEL patch being installed, so it survives once the OTEL instrumentation is removed.
+    instrumentReactRouterServer();
+
+    expect(registerServerBuildGlobalSpy).not.toHaveBeenCalled();
   });
 
   it('enables OTEL data-loader span creation on Node 20.18', () => {
