@@ -130,7 +130,6 @@ export const nestjsConfig = [
   },
 ] as const satisfies InstrumentationConfig[];
 
-
 export const nestjsChannels = {
   NESTJS_APP_CREATION: 'orchestrion:@nestjs/core:nestFactoryCreate',
   NESTJS_ROUTER_CONTEXT: 'orchestrion:@nestjs/core:routerExecutionContextCreate',
