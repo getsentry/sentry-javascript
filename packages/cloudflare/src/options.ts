@@ -54,6 +54,12 @@ export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknow
   const tracesSampleRate =
     userOptions.tracesSampleRate ?? parseFloat(getEnvVar(env, 'SENTRY_TRACES_SAMPLE_RATE') ?? '');
 
+  // Spotlight: user option > env boolean > env URL string
+  const spotlightEnvVar = getEnvVar(env, 'SENTRY_SPOTLIGHT');
+  const spotlightEnvBool = envToBool(spotlightEnvVar, { strict: true });
+  const spotlight =
+    userOptions.spotlight ?? spotlightEnvBool ?? (spotlightEnvBool === null ? spotlightEnvVar : undefined);
+
   return {
     release,
     ...userOptions,
@@ -62,5 +68,6 @@ export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknow
     tracesSampleRate: isFinite(tracesSampleRate) ? tracesSampleRate : undefined,
     debug: userOptions.debug ?? envToBool(getEnvVar(env, 'SENTRY_DEBUG')),
     tunnel: userOptions.tunnel ?? getEnvVar(env, 'SENTRY_TUNNEL'),
+    spotlight,
   };
 }

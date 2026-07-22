@@ -17,6 +17,7 @@ import { CloudflareClient } from './client';
 import { makeFlushLock } from './flush';
 import { httpServerIntegration } from './integrations/httpServer';
 import { fetchIntegration } from './integrations/fetch';
+import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from './integrations/spotlight';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
@@ -87,6 +88,16 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
     transport: options.transport || makeCloudflareTransport,
     flushLock,
   };
+
+  /*! rollup-include-development-only */
+  if (options.spotlight && !clientOptions.integrations.some(({ name }) => name === SPOTLIGHT_INTEGRATION_NAME)) {
+    clientOptions.integrations.push(
+      spotlightIntegration({
+        sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
+      }),
+    );
+  }
+  /*! rollup-include-development-only-end */
 
   /**
    * The Cloudflare SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility
