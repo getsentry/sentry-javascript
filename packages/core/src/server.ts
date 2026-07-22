@@ -1,5 +1,5 @@
 /**
- * The Sentry core SDK and integrations used by node, node-core, cloudflare,
+ * The Sentry core SDK and integrations used by node, cloudflare,
  * bun, deno, aws lambda, and other server-side platforms, where bundle size
  * is less of an issue.
  *
