@@ -97,9 +97,10 @@ git cherry-pick <mergeCommit-oid>
   in step 1 guards against, caught here for changes that landed via a different commit.
 - On **conflicts**: resolve them by consulting the original diff (`git show <oid>`).
   The target major may lack refactors that landed on `develop`, so adapt the change to the
-  older code rather than force-porting it. After resolving: `git add -A && git cherry-pick --continue`.
-  If the change can't be cleanly adapted, stop and surface the conflict to the user instead
-  of guessing.
+  older code rather than force-porting it. Stage the resolved files with `git add -u` (tracked
+  files only, so stray untracked workspace files don't get baked in), then
+  `git cherry-pick --continue`. If the change can't be cleanly adapted, stop and surface the
+  conflict to the user instead of guessing.
 - If the PR was **not** squash-merged (multiple commits, e.g. a merge commit), cherry-pick
   each relevant commit in order, or use `git cherry-pick -m 1 <merge-oid>` for a merge commit.
 
