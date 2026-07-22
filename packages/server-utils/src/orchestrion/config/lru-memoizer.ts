@@ -1,4 +1,5 @@
 import type { InstrumentationConfig } from '..';
+import { toSubscribeInjections } from './subscribe-injection';
 
 export const lruMemoizerConfig = [
   {
@@ -12,3 +13,5 @@ export const lruMemoizerConfig = [
 export const lruMemoizerChannels = {
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',
 } as const;
+
+export const lruMemoizerSubscribeInjection = toSubscribeInjections(lruMemoizerConfig);

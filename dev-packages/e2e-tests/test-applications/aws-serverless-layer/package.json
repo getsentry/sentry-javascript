@@ -36,11 +36,6 @@
         "build-command": "NODE_VERSION=22 pnpm test:build",
         "assert-command": "NODE_VERSION=22 pnpm test:assert",
         "label": "aws-serverless-layer (Node 22)"
-      },
-      {
-        "build-command": "NODE_VERSION=18 pnpm test:build",
-        "assert-command": "NODE_VERSION=18 pnpm test:assert",
-        "label": "aws-serverless-layer (Node 18)"
       }
     ]
   }

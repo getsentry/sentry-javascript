@@ -1,7 +1,7 @@
 import { rm } from 'node:fs/promises';
 import type { Config } from '@react-router/dev/config';
 import SentryCli from '@sentry/cli';
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import { glob } from 'glob';
 import type { SentryReactRouterBuildOptions } from '../types';
 import { DEFAULT_SERVER_INSTRUMENTATION_FILE, injectServerInstrumentation } from './injectServerInstrumentation';

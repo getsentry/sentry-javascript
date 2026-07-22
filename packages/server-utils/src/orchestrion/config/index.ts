@@ -1,37 +1,35 @@
 import type { InstrumentationConfig } from '..';
 import { uniq } from '@sentry/core';
 
-import { amqplibConfig } from './amqplib';
-import { anthropicAiConfig } from './anthropic-ai';
-import { awsSdkConfig } from './aws-sdk';
-import { dataloaderConfig } from './dataloader';
-import { expressConfig } from './express';
-import { firebaseConfig } from './firebase';
-import { genericPoolConfig } from './generic-pool';
-import { googleGenAiConfig } from './google-genai';
-import { graphqlConfig } from './graphql';
-import { hapiConfig } from './hapi';
-import { ioredisConfig } from './ioredis';
-import { kafkajsConfig } from './kafkajs';
-import { knexConfig } from './knex';
-import { koaConfig } from './koa';
-import { langchainConfig } from './langchain';
-import { langgraphConfig } from './langgraph';
-import { lruMemoizerConfig } from './lru-memoizer';
-import { mongodbConfig } from './mongodb';
-import { mongooseConfig } from './mongoose';
-import { mysql2Config } from './mysql2';
-import { mysqlConfig } from './mysql';
-import { nestjsConfig } from './nestjs';
-import { openaiConfig } from './openai';
-import { pgConfig } from './pg';
-import { postgresJsConfig } from './postgres';
-import { prismaConfig } from './prisma';
-import { reactRouterConfig } from './react-router';
-import { redisConfig } from './redis';
-import { remixConfig } from './remix';
-import { tediousConfig } from './tedious';
-import { vercelAiConfig } from './vercel-ai';
+import { awsSdkConfig, awsSdkSubscribeInjection } from './aws-sdk';
+import { amqplibConfig, amqplibSubscribeInjection } from './amqplib';
+import { anthropicAiConfig, anthropicAiSubscribeInjection } from './anthropic-ai';
+import { dataloaderConfig, dataloaderSubscribeInjection } from './dataloader';
+import { expressConfig, expressSubscribeInjection } from './express';
+import { firebaseConfig, firebaseSubscribeInjection } from './firebase';
+import { genericPoolConfig, genericPoolSubscribeInjection } from './generic-pool';
+import { googleGenAiConfig, googleGenAiSubscribeInjection } from './google-genai';
+import { graphqlConfig, graphqlSubscribeInjection } from './graphql';
+import { hapiConfig, hapiSubscribeInjection } from './hapi';
+import { ioredisConfig, ioredisSubscribeInjection } from './ioredis';
+import { kafkajsConfig, kafkajsSubscribeInjection } from './kafkajs';
+import { knexConfig, knexSubscribeInjection } from './knex';
+import { koaConfig, koaSubscribeInjection } from './koa';
+import { langchainConfig, langchainSubscribeInjection } from './langchain';
+import { langgraphConfig, langgraphSubscribeInjection } from './langgraph';
+import { lruMemoizerConfig, lruMemoizerSubscribeInjection } from './lru-memoizer';
+import { mongodbConfig, mongodbSubscribeInjection } from './mongodb';
+import { mongooseConfig, mongooseSubscribeInjection } from './mongoose';
+import { mysql2Config, mysql2SubscribeInjection } from './mysql2';
+import { mysqlConfig, mysqlSubscribeInjection } from './mysql';
+import { nestjsConfig, nestjsSubscribeInjection } from './nestjs';
+import { openaiConfig, openaiSubscribeInjection } from './openai';
+import { pgConfig, pgSubscribeInjection } from './pg';
+import { postgresJsConfig, postgresJsSubscribeInjection } from './postgres';
+import { redisConfig, redisSubscribeInjection } from './redis';
+import { remixConfig, remixSubscribeInjection } from './remix';
+import { tediousConfig, tediousSubscribeInjection } from './tedious';
+import { vercelAiConfig, vercelAiSubscribeInjection } from './vercel-ai';
 // Kept sorted alphabetically by module so concurrent additions insert at different
 // points rather than all appending to the end (fewer merge conflicts).
 
@@ -68,12 +66,53 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...openaiConfig,
   ...pgConfig,
   ...postgresJsConfig,
-  ...prismaConfig,
-  ...reactRouterConfig,
   ...redisConfig,
   ...remixConfig,
   ...tediousConfig,
   ...vercelAiConfig,
+];
+
+/**
+ * The `Program`-matching injection configs that make each instrumented file
+ * self-register its channel subscriber at load (used by bundler-only SDKs like
+ * `@sentry/cloudflare`).
+ *
+ * Deliberately separate from `SENTRY_INSTRUMENTATIONS`: these reference a custom
+ * transform that only the opted-in bundler plugin registers, so feeding them to
+ * the runtime `--import` hook (which can't register it) would make the
+ * code-transformer drop the whole file. Each library owns its own
+ * `*SubscribeInjection` (derived from its channel configs), collected here.
+ */
+export const SUBSCRIBE_INJECTIONS: InstrumentationConfig[] = [
+  ...amqplibSubscribeInjection,
+  ...anthropicAiSubscribeInjection,
+  ...awsSdkSubscribeInjection,
+  ...dataloaderSubscribeInjection,
+  ...expressSubscribeInjection,
+  ...firebaseSubscribeInjection,
+  ...genericPoolSubscribeInjection,
+  ...googleGenAiSubscribeInjection,
+  ...graphqlSubscribeInjection,
+  ...hapiSubscribeInjection,
+  ...ioredisSubscribeInjection,
+  ...kafkajsSubscribeInjection,
+  ...knexSubscribeInjection,
+  ...koaSubscribeInjection,
+  ...langchainSubscribeInjection,
+  ...langgraphSubscribeInjection,
+  ...lruMemoizerSubscribeInjection,
+  ...mongodbSubscribeInjection,
+  ...mongooseSubscribeInjection,
+  ...mysql2SubscribeInjection,
+  ...mysqlSubscribeInjection,
+  ...nestjsSubscribeInjection,
+  ...openaiSubscribeInjection,
+  ...pgSubscribeInjection,
+  ...postgresJsSubscribeInjection,
+  ...redisSubscribeInjection,
+  ...remixSubscribeInjection,
+  ...tediousSubscribeInjection,
+  ...vercelAiSubscribeInjection,
 ];
 
 /**

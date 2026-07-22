@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bundler-plugins",
-  "version": "10.66.0",
+  "version": "10.67.0",
   "description": "Sentry Bundler Plugins",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/main/packages/bundler-plugins",
@@ -71,9 +71,7 @@
     "build:dev": "yarn build",
     "build:version": "node -p \"'export const LIB_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/core/version.ts",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
@@ -112,11 +110,12 @@
   "dependencies": {
     "@babel/core": "^7.18.5",
     "@sentry/cli": "^2.58.6",
-    "@sentry/core": "10.66.0",
+    "@sentry/core": "10.67.0",
     "dotenv": "^17.4.2",
     "find-up": "^5.0.0",
     "glob": "^13.0.6",
-    "magic-string": "~0.30.8"
+    "magic-string": "~0.30.8",
+    "supports-color": "^8.1.1"
   },
   "peerDependencies": {
     "rollup": ">=3.2.0",

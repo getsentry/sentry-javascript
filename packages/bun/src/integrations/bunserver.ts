@@ -15,6 +15,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { ServeOptions } from 'bun';
+import { URL_FULL } from '@sentry/conventions/attributes';
 
 const INTEGRATION_NAME = 'BunServer' as const;
 
@@ -282,7 +283,7 @@ function getSpanAttributesFromParsedUrl(
       attributes['url.path'] = parsedUrl.pathname;
     }
     if (!isURLObjectRelative(parsedUrl)) {
-      attributes['url.full'] = parsedUrl.href;
+      attributes[URL_FULL] = parsedUrl.href;
       if (parsedUrl.port) {
         attributes['url.port'] = parsedUrl.port;
       }

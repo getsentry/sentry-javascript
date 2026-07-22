@@ -4,7 +4,8 @@ const SINGLE_ARG_COMMANDS = ['get', 'set', 'setex'];
 
 export const GET_COMMANDS = ['get', 'mget'];
 export const SET_COMMANDS = ['set', 'setex'];
-// todo: del, expire
+export const REMOVE_COMMANDS = ['del', 'unlink'];
+// todo: expire (no matching cache convention op yet)
 
 /** Checks if a given command is in the list of redis commands.
  *  Useful because commands can come in lowercase or uppercase (depending on the library). */
@@ -13,13 +14,13 @@ export function isInCommands(redisCommands: string[], command: string): boolean 
 }
 
 /** Determine cache operation based on redis statement */
-export function getCacheOperation(
-  command: string,
-): 'cache.get' | 'cache.put' | 'cache.remove' | 'cache.flush' | undefined {
+export function getCacheOperation(command: string): 'cache.get' | 'cache.put' | 'cache.remove' | undefined {
   if (isInCommands(GET_COMMANDS, command)) {
     return 'cache.get';
   } else if (isInCommands(SET_COMMANDS, command)) {
     return 'cache.put';
+  } else if (isInCommands(REMOVE_COMMANDS, command)) {
+    return 'cache.remove';
   } else {
     return undefined;
   }

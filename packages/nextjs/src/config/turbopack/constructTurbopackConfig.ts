@@ -1,6 +1,10 @@
 import { debug } from '@sentry/core';
 import * as path from 'path';
-import { getOrchestrionLoaderPath, getSentryInstrumentations } from '@sentry/server-utils/orchestrion/webpack';
+import {
+  getOrchestrionLoaderPath,
+  getSentryInstrumentations,
+  serializeInstrumentations,
+} from '@sentry/server-utils/orchestrion/webpack';
 import type { VercelCronsConfig } from '../../common/types';
 import type { RouteManifest } from '../manifest/types';
 import type {
@@ -141,8 +145,10 @@ function maybeAddOrchestrionRule(
       loaders: [
         {
           loader: getOrchestrionLoaderPath(),
-          // `instrumentations` is JSON-serializable
-          options: { instrumentations: getSentryInstrumentations() as unknown as JSONValue[] },
+          // Turbopack JSON-serializes loader options, so a RegExp `filePath` must be encoded first.
+          options: {
+            instrumentations: serializeInstrumentations(getSentryInstrumentations()) as unknown as JSONValue[],
+          },
         },
       ],
     },

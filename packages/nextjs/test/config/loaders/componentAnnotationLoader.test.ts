@@ -9,7 +9,7 @@ const { mockTransform, mockCreateHooks } = vi.hoisted(() => {
   return { mockTransform, mockCreateHooks };
 });
 
-vi.mock('@sentry/bundler-plugin-core', () => ({
+vi.mock('@sentry/bundler-plugins/core', () => ({
   createComponentNameAnnotateHooks: mockCreateHooks,
 }));
 

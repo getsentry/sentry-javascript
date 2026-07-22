@@ -100,8 +100,6 @@ export {
   setupExpressErrorHandler,
   koaIntegration,
   setupKoaErrorHandler,
-  connectIntegration,
-  setupConnectErrorHandler,
   fastifyIntegration,
   firebaseIntegration,
   fsIntegration,

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nextjs",
-  "version": "10.66.0",
+  "version": "10.67.0",
   "description": "Official Sentry SDK for Next.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs",
@@ -65,29 +65,21 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@rollup/plugin-commonjs": "28.0.1",
-    "@sentry/browser-utils": "10.66.0",
-    "@sentry/bundler-plugin-core": "^5.3.0",
+    "@sentry/browser-utils": "10.67.0",
+    "@sentry/bundler-plugins": "10.67.0",
     "@sentry/conventions": "^0.16.0",
-    "@sentry/core": "10.66.0",
-    "@sentry/node": "10.66.0",
-    "@sentry/opentelemetry": "10.66.0",
-    "@sentry/react": "10.66.0",
-    "@sentry/server-utils": "10.66.0",
-    "@sentry/vercel-edge": "10.66.0",
-    "@sentry/webpack-plugin": "^5.3.0",
+    "@sentry/core": "10.67.0",
+    "@sentry/node": "10.67.0",
+    "@sentry/opentelemetry": "10.67.0",
+    "@sentry/react": "10.67.0",
+    "@sentry/server-utils": "10.67.0",
+    "@sentry/vercel-edge": "10.67.0",
     "rollup": "^4.60.3",
     "stacktrace-parser": "^0.1.11"
   },
@@ -104,9 +96,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "tsx --tsconfig tsconfig.tsnode.json scripts/buildRollup.ts",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
