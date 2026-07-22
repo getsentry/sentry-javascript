@@ -1283,7 +1283,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // A session is updated and that session update is sent in only one of the two following scenarios:
     // 1. Session with non terminal status and 0 errors + an error occurred -> Will set error count to 1 and send update
-    // 2. Session with non terminal status and 1 error + a crash occurred -> Will set status crashed and send update
+    // 2. Session with non terminal status and 1 error + a crash occurred -> Will set status unhandled and send update
     const sessionNonTerminal = session.status === 'ok';
     const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && unhandled);
 
