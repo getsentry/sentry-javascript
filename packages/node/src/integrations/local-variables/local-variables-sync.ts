@@ -245,7 +245,8 @@ const _localVariablesSyncIntegration = ((
     // remove is identical to get but also removes the entry from the cache
     const cachedFrame = cachedFrames.remove(hash);
 
-    if (cachedFrame === undefined) {
+    // When disabled, nothing is collected so we don't attach empty `vars` to frames
+    if (cachedFrame === undefined || behavior === false) {
       return;
     }
 

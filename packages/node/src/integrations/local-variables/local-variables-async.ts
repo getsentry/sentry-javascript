@@ -24,6 +24,11 @@ export const localVariablesAsyncIntegration = defineIntegration(((
     localVariables: FrameVariables[],
     behavior: CollectBehavior,
   ): void {
+    // When disabled, nothing is collected so we don't attach empty `vars` to frames
+    if (behavior === false) {
+      return;
+    }
+
     // Filter out frames where the function name is `new Promise` since these are in the error.stack frames
     // but do not appear in the debugger call frames
     const frames = (exception.stacktrace?.frames || []).filter(frame => frame.function !== 'new Promise');
