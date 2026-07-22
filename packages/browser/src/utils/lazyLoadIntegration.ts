@@ -23,12 +23,6 @@ const LAZY_LOADABLE_NAMES = [
   'rewriteFramesIntegration',
   'browserProfilingIntegration',
   'moduleMetadataIntegration',
-  'instrumentAnthropicAiClient',
-  'instrumentOpenAiClient',
-  'instrumentGoogleGenAIClient',
-  'instrumentLangGraph',
-  'createLangChainCallbackHandler',
-  'instrumentLangChainEmbeddings',
 ] as const;
 
 type ElementOf<T extends readonly unknown[]> = T[number];
