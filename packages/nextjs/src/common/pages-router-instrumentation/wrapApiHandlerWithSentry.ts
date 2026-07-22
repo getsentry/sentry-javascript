@@ -81,7 +81,8 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
               isolationScope.setSDKProcessingMetadata({ normalizedRequest });
               isolationScope.setTransactionName(`${reqMethod}${parameterizedRoute}`);
 
-              const urlObject = req.url ? parseStringToURLObject(req.url) : undefined;
+              const requestUrl = normalizedRequest.url || req.url;
+              const urlObject = requestUrl ? parseStringToURLObject(requestUrl) : undefined;
 
               return startSpanManual(
                 {
