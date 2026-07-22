@@ -89,6 +89,7 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
     flushLock,
   };
 
+  /*! rollup-include-development-only */
   if (options.spotlight && !clientOptions.integrations.some(({ name }) => name === SPOTLIGHT_INTEGRATION_NAME)) {
     clientOptions.integrations.push(
       spotlightIntegration({
@@ -96,6 +97,7 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
       }),
     );
   }
+  /*! rollup-include-development-only-end */
 
   /**
    * The Cloudflare SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility

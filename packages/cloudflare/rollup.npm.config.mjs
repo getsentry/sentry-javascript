@@ -4,4 +4,5 @@ export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     entrypoints: ['src/index.ts', 'src/nodejs_compat/index.ts', 'src/vite/index.ts'],
   }),
+  { splitDevProd: true },
 );
