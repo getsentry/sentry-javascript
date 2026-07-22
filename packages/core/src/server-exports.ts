@@ -101,6 +101,8 @@ export type { LangChainOptions, LangChainIntegration } from './tracing/langchain
 export {
   instrumentStateGraphCompile,
   instrumentCreateReactAgent,
+  instrumentStateGraph,
+  // eslint-disable-next-line typescript/no-deprecated
   instrumentLangGraph,
   instrumentCompiledGraphInvoke,
   _INTERNAL_getLangGraphCreateAgentSpanOptions,

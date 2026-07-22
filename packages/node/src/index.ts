@@ -149,6 +149,8 @@ export {
   spanStreamingIntegration,
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
+  instrumentStateGraph,
+  // eslint-disable-next-line typescript/no-deprecated
   instrumentLangGraph,
   instrumentStateGraphCompile,
 } from '@sentry/core';
