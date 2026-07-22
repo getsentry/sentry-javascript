@@ -10,6 +10,7 @@ export {
   koaChannelIntegration as koaIntegration,
   mongodbChannelIntegration as mongoIntegration,
   mongooseChannelIntegration as mongooseIntegration,
+  tediousChannelIntegration as tediousIntegration,
 } from '@sentry/server-utils/orchestrion';
 export { kafkaIntegration } from './integrations/tracing/kafka';
 export { lruMemoizerIntegration } from './integrations/tracing/lrumemoizer';
@@ -22,7 +23,6 @@ export { prismaIntegration } from '@sentry/server-utils';
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export { knexIntegration } from './integrations/tracing/knex';
-export { tediousIntegration } from './integrations/tracing/tedious';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
