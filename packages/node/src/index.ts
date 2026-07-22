@@ -17,6 +17,7 @@ export {
   mongooseChannelIntegration as mongooseIntegration,
   mysqlChannelIntegration as mysqlIntegration,
   mysql2ChannelIntegration as mysql2Integration,
+  openaiChannelIntegration as openAIIntegration,
   postgresChannelIntegration as postgresIntegration,
   postgresJsChannelIntegration as postgresJsIntegration,
   tediousChannelIntegration as tediousIntegration,
@@ -28,7 +29,6 @@ export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export { knexIntegration } from './integrations/tracing/knex';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
-export { openAIIntegration } from './integrations/tracing/openai';
 export { anthropicAIIntegration } from './integrations/tracing/anthropic-ai';
 export { googleGenAIIntegration } from './integrations/tracing/google-genai';
 export { langChainIntegration } from './integrations/tracing/langchain';
