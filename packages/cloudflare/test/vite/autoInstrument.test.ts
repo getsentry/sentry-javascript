@@ -144,12 +144,24 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
 
     const code = [
       "import { WorkerEntrypoint } from 'cloudflare:workers';",
-      'export class AdminEntry extends WorkerEntrypoint {}',
+      'export class AdminEntry extends WorkerEntrypoint {',
+      '  fetch() { return new Response("admin"); }',
+      '}',
     ].join('\n');
     const result = tx(code, entryPath);
 
     expect(result).toBeDefined();
-    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { WorkerEntrypoint } from 'cloudflare:workers';",
+        'class __SENTRY_ORIGINAL_AdminEntry__ extends WorkerEntrypoint {',
+        '  fetch() { return new Response("admin"); }',
+        '}',
+        'export const AdminEntry = __SENTRY__.withSentry(() => undefined, __SENTRY_ORIGINAL_AdminEntry__);',
+        '',
+      ].join('\n'),
+    );
   });
 
   it('wraps a self-bound WorkerEntrypoint whose base class lives in another module (config fallback)', () => {
