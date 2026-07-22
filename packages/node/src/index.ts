@@ -25,6 +25,7 @@ export {
   postgresChannelIntegration as postgresIntegration,
   postgresJsChannelIntegration as postgresJsIntegration,
   tediousChannelIntegration as tediousIntegration,
+  vercelAiChannelIntegration as vercelAIIntegration,
 } from '@sentry/server-utils/orchestrion';
 export { redisIntegration } from './integrations/tracing/redis';
 export { prismaIntegration } from '@sentry/server-utils';
@@ -32,7 +33,6 @@ export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export { knexIntegration } from './integrations/tracing/knex';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
-export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
