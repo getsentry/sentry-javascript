@@ -119,6 +119,7 @@ export {
 } from '@sentry/core';
 
 export { withSentry } from './withSentry';
+export { defineCloudflareOptions } from './defineCloudflareOptions';
 export { instrumentDurableObjectWithSentry } from './durableobject';
 export { sentryPagesPlugin } from './pages-plugin';
 
