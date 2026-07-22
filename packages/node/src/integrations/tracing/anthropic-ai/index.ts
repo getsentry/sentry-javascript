@@ -1,6 +1,6 @@
 import type { AnthropicAiOptions, IntegrationFn } from '@sentry/core';
 import { ANTHROPIC_AI_INTEGRATION_NAME, defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { SentryAnthropicAiInstrumentation } from './instrumentation';
 
 export const instrumentAnthropicAi = generateInstrumentOnce<AnthropicAiOptions>(

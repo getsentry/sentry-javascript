@@ -46,7 +46,7 @@
   "dependencies": {
     "@sentry/browser": "10.67.0",
     "@sentry/core": "10.67.0",
-    "@sentry/node-core": "10.67.0"
+    "@sentry/node": "10.67.0"
   },
   "peerDependencies": {
     "effect": "^3.0.0 || ^4.0.0-beta.50"

@@ -1,6 +1,6 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { FirebaseInstrumentation } from './otel';
 
 const INTEGRATION_NAME = 'Firebase' as const;

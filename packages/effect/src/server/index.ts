@@ -1,4 +1,4 @@
-import type { NodeOptions } from '@sentry/node-core/light';
+import type { NodeOptions } from '@sentry/node';
 import type * as EffectLayer from 'effect/Layer';
 import { empty as emptyLayer, suspend as suspendLayer } from 'effect/Layer';
 import { init } from './sdk';

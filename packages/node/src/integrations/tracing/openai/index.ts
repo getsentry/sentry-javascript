@@ -1,6 +1,6 @@
 import type { IntegrationFn, OpenAiOptions } from '@sentry/core';
 import { defineIntegration, OPENAI_INTEGRATION_NAME } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { SentryOpenAiInstrumentation } from './instrumentation';
 
 export const instrumentOpenAi = generateInstrumentOnce<OpenAiOptions>(

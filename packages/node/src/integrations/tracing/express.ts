@@ -2,7 +2,8 @@
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 
-import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../otel/instrument';
+import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 import {
   type ExpressIntegrationOptions,
   type IntegrationFn,
