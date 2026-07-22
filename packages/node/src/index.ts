@@ -6,6 +6,7 @@ export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tra
 export { graphqlIntegration } from './integrations/tracing/graphql';
 export {
   expressChannelIntegration as expressIntegration,
+  genericPoolChannelIntegration as genericPoolIntegration,
   hapiChannelIntegration as hapiIntegration,
   koaChannelIntegration as koaIntegration,
   mongodbChannelIntegration as mongoIntegration,
@@ -23,7 +24,6 @@ export { prismaIntegration } from '@sentry/server-utils';
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export { knexIntegration } from './integrations/tracing/knex';
-export { genericPoolIntegration } from './integrations/tracing/genericPool';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
