@@ -147,27 +147,17 @@ git status --porcelain   # expect no output
 
 ### 6. Push and open the draft PR
 
-`gh pr create` prints the new PR's URL — capture it, since step 7 needs its number.
+The `Backport of: #<PR>` body references the original PR, so GitHub cross-links the two
+automatically — no separate comment needed.
 
 ```bash
 git push -u origin <branch>
 
-backport_url=$(gh pr create \
+gh pr create \
   --draft \
   --base <major> \
   --title "<namespaced-title>" \
-  --body "Backport of: #<PR>")
-echo "$backport_url"
-```
-
-### 7. Cross-link on the original PR
-
-Comment on the original PR with a link to the backport (e.g. `v10 backport: #NNNN`). Pass the
-URL captured above — `gh pr comment` accepts it directly, so you don't have to parse the number
-out:
-
-```bash
-gh pr comment <PR> --body "<major> backport: $backport_url"
+  --body "Backport of: #<PR>"
 ```
 
 ## Notes
