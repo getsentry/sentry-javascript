@@ -6,6 +6,7 @@ export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tra
 export { graphqlIntegration } from './integrations/tracing/graphql';
 export {
   expressChannelIntegration as expressIntegration,
+  hapiChannelIntegration as hapiIntegration,
   koaChannelIntegration as koaIntegration,
 } from '@sentry/server-utils/orchestrion';
 export { kafkaIntegration } from './integrations/tracing/kafka';
@@ -18,7 +19,7 @@ export { redisIntegration } from './integrations/tracing/redis';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { postgresJsIntegration } from './integrations/tracing/postgresjs';
 export { prismaIntegration } from '@sentry/server-utils';
-export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
+export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export { knexIntegration } from './integrations/tracing/knex';
 export { tediousIntegration } from './integrations/tracing/tedious';
