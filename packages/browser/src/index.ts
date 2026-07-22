@@ -75,6 +75,8 @@ export {
   instrumentAnthropicAiClient,
   instrumentOpenAiClient,
   instrumentGoogleGenAIClient,
+  instrumentStateGraph,
+  // eslint-disable-next-line typescript/no-deprecated
   instrumentLangGraph,
   instrumentCreateReactAgent,
   createLangChainCallbackHandler,

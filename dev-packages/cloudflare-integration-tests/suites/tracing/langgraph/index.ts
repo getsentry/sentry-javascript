@@ -53,7 +53,7 @@ export default Sentry.withSentry(
         .addEdge(START, 'agent')
         .addEdge('agent', END);
 
-      Sentry.instrumentLangGraph(graph, { recordInputs: true, recordOutputs: true });
+      Sentry.instrumentStateGraph(graph, { recordInputs: true, recordOutputs: true });
 
       const compiled = graph.compile({ name: 'weather_assistant' });
 

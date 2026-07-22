@@ -160,6 +160,8 @@ export {
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
   instrumentLangChainEmbeddings,
+  instrumentStateGraph,
+  // eslint-disable-next-line typescript/no-deprecated
   instrumentLangGraph,
   instrumentStateGraphCompile,
   zodErrorsIntegration,

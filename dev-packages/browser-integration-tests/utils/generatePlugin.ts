@@ -40,6 +40,7 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   instrumentAnthropicAiClient: 'instrumentanthropicaiclient',
   instrumentOpenAiClient: 'instrumentopenaiclient',
   instrumentGoogleGenAIClient: 'instrumentgooglegenaiclient',
+  instrumentStateGraph: 'instrumentstategraph',
   instrumentLangGraph: 'instrumentlanggraph',
   createLangChainCallbackHandler: 'createlangchaincallbackhandler',
   instrumentLangChainEmbeddings: 'instrumentlangchainembeddings',

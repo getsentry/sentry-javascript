@@ -1,12 +1,12 @@
 import { MockStateGraph } from './mocks.js';
-import { instrumentLangGraph } from '@sentry/browser';
+import { instrumentStateGraph } from '@sentry/browser';
 
 // Test that manual instrumentation doesn't crash the browser
 // The instrumentation automatically creates spans
 // Test both agent creation and invocation
 
 const graph = new MockStateGraph();
-instrumentLangGraph(graph, { recordInputs: false, recordOutputs: false });
+instrumentStateGraph(graph, { recordInputs: false, recordOutputs: false });
 const compiledGraph = graph.compile({ name: 'mock-graph' });
 
 const response = await compiledGraph.invoke({

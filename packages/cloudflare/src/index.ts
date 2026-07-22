@@ -112,6 +112,8 @@ export {
   metrics,
   withStreamedSpan,
   spanStreamingIntegration,
+  instrumentStateGraph,
+  // eslint-disable-next-line typescript/no-deprecated
   instrumentLangGraph,
   instrumentCreateReactAgent,
 } from '@sentry/core';

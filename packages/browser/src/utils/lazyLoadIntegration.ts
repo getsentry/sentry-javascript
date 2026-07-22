@@ -26,6 +26,7 @@ const LAZY_LOADABLE_NAMES = [
   'instrumentAnthropicAiClient',
   'instrumentOpenAiClient',
   'instrumentGoogleGenAIClient',
+  'instrumentStateGraph',
   'instrumentLangGraph',
   'createLangChainCallbackHandler',
   'instrumentLangChainEmbeddings',
