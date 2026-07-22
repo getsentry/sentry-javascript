@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createRateLimiter } from '../../src/integrations/local-variables/common';
+import { createRateLimiter, filterFrameVariables } from '../../src/integrations/local-variables/common';
 import { createCallbackList } from '../../src/integrations/local-variables/local-variables-sync';
 import { NODE_MAJOR } from '../../src/nodeVersion';
 
@@ -12,6 +12,34 @@ describeIf(NODE_MAJOR >= 18)('LocalVariables', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  describe('filterFrameVariables', () => {
+    const vars = { user: 'bob', password: 'hunter2', count: 42 };
+
+    it('keeps all variables on `true` but scrubs sensitive names', () => {
+      expect(filterFrameVariables(vars, true)).toEqual({ user: 'bob', password: '[Filtered]', count: 42 });
+    });
+
+    it('drops all variables on `false`', () => {
+      expect(filterFrameVariables(vars, false)).toEqual({});
+    });
+
+    it('keeps only allowed variable names', () => {
+      expect(filterFrameVariables(vars, { allow: ['user', 'count'] })).toEqual({
+        user: 'bob',
+        password: '[Filtered]',
+        count: 42,
+      });
+    });
+
+    it('filters denied variable names', () => {
+      expect(filterFrameVariables(vars, { deny: ['count'] })).toEqual({
+        user: 'bob',
+        password: '[Filtered]',
+        count: '[Filtered]',
+      });
+    });
   });
 
   describe('createCallbackList', () => {
