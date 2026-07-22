@@ -14,10 +14,10 @@ export {
   lruMemoizerChannelIntegration as lruMemoizerIntegration,
   mongodbChannelIntegration as mongoIntegration,
   mongooseChannelIntegration as mongooseIntegration,
+  mysqlChannelIntegration as mysqlIntegration,
   mysql2ChannelIntegration as mysql2Integration,
   tediousChannelIntegration as tediousIntegration,
 } from '@sentry/server-utils/orchestrion';
-export { mysqlIntegration } from './integrations/tracing/mysql';
 export { redisIntegration } from './integrations/tracing/redis';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { postgresJsIntegration } from './integrations/tracing/postgresjs';
