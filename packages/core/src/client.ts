@@ -1263,19 +1263,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
-    // initially, set `crashed` based on the event level and update from exceptions if there are any later on
-    let crashed = event.level === 'fatal';
+    // initially, set `unhandled` based on the event level and update from exceptions if there are any later on
+    let unhandled = event.level === 'fatal';
     let errored = false;
     const exceptions = event.exception?.values;
 
     if (exceptions) {
       errored = true;
-      // reset crashed to false if there are exceptions, to ensure `mechanism.handled` is respected.
-      crashed = false;
+      // reset `unhandled` to false if there are exceptions, to ensure `mechanism.handled` is respected.
+      unhandled = false;
 
       for (const ex of exceptions) {
         if (ex.mechanism?.handled === false) {
-          crashed = true;
+          unhandled = true;
           break;
         }
       }
@@ -1285,12 +1285,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // 1. Session with non terminal status and 0 errors + an error occurred -> Will set error count to 1 and send update
     // 2. Session with non terminal status and 1 error + a crash occurred -> Will set status crashed and send update
     const sessionNonTerminal = session.status === 'ok';
-    const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && crashed);
+    const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && unhandled);
 
     if (shouldUpdateAndSend) {
       updateSession(session, {
-        ...(crashed && { status: this._unhandledSessionStatus }),
-        errors: session.errors || Number(errored || crashed),
+        ...(unhandled && { status: this._unhandledSessionStatus }),
+        errors: session.errors || Number(errored || unhandled),
       });
       this.captureSession(session);
     }
