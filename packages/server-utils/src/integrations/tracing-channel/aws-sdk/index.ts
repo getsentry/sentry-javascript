@@ -254,8 +254,8 @@ const _awsChannelIntegration = (() => {
  * Subscribes to the `orchestrion:@smithy/smithy-client:send` (and equivalent) diagnostics_channel
  * the orchestrion code transform injects into the AWS SDK's smithy `Client.prototype.send`, emitting
  * spans identical to the OTel `@opentelemetry/instrumentation-aws-sdk` integration (with a distinct
- * `auto.aws.orchestrion.aws_sdk` origin). Requires the orchestrion runtime hook or bundler plugin —
- * wire it up via `experimentalUseDiagnosticsChannelInjection()`.
+ * `auto.aws.orchestrion.aws_sdk` origin). Requires the orchestrion runtime hook or bundler plugin;
+ * `@sentry/node`'s `Sentry.init()` installs the runtime hook by default.
  *
  * @experimental
  */

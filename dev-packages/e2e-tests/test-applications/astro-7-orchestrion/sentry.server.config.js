@@ -1,11 +1,7 @@
 import * as Sentry from '@sentry/astro';
-import { experimentalUseDiagnosticsChannelInjection } from '@sentry/node';
 
-// Registers the diagnostics-channel subscribers that turn the build-time
-// injected channel events (from the orchestrion Vite plugin) into Sentry spans.
-// Must run before Sentry.init()
-experimentalUseDiagnosticsChannelInjection();
-
+// Channel-based auto-instrumentation is the default: the SDK subscribes to the build-time injected
+// channel events (from the orchestrion Vite plugin) and turns them into Sentry spans.
 Sentry.init({
   traceLifecycle: 'static',
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,

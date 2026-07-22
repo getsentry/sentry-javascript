@@ -22,7 +22,6 @@
     "type-check:src": "tsc --noEmit",
     "type-check:test": "tsc -p tsconfig.test.json --noEmit",
     "test": "vitest run",
-    "test:orchestrion": "INJECT_ORCHESTRION=true yarn test",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {

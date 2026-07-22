@@ -1,10 +1,7 @@
 import * as Sentry from '@sentry/nestjs';
 
-// Opt into diagnostics-channel injection BEFORE `Sentry.init()`. This swaps
-// the OTel `Nest` instrumentation for the orchestrion (diagnostics-channel)
-// one and synchronously installs the module hooks that inject the channels
-Sentry.experimentalUseDiagnosticsChannelInjection();
-
+// Channel-based (orchestrion diagnostics-channel) instrumentation is the default: `Sentry.init()`
+// synchronously installs the module hooks that inject the channels the `Nest` listener subscribes to.
 Sentry.init({
   traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions

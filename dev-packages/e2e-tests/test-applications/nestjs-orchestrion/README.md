@@ -2,16 +2,14 @@
 
 E2E test app for the **orchestrion** (diagnostics-channel
 injection) NestJS instrumentation. It is a normal
-`@sentry/nestjs` app whose only difference from `nestjs-basic` is
-that `src/instrument.ts` calls
-`Sentry.experimentalUseDiagnosticsChannelInjection()` before
-`Sentry.init()`. That swaps the OTel `Nest` integration for the
-orchestrion subscriber (`@sentry/server-utils/orchestrion`) and
-injects the diagnostics channels into `@nestjs/*` at load time.
+`@sentry/nestjs` app: channel-based instrumentation is the v11
+default, so `Sentry.init()` uses the orchestrion `Nest` subscriber
+(`@sentry/server-utils/orchestrion`) and injects the diagnostics
+channels into `@nestjs/*` at load time.
 
-The tests assert the **same** span tree the OTel path produces
-(`nestjs-basic`), so this app is the opt-in side of an A/B
-against that baseline:
+The tests assert the **same** span tree the OTel path produced
+(`nestjs-basic`), so this app guards the channel-based
+instrumentation against that baseline:
 
 - `transactions.test.ts`: `app_creation`, `request_context`,
   `handler`, and the

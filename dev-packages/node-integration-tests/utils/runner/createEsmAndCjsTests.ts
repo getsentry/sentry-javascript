@@ -5,7 +5,6 @@ import { basename, join } from 'path';
 import { promisify } from 'util';
 import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
 import { CLEANUP_STEPS, createRunner } from './createRunner';
-import { isOrchestrionEnabled } from '../../utils';
 
 const execPromise = promisify(exec);
 
@@ -31,8 +30,6 @@ interface CommonTestOptions {
   afterSetupCommand?: string;
   /** Copy these files/dirs into the tmp dir. */
   copyPaths?: string[];
-  /** If orchestrion should be injected before any instrument file. */
-  injectOrchestrion?: boolean;
 }
 
 interface EsmAndCjsTestOptions extends CommonTestOptions {
@@ -56,7 +53,6 @@ export function createEsmAndCjsTests(
   options?: EsmAndCjsTestOptions,
 ): void {
   const optionsWithDefaults = {
-    injectOrchestrion: isOrchestrionEnabled() || undefined,
     ...options,
   };
   const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, optionsWithDefaults);
@@ -67,9 +63,7 @@ export function createEsmAndCjsTests(
 
   callback(
     () => {
-      const runner = createRunner(paths.esm.scenario)
-        .withEnv(optionsWithDefaults.injectOrchestrion ? { INJECT_ORCHESTRION: 'true' } : {})
-        .withFlags(...paths.esm.flags);
+      const runner = createRunner(paths.esm.scenario).withFlags(...paths.esm.flags);
       // Expected failure — don't dump the child's captured output for these.
       if (optionsWithDefaults.failsOnEsm) {
         runner.suppressErrorLogs();
@@ -83,9 +77,7 @@ export function createEsmAndCjsTests(
 
   callback(
     () => {
-      const runner = createRunner(paths.cjs.scenario)
-        .withEnv(optionsWithDefaults.injectOrchestrion ? { INJECT_ORCHESTRION: 'true' } : {})
-        .withFlags(...paths.cjs.flags);
+      const runner = createRunner(paths.cjs.scenario).withFlags(...paths.cjs.flags);
       // Expected failure — don't dump the child's captured output for these.
       if (optionsWithDefaults.failsOnCjs) {
         runner.suppressErrorLogs();
@@ -111,20 +103,13 @@ export function createEsmTests(
   options?: CommonTestOptions,
 ) {
   const optionsWithDefaults = {
-    injectOrchestrion: isOrchestrionEnabled() || undefined,
     ...options,
   };
   const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, optionsWithDefaults);
   const createdRunners = new Set<ReturnType<typeof createRunner>>();
 
   callback(
-    () =>
-      trackRunner(
-        createdRunners,
-        createRunner(paths.esm.scenario)
-          .withEnv(optionsWithDefaults.injectOrchestrion ? { INJECT_ORCHESTRION: 'true' } : {})
-          .withFlags(...paths.esm.flags),
-      ),
+    () => trackRunner(createdRunners, createRunner(paths.esm.scenario).withFlags(...paths.esm.flags)),
     test,
     tmpDirPath,
   );
@@ -143,20 +128,13 @@ export function createCjsTests(
   options?: CommonTestOptions,
 ) {
   const optionsWithDefaults = {
-    injectOrchestrion: isOrchestrionEnabled() || undefined,
     ...options,
   };
   const [tmpDirPath, createTmpDir, paths] = prepareTmpDir(cwd, scenarioPath, instrumentPath, optionsWithDefaults);
   const createdRunners = new Set<ReturnType<typeof createRunner>>();
 
   callback(
-    () =>
-      trackRunner(
-        createdRunners,
-        createRunner(paths.cjs.scenario)
-          .withEnv(optionsWithDefaults.injectOrchestrion ? { INJECT_ORCHESTRION: 'true' } : {})
-          .withFlags(...paths.cjs.flags),
-      ),
+    () => trackRunner(createdRunners, createRunner(paths.cjs.scenario).withFlags(...paths.cjs.flags)),
     test,
     tmpDirPath,
   );
@@ -217,8 +195,6 @@ function prepareTmpDir(
   instrumentPath: string,
   options?: CommonTestOptions,
 ): [string, () => Promise<void>, ScenarioPaths] {
-  const injectOrchestrion = options?.injectOrchestrion ?? false;
-
   const mjsScenarioPath = join(cwd, scenarioPath);
   const mjsInstrumentPath = join(cwd, instrumentPath);
 
@@ -257,28 +233,6 @@ function prepareTmpDir(
     // Pre-create CJS converted files inside tmp dir
     await convertEsmFileToCjs(esmScenarioPathForRun, cjsScenarioPath);
     await convertEsmFileToCjs(esmInstrumentPathForRun, cjsInstrumentPath);
-
-    if (injectOrchestrion) {
-      const mjsInjectOrchetrionPath = join(tmpDirPath, 'inject-orchestrion.mjs');
-      const cjsInjectOrchetrionPath = join(tmpDirPath, 'inject-orchestrion.cjs');
-
-      await writeFile(
-        mjsInjectOrchetrionPath,
-        `import {experimentalUseDiagnosticsChannelInjection} from '@sentry/node';
-experimentalUseDiagnosticsChannelInjection();`,
-        'utf8',
-      );
-
-      await writeFile(
-        cjsInjectOrchetrionPath,
-        `const {experimentalUseDiagnosticsChannelInjection} = require('@sentry/node');
-experimentalUseDiagnosticsChannelInjection();`,
-        'utf8',
-      );
-
-      esmFlags.unshift('--import', mjsInjectOrchetrionPath);
-      cjsFlags.unshift('--import', cjsInjectOrchetrionPath);
-    }
 
     // Copy any additional files/dirs into tmp dir
     if (options?.copyPaths) {

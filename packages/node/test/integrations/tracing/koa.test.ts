@@ -50,31 +50,13 @@ describe('Koa', () => {
     });
   });
 
-  it('defaults are correct for koaIntegration', () => {
-    koaIntegration().setupOnce!();
-
-    expect(KoaInstrumentation).toHaveBeenCalledTimes(1);
-    expect(KoaInstrumentation).toHaveBeenCalledWith({
-      ignoreLayersType: undefined,
-    });
-  });
-
-  it('passes options from koaIntegration to instrumentation', () => {
-    koaIntegration({ ignoreLayersType: ['middleware'] }).setupOnce!();
-
-    expect(KoaInstrumentation).toHaveBeenCalledTimes(1);
-    expect(KoaInstrumentation).toHaveBeenCalledWith({
-      ignoreLayersType: ['middleware'],
-    });
-  });
-
-  it('passes multiple options from koaIntegration to instrumentation', () => {
-    koaIntegration({ ignoreLayersType: ['router', 'middleware'] }).setupOnce!();
-
-    expect(KoaInstrumentation).toHaveBeenCalledTimes(1);
-    expect(KoaInstrumentation).toHaveBeenCalledWith({
-      ignoreLayersType: ['router', 'middleware'],
-    });
+  // `koaIntegration()` is now the channel-based (orchestrion) integration by default; it no longer
+  // sets up the vendored OTel `KoaInstrumentation`. The channel subscriber's span behavior is covered
+  // in `@sentry/server-utils` and the node-integration koa suite. Here we only assert the public
+  // factory keeps the `Koa` name so the default-integration set and user overrides stay aligned.
+  it('koaIntegration is the channel integration with the Koa name', () => {
+    expect(koaIntegration().name).toBe('Koa');
+    expect(koaIntegration({ ignoreLayersType: ['middleware'] }).name).toBe('Koa');
   });
 });
 

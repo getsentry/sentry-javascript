@@ -161,8 +161,6 @@ export {
   metrics,
   spanStreamingIntegration,
   withStreamedSpan,
-  experimentalUseDiagnosticsChannelInjection,
-  diagnosticsChannelInjectionIntegrations,
 } from '@sentry/node';
 
 export {

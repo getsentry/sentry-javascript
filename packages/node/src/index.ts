@@ -43,13 +43,7 @@ export {
   getDefaultIntegrations,
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
-  applyDiagnosticsChannelInjectionIntegrations,
 } from './sdk';
-export {
-  experimentalUseDiagnosticsChannelInjection,
-  diagnosticsChannelInjectionIntegrations,
-} from './sdk/experimentalUseDiagnosticsChannelInjection';
-export { isDiagnosticsChannelInjectionEnabled } from './sdk/diagnosticsChannelInjection';
 export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 

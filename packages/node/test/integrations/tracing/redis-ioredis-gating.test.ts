@@ -1,14 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { instrumentCalls, injection } = vi.hoisted(() => ({
+const { instrumentCalls, dcState } = vi.hoisted(() => ({
   instrumentCalls: [] as string[],
-  injection: { enabled: false },
+  dcState: { tracingChannel: undefined as unknown },
 }));
 
-// Control the gating flag.
-vi.mock('../../../src/sdk/diagnosticsChannelInjection', () => ({
-  isDiagnosticsChannelInjectionEnabled: () => injection.enabled,
-}));
+// Control whether `tracingChannel` is available (Node >= 18.19). The redis gate skips the OTel
+// monkey-patches whenever orchestrion can run (i.e. `tracingChannel` exists), since the orchestrion
+// channel integrations then own the older ioredis/node-redis ranges.
+vi.mock('node:diagnostics_channel', async importOriginal => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    get tracingChannel() {
+      return dcState.tracingChannel;
+    },
+  };
+});
 
 // Record which instrumentations actually get generated, without registering real
 // OTel module hooks (the creator is never invoked).
@@ -27,8 +35,8 @@ describe('instrumentRedis ioredis gating', () => {
     instrumentCalls.length = 0;
   });
 
-  it('instruments the OTel ioredis monkey-patch when diagnostics-channel injection is disabled', () => {
-    injection.enabled = false;
+  it('instruments the OTel monkey-patches when tracingChannel is unavailable (Node < 18.19)', () => {
+    dcState.tracingChannel = undefined;
 
     instrumentRedis();
 
@@ -36,8 +44,8 @@ describe('instrumentRedis ioredis gating', () => {
     expect(instrumentCalls).toContain('Redis.Redis');
   });
 
-  it('skips both OTel monkey-patches when diagnostics-channel injection is enabled', () => {
-    injection.enabled = true;
+  it('skips both OTel monkey-patches when tracingChannel is available (orchestrion owns them)', () => {
+    dcState.tracingChannel = (() => undefined) as unknown;
 
     instrumentRedis();
 
