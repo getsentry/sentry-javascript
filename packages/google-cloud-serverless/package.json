@@ -42,8 +42,7 @@
   },
   "dependencies": {
     "@sentry/core": "10.67.0",
-    "@sentry/node": "10.67.0",
-    "@sentry/node-core": "10.67.0"
+    "@sentry/node": "10.67.0"
   },
   "devDependencies": {
     "@google-cloud/bigquery": "^5.3.0",

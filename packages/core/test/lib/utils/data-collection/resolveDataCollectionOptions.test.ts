@@ -166,6 +166,28 @@ describe('resolveDataCollectionOptions', () => {
 
       expect(result.databaseQueryData).toBe(false);
     });
+
+    it('supports allow/deny list for stack frame variables', () => {
+      expect(
+        resolveDataCollectionOptions({ dataCollection: { stackFrameVariables: { allow: ['user'] } } })
+          .stackFrameVariables,
+      ).toEqual({ allow: ['user'] });
+
+      expect(
+        resolveDataCollectionOptions({ dataCollection: { stackFrameVariables: { deny: ['password'] } } })
+          .stackFrameVariables,
+      ).toEqual({ deny: ['password'] });
+    });
+
+    it('supports turning off stack frame variables', () => {
+      const result = resolveDataCollectionOptions({
+        dataCollection: {
+          stackFrameVariables: false,
+        },
+      });
+
+      expect(result.stackFrameVariables).toBe(false);
+    });
   });
 
   describe('return type completeness', () => {

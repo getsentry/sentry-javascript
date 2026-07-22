@@ -53,7 +53,7 @@ export { isDiagnosticsChannelInjectionEnabled } from './sdk/diagnosticsChannelIn
 export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 
-export type { NodeOptions } from './types';
+export type { NodeOptions, OpenTelemetryServerRuntimeOptions } from './types';
 
 export {
   // This needs exporting so the NodeClient can be used without calling init
@@ -149,7 +149,7 @@ export {
   spanStreamingIntegration,
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
-  instrumentLangGraph,
+  instrumentStateGraph,
   instrumentStateGraphCompile,
 } from '@sentry/core';
 
@@ -178,40 +178,38 @@ export type {
   CaptureContext,
 } from '@sentry/core';
 
+export { metrics, withStreamedSpan } from '@sentry/core';
+export * as logger from './logs/exports';
+
+export { childProcessIntegration } from './integrations/childProcess';
+export { consoleIntegration } from './integrations/console';
+export { nodeContextIntegration } from './integrations/context';
+export { contextLinesIntegration } from './integrations/contextlines';
+export { localVariablesIntegration } from './integrations/local-variables';
+export { modulesIntegration } from './integrations/modules';
 export {
-  logger,
-  metrics,
-  httpServerIntegration,
-  httpServerSpansIntegration,
-  nodeContextIntegration,
-  contextLinesIntegration,
-  localVariablesIntegration,
-  modulesIntegration,
-  onUncaughtExceptionIntegration,
-  onUnhandledRejectionIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  anrIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  disableAnrDetectionForCallback,
-  spotlightIntegration,
-  childProcessIntegration,
-  processSessionIntegration,
+  _INTERNAL_normalizeCollectionInterval,
   nodeRuntimeMetricsIntegration,
   type NodeRuntimeMetricsOptions,
-  consoleIntegration,
-  pinoIntegration,
-  createSentryWinstonTransport,
-  SentryContextManager,
-  systemErrorIntegration,
-  generateInstrumentOnce,
-  getSentryRelease,
-  defaultStackParser,
-  createGetModuleFromFilename,
-  makeNodeTransport,
-  NodeClient,
-  cron,
-  NODE_VERSION,
-  validateOpenTelemetrySetup,
-  withStreamedSpan,
-  _INTERNAL_normalizeCollectionInterval,
-} from '@sentry/node-core';
+} from './integrations/nodeRuntimeMetrics';
+export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
+export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
+export { pinoIntegration } from './integrations/pino';
+export { spotlightIntegration } from './integrations/spotlight';
+export { systemErrorIntegration } from './integrations/systemError';
+export { createSentryWinstonTransport } from './integrations/winston';
+export { cron } from './cron';
+export { NODE_VERSION } from './nodeVersion';
+export { defaultStackParser, getSentryRelease } from './sdk/api';
+export { makeNodeTransport } from './transports';
+export { createGetModuleFromFilename } from './utils/module';
+
+export { httpServerIntegration } from './integrations/http/httpServerIntegration';
+export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
+export { processSessionIntegration } from './integrations/processSession';
+export { SentryContextManager } from './otel/contextManager';
+export { generateInstrumentOnce } from './otel/instrument';
+export { NodeClient } from './sdk/client';
+export { validateOpenTelemetrySetup } from './sdk';
+// eslint-disable-next-line typescript/no-deprecated
+export { anrIntegration, disableAnrDetectionForCallback } from './integrations/anr';

@@ -14,8 +14,6 @@ const instrumentReactRouter = generateInstrumentOnce(INTEGRATION_NAME, () => {
 export const instrumentReactRouterServer = Object.assign(
   (): void => {
     instrumentReactRouter();
-    // Register global for Vite plugin ServerBuild capture
-    registerServerBuildGlobal();
   },
   { id: INTEGRATION_NAME },
 );
@@ -27,6 +25,10 @@ export const reactRouterServerIntegration = defineIntegration(() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      // Register global for Vite plugin ServerBuild capture. Registered independently of the OTEL
+      // patch so this capture path keeps working once the OTEL instrumentation is removed.
+      registerServerBuildGlobal();
+
       // Enable OTEL data-loader spans only on Node versions without the diagnostics_channel-based instrumentation API.
       if (
         (NODE_VERSION.major === 20 && NODE_VERSION.minor < 19) ||

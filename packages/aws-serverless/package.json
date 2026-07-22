@@ -67,7 +67,6 @@
     "@sentry/conventions": "^0.16.0",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
-    "@sentry/node-core": "10.67.0",
     "@types/aws-lambda": "^8.10.161"
   },
   "devDependencies": {

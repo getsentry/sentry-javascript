@@ -1,6 +1,6 @@
 import type { IntegrationFn, LangChainOptions } from '@sentry/core';
 import { defineIntegration, LANGCHAIN_INTEGRATION_NAME } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { SentryLangChainInstrumentation } from './instrumentation';
 
 export const instrumentLangChain = generateInstrumentOnce<LangChainOptions>(

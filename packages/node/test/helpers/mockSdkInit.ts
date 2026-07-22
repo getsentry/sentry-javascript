@@ -1,6 +1,13 @@
 import { context, propagation, ProxyTracerProvider, trace } from '@opentelemetry/api';
 import { BasicTracerProvider, type SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import {
+  createTransport,
+  getClient,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  resolvedSyncPromise,
+} from '@sentry/core';
 import { SentrySpanProcessor } from '@sentry/opentelemetry';
 import type { NodeClient } from '../../src';
 import { init } from '../../src/sdk';
@@ -23,6 +30,8 @@ export function mockSdkInit(options?: Partial<NodeClientOptions>) {
     // We are disabling client reports because we would be acquiring resources with every init call and that would leak
     // memory every time we call init in the tests
     sendClientReports: false,
+    // Use a mock transport to prevent network calls
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
     ...options,
   });
 }

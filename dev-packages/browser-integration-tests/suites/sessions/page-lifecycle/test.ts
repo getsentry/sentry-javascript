@@ -99,7 +99,7 @@ sentryTest('Updates the session when an error is thrown', async ({ getLocalTestU
     ...initialSession,
     errors: 1,
     init: false,
-    status: 'crashed',
+    status: 'unhandled',
     timestamp: expect.any(String),
   });
 });

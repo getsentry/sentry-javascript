@@ -32,7 +32,7 @@ import type { ParameterizedString } from './types/parameterize';
 import type { ReplayEndEvent, ReplayStartEvent } from './types/replay';
 import type { RequestEventData } from './types/request';
 import type { SdkMetadata } from './types/sdkmetadata';
-import type { Session, SessionAggregates } from './types/session';
+import type { Session, SessionAggregates, SessionStatus } from './types/session';
 import type { SeverityLevel } from './types/severity';
 import type { Span, SpanAttributes, SpanContextData, SpanJSON, StreamedSpanJSON } from './types/span';
 import type { StartSpanOptions } from './types/startSpanOptions';
@@ -221,6 +221,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected readonly _dataCollection: ResolvedDataCollection;
 
   /**
+   * The session status to set when an unhandled error terminates a session.
+   *
+   * Defaults to `'crashed'`. Browser SDKs override this to `'unhandled'` because unhandled errors
+   * don't actually crash the browser.
+   */
+  protected _unhandledSessionStatus: SessionStatus;
+
+  /**
    * Initializes this client instance.
    *
    * @param options Options for the client.
@@ -234,6 +242,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._eventProcessors = [];
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
     this._dataCollection = resolveDataCollectionOptions(options);
+    this._unhandledSessionStatus = 'crashed';
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -1254,19 +1263,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
-    // initially, set `crashed` based on the event level and update from exceptions if there are any later on
-    let crashed = event.level === 'fatal';
+    // initially, set `unhandled` based on the event level and update from exceptions if there are any later on
+    let unhandled = event.level === 'fatal';
     let errored = false;
     const exceptions = event.exception?.values;
 
     if (exceptions) {
       errored = true;
-      // reset crashed to false if there are exceptions, to ensure `mechanism.handled` is respected.
-      crashed = false;
+      // reset `unhandled` to false if there are exceptions, to ensure `mechanism.handled` is respected.
+      unhandled = false;
 
       for (const ex of exceptions) {
         if (ex.mechanism?.handled === false) {
-          crashed = true;
+          unhandled = true;
           break;
         }
       }
@@ -1274,14 +1283,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // A session is updated and that session update is sent in only one of the two following scenarios:
     // 1. Session with non terminal status and 0 errors + an error occurred -> Will set error count to 1 and send update
-    // 2. Session with non terminal status and 1 error + a crash occurred -> Will set status crashed and send update
+    // 2. Session with non terminal status and 1 error + a crash occurred -> Will set status unhandled and send update
     const sessionNonTerminal = session.status === 'ok';
-    const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && crashed);
+    const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && unhandled);
 
     if (shouldUpdateAndSend) {
       updateSession(session, {
-        ...(crashed && { status: 'crashed' }),
-        errors: session.errors || Number(errored || crashed),
+        ...(unhandled && { status: this._unhandledSessionStatus }),
+        errors: session.errors || Number(errored || unhandled),
       });
       this.captureSession(session);
     }

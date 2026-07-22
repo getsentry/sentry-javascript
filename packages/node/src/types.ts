@@ -1,13 +1,68 @@
 import type { Span as WriteableSpan } from '@opentelemetry/api';
-import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import type { ClientOptions, Options, SamplingContext, Scope, Span } from '@sentry/core';
-import type { NodeTransportOptions, OpenTelemetryServerRuntimeOptions } from '@sentry/node-core';
+import type { Instrumentation } from '@opentelemetry/instrumentation';
+import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base';
+import type { ClientOptions, Options, SamplingContext, Scope, ServerRuntimeOptions, Span } from '@sentry/core';
+import type { NodeTransportOptions } from './transports';
+
+/**
+ * Base options for WinterTC-compatible server-side JavaScript runtimes with OpenTelemetry support.
+ * This interface extends the base ServerRuntimeOptions from @sentry/core with OpenTelemetry-specific configuration options.
+ * Used by Node.js, Bun, and other WinterTC-compliant runtime SDKs that support OpenTelemetry instrumentation.
+ */
+export interface OpenTelemetryServerRuntimeOptions extends ServerRuntimeOptions {
+  /**
+   * If this is set to true, the SDK will not set up OpenTelemetry automatically.
+   * In this case, you _have_ to ensure to set it up correctly yourself, including:
+   * * The `SentrySpanProcessor`
+   * * The `SentryPropagator`
+   * * The `SentryContextManager`
+   * * The `SentrySampler`
+   */
+  skipOpenTelemetrySetup?: boolean;
+
+  /**
+   * Provide an array of OpenTelemetry Instrumentations that should be registered.
+   *
+   * Use this option if you want to register OpenTelemetry instrumentation that the Sentry SDK does not yet have support for.
+   */
+  openTelemetryInstrumentations?: Instrumentation[];
+
+  /**
+   * Provide an array of additional OpenTelemetry SpanProcessors that should be registered.
+   *
+   * Note: providing this forces the full OpenTelemetry SDK `BasicTracerProvider` instead of Sentry's
+   * minimal tracer provider, since custom span processors require the SDK span pipeline. See
+   * {@link OpenTelemetryServerRuntimeOptions.openTelemetryBasicTracerProvider}.
+   */
+  openTelemetrySpanProcessors?: SpanProcessor[];
+
+  /**
+   * By default, the SDK uses Sentry's minimal OpenTelemetry tracer provider, which creates native
+   * Sentry spans directly instead of going through the full OpenTelemetry SDK span pipeline.
+   *
+   * Set this to `true` to use the full OpenTelemetry SDK `BasicTracerProvider` instead, e.g. if you
+   * rely on OpenTelemetry SDK features that the minimal provider does not support.
+   *
+   * Note: providing `openTelemetrySpanProcessors` also forces the full OpenTelemetry SDK provider,
+   * since custom span processors require the SDK span pipeline.
+   *
+   * @default false
+   */
+  openTelemetryBasicTracerProvider?: boolean;
+}
 
 /**
  * Base options for the Sentry Node SDK.
  * Extends the common WinterTC options with OpenTelemetry support shared with Bun and other server-side SDKs.
  */
 export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
+  /**
+   * Override the runtime name reported in events.
+   * Defaults to 'node' with the current process version if not specified.
+   *
+   * @hidden This is primarily used internally to support platforms like Next on OpenNext/Cloudflare.
+   */
+  runtime?: { name: string; version?: string };
   /**
    * Sets profiling sample rate when @sentry/profiling-node is installed
    *

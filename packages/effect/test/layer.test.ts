@@ -28,7 +28,7 @@ describe.each([
   ],
   [
     {
-      subSdkName: 'node-light',
+      subSdkName: 'node',
       effectLayer: sentryServer.effectLayer,
       SentryEffectTracer: sentryServer.SentryEffectTracer,
       SentryEffectLogger: sentryServer.SentryEffectLogger,

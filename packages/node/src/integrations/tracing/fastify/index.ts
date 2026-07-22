@@ -1,6 +1,6 @@
 import type { Integration, IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration, getClient } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import type { FastifyInstance, FastifyMinimal, FastifyReply, FastifyRequest } from './types';
 import { FastifyInstrumentationV3 } from './v3/instrumentation';
 import {

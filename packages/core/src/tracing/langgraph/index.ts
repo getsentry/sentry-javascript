@@ -328,7 +328,7 @@ export function instrumentCreateReactAgent(
  *
  * @example
  * ```typescript
- * import { instrumentLangGraph } from '@sentry/cloudflare';
+ * import { instrumentStateGraph } from '@sentry/cloudflare';
  * import { StateGraph } from '@langchain/langgraph';
  *
  * const graph = new StateGraph(MessagesAnnotation)
@@ -336,12 +336,12 @@ export function instrumentCreateReactAgent(
  *   .addEdge(START, 'agent')
  *   .addEdge('agent', END);
  *
- * instrumentLangGraph(graph, { recordInputs: true, recordOutputs: true });
+ * instrumentStateGraph(graph, { recordInputs: true, recordOutputs: true });
  * const compiled = graph.compile({ name: 'my_agent' });
  * ```
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function instrumentLangGraph<T extends { compile: (...args: any[]) => any }>(
+export function instrumentStateGraph<T extends { compile: (...args: any[]) => any }>(
   stateGraph: T,
   options?: LangGraphOptions,
 ): T {
