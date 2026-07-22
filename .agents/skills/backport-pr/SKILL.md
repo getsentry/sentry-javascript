@@ -46,6 +46,7 @@ gh pr view <PR> --json number,title,baseRefName,mergeCommit,state,url
 ```
 
 Verify:
+
 - The PR is **merged** (`state == "MERGED"`). If not, stop and tell the user.
 - Its `baseRefName` is `develop` (or the expected parent major). If it targeted something
   else, confirm with the user before continuing.
