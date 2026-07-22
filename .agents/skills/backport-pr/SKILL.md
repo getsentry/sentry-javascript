@@ -128,6 +128,10 @@ rather than being new authored work.
 Build the namespaced title as in the convention above: `<prefix>(<major>/<scope>):` when the
 original had a scope, or `<prefix>(<major>):` when it didn't (never emit an empty `<major>/`).
 
+`--amend` only rewrites HEAD, which is exactly right for the usual single squash commit. If
+step 3 cherry-picked multiple commits, leave their individual messages as-is — the namespaced
+title lives on the PR (step 6), not on each commit.
+
 Stage only the files the cherry-pick and verification touched — `git add -u` restages tracked
 files without sweeping in unrelated local edits. Sanity-check the staged set with
 `git status` first if `yarn format` may have reformatted files outside the backport.
