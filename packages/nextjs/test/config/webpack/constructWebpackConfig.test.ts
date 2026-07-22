@@ -842,4 +842,45 @@ describe('constructWebpackConfigFunction()', () => {
       expect(findOrchestrionPlugin(finalWebpackConfig)).toBeUndefined();
     });
   });
+
+  describe('esm-only orchestrion externals shim', () => {
+    it('prepends the shim to `externals` when diagnostics-channel injection is enabled', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+      });
+
+      const externals = finalWebpackConfig.externals as ((data: { request?: string }) => Promise<string | undefined>)[];
+
+      expect(Array.isArray(externals)).toBe(true);
+      await expect(externals[0]({ request: '@apm-js-collab/tracing-hooks/hook-sync.mjs' })).resolves.toBe(
+        'commonjs @apm-js-collab/tracing-hooks/hook-sync.mjs',
+      );
+      await expect(externals[0]({ request: 'some-other-package' })).resolves.toBeUndefined();
+    });
+
+    it('does not touch `externals` when diagnostics-channel injection is not enabled', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+        sentryBuildTimeOptions: {},
+      });
+
+      expect(finalWebpackConfig.externals).toBeUndefined();
+    });
+
+    it('does not touch `externals` on the edge build', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: edgeBuildContext,
+        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+      });
+
+      expect(finalWebpackConfig.externals).toBeUndefined();
+    });
+  });
 });

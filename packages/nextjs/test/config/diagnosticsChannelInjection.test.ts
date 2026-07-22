@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
+  externalizeEsmOnlyOrchestrionSpecifiers,
   filterInstrumentedExternals,
 } from '../../src/config/diagnosticsChannelInjection';
 import { setUpBuildTimeVariables } from '../../src/config/withSentryConfig/buildTime';
@@ -48,6 +49,19 @@ describe('getServerExternalPackagesPatch (diagnostics-channel injection)', () =>
     expect(externals).toContain('ioredis');
     expect(externals).toContain('mysql');
     expect(externals).not.toContain('@apm-js-collab/tracing-hooks');
+  });
+});
+
+describe('externalizeEsmOnlyOrchestrionSpecifiers', () => {
+  it('externalizes the ESM-only orchestrion specifier as a plain commonjs require', async () => {
+    await expect(
+      externalizeEsmOnlyOrchestrionSpecifiers({ request: '@apm-js-collab/tracing-hooks/hook-sync.mjs' }),
+    ).resolves.toBe('commonjs @apm-js-collab/tracing-hooks/hook-sync.mjs');
+  });
+
+  it('ignores unrelated requests so later externals handlers still run', async () => {
+    await expect(externalizeEsmOnlyOrchestrionSpecifiers({ request: 'some-other-package' })).resolves.toBeUndefined();
+    await expect(externalizeEsmOnlyOrchestrionSpecifiers({})).resolves.toBeUndefined();
   });
 });
 

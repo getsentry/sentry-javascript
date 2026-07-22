@@ -29,3 +29,33 @@ export function filterInstrumentedExternals(externals: string[], packagesToBundl
   const set = new Set(packagesToBundle);
   return externals.filter(name => !set.has(name));
 }
+
+/**
+ * `@apm-js-collab/tracing-hooks/hook-sync.mjs` is ESM-only with no CJS equivalent, but
+ * `@sentry/server-utils`'s `register.ts` must `require()` it synchronously at runtime (see that
+ * file). Next.js's webpack config refuses to compile any bare `require()` of an ESM-only package
+ * (`ESM packages (...) need to be imported`, thrown by `handleExternals` in `next/dist/build/handle-externals.js`)
+ * unless the app-wide `experimental.esmExternals: 'loose'` flag is set — which we don't want to force
+ * on every user, and which routes through a separate Next.js ESM-interop codepath that has its own
+ * `require(esm)` parent-URL misattribution bug at runtime.
+ *
+ * Being in `serverExternalPackages`/`ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES` above doesn't help here:
+ * Next's ESM guard throws before it even considers whether a package is externalized.
+ */
+export const ESM_ONLY_ORCHESTRION_SPECIFIERS = ['@apm-js-collab/tracing-hooks/hook-sync.mjs'];
+
+/**
+ * A webpack `externals` array entry that externalizes {@link ESM_ONLY_ORCHESTRION_SPECIFIERS} as
+ * plain `commonjs` requires — the same declaration Next.js's own `handleExternals` would produce for
+ * a genuinely CJS package — so its ESM guard never sees (and never throws on) these specifiers.
+ *
+ * Must be placed *before* Next's own externals handler in the `externals` array: webpack calls array
+ * entries in order and stops at the first one that returns a result.
+ */
+export async function externalizeEsmOnlyOrchestrionSpecifiers({
+  request,
+}: {
+  request?: string;
+}): Promise<string | undefined> {
+  return request && ESM_ONLY_ORCHESTRION_SPECIFIERS.includes(request) ? `commonjs ${request}` : undefined;
+}
