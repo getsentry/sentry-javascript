@@ -130,6 +130,36 @@ module.exports = { out_of_app_function };`,
       .completed();
   });
 
+  test('Filters local variables by name via dataCollection.stackFrameVariables', async () => {
+    await createRunner(__dirname, 'local-variables-filtered.js')
+      .expect({
+        event: event => {
+          const frame = event.exception?.values?.[0]?.stacktrace?.frames?.find(frame => frame.function === 'one');
+
+          expect(frame?.vars).toEqual({
+            name: 'some name',
+            keepVar: 'keep me',
+            secretVar: '[Filtered]',
+          });
+        },
+      })
+      .start()
+      .completed();
+  });
+
+  test('Does not attach local variables when dataCollection.stackFrameVariables is false', async () => {
+    await createRunner(__dirname, 'local-variables-disabled.js')
+      .expect({
+        event: event => {
+          for (const frame of event.exception?.values?.[0]?.stacktrace?.frames || []) {
+            expect(frame.vars).toBeUndefined();
+          }
+        },
+      })
+      .start()
+      .completed();
+  });
+
   test('Should handle different function name formats', async () => {
     await createRunner(__dirname, 'local-variables-name-matching.js')
       .expect({

@@ -24,7 +24,7 @@ export function makeFetchTransport(options: BaseTransportOptions): Transport {
 
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
     const requestOptions: RequestInit = {
-      body: request.body,
+      body: request.body as BodyInit,
       method: 'POST',
       referrerPolicy: 'strict-origin',
       headers: options.headers,

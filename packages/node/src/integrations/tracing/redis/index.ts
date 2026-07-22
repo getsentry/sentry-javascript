@@ -2,7 +2,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration } from '@sentry/core';
 import * as dc from 'node:diagnostics_channel';
 import { redisIntegration as redisChannelIntegration } from '@sentry/server-utils';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { isDiagnosticsChannelInjectionEnabled } from '../../../sdk/diagnosticsChannelInjection';
 import { cacheResponseHook, type RedisOptions, setRedisOptions } from './cache';
 import { IORedisInstrumentation } from './vendored/ioredis-instrumentation';

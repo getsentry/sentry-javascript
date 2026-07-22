@@ -51,8 +51,8 @@ name = "bump-size-limit"
 source = "path:.agents/skills/bump-size-limit"
 
 [[skills]]
-name = "upgrade-otel"
-source = "path:.agents/skills/upgrade-otel"
+name = "vendor-otel"
+source = "path:.agents/skills/vendor-otel"
 
 [[skills]]
 name = "skill-scanner"
@@ -61,3 +61,27 @@ source = "getsentry/skills"
 [[skills]]
 name = "skill-creator"
 source = "anthropics/skills"
+
+[[skills]]
+name = "backport-pr"
+source = "path:.agents/skills/backport-pr"
+
+[[skills]]
+name = "bump-conventions"
+source = "path:.agents/skills/bump-conventions"
+
+[[skills]]
+name = "linear-project-status"
+source = "path:.agents/skills/linear-project-status"
+
+[[skills]]
+name = "linear-project-update"
+source = "path:.agents/skills/linear-project-update"
+
+[[skills]]
+name = "track-framework-updates"
+source = "path:.agents/skills/track-framework-updates"
+
+[[skills]]
+name = "write-tests"
+source = "path:.agents/skills/write-tests"

@@ -374,16 +374,6 @@ module.exports = [
     limit: '71 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
-  // Node-Core SDK (ESM)
-  {
-    name: '@sentry/node-core',
-    path: 'packages/node-core/build/esm/index.js',
-    import: createImport('init'),
-    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
-    gzip: true,
-    limit: '69 KB',
-    disablePlugins: ['@size-limit/esbuild'],
-  },
   // Node SDK (ESM)
   {
     name: '@sentry/node',
@@ -409,15 +399,6 @@ module.exports = [
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
     limit: '76 KB',
-    disablePlugins: ['@size-limit/esbuild'],
-  },
-  {
-    name: '@sentry/node/light',
-    path: 'packages/node-core/build/esm/light/index.js',
-    import: createImport('init'),
-    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
-    gzip: true,
-    limit: '57 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {

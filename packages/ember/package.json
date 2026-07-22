@@ -78,6 +78,7 @@
     "qunit": "~2.22.0",
     "qunit-dom": "~3.5.0",
     "sinon": "21.0.1",
+    "typescript": "~5.8.0",
     "webpack": "~5.104.1"
   },
   "engines": {

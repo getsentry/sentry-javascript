@@ -62,32 +62,6 @@
     }
   },
   "typesVersions": {
-    "<5.0": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ],
-      "orchestrion": [
-        "build/types-ts3.8/orchestrion/index.d.ts"
-      ],
-      "orchestrion/config": [
-        "build/types-ts3.8/orchestrion/config/index.d.ts"
-      ],
-      "orchestrion/register": [
-        "build/types-ts3.8/orchestrion/runtime/register.d.ts"
-      ],
-      "orchestrion/vite": [
-        "build/types-ts3.8/orchestrion/bundler/vite.d.ts"
-      ],
-      "orchestrion/rollup": [
-        "build/types-ts3.8/orchestrion/bundler/rollup.d.ts"
-      ],
-      "orchestrion/webpack": [
-        "build/types-ts3.8/orchestrion/bundler/webpack.d.ts"
-      ],
-      "orchestrion/esbuild": [
-        "build/types-ts3.8/orchestrion/bundler/esbuild.d.ts"
-      ]
-    },
     "*": {
       "orchestrion": [
         "build/types/orchestrion/index.d.ts"
@@ -130,9 +104,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8 && node scripts/inject-ts38-shims.mjs",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "run-p build:transpile:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

@@ -40,9 +40,7 @@ Version 11 of the Sentry SDK has new compatibility ranges for runtimes and frame
 
 ### TypeScript Version Policy
 
-<!-- TODO(v11): Fill in the final minimum TypeScript version once decided. -->
-
-The minimum required TypeScript version is increased to version `TODO`. We also no longer emit down-leveled types.
+The minimum required TypeScript version is increased to version `5.0.4`. We also no longer emit down-leveled types.
 
 Older TypeScript versions _may_ continue to be compatible, but no guarantees apply.
 
@@ -316,6 +314,10 @@ Sentry.init({
   integrations: [Sentry.browserTracingIntegration(), Sentry.fetchStreamPerformanceIntegration()],
 });
 ```
+
+### `@sentry/browser`
+
+- The experimental `_experiments.enableStandaloneClsSpans` and `_experiments.enableStandaloneLcpSpans` options were removed from both `browserTracingIntegration` and `webVitalsIntegration`. CLS and LCP are no longer configurable: they are recorded as measurements on the pageload span, unless span streaming is enabled (`traceLifecycle: 'stream'`), in which case they are sent as dedicated spans.
 
 ### `@sentry/node` / Server-side SDKs
 

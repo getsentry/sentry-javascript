@@ -1,4 +1,16 @@
+import replace from '@rollup/plugin-replace';
 import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
+import { createWorkerCodeBuilder } from './rollup.anr-worker.config.mjs';
+
+const [anrWorkerConfig, getAnrBase64Code] = createWorkerCodeBuilder(
+  'src/integrations/anr/worker.ts',
+  'build/esm/integrations/anr',
+);
+
+const [localVariablesWorkerConfig, getLocalVariablesBase64Code] = createWorkerCodeBuilder(
+  'src/integrations/local-variables/worker.ts',
+  'build/esm/integrations/local-variables',
+);
 
 export default [
   // `injectDiagnosticsChannel` makes the generated `@sentry/node/import` hook
@@ -7,6 +19,9 @@ export default [
   // only subscribed to when the app opts in via
   // `experimentalUseDiagnosticsChannelInjection()`).
   ...makeOtelLoaders('./build', 'otel', { injectDiagnosticsChannel: true }),
+  // The workers need to be built first since their output is copied into the main bundle.
+  anrWorkerConfig,
+  localVariablesWorkerConfig,
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       entrypoints: [
@@ -27,6 +42,17 @@ export default [
           exports: 'named',
           preserveModules: true,
         },
+        plugins: [
+          replace({
+            delimiters: ['###', '###'],
+            // removes some rollup warnings
+            preventAssignment: true,
+            values: {
+              AnrWorkerScript: () => getAnrBase64Code(),
+              LocalVariablesWorkerScript: () => getLocalVariablesBase64Code(),
+            },
+          }),
+        ],
       },
     }),
   ),

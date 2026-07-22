@@ -68,25 +68,6 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ],
-      "build/types/index.cloudflare.d.ts": [
-        "build/types-ts3.8/index.cloudflare.d.ts"
-      ],
-      "build/types/index.node.d.ts": [
-        "build/types-ts3.8/index.node.d.ts"
-      ],
-      "build/types/index.bun.d.ts": [
-        "build/types-ts3.8/index.bun.d.ts"
-      ],
-      "build/types/index.deno.d.ts": [
-        "build/types-ts3.8/index.deno.d.ts"
-      ]
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
@@ -125,7 +106,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20250922.0",
-    "@hono/node-server": "^1.19.10",
+    "@hono/node-server": "^2.0.10",
     "@types/node": "^18.19.1",
     "wrangler": "4.62.0"
   },
@@ -133,9 +114,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

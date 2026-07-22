@@ -1,13 +1,11 @@
 import type { env as cloudflareEnv } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
-import { ensureInstrumented } from './instrument';
 import { instrumentExportedHandlerEmail } from './instrumentations/worker/instrumentEmail';
 import { instrumentExportedHandlerFetch } from './instrumentations/worker/instrumentFetch';
 import { instrumentExportedHandlerQueue } from './instrumentations/worker/instrumentQueue';
 import { instrumentExportedHandlerScheduled } from './instrumentations/worker/instrumentScheduled';
 import { instrumentExportedHandlerTail } from './instrumentations/worker/instrumentTail';
-import { getHonoIntegration } from './integrations/hono';
 import { isCloudflareClass } from './utils/isCloudflareClass';
 import {
   instrumentWorkerEntrypoint,
@@ -47,7 +45,6 @@ export function withSentry<
   try {
     // oxlint-disable-next-line typescript/no-explicit-any
     instrumentExportedHandlerFetch(handler, optionsCallback as any);
-    instrumentHonoErrorHandler(handler);
     // oxlint-disable-next-line typescript/no-explicit-any
     instrumentExportedHandlerScheduled(handler, optionsCallback as any);
     // oxlint-disable-next-line typescript/no-explicit-any
@@ -62,23 +59,4 @@ export function withSentry<
   }
 
   return handler;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function instrumentHonoErrorHandler<T extends ExportedHandler<any, any, any>>(handler: T): void {
-  if ('onError' in handler && 'errorHandler' in handler && typeof handler.errorHandler === 'function') {
-    handler.errorHandler = ensureInstrumented(
-      handler.errorHandler,
-      original =>
-        new Proxy(original, {
-          apply(target, thisArg, args) {
-            const [err, context] = args;
-
-            getHonoIntegration()?.handleHonoException(err, context);
-
-            return Reflect.apply(target, thisArg, args);
-          },
-        }),
-    );
-  }
 }

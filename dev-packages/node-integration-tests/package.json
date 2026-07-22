@@ -39,7 +39,7 @@
     "@google/genai": "^1.20.0",
     "@growthbook/growthbook": "^1.6.5",
     "@hapi/hapi": "^21.3.10",
-    "@hono/node-server": "^1.19.13",
+    "@hono/node-server": "^2.0.10",
     "@koa/router": "^12.0.1",
     "@langchain/anthropic": "^0.3.10",
     "@langchain/core": "^0.3.80",
@@ -70,7 +70,7 @@
     "generic-pool": "^3.9.0",
     "graphql": "^16.11.0",
     "graphql-tag": "^2.12.6",
-    "hono": "^4.12.25",
+    "hono": "^4.12.27",
     "http-terminator": "^3.2.0",
     "ioredis": "5.10.1",
     "ioredis-5": "npm:ioredis@^5.11.0",
@@ -103,6 +103,7 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
+    "@opentelemetry/instrumentation-http": "0.220.0",
     "@sentry/conventions": "0.16.0",
     "@sentry-internal/test-utils": "10.67.0",
     "@types/amqplib": "^0.10.5",

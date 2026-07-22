@@ -1,6 +1,7 @@
 import type { Client, IntegrationFn } from '@sentry/core';
 import { addVercelAiProcessors, defineIntegration, extendIntegration } from '@sentry/core';
-import { generateInstrumentOnce, type modulesIntegration } from '@sentry/node-core';
+import type { modulesIntegration } from '../../modules';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { vercelAiIntegration as serverUtilsVercelAiIntegration } from '@sentry/server-utils';
 import { INTEGRATION_NAME } from './constants';
 import { SentryVercelAiInstrumentation } from './instrumentation';

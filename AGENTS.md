@@ -86,12 +86,11 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - `packages/core/` — Base SDK: interfaces, types, core functionality
 - `packages/types/` — Shared types (**deprecated, never modify – instead find types in packages/core**)
 - `packages/browser-utils/` — Browser utilities and instrumentation
-- `packages/node-core/` — Node core logic (excludes OTel instrumentation)
 
 ### Platform SDKs
 
 - `packages/browser/` — Browser SDK + CDN bundles
-- `packages/node/` — Node.js SDK (OTel instrumentation on top of node-core)
+- `packages/node/` — Node.js SDK (client, transports, non-OTel integrations, and OTel instrumentation)
 - `packages/bun/`, `packages/deno/`, `packages/cloudflare/`
 
 ### Framework Integrations

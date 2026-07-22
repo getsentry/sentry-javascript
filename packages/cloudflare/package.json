@@ -58,13 +58,6 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
@@ -72,13 +65,18 @@
     "@opentelemetry/api": "^1.9.1",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
-    "@sentry/server-utils": "10.67.0"
+    "@sentry/server-utils": "10.67.0",
+    "magic-string": "~0.30.21"
   },
   "peerDependencies": {
-    "@cloudflare/workers-types": "^4.x || ^5.x"
+    "@cloudflare/workers-types": "^4.x || ^5.x",
+    "wrangler": "^4.x"
   },
   "peerDependenciesMeta": {
     "@cloudflare/workers-types": {
+      "optional": true
+    },
+    "wrangler": {
       "optional": true
     }
   },
@@ -91,9 +89,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

@@ -25,15 +25,17 @@
     "@sentry/cloudflare": "10.67.0",
     "@sentry/core": "10.67.0",
     "@sentry/hono": "10.67.0",
-    "hono": "^4.12.25",
+    "hono": "^4.12.27",
     "openai": "5.18.1"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "1.34.0",
     "@cloudflare/workers-types": "^4.20260426.0",
     "@sentry-internal/test-utils": "10.67.0",
     "@sentry/conventions": "0.16.0",
     "eslint-plugin-regexp": "^3.1.0",
     "prisma": "6.15.0",
+    "vite": "7.3.5",
     "vitest": "^3.2.6",
     "wrangler": "4.86.0"
   },

@@ -3,12 +3,10 @@ import { context, propagation, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { debug as coreDebug, hasSpanStreamingEnabled } from '@sentry/core';
-import {
-  initializeEsmLoader,
-  type NodeClient,
-  SentryContextManager,
-  setupOpenTelemetryLogger,
-} from '@sentry/node-core';
+import { SentryContextManager } from '../otel/contextManager';
+import { setupOpenTelemetryLogger } from '../otel/logger';
+import type { NodeClient } from './client';
+import { initializeEsmLoader } from './esmLoader';
 import {
   applyOtelSpanData,
   type AsyncLocalStorageLookup,

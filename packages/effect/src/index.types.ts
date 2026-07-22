@@ -26,3 +26,13 @@ export declare const withStreamedSpan: typeof clientSdk.withStreamedSpan;
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
+
+// Feature flag integrations are exported by both the browser and node SDKs. Prefer the client
+// (browser) variants here to disambiguate, matching how the other colliding exports are resolved.
+export declare const launchDarklyIntegration: typeof clientSdk.launchDarklyIntegration;
+export declare const buildLaunchDarklyFlagUsedHandler: typeof clientSdk.buildLaunchDarklyFlagUsedHandler;
+export declare const openFeatureIntegration: typeof clientSdk.openFeatureIntegration;
+export declare const OpenFeatureIntegrationHook: typeof clientSdk.OpenFeatureIntegrationHook;
+export declare const unleashIntegration: typeof clientSdk.unleashIntegration;
+export declare const growthbookIntegration: typeof clientSdk.growthbookIntegration;
+export declare const statsigIntegration: typeof clientSdk.statsigIntegration;

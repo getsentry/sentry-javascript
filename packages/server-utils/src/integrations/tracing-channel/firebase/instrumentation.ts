@@ -1,8 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { debug } from '@sentry/core';
-import { DEBUG_BUILD } from '../../../debug-build';
 import { CHANNELS } from '../../../orchestrion/channels';
-import { bindTracingChannelToSpan } from '../../../tracing-channel';
+import { bindTracingChannelToSpan, safeChannelCallback } from '../../../tracing-channel';
 import type { FirestoreReference } from './firestore-types';
 import { startFirestoreSpan } from './firestore';
 import { wrapFunctionsRegistration } from './functions';
@@ -43,24 +41,10 @@ const FUNCTIONS_TRIGGERS: Array<{ channel: string; triggerType: string }> = [
 
 const NOOP = (): void => {};
 
-/**
- * Runs a span-building callback so a throw inside it can never break the user's firebase call: these run
- * inside the `tracingChannel(...)` machinery wrapping the real function, where an unguarded throw would
- * propagate into the traced call.
- */
-function safe<T>(fn: () => T): T | undefined {
-  try {
-    return fn();
-  } catch (error) {
-    DEBUG_BUILD && debug.warn('[orchestrion:firebase] error handling channel event', error);
-    return undefined;
-  }
-}
-
 export function instrumentFirebase() {
   for (const { channel, spanName, useParent } of FIRESTORE_OPERATIONS) {
     bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<FirestoreChannelContext>(channel), data =>
-      safe(() => {
+      safeChannelCallback(() => {
         const reference = data.arguments[0] as FirestoreReference | undefined;
         if (!reference) {
           return undefined;
@@ -76,7 +60,8 @@ export function instrumentFirebase() {
     // registration call, so we only rewrap the handler argument here (in `start`) and open the
     // span inside that wrapper. The other lifecycle events are irrelevant, so no-op them.
     diagnosticsChannel.tracingChannel(channel).subscribe({
-      start: data => void safe(() => wrapFunctionsRegistration(data as { arguments: unknown[] }, triggerType)),
+      start: data =>
+        void safeChannelCallback(() => wrapFunctionsRegistration(data as { arguments: unknown[] }, triggerType)),
       end: NOOP,
       asyncStart: NOOP,
       asyncEnd: NOOP,
