@@ -208,4 +208,27 @@ describe('Spotlight (Cloudflare)', () => {
 
     expect(fetchSpy).not.toHaveBeenCalled();
   });
+
+  it('does not increment fail count on 4xx/5xx responses', async () => {
+    let callback: (envelope: Envelope) => void = () => {};
+    const client = createTestClient();
+    vi.spyOn(client, 'on').mockImplementationOnce((_hook: string, cb: (envelope: Envelope) => void) => {
+      callback = cb;
+      return () => {};
+    });
+
+    fetchSpy.mockResolvedValue({ status: 500, text: () => Promise.resolve('') });
+
+    const integration = spotlightIntegration();
+    integration.setup!(client);
+
+    const envelope = createTestEnvelope();
+
+    // 5 calls with 500 status — fail count is NOT incremented for HTTP errors,
+    // only for network rejections, so fetch should still be called each time
+    for (let i = 0; i < 5; i++) {
+      callback(envelope);
+      await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(i + 1));
+    }
+  });
 });

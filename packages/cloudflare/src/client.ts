@@ -252,7 +252,7 @@ interface BaseCloudflareOptions {
    *
    * @default false
    */
-   instrumentPrototypeMethods?: boolean | string[];
+  instrumentPrototypeMethods?: boolean | string[];
 
   /**
    * If you use Spotlight by Sentry during development, use

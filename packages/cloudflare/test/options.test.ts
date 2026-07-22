@@ -223,5 +223,20 @@ describe('getFinalOptions', () => {
       const result = getFinalOptions({}, { SENTRY_DSN: 'test-dsn' });
       expect(result.spotlight).toBeUndefined();
     });
+
+    it('spotlight: true prefers env URL over boolean true', () => {
+      const result = getFinalOptions({ spotlight: true }, { SENTRY_SPOTLIGHT: 'http://custom:1234/stream' });
+      expect(result.spotlight).toBe('http://custom:1234/stream');
+    });
+
+    it('spotlight: true stays true when env is boolean "true"', () => {
+      const result = getFinalOptions({ spotlight: true }, { SENTRY_SPOTLIGHT: 'true' });
+      expect(result.spotlight).toBe(true);
+    });
+
+    it('spotlight: true stays true when env is not set', () => {
+      const result = getFinalOptions({ spotlight: true }, {});
+      expect(result.spotlight).toBe(true);
+    });
   });
 });

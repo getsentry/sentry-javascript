@@ -54,11 +54,11 @@ export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknow
   const tracesSampleRate =
     userOptions.tracesSampleRate ?? parseFloat(getEnvVar(env, 'SENTRY_TRACES_SAMPLE_RATE') ?? '');
 
-  // Spotlight: user option > env boolean > env URL string
-  const spotlightEnvVar = getEnvVar(env, 'SENTRY_SPOTLIGHT');
-  const spotlightEnvBool = envToBool(spotlightEnvVar, { strict: true });
-  const spotlight =
-    userOptions.spotlight ?? spotlightEnvBool ?? (spotlightEnvBool === null ? spotlightEnvVar : undefined);
+  // Spotlight precedence (mirrors node-core's getSpotlightConfig):
+  // - false or explicit string from options: use as-is
+  // - true: enable, but prefer a custom URL from the env var if set
+  // - undefined: defer entirely to the env var (bool or URL)
+  const spotlight = getSpotlightFromEnv(userOptions.spotlight, getEnvVar(env, 'SENTRY_SPOTLIGHT'));
 
   return {
     release,
@@ -70,4 +70,31 @@ export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknow
     tunnel: userOptions.tunnel ?? getEnvVar(env, 'SENTRY_TUNNEL'),
     spotlight,
   };
+}
+
+/**
+ * Resolve the spotlight option from a user-supplied value and an env binding string.
+ * Mirrors node-core's `getSpotlightConfig` precedence:
+ *   - `false` or explicit string from options → use as-is
+ *   - `true` → enable, but prefer a custom URL from the env var if set
+ *   - `undefined` → defer entirely to the env var (bool or URL)
+ */
+function getSpotlightFromEnv(
+  optionsSpotlight: boolean | string | undefined,
+  envVar: string | undefined,
+): boolean | string | undefined {
+  if (optionsSpotlight === false) {
+    return false;
+  }
+  if (typeof optionsSpotlight === 'string') {
+    return optionsSpotlight;
+  }
+
+  // optionsSpotlight is true or undefined
+  const envBool = envToBool(envVar, { strict: true });
+  const envUrl = envBool === null && envVar ? envVar : undefined;
+
+  return optionsSpotlight === true
+    ? (envUrl ?? true) // true: use env URL if present, otherwise true
+    : (envBool ?? envUrl); // undefined: use env var (bool or URL)
 }
