@@ -349,11 +349,3 @@ export function instrumentStateGraph<T extends { compile: (...args: any[]) => an
 
   return stateGraph;
 }
-
-/**
- * Directly instruments a StateGraph instance to add tracing spans.
- *
- * @deprecated This function was renamed and will be removed in a future major version.
- * Use `instrumentStateGraph` instead.
- */
-export const instrumentLangGraph = instrumentStateGraph;

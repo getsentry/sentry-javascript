@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   instrumentCreateReactAgent,
-  instrumentLangGraph,
   instrumentStateGraph,
   instrumentStateGraphCompile,
 } from '../../../src/tracing/langgraph';
@@ -31,9 +30,5 @@ describe('instrumentStateGraph', () => {
 
     expect(result).toBe(stateGraph);
     expect(stateGraph.compile).not.toBe(originalCompile);
-  });
-
-  it('exposes instrumentLangGraph as a deprecated alias for instrumentStateGraph', () => {
-    expect(instrumentLangGraph).toBe(instrumentStateGraph);
   });
 });

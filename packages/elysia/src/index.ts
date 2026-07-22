@@ -133,8 +133,6 @@ export {
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
   instrumentStateGraph,
-  // eslint-disable-next-line typescript/no-deprecated
-  instrumentLangGraph,
   instrumentStateGraphCompile,
   zodErrorsIntegration,
   profiler,
