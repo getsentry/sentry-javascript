@@ -63,15 +63,20 @@ git rev-parse --verify origin/<major>   # errors if the branch doesn't exist
 
 If `origin/<major>` doesn't exist, stop: the maintenance branch hasn't been created yet.
 
-Then check the change isn't already on the target. A freshly cut major often still shares
+Then check whether the change is already on the target. A freshly cut major often still shares
 history with `develop`, so a recent PR may already be present:
 
 ```bash
 git merge-base --is-ancestor <mergeCommit-oid> origin/<major> && echo "ALREADY ON <major>"
 ```
 
-If it prints `ALREADY ON`, there's nothing to backport — stop and tell the user rather than
-producing an empty commit.
+If it prints `ALREADY ON`, the commit is in the target's history — usually meaning nothing to
+backport. It's not conclusive on its own, though: a commit that was later reverted on the
+maintenance branch still shows as an ancestor. So treat this as a strong signal to stop and
+tell the user, but if you have reason to think the change was reverted, confirm the fix is
+actually present (e.g. `git log origin/<major> -- <a changed file>`, or grep for the change)
+before deciding. The cherry-pick in step 3 is the real backstop — it comes up empty only when
+the change is genuinely still applied.
 
 ### 2. Create the backport branch off the target major
 
