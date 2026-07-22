@@ -15,8 +15,6 @@ export { postgresIntegration } from './integrations/tracing/postgres';
 export { postgresJsIntegration } from './integrations/tracing/postgresjs';
 export { prismaIntegration } from '@sentry/server-utils';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
-// eslint-disable-next-line typescript/no-deprecated
-export { honoIntegration, setupHonoErrorHandler } from './integrations/tracing/hono';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { knexIntegration } from './integrations/tracing/knex';
 export { tediousIntegration } from './integrations/tracing/tedious';

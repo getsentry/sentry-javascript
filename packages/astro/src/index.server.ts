@@ -64,8 +64,6 @@ export {
   winterCGHeadersToDict,
   graphqlIntegration,
   hapiIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  honoIntegration,
   httpIntegration,
   httpServerIntegration,
   httpServerSpansIntegration,
@@ -128,8 +126,6 @@ export {
   setAttributes,
   setupExpressErrorHandler,
   setupHapiErrorHandler,
-  // eslint-disable-next-line typescript/no-deprecated
-  setupHonoErrorHandler,
   setupKoaErrorHandler,
   setUser,
   spanToBaggageHeader,
