@@ -6,10 +6,14 @@ export const dynamic = 'force-dynamic';
 
 // lru-memoizer's only job (from the SDK's perspective) is to bind the active async context onto the
 // memoized callback, so it runs in its originating span's context whenever the load resolves. The
-// integration creates no spans — we assert the context restore instead. `load` captures its callback
-// without resolving; we fire it later from outside the span, and record on the enclosing span whether
-// the callback ran in that span's context. We wrap the check in our own span so it lands in the
-// transaction's `spans` list (the route handler's active span is nested under Next's `http.server`).
+// integration creates no spans — we assert the context restore instead.
+//
+// `load` captures its callback without resolving. We register the memoized call INSIDE the
+// `lru-memoizer-check` span (so orchestrion captures that span as the context to restore), but fire
+// the load AFTER `startSpan` returns — i.e. outside the span's active context. That's essential: if
+// we fired it inside the span, the callback would see the span through normal async propagation and
+// the assertion would pass even with orchestrion's context restore broken. Firing it outside means
+// only the restore can make the callback observe the span. Mirrors the node lru-memoizer test.
 export async function GET() {
   let memoizerLoadCallback: (() => void) | undefined;
   const memoizedFn = memoizer({
@@ -19,20 +23,26 @@ export async function GET() {
     hash: () => 'key',
   });
 
-  const contextPreserved = await Sentry.startSpan(
+  // `startSpan` invokes its callback synchronously, so `memoizerLoadCallback` is captured by the time
+  // it returns. We don't await here — the callback only fires once the load below runs.
+  const spanFinished = Sentry.startSpan(
     { name: 'lru-memoizer-check', op: 'run' },
     span =>
-      new Promise<boolean>(resolve => {
+      new Promise<void>(resolve => {
         memoizedFn({ foo: 'bar' }, () => {
-          const preserved = Sentry.getActiveSpan()?.spanContext().spanId === span.spanContext().spanId;
-          span.setAttribute('memoized.context_preserved', preserved);
-          resolve(preserved);
+          span.setAttribute(
+            'memoized.context_preserved',
+            Sentry.getActiveSpan()?.spanContext().spanId === span.spanContext().spanId,
+          );
+          resolve();
         });
-
-        // Fire the load outside the span, so the assertion above proves the context was restored.
-        memoizerLoadCallback?.();
       }),
   );
 
-  return NextResponse.json({ contextPreserved });
+  // Fire the load outside the span's context, so the assertion above proves the context was restored.
+  memoizerLoadCallback?.();
+
+  await spanFinished;
+
+  return NextResponse.json({ status: 'ok' });
 }
