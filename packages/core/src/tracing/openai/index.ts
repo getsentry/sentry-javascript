@@ -238,30 +238,43 @@ function instrumentMethod<T extends unknown[], R>(
  * Create a deep proxy for OpenAI client instrumentation
  */
 function createDeepProxy<T extends object>(target: T, currentPath = '', options: OpenAiOptions): T {
+  const propertyCache = new Map<PropertyKey, { original: unknown; wrapped: unknown }>();
+
   return new Proxy(target, {
-    get(obj: object, prop: string): unknown {
-      const value = (obj as Record<string, unknown>)[prop];
+    get(obj: object, prop: string | symbol): unknown {
+      const value = Reflect.get(obj, prop) as unknown;
+      const cachedEntry = propertyCache.get(prop);
+      if (cachedEntry && cachedEntry.original === value) {
+        return cachedEntry.wrapped;
+      }
+
       const methodPath = buildMethodPath(currentPath, String(prop));
 
       const instrumentedMethod = OPENAI_METHOD_REGISTRY[methodPath as keyof typeof OPENAI_METHOD_REGISTRY];
       if (typeof value === 'function' && instrumentedMethod) {
-        return instrumentMethod(
+        const wrappedMethod = instrumentMethod(
           value as (...args: unknown[]) => Promise<unknown>,
           methodPath,
           instrumentedMethod,
           obj,
           options,
         );
+        propertyCache.set(prop, { original: value, wrapped: wrappedMethod });
+        return wrappedMethod;
       }
 
       if (typeof value === 'function') {
         // Bind non-instrumented functions to preserve the original `this` context,
         // which is required for accessing private class fields (e.g. #baseURL) in OpenAI SDK v5.
-        return value.bind(obj);
+        const boundMethod = value.bind(obj);
+        propertyCache.set(prop, { original: value, wrapped: boundMethod });
+        return boundMethod;
       }
 
       if (value && typeof value === 'object') {
-        return createDeepProxy(value, methodPath, options);
+        const nestedProxy = createDeepProxy(value, methodPath, options);
+        propertyCache.set(prop, { original: value, wrapped: nestedProxy });
+        return nestedProxy;
       }
 
       return value;
