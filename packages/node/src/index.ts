@@ -14,6 +14,7 @@ export {
   hapiChannelIntegration as hapiIntegration,
   kafkajsChannelIntegration as kafkaIntegration,
   koaChannelIntegration as koaIntegration,
+  langChainChannelIntegration as langChainIntegration,
   lruMemoizerChannelIntegration as lruMemoizerIntegration,
   mongodbChannelIntegration as mongoIntegration,
   mongooseChannelIntegration as mongooseIntegration,
@@ -31,7 +32,6 @@ export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export { knexIntegration } from './integrations/tracing/knex';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
-export { langChainIntegration } from './integrations/tracing/langchain';
 export { langGraphIntegration } from './integrations/tracing/langgraph';
 export {
   launchDarklyIntegration,
