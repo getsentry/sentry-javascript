@@ -73,11 +73,12 @@ function isCallToMethod(node: BaseNode, methodName: string): boolean {
  * (`durable_objects.bindings`, …) — never by inspecting the class body — so the
  * transform stays a purely syntactic rewrite.
  */
-export type ClassWrapperKind = 'durableObject';
+export type ClassWrapperKind = 'durableObject' | 'workflow';
 
 /** The `@sentry/cloudflare` helper each wrapper kind emits. */
 const WRAPPER_METHODS: Record<ClassWrapperKind, string> = {
   durableObject: 'instrumentDurableObjectWithSentry',
+  workflow: 'instrumentWorkflowWithSentry',
 };
 
 export interface TransformContext {
