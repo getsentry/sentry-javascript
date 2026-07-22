@@ -1,19 +1,10 @@
-import { context } from '@opentelemetry/api';
 import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import {
-  getCapturedScopesOnSpan,
-  getCurrentScope,
-  getIsolationScope,
-  getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  setCapturedScopesOnSpan,
-  spanToJSON,
-} from '@sentry/core';
-import { getScopesFromContext } from '@sentry/opentelemetry';
+import { getIsolationScope, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
+import { maybeForkIsolationScopeForRootSpan } from '../common/utils/forkIsolationScopeForRootSpan';
 import { maybeEnhanceServerComponentSpanName } from '../common/utils/tracingUtils';
 import { maybeStartCronCheckIn } from './vercelCronsMonitoring';
 import { maybeEnrichQueueConsumerSpan, maybeEnrichQueueProducerSpan } from './vercelQueuesMonitoring';
@@ -84,25 +75,7 @@ export function handleOnSpanStart(span: Span): void {
     addHeadersAsAttributes(headers, rootSpan);
   }
 
-  // We want to fork the isolation scope for incoming requests. Root `Middleware.execute` spans need the same
-  // treatment since Next.js 16.3.0-canary.79
-  if (
-    (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest' ||
-      spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute') &&
-    isRootSpan
-  ) {
-    const scopes = getCapturedScopesOnSpan(span);
-
-    const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
-    const scope = scopes.scope || getCurrentScope();
-
-    const currentScopesPointer = getScopesFromContext(context.active());
-    if (currentScopesPointer) {
-      currentScopesPointer.isolationScope = isolationScope;
-    }
-
-    setCapturedScopesOnSpan(span, scope, isolationScope);
-  }
+  maybeForkIsolationScopeForRootSpan(span, spanAttributes);
 
   maybeEnhanceServerComponentSpanName(span, spanAttributes, rootSpanAttributes);
 
