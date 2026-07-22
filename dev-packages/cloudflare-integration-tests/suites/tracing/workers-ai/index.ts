@@ -12,9 +12,6 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    // Keep gen_ai spans embedded in the transaction (instead of streamed as a
-    // separate envelope container) so they can be asserted on `transaction.spans`.
-    streamGenAiSpans: false,
   }),
   {
     async fetch(request) {

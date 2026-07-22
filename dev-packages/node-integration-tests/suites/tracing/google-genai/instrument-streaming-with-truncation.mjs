@@ -13,5 +13,4 @@ Sentry.init({
       enableTruncation: true,
     }),
   ],
-  streamGenAiSpans: true,
 });

@@ -8,7 +8,6 @@ export default Sentry.withSentry(
     environment: 'qa',
     tunnel: 'http://localhost:3031/',
     tracesSampleRate: 1.0,
-    streamGenAiSpans: false,
     integrations: [Sentry.vercelAIIntegration()],
   }),
   {

@@ -7,7 +7,6 @@ export default Sentry.withSentry(
     dsn: env.E2E_TEST_DSN,
     environment: 'qa',
     tunnel: 'http://localhost:3031/',
-    streamGenAiSpans: false,
     tracesSampleRate: 1.0,
     integrations: [Sentry.vercelAIIntegration()],
   }),
