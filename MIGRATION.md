@@ -97,6 +97,24 @@ Affected SDKs: `@sentry/node` and all dependents.
 
 The new channel-based instrumentations (using `orchestrion` instead of `import-in-the-middle`) are now the default. They were available opt-in in v10. This unlocks instrumenting at run and build time, which enables instrumentation at deployment targets like Vercel and Netlify, as well as using instrumentations on non-Node runtimes like Cloudflare, Bun and Deno. For most users this requires no changes.
 
+### Initializing via `--require` is no longer supported
+
+Affected SDKs: `@sentry/node` and all dependents.
+
+Node re-runs `--require` preloads on the internal module loader thread it spawns for `Module.register()` — which the SDK triggers itself when it installs its instrumentation hooks. A `--require`d instrument file therefore ran `Sentry.init()` a second time, on a thread that never executes any of your code. The SDK now skips initialization on that thread and warns when it detects that it was loaded through `--require`.
+
+Use [`--import`](https://nodejs.org/api/cli.html#--importmodule) instead. It is not re-run on the loader thread, and it works for CommonJS apps too — the instrument file's extension (`.cjs`, or `.js` in a package without `"type": "module"`) is what decides that it loads as CommonJS:
+
+```bash
+# Before
+node --require ./instrument.js app.js
+
+# After
+node --import ./instrument.js app.js
+```
+
+The same applies to the no-code entry points, e.g. `node --import=@sentry/node/init app.js` and `node --import @sentry/node/preload app.js`.
+
 ### Span streaming is now the default
 
 Affected SDKs: All SDKs.

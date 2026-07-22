@@ -17,15 +17,6 @@ describe('no-code init', () => {
     cleanupChildProcesses();
   });
 
-  test('CJS', async () => {
-    await createRunner(__dirname, 'app.js')
-      .withFlags('--require=@sentry/node/init')
-      .withMockSentryServer()
-      .expect({ event: EVENT })
-      .start()
-      .completed();
-  });
-
   describe('--import', () => {
     test('ESM', async () => {
       await createRunner(__dirname, 'app.mjs')

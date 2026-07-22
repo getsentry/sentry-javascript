@@ -43,6 +43,18 @@ const PROCESS_ARG_TESTS: [ProcessInterface, ProcessArgs][] = [
       requirePaths: ['/user/tim/docs/here/something.js'],
     },
   ],
+  [
+    {
+      cwd: () => '/user/tim/docs',
+      argv: ['/bin/node', 'app.js'],
+      execArgv: ['-r', './something.js'],
+    },
+    {
+      appPath: '/user/tim/docs/app.js',
+      importPaths: [],
+      requirePaths: ['/user/tim/docs/something.js'],
+    },
+  ],
 ];
 
 describe('getEntryPointType', () => {

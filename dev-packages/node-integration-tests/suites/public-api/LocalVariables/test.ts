@@ -91,11 +91,11 @@ module.exports = { out_of_app_function };`,
       .completed();
   });
 
-  test('Should include local variables when instrumenting via --require', async () => {
-    const requirePath = path.resolve(__dirname, 'local-variables-instrument.js');
+  test('Should include local variables when instrumenting via --import', async () => {
+    const instrumentPath = path.resolve(__dirname, 'local-variables-instrument.cjs');
 
     await createRunner(__dirname, 'local-variables-no-sentry.js')
-      .withFlags(`--require=${requirePath}`)
+      .withFlags(`--import=${instrumentPath}`)
       .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
       .start()
       .completed();
