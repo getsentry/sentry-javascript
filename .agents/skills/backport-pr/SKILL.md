@@ -117,31 +117,39 @@ Run tests scoped to the touched packages when possible (full `yarn test` if unsu
 target major's toolchain differs and a check fails for reasons unrelated to the change, note
 it for the user rather than silently skipping.
 
-### 5. Finalize the commit (reword scope + fold in verification changes)
+### 5. Finalize the commit (fold in verification changes)
 
-Stage the format/lint fixes, then amend in one step: this both namespaces the subject scope
-with the major and captures those fixes. The final message is the namespaced subject plus the
-one-line `Backport of:` body (this replaces the squash-merge body, matching the convention
-above). Do **not** add a `Co-Authored-By` line — the backport commit mirrors an existing commit
-rather than being new authored work.
-
-Build the namespaced title as in the convention above: `<prefix>(<major>/<scope>):` when the
-original had a scope, or `<prefix>(<major>):` when it didn't (never emit an empty `<major>/`).
-
-`--amend` only rewrites HEAD, which is exactly right for the usual single squash commit. If
-step 3 cherry-picked multiple commits, leave their individual messages as-is — the namespaced
-title lives on the PR (step 6), not on each commit.
-
-Stage only the files the cherry-pick and verification touched — `git add -u` restages tracked
-files without sweeping in unrelated local edits. Sanity-check the staged set with
-`git status` first if `yarn format` may have reformatted files outside the backport.
+First stage the format/lint fixes. Use `git add -u` so only tracked files the cherry-pick and
+verification touched are staged, not unrelated local edits — sanity-check with `git status`
+first if `yarn format` may have reformatted files outside the backport.
 
 ```bash
 git add -u
+```
+
+Then finalize, depending on how step 3 went:
+
+**Single squash commit (the usual case)** — amend HEAD to both namespace the subject scope and
+fold in the staged fixes. The message is the namespaced title plus the one-line `Backport of:`
+body (this replaces the squash-merge body, matching the convention above). Do **not** add a
+`Co-Authored-By` line — the backport commit mirrors an existing commit, not new authored work.
+
+Build the title as in the convention: `<prefix>(<major>/<scope>):` when the original had a
+scope, or `<prefix>(<major>):` when it didn't (never emit an empty `<major>/`).
+
+```bash
 git commit --amend -m "<namespaced-title>" -m "Backport of: #<PR>"
 ```
 
 Example subject: `fix(v10/core): Fix logs flush timeout starvation with continuous logging`
+
+**Multiple commits (non-squash merge)** — leave the individual commit messages as-is; the
+namespaced title lives on the PR (step 6), not on each commit. Just fold the staged fixes into
+HEAD without rewording:
+
+```bash
+git commit --amend --no-edit
+```
 
 Confirm the tree is clean so nothing is left uncommitted before you push:
 
