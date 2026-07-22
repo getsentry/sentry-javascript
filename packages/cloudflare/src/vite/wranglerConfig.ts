@@ -10,6 +10,7 @@ import { type Unstable_Config, unstable_readConfig } from 'wrangler';
 export interface WranglerConfig {
   main?: string;
   durableObjects: Array<{ name: string; className: string }>;
+  workflows: Array<{ name: string; className: string }>;
 }
 
 /**
@@ -20,8 +21,8 @@ export interface WranglerConfig {
  * `root` with wrangler's own precedence, since it discovers from `cwd` rather
  * than an arbitrary root); wrangler then parses it, flattens the active
  * environment (honoring `CLOUDFLARE_ENV`), and resolves `main` to an absolute
- * path. Durable Object bindings are the active environment's, matching what the
- * deployed Worker actually binds.
+ * path. Durable Object and Workflow bindings are the active environment's,
+ * matching what the deployed Worker actually binds.
  *
  * Returns `undefined` when no config file is found or it can't be read/parsed
  * (the caller warns and disables auto-instrumentation rather than failing the
@@ -48,20 +49,33 @@ export function resolveWranglerConfig(
     return undefined;
   }
 
-  const durableObjects: WranglerConfig['durableObjects'] = [];
+  return {
+    config: {
+      main: raw.main,
+      durableObjects: collectClassBindings(raw.durable_objects?.bindings),
+      workflows: collectClassBindings(raw.workflows),
+    },
+    configDir: dirname(raw.configPath ?? configPath),
+  };
+}
+
+/**
+ * Map wrangler class bindings (Durable Objects, Workflows — same shape) to the
+ * `{ name, className }` the transform needs, skipping duplicates and bindings
+ * with a `script_name` (those reference a class exported by a *different*
+ * worker, so there is nothing to wrap in this worker's entry file).
+ */
+function collectClassBindings(
+  bindings: ReadonlyArray<{ name: string; class_name?: string; script_name?: string }> | undefined,
+): Array<{ name: string; className: string }> {
+  const result: Array<{ name: string; className: string }> = [];
   const seenClassNames = new Set<string>();
-  for (const binding of raw.durable_objects?.bindings ?? []) {
-    // `script_name` bindings reference a class exported by a *different* worker
-    // — there is nothing to wrap in this worker's entry file.
+  for (const binding of bindings ?? []) {
     if (typeof binding?.class_name !== 'string' || binding.script_name || seenClassNames.has(binding.class_name)) {
       continue;
     }
     seenClassNames.add(binding.class_name);
-    durableObjects.push({ name: binding.name, className: binding.class_name });
+    result.push({ name: binding.name, className: binding.class_name });
   }
-
-  return {
-    config: { main: raw.main, durableObjects },
-    configDir: dirname(raw.configPath ?? configPath),
-  };
+  return result;
 }
