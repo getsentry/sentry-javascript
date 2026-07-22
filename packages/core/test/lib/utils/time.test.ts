@@ -1,13 +1,61 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach } from 'node:test';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+let freshImportId = 0;
+
+async function getFreshTimeModule() {
+  return import(`../../../src/utils/time?update=${freshImportId++}`);
+}
 
 async function getFreshPerformanceTimeOrigin() {
-  // Adding the query param with the date, forces a fresh import each time this is called
+  // Adding a query param forces a fresh import each time this is called
   // otherwise, the dynamic import would be cached and thus fall back to the cached value.
-  const timeModule = await import(`../../../src/utils/time?update=${Date.now()}`);
+  const timeModule = await getFreshTimeModule();
   return timeModule.browserPerformanceTimeOrigin();
 }
 
 const RELIABLE_THRESHOLD_MS = 300_000;
+const DAY_MS = 24 * 60 * 60 * 1_000;
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
+
+describe('timestampInSeconds', () => {
+  it('uses the Date API when the performance timestamp is inaccurate on initialization', async () => {
+    const currentTimeMs = 1_800_000_000_000;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(currentTimeMs);
+    vi.stubGlobal('performance', {
+      timeOrigin: currentTimeMs - 10 * DAY_MS,
+      now: () => 3 * DAY_MS,
+    });
+    const timeModule = await getFreshTimeModule();
+
+    expect(timeModule.timestampInSeconds()).toBe(currentTimeMs / 1_000);
+  });
+
+  it.fails('uses the Date API when the performance clock drifts after initialization', async () => {
+    const initialTimeMs = 1_800_000_000_000;
+    let performanceNow = 0;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(initialTimeMs);
+    vi.stubGlobal('performance', {
+      timeOrigin: initialTimeMs,
+      now: () => performanceNow,
+    });
+    const timeModule = await getFreshTimeModule();
+    timeModule.timestampInSeconds();
+
+    vi.setSystemTime(initialTimeMs + 10 * DAY_MS);
+    performanceNow += 3 * DAY_MS;
+
+    expect(timeModule.timestampInSeconds()).toBe((initialTimeMs + 10 * DAY_MS) / 1_000);
+  });
+});
 
 describe('browserPerformanceTimeOrigin', () => {
   it('returns `performance.timeOrigin` if it is available and reliable', async () => {

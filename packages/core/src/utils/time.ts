@@ -40,6 +40,11 @@ function createUnixTimestampInSecondsFunc(): () => number {
   }
 
   const timeOrigin = performance.timeOrigin;
+  const performanceNow = withRandomSafeContext(() => performance.now());
+  const dateNow = safeDateNow();
+  if (!hasAccuratePerformanceTimestamp(timeOrigin, performanceNow, dateNow)) {
+    return dateTimestampInSeconds;
+  }
 
   // performance.now() is a monotonic clock, which means it starts at 0 when the process begins. To get the current
   // wall clock time (actual UNIX timestamp), we need to add the starting time origin and the current time elapsed.
@@ -92,16 +97,12 @@ function getBrowserTimeOrigin(): number | undefined {
     return undefined;
   }
 
-  const threshold = 300_000; // 5 minutes in milliseconds
   const performanceNow = withRandomSafeContext(() => performance.now());
   const dateNow = safeDateNow();
-
   const timeOrigin = performance.timeOrigin;
-  if (typeof timeOrigin === 'number') {
-    const timeOriginDelta = Math.abs(timeOrigin + performanceNow - dateNow);
-    if (timeOriginDelta < threshold) {
-      return timeOrigin;
-    }
+
+  if (hasAccuratePerformanceTimestamp(timeOrigin, performanceNow, dateNow)) {
+    return timeOrigin;
   }
 
   // TODO: Remove all code related to `performance.timing.navigationStart` once we drop support for Safari 14.
@@ -117,7 +118,7 @@ function getBrowserTimeOrigin(): number | undefined {
   const navigationStart = performance.timing?.navigationStart;
   if (typeof navigationStart === 'number') {
     const navigationStartDelta = Math.abs(navigationStart + performanceNow - dateNow);
-    if (navigationStartDelta < threshold) {
+    if (navigationStartDelta < WALL_CLOCK_DRIFT_THESHOLD) {
       return navigationStart;
     }
   }
@@ -137,4 +138,35 @@ export function browserPerformanceTimeOrigin(): number | undefined {
   }
 
   return cachedTimeOrigin;
+}
+
+const WALL_CLOCK_DRIFT_THESHOLD = 300_000; // 5 minutes in milliseconds
+
+/**
+ * Check if the current timestamp calculated from the Performance API from
+ * `performance.timeOrigin + performance.now()` is within a reasonable threshold of
+ * the current time calculated from the Date API from `Date.now()`.
+ *
+ * The `performance.now()` clock is a monotonic clock, which means it starts at 0 when the process starts.
+ * Unfortunately, it is known to drift behind the actual wall clock, for example when a device hibernates,
+ * or tabs are suspended / inactive for a long period of time.
+ *
+ * Our threshold is 5 minutes, which is a reasonable compromise between accuracy and performance.
+ *
+ * @param performanceTimeOrigin - The time origin reported by the Performance API.
+ * @param performanceNow - The current time reported by the Performance API.
+ * @param dateNow - The current time reported by the Date API.
+ *
+ * @returns `true` if the current performance API-derive time is considered accurate, `false` otherwise.
+ */
+function hasAccuratePerformanceTimestamp(
+  performanceTimeOrigin: number,
+  performanceNow: number,
+  dateNow: number,
+): boolean {
+  if (typeof performanceTimeOrigin === 'number') {
+    const timeOriginDelta = Math.abs(performanceTimeOrigin + performanceNow - dateNow);
+    return timeOriginDelta < WALL_CLOCK_DRIFT_THESHOLD;
+  }
+  return false;
 }
