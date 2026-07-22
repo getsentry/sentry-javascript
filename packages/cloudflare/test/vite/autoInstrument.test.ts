@@ -1,16 +1,25 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parse } from 'acorn';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { sentryCloudflareAutoInstrumentPlugin } from '../../src/vite/autoInstrument';
 
 function parseJS(code: string) {
   return parse(code, { ecmaVersion: 'latest', sourceType: 'module' }) as unknown as { body: any[] };
 }
 
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  while (tempDirs.length) {
+    rmSync(tempDirs.pop()!, { recursive: true, force: true });
+  }
+});
+
 function writeTempDir(files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), 'sentry-cf-'));
+  tempDirs.push(dir);
   for (const [name, content] of Object.entries(files)) {
     writeFileSync(join(dir, name), content);
   }
@@ -128,6 +137,99 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
 
     expect(result).toBeDefined();
     expect(result.code).toContain('__SENTRY__.instrumentWorkflowWithSentry(');
+  });
+
+  it('wraps a directly-exported WorkerEntrypoint class (structural, no config)', () => {
+    const { transform: tx, entryPath } = createPlugin('main = "index.ts"');
+
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      'export class AdminEntry extends WorkerEntrypoint {',
+      '  fetch() { return new Response("admin"); }',
+      '}',
+    ].join('\n');
+    const result = tx(code, entryPath);
+
+    expect(result).toBeDefined();
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { WorkerEntrypoint } from 'cloudflare:workers';",
+        'class __SENTRY_ORIGINAL_AdminEntry__ extends WorkerEntrypoint {',
+        '  fetch() { return new Response("admin"); }',
+        '}',
+        'export const AdminEntry = __SENTRY__.withSentry(() => undefined, __SENTRY_ORIGINAL_AdminEntry__);',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('wraps a self-bound WorkerEntrypoint whose base class lives in another module (config fallback)', () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({
+        name: 'worker-self',
+        main: 'index.ts',
+        services: [{ binding: 'SELF', service: 'worker-self', entrypoint: 'AdminEntry' }],
+      }),
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    // Base class is imported, so structural detection can't see it — the config
+    // self-binding supplies the name instead.
+    const code = ["import { BaseEntry } from './base';", 'export class AdminEntry extends BaseEntry {}'].join('\n');
+    const result = plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
+
+    expect(result).toBeDefined();
+    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+  });
+
+  it('wraps a WorkerEntrypoint named via a services[].entrypoint self-binding (jsonc config)', () => {
+    // Mirrors the `worker-workerentrypoint-rpc` integration test, which declares
+    // its entrypoints through `services[].entrypoint` in a wrangler.jsonc.
+    const dir = writeTempDir({
+      'wrangler.jsonc': [
+        '{',
+        '  "name": "my-worker",',
+        '  "main": "index.ts",',
+        '  "services": [',
+        '    { "binding": "SELF", "service": "my-worker", "entrypoint": "BindingEntrypoint" },',
+        '  ],',
+        '}',
+      ].join('\n'),
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    // Base class imported from another module, so only the config self-binding
+    // identifies `BindingEntrypoint` as an entrypoint to wrap.
+    const code = [
+      "import { BaseEntrypoint } from './base';",
+      'export class BindingEntrypoint extends BaseEntrypoint {}',
+    ].join('\n');
+    const result = plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
+
+    expect(result).toBeDefined();
+    expect(result.code).toContain('export const BindingEntrypoint = __SENTRY__.withSentry(');
+  });
+
+  it('does not wrap an entrypoint that is neither detected nor self-bound', () => {
+    const dir = writeTempDir({
+      'wrangler.json': JSON.stringify({
+        name: 'worker-self',
+        main: 'index.ts',
+        services: [{ binding: 'OTHER', service: 'worker-x', entrypoint: 'RemoteEntry' }],
+      }),
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    // Base class imported (structural blind), and the only service binding is
+    // outward (names `worker-x`'s export), so there is nothing to wrap here.
+    const code = ["import { BaseEntry } from './base';", 'export class RemoteEntry extends BaseEntry {}'].join('\n');
+    const result = plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
+
+    expect(result).toBeUndefined();
   });
 
   it('warns when a configured DO class cannot be wrapped', () => {
