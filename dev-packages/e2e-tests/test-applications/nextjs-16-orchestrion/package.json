@@ -18,7 +18,11 @@
   "dependencies": {
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "dataloader": "2.2.2",
+    "generic-pool": "^3.9.0",
     "ioredis": "5.10.1",
+    "knex": "^2.5.1",
+    "lru-memoizer": "2.3.0",
     "mysql": "^2.18.1",
     "next": "16.2.10",
     "pg": "^8.13.1",
