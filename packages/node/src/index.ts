@@ -3,11 +3,11 @@ export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
 export { expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
-export { graphqlIntegration } from './integrations/tracing/graphql';
 export {
   amqplibChannelIntegration as amqplibIntegration,
   expressChannelIntegration as expressIntegration,
   genericPoolChannelIntegration as genericPoolIntegration,
+  graphqlDiagnosticsChannelIntegration as graphqlIntegration,
   hapiChannelIntegration as hapiIntegration,
   kafkajsChannelIntegration as kafkaIntegration,
   koaChannelIntegration as koaIntegration,
