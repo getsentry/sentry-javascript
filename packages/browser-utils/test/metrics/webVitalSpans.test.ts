@@ -257,6 +257,7 @@ describe('_sendLcpSpan', () => {
           'browser.web_vital.lcp.size': 50000,
           'browser.web_vital.lcp.report_event': 'pagehide',
           'sentry.transaction': 'test-route',
+          'sentry.segment.name': 'test-route',
         }),
         startTime: 1, // timeOrigin: 1000 / 1000
         parentSpan: mockPageloadSpan,
@@ -349,6 +350,7 @@ describe('_sendClsSpan', () => {
           'browser.web_vital.cls.source.2': '<span>',
           'browser.web_vital.cls.report_event': 'navigation',
           'sentry.transaction': 'test-route',
+          'sentry.segment.name': 'test-route',
         }),
         parentSpan: mockPageloadSpan,
       }),
