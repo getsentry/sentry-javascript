@@ -23,6 +23,7 @@ import {
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
+import { HTTP_URL, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export type SentryHandleOptions = {
   /**
@@ -178,6 +179,9 @@ async function instrumentHandle(
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
+          // oxlint-disable-next-line typescript-eslint(no-deprecated)
+          [URL_FULL]: kitRootSpanAttributes[URL_FULL] ?? kitRootSpanAttributes[HTTP_URL] ?? event.url.href,
+          [URL_PATH]: kitRootSpanAttributes[URL_PATH] ?? event.url.pathname,
           ...httpHeadersToSpanAttributes(
             winterCGHeadersToDict(event.request.headers),
             getClient()?.getDataCollectionOptions() ?? false,
@@ -207,6 +211,8 @@ async function instrumentHandle(
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
               'http.method': event.request.method,
+              [URL_FULL]: event.url.href,
+              [URL_PATH]: event.url.pathname,
               ...httpHeadersToSpanAttributes(
                 winterCGHeadersToDict(event.request.headers),
                 getClient()?.getDataCollectionOptions() ?? false,
