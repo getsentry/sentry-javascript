@@ -1,3 +1,5 @@
+import { resolveOrchestrionRuntimeRequest } from '@sentry/server-utils/orchestrion/webpack';
+
 /**
  * Instrumented packages verified (via e2e) to bundle correctly, removed from Sentry's own
  * `serverExternalPackages` defaults so the build-time loader can transform them. Everything else
@@ -31,31 +33,36 @@ export function filterInstrumentedExternals(externals: string[], packagesToBundl
 }
 
 /**
- * `@apm-js-collab/tracing-hooks/hook-sync.mjs` is ESM-only with no CJS equivalent, but
- * `@sentry/server-utils`'s `register.ts` must `require()` it synchronously at runtime (see that
- * file). Next.js's webpack config refuses to compile any bare `require()` of an ESM-only package
- * (`ESM packages (...) need to be imported`, thrown by `handleExternals` in `next/dist/build/handle-externals.js`)
- * unless the app-wide `experimental.esmExternals: 'loose'` flag is set — which we don't want to force
- * on every user, and which routes through a separate Next.js ESM-interop codepath that has its own
- * `require(esm)` parent-URL misattribution bug at runtime.
+ * A webpack `externals` array entry that keeps {@link ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES} truly
+ * external by resolving each request to an absolute path at build time and emitting a
+ * `commonjs <absolute path>` external.
  *
- * Being in `serverExternalPackages`/`ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES` above doesn't help here:
- * Next's ESM guard throws before it even considers whether a package is externalized.
- */
-export const ESM_ONLY_ORCHESTRION_SPECIFIERS = ['@apm-js-collab/tracing-hooks/hook-sync.mjs'];
-
-/**
- * A webpack `externals` array entry that externalizes {@link ESM_ONLY_ORCHESTRION_SPECIFIERS} as
- * plain `commonjs` requires — the same declaration Next.js's own `handleExternals` would produce for
- * a genuinely CJS package — so its ESM guard never sees (and never throws on) these specifiers.
+ * Listing the packages in `serverExternalPackages` is not enough: Next.js only externalizes a
+ * package when its bare specifier also resolves from the project root (`resolveExternal`'s
+ * base-resolve check in `next/dist/build/handle-externals.js`) — otherwise the
+ * `require('<bare specifier>')` it emits into the chunk would dangle at runtime, so Next silently
+ * bundles the package instead. Under isolated installs (pnpm) these packages are transitive
+ * dependencies that never resolve from the project root, so the whole orchestrion runtime ended up
+ * compiled into the server chunk, which breaks it twice over: the code-transformer parser doesn't
+ * survive bundling, and the runtime hook's own bare specifiers can't resolve from the chunk's
+ * output location. Absolute paths sidestep all of this — webpack emits `require('/abs/path/…')`,
+ * which loads the real files from `node_modules` no matter where the chunk lives.
  *
- * Must be placed *before* Next's own externals handler in the `externals` array: webpack calls array
- * entries in order and stops at the first one that returns a result.
+ * Must be placed *before* Next's own externals handler in the `externals` array: webpack calls
+ * array entries in order and stops at the first one that returns a result.
  */
-export async function externalizeEsmOnlyOrchestrionSpecifiers({
+export async function externalizeOrchestrionRuntimePackages({
   request,
 }: {
   request?: string;
 }): Promise<string | undefined> {
-  return request && ESM_ONLY_ORCHESTRION_SPECIFIERS.includes(request) ? `commonjs ${request}` : undefined;
+  if (
+    !request ||
+    !ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES.some(pkg => request === pkg || request.startsWith(`${pkg}/`))
+  ) {
+    return undefined;
+  }
+
+  const resolved = resolveOrchestrionRuntimeRequest(request);
+  return resolved ? `commonjs ${resolved}` : undefined;
 }

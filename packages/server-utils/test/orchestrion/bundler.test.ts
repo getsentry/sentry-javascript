@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
 import type { OnStartResult, PluginBuild } from 'esbuild';
 import type { NormalizedInputOptions, PluginContext } from 'rollup';
 import type { ResolvedConfig } from 'vite';
@@ -6,7 +8,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { sentryOrchestrionPlugin as esbuildPlugin } from '../../src/orchestrion/bundler/esbuild';
 import { sentryOrchestrionPlugin as rollupPlugin } from '../../src/orchestrion/bundler/rollup';
 import { sentryOrchestrionPlugin as vitePlugin } from '../../src/orchestrion/bundler/vite';
-import { sentryOrchestrionWebpackPlugin } from '../../src/orchestrion/bundler/webpack';
+import {
+  resolveOrchestrionRuntimeRequest,
+  sentryOrchestrionWebpackPlugin,
+} from '../../src/orchestrion/bundler/webpack';
 
 // The upstream transform plugins are mocked so tests exercise only the hooks
 // added on top of them (the externalized-modules warnings).
@@ -131,5 +136,34 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     expect(runConfigResolved(true)).not.toHaveBeenCalled();
     expect(runConfigResolved(['lodash'])).not.toHaveBeenCalled();
     expect(runConfigResolved(undefined)).not.toHaveBeenCalled();
+  });
+});
+
+describe('resolveOrchestrionRuntimeRequest', () => {
+  it.each([
+    // Self-references — resolve through this package's own exports map to the CJS build.
+    '@sentry/server-utils/orchestrion/register',
+    '@sentry/server-utils/orchestrion',
+    // Dependencies of this package, including subpaths only reachable from its location.
+    '@apm-js-collab/tracing-hooks',
+    '@apm-js-collab/tracing-hooks/hook.mjs',
+    '@apm-js-collab/tracing-hooks/hook-sync.mjs',
+    '@apm-js-collab/tracing-hooks/lib/diagnostics.js',
+    '@apm-js-collab/code-transformer',
+  ])('resolves %s to an existing absolute path', request => {
+    const resolved = resolveOrchestrionRuntimeRequest(request);
+
+    expect(resolved).toBeDefined();
+    expect(isAbsolute(resolved!)).toBe(true);
+    expect(existsSync(resolved!)).toBe(true);
+  });
+
+  it('resolves self-references with require conditions, so the paths are loadable via require()', () => {
+    expect(resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion/register')).toMatch(/[/\\]cjs[/\\]/);
+  });
+
+  it('returns undefined for unresolvable requests', () => {
+    expect(resolveOrchestrionRuntimeRequest('@sentry/server-utils/no-such-subpath')).toBeUndefined();
+    expect(resolveOrchestrionRuntimeRequest('some-package-that-does-not-exist')).toBeUndefined();
   });
 });

@@ -30,6 +30,24 @@ export function getOrchestrionLoaderPath(): string {
   return getOrchestrionRequire().resolve('@apm-js-collab/code-transformer-bundler-plugins/webpack-loader');
 }
 
+/**
+ * Resolves a request for one of the orchestrion runtime packages (`@sentry/server-utils` itself, via
+ * self-reference, or its `@apm-js-collab/*` dependencies) to an absolute path, from this package's
+ * own on-disk location — where the whole dependency graph always resolves, regardless of the
+ * consuming app's install layout. Returns `undefined` when the request can't be resolved.
+ *
+ * Bundler configs use this to emit absolute-path `commonjs` externals: a bare-specifier external
+ * emitted into a bundled chunk resolves from the chunk's output location at runtime, which fails
+ * under isolated installs (pnpm) where these packages are transitive dependencies.
+ */
+export function resolveOrchestrionRuntimeRequest(request: string): string | undefined {
+  try {
+    return getOrchestrionRequire().resolve(request);
+  } catch {
+    return undefined;
+  }
+}
+
 /** The central instrumentation config, to pass as the loader's `instrumentations` option. */
 export function getSentryInstrumentations(): InstrumentationConfig[] {
   return SENTRY_INSTRUMENTATIONS;

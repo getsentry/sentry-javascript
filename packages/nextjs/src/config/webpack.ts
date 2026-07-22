@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import { createRequire } from 'module';
 import * as path from 'path';
 import type { VercelCronsConfig } from '../common/types';
-import { externalizeEsmOnlyOrchestrionSpecifiers } from './diagnosticsChannelInjection';
+import { externalizeOrchestrionRuntimePackages } from './diagnosticsChannelInjection';
 import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
 import type { RouteManifest } from './manifest/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
@@ -436,7 +436,7 @@ export function constructWebpackConfigFunction({
     // Orchestrion code-transform loader — Node server runtime only, never the edge compilation
     if (runtime === 'server' && userSentryOptions._experimental?.useDiagnosticsChannelInjection) {
       newConfig.plugins.push(sentryOrchestrionWebpackPlugin() as unknown as WebpackPluginInstance);
-      prependEsmOnlyOrchestrionExternalsShim(newConfig);
+      prependOrchestrionRuntimeExternals(newConfig);
     }
 
     return newConfig;
@@ -876,19 +876,19 @@ function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules)
 }
 
 /**
- * Prepends {@link externalizeEsmOnlyOrchestrionSpecifiers} to `newConfig.externals`, ahead of
- * Next.js's own externals handler, so its ESM guard never sees the orchestrion runtime's ESM-only
- * specifiers. See that function's docs for why this is necessary.
+ * Prepends {@link externalizeOrchestrionRuntimePackages} to `newConfig.externals`, ahead of
+ * Next.js's own externals handler, so the orchestrion runtime packages stay external even where
+ * `serverExternalPackages` can't keep them so. See that function's docs for why this is necessary.
  */
-function prependEsmOnlyOrchestrionExternalsShim(newConfig: WebpackConfigObjectWithModuleRules): void {
+function prependOrchestrionRuntimeExternals(newConfig: WebpackConfigObjectWithModuleRules): void {
   const existingExternals = newConfig.externals;
 
   if (Array.isArray(existingExternals)) {
-    existingExternals.unshift(externalizeEsmOnlyOrchestrionSpecifiers);
+    existingExternals.unshift(externalizeOrchestrionRuntimePackages);
   } else if (existingExternals === undefined) {
-    newConfig.externals = [externalizeEsmOnlyOrchestrionSpecifiers];
+    newConfig.externals = [externalizeOrchestrionRuntimePackages];
   } else {
-    newConfig.externals = [externalizeEsmOnlyOrchestrionSpecifiers, existingExternals];
+    newConfig.externals = [externalizeOrchestrionRuntimePackages, existingExternals];
   }
 }
 

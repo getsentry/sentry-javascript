@@ -16,7 +16,10 @@ import {
 } from '../fixtures';
 import { materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
 
-vi.mock('@sentry/server-utils/orchestrion/webpack', () => ({
+// Only the plugin factory is stubbed — `resolveOrchestrionRuntimeRequest` must stay real because
+// the externals handler under test uses it.
+vi.mock('@sentry/server-utils/orchestrion/webpack', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   sentryOrchestrionWebpackPlugin: () => ({ _name: 'sentry-orchestrion-webpack-plugin' }),
 }));
 
@@ -843,8 +846,8 @@ describe('constructWebpackConfigFunction()', () => {
     });
   });
 
-  describe('esm-only orchestrion externals shim', () => {
-    it('prepends the shim to `externals` when diagnostics-channel injection is enabled', async () => {
+  describe('orchestrion runtime externals', () => {
+    it('prepends an externals handler that resolves runtime packages to absolute paths when diagnostics-channel injection is enabled', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
@@ -855,8 +858,8 @@ describe('constructWebpackConfigFunction()', () => {
       const externals = finalWebpackConfig.externals as ((data: { request?: string }) => Promise<string | undefined>)[];
 
       expect(Array.isArray(externals)).toBe(true);
-      await expect(externals[0]({ request: '@apm-js-collab/tracing-hooks/hook-sync.mjs' })).resolves.toBe(
-        'commonjs @apm-js-collab/tracing-hooks/hook-sync.mjs',
+      await expect(externals[0]({ request: '@sentry/server-utils/orchestrion/register' })).resolves.toMatch(
+        /^commonjs ([/\\]|[A-Za-z]:).*register\.js$/,
       );
       await expect(externals[0]({ request: 'some-other-package' })).resolves.toBeUndefined();
     });
