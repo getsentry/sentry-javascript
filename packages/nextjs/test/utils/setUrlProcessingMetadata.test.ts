@@ -1,5 +1,6 @@
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
+import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { describe, expect, it, vi } from 'vitest';
 import { setUrlProcessingMetadata } from '../../src/common/utils/setUrlProcessingMetadata';
 
@@ -33,6 +34,44 @@ describe('setUrlProcessingMetadata', () => {
           data: {
             'next.route': '/api/users/[id]',
             'http.target': '/api/users/123',
+          },
+        },
+      },
+      sdkProcessingMetadata: {
+        capturedSpanIsolationScope: { getScopeData: () => scopeData },
+      },
+    };
+
+    setUrlProcessingMetadata(event);
+    expect(scopeData.sdkProcessingMetadata.normalizedRequest.url).toBe('https://example.com/api/users/123');
+  });
+
+  it('preserves the concrete URL when a parameterized http.route is available', () => {
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+      getOptions: () => ({ sendDefaultPii: false }),
+    } as unknown as SentryCore.Client);
+
+    const scopeData = {
+      sdkProcessingMetadata: {
+        normalizedRequest: {
+          headers: {
+            'x-forwarded-proto': 'https',
+            host: 'example.com',
+          },
+          url: 'https://example.com/api/users/123',
+        },
+      },
+    };
+
+    const event: Event = {
+      type: 'transaction',
+      contexts: {
+        trace: {
+          op: 'http.server',
+          data: {
+            [HTTP_ROUTE]: '/api/users/[id]',
+            [URL_FULL]: 'https://example.com/api/users/123?token=secret#fragment',
+            [URL_PATH]: '/api/users/123',
           },
         },
       },

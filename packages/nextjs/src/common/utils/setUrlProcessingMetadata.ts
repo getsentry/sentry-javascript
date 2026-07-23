@@ -1,5 +1,6 @@
 import type { Event } from '@sentry/core';
 import { getClient } from '@sentry/core';
+import { URL_PATH } from '@sentry/conventions/attributes';
 import { getSanitizedRequestUrl } from './urls';
 
 /**
@@ -20,7 +21,7 @@ export function setUrlProcessingMetadata(event: Event): void {
 
   // Get the route from trace data
   const componentRoute = traceData['next.route'] || traceData['http.route'];
-  const httpTarget = traceData['http.target'] as string | undefined;
+  const httpTarget = (traceData['http.target'] || traceData[URL_PATH]) as string | undefined;
 
   if (!componentRoute) {
     return;
