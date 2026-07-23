@@ -4,6 +4,54 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.68.0
+
+### Other Changes
+
+- feat(cloudflare): Add @sentry/cloudflare/vite orchestrion plugin ([#21967](https://github.com/getsentry/sentry-javascript/pull/21967))
+- feat(nestjs): Support WebSocket errors in SentryGlobalFilter ([#22224](https://github.com/getsentry/sentry-javascript/pull/22224))
+- feat(node,server-utils): Set `cache.key` on dataloader spans and capture redis delete operations as `cache.remove` ([#22389](https://github.com/getsentry/sentry-javascript/pull/22389))
+- feat(server-utils): Allow integrations to be part of marker ([#22094](https://github.com/getsentry/sentry-javascript/pull/22094))
+- feat(server-utils): Migrate `FirebaseInstrumentation` to orchestrion ([#22141](https://github.com/getsentry/sentry-javascript/pull/22141))
+- feat(server-utils): Warn when bundler config has instrumented module in external ([#22379](https://github.com/getsentry/sentry-javascript/pull/22379))
+- feat(v10): Add `http.route` attribute to `http.server` spans with parameterized routes ([#22564](https://github.com/getsentry/sentry-javascript/pull/22564))
+- feat(v10): Add `url.full` and `url.path` to `http.server` spans ([#22533](https://github.com/getsentry/sentry-javascript/pull/22533))
+- feat(v10/cloudflare): Auto-instrument Durable Object classes ([#22541](https://github.com/getsentry/sentry-javascript/pull/22541))
+- feat(v10/cloudflare): Auto-instrument the worker entry with withSentry ([#22540](https://github.com/getsentry/sentry-javascript/pull/22540))
+- feat(v10/cloudflare): Auto-instrument WorkerEntrypoint classes ([#22543](https://github.com/getsentry/sentry-javascript/pull/22543))
+- feat(v10/cloudflare): Auto-instrument Workflow classes ([#22542](https://github.com/getsentry/sentry-javascript/pull/22542))
+- feat(v10/cloudflare): Read wrangler config and resolve the Sentry options module ([#22538](https://github.com/getsentry/sentry-javascript/pull/22538))
+- feat(v10/core): Add `instrumentStateGraph` API ([#22491](https://github.com/getsentry/sentry-javascript/pull/22491))
+- feat(v10/core): Add `url.full` attribute to core fetch instrumentation ([#22436](https://github.com/getsentry/sentry-javascript/pull/22436))
+- feat(v10/core): Support filtering `stackFrameVariables` by variable name ([#22526](https://github.com/getsentry/sentry-javascript/pull/22526))
+- feat(v10/react-router): Make instrumentation API the default ([#22525](https://github.com/getsentry/sentry-javascript/pull/22525))
+- fix(cloudflare,deno,node): Align types of vercelai ([#22343](https://github.com/getsentry/sentry-javascript/pull/22343))
+- fix(core): Instrument Anthropic client in place instead of via a deep proxy ([#22305](https://github.com/getsentry/sentry-javascript/pull/22305))
+- fix(replay): Set text/javascript MIME type on compression worker Blob ([#22377](https://github.com/getsentry/sentry-javascript/pull/22377))
+- fix(sveltekit): Adapt frame rewriting for kit 3 ([#22407](https://github.com/getsentry/sentry-javascript/pull/22407))
+- fix(v10): Pin `@apm-js-collab/code-transformer-bundler-plugins` to 0.7.1 ([#22497](https://github.com/getsentry/sentry-javascript/pull/22497))
+- fix(v10/cloudflare): Import prismaIntegration from server-utils ([#22535](https://github.com/getsentry/sentry-javascript/pull/22535))
+- fix(v10/core): Avoid `functionToStringIntegration` causing infinite recursions ([#22527](https://github.com/getsentry/sentry-javascript/pull/22527))
+- fix(v10/core): Avoid propagating `baggage: "undefined"` when DSC is missing ([#22440](https://github.com/getsentry/sentry-javascript/pull/22440))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#22342](https://github.com/getsentry/sentry-javascript/pull/22342))
+- chore: Add external contributor to CHANGELOG.md ([#22405](https://github.com/getsentry/sentry-javascript/pull/22405))
+- chore(deps): Bump axios from 1.16.0 to 1.18.0 in /dev-packages/e2e-tests/test-applications/nestjs-basic ([#22395](https://github.com/getsentry/sentry-javascript/pull/22395))
+- chore(deps): Bump morgan from 1.10.0 to 1.11.0 ([#22187](https://github.com/getsentry/sentry-javascript/pull/22187))
+- chore(size-limit): weekly auto-bump ([#22182](https://github.com/getsentry/sentry-javascript/pull/22182))
+- ci(v10): Add `v10` to build and license-compliance branch filters ([#22499](https://github.com/getsentry/sentry-javascript/pull/22499))
+- feat(deps): Bump axios from 1.16.0 to 1.18.0 ([#22396](https://github.com/getsentry/sentry-javascript/pull/22396))
+- ref(server-utils): Remove unneeded orchestrion config ([#22384](https://github.com/getsentry/sentry-javascript/pull/22384))
+- ref(server-utils): Small fastify cleanup ([#22385](https://github.com/getsentry/sentry-javascript/pull/22385))
+- test: Remove unnecessary test waits ([#22383](https://github.com/getsentry/sentry-javascript/pull/22383))
+- test(sveltekit-3): Fix import `defineEnvVars` from `@sveltejs/kit/env` ([#22390](https://github.com/getsentry/sentry-javascript/pull/22390))
+- test(v10/cloudflare): Add Vite-build support to the integration-test runner ([#22539](https://github.com/getsentry/sentry-javascript/pull/22539))
+
+</details>
+
 Work in this release was contributed by @psh4607 and @trinitiwowka. Thank you for your contributions!
 
 ## 10.67.0
@@ -76,10 +124,6 @@ Work in this release was contributed by @psh4607 and @trinitiwowka. Thank you fo
 </details>
 
 Work in this release was contributed by @PeterWadie and @akshitsinha. Thank you for your contributions!
-
-### Other Changes
-
-- fix(replay): Set `text/javascript` MIME type on the compression worker Blob ([#22377](https://github.com/getsentry/sentry-javascript/pull/22377))
 
 ## 10.66.0
 
