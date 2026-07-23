@@ -36,6 +36,22 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 const commonJSOptions = { transformMixedEsModules: true, requireReturnsDefault: 'auto', strictRequires: false };
 const commonJSPlugin = commonjs(commonJSOptions);
 
+// Always vendor `debug`'s Node build. Its default entry picks browser vs node at require time,
+// which drags the browser build into this server-only bundle — and, hoisted by
+// `strictRequires: false`, the browser build's storage detection probes `localStorage` at import
+// time, which on Node >= 26 emits an ExperimentalWarning that pollutes stderr and console
+// breadcrumbs in every user app. `order: 'pre'` because the base config's node-resolve plugin
+// sorts ahead of package-specific plugins and would otherwise resolve `debug` first.
+const debugNodeAlias = {
+  name: 'debug-node-alias',
+  resolveId: {
+    order: 'pre',
+    handler(source, importer) {
+      return source === 'debug' ? this.resolve('debug/src/node.js', importer, { skipSelf: true }) : null;
+    },
+  },
+};
+
 // Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
 // repo root, so `preserveModules` names our own files `packages/server-utils/src/...` — strip that
 // prefix to keep the `build/cjs/index.js` layout the `exports` map points at. And npm never packs
@@ -88,7 +104,7 @@ export default [
         'src/orchestrion/bundler/esbuild.ts',
       ],
       packageSpecificConfig: {
-        plugins: [commonJSPlugin],
+        plugins: [debugNodeAlias, commonJSPlugin],
         output: {
           // set exports to 'named' or 'auto' so that rollup doesn't warn
           exports: 'named',
