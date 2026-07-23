@@ -168,9 +168,9 @@ test.describe('server - instrumentation API performance', () => {
     expect(httpServerTransactions).toEqual(['GET /performance']);
   });
 
-  test('strips the bogus "*" http.route on routes without a loader/action', async ({ page }) => {
-    // The `@sentry/node` HTTP root span matches React Router's catch-all handler with `http.route: '*'`.
-    // On routes without a loader/action nothing overwrites it, so the integration must strip it before send.
+  test('resolves a real http.route on routes without a loader/action', async ({ page }) => {
+    // Regression guard for the server OTel removal: routes without a loader/action must still get a
+    // proper `http.route` (not the catch-all `*` placeholder) from the underlying HTTP instrumentation.
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return transactionEvent.transaction === 'GET /performance/ssr';
     });
@@ -180,6 +180,6 @@ test.describe('server - instrumentation API performance', () => {
     const transaction = await txPromise;
 
     expect(transaction.contexts?.trace?.op).toBe('http.server');
-    expect(transaction.contexts?.trace?.data?.['http.route']).toBeUndefined();
+    expect(transaction.contexts?.trace?.data?.['http.route']).toBe('/performance/ssr');
   });
 });
