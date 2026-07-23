@@ -1,6 +1,18 @@
 import type { Debugger } from 'node:inspector';
+import type { CollectBehavior } from '@sentry/core';
+import { _INTERNAL_filterKeyValueData } from '@sentry/core';
 
 export type Variables = Record<string, unknown>;
+
+/**
+ * Filters captured frame variables by name according to a `dataCollection.stackFrameVariables` behavior.
+ *
+ * `true` keeps all variables (built-in sensitive names are still scrubbed), `false` drops them all, and the
+ * `{ allow: [...] }` / `{ deny: [...] }` forms filter by variable name.
+ */
+export function filterFrameVariables(vars: Variables, behavior: CollectBehavior): Variables {
+  return _INTERNAL_filterKeyValueData(vars, behavior);
+}
 
 export type RateLimitIncrement = () => void;
 

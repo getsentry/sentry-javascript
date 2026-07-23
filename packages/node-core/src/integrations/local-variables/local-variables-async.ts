@@ -1,10 +1,10 @@
 import { Worker } from 'node:worker_threads';
-import type { Event, EventHint, Exception, IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration } from '@sentry/core';
+import type { CollectBehavior, Event, EventHint, Exception, IntegrationFn } from '@sentry/core';
+import { debug, defineIntegration, getClient } from '@sentry/core';
 import type { NodeClient } from '../../sdk/client';
 import { isDebuggerEnabled } from '../../utils/debug';
 import type { FrameVariables, LocalVariablesIntegrationOptions, LocalVariablesWorkerArgs } from './common';
-import { functionNamesMatch, LOCAL_VARIABLES_KEY } from './common';
+import { filterFrameVariables, functionNamesMatch, LOCAL_VARIABLES_KEY } from './common';
 
 // This string is a placeholder that gets overwritten with the worker code.
 export const base64WorkerScript = '###LocalVariablesWorkerScript###';
@@ -19,7 +19,16 @@ function log(...args: unknown[]): void {
 export const localVariablesAsyncIntegration = defineIntegration(((
   integrationOptions: LocalVariablesIntegrationOptions = {},
 ) => {
-  function addLocalVariablesToException(exception: Exception, localVariables: FrameVariables[]): void {
+  function addLocalVariablesToException(
+    exception: Exception,
+    localVariables: FrameVariables[],
+    behavior: CollectBehavior,
+  ): void {
+    // When disabled, nothing is collected so we don't attach empty `vars` to frames
+    if (behavior === false) {
+      return;
+    }
+
     // Filter out frames where the function name is `new Promise` since these are in the error.stack frames
     // but do not appear in the debugger call frames
     const frames = (exception.stacktrace?.frames || []).filter(frame => frame.function !== 'new Promise');
@@ -47,7 +56,7 @@ export const localVariablesAsyncIntegration = defineIntegration(((
         continue;
       }
 
-      frame.vars = frameLocalVariables.vars;
+      frame.vars = filterFrameVariables(frameLocalVariables.vars, behavior);
     }
   }
 
@@ -58,8 +67,10 @@ export const localVariablesAsyncIntegration = defineIntegration(((
       LOCAL_VARIABLES_KEY in hint.originalException &&
       Array.isArray(hint.originalException[LOCAL_VARIABLES_KEY])
     ) {
+      const behavior = getClient()?.getDataCollectionOptions().stackFrameVariables ?? true;
+
       for (const exception of event.exception?.values || []) {
-        addLocalVariablesToException(exception, hint.originalException[LOCAL_VARIABLES_KEY]);
+        addLocalVariablesToException(exception, hint.originalException[LOCAL_VARIABLES_KEY], behavior);
       }
 
       hint.originalException[LOCAL_VARIABLES_KEY] = undefined;
