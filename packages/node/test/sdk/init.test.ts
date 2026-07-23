@@ -1,10 +1,8 @@
-import { trace } from '@opentelemetry/api';
-import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Integration } from '@sentry/core';
 import { debug, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import { afterEach, beforeEach, describe, expect, it, type Mock, type MockInstance, vi } from 'vitest';
-import { getClient, NodeClient, validateOpenTelemetrySetup } from '../../src/';
+import { getClient, NodeClient } from '../../src/';
 import * as auto from '../../src/integrations/tracing';
 import { init } from '../../src/sdk';
 import { cleanupOtel } from '../helpers/mockSdkInit';
@@ -230,59 +228,6 @@ describe('init()', () => {
       expect(client?.traceProvider).toBeInstanceOf(SentryOpentelemetry.SentryTracerProvider);
     });
 
-    it('uses the OpenTelemetry SDK tracer provider when opted in via `openTelemetryBasicTracerProvider`', () => {
-      init({ dsn: PUBLIC_DSN, openTelemetryBasicTracerProvider: true });
-
-      const client = getClient<NodeClient>();
-
-      expect(client?.traceProvider).toBeInstanceOf(BasicTracerProvider);
-    });
-
-    it('uses the OpenTelemetry SDK tracer provider when custom span processors are provided', () => {
-      init({
-        dsn: PUBLIC_DSN,
-        openTelemetrySpanProcessors: [
-          {
-            forceFlush: () => Promise.resolve(),
-            onStart: () => undefined,
-            onEnd: () => undefined,
-            shutdown: () => Promise.resolve(),
-          },
-        ],
-      });
-
-      const client = getClient<NodeClient>();
-
-      expect(client?.traceProvider).toBeInstanceOf(BasicTracerProvider);
-    });
-
-    it('recreates the OTel API registry when it pre-exists with a different @opentelemetry/api version', () => {
-      // Simulate a host runtime (e.g. Neon Functions) pre-creating the registry with its own api version
-      global[OTEL_API_GLOBAL_KEY] = { version: '0.0.1' };
-
-      init({ dsn: PUBLIC_DSN });
-
-      const client = getClient<NodeClient>();
-      const registry = global[OTEL_API_GLOBAL_KEY];
-
-      expect(client?.traceProvider).toBeInstanceOf(SentryOpentelemetry.SentryTracerProvider);
-      expect(registry?.version).not.toBe('0.0.1');
-      expect(registry?.trace).toBeDefined();
-    });
-
-    it('recreates a version-mismatched OTel API registry also for the OpenTelemetry SDK tracer provider', () => {
-      global[OTEL_API_GLOBAL_KEY] = { version: '0.0.1' };
-
-      init({ dsn: PUBLIC_DSN, openTelemetryBasicTracerProvider: true });
-
-      const client = getClient<NodeClient>();
-      const registry = global[OTEL_API_GLOBAL_KEY];
-
-      expect(client?.traceProvider).toBeInstanceOf(BasicTracerProvider);
-      expect(registry?.version).not.toBe('0.0.1');
-      expect(registry?.trace).toBeDefined();
-    });
-
     it('carries non-Sentry slots of a version-mismatched OTel API registry over into the recreated one', () => {
       // Must be a complete DiagLogger: once carried over, the SDK's api copy resolves it and
       // calls it for its own diag output.
@@ -321,24 +266,6 @@ describe('init()', () => {
       expect(existingRegistry.trace).toBe(existingProvider);
 
       global[OTEL_API_GLOBAL_KEY] = undefined;
-    });
-
-    it('does not mark SentryTracerProvider as set up when global registration fails', () => {
-      // Simulate another OpenTelemetry tracer provider already being registered.
-      const setGlobalSpy = vi.spyOn(trace, 'setGlobalTracerProvider').mockReturnValue(false);
-      const setIsSetupSpy = vi.spyOn(SentryOpentelemetry, 'setIsSetup');
-      const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-
-      init({ dsn: PUBLIC_DSN });
-
-      expect(getClient<NodeClient>()?.traceProvider).not.toBeDefined();
-      expect(setIsSetupSpy).not.toHaveBeenCalledWith('SentryTracerProvider');
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Could not register SentryTracerProvider because another OpenTelemetry tracer provider is already registered.',
-      );
-
-      setGlobalSpy.mockRestore();
-      setIsSetupSpy.mockRestore();
     });
   });
 
@@ -619,72 +546,5 @@ describe('init()', () => {
         expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
       });
     });
-  });
-});
-
-describe('validateOpenTelemetrySetup', () => {
-  afterEach(() => {
-    global.__SENTRY__ = {};
-    cleanupOtel();
-    vi.clearAllMocks();
-  });
-
-  it('works with correct setup', () => {
-    const errorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
-    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-
-    vi.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
-      return ['SentryContextManager', 'SentryPropagator', 'SentrySampler'];
-    });
-
-    validateOpenTelemetrySetup();
-
-    expect(errorSpy).toHaveBeenCalledTimes(0);
-    expect(warnSpy).toHaveBeenCalledTimes(0);
-  });
-
-  it('works with missing setup, without tracing', () => {
-    const errorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
-    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-
-    vi.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
-      return [];
-    });
-
-    validateOpenTelemetrySetup();
-
-    // Without tracing, this is expected only twice
-    expect(errorSpy).toHaveBeenCalledTimes(2);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryContextManager.'));
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryPropagator.'));
-    expect(warnSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySampler.'));
-  });
-
-  it('works with missing setup, with tracing', () => {
-    const errorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
-    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-
-    vi.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
-      return [];
-    });
-
-    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true, tracesSampleRate: 1 });
-
-    validateOpenTelemetrySetup();
-
-    expect(errorSpy).toHaveBeenCalledTimes(3);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryContextManager.'));
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryPropagator.'));
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySpanProcessor.'));
-    expect(warnSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySampler.'));
-  });
-
-  // Regression test for https://github.com/getsentry/sentry-javascript/issues/15558
-  it('accepts an undefined transport', () => {
-    init({ dsn: PUBLIC_DSN, transport: undefined });
   });
 });

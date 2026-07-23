@@ -26,7 +26,6 @@ import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
 import { getSampledForPropagation, getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
-import { setIsSetup } from './utils/setupCheck';
 
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
@@ -37,7 +36,6 @@ export class SentryPropagator extends W3CBaggagePropagator {
 
   public constructor() {
     super();
-    setIsSetup('SentryPropagator');
 
     // We're caching results so we don't have to recompute regexp every time we create a request.
     this._urlMatchesTargetsMap = new LRUMap<string, boolean>(100);

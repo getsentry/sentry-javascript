@@ -1,5 +1,4 @@
 /* eslint-disable typescript/no-deprecated */
-import type { Span } from '@opentelemetry/api';
 import {
   DB_STATEMENT,
   DB_SYSTEM,
@@ -21,21 +20,11 @@ import {
   descriptionForHttpMethod,
   getSanitizedUrl,
   getUserUpdatedNameAndSource,
-  parseSpanDescription,
+  inferSpanData,
 } from '../../src/utils/parseSpanDescription';
 
-describe('parseSpanDescription', () => {
+describe('inferSpanData', () => {
   it.each([
-    [
-      'works without attributes & name',
-      undefined,
-      undefined,
-      {
-        description: '<unknown>',
-        op: undefined,
-        source: 'custom',
-      },
-    ],
     [
       'works with empty attributes',
       {},
@@ -348,7 +337,7 @@ describe('parseSpanDescription', () => {
       },
     ],
   ])('%s', (_, attributes, name, expected) => {
-    const actual = parseSpanDescription({ attributes, name } as unknown as Span);
+    const actual = inferSpanData(name, attributes);
     expect(actual).toEqual(expected);
   });
 });
@@ -373,7 +362,7 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_METHOD]: 'GET',
         [HTTP_URL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
-        [SENTRY_KIND]: 'client',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
       {
@@ -393,7 +382,7 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_URL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
         'sentry.http.prefetch': true,
-        [SENTRY_KIND]: 'client',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
       {
@@ -412,7 +401,7 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_METHOD]: 'POST',
         [HTTP_URL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
-        [SENTRY_KIND]: 'server',
+        [SENTRY_KIND]: 'server' as const,
       },
       'test name',
       {
@@ -432,7 +421,7 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_URL]: 'https://www.example.com/my-path/123',
         [HTTP_TARGET]: '/my-path/123',
         [HTTP_ROUTE]: '/my-path/:id',
-        [SENTRY_KIND]: 'client',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
       {
@@ -471,7 +460,7 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_TARGET]: '/my-path/123',
         [HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-        [SENTRY_KIND]: 'client',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
       {
@@ -493,7 +482,7 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
-        [SENTRY_KIND]: 'client',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
       {
@@ -515,7 +504,7 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
-        [SENTRY_KIND]: 'client',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
       {
@@ -534,7 +523,7 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_METHOD]: 'GET',
         [HTTP_URL]: 'https://www.example.com/my-path?id=1#section',
         [HTTP_TARGET]: '/my-path?id=1#section',
-        [SENTRY_KIND]: 'client',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
       {

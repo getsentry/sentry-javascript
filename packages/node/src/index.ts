@@ -210,6 +210,5 @@ export { processSessionIntegration } from './integrations/processSession';
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
 export { NodeClient } from './sdk/client';
-export { validateOpenTelemetrySetup } from './sdk';
 // eslint-disable-next-line typescript/no-deprecated
 export { anrIntegration, disableAnrDetectionForCallback } from './integrations/anr';

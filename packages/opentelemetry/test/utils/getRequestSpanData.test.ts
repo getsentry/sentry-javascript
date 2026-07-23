@@ -1,24 +1,18 @@
 /* eslint-disable typescript/no-deprecated */
 import type { Span } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { HTTP_METHOD, HTTP_URL } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getRequestSpanData } from '../../src/utils/getRequestSpanData';
-import { setupOtel } from '../helpers/initOtel';
-import { cleanupOtel } from '../helpers/mockSdkInit';
-import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
+import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('getRequestSpanData', () => {
-  let provider: BasicTracerProvider | undefined;
-
   beforeEach(() => {
-    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
-    [provider] = setupOtel(client);
+    mockSdkInit();
   });
 
   afterEach(() => {
-    cleanupOtel(provider);
+    return cleanupOtel();
   });
 
   function createSpan(name: string): Span {

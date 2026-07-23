@@ -37,7 +37,6 @@
   },
   "devDependencies": {
     "@edge-runtime/types": "4.0.0",
-    "@opentelemetry/sdk-trace-base": "^2.9.0",
     "@sentry/opentelemetry": "10.67.0"
   },
   "scripts": {

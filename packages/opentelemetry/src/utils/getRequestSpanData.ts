@@ -1,26 +1,20 @@
-import type { Span } from '@opentelemetry/api';
-import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
-import type { SanitizedRequestData } from '@sentry/core';
-import { getSanitizedUrlString, parseUrl } from '@sentry/core';
-import { spanHasAttributes } from './spanTypes';
+import type { SanitizedRequestData, Span } from '@sentry/core';
+import { getSanitizedUrlString, parseUrl, spanToJSON } from '@sentry/core';
 
 /**
- * Get sanitizied request data from an OTEL span.
+ * Get sanitized request data from a span.
  */
-export function getRequestSpanData(span: Span | ReadableSpan): Partial<SanitizedRequestData> {
-  // The base `Span` type has no `attributes`, so we need to guard here against that
-  if (!spanHasAttributes(span)) {
-    return {};
-  }
+export function getRequestSpanData(span: Span): Partial<SanitizedRequestData> {
+  const attributes = spanToJSON(span).data;
 
   // eslint-disable-next-line typescript/no-deprecated
-  const maybeUrlAttribute = (span.attributes[URL_FULL] || span.attributes[HTTP_URL]) as string | undefined;
+  const maybeUrlAttribute = (attributes[URL_FULL] || attributes[HTTP_URL]) as string | undefined;
 
   const data: Partial<SanitizedRequestData> = {
     url: maybeUrlAttribute,
     // eslint-disable-next-line typescript/no-deprecated
-    'http.method': (span.attributes[HTTP_REQUEST_METHOD] || span.attributes[HTTP_METHOD]) as string | undefined,
+    'http.method': (attributes[HTTP_REQUEST_METHOD] || attributes[HTTP_METHOD]) as string | undefined,
   };
 
   // Default to GET if URL is set but method is not

@@ -1,9 +1,6 @@
-import { SpanStatusCode } from '@opentelemetry/api';
 import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE, RPC_GRPC_STATUS_CODE } from '@sentry/conventions/attributes';
 import type { SpanAttributes, SpanStatus } from '@sentry/core';
-import { getSpanStatusFromHttpCode, isStatusErrorMessageValid, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '@sentry/core';
-import type { AbstractSpan } from '../types';
-import { spanHasAttributes, spanHasStatus } from './spanTypes';
+import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '@sentry/core';
 
 // canonicalCodesGrpcMap maps some GRPC codes to Sentry's span statuses. See description in grpc documentation.
 const canonicalGrpcErrorCodesMap: Record<string, SpanStatus['message']> = {
@@ -24,49 +21,6 @@ const canonicalGrpcErrorCodesMap: Record<string, SpanStatus['message']> = {
   '15': 'data_loss',
   '16': 'unauthenticated',
 } as const;
-
-/**
- * Get a Sentry span status from an otel span.
- */
-export function mapStatus(span: AbstractSpan): SpanStatus {
-  const attributes = spanHasAttributes(span) ? span.attributes : {};
-  const status = spanHasStatus(span) ? span.status : undefined;
-
-  if (status) {
-    // Since span status OK is not set by default, we give it priority: https://opentelemetry.io/docs/concepts/signals/traces/#span-status
-    if (status.code === SpanStatusCode.OK) {
-      return { code: SPAN_STATUS_OK };
-      // If the span is already marked as erroneous we return that exact status
-    } else if (status.code === SpanStatusCode.ERROR) {
-      if (typeof status.message === 'undefined') {
-        const inferredStatus = inferStatusFromAttributes(attributes);
-        if (inferredStatus) {
-          return inferredStatus;
-        }
-      }
-
-      if (status.message && isStatusErrorMessageValid(status.message)) {
-        return { code: SPAN_STATUS_ERROR, message: status.message };
-      } else {
-        return { code: SPAN_STATUS_ERROR, message: 'internal_error' };
-      }
-    }
-  }
-
-  // If the span status is UNSET, we try to infer it from HTTP or GRPC status codes.
-  const inferredStatus = inferStatusFromAttributes(attributes);
-
-  if (inferredStatus) {
-    return inferredStatus;
-  }
-
-  // We default to setting the spans status to ok.
-  if (status?.code === SpanStatusCode.UNSET) {
-    return { code: SPAN_STATUS_OK };
-  } else {
-    return { code: SPAN_STATUS_ERROR, message: 'unknown_error' };
-  }
-}
 
 export function inferStatusFromAttributes(attributes: SpanAttributes): SpanStatus | undefined {
   // If the span status is UNSET, we try to infer it from HTTP or GRPC status codes.
