@@ -1,5 +1,5 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
-import type { ResolvedConfig } from 'vite';
+import type { Plugin, ResolvedConfig } from 'vite';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
@@ -18,7 +18,7 @@ import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTran
  * export default { plugins: [sentryOrchestrionPlugin()] };
  * ```
  */
-export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
+export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
   return {
     ...codeTransformer(orchestrionTransformOptions(options)),
     config(): { ssr: { noExternal: string[] } } {

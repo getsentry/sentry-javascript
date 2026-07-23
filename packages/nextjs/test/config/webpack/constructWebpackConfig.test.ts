@@ -16,7 +16,10 @@ import {
 } from '../fixtures';
 import { materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
 
-vi.mock('@sentry/server-utils/orchestrion/webpack', () => ({
+// Only the plugin factory is stubbed — `resolveOrchestrionRuntimeRequest` must stay real because
+// the externals handler under test uses it.
+vi.mock('@sentry/server-utils/orchestrion/webpack', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   sentryOrchestrionWebpackPlugin: () => ({ _name: 'sentry-orchestrion-webpack-plugin' }),
 }));
 
@@ -840,6 +843,47 @@ describe('constructWebpackConfigFunction()', () => {
       });
 
       expect(findOrchestrionPlugin(finalWebpackConfig)).toBeUndefined();
+    });
+  });
+
+  describe('orchestrion runtime externals', () => {
+    it('prepends an externals handler that resolves runtime packages to absolute paths when diagnostics-channel injection is enabled', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+      });
+
+      const externals = finalWebpackConfig.externals as ((data: { request?: string }) => Promise<string | undefined>)[];
+
+      expect(Array.isArray(externals)).toBe(true);
+      await expect(externals[0]({ request: '@sentry/server-utils/orchestrion/register' })).resolves.toMatch(
+        /^commonjs ([/\\]|[A-Za-z]:).*register\.js$/,
+      );
+      await expect(externals[0]({ request: 'some-other-package' })).resolves.toBeUndefined();
+    });
+
+    it('does not touch `externals` when diagnostics-channel injection is not enabled', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+        sentryBuildTimeOptions: {},
+      });
+
+      expect(finalWebpackConfig.externals).toBeUndefined();
+    });
+
+    it('does not touch `externals` on the edge build', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: edgeBuildContext,
+        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+      });
+
+      expect(finalWebpackConfig.externals).toBeUndefined();
     });
   });
 });

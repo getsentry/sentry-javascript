@@ -52,6 +52,10 @@
       "import": "./build/esm/orchestrion/bundler/webpack.js",
       "require": "./build/cjs/orchestrion/bundler/webpack.js"
     },
+    "./orchestrion/webpack-loader": {
+      "import": "./build/esm/orchestrion/bundler/webpack-loader.js",
+      "require": "./build/cjs/orchestrion/bundler/webpack-loader.js"
+    },
     "./orchestrion/esbuild": {
       "types": "./build/types/orchestrion/bundler/esbuild.d.ts",
       "import": "./build/esm/orchestrion/bundler/esbuild.js",
@@ -59,6 +63,9 @@
     },
     "./orchestrion/import-hook": {
       "import": "./build/orchestrion/import-hook.mjs"
+    },
+    "./orchestrion/hook": {
+      "import": "./build/esm/orchestrion/runtime/hook.js"
     }
   },
   "typesVersions": {
@@ -90,14 +97,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.1",
-    "@apm-js-collab/tracing-hooks": "^0.13.0",
     "@sentry/conventions": "^0.16.0",
-    "@sentry/core": "10.67.0",
-    "meriyah": "^6.1.4"
+    "@sentry/core": "10.67.0"
   },
   "devDependencies": {
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.1",
+    "@apm-js-collab/tracing-hooks": "^0.13.0",
     "@types/node": "^18.19.1",
+    "meriyah": "^6.1.4",
     "vite": "^6.4.3"
   },
   "scripts": {

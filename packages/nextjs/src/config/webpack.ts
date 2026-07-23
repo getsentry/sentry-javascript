@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import { createRequire } from 'module';
 import * as path from 'path';
 import type { VercelCronsConfig } from '../common/types';
+import { externalizeOrchestrionRuntimePackages } from './diagnosticsChannelInjection';
 import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
 import type { RouteManifest } from './manifest/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
@@ -435,6 +436,7 @@ export function constructWebpackConfigFunction({
     // Orchestrion code-transform loader — Node server runtime only, never the edge compilation
     if (runtime === 'server' && userSentryOptions._experimental?.useDiagnosticsChannelInjection) {
       newConfig.plugins.push(sentryOrchestrionWebpackPlugin() as unknown as WebpackPluginInstance);
+      prependOrchestrionRuntimeExternals(newConfig);
     }
 
     return newConfig;
@@ -870,6 +872,23 @@ function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules)
     newConfig.ignoreWarnings = ignoreRules;
   } else if (Array.isArray(newConfig.ignoreWarnings)) {
     newConfig.ignoreWarnings.push(...ignoreRules);
+  }
+}
+
+/**
+ * Prepends {@link externalizeOrchestrionRuntimePackages} to `newConfig.externals`, ahead of
+ * Next.js's own externals handler, so the orchestrion runtime packages stay external even where
+ * `serverExternalPackages` can't keep them so. See that function's docs for why this is necessary.
+ */
+function prependOrchestrionRuntimeExternals(newConfig: WebpackConfigObjectWithModuleRules): void {
+  const existingExternals = newConfig.externals;
+
+  if (Array.isArray(existingExternals)) {
+    existingExternals.unshift(externalizeOrchestrionRuntimePackages);
+  } else if (existingExternals === undefined) {
+    newConfig.externals = [externalizeOrchestrionRuntimePackages];
+  } else {
+    newConfig.externals = [externalizeOrchestrionRuntimePackages, existingExternals];
   }
 }
 
