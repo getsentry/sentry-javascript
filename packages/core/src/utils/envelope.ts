@@ -9,12 +9,10 @@ import type {
   Envelope,
   EnvelopeItemType,
   EventEnvelopeHeaders,
-  SpanItem,
 } from '../types/envelope';
 import type { Event } from '../types/event';
 import type { SdkInfo } from '../types/sdkinfo';
 import type { SdkMetadata } from '../types/sdkmetadata';
-import type { SpanJSON } from '../types/span';
 import { dsnToString } from './dsn';
 import { normalize } from './normalize';
 import { safeDateNow } from './randomSafeContext';
@@ -174,17 +172,6 @@ export function parseEnvelope(env: string | Uint8Array): Envelope {
   }
 
   return [envelopeHeader, items];
-}
-
-/**
- * Creates envelope item for a single span
- */
-export function createSpanEnvelopeItem(spanJson: Partial<SpanJSON>): SpanItem {
-  const spanHeaders: SpanItem[0] = {
-    type: 'span',
-  };
-
-  return [spanHeaders, spanJson];
 }
 
 /**

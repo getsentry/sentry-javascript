@@ -1,13 +1,19 @@
 import type { Client, Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
+  captureSpan,
+  createStreamedSpanEnvelope,
   debug,
   getActiveSpan,
   getCurrentScope,
+  getDynamicSamplingContextFromSpan,
   getRootSpan,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  spanIsSampled,
+  spanToJSON,
   spanToStreamedSpanJSON,
   startInactiveSpan,
   timestampInSeconds,
@@ -57,7 +63,7 @@ interface WebVitalSpanOptions {
 }
 
 /**
- * Emits a web vital span that flows through the span streaming pipeline.
+ * Emits a web vital span that flows through the span streaming pipeline as a child of `parentSpan`.
  */
 export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
   const {
@@ -101,10 +107,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     name,
     attributes,
     startTime,
-    // if we have a pageload span, we let the web vital span start as its parent. This ensures that
-    // it is not started as a segment span, without having to manually set it to a "standalone" v2 span
-    // that has `segment: false` but no actual parent span.
-    parentSpan: parentSpan,
+    parentSpan,
   });
 
   if (span) {
@@ -243,17 +246,29 @@ export function _sendClsSpan(
 }
 
 /**
- * Tracks INP as a streamed span.
- *
- * This mirrors the standalone INP tracking logic (`startTrackingINP`) but emits
- * spans through the streaming pipeline instead of as standalone spans.
- * Requires `registerInpInteractionListener()` to be called separately for
- * cached element names and root spans per interaction.
+ * Tracks INP and emits it as a streamed web vital span, as a child of the interaction's root span.
+ * Requires `registerInpInteractionListener()` to be called separately for cached element names and
+ * root spans per interaction.
  */
-export function trackInpAsSpan(): void {
+export function trackInpAsSpan(client: Client): void {
   const performance = getBrowserPerformanceAPI();
   if (!performance || !browserPerformanceTimeOrigin()) {
     return;
+  }
+
+  // INP is reported late (on pagehide, after the pageload span has already ended). With span
+  // streaming enabled, the streaming pipeline delivers this late span. With streaming disabled it
+  // would be dropped, so we send INP spans as v2 streamed spans ourselves here, overriding the
+  // static trace lifecycle for INP only. This is a single span per interaction, so we send it
+  // directly rather than pulling in the span streaming buffer.
+  if (!hasSpanStreamingEnabled(client)) {
+    client.on('afterSpanEnd', span => {
+      if (spanIsSampled(span) && spanToJSON(span).origin === 'auto.http.browser.inp') {
+        const { _segmentSpan, ...serializedSpan } = captureSpan(span, client);
+        const dsc = getDynamicSamplingContextFromSpan(_segmentSpan);
+        void client.sendEnvelope(createStreamedSpanEnvelope([serializedSpan], dsc, client));
+      }
+    });
   }
 
   const onInp: InstrumentationHandlerCallback = ({ metric }) => {

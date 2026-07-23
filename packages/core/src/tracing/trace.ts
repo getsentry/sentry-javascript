@@ -477,9 +477,7 @@ function createChildOrRootSpan({
  * but some of them need to be transformed.
  */
 function parseSentrySpanArguments(options: StartSpanOptions): SentrySpanArguments {
-  const exp = options.experimental || {};
   const initialCtx: SentrySpanArguments = {
-    isStandalone: exp.standalone,
     ...options,
   };
 

@@ -14,7 +14,6 @@ export {
   startTrackingLongAnimationFrames,
   // eslint-disable-next-line typescript/no-deprecated
   startTrackingWebVitals,
-  startTrackingINP,
   registerInpInteractionListener,
 } from './metrics/browserMetrics';
 

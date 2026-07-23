@@ -50,22 +50,4 @@ export interface StartSpanOptions {
    * as it allows sampling decisions to consider the link information.
    */
   links?: SpanLink[];
-
-  /**
-   * Experimental options without any stability guarantees. Use with caution!
-   */
-  experimental?: {
-    /**
-     * If set to true, always start a standalone span which will be sent as a
-     * standalone segment span envelope instead of a transaction envelope.
-     *
-     * @internal this option is currently experimental and should only be
-     * used within SDK code. It might be removed or changed in the future.
-     * The payload ("envelope") of the resulting request sending the span to
-     * Sentry might change at any time.
-     *
-     * @hidden
-     */
-    standalone?: boolean;
-  };
 }

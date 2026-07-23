@@ -47,3 +47,4 @@ export { logSpanEnd, logSpanStart } from './logSpans';
 
 // Span Streaming
 export { captureSpan } from './spans/captureSpan';
+export { createStreamedSpanEnvelope } from './spans/envelope';

@@ -1,18 +1,12 @@
 import { expect } from '@playwright/test';
-import type { Event as SentryEvent, SpanEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  getFirstSentryEnvelopeRequest,
-  getMultipleSentryEnvelopeRequests,
-  hidePage,
-  properFullEnvelopeRequestParser,
-  shouldSkipTracingTest,
-} from '../../../../utils/helpers';
+import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 const supportedBrowsers = ['chromium'];
 
 sentryTest(
-  'should capture INP with correct target name when navigation keeps DOM element',
+  'captures INP with correct target name when navigation keeps DOM element',
   async ({ browserName, getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
       sentryTest.skip();
@@ -20,15 +14,9 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.goto(url);
-    await getFirstSentryEnvelopeRequest<SentryEvent>(page); // wait for page load
+    const inpSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'ui.interaction.click');
 
-    const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-      page,
-      1,
-      { envelopeType: 'span' },
-      properFullEnvelopeRequestParser,
-    );
+    await page.goto(url);
 
     // Simulating route change (keeping <nav> in DOM)
     await page.locator('[data-test-id=nav-link-keepDOM]').click();
@@ -39,62 +27,18 @@ sentryTest(
     // Page hide to trigger INP
     await hidePage(page);
 
-    // Get the INP span envelope
-    const spanEnvelope = (await spanEnvelopePromise)[0];
+    const inpSpan = await inpSpanPromise;
 
-    const spanEnvelopeHeaders = spanEnvelope[0];
-    const spanEnvelopeItem = spanEnvelope[1][0][1];
+    expect(inpSpan.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.interaction.click' });
+    expect(inpSpan.name).toBe('body > nav#navigation > NavigationLink');
 
-    const traceId = spanEnvelopeHeaders.trace!.trace_id;
-    expect(traceId).toMatch(/[a-f\d]{32}/);
-
-    expect(spanEnvelopeHeaders).toEqual({
-      sent_at: expect.any(String),
-      trace: {
-        environment: 'production',
-        public_key: 'public',
-        sample_rate: '1',
-        sampled: 'true',
-        trace_id: traceId,
-        sample_rand: expect.any(String),
-      },
-    });
-
-    const inpValue = spanEnvelopeItem.measurements?.inp.value;
+    const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
     expect(inpValue).toBeGreaterThan(0);
-
-    expect(spanEnvelopeItem).toEqual({
-      data: {
-        'sentry.exclusive_time': inpValue,
-        'sentry.op': 'ui.interaction.click',
-        'sentry.origin': 'auto.http.browser.inp',
-        'sentry.source': 'custom',
-        transaction: 'test-url',
-        'user_agent.original': expect.stringContaining('Chrome'),
-      },
-      measurements: {
-        inp: {
-          unit: 'millisecond',
-          value: inpValue,
-        },
-      },
-      description: 'body > nav#navigation > NavigationLink',
-      exclusive_time: inpValue,
-      op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
-      status: 'ok',
-      is_segment: true,
-      segment_id: spanEnvelopeItem.span_id,
-      span_id: expect.stringMatching(/[a-f\d]{16}/),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      trace_id: traceId,
-    });
   },
 );
 
 sentryTest(
-  'should capture INP with unknown target name when navigation removes element from DOM',
+  'captures INP with unknown target name when navigation removes element from DOM',
   async ({ browserName, getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
       sentryTest.skip();
@@ -102,15 +46,9 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.goto(url);
-    await getFirstSentryEnvelopeRequest<SentryEvent>(page); // wait for page load
+    const inpSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'ui.interaction.click');
 
-    const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-      page,
-      1,
-      { envelopeType: 'span' },
-      properFullEnvelopeRequestParser,
-    );
+    await page.goto(url);
 
     // Simulating route change (also changing <nav> in DOM)
     await page.locator('[data-test-id=nav-link-changeDOM]').click();
@@ -121,56 +59,12 @@ sentryTest(
     // Page hide to trigger INP
     await hidePage(page);
 
-    // Get the INP span envelope
-    const spanEnvelope = (await spanEnvelopePromise)[0];
+    const inpSpan = await inpSpanPromise;
 
-    const spanEnvelopeHeaders = spanEnvelope[0];
-    const spanEnvelopeItem = spanEnvelope[1][0][1];
+    expect(inpSpan.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.interaction.click' });
+    expect(inpSpan.name).toBe('body > nav#navigation > NavigationLink');
 
-    const traceId = spanEnvelopeHeaders.trace!.trace_id;
-    expect(traceId).toMatch(/[a-f\d]{32}/);
-
-    expect(spanEnvelopeHeaders).toEqual({
-      sent_at: expect.any(String),
-      trace: {
-        environment: 'production',
-        public_key: 'public',
-        sample_rate: '1',
-        sampled: 'true',
-        trace_id: traceId,
-        sample_rand: expect.any(String),
-      },
-    });
-
-    const inpValue = spanEnvelopeItem.measurements?.inp.value;
+    const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
     expect(inpValue).toBeGreaterThan(0);
-
-    expect(spanEnvelopeItem).toEqual({
-      data: {
-        'sentry.exclusive_time': inpValue,
-        'sentry.op': 'ui.interaction.click',
-        'sentry.origin': 'auto.http.browser.inp',
-        'sentry.source': 'custom',
-        transaction: 'test-url',
-        'user_agent.original': expect.stringContaining('Chrome'),
-      },
-      measurements: {
-        inp: {
-          unit: 'millisecond',
-          value: inpValue,
-        },
-      },
-      description: 'body > nav#navigation > NavigationLink',
-      exclusive_time: inpValue,
-      op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
-      status: 'ok',
-      is_segment: true,
-      segment_id: spanEnvelopeItem.span_id,
-      span_id: expect.stringMatching(/[a-f\d]{16}/),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      trace_id: traceId,
-    });
   },
 );

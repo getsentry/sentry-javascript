@@ -16,7 +16,6 @@ import {
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
-import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
 import { startInactiveSpan } from './trace';
 import { setCapturedScopesOnSpan } from './utils';
@@ -361,12 +360,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       // or if this is the idle span itself being started,
       // or if the started span has already been closed,
       // we don't care about it for activity
-      if (
-        _finished ||
-        startedSpan === span ||
-        !!spanToJSON(startedSpan).timestamp ||
-        (startedSpan instanceof SentrySpan && startedSpan.isStandaloneSpan())
-      ) {
+      if (_finished || startedSpan === span || !!spanToJSON(startedSpan).timestamp) {
         return;
       }
 
