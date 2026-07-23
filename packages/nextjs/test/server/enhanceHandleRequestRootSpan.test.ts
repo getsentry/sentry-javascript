@@ -1,3 +1,4 @@
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
@@ -48,6 +49,7 @@ describe('enhanceHandleRequestRootSpan', () => {
     expect(getName()).toBe('GET /api/users/[id]');
     expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
     expect(span.attributes[ATTR_NEXT_ROUTE]).toBe('/api/users/[id]');
+    expect(span.attributes[HTTP_ROUTE]).toBe('/api/users/[id]');
   });
 
   it('strips trailing /route from app router route handler routes', () => {
@@ -64,6 +66,7 @@ describe('enhanceHandleRequestRootSpan', () => {
 
     expect(getName()).toBe('POST /api/widgets');
     expect(span.attributes[ATTR_NEXT_ROUTE]).toBe('/api/widgets');
+    expect(span.attributes[HTTP_ROUTE]).toBe('/api/widgets');
   });
 
   it('strips URL query and fragment from the segment name', () => {
@@ -105,6 +108,7 @@ describe('enhanceHandleRequestRootSpan', () => {
     enhanceHandleRequestRootSpan(span);
 
     expect(getName()).toBe('GET /posts/[slug]');
+    expect(span.attributes[HTTP_ROUTE]).toBe('/posts/[slug]');
   });
 
   it('does not apply the backfill for the special GET /_app transaction', () => {

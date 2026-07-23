@@ -1,4 +1,5 @@
 import type { EventEnvelopeHeaders, Span } from '@sentry/core';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import {
   getRootSpan,
   getSpanDescendants,
@@ -143,6 +144,7 @@ describe('sentryHandle', () => {
       expect(spanToJSON(_span!).op).toEqual('http.server');
       expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
       expect(spanToJSON(_span!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+      expect(spanToJSON(_span!).data?.[HTTP_ROUTE]).toEqual('/users/[id]');
 
       expect(spanToJSON(_span!).timestamp).toBeDefined();
 
@@ -151,6 +153,7 @@ describe('sentryHandle', () => {
     });
 
     it("doesn't start a span if sveltekit tracing is enabled", async () => {
+      const kitRootSpan = SentryCore.startInactiveSpan({ name: 'sveltekit.handle.root' });
       let _span: Span | undefined = undefined;
       client.on('spanEnd', span => {
         if (span === getRootSpan(span)) {
@@ -160,7 +163,7 @@ describe('sentryHandle', () => {
 
       try {
         await sentryHandle()({
-          event: mockEvent({ tracing: { enabled: true } }),
+          event: mockEvent({ tracing: { enabled: true, root: kitRootSpan } }),
           resolve: resolve(type, isError),
         });
       } catch {
@@ -168,6 +171,10 @@ describe('sentryHandle', () => {
       }
 
       expect(_span).toBeUndefined();
+      expect(spanToJSON(kitRootSpan).description).toEqual('GET /users/[id]');
+      expect(spanToJSON(kitRootSpan).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+      expect(spanToJSON(kitRootSpan).data?.[HTTP_ROUTE]).toEqual('/users/[id]');
+      kitRootSpan.end();
     });
 
     it('starts a child span for nested server calls (i.e. if there is an active span)', async () => {

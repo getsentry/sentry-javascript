@@ -1,3 +1,4 @@
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type { ErrorContext } from 'elysia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,6 +33,12 @@ const mockGetIsolationScope = vi.fn(() => ({
 const mockGetClient = vi.fn(() => ({
   on: vi.fn(),
 }));
+const mockRootSpan = {
+  setAttributes: vi.fn(),
+  updateName: vi.fn(),
+};
+const mockGetActiveSpan = vi.fn();
+const mockGetRootSpan = vi.fn(() => mockRootSpan);
 const mockGetTraceData = vi.fn(() => ({
   'sentry-trace': 'abc123-def456-1',
   baggage: 'sentry-environment=test,sentry-trace_id=abc123',
@@ -43,8 +50,10 @@ vi.mock('@sentry/core', async importActual => {
   return {
     ...actual,
     captureException: (...args: unknown[]) => mockCaptureException(...args),
+    getActiveSpan: () => mockGetActiveSpan(),
     getIsolationScope: () => mockGetIsolationScope(),
     getClient: () => mockGetClient(),
+    getRootSpan: () => mockGetRootSpan(),
     getTraceData: () => mockGetTraceData(),
   };
 });
@@ -86,6 +95,23 @@ describe('withElysia', () => {
 
       expect(headers['sentry-trace']).toBe('abc123-def456-1');
       expect(headers['baggage']).toBe('sentry-environment=test,sentry-trace_id=abc123');
+    });
+
+    it('sets the matched route on the root span', () => {
+      mockGetActiveSpan.mockReturnValueOnce(mockRootSpan);
+      // @ts-expect-error - mock app
+      withElysia(mockApp);
+
+      onAfterHandleHandler({
+        route: '/users/:id',
+        request: new Request('https://example.com/users/42', { method: 'GET' }),
+        set: { headers: {} },
+      });
+
+      expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
+        'sentry.source': 'route',
+        [HTTP_ROUTE]: '/users/:id',
+      });
     });
 
     it('does not set headers when trace data is empty', () => {

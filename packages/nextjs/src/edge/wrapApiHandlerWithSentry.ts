@@ -18,7 +18,7 @@ import {
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
-import { SENTRY_KIND, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, SENTRY_KIND, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 /**
  * Wraps a Next.js edge route handler with Sentry error and performance instrumentation.
@@ -75,6 +75,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               [URL_FULL]: rootSpanAttributes[URL_FULL] ?? urlAttributes[URL_FULL],
               [URL_PATH]: rootSpanAttributes[URL_PATH] ?? urlAttributes[URL_PATH],
+              [HTTP_ROUTE]: parameterizedRoute,
               ...headerAttributes,
             });
             setCapturedScopesOnSpan(rootSpan, currentScope, isolationScope);
@@ -93,6 +94,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
               [SENTRY_KIND]: 'server',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_api_handler',
+              [HTTP_ROUTE]: parameterizedRoute,
               ...urlAttributes,
               ...headerAttributes,
             },

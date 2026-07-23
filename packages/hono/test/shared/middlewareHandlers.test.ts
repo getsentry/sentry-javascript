@@ -1,4 +1,5 @@
 import * as SentryCore from '@sentry/core';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { requestHandler, responseHandler } from '../../src/shared/middlewareHandlers';
 
@@ -244,6 +245,18 @@ describe('responseHandler', () => {
       requestHandler(createMockContext(200) as any);
 
       expect(mockSetTransactionName).toHaveBeenCalledWith('GET /test');
+    });
+
+    it('sets http.route on the root span', () => {
+      getActiveSpanMock.mockReturnValue(mockRootSpan);
+
+      // oxlint-disable-next-line typescript/no-explicit-any
+      requestHandler(createMockContext(200) as any);
+
+      expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
+        'sentry.source': 'route',
+        [HTTP_ROUTE]: '/test',
+      });
     });
   });
 });
