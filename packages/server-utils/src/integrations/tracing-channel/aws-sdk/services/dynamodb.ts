@@ -1,5 +1,4 @@
 import type { Span } from '@sentry/core';
-import { SPAN_KIND } from '@sentry/core';
 import {
   AWS_DYNAMODB_ATTRIBUTE_DEFINITIONS as ATTR_AWS_DYNAMODB_ATTRIBUTE_DEFINITIONS,
   AWS_DYNAMODB_CONSISTENT_READ as ATTR_AWS_DYNAMODB_CONSISTENT_READ,
@@ -152,7 +151,6 @@ export class DynamodbServiceExtension implements ServiceExtension {
 
     return {
       spanAttributes,
-      spanKind: SPAN_KIND.CLIENT,
       // Matches what the exporter infers from `db.system` for the OTel DynamoDB spans.
       spanOp: 'db',
     };

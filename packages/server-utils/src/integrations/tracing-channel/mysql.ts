@@ -1,4 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Scope } from '@sentry/core';
 import {
   isObjectLike,
@@ -7,7 +8,6 @@ import {
   defineIntegration,
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -84,9 +84,9 @@ const _mysqlChannelIntegration = (() => {
 
             return startInactiveSpan({
               name: sql ?? 'mysql.query',
-              kind: SPAN_KIND.CLIENT,
               op: 'db',
               attributes: {
+                [SENTRY_KIND]: 'client',
                 [ATTR_DB_SYSTEM]: 'mysql',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.orchestrion.mysql',
                 [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),

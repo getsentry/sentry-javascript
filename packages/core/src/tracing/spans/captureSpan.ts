@@ -57,13 +57,9 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 
   applyCommonSpanAttributes(spanJSON, serializedSegmentSpan, client, finalScopeData);
 
-  // Access `kind` via duck-typing — OTel span objects have this property but it's not on Sentry's Span type.
-  // It is forwarded to `preprocessSpan` subscribers (e.g. the OpenTelemetry SDK backfills op/source/name from it).
-  const spanKind = (span as { kind?: number }).kind;
-
   // Preprocess the span JSON before any other hooks run, so that `processSpan`/`processSegmentSpan`
   // subscribers (incl. integrations) and `beforeSendSpan` see fully inferred span data.
-  client.emit('preprocessSpan', spanJSON, { spanKind });
+  client.emit('preprocessSpan', spanJSON);
 
   if (spanJSON.is_segment) {
     applyScopeToSegmentSpan(spanJSON, finalScopeData);

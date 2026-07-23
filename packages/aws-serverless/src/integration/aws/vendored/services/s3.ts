@@ -7,7 +7,7 @@
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
 
-import { Attributes, SpanKind } from '@opentelemetry/api';
+import { Attributes } from '@opentelemetry/api';
 import { AWS_S3_BUCKET } from '../enums';
 import { AwsSdkInstrumentationConfig, NormalizedRequest } from '../types';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
@@ -15,7 +15,6 @@ import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 export class S3ServiceExtension implements ServiceExtension {
   requestPreSpanHook(request: NormalizedRequest, _config: AwsSdkInstrumentationConfig): RequestMetadata {
     const bucketName = request.commandInput?.Bucket;
-    const spanKind: SpanKind = SpanKind.CLIENT;
     const spanAttributes: Attributes = {};
 
     if (bucketName) {
@@ -27,7 +26,6 @@ export class S3ServiceExtension implements ServiceExtension {
     return {
       isIncoming,
       spanAttributes,
-      spanKind,
     };
   }
 }

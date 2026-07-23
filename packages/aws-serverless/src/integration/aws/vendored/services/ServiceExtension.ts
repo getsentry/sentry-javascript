@@ -7,7 +7,7 @@
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
 
-import { DiagLogger, Span, SpanAttributes, SpanKind } from '@opentelemetry/api';
+import { DiagLogger, Span, SpanAttributes } from '@opentelemetry/api';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
 
 export interface RequestMetadata {
@@ -19,7 +19,6 @@ export interface RequestMetadata {
   isStream?: boolean;
   // eslint-disable-next-line typescript/no-deprecated
   spanAttributes?: SpanAttributes;
-  spanKind?: SpanKind;
   spanName?: string;
 }
 

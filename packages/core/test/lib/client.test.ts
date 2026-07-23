@@ -991,6 +991,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'first-contentful-paint',
@@ -1001,6 +1002,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
         start_timestamp: 1591603196.614865,
@@ -1063,6 +1065,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'second span',
@@ -1070,6 +1073,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
       };
@@ -1098,6 +1102,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'second span',
@@ -1105,6 +1110,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
       };
@@ -1139,6 +1145,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'second span',
@@ -1147,6 +1154,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'third span',
@@ -1155,6 +1163,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
       };
@@ -1169,6 +1178,7 @@ describe('Client', () => {
           start_timestamp: 1591603196.637835,
           trace_id: '86f39e84263a4de99c326acab3bfe3bd',
           data: {},
+          status: 'ok',
         },
         {
           description: 'third span',
@@ -1177,6 +1187,7 @@ describe('Client', () => {
           start_timestamp: 1591603196.637835,
           trace_id: '86f39e84263a4de99c326acab3bfe3bd',
           data: {},
+          status: 'ok',
         },
       ]);
       expect(recordDroppedEventSpy).toBeCalledWith('before_send', 'span', 1);
@@ -1203,6 +1214,7 @@ describe('Client', () => {
           trace: {
             span_id: 'root-span-id',
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            status: 'ok',
           },
         },
         transaction: 'root span',
@@ -1215,6 +1227,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'second span',
@@ -1224,6 +1237,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'third span',
@@ -1233,6 +1247,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
       };
@@ -1248,6 +1263,7 @@ describe('Client', () => {
           start_timestamp: 1591603196.637835,
           trace_id: '86f39e84263a4de99c326acab3bfe3bd',
           data: {},
+          status: 'ok',
         },
       ]);
       expect(recordDroppedEventSpy).toBeCalledWith('before_send', 'span', 2);
@@ -1276,6 +1292,7 @@ describe('Client', () => {
         ],
         contexts: {
           trace: {
+            status: 'ok',
             data: {
               modified: 'false',
               dropMe: 'true',
@@ -1314,6 +1331,7 @@ describe('Client', () => {
             },
             span_id: '9e15bf99fbe4bc80',
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            status: 'ok',
           },
           app: {
             data: {
@@ -1352,9 +1370,9 @@ describe('Client', () => {
         transaction: '/dogs/are/great',
         type: 'transaction',
         spans: [
-          { span_id: 'span1', trace_id: 'trace1', start_timestamp: 1234, data: {} },
-          { span_id: 'span2', trace_id: 'trace1', start_timestamp: 1234, data: {} },
-          { span_id: 'span3', trace_id: 'trace1', start_timestamp: 1234, data: {} },
+          { span_id: 'span1', trace_id: 'trace1', start_timestamp: 1234, data: {}, status: 'ok' },
+          { span_id: 'span2', trace_id: 'trace1', start_timestamp: 1234, data: {}, status: 'ok' },
+          { span_id: 'span3', trace_id: 'trace1', start_timestamp: 1234, data: {}, status: 'ok' },
         ],
       });
 
@@ -1384,6 +1402,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'second span',
@@ -1391,6 +1410,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
       };
@@ -1461,6 +1481,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'second span',
@@ -1468,6 +1489,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
       };

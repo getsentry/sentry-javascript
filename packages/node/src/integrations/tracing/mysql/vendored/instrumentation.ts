@@ -20,7 +20,6 @@ import {
   getCurrentScope,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
@@ -33,6 +32,7 @@ import {
   DB_USER,
   NET_PEER_NAME,
   NET_PEER_PORT,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import type * as mysqlTypes from './mysql-types';
 import { ATTR_DB_CONNECTION_STRING, DB_SYSTEM_VALUE_MYSQL } from './semconv';
@@ -203,6 +203,7 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
         const portNumber = parseInt(String(port), 10);
         /* eslint-disable @sentry/no-deprecated-attributes */
         const attributes: SpanAttributes = {
+          [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
           [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, port, database),
@@ -219,7 +220,6 @@ export class MySQLInstrumentation extends InstrumentationBase<InstrumentationCon
 
         const span = startInactiveSpan({
           name: getSpanName(query),
-          kind: SPAN_KIND.CLIENT,
           attributes,
         });
 

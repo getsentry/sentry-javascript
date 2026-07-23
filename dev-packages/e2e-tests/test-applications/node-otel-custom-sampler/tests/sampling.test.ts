@@ -18,7 +18,7 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
       'sentry.op': 'http.server',
       'sentry.origin': 'auto.http.otel.http',
       url: 'http://localhost:3030/task',
-      'otel.kind': 'SERVER',
+      'sentry.kind': 'server',
       'http.response.status_code': 200,
       'http.url': 'http://localhost:3030/task',
       'url.full': 'http://localhost:3030/task',

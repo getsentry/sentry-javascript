@@ -1,4 +1,3 @@
-import { SPAN_KIND } from '@sentry/core';
 import { AWS_S3_BUCKET } from '@sentry/conventions/attributes';
 import type { NormalizedRequest } from '../types';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
@@ -14,7 +13,6 @@ export class S3ServiceExtension implements ServiceExtension {
 
     return {
       spanAttributes,
-      spanKind: SPAN_KIND.CLIENT,
     };
   }
 }

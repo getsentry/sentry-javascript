@@ -89,6 +89,7 @@ test('sends spans for MCP tool calls', async ({ baseURL }) => {
     span_id: expect.any(String),
     op: 'mcp.server',
     origin: 'auto.function.mcp_server',
+    status: 'ok',
     data: {
       'sentry.origin': 'auto.function.mcp_server',
       'sentry.op': 'mcp.server',

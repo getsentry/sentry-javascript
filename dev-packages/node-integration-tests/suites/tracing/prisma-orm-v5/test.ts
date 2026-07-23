@@ -76,7 +76,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
         data: {
           'db.statement': expect.stringContaining('INSERT INTO'),
           'db.system': 'postgresql',
-          'otel.kind': 'CLIENT',
+          'sentry.kind': 'client',
           'sentry.op': 'db',
           'sentry.origin': 'auto.db.otel.prisma',
         },
@@ -88,7 +88,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
         data: {
           'db.statement': expect.stringContaining('SELECT'),
           'db.system': 'postgresql',
-          'otel.kind': 'CLIENT',
+          'sentry.kind': 'client',
           'sentry.op': 'db',
           'sentry.origin': 'auto.db.otel.prisma',
         },
@@ -100,7 +100,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
         data: {
           'db.statement': expect.stringContaining('DELETE'),
           'db.system': 'postgresql',
-          'otel.kind': 'CLIENT',
+          'sentry.kind': 'client',
           'sentry.op': 'db',
           'sentry.origin': 'auto.db.otel.prisma',
         },

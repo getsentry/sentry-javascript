@@ -1,4 +1,3 @@
-import { SPAN_KIND } from '@sentry/core';
 import { _AWS_KINESIS_STREAM_NAME as AWS_KINESIS_STREAM_NAME } from '@sentry/conventions/attributes';
 import type { NormalizedRequest } from '../types';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
@@ -15,7 +14,6 @@ export class KinesisServiceExtension implements ServiceExtension {
 
     return {
       spanAttributes,
-      spanKind: SPAN_KIND.CLIENT,
     };
   }
 }

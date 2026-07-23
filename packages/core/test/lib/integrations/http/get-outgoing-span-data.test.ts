@@ -54,9 +54,9 @@ describe('getOutgoingRequestSpanData', () => {
     expect(result.attributes!['sentry.op']).toBe('http.client');
   });
 
-  it('sets otel.kind to "CLIENT"', () => {
+  it('sets sentry.kind to "CLIENT"', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest());
-    expect(result.attributes!['otel.kind']).toBe('CLIENT');
+    expect(result.attributes!['sentry.kind']).toBe('client');
   });
 
   it('builds the span name from method and URL', () => {

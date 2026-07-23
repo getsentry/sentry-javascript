@@ -7,8 +7,8 @@
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
 
-import { Span, SpanKind, Attributes } from '@opentelemetry/api';
-import { MESSAGING_SYSTEM } from '@sentry/conventions/attributes';
+import { Span, Attributes } from '@opentelemetry/api';
+import { MESSAGING_SYSTEM, SENTRY_KIND } from '@sentry/conventions/attributes';
 import { ATTR_AWS_SNS_TOPIC_ARN } from '../semconv';
 import {
   ATTR_MESSAGING_DESTINATION,
@@ -21,14 +21,14 @@ import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 
 export class SnsServiceExtension implements ServiceExtension {
   requestPreSpanHook(request: NormalizedRequest, _config: AwsSdkInstrumentationConfig): RequestMetadata {
-    let spanKind: SpanKind = SpanKind.CLIENT;
     let spanName = `SNS ${request.commandName}`;
     const spanAttributes: Attributes = {
       [MESSAGING_SYSTEM]: 'aws.sns',
+      [SENTRY_KIND]: 'client',
     };
 
     if (request.commandName === 'Publish') {
-      spanKind = SpanKind.PRODUCER;
+      spanAttributes[SENTRY_KIND] = 'producer';
 
       // eslint-disable-next-line typescript/no-deprecated
       spanAttributes[ATTR_MESSAGING_DESTINATION_KIND] = MESSAGING_DESTINATION_KIND_VALUE_TOPIC;
@@ -50,7 +50,6 @@ export class SnsServiceExtension implements ServiceExtension {
     return {
       isIncoming: false,
       spanAttributes,
-      spanKind,
       spanName,
     };
   }

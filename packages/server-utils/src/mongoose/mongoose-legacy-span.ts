@@ -1,5 +1,6 @@
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_KIND, startInactiveSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
 // OTel "OLD" db/net semantic-conventions, reproduced from the vendored
 // `@opentelemetry/instrumentation-mongoose` span shape. Inlined as literals to
@@ -43,6 +44,7 @@ export function startMongooseLegacySpan({
   parentSpan,
 }: StartMongooseLegacySpanOptions): Span {
   const attributes: SpanAttributes = {
+    [SENTRY_KIND]: 'client',
     [ATTR_DB_MONGODB_COLLECTION]: collection?.name,
     [ATTR_DB_NAME]: collection?.conn?.name,
     [ATTR_DB_USER]: collection?.conn?.user,
@@ -57,7 +59,6 @@ export function startMongooseLegacySpan({
     name: `mongoose.${modelName}.${operation}`,
     // Set this explicitly, for platforms lacking `inferDbSpanData`
     op: 'db',
-    kind: SPAN_KIND.CLIENT,
     attributes,
     parentSpan,
   });

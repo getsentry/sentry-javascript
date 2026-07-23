@@ -10,13 +10,7 @@
  */
 
 import type { Span, SpanAttributes } from '@sentry/core';
-import {
-  getActiveSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
-  SPAN_STATUS_ERROR,
-  startInactiveSpan,
-} from '@sentry/core';
+import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
 import { AttributeNames } from './enums/AttributeNames';
 import { SpanNames } from './enums/SpanNames';
 import type {
@@ -36,6 +30,7 @@ import {
   DB_USER,
   NET_PEER_NAME,
   NET_PEER_PORT,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 
 /* oxlint-disable typescript/no-deprecated */
@@ -177,8 +172,8 @@ export function handleConfigQuery(
   const spanName = getQuerySpanName(dbName, queryConfig);
   const span = startInactiveSpan({
     name: spanName,
-    kind: SPAN_KIND.CLIENT,
     attributes: {
+      [SENTRY_KIND]: 'client',
       ...getSemanticAttributesFromConnection(connectionParameters),
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     },

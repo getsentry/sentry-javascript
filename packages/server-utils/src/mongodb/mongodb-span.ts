@@ -1,5 +1,6 @@
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_KIND, startInactiveSpan } from '@sentry/core';
+import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
 // OTel "OLD" db/net semantic-conventions, reproduced from the vendored
 // `@opentelemetry/instrumentation-mongodb` span shape so the orchestrion
@@ -223,7 +224,9 @@ export function startMongoSpan(attributes: SpanAttributes): Span {
   return startInactiveSpan({
     name: `mongodb.${attributes[ATTR_DB_OPERATION] || 'command'}`,
     op: 'db',
-    kind: SPAN_KIND.CLIENT,
-    attributes,
+    attributes: {
+      [SENTRY_KIND]: 'client',
+      ...attributes,
+    },
   });
 }

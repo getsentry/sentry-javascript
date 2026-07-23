@@ -6,11 +6,12 @@ import {
   DB_NAMESPACE,
   DB_OPERATION_NAME,
   DB_SYSTEM_NAME,
+  SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_KIND, startSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import type { FirebaseInstrumentation } from '../firebaseInstrumentation';
 import type {
   AddDocType,
@@ -178,8 +179,8 @@ function startFirestoreSpan<AppModelType, DbModelType extends DocumentData, T>(
     {
       name: `${spanName} ${reference.path}`,
       op: 'db.query',
-      kind: SPAN_KIND.CLIENT,
       attributes: {
+        [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.firebase.otel.firestore',
         [DB_OPERATION_NAME]: spanName,
         ...buildAttributes(reference),

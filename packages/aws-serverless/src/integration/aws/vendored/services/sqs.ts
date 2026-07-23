@@ -7,7 +7,7 @@
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
 
-import { SpanKind, Span, propagation, trace, ROOT_CONTEXT, Attributes } from '@opentelemetry/api';
+import { Span, propagation, trace, ROOT_CONTEXT, Attributes } from '@opentelemetry/api';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import type { SQS } from '../aws-sdk.types';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
@@ -17,6 +17,7 @@ import {
   MESSAGING_MESSAGE_ID,
   MESSAGING_OPERATION_TYPE,
   MESSAGING_SYSTEM,
+  SENTRY_KIND,
   URL_FULL,
 } from '@sentry/conventions/attributes';
 import {
@@ -30,13 +31,13 @@ export class SqsServiceExtension implements ServiceExtension {
   requestPreSpanHook(request: NormalizedRequest, _config: AwsSdkInstrumentationConfig): RequestMetadata {
     const queueUrl = this.extractQueueUrl(request.commandInput);
     const queueName = this.extractQueueNameFromUrl(queueUrl);
-    let spanKind: SpanKind = SpanKind.CLIENT;
     let spanName: string | undefined;
 
     const spanAttributes: Attributes = {
       [MESSAGING_SYSTEM]: 'aws_sqs',
       [MESSAGING_DESTINATION_NAME]: queueName,
       [URL_FULL]: queueUrl,
+      [SENTRY_KIND]: 'client',
     };
 
     let isIncoming = false;
@@ -45,7 +46,7 @@ export class SqsServiceExtension implements ServiceExtension {
       case 'ReceiveMessage':
         {
           isIncoming = true;
-          spanKind = SpanKind.CONSUMER;
+          spanAttributes[SENTRY_KIND] = 'consumer';
           spanName = `${queueName} receive`;
           spanAttributes[MESSAGING_OPERATION_TYPE] = 'receive';
 
@@ -58,7 +59,7 @@ export class SqsServiceExtension implements ServiceExtension {
 
       case 'SendMessage':
       case 'SendMessageBatch':
-        spanKind = SpanKind.PRODUCER;
+        spanAttributes[SENTRY_KIND] = 'producer';
         spanName = `${queueName} send`;
         break;
     }
@@ -66,7 +67,6 @@ export class SqsServiceExtension implements ServiceExtension {
     return {
       isIncoming,
       spanAttributes,
-      spanKind,
       spanName,
     };
   }

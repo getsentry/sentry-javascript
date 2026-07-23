@@ -266,6 +266,7 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       origin: 'auto.function.sveltekit',
+      status: 'ok',
     });
     expect(transaction.transaction).toEqual('/users/123');
   });

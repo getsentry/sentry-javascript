@@ -16,6 +16,8 @@
   },
   "//": "Pin `ioredis` to 5.10.1 and `mysql2` to 3.19.1: both are the last versions before the driver publishes its own native diagnostics channels; orchestrion's configs cover `ioredis <5.11.0` and `mysql2 <3.20.0`.",
   "dependencies": {
+    "@anthropic-ai/sdk": "0.63.0",
+    "@google/genai": "^1.20.0",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "dataloader": "2.2.2",
@@ -28,6 +30,7 @@
     "mysql": "^2.18.1",
     "mysql2": "3.19.1",
     "next": "16.2.10",
+    "openai": "5.18.1",
     "pg": "^8.13.1",
     "postgres": "^3.4.7",
     "react": "19.1.0",

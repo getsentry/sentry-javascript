@@ -204,6 +204,7 @@ export function spanToJSON(span: Span): SpanJSON {
     span_id,
     trace_id,
     start_timestamp: 0,
+    status: 'ok',
     data: {},
   };
 }
@@ -317,9 +318,9 @@ export function spanIsSampled(span: Span): boolean {
 }
 
 /** Get the status message to use for a JSON representation of a span. */
-export function getStatusMessage(status: SpanStatus | undefined): string | undefined {
+export function getStatusMessage(status: SpanStatus | undefined): string {
   if (!status || status.code === SPAN_STATUS_UNSET) {
-    return undefined;
+    return 'ok';
   }
 
   if (status.code === SPAN_STATUS_OK) {

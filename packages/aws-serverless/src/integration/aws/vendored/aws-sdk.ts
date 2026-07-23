@@ -9,7 +9,7 @@
  *   (https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3530)
  */
 
-import { Span, SpanKind, context, trace, diag, SpanStatusCode } from '@opentelemetry/api';
+import { Span, context, trace, diag, SpanStatusCode } from '@opentelemetry/api';
 import { AWS_REQUEST_EXTENDED_ID, AWS_REQUEST_ID, CLOUD_REGION } from './enums';
 import { ServicesExtensions } from './services';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from './types';
@@ -35,7 +35,7 @@ import {
 } from './utils';
 import { propwrap } from './propwrap';
 import { RequestMetadata } from './services/ServiceExtension';
-import { HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
+import { HTTP_STATUS_CODE, SENTRY_KIND } from '@sentry/conventions/attributes';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-aws-sdk';
@@ -151,9 +151,10 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
     const name = metadata.spanName ?? `${normalizedRequest.serviceName}.${normalizedRequest.commandName}`;
     return startInactiveSpan({
       name,
-      kind: metadata.spanKind ?? SpanKind.CLIENT,
+
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws',
+        [SENTRY_KIND]: 'client',
         ...extractAttributesFromNormalizedRequest(normalizedRequest),
         ...metadata.spanAttributes,
       },

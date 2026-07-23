@@ -44,9 +44,9 @@ describe('remixIntegration (Orchestrion-based)', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'remix.request',
-        kind: SentryCore.SPAN_KIND.SERVER,
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.orchestrion.remix',
+          'sentry.kind': 'server',
           'sentry.op': 'http.server',
           'code.function': 'requestHandler',
           'http.method': 'GET',

@@ -4,11 +4,12 @@ import {
   DB_NAMESPACE,
   DB_OPERATION_NAME,
   DB_SYSTEM_NAME,
+  SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_KIND, startInactiveSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import type { FirebaseApp, FirebaseOptions, FirestoreReference, FirestoreSettings } from './firestore-types';
 
 /**
@@ -20,8 +21,8 @@ export function startFirestoreSpan(spanName: string, reference: FirestoreReferen
   return startInactiveSpan({
     name: `${spanName} ${reference.path}`,
     op: 'db.query',
-    kind: SPAN_KIND.CLIENT,
     attributes: {
+      [SENTRY_KIND]: 'client',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.firebase.orchestrion.firestore',
       [DB_OPERATION_NAME]: spanName,
       ...buildAttributes(reference),

@@ -19,6 +19,7 @@ import {
   DB_USER,
   NET_PEER_NAME,
   NET_PEER_PORT,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { DB_SYSTEM_VALUE_MSSQL, ATTR_DB_SQL_TABLE } from './semconv';
 import type * as tedious from './tedious-types';
@@ -27,7 +28,6 @@ import type { SpanAttributes } from '@sentry/core';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
@@ -137,6 +137,7 @@ export class TediousInstrumentation extends InstrumentationBase<InstrumentationC
         })(request);
 
         const attributes: SpanAttributes = {
+          [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.otel.tedious',
           // eslint-disable-next-line typescript/no-deprecated
           [DB_SYSTEM]: DB_SYSTEM_VALUE_MSSQL,
@@ -156,7 +157,6 @@ export class TediousInstrumentation extends InstrumentationBase<InstrumentationC
         };
         const span = startInactiveSpan({
           name: getSpanName(operation, databaseName, sql, request.table),
-          kind: SPAN_KIND.CLIENT,
           attributes,
         });
 

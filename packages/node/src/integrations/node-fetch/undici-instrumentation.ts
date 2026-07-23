@@ -29,7 +29,6 @@ import {
   LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   stripDataUrlContent,
@@ -40,6 +39,7 @@ import {
   HTTP_RESPONSE_STATUS_CODE,
   NETWORK_PEER_ADDRESS,
   NETWORK_PEER_PORT,
+  SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FULL,
@@ -218,6 +218,7 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   const urlScheme = requestUrl.protocol.replace(':', '');
   const requestMethod = getRequestMethod(request.method);
   const attributes: SpanAttributes = {
+    [SENTRY_KIND]: 'client',
     [HTTP_REQUEST_METHOD]: requestMethod,
     [ATTR_HTTP_REQUEST_METHOD_ORIGINAL]: request.method,
     [URL_FULL]: requestUrl.toString(),
@@ -265,7 +266,6 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   const client = getClient();
   const span = startInactiveSpan({
     name: requestMethod === '_OTHER' ? 'HTTP' : requestMethod,
-    kind: SPAN_KIND.CLIENT,
     attributes,
     onlyIfParent: !client || !hasSpanStreamingEnabled(client),
   });

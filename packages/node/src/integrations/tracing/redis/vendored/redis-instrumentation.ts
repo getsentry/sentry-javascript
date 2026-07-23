@@ -17,12 +17,11 @@ import {
   getActiveSpan,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
 } from '@sentry/core';
-import { DB_STATEMENT, DB_SYSTEM, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
+import { DB_STATEMENT, DB_SYSTEM, NET_PEER_NAME, NET_PEER_PORT, SENTRY_KIND } from '@sentry/conventions/attributes';
 import { defaultDbStatementSerializer } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../../../../debug-build';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
@@ -115,6 +114,7 @@ function removeCredentialsFromDBConnectionStringAttribute(url: string | undefine
 
 function getClientAttributes(options: any): SpanAttributes {
   return {
+    [SENTRY_KIND]: 'client',
     // oxlint-disable-next-line typescript/no-deprecated
     [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
     // oxlint-disable-next-line typescript/no-deprecated
@@ -163,6 +163,7 @@ class RedisInstrumentationV2_V3 extends InstrumentationBase<RedisInstrumentation
           return original.apply(this, arguments);
         }
         const attributes: SpanAttributes = {
+          [SENTRY_KIND]: 'client',
           // oxlint-disable-next-line typescript/no-deprecated
           [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
           // oxlint-disable-next-line typescript/no-deprecated
@@ -180,7 +181,6 @@ class RedisInstrumentationV2_V3 extends InstrumentationBase<RedisInstrumentation
         }
         const span = startInactiveSpan({
           name: `${RedisInstrumentationV2_V3.COMPONENT}-${cmd.command}`,
-          kind: SPAN_KIND.CLIENT,
           attributes,
         });
         const originalCallback = arguments[0].callback;
@@ -415,7 +415,6 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
         const attributes = getClientAttributes(this.options);
         const span = startInactiveSpan({
           name: `${RedisInstrumentationV4_V5.COMPONENT}-connect`,
-          kind: SPAN_KIND.CLIENT,
           attributes,
         });
         const res = withActiveSpan(span, () => original.apply(this));
@@ -450,7 +449,6 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
     }
     const span = startInactiveSpan({
       name: `${RedisInstrumentationV4_V5.COMPONENT}-${commandName}`,
-      kind: SPAN_KIND.CLIENT,
       attributes,
     });
     const res = withActiveSpan(span, () => origFunction.apply(origThis, origArguments));

@@ -31,7 +31,7 @@ describe('dataloader auto-instrumentation', () => {
             expect(loadSpan?.data?.['sentry.op']).toBe(CACHE_GET_OP);
             expect(loadSpan?.data?.['cache.key']).toEqual(['user-1']);
             // A direct operation is a client call; the deferred `batch` below gets no kind
-            expect(loadSpan?.data?.['otel.kind']).toBe('CLIENT');
+            expect(loadSpan?.data?.['sentry.kind']).toBe('client');
 
             const batchSpan = spans.find(span => span.description === 'dataloader.batch');
             expect(batchSpan).toBeDefined();
@@ -39,7 +39,7 @@ describe('dataloader auto-instrumentation', () => {
             expect(batchSpan?.origin).toBe(ORIGIN);
             expect(batchSpan?.status).toBe('ok');
             expect(batchSpan?.data?.['cache.key']).toEqual(['user-1']);
-            expect(batchSpan?.data?.['otel.kind']).toBeUndefined();
+            expect(batchSpan?.data?.['sentry.kind']).toBeUndefined();
 
             // The batch span links back to the load span that triggered it
             expect(batchSpan?.links).toEqual([
