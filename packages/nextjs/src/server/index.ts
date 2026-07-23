@@ -189,10 +189,17 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // installs (pnpm). `withSentryConfig` resolves that package at build time and inlines its location
   // here; register the hooks with it before `nodeInit()` runs. `nodeInit()` then calls
   // `registerDiagnosticsChannelInjection()` again with no directory, which is a no-op because
-  // registration is idempotent. Gated on span recording to match `@sentry/node`'s own gate.
+  // registration is idempotent. Gated on span recording to match `@sentry/node`'s own gate — and,
+  // like it, resolving `SENTRY_TRACES_SAMPLE_RATE` so tracing enabled purely via env still registers.
   const tracingHooksDir =
     process.env._sentryOrchestrionTracingHooksDir || globalWithInjectedValues._sentryOrchestrionTracingHooksDir;
-  if (tracingHooksDir && hasSpansEnabled(opts)) {
+  const tracesSampleRateFromEnv = process.env.SENTRY_TRACES_SAMPLE_RATE;
+  const optionsWithResolvedTracing = {
+    ...opts,
+    tracesSampleRate:
+      opts.tracesSampleRate ?? (tracesSampleRateFromEnv != null ? parseFloat(tracesSampleRateFromEnv) : undefined),
+  };
+  if (tracingHooksDir && hasSpansEnabled(optionsWithResolvedTracing)) {
     registerDiagnosticsChannelInjection({ tracingHooksDir });
   }
 
