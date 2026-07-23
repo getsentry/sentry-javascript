@@ -61,13 +61,6 @@ Deno.test('mongoose instrumentation: included in default integrations (Deno 2.8.
   assert(names.includes('Mongoose'), `Mongoose should be in defaults, got ${names.join(', ')}`);
 });
 
-// Exercises the SDK path end-to-end: `init()` installs the AsyncLocalStorage
-// context strategy and wires the default `mongooseChannelIntegration` (which
-// subscribes to the channel), and we drive the `orchestrion:mongoose:model_save`
-// channel manually — the same events the orchestrion transform publishes around
-// `Model.prototype.save` — so no live database is needed. Asserting a nested
-// `db` span proves the subscriber, the emitted attributes, AND the
-// context-strategy wiring all work.
 Deno.test('mongoose instrumentation: orchestrion:mongoose:model_save channel produces a nested db span', async () => {
   resetGlobals();
   const sink = transactionSink();

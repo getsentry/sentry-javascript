@@ -61,13 +61,6 @@ Deno.test('mongodb instrumentation: included in default integrations (Deno 2.8.0
   assert(names.includes('Mongo'), `Mongo should be in defaults, got ${names.join(', ')}`);
 });
 
-// Exercises the SDK path end-to-end: `init()` installs the AsyncLocalStorage
-// context strategy and wires the default `mongodbChannelIntegration` (which
-// subscribes to the channel), and we drive the `orchestrion:mongodb:command`
-// channel manually — the same events the orchestrion transform publishes around
-// `Connection.prototype.command` — so no live database is needed. Asserting a
-// nested `db` span proves the subscriber, the emitted attributes, AND the
-// context-strategy wiring all work.
 Deno.test('mongodb instrumentation: orchestrion:mongodb:command channel produces a nested db span', async () => {
   resetGlobals();
   const sink = transactionSink();
