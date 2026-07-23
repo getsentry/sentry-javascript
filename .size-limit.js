@@ -395,7 +395,7 @@ module.exports = [
   },
   {
     name: '@sentry/node/import (ESM hook with diagnostics-channel injection)',
-    path: ['node_modules/@apm-js-collab/tracing-hooks/hook.mjs', 'packages/node/build/import-hook.mjs'],
+    path: ['packages/server-utils/build/esm/orchestrion/runtime/hook.js', 'packages/node/build/import-hook.mjs'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
     limit: '76 KB',
