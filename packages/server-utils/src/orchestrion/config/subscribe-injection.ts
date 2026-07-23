@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '../apmTypes';
 
 /**
  * Name shared by the `Program` injection configs (their `transform` field) and

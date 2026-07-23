@@ -1,7 +1,7 @@
 import type { InstrumentationConfig, CustomTransform } from '..';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 import { subscribeInjectionOptions } from './subscribeInjection';
-import type { CodeTransformerPluginOptions } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { CodeTransformerPluginOptions } from '../apmTypes';
 
 export type PluginOptions = {
   /**
