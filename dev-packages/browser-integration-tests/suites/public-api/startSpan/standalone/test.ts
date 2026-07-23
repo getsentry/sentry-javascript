@@ -48,6 +48,7 @@ sentryTest('sends a segment span envelope', async ({ getLocalTestUrl, page }) =>
     },
     description: 'standalone_segment_span',
     origin: 'manual',
+    status: 'ok',
     span_id: expect.stringMatching(/^[\da-f]{16}$/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),

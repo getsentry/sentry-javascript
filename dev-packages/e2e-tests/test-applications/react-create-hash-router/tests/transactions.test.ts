@@ -60,6 +60,7 @@ test('Captures a pageload transaction', async ({ page }) => {
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.browser.metrics',
+    status: 'ok',
   });
   expect(transactionEvent.spans).toContainEqual({
     data: {
@@ -74,6 +75,7 @@ test('Captures a pageload transaction', async ({ page }) => {
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.browser.metrics',
+    status: 'ok',
   });
   expect(transactionEvent.spans).toContainEqual({
     data: {
@@ -88,6 +90,7 @@ test('Captures a pageload transaction', async ({ page }) => {
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.browser.metrics',
+    status: 'ok',
   });
   expect(transactionEvent.spans).toContainEqual({
     data: {
@@ -102,6 +105,7 @@ test('Captures a pageload transaction', async ({ page }) => {
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.browser.metrics',
+    status: 'ok',
   });
 });
 

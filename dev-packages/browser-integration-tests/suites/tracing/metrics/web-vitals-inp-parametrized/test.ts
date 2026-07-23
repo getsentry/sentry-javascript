@@ -79,6 +79,7 @@ sentryTest(
       exclusive_time: inpValue,
       op: 'ui.interaction.click',
       origin: 'auto.http.browser.inp',
+      status: 'ok',
       segment_id: expect.not.stringMatching(spanEnvelopeItem.span_id!),
       // parent is the pageload span
       parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
