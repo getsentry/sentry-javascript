@@ -381,16 +381,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '129 KB',
-    disablePlugins: ['@size-limit/esbuild'],
-  },
-  {
-    name: '@sentry/node (incl. diagnostics channel injection)',
-    path: 'packages/node/build/esm/index.js',
-    import: createImport('init', 'experimentalUseDiagnosticsChannelInjection'),
-    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
-    gzip: true,
-    limit: '173 KB',
+    limit: '141 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -406,7 +397,7 @@ module.exports = [
     path: 'packages/node/build/esm/index.js',
     import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),
     gzip: true,
-    limit: '79 KB',
+    limit: '81 KB',
     disablePlugins: ['@size-limit/esbuild'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
