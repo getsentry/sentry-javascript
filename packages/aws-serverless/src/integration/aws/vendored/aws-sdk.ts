@@ -159,7 +159,6 @@ export class AwsInstrumentation extends InstrumentationBase<AwsSdkInstrumentatio
 
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'rpc',
         [SENTRY_KIND]: 'client',
         ...extractAttributesFromNormalizedRequest(normalizedRequest),
         ...metadata.spanAttributes,
