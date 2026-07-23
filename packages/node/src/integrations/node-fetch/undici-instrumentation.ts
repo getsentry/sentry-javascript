@@ -203,6 +203,7 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
     // Skip instrumenting this request.
     return;
   }
+
   const urlScheme = requestUrl.protocol.replace(':', '');
   const requestMethod = getRequestMethod(request.method);
   const attributes: SpanAttributes = {

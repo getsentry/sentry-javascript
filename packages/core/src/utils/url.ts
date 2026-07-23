@@ -1,4 +1,17 @@
-import { URL_FULL } from '@sentry/conventions/attributes';
+import {
+  HTTP_FRAGMENT,
+  HTTP_QUERY,
+  HTTP_ROUTE,
+  SERVER_ADDRESS,
+  URL_DOMAIN,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_PATH,
+  URL_PORT,
+  URL_QUERY,
+  URL_SCHEME,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -165,7 +178,7 @@ export function getHttpSpanDetailsFromUrlObject(
 
   if (routeName) {
     // This is based on https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
-    attributes[kind === 'server' ? 'http.route' : 'url.template'] = routeName;
+    attributes[kind === 'server' ? HTTP_ROUTE : URL_TEMPLATE] = routeName;
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
   }
 
@@ -175,13 +188,19 @@ export function getHttpSpanDetailsFromUrlObject(
 
   if (urlObject) {
     if (urlObject.search) {
-      attributes['url.query'] = urlObject.search;
+      const query = urlObject.search.slice(1) || undefined;
+      attributes[URL_QUERY] = query;
+      // legacy attribute
+      attributes[HTTP_QUERY] = query;
     }
     if (urlObject.hash) {
-      attributes['url.fragment'] = urlObject.hash;
+      const fragment = urlObject.hash.slice(1) || undefined;
+      attributes[URL_FRAGMENT] = fragment;
+      // legacy attribute
+      attributes[HTTP_FRAGMENT] = fragment;
     }
     if (urlObject.pathname) {
-      attributes['url.path'] = urlObject.pathname;
+      attributes[URL_PATH] = urlObject.pathname;
       if (urlObject.pathname === '/') {
         attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
       }
@@ -190,14 +209,15 @@ export function getHttpSpanDetailsFromUrlObject(
     if (!isURLObjectRelative(urlObject)) {
       attributes[URL_FULL] = urlObject.href;
       if (urlObject.port) {
-        attributes['url.port'] = urlObject.port;
+        attributes[URL_PORT] = urlObject.port;
       }
       if (urlObject.protocol) {
-        attributes['url.scheme'] = urlObject.protocol;
+        attributes[URL_SCHEME] = urlObject.protocol;
       }
       if (urlObject.hostname) {
-        attributes[kind === 'server' ? 'server.address' : 'url.domain'] = urlObject.hostname;
+        attributes[kind === 'server' ? SERVER_ADDRESS : URL_DOMAIN] = urlObject.hostname;
       }
+      attributes['url'] = getSanitizedUrlStringFromUrlObject(urlObject);
     }
   }
 

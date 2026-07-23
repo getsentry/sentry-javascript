@@ -7,8 +7,10 @@ import { RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
   HTTP_CLIENT_IP,
   HTTP_FLAVOR,
+  HTTP_FRAGMENT,
   HTTP_HOST,
   HTTP_METHOD,
+  HTTP_QUERY,
   HTTP_RESPONSE_STATUS_CODE,
   HTTP_ROUTE,
   HTTP_SCHEME,
@@ -52,6 +54,7 @@ import {
   bindScopeToEmitter,
   startInactiveSpan,
   withActiveSpan,
+  getSanitizedUrlStringFromUrlObject,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -152,6 +155,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
           const fullUrl = normalizedRequest.url || request.url || '/';
           const urlObj = parseStringToURLObject(fullUrl);
+          const sanitizedUrl = urlObj ? getSanitizedUrlStringFromUrlObject(urlObj) : undefined;
 
           const headers = request.headers;
           const userAgent = headers['user-agent'];
@@ -166,6 +170,9 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
           const bestEffortTransactionName = `${method} ${httpTargetWithoutQueryFragment}`;
 
+          const query = urlObj?.search ? urlObj.search.slice(1) || undefined : undefined;
+          const fragment = urlObj?.hash ? urlObj.hash.slice(1) || undefined : undefined;
+
           const span = startInactiveSpan({
             name: bestEffortTransactionName,
             attributes: {
@@ -179,7 +186,10 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
               /* eslint-disable typescript/no-deprecated */
               [HTTP_URL]: fullUrl,
+              url: sanitizedUrl,
               [HTTP_METHOD]: normalizedRequest.method,
+              [HTTP_QUERY]: query,
+              [HTTP_FRAGMENT]: fragment,
               [HTTP_TARGET]: urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
               [HTTP_HOST]: host,
               [NET_HOST_NAME]: hostname,

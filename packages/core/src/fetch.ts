@@ -1,4 +1,11 @@
-import { HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
+import {
+  HTTP_FRAGMENT,
+  HTTP_METHOD,
+  HTTP_QUERY,
+  HTTP_URL,
+  SERVER_ADDRESS,
+  URL_FULL,
+} from '@sentry/conventions/attributes';
 import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, spanIsIgnored, startInactiveSpan } from './tracing';
@@ -387,7 +394,7 @@ function getFetchSpanAttributes(
   const attributes: SpanAttributes = {
     url: stripDataUrlContent(url),
     type: 'fetch',
-    'http.method': method,
+    [HTTP_METHOD]: method,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
   };
@@ -396,13 +403,13 @@ function getFetchSpanAttributes(
       // oxlint-disable-next-line typescript/no-deprecated
       attributes[HTTP_URL] = stripDataUrlContent(parsedUrl.href);
       attributes[URL_FULL] = stripDataUrlContent(parsedUrl.href);
-      attributes['server.address'] = parsedUrl.host;
+      attributes[SERVER_ADDRESS] = parsedUrl.host;
     }
     if (parsedUrl.search) {
-      attributes['http.query'] = parsedUrl.search;
+      attributes[HTTP_QUERY] = parsedUrl.search.slice(1) || undefined;
     }
     if (parsedUrl.hash) {
-      attributes['http.fragment'] = parsedUrl.hash;
+      attributes[HTTP_FRAGMENT] = parsedUrl.hash.slice(1) || undefined;
     }
   }
   return attributes;
