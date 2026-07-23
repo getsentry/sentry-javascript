@@ -255,7 +255,7 @@ describe('responseHandler', () => {
 
       expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
         'sentry.source': 'route',
-        [HTTP_ROUTE]: 'GET /test',
+        [HTTP_ROUTE]: '/test',
       });
     });
   });
