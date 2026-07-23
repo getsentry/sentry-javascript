@@ -1,18 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { truncateGenAiMessages, truncateGenAiStringInput } from '../../../src/tracing/ai/messageTruncation';
-import { getTruncatedJsonString } from '../../../src/tracing/ai/utils';
+import { stripInlineMediaFromMessages } from '../../../src/tracing/ai/mediaStripping';
+import { getGenAiMessagesJsonString } from '../../../src/tracing/ai/utils';
 
-describe('message truncation utilities', () => {
-  describe('truncateGenAiMessages', () => {
+describe('media stripping utilities', () => {
+  describe('stripInlineMediaFromMessages', () => {
     it('leaves empty/non-array/small messages alone', () => {
-      // @ts-expect-error - exercising invalid type code path
-      expect(truncateGenAiMessages(null)).toBe(null);
-      expect(truncateGenAiMessages([])).toStrictEqual([]);
-      expect(truncateGenAiMessages([{ text: 'hello' }])).toStrictEqual([{ text: 'hello' }]);
-      expect(truncateGenAiStringInput('hello')).toBe('hello');
+      expect(stripInlineMediaFromMessages([])).toStrictEqual([]);
+      expect(stripInlineMediaFromMessages([{ text: 'hello' }])).toStrictEqual([{ text: 'hello' }]);
     });
 
-    it('strips inline media from messages', () => {
+    it('strips inline media from messages, keeping all messages', () => {
       const b64 = Buffer.from('lots of data\n').toString('base64');
       const removed = '[Blob substitute]';
       const messages = [
@@ -93,12 +90,38 @@ describe('message truncation utilities', () => {
 
       // indented json makes for better diffs in test output
       const messagesJson = JSON.stringify(messages, null, 2);
-      const result = truncateGenAiMessages(messages);
+      const result = stripInlineMediaFromMessages(messages);
 
       // original messages objects must not be mutated
       expect(JSON.stringify(messages, null, 2)).toBe(messagesJson);
-      // only the last message should be kept (with media stripped)
+      // all messages are kept, with inline media stripped
       expect(result).toStrictEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/png',
+                data: removed,
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: {
+            image_url: removed,
+          },
+        },
+        {
+          role: 'agent',
+          type: 'image',
+          content: {
+            b64_json: removed,
+          },
+        },
         {
           role: 'system',
           inlineData: {
@@ -170,7 +193,7 @@ describe('message truncation utilities', () => {
       ];
 
       const messagesJson = JSON.stringify(messages, null, 2);
-      const result = truncateGenAiMessages(messages);
+      const result = stripInlineMediaFromMessages(messages);
 
       // original messages must not be mutated
       expect(JSON.stringify(messages, null, 2)).toBe(messagesJson);
@@ -212,7 +235,7 @@ describe('message truncation utilities', () => {
         },
       ];
 
-      const result = truncateGenAiMessages(messages);
+      const result = stripInlineMediaFromMessages(messages);
 
       expect(result).toStrictEqual([
         {
@@ -256,7 +279,7 @@ describe('message truncation utilities', () => {
         },
       ];
 
-      const result = truncateGenAiMessages(messages);
+      const result = stripInlineMediaFromMessages(messages);
 
       expect(result).toStrictEqual([
         {
@@ -301,7 +324,7 @@ describe('message truncation utilities', () => {
       ];
 
       const messagesJson = JSON.stringify(messages, null, 2);
-      const result = truncateGenAiMessages(messages);
+      const result = stripInlineMediaFromMessages(messages);
 
       expect(JSON.stringify(messages, null, 2)).toBe(messagesJson);
 
@@ -347,7 +370,7 @@ describe('message truncation utilities', () => {
       ];
 
       const messagesJson = JSON.stringify(messages, null, 2);
-      const result = truncateGenAiMessages(messages);
+      const result = stripInlineMediaFromMessages(messages);
 
       expect(JSON.stringify(messages, null, 2)).toBe(messagesJson);
 
@@ -389,7 +412,7 @@ describe('message truncation utilities', () => {
         },
       ];
 
-      const result = truncateGenAiMessages(messages);
+      const result = stripInlineMediaFromMessages(messages);
 
       expect(result).toStrictEqual([
         {
@@ -407,222 +430,41 @@ describe('message truncation utilities', () => {
         },
       ]);
     });
-
-    const humongous = 'this is a long string '.repeat(10_000);
-    const giant = 'this is a long string '.repeat(1_000);
-    const big = 'this is a long string '.repeat(100);
-
-    it('keeps only the last message without truncation when it fits the limit', () => {
-      // Multiple messages that together exceed 20KB, but last message is small
-      const messages = [
-        { content: `1 ${humongous}` },
-        { content: `2 ${humongous}` },
-        { content: `3 ${big}` }, // last message - small enough to fit
-      ];
-
-      const result = truncateGenAiMessages(messages);
-
-      // Should only keep the last message, unchanged
-      expect(result).toStrictEqual([{ content: `3 ${big}` }]);
-    });
-
-    it('keeps only the last message with truncation when it does not fit the limit', () => {
-      const messages = [{ content: `1 ${humongous}` }, { content: `2 ${humongous}` }, { content: `3 ${humongous}` }];
-      const result = truncateGenAiMessages(messages);
-      const truncLen = 20_000 - 2 - JSON.stringify({ content: '' }).length;
-      expect(result).toStrictEqual([{ content: `3 ${humongous}`.substring(0, truncLen) }]);
-    });
-
-    it('drops if last message cannot be safely truncated', () => {
-      const messages = [
-        { content: `1 ${humongous}` },
-        { content: `2 ${humongous}` },
-        { what_even_is_this: `? ${humongous}` },
-      ];
-      const result = truncateGenAiMessages(messages);
-      expect(result).toStrictEqual([]);
-    });
-
-    it('fully drops message if content cannot be made to fit', () => {
-      const messages = [{ some_other_field: humongous, content: 'hello' }];
-      expect(truncateGenAiMessages(messages)).toStrictEqual([]);
-    });
-
-    it('truncates if the message content string will not fit', () => {
-      const messages = [{ content: `2 ${humongous}` }];
-      const result = truncateGenAiMessages(messages);
-      const truncLen = 20_000 - 2 - JSON.stringify({ content: '' }).length;
-      expect(result).toStrictEqual([{ content: `2 ${humongous}`.substring(0, truncLen) }]);
-    });
-
-    it('fully drops message if first part overhead does not fit', () => {
-      const messages = [
-        {
-          parts: [{ some_other_field: humongous }],
-        },
-      ];
-      expect(truncateGenAiMessages(messages)).toStrictEqual([]);
-    });
-
-    it('fully drops message if overhead too large', () => {
-      const messages = [
-        {
-          some_other_field: humongous,
-          parts: [],
-        },
-      ];
-      expect(truncateGenAiMessages(messages)).toStrictEqual([]);
-    });
-
-    it('truncates if the first message part will not fit', () => {
-      const messages = [
-        {
-          parts: [`2 ${humongous}`, { some_other_field: 'no text here' }],
-        },
-      ];
-
-      const result = truncateGenAiMessages(messages);
-
-      // interesting (unexpected?) edge case effect of this truncation.
-      // subsequent messages count towards truncation overhead limit,
-      // but are not included, even without their text. This is an edge
-      // case that seems unlikely in normal usage.
-      const truncLen =
-        20_000 -
-        2 -
-        JSON.stringify({
-          parts: ['', { some_other_field: 'no text here', text: '' }],
-        }).length;
-
-      expect(result).toStrictEqual([
-        {
-          parts: [`2 ${humongous}`.substring(0, truncLen)],
-        },
-      ]);
-    });
-
-    it('truncates if the first message part will not fit, text object', () => {
-      const messages = [
-        {
-          parts: [{ text: `2 ${humongous}` }],
-        },
-      ];
-      const result = truncateGenAiMessages(messages);
-      const truncLen =
-        20_000 -
-        2 -
-        JSON.stringify({
-          parts: [{ text: '' }],
-        }).length;
-      expect(result).toStrictEqual([
-        {
-          parts: [
-            {
-              text: `2 ${humongous}`.substring(0, truncLen),
-            },
-          ],
-        },
-      ]);
-    });
-
-    it('drops if subsequent message part will not fit, text object', () => {
-      const messages = [
-        {
-          parts: [
-            { text: `1 ${big}` },
-            { some_other_field: 'ok' },
-            { text: `2 ${big}` },
-            { text: `3 ${big}` },
-            { text: `4 ${giant}` },
-            { text: `5 ${giant}` },
-            { text: `6 ${big}` },
-            { text: `7 ${big}` },
-            { text: `8 ${big}` },
-          ],
-        },
-      ];
-      const result = truncateGenAiMessages(messages);
-      expect(result).toStrictEqual([
-        {
-          parts: [{ text: `1 ${big}` }, { some_other_field: 'ok' }, { text: `2 ${big}` }, { text: `3 ${big}` }],
-        },
-      ]);
-    });
-
-    it('truncates content array message when first text item does not fit', () => {
-      const messages = [
-        {
-          role: 'user',
-          content: [{ type: 'text', text: `2 ${humongous}` }],
-        },
-      ];
-      const result = truncateGenAiMessages(messages);
-      const truncLen =
-        20_000 -
-        2 -
-        JSON.stringify({
-          role: 'user',
-          content: [{ type: 'text', text: '' }],
-        }).length;
-      expect(result).toStrictEqual([
-        {
-          role: 'user',
-          content: [{ type: 'text', text: `2 ${humongous}`.substring(0, truncLen) }],
-        },
-      ]);
-    });
-
-    it('drops subsequent content array items that do not fit', () => {
-      const messages = [
-        {
-          role: 'assistant',
-          content: [
-            { type: 'text', text: `1 ${big}` },
-            { type: 'image_url', url: 'https://example.com/img.png' },
-            { type: 'text', text: `2 ${big}` },
-            { type: 'text', text: `3 ${big}` },
-            { type: 'text', text: `4 ${giant}` },
-            { type: 'text', text: `5 ${giant}` },
-          ],
-        },
-      ];
-      const result = truncateGenAiMessages(messages);
-      expect(result).toStrictEqual([
-        {
-          role: 'assistant',
-          content: [
-            { type: 'text', text: `1 ${big}` },
-            { type: 'image_url', url: 'https://example.com/img.png' },
-            { type: 'text', text: `2 ${big}` },
-            { type: 'text', text: `3 ${big}` },
-          ],
-        },
-      ]);
-    });
-
-    it('drops content array message if overhead is too large', () => {
-      const messages = [
-        {
-          some_other_field: humongous,
-          content: [{ type: 'text', text: 'hello' }],
-        },
-      ];
-      expect(truncateGenAiMessages(messages)).toStrictEqual([]);
-    });
-  });
-});
-
-describe('getTruncatedJsonString', () => {
-  it('returns a fallback instead of throwing on circular references', () => {
-    const circular: Record<string, unknown> = { role: 'user', content: 'hi' };
-    circular.self = circular;
-
-    expect(getTruncatedJsonString(circular)).toBe('[unserializable]');
-    expect(getTruncatedJsonString([circular])).toBe('[unserializable]');
   });
 
-  it('serializes normal values as before', () => {
-    expect(getTruncatedJsonString('hello')).toBe('hello');
-    expect(getTruncatedJsonString({ a: 1 })).toBe('{"a":1}');
+  describe('getGenAiMessagesJsonString', () => {
+    it('returns a fallback instead of throwing on circular references', () => {
+      const circular: Record<string, unknown> = { role: 'user', content: 'hi' };
+      circular.self = circular;
+
+      expect(getGenAiMessagesJsonString(circular)).toBe('[unserializable]');
+      expect(getGenAiMessagesJsonString([circular])).toBe('[unserializable]');
+    });
+
+    it('returns strings as-is and serializes objects', () => {
+      expect(getGenAiMessagesJsonString('hello')).toBe('hello');
+      expect(getGenAiMessagesJsonString({ a: 1 })).toBe('{"a":1}');
+    });
+
+    it('strips inline media from message arrays while keeping all messages', () => {
+      const b64 = Buffer.from('lots of data\n').toString('base64');
+      const messages = [
+        { role: 'user', content: 'first message' },
+        {
+          role: 'user',
+          content: [{ type: 'image_url', image_url: { url: `data:image/png;base64,${b64}` } }],
+        },
+      ];
+
+      const result = getGenAiMessagesJsonString(messages);
+
+      expect(result).toBe(
+        JSON.stringify([
+          { role: 'user', content: 'first message' },
+          { role: 'user', content: [{ type: 'image_url', image_url: { url: '[Blob substitute]' } }] },
+        ]),
+      );
+      expect(result).not.toContain(b64);
+    });
   });
 });

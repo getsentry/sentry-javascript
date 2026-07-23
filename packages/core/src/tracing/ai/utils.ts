@@ -16,7 +16,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from './gen-ai-attributes';
-import { truncateGenAiMessages, truncateGenAiStringInput } from './messageTruncation';
+import { stripInlineMediaFromMessages } from './mediaStripping';
 
 export interface AIRecordingOptions {
   recordInputs?: boolean;
@@ -54,22 +54,6 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
     recordInputs: options?.recordInputs ?? genAI?.inputs ?? false,
     recordOutputs: options?.recordOutputs ?? genAI?.outputs ?? false,
   } as T & Required<AIRecordingOptions>;
-}
-
-/**
- * Resolves whether truncation should be enabled.
- * If the user explicitly set `enableTruncation`, that value is used.
- * Otherwise, truncation is disabled because gen_ai spans are always sent through the v2 span path
- * (full span streaming via `traceLifecycle: 'stream'`, or extraction into a v2 span envelope for
- * static transactions). That path is not subject to the transaction payload-size limits that
- * truncation works around, so the full message data can be retained.
- */
-export function shouldEnableTruncation(enableTruncation: boolean | undefined): boolean {
-  if (enableTruncation !== undefined) {
-    return enableTruncation;
-  }
-
-  return !getClient();
 }
 
 /**
@@ -186,20 +170,22 @@ export function endStreamSpan(span: Span, state: StreamResponseState, recordOutp
 }
 
 /**
- * Get the truncated JSON string for a string, an array of messages, or an object.
+ * Serialize a string, an array of messages, or an object to a JSON string for span attributes,
+ * stripping inline media (base64 blobs, data URIs, etc.) from message arrays so large binary
+ * payloads never end up in span attributes.
  *
- * @param value - The value to truncate and serialize
- * @returns The truncated JSON string
+ * @param value - The value to serialize
+ * @returns The JSON string
  */
-export function getTruncatedJsonString<T>(value: T | T[]): string {
+export function getGenAiMessagesJsonString<T>(value: T | T[]): string {
   if (typeof value === 'string') {
     // Some values are already JSON strings, so we don't need to duplicate the JSON parsing
-    return truncateGenAiStringInput(value);
+    return value;
   }
-  // Both truncation (media stripping recurses the value) and `JSON.stringify` can throw on
-  // circular refs or non-serializable values (e.g. BigInt); never let that crash instrumentation.
+  // Media stripping recurses the value and `JSON.stringify` can throw on circular refs or
+  // non-serializable values (e.g. BigInt); never let that crash instrumentation.
   try {
-    return JSON.stringify(Array.isArray(value) ? truncateGenAiMessages(value) : value);
+    return JSON.stringify(Array.isArray(value) ? stripInlineMediaFromMessages(value) : value);
   } catch {
     return '[unserializable]';
   }

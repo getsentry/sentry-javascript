@@ -197,59 +197,6 @@ describe('LangChain integration', () => {
     });
   });
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-message-truncation.mjs',
-    'instrument-with-truncation.mjs',
-    (createRunner, test) => {
-      test('truncates messages when they exceed byte limit', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(3);
-              // The string-input span has no system message (and therefore no system instructions),
-              // while the array-input span does — use that to distinguish the two truncated spans.
-              const truncatedContent = /^\[\{"role":"user","content":"C+"\}\]$/;
-              const stringInputSpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE] === undefined &&
-                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
-                    truncatedContent,
-                  ),
-              );
-              expect(stringInputSpan).toBeDefined();
-              expect(stringInputSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(stringInputSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toMatch(truncatedContent);
-
-              const arrayInputSpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE] !== undefined &&
-                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
-                    truncatedContent,
-                  ),
-              );
-              expect(arrayInputSpan).toBeDefined();
-              expect(arrayInputSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(arrayInputSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]).toBeDefined();
-
-              const smallMessageSpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value ===
-                  JSON.stringify([{ role: 'user', content: 'This is a small message that fits within the limit' }]),
-              );
-              expect(smallMessageSpan).toBeDefined();
-              expect(smallMessageSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(smallMessageSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]).toBeDefined();
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
   createEsmTests(__dirname, 'scenario-openai-before-langchain.mjs', 'instrument.mjs', (createRunner, test) => {
     test('demonstrates timing issue with duplicate spans', async () => {
       await createRunner()
@@ -454,52 +401,14 @@ describe('LangChain integration', () => {
     });
   });
 
-  const longContent = 'A'.repeat(50_000);
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-no-truncation.mjs',
-    'instrument-no-truncation.mjs',
-    (createRunner, test) => {
-      test('does not truncate input messages when enableTruncation is false', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(1);
-              const [firstSpan] = container.items;
-
-              // [0] chat with full (untruncated) input messages
-              expect(firstSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(
-                JSON.stringify([
-                  { role: 'user', content: longContent },
-                  { role: 'assistant', content: 'Some reply' },
-                  { role: 'user', content: 'Follow-up question' },
-                ]),
-              );
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  const streamingLongContent = 'A'.repeat(50_000);
-
   createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
-    test('automatically disables truncation when span streaming is enabled', async () => {
+    test('records full gen_ai input messages when span streaming is enabled', async () => {
+      const longContent = 'A'.repeat(50_000);
       await createRunner()
         .expect({
           span: container => {
-            const spans = container.items;
-
-            const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
-                streamingLongContent,
-              ),
+            const chatSpan = container.items.find(s =>
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(longContent),
             );
             expect(chatSpan).toBeDefined();
           },
@@ -508,33 +417,4 @@ describe('LangChain integration', () => {
         .completed();
     });
   });
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-span-streaming.mjs',
-    'instrument-streaming-with-truncation.mjs',
-    (createRunner, test) => {
-      test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const spans = container.items;
-
-              // With explicit enableTruncation: true, content should be truncated despite streaming.
-              const chatSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
-                  '[{"role":"user","content":"AAAA',
-                ),
-              );
-              expect(chatSpan).toBeDefined();
-              expect(
-                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value) ?? '').length,
-              ).toBeLessThan(streamingLongContent.length);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
 });

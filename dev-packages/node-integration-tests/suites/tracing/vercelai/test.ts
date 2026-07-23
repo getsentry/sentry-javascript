@@ -478,53 +478,6 @@ describe('Vercel AI integration (v4)', () => {
     },
   );
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-message-truncation.mjs',
-    'instrument-with-truncation.mjs',
-    (createRunner, test) => {
-      test('truncates messages when they exceed byte limit', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(4);
-              const truncatedInvokeAgentSpan = container.items.find(
-                span =>
-                  span.name === 'invoke_agent' &&
-                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
-                    /^\[.*"(?:text|content)":"C+".*\]$/,
-                  ),
-              );
-              expect(truncatedInvokeAgentSpan).toBeDefined();
-              expect(truncatedInvokeAgentSpan!.name).toBe('invoke_agent');
-              expect(truncatedInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-              expect(truncatedInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toMatch(
-                /^\[.*"(?:text|content)":"C+".*\]$/,
-              );
-
-              const smallMessageInvokeAgentSpan = container.items.find(
-                span =>
-                  span.name === 'invoke_agent' &&
-                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
-                    'This is a small message that fits within the limit',
-                  ),
-              );
-              expect(smallMessageInvokeAgentSpan).toBeDefined();
-              expect(smallMessageInvokeAgentSpan!.name).toBe('invoke_agent');
-              expect(smallMessageInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-              expect(smallMessageInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain(
-                'This is a small message that fits within the limit',
-              );
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates embedding related spans with genAI recording disabled', async () => {
       await createRunner()
@@ -614,52 +567,6 @@ describe('Vercel AI integration (v4)', () => {
         .completed();
     });
   });
-
-  const longContent = 'A'.repeat(50_000);
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-no-truncation.mjs',
-    'instrument-no-truncation.mjs',
-    (createRunner, test) => {
-      test('does not truncate input messages when enableTruncation is false', async () => {
-        await createRunner()
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(2);
-              const invokeAgentSpan = container.items.find(
-                span =>
-                  span.name === 'invoke_agent' &&
-                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value ===
-                    JSON.stringify([
-                      { role: 'user', content: longContent },
-                      { role: 'assistant', content: 'Some reply' },
-                      { role: 'user', content: 'Follow-up question' },
-                    ]),
-              );
-              expect(invokeAgentSpan).toBeDefined();
-              expect(invokeAgentSpan!.name).toBe('invoke_agent');
-              expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-              expect(invokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(
-                JSON.stringify([
-                  { role: 'user', content: longContent },
-                  { role: 'assistant', content: 'Some reply' },
-                  { role: 'user', content: 'Follow-up question' },
-                ]),
-              );
-
-              const generateContentSpan = container.items.find(span => span.name === 'generate_content mock-model-id');
-              expect(generateContentSpan).toBeDefined();
-              expect(generateContentSpan!.name).toBe('generate_content mock-model-id');
-              expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
 
   createEsmAndCjsTests(__dirname, 'scenario-stream-text.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates ai spans for streamText (doStream)', async () => {

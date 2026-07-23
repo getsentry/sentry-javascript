@@ -14,12 +14,6 @@ import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
 const INTEGRATION_NAME = 'VercelAI';
 
 interface VercelAiOptions {
-  /**
-   * Enable or disable truncation of recorded input messages.
-   * Defaults to `true`.
-   */
-  enableTruncation?: boolean;
-
   // `recordInputs`/`recordOutputs` are intentionally omitted: this entrypoint only post-processes
   // spans the AI SDK already emitted, so it cannot decide whether inputs/outputs are recorded.
   // Control this per call via `experimental_telemetry.recordInputs`/`recordOutputs`, or use the

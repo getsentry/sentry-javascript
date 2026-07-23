@@ -20,8 +20,7 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getTruncatedJsonString, setTokenUsageAttributes } from '../ai/utils';
-import { stringify } from '../../utils/string';
+import { extractSystemInstructions, getGenAiMessagesJsonString, setTokenUsageAttributes } from '../ai/utils';
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
 import type { WorkersAiInput, WorkersAiOutput } from './types';
 
@@ -89,12 +88,7 @@ export function extractRequestAttributes(
  * Record the request inputs (messages/prompt/embeddings input) on the span.
  * Only called when `recordInputs` is enabled.
  */
-export function addRequestAttributes(
-  span: Span,
-  inputs: unknown,
-  operationName: string,
-  enableTruncation: boolean,
-): void {
+export function addRequestAttributes(span: Span, inputs: unknown, operationName: string): void {
   if (!inputs || typeof inputs !== 'object') {
     return;
   }
@@ -124,10 +118,7 @@ export function addRequestAttributes(
     span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
   }
 
-  span.setAttribute(
-    GEN_AI_INPUT_MESSAGES,
-    enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
-  );
+  span.setAttribute(GEN_AI_INPUT_MESSAGES, getGenAiMessagesJsonString(filteredMessages));
 }
 
 /**

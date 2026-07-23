@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getTruncatedJsonString } from '../../../src/tracing/ai/utils';
-import { stringify } from '../../../src/utils/string';
+import { getGenAiMessagesJsonString } from '../../../src/tracing/ai/utils';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
@@ -27,22 +26,20 @@ function createRecordingSpan(): { span: Span; recorded: Record<string, unknown> 
 }
 
 describe('requestMessagesFromPrompt (ai.prompt.messages string branch)', () => {
-  it('reuses the original string verbatim when no system message and truncation is off', () => {
+  it('serializes all messages when there is no system message', () => {
     const { span, recorded } = createRecordingSpan();
 
-    // Deliberately non-canonical whitespace. Re-serializing (JSON.stringify(JSON.parse(x)))
-    // would strip it, so a byte-identical result proves the original string was reused.
-    const original = '[ { "role": "user",   "content": "hello world" } ]';
-    const attributes = { [AI_PROMPT_MESSAGES_ATTRIBUTE]: original } as unknown as SpanAttributes;
+    const messages = [{ role: 'user', content: 'hello world' }];
+    const attributes = { [AI_PROMPT_MESSAGES_ATTRIBUTE]: JSON.stringify(messages) } as unknown as SpanAttributes;
 
-    requestMessagesFromPrompt(span, attributes, /* enableTruncation */ false);
+    requestMessagesFromPrompt(span, attributes);
 
-    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(original);
-    expect(recorded[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBe(original);
+    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(getGenAiMessagesJsonString(messages));
+    expect(recorded[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBe(getGenAiMessagesJsonString(messages));
     expect(recorded[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]).toBeUndefined();
   });
 
-  it('extracts the system message and re-serializes the remainder when truncation is off', () => {
+  it('extracts the system message and serializes the remainder', () => {
     const { span, recorded } = createRecordingSpan();
 
     const original = JSON.stringify([
@@ -51,31 +48,32 @@ describe('requestMessagesFromPrompt (ai.prompt.messages string branch)', () => {
     ]);
     const attributes = { [AI_PROMPT_MESSAGES_ATTRIBUTE]: original } as unknown as SpanAttributes;
 
-    requestMessagesFromPrompt(span, attributes, false);
+    requestMessagesFromPrompt(span, attributes);
 
     expect(recorded[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]).toBe(JSON.stringify([{ type: 'text', content: 'be nice' }]));
-    // System message removed; output is the SDK's own serialization of just the remainder.
-    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(stringify([{ role: 'user', content: 'hello' }]));
+    // System message removed; output is just the remainder.
+    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(
+      getGenAiMessagesJsonString([{ role: 'user', content: 'hello' }]),
+    );
     expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).not.toBe(original);
   });
 
-  it('keeps the truncation path untouched when truncation is on', () => {
+  it('keeps all messages and strips inline media', () => {
     const { span, recorded } = createRecordingSpan();
 
+    const b64 = Buffer.from('lots of data\n').toString('base64');
     const messages = [
       { role: 'user', content: 'first' },
-      { role: 'user', content: 'second' },
+      { role: 'user', content: [{ type: 'image_url', image_url: { url: `data:image/png;base64,${b64}` } }] },
     ];
-    const original = JSON.stringify(messages);
-    const attributes = { [AI_PROMPT_MESSAGES_ATTRIBUTE]: original } as unknown as SpanAttributes;
+    const attributes = { [AI_PROMPT_MESSAGES_ATTRIBUTE]: JSON.stringify(messages) } as unknown as SpanAttributes;
 
-    requestMessagesFromPrompt(span, attributes, /* enableTruncation */ true);
+    requestMessagesFromPrompt(span, attributes);
 
-    // Output must equal the SDK's own truncated serialization (and therefore differ from the
-    // input), proving the fast-path reuse did NOT short-circuit the truncation branch.
-    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(getTruncatedJsonString(messages));
-    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).not.toBe(original);
-    // Original (pre-truncation) message count is still reported.
+    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(getGenAiMessagesJsonString(messages));
+    expect(recorded[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toContain('first');
+    expect(recorded[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toContain('[Blob substitute]');
+    expect(recorded[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).not.toContain(b64);
   });
 
   it('does not throw and sets no attributes for malformed JSON', () => {
@@ -83,7 +81,7 @@ describe('requestMessagesFromPrompt (ai.prompt.messages string branch)', () => {
 
     const attributes = { [AI_PROMPT_MESSAGES_ATTRIBUTE]: '{ not json' } as unknown as SpanAttributes;
 
-    expect(() => requestMessagesFromPrompt(span, attributes, false)).not.toThrow();
+    expect(() => requestMessagesFromPrompt(span, attributes)).not.toThrow();
     expect(Object.keys(recorded)).toHaveLength(0);
   });
 });

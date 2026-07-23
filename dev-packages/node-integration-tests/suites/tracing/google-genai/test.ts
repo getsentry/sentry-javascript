@@ -348,50 +348,6 @@ describe('Google GenAI integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-message-truncation.mjs',
-    'instrument-with-truncation.mjs',
-    (createRunner, test) => {
-      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(2);
-              const truncatedSpan = container.items.find(span =>
-                getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
-                  /^\[\{"role":"user","parts":\[\{"text":"C+"\}\]\}\]$/,
-                ),
-              );
-              expect(truncatedSpan).toBeDefined();
-              expect(truncatedSpan!.name).toBe('generate_content gemini-1.5-flash');
-              expect(truncatedSpan!.status).toBe('ok');
-              expect(truncatedSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-
-              const smallMessageSpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value ===
-                  JSON.stringify([
-                    {
-                      role: 'user',
-                      parts: [{ text: 'This is a small message that fits within the limit' }],
-                    },
-                  ]),
-              );
-              expect(smallMessageSpan).toBeDefined();
-              expect(smallMessageSpan!.name).toBe('generate_content gemini-1.5-flash');
-              expect(smallMessageSpan!.status).toBe('ok');
-              expect(smallMessageSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  createEsmAndCjsTests(
-    __dirname,
     'scenario-system-instructions.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
@@ -504,88 +460,20 @@ describe('Google GenAI integration', () => {
     });
   });
 
-  const longContent = 'A'.repeat(50_000);
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-no-truncation.mjs',
-    'instrument-no-truncation.mjs',
-    (createRunner, test) => {
-      test('does not truncate input messages when enableTruncation is false', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(1);
-              const [firstSpan] = container.items;
-
-              // [0] generate_content with full (non-truncated) input messages
-              expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(
-                JSON.stringify([
-                  { role: 'user', parts: [{ text: longContent }] },
-                  { role: 'model', parts: [{ text: 'Some reply' }] },
-                  { role: 'user', parts: [{ text: 'Follow-up question' }] },
-                ]),
-              );
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  const streamingLongContent = 'A'.repeat(50_000);
-
   createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
-    test('automatically disables truncation when span streaming is enabled', async () => {
+    test('records full gen_ai input messages when span streaming is enabled', async () => {
+      const longContent = 'A'.repeat(50_000);
       await createRunner()
         .expect({
           span: container => {
-            const spans = container.items;
-
-            const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
-                streamingLongContent,
-              ),
+            const generateContentSpan = container.items.find(s =>
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(longContent),
             );
-            expect(chatSpan).toBeDefined();
+            expect(generateContentSpan).toBeDefined();
           },
         })
         .start()
         .completed();
     });
   });
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-span-streaming.mjs',
-    'instrument-streaming-with-truncation.mjs',
-    (createRunner, test) => {
-      test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const spans = container.items;
-
-              // With explicit enableTruncation: true, content should be truncated despite streaming.
-              // Find the chat span by matching the start of the truncated content (the 'A' repeated messages).
-              const chatSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
-                  '[{"role":"user","parts":[{"text":"AAAA',
-                ),
-              );
-              expect(chatSpan).toBeDefined();
-              expect(
-                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value) ?? '').length,
-              ).toBeLessThan(streamingLongContent.length);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
 });

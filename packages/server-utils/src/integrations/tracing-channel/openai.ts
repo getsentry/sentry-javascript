@@ -10,7 +10,6 @@ import {
   instrumentOpenAiStream,
   resolveAIRecordingOptions,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  shouldEnableTruncation,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -91,7 +90,6 @@ function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, opti
   const params = args[0] as Record<string, unknown> | undefined;
 
   const { recordInputs } = resolveAIRecordingOptions(options);
-  const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   const attributes = extractOpenAiRequestAttributes(args, operation);
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
@@ -104,7 +102,7 @@ function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, opti
   });
 
   if (recordInputs && params) {
-    addOpenAiRequestAttributes(span, params, operation, enableTruncation);
+    addOpenAiRequestAttributes(span, params, operation);
   }
 
   return span;

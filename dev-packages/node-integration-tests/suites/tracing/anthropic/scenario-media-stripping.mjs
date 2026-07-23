@@ -36,7 +36,6 @@ async function run() {
     });
 
     // Send the image showing the number 3
-    // Put the image in the last message so it doesn't get dropped
     await client.messages.create({
       model: 'claude-3-haiku-20240307',
       max_tokens: 1024,

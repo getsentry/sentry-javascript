@@ -2,7 +2,7 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span } from '../../types/span';
 import { isObjectLike } from '../../utils/is';
-import { resolveAIRecordingOptions, shouldEnableTruncation } from '../ai/utils';
+import { resolveAIRecordingOptions } from '../ai/utils';
 import { instrumentWorkersAiStream } from './streaming';
 import type { WorkersAiOptions } from './types';
 import { addRequestAttributes, addResponseAttributes, extractRequestAttributes, getOperationName } from './utils';
@@ -65,7 +65,7 @@ function instrumentRun(
         }
 
         if (options.recordInputs) {
-          addRequestAttributes(span, inputs, operationName, shouldEnableTruncation(options.enableTruncation));
+          addRequestAttributes(span, inputs, operationName);
         }
 
         return originalResult.then(result => {
@@ -85,7 +85,7 @@ function instrumentRun(
       const originalResult = originalRun.apply(context, args) as Promise<unknown>;
 
       if (options.recordInputs) {
-        addRequestAttributes(span, inputs, operationName, shouldEnableTruncation(options.enableTruncation));
+        addRequestAttributes(span, inputs, operationName);
       }
 
       return originalResult.then(result => {

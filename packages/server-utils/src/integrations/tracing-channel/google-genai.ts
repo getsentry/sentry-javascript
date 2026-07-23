@@ -12,7 +12,6 @@ import {
   instrumentGoogleGenAIStream,
   resolveAIRecordingOptions,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  shouldEnableTruncation,
   spanToJSON,
   startInactiveSpan,
   waitForTracingChannelBinding,
@@ -116,7 +115,6 @@ function createGenAiSpan(
   const params = args[0] as Record<string, unknown> | undefined;
 
   const { recordInputs } = resolveAIRecordingOptions(options);
-  const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   const attributes = extractGoogleGenAIRequestAttributes(operation, params, data.self);
   const model = (attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
@@ -129,7 +127,7 @@ function createGenAiSpan(
   });
 
   if (recordInputs && params) {
-    addGoogleGenAIRequestAttributes(span, params, operation, enableTruncation);
+    addGoogleGenAIRequestAttributes(span, params, operation);
   }
 
   return span;

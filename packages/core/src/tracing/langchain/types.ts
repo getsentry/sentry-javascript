@@ -13,12 +13,6 @@ export interface LangChainOptions {
    * @default false (respects `dataCollection.genAI.outputs`, or `sendDefaultPii` when `dataCollection` is not configured)
    */
   recordOutputs?: boolean;
-
-  /**
-   * Enable or disable truncation of recorded input messages.
-   * Defaults to `true`.
-   */
-  enableTruncation?: boolean;
 }
 
 /**

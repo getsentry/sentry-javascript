@@ -32,11 +32,10 @@ import {
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   getClient,
+  getGenAiMessagesJsonString,
   getProviderMetadataAttributes,
-  getTruncatedJsonString,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  shouldEnableTruncation,
   SPAN_STATUS_ERROR,
   spanToJSON,
   spanToTraceContext,
@@ -206,7 +205,6 @@ export type VercelAiTracingChannelFactory = <T extends object>(name: string) => 
 export interface VercelAiChannelOptions {
   recordInputs?: boolean;
   recordOutputs?: boolean;
-  enableTruncation?: boolean;
 }
 
 /**
@@ -366,7 +364,7 @@ export function createSpanFromMessage(
     return undefined;
   }
 
-  const { recordInputs, enableTruncation } = getRecordingOptions(event, channelOptions);
+  const { recordInputs } = getRecordingOptions(event, channelOptions);
   const provider = asString(event.provider);
   const modelId = asString(event.modelId);
   const callId = asString(event.callId);
@@ -392,9 +390,9 @@ export function createSpanFromMessage(
       // `generateObject` builds the same `invoke_agent` span as `generateText` (non-streaming); its
       // distinct `ai.generateObject` operationId rides on `event.operationId`. The JSON-schema attribute
       // the OTel path derives from the SDK's Zod schema is not reconstructed on the channel path.
-      return buildInvokeAgentSpan(event, baseAttributes, recordInputs, enableTruncation, callId, type === 'streamText');
+      return buildInvokeAgentSpan(event, baseAttributes, recordInputs, callId, type === 'streamText');
     case 'languageModelCall':
-      return buildModelCallSpan(event, baseAttributes, recordInputs, enableTruncation, callId, modelId);
+      return buildModelCallSpan(event, baseAttributes, recordInputs, callId, modelId);
     case 'executeTool':
       return buildToolSpan(event, recordInputs);
     case 'embed':
@@ -427,7 +425,6 @@ function buildInvokeAgentSpan(
   event: Record<string, unknown>,
   baseAttributes: SpanAttributes,
   recordInputs: boolean,
-  enableTruncation: boolean,
   callId: string | undefined,
   isStream: boolean,
 ): Span {
@@ -441,7 +438,7 @@ function buildInvokeAgentSpan(
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     [GEN_AI_RESPONSE_STREAMING]: isStream,
     ...(functionId ? { [GEN_AI_FUNCTION_ID]: functionId } : {}),
-    ...(recordInputs ? buildInputMessageAttributes(event, enableTruncation) : {}),
+    ...(recordInputs ? buildInputMessageAttributes(event) : {}),
   });
   if (isStream && callId) {
     invokeAgentSpanByCallId.set(callId, span);
@@ -454,7 +451,6 @@ function buildModelCallSpan(
   event: Record<string, unknown>,
   baseAttributes: SpanAttributes,
   recordInputs: boolean,
-  enableTruncation: boolean,
   callId: string | undefined,
   modelId: string | undefined,
 ): Span {
@@ -465,7 +461,7 @@ function buildModelCallSpan(
   return startGenAiSpan(GEN_AI_GENERATE_CONTENT_OPERATION, modelId, {
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
-    ...(recordInputs ? buildInputMessageAttributes(event, enableTruncation) : {}),
+    ...(recordInputs ? buildInputMessageAttributes(event) : {}),
     ...(recordInputs && Array.isArray(event.tools) ? { [GEN_AI_REQUEST_AVAILABLE_TOOLS]: stringify(event.tools) } : {}),
   });
 }
@@ -689,14 +685,12 @@ function getRecordingOptions(
 ): {
   recordInputs: boolean;
   recordOutputs: boolean;
-  enableTruncation: boolean;
 } {
   const genAI = getClient()?.getDataCollectionOptions().genAI;
 
   return {
     recordInputs: resolveRecording(channelOptions.recordInputs, event.recordInputs, genAI?.inputs),
     recordOutputs: resolveRecording(channelOptions.recordOutputs, event.recordOutputs, genAI?.outputs),
-    enableTruncation: shouldEnableTruncation(channelOptions.enableTruncation),
   };
 }
 
@@ -720,10 +714,7 @@ function resolveRecording(integrationOption: unknown, perCallOption: unknown, gl
   return globalDefault === true;
 }
 
-function buildInputMessageAttributes(
-  event: Record<string, unknown>,
-  enableTruncation: boolean,
-): Record<string, string | number | undefined> {
+function buildInputMessageAttributes(event: Record<string, unknown>): Record<string, string | number | undefined> {
   const attributes: Record<string, string | number | undefined> = {};
 
   // `ai` >= 7 forbids system messages in `messages`/`prompt` and exposes the system prompt as a
@@ -738,7 +729,7 @@ function buildInputMessageAttributes(
   // simpler `prompt` field is used.
   const messages = event.messages ?? event.prompt;
   if (messages !== undefined) {
-    attributes[GEN_AI_INPUT_MESSAGES] = enableTruncation ? getTruncatedJsonString(messages) : stringify(messages);
+    attributes[GEN_AI_INPUT_MESSAGES] = getGenAiMessagesJsonString(messages);
   }
 
   return attributes;

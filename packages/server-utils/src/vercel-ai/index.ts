@@ -16,12 +16,6 @@ export interface VercelAiOptions {
    * Integration-level options take precedence over global `dataCollection` config.
    */
   recordOutputs?: boolean;
-
-  /**
-   * Enable or disable truncation of recorded input messages.
-   * Defaults to `true`.
-   */
-  enableTruncation?: boolean;
 }
 
 const _vercelAiIntegration = ((options: VercelAiOptions = {}) => {

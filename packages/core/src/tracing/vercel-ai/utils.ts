@@ -9,8 +9,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
-import { stringify } from '../../utils/string';
+import { extractSystemInstructions, getGenAiMessagesJsonString } from '../ai/utils';
 import { toolCallSpanContextMap } from './constants';
 import type { TokenSummary, ToolCallSpanContext } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
@@ -221,7 +220,7 @@ export function convertUserInputToMessagesFormat(userInput: string): { role: str
  * Generate a request.messages JSON array from the prompt field in the
  * invoke_agent op
  */
-export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes, enableTruncation: boolean): void {
+export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes): void {
   if (
     typeof attributes[AI_PROMPT_ATTRIBUTE] === 'string' &&
     !attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] &&
@@ -240,7 +239,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
       }
 
-      const messagesJson = enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages);
+      const messagesJson = getGenAiMessagesJsonString(filteredMessages);
 
       span.setAttributes({
         [AI_PROMPT_ATTRIBUTE]: messagesJson,
@@ -260,16 +259,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
           span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
         }
 
-        // `extractSystemInstructions` returns the original array reference unchanged when no
-        // system message is extracted. When truncation is also disabled, re-serializing would
-        // reproduce the SDK's own input string, so we reuse it instead of allocating a second
-        // full-size copy of the payload (matters for large prompts in memory-constrained runtimes).
-        const messagesJson =
-          !enableTruncation && filteredMessages === messages
-            ? originalMessagesJson
-            : enableTruncation
-              ? getTruncatedJsonString(filteredMessages)
-              : stringify(filteredMessages);
+        const messagesJson = getGenAiMessagesJsonString(filteredMessages);
 
         span.setAttributes({
           [AI_PROMPT_MESSAGES_ATTRIBUTE]: messagesJson,

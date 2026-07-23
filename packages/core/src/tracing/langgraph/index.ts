@@ -12,12 +12,7 @@ import {
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import {
-  extractSystemInstructions,
-  getTruncatedJsonString,
-  resolveAIRecordingOptions,
-  shouldEnableTruncation,
-} from '../ai/utils';
+import { extractSystemInstructions, resolveAIRecordingOptions } from '../ai/utils';
 import { stringify } from '../../utils/string';
 import type { SpanAttributeValue } from '../../types/span';
 import { createLangChainCallbackHandler } from '../langchain';
@@ -222,11 +217,8 @@ export function instrumentCompiledGraphInvoke(
                 span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
               }
 
-              const enableTruncation = shouldEnableTruncation(options.enableTruncation);
               span.setAttributes({
-                [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
-                  ? getTruncatedJsonString(filteredMessages)
-                  : stringify(filteredMessages),
+                [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: stringify(filteredMessages),
               });
             }
 

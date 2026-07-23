@@ -12,12 +12,11 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
-import { conditionalTest, getStringAttributeValue, isOrchestrionEnabled } from '../../../../utils';
+import { conditionalTest, isOrchestrionEnabled } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { createEsmTests } from '../../../../utils/runner/createEsmAndCjsTests';
 
@@ -198,70 +197,6 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               expect(firstSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(50);
               expect(firstSpan!.attributes[GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE].value).toBe('tool_use');
               expect(firstSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toBeDefined();
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: {
-        langchain: '^1.0.0',
-        '@langchain/core': '^1.0.0',
-        '@langchain/anthropic': '^1.0.0',
-      },
-    },
-  );
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-message-truncation.mjs',
-    'instrument-with-truncation.mjs',
-    (createRunner, test) => {
-      test('truncates messages when they exceed byte limit', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(3);
-              // The string-input span has no system message (and therefore no system instructions),
-              // while the array-input span does — use that to distinguish the two truncated spans.
-              const truncatedContent = /^\[\{"role":"user","content":"C+"\}\]$/;
-              const stringInputSpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE] === undefined &&
-                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
-                    truncatedContent,
-                  ),
-              );
-              expect(stringInputSpan).toBeDefined();
-              expect(stringInputSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(stringInputSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toMatch(truncatedContent);
-
-              const arrayInputSpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE] !== undefined &&
-                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
-                    truncatedContent,
-                  ),
-              );
-              expect(arrayInputSpan).toBeDefined();
-              expect(arrayInputSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(arrayInputSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE].value).toMatch(
-                /^\[\{"type":"text","content":"A+"\}\]$/,
-              );
-
-              const smallMessageSpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value ===
-                  JSON.stringify([{ role: 'user', content: 'This is a small message that fits within the limit' }]),
-              );
-              expect(smallMessageSpan).toBeDefined();
-              expect(smallMessageSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(smallMessageSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE].value).toMatch(
-                /^\[\{"type":"text","content":"A+"\}\]$/,
-              );
             },
           })
           .start()

@@ -12,7 +12,6 @@ import {
   instrumentMessageStream,
   resolveAIRecordingOptions,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  shouldEnableTruncation,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -113,7 +112,6 @@ function createGenAiSpan(
   const params = typeof args[0] === 'object' && args[0] !== null ? (args[0] as Record<string, unknown>) : undefined;
 
   const { recordInputs } = resolveAIRecordingOptions(options);
-  const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   const attributes = extractAnthropicRequestAttributes(args, methodPath, operation);
   const model = (attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
@@ -126,7 +124,7 @@ function createGenAiSpan(
   });
 
   if (recordInputs && params) {
-    addAnthropicRequestAttributes(span, params, enableTruncation);
+    addAnthropicRequestAttributes(span, params);
   }
 
   return span;
