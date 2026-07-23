@@ -1,4 +1,5 @@
 // oxlint-disable max-lines
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { getAsyncContextStrategy } from '../asyncContext';
 import type { RawAttributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
@@ -6,7 +7,6 @@ import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
@@ -192,7 +192,7 @@ export function spanToJSON(span: Span): SpanJSON {
       // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
       timestamp: spanTimeInputToSeconds(endTime) || undefined,
       status: getStatusMessage(status),
-      op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
+      op: attributes[SENTRY_OP],
       origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
       links: convertSpanLinksForEnvelope(links),
     };

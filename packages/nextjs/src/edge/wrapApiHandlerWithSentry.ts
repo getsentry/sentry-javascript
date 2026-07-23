@@ -6,7 +6,6 @@ import {
   handleCallbackErrors,
   isURLObjectRelative,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
@@ -18,7 +17,7 @@ import {
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { URL_FULL, URL_PATH, SENTRY_OP } from '@sentry/conventions/attributes';
 
 /**
  * Wraps a Next.js edge route handler with Sentry error and performance instrumentation.
@@ -71,7 +70,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
               req instanceof Request ? `${req.method} ${parameterizedRoute}` : `handler ${parameterizedRoute}`,
             );
             rootSpan.setAttributes({
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+              [SENTRY_OP]: 'http.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               [URL_FULL]: rootSpanAttributes[URL_FULL] ?? urlAttributes[URL_FULL],
               [URL_PATH]: rootSpanAttributes[URL_PATH] ?? urlAttributes[URL_PATH],

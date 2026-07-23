@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
@@ -59,7 +60,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
                   'otel.kind': 'PRODUCER',
-                  'sentry.op': 'message',
+                  [SENTRY_OP]: 'message',
                   'sentry.origin': producerOrigin,
                 }),
               }),
@@ -73,7 +74,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
                   'otel.kind': 'CONSUMER',
-                  'sentry.op': 'message',
+                  [SENTRY_OP]: 'message',
                   'sentry.origin': consumerOrigin,
                 }),
               }),
@@ -99,7 +100,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'invalid topic name',
                   'otel.kind': 'PRODUCER',
-                  'sentry.op': 'message',
+                  [SENTRY_OP]: 'message',
                   'sentry.origin': producerOrigin,
                   'error.type': 'KafkaJSNonRetriableError',
                 }),

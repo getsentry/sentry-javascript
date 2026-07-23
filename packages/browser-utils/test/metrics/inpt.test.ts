@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterEach } from 'node:test';
 import { describe, expect, it, vi } from 'vitest';
 import { _onInp, _trackINP } from '../../src/metrics/inp';
@@ -79,7 +80,7 @@ describe('_onInp', () => {
     expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledWith({
       attributes: {
         'sentry.exclusive_time': 10,
-        'sentry.op': 'ui.interaction.click',
+        [SENTRY_OP]: 'ui.interaction.click',
         'sentry.origin': 'auto.http.browser.inp',
       },
       name: '<unknown>',
@@ -105,7 +106,7 @@ describe('_onInp', () => {
     expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledWith({
       attributes: {
         'sentry.exclusive_time': 10,
-        'sentry.op': 'ui.interaction.click',
+        [SENTRY_OP]: 'ui.interaction.click',
         'sentry.origin': 'auto.http.browser.inp',
       },
       name: '<unknown>',
@@ -136,7 +137,7 @@ describe('_onInp', () => {
     expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledWith({
       attributes: {
         'sentry.exclusive_time': 150,
-        'sentry.op': 'ui.interaction.click',
+        [SENTRY_OP]: 'ui.interaction.click',
         'sentry.origin': 'auto.http.browser.inp',
       },
       name: '<unknown>', // Should fall back to <unknown> when element cannot be determined

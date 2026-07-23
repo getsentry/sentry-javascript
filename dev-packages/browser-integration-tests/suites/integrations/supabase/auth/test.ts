@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
@@ -94,7 +95,7 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
     trace_id: eventData.contexts?.trace?.trace_id,
     status: 'ok',
     data: expect.objectContaining({
-      'sentry.op': 'db',
+      [SENTRY_OP]: 'db',
       'sentry.origin': 'auto.db.supabase',
       'db.operation': 'auth.signInWithPassword',
       'db.system': 'postgresql',
@@ -111,7 +112,7 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
     trace_id: eventData.contexts?.trace?.trace_id,
     status: 'ok',
     data: expect.objectContaining({
-      'sentry.op': 'db',
+      [SENTRY_OP]: 'db',
       'sentry.origin': 'auto.db.supabase',
       'db.operation': 'auth.signOut',
       'db.system': 'postgresql',
@@ -145,7 +146,7 @@ sentryTest('should capture Supabase authentication errors', async ({ getLocalTes
     trace_id: transactionEvent.contexts?.trace?.trace_id,
     status: 'internal_error',
     data: expect.objectContaining({
-      'sentry.op': 'db',
+      [SENTRY_OP]: 'db',
       'sentry.origin': 'auto.db.supabase',
       'db.operation': 'auth.signInWithPassword',
       'db.system': 'postgresql',

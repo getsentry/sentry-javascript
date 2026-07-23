@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { createTestServer } from '@sentry-internal/test-utils';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
@@ -23,7 +24,7 @@ describe('streamed outgoing fetch spans', () => {
           span: container => {
             const httpClientSpan = container.items.find(
               item =>
-                item.attributes['sentry.op']?.type === 'string' && item.attributes['sentry.op'].value === 'http.client',
+                item.attributes[SENTRY_OP]?.type === 'string' && item.attributes[SENTRY_OP].value === 'http.client',
             );
 
             expect(httpClientSpan).toBeDefined();

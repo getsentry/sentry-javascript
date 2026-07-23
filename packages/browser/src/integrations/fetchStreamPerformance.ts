@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   addFetchEndInstrumentationHandler,
@@ -5,7 +6,6 @@ import {
   defineIntegration,
   getSanitizedUrlStringFromUrlObject,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   stripDataUrlContent,
@@ -83,7 +83,7 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
               url: stripDataUrlContent(url),
               'http.method': method,
               type: 'fetch',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client.stream',
+              [SENTRY_OP]: 'http.client.stream',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.stream',
             },
           });

@@ -1,4 +1,4 @@
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { URL_FULL, URL_PATH, SENTRY_OP } from '@sentry/conventions/attributes';
 import * as http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -105,7 +105,7 @@ describe('getHttpServerSubscriptions', () => {
           'http.status_code': 200,
           'http.target': '/users/42?foo=bar',
           'otel.kind': 'SERVER',
-          'sentry.op': 'http.server',
+          [SENTRY_OP]: 'http.server',
           'sentry.origin': 'auto.http.server',
           'sentry.source': 'url',
           [URL_FULL]: expect.stringMatching(/\/users\/42\?foo=bar$/),

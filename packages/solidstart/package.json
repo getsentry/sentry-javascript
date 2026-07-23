@@ -72,6 +72,7 @@
     "@sentry/bundler-plugins": "10.67.0"
   },
   "devDependencies": {
+    "@sentry/conventions": "^0.16.0",
     "@solidjs/router": "^0.15.0",
     "@solidjs/start": "^1.2.1",
     "@solidjs/testing-library": "0.8.5",

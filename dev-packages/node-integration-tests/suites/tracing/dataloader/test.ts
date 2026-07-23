@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -28,7 +29,7 @@ describe('dataloader auto-instrumentation', () => {
             expect(loadSpan?.origin).toBe(ORIGIN);
             expect(loadSpan?.status).toBe('ok');
             expect(loadSpan?.data?.['sentry.origin']).toBe(ORIGIN);
-            expect(loadSpan?.data?.['sentry.op']).toBe(CACHE_GET_OP);
+            expect(loadSpan?.data?.[SENTRY_OP]).toBe(CACHE_GET_OP);
             expect(loadSpan?.data?.['cache.key']).toEqual(['user-1']);
             // A direct operation is a client call; the deferred `batch` below gets no kind
             expect(loadSpan?.data?.['otel.kind']).toBe('CLIENT');
@@ -65,7 +66,7 @@ describe('dataloader auto-instrumentation', () => {
             expect(loadManySpan?.origin).toBe(ORIGIN);
             expect(loadManySpan?.status).toBe('ok');
             expect(loadManySpan?.data?.['sentry.origin']).toBe(ORIGIN);
-            expect(loadManySpan?.data?.['sentry.op']).toBe(CACHE_GET_OP);
+            expect(loadManySpan?.data?.[SENTRY_OP]).toBe(CACHE_GET_OP);
             expect(loadManySpan?.data?.['cache.key']).toEqual(['user-1', 'user-2']);
           },
         })
@@ -83,7 +84,7 @@ describe('dataloader auto-instrumentation', () => {
               expect(span?.status).toBe('ok');
               expect(span?.op).toBeUndefined();
               expect(span?.data?.['sentry.origin']).toBe(ORIGIN);
-              expect(span?.data?.['sentry.op']).toBeUndefined();
+              expect(span?.data?.[SENTRY_OP]).toBeUndefined();
             }
           },
         })

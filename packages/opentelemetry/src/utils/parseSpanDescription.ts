@@ -13,13 +13,13 @@ import {
   MESSAGING_SYSTEM,
   RPC_SERVICE,
   URL_FULL,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes, TransactionSource } from '@sentry/core';
 import {
   getSanitizedUrlString,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
@@ -50,9 +50,7 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
 
   // eslint-disable-next-line typescript/no-deprecated
   const dbSystem = attributes[DB_SYSTEM_NAME] || attributes[DB_SYSTEM];
-  const opIsCache =
-    typeof attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'string' &&
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP].startsWith('cache.');
+  const opIsCache = typeof attributes[SENTRY_OP] === 'string' && attributes[SENTRY_OP].startsWith('cache.');
 
   // If db.type exists then this is a database call span
   // If the Redis DB is used as a cache, the span description should not be changed

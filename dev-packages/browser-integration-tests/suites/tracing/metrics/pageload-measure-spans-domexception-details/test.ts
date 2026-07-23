@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -24,7 +25,7 @@ sentryTest(
     const restrictedMeasure = measureSpans?.find(span => span.description === 'restricted-test-measure');
     expect(restrictedMeasure).toBeDefined();
     expect(restrictedMeasure?.data).toMatchObject({
-      'sentry.op': 'measure',
+      [SENTRY_OP]: 'measure',
       'sentry.origin': 'auto.resource.browser.metrics',
     });
 
@@ -38,7 +39,7 @@ sentryTest(
     expect(normalMeasure).toBeDefined();
     expect(normalMeasure?.data).toMatchObject({
       'sentry.browser.measure.detail': 'this-should-work',
-      'sentry.op': 'measure',
+      [SENTRY_OP]: 'measure',
       'sentry.origin': 'auto.resource.browser.metrics',
     });
 
@@ -46,7 +47,7 @@ sentryTest(
     const complexMeasure = measureSpans?.find(span => span.description === 'complex-detail-measure');
     expect(complexMeasure).toBeDefined();
     expect(complexMeasure?.data).toMatchObject({
-      'sentry.op': 'measure',
+      [SENTRY_OP]: 'measure',
       'sentry.origin': 'auto.resource.browser.metrics',
       // The entire nested object is stringified as a single value
       'sentry.browser.measure.detail.nested': JSON.stringify({

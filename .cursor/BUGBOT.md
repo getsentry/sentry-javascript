@@ -34,7 +34,7 @@ Unless explicitly noted (e.g. in the `Testing Conventions` section), only flag t
   - `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN` (`'sentry.origin'`) with a proper span origin
     - a proper origin must only contain [a-z], [A-Z], [0-9], `_` and `.` characters.
     - flag any non-conforming origin values as invalid and link to the trace origin specification (https://develop.sentry.dev/sdk/telemetry/traces/trace-origin/)
-  - `SEMANTIC_ATTRIBUTE_SENTRY_OP` (`'sentry.op'`) with a proper span op
+  - `SENTRY_OP` (`'sentry.op'`) with a proper span op
     - Span ops should be lower case only, and use snake_case. The `.` character is used to delimit op parts.
     - flag any non-conforming op values as invalid and link to the span op specification (https://develop.sentry.dev/sdk/telemetry/traces/span-operations/)
 - When calling `captureException`, always make sure that the `mechanism` is set:

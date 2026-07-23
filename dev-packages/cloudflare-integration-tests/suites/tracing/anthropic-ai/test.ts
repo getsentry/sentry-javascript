@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -39,7 +40,7 @@ it('traces a basic message creation request with the anthropic SDK', async ({ si
         is_segment: false,
         attributes: {
           'sentry.origin': { value: 'auto.ai.anthropic', type: 'string' },
-          'sentry.op': { value: 'gen_ai.chat', type: 'string' },
+          [SENTRY_OP]: { value: 'gen_ai.chat', type: 'string' },
           [GEN_AI_SYSTEM_ATTRIBUTE]: { value: 'anthropic', type: 'string' },
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: { value: 'chat', type: 'string' },
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: { value: 'claude-3-haiku-20240307', type: 'string' },

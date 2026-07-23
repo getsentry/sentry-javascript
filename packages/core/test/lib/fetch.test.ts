@@ -1,4 +1,4 @@
-import { URL_FULL } from '@sentry/conventions/attributes';
+import { URL_FULL, SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HandlerDataFetch } from '../../src';
 import { _INTERNAL_getTracingHeadersForFetchRequest, instrumentFetchRequest } from '../../src/fetch';
@@ -492,7 +492,7 @@ describe('instrumentFetchRequest', () => {
           type: 'fetch',
           'http.method': 'GET',
           'sentry.origin': 'auto.http.fetch',
-          'sentry.op': 'http.client',
+          [SENTRY_OP]: 'http.client',
           'http.url': url,
           [URL_FULL]: url,
           'server.address': 'api.example.com',

@@ -1,12 +1,12 @@
 import type { TracingChannel } from 'node:diagnostics_channel';
-import { GRAPHQL_DOCUMENT, GRAPHQL_OPERATION_NAME, GRAPHQL_OPERATION_TYPE } from '@sentry/conventions/attributes';
-import { WEB_SERVER_GRAPHQL_SPAN_OP } from '@sentry/conventions/op';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startInactiveSpan,
-} from '@sentry/core';
+  GRAPHQL_DOCUMENT,
+  GRAPHQL_OPERATION_NAME,
+  GRAPHQL_OPERATION_TYPE,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
+import { WEB_SERVER_GRAPHQL_SPAN_OP } from '@sentry/conventions/op';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import type { GraphqlDocumentNode } from './utils';
 import { collectGraphqlDocument, getOperationSpanName, hasResultErrors, renameRootSpanWithOperation } from './utils';
@@ -150,7 +150,7 @@ function setupParseChannel(tracingChannel: GraphqlTracingChannelFactory): void {
       name: SPAN_NAME_PARSE,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+        [SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
       },
     }),
   );
@@ -164,7 +164,7 @@ function setupValidateChannel(tracingChannel: GraphqlTracingChannelFactory): voi
         name: SPAN_NAME_VALIDATE,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+          [SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
           [GRAPHQL_DOCUMENT]: collectGraphqlDocument(data.document),
         },
       });
@@ -193,7 +193,7 @@ function setupOperationChannel(
         name: getOperationSpanName(data.operationType, data.operationName, fallbackName),
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+          [SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
           [GRAPHQL_OPERATION_TYPE]: data.operationType,
           [GRAPHQL_OPERATION_NAME]: data.operationName || undefined,
           [GRAPHQL_DOCUMENT]: collectGraphqlDocument(data.document),
@@ -229,7 +229,7 @@ function setupResolveChannel(tracingChannel: GraphqlTracingChannelFactory, ignor
       name: `${SPAN_NAME_RESOLVE} ${data.fieldPath}`,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+        [SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
         [GRAPHQL_FIELD_NAME]: data.fieldName,
         [GRAPHQL_FIELD_PATH]: data.fieldPath,
         [GRAPHQL_FIELD_TYPE]: data.fieldType,

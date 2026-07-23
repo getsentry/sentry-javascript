@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
@@ -54,7 +55,7 @@ describe('envelope', () => {
       const expectedObj = {
         data: {
           'sentry.origin': expect.any(String),
-          'sentry.op': expect.any(String),
+          [SENTRY_OP]: expect.any(String),
           release: expect.any(String),
           environment: expect.any(String),
           transaction: expect.any(String),

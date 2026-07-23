@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -53,7 +54,7 @@ sentryTest('should update spans for GraphQL XHR requests', async ({ getLocalTest
       'url.full': 'http://sentry-test.io/foo',
       url: 'http://sentry-test.io/foo',
       'server.address': 'sentry-test.io',
-      'sentry.op': 'http.client',
+      [SENTRY_OP]: 'http.client',
       'sentry.origin': 'auto.http.browser',
       'graphql.document': query,
     },

@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
@@ -50,7 +51,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               const sonnetSpan = container.items.find(span => span.name === 'chat claude-3-5-sonnet-20241022');
               expect(sonnetSpan).toBeDefined();
               expect(sonnetSpan!.status).toBe('ok');
-              expect(sonnetSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(sonnetSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
               expect(sonnetSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
               expect(sonnetSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
               expect(sonnetSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
@@ -67,7 +68,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               const opusSpan = container.items.find(span => span.name === 'chat claude-3-opus-20240229');
               expect(opusSpan).toBeDefined();
               expect(opusSpan!.status).toBe('ok');
-              expect(opusSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(opusSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
               expect(opusSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
               expect(opusSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
               expect(opusSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('claude-3-opus-20240229');
@@ -81,7 +82,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               const errorSpan = container.items.find(span => span.name === 'chat error-model');
               expect(errorSpan).toBeDefined();
               expect(errorSpan!.status).toBe('error');
-              expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(errorSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
               expect(errorSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
               expect(errorSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
               expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('error-model');
@@ -121,7 +122,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               const sonnetSpan = container.items.find(span => span.name === 'chat claude-3-5-sonnet-20241022');
               expect(sonnetSpan).toBeDefined();
               expect(sonnetSpan!.status).toBe('ok');
-              expect(sonnetSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(sonnetSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
               expect(sonnetSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
               expect(sonnetSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
               expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('claude-3-5-sonnet-20241022');
@@ -188,7 +189,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               // [0] chat with tool_use stop reason
               expect(firstSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
               expect(firstSpan!.status).toBe('ok');
-              expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(firstSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
               expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
               expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
               expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('claude-3-5-sonnet-20241022');
@@ -338,7 +339,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               const gpt4oSpan = container.items.find(span => span.name === 'chat gpt-4o');
               expect(gpt4oSpan).toBeDefined();
               expect(gpt4oSpan!.status).toBe('ok');
-              expect(gpt4oSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(gpt4oSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
               expect(gpt4oSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
               expect(gpt4oSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
               expect(gpt4oSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('openai');
@@ -355,7 +356,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               const gpt35Span = container.items.find(span => span.name === 'chat gpt-3.5-turbo');
               expect(gpt35Span).toBeDefined();
               expect(gpt35Span!.status).toBe('ok');
-              expect(gpt35Span!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(gpt35Span!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
               expect(gpt35Span!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
               expect(gpt35Span!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('openai');
               expect(gpt35Span!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('gpt-3.5-turbo');
@@ -369,7 +370,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               const errorSpan = container.items.find(span => span.name === 'chat error-model');
               expect(errorSpan).toBeDefined();
               expect(errorSpan!.status).toBe('error');
-              expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(errorSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
               expect(errorSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
               expect(errorSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('openai');
               expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('error-model');

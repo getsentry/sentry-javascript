@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { createSpanEnvelope } from '../envelope';
@@ -6,7 +7,6 @@ import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_PROFILE_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
@@ -99,7 +99,7 @@ export class SentrySpan implements Span {
     this._attributes = {};
     this.setAttributes({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op,
+      [SENTRY_OP]: spanContext.op,
       ...spanContext.attributes,
     });
 
@@ -285,7 +285,7 @@ export class SentrySpan implements Span {
     return {
       data: this._attributes,
       description: this._name,
-      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
+      op: this._attributes[SENTRY_OP],
       parent_span_id: this._parentSpanId,
       span_id: this._spanId,
       start_timestamp: this._startTime,

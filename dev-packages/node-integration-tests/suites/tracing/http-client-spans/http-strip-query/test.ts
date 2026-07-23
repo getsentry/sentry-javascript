@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { createTestServer } from '@sentry-internal/test-utils';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
@@ -42,7 +43,7 @@ describe('outgoing http spans - strip query', () => {
                 'net.peer.port': expect.any(Number),
                 'net.transport': 'ip_tcp',
                 'otel.kind': 'CLIENT',
-                'sentry.op': 'http.client',
+                [SENTRY_OP]: 'http.client',
                 'sentry.origin': 'auto.http.client',
               },
               description: `GET ${SERVER_URL}/api/v0/users`,

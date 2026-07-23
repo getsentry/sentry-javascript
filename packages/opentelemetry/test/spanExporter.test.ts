@@ -1,5 +1,5 @@
-import { HTTP_RESPONSE_STATUS_CODE } from '@sentry/conventions/attributes';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_OP, startInactiveSpan, startSpanManual } from '@sentry/core';
+import { HTTP_RESPONSE_STATUS_CODE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { SDK_VERSION, startInactiveSpan, startSpanManual } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createTransactionForOtelSpan } from '../src/spanExporter';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
@@ -61,7 +61,7 @@ describe('createTransactionForOtelSpan', () => {
       name: 'test',
       startTime: 1733821670000,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+        [SENTRY_OP]: 'http.server',
         [HTTP_RESPONSE_STATUS_CODE]: 200,
       },
     });
@@ -80,7 +80,7 @@ describe('createTransactionForOtelSpan', () => {
             'sentry.source': 'custom',
             'sentry.sample_rate': 1,
             'sentry.origin': 'manual',
-            'sentry.op': 'http.server',
+            [SENTRY_OP]: 'http.server',
             'http.response.status_code': 200,
           },
           origin: 'manual',

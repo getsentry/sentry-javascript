@@ -14,7 +14,6 @@ import {
   debug,
   getClient,
   getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
@@ -47,7 +46,7 @@ import {
   setNavigationContext,
   transactionNameHasWildcard,
 } from './utils';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { URL_TEMPLATE, SENTRY_OP } from '@sentry/conventions/attributes';
 
 let _useEffect: UseEffect;
 let _useLocation: UseLocation;
@@ -738,7 +737,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
           name: initPathName,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+            [SENTRY_OP]: 'pageload',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.reactrouter${version ? `_v${version}` : ''}`,
           },
         });
@@ -1037,7 +1036,7 @@ export function handleNavigation(opts: {
         name: placeholderEntry.routeName, // Use placeholder's routeName in case it was updated
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter${version ? `_v${version}` : ''}`,
           ...(source === 'route' && { [URL_TEMPLATE]: placeholderEntry.routeName }),
         },

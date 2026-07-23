@@ -1,8 +1,8 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import {
   getActiveSpan,
   getOriginalFunction,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -35,7 +35,7 @@ export function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHa
         onlyIfParent: true,
         parentSpan: rootSpan,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.hono',
+          [SENTRY_OP]: 'middleware.hono',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: MIDDLEWARE_ORIGIN,
         },
       });

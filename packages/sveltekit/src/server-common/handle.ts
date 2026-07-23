@@ -9,7 +9,6 @@ import {
   getIsolationScope,
   getTraceMetaTags,
   httpHeadersToSpanAttributes,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
@@ -23,7 +22,7 @@ import {
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
-import { HTTP_URL, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_URL, URL_FULL, URL_PATH, SENTRY_OP } from '@sentry/conventions/attributes';
 
 export type SentryHandleOptions = {
   /**
@@ -175,7 +174,7 @@ async function instrumentHandle(
         }
 
         kitRootSpan.setAttributes({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          [SENTRY_OP]: 'http.server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,

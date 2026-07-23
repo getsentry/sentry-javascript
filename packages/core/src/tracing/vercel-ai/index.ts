@@ -1,7 +1,8 @@
 /* eslint-disable max-lines */
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Client } from '../../client';
 import { getClient } from '../../currentScopes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { shouldEnableTruncation } from '../ai/utils';
 import type { Event } from '../../types/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
@@ -370,7 +371,7 @@ function processVercelAiStreamedSpan(span: StreamedSpanJSON): void {
   processVercelAiSpanAttributes(attributes);
 
   // Look up tool description from the toolDescriptionMap for execute_tool spans
-  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'gen_ai.execute_tool' && span.parent_span_id) {
+  if (attributes[SENTRY_OP] === 'gen_ai.execute_tool' && span.parent_span_id) {
     const descriptions = toolDescriptionMap.get(span.parent_span_id);
 
     if (descriptions) {
@@ -402,7 +403,7 @@ function renameAttributeKey(attributes: Record<string, unknown>, oldKey: string,
 
 function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.vercelai.otel');
-  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
+  span.setAttribute(SENTRY_OP, 'gen_ai.execute_tool');
   span.setAttribute(GEN_AI_OPERATION_NAME_ATTRIBUTE, 'execute_tool');
   renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, GEN_AI_TOOL_NAME_ATTRIBUTE);
   renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE);
@@ -448,9 +449,9 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   // Set the op based on the operation name registry
   const operationName = SPAN_TO_OPERATION_NAME.get(name);
   if (operationName) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `gen_ai.${operationName}`);
+    span.setAttribute(SENTRY_OP, `gen_ai.${operationName}`);
   } else if (name.startsWith('ai.stream')) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run');
+    span.setAttribute(SENTRY_OP, 'ai.run');
   }
 
   // For invoke_agent pipeline spans, use 'invoke_agent' as the description

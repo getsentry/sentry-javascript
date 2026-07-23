@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
@@ -50,7 +51,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
     status: 'ok',
     data: expect.objectContaining({
       'sentry.origin': ORIGIN,
-      'sentry.op': 'rpc',
+      [SENTRY_OP]: 'rpc',
       'rpc.system': 'aws-api',
       'rpc.method': 'PutObject',
       'rpc.service': 'S3',
@@ -84,7 +85,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
     op: 'db',
     origin: ORIGIN,
     data: expect.objectContaining({
-      'sentry.op': 'db',
+      [SENTRY_OP]: 'db',
       'rpc.method': 'PutItem',
       'rpc.service': 'DynamoDB',
       'db.system': 'dynamodb',

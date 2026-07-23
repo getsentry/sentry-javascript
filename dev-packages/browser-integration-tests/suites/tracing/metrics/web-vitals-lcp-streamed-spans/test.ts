@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -35,7 +36,7 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
   const lcpSpan = await lcpSpanPromise;
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(lcpSpan.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.webvital.lcp' });
+  expect(lcpSpan.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'ui.webvital.lcp' });
   expect(lcpSpan.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.lcp' });
   expect(lcpSpan.attributes['sentry.exclusive_time']).toEqual({ type: 'integer', value: 0 });
   expect(lcpSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));

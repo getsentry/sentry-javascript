@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -22,7 +23,7 @@ describe('hapi auto-instrumentation', () => {
           'http.method': 'GET',
           'hapi.type': 'router',
           'sentry.origin': origin,
-          'sentry.op': 'router.hapi',
+          [SENTRY_OP]: 'router.hapi',
         }),
         description: 'GET /',
         op: 'router.hapi',
@@ -64,7 +65,7 @@ describe('hapi auto-instrumentation', () => {
                   'http.route': '/plugin-route',
                   'hapi.type': 'plugin',
                   'hapi.plugin.name': 'testPlugin',
-                  'sentry.op': 'plugin.hapi',
+                  [SENTRY_OP]: 'plugin.hapi',
                   'sentry.origin': origin,
                 }),
               }),
@@ -75,7 +76,7 @@ describe('hapi auto-instrumentation', () => {
                 data: expect.objectContaining({
                   'hapi.type': 'server.ext',
                   'server.ext.type': 'onPreResponse',
-                  'sentry.op': 'server.ext.hapi',
+                  [SENTRY_OP]: 'server.ext.hapi',
                   'sentry.origin': origin,
                 }),
               }),

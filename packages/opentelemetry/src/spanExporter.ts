@@ -2,7 +2,7 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
+import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE, SENTRY_OP } from '@sentry/conventions/attributes';
 import type {
   SpanAttributes,
   SpanJSON,
@@ -22,7 +22,6 @@ import {
   getStatusMessage,
   LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -250,7 +249,7 @@ function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; sour
   const attributes = span.attributes;
 
   const origin = attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
-  const op = attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined;
+  const op = attributes[SENTRY_OP] as string | undefined;
   const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined;
 
   return { origin, op, source };
@@ -266,7 +265,7 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+    [SENTRY_OP]: op,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
     ...data,
     ...removeSentryAttributes(span.attributes),
@@ -359,7 +358,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
   const { op, description, data, origin = 'manual' } = getSpanData(span);
   const allData = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+    [SENTRY_OP]: op,
     ...removeSentryAttributes(attributes),
     ...data,
   };

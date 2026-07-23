@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 /* eslint-disable @typescript-eslint/unbound-method */
 import { startSpan } from '@sentry/core';
 import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig } from 'cloudflare:workers';
@@ -158,7 +159,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: TRACE_ID,
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
+                  [SENTRY_OP]: 'function.step.do',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
@@ -275,7 +276,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: '0d2b6d1743ce6d53af4f5ee416ad5d1b',
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
+                  [SENTRY_OP]: 'function.step.do',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
@@ -352,7 +353,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: TRACE_ID,
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
+                  [SENTRY_OP]: 'function.step.do',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
@@ -395,7 +396,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: TRACE_ID,
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
+                  [SENTRY_OP]: 'function.step.do',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
                 }),

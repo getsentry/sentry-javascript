@@ -12,14 +12,10 @@ import {
   URL_PATH,
   URL_PATH_PARAMETER_KEY_BASE,
   URL_TEMPLATE,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import type { Client, Integration, Span } from '@sentry/core';
-import {
-  getClient,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+import { getClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type {
   BeforeLeaveEventArgs,
   HashRouter,
@@ -64,7 +60,7 @@ function handleNavigation(location: string): void {
     {
       name: location,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_OP]: 'navigation',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.${framework}.solidrouter`,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },

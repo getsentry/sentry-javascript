@@ -1,5 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '../../types/span';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../semanticAttributes';
+
 import { getHttpSpanDetailsFromUrlObject, parseStringToURLObject } from '../../utils/url';
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
 import { getRequestUrlFromClientRequest } from './get-request-url';
@@ -25,7 +26,7 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
     attributes: {
       // TODO(v11): Update these to the Sentry semantic attributes for urls.
       // https://getsentry.github.io/sentry-conventions/attributes/
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+      [SENTRY_OP]: 'http.client',
       'otel.kind': 'CLIENT',
       'http.url': url,
       'http.method': request.method,

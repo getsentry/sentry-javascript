@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { describe, beforeEach, it, expect, vi } from 'vitest';
 import { type ExpressPatchLayerOptions, patchLayer } from '../../../../src/integrations/express/patch-layer';
 import {
@@ -263,7 +264,7 @@ describe('patchLayer', () => {
           'express.name': 'mw',
           'express.type': 'middleware',
           'http.route': '/a/:boo/:car/layerPath',
-          'sentry.op': 'middleware.express',
+          [SENTRY_OP]: 'middleware.express',
           'sentry.origin': 'auto.http.express',
         },
         description: 'mw',
@@ -349,7 +350,7 @@ describe('patchLayer', () => {
           'express.name': 'a/:boo/:car/layerPath',
           'express.type': 'request_handler',
           'http.route': '/a/:boo/:car/layerPath',
-          'sentry.op': 'request_handler.express',
+          [SENTRY_OP]: 'request_handler.express',
           'sentry.origin': 'auto.http.express',
         },
         description: 'a/:boo/:car/layerPath',
@@ -403,7 +404,7 @@ describe('patchLayer', () => {
           'express.name': 'a/:boo/:car',
           'express.type': 'request_handler',
           'http.route': '/a/:boo/:car',
-          'sentry.op': 'request_handler.express',
+          [SENTRY_OP]: 'request_handler.express',
           'sentry.origin': 'auto.http.express',
         },
         description: 'a/:boo/:car',
@@ -414,7 +415,7 @@ describe('patchLayer', () => {
           'express.name': 'a/:boo/:car',
           'express.type': 'request_handler',
           'http.route': '/a/:boo/:car',
-          'sentry.op': 'request_handler.express',
+          [SENTRY_OP]: 'request_handler.express',
           'sentry.origin': 'auto.http.express',
         },
         description: 'a/:boo/:car',
@@ -453,7 +454,7 @@ describe('patchLayer', () => {
           'express.name': 'mw',
           'express.type': 'middleware',
           'http.route': '/a/b/c',
-          'sentry.op': 'middleware.express',
+          [SENTRY_OP]: 'middleware.express',
           'sentry.origin': 'auto.http.express',
         },
         description: 'mw',
@@ -493,7 +494,7 @@ describe('patchLayer', () => {
         data: {
           'express.name': '/c',
           'express.type': 'router',
-          'sentry.op': 'router.express',
+          [SENTRY_OP]: 'router.express',
           'sentry.origin': 'auto.http.express',
         },
         description: '/c',
@@ -543,7 +544,7 @@ describe('patchLayer', () => {
         data: {
           'express.name': 'mw',
           'express.type': 'middleware',
-          'sentry.op': 'middleware.express',
+          [SENTRY_OP]: 'middleware.express',
           'sentry.origin': 'auto.http.express',
         },
         description: 'mw',
@@ -593,7 +594,7 @@ describe('patchLayer', () => {
         data: {
           'express.name': 'mw',
           'express.type': 'middleware',
-          'sentry.op': 'middleware.express',
+          [SENTRY_OP]: 'middleware.express',
           'sentry.origin': 'auto.http.express',
         },
         description: 'mw',
@@ -636,7 +637,7 @@ describe('patchLayer', () => {
           'express.name': 'mw',
           'express.type': 'middleware',
           'http.route': '/a/b/c',
-          'sentry.op': 'middleware.express',
+          [SENTRY_OP]: 'middleware.express',
           'sentry.origin': 'auto.http.express',
         },
         description: 'mw',

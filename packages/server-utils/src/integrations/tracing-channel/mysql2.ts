@@ -3,7 +3,6 @@ import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
   defineIntegration,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_KIND,
   startInactiveSpan,
@@ -20,6 +19,7 @@ import {
   DB_USER,
   NET_PEER_NAME,
   NET_PEER_PORT,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 
 const INTEGRATION_NAME = 'Mysql2' as const;
@@ -85,7 +85,7 @@ function subscribeQueryChannel(channelName: ChannelName): void {
         kind: SPAN_KIND.CLIENT,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: 'db',
           // oxlint-disable-next-line typescript/no-deprecated
           [DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
           ...getConnectionAttributes(data.self?.config),

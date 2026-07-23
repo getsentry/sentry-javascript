@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -16,7 +17,7 @@ describeWithDockerCompose(
           op: 'db.redis',
           origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.op': 'db.redis',
+            [SENTRY_OP]: 'db.redis',
             'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.system.name': 'redis',
             'db.query.text': 'SET dc-test-key ?',
@@ -50,7 +51,7 @@ describeWithDockerCompose(
           op: 'db.redis',
           origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.op': 'db.redis',
+            [SENTRY_OP]: 'db.redis',
             'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.system.name': 'redis',
             'db.query.text': 'GET dc-test-key',
@@ -87,7 +88,7 @@ describeWithDockerCompose(
           op: 'db.redis',
           origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.op': 'db.redis',
+            [SENTRY_OP]: 'db.redis',
             'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.system.name': 'redis',
             'db.query.text': 'MGET ? ? ?',

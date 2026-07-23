@@ -11,13 +11,10 @@ import {
   URL_PATH,
   URL_PATH_PARAMETER_KEY_BASE,
   URL_TEMPLATE,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import type { Integration } from '@sentry/core';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { AnyRouter } from '@tanstack/solid-router';
 
 type RouteMatch = ReturnType<AnyRouter['matchRoutes']>[number];
@@ -86,7 +83,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
         const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
           name: routeMatch ? routeMatch.routeId : initialWindowLocation.pathname,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+            [SENTRY_OP]: 'pageload',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.solid.tanstack_router',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
             ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
@@ -137,7 +134,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
             {
               name: routeMatch ? routeMatch.routeId : fallbackName,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                [SENTRY_OP]: 'navigation',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solid.tanstack_router',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
                 ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),

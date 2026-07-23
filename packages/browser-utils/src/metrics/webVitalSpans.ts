@@ -6,7 +6,6 @@ import {
   getCurrentScope,
   getRootSpan,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToStreamedSpanJSON,
   startInactiveSpan,
@@ -22,7 +21,7 @@ import { isValidLcpMetric } from './lcp';
 import type { WebVitalReportEvent } from './utils';
 import { getBrowserPerformanceAPI, listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
 import type { PerformanceEventTiming } from './instrument';
-import { SENTRY_SEGMENT_NAME, SENTRY_TRANSACTION } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME, SENTRY_TRANSACTION, SENTRY_OP } from '@sentry/conventions/attributes';
 
 // Locally-defined interfaces to avoid leaking bare global type references into the
 // generated .d.ts. The `declare global` augmentations in web-vitals/types.ts make these
@@ -77,7 +76,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
 
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+    [SENTRY_OP]: op,
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0,
     [`browser.web_vital.${metricName}.value`]: value,
     // oxlint-disable-next-line typescript-eslint/no-deprecated
@@ -88,7 +87,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     ...passedAttributes,
   };
 
-  if (parentSpan && spanToStreamedSpanJSON(parentSpan).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'pageload') {
+  if (parentSpan && spanToStreamedSpanJSON(parentSpan).attributes?.[SENTRY_OP] === 'pageload') {
     // for LCP and CLS, we collect the pageload span id as an attribute
     attributes['sentry.pageload.span_id'] = parentSpan.spanContext().spanId;
   }

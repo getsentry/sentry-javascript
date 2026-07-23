@@ -1,6 +1,7 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Envelope, TransactionEvent } from '@sentry/core';
 import { expect, it } from 'vitest';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { createRunner } from '../../../runner';
 
 const flushMarkerMatcher = (envelope: Envelope): void => {
@@ -32,7 +33,7 @@ it('instruments sync KV operations on Durable Object storage', async ({ signal }
             op: 'db',
             origin: 'auto.db.cloudflare.durable_object',
             data: expect.objectContaining({
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+              [SENTRY_OP]: 'db',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
               'db.system.name': 'cloudflare-durable-object-sql',
               'db.operation.name': 'put',

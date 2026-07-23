@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/sveltekit';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/sveltekit';
 
 test('server pageload request span has nested request span for sub request', async ({ page }) => {
   const serverTxnEventPromise = waitForTransaction('sveltekit-2-kit-tracing', txnEvent => {
@@ -21,7 +21,7 @@ test('server pageload request span has nested request span for sub request', asy
         op: 'http.server',
         origin: 'auto.http.sveltekit',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          'sentry.op': 'http.server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
           'http.method': 'GET',
           'http.route': '/server-load-fetch',
@@ -38,7 +38,7 @@ test('server pageload request span has nested request span for sub request', asy
       // initial resolve span:
       expect.objectContaining({
         data: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.sveltekit.resolve',
+          'sentry.op': 'function.sveltekit.resolve',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
           'http.route': '/server-load-fetch',
         }),

@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -29,7 +30,7 @@ sentryTest('should add browser-related spans to pageload transaction', async ({ 
   expect(measureSpan?.data).toEqual({
     'sentry.browser.measure_happened_before_request': true,
     'sentry.browser.measure_start_time': expect.any(Number),
-    'sentry.op': 'measure',
+    [SENTRY_OP]: 'measure',
     'sentry.origin': 'auto.resource.browser.metrics',
   });
 });

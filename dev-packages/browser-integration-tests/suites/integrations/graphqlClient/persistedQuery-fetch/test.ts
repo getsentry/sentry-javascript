@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -47,7 +48,7 @@ sentryTest('should update spans for GraphQL persisted query fetch requests', asy
       'url.full': 'http://sentry-test.io/graphql',
       url: 'http://sentry-test.io/graphql',
       'server.address': 'sentry-test.io',
-      'sentry.op': 'http.client',
+      [SENTRY_OP]: 'http.client',
       'sentry.origin': 'auto.http.browser',
       'graphql.persisted_query.hash.sha256': 'ecf4edb46db40b5132295c0291d62fb65d6759a9eedfa4d5d612dd5ec54a6b38',
       'graphql.persisted_query.version': 1,

@@ -1,9 +1,9 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getClient,
   getCurrentScope,
   getIsolationScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentrySpan,
   setCurrentClient,
@@ -190,7 +190,7 @@ describe('_addMeasureSpans', () => {
         op: 'measure',
         origin: 'auto.resource.browser.metrics',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'measure',
+          [SENTRY_OP]: 'measure',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
         },
       }),
@@ -462,7 +462,7 @@ describe('_addResourceSpans', () => {
         op: 'resource.css',
         origin: 'auto.resource.browser.metrics',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
+          [SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.decoded_response_content_length']: entry.decodedBodySize,
           ['http.response_content_length']: entry.encodedBodySize,
@@ -644,7 +644,7 @@ describe('_addResourceSpans', () => {
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         data: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
+          [SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.decoded_response_content_length']: entry.decodedBodySize,
           ['http.response_content_length']: entry.encodedBodySize,
@@ -682,7 +682,7 @@ describe('_addResourceSpans', () => {
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         data: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
+          [SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
           'url.same_origin': true,
@@ -735,7 +735,7 @@ describe('_addResourceSpans', () => {
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
+          [SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
           'url.same_origin': true,
@@ -873,7 +873,7 @@ describe('_addNavigationSpans', () => {
       expect.arrayContaining([
         expect.objectContaining({
           data: {
-            'sentry.op': 'browser.domContentLoadedEvent',
+            [SENTRY_OP]: 'browser.domContentLoadedEvent',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',
@@ -884,7 +884,7 @@ describe('_addNavigationSpans', () => {
         }),
         expect.objectContaining({
           data: {
-            'sentry.op': 'browser.loadEvent',
+            [SENTRY_OP]: 'browser.loadEvent',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',
@@ -895,7 +895,7 @@ describe('_addNavigationSpans', () => {
         }),
         expect.objectContaining({
           data: {
-            'sentry.op': 'browser.connect',
+            [SENTRY_OP]: 'browser.connect',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',
@@ -906,7 +906,7 @@ describe('_addNavigationSpans', () => {
         }),
         expect.objectContaining({
           data: {
-            'sentry.op': 'browser.TLS/SSL',
+            [SENTRY_OP]: 'browser.TLS/SSL',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',
@@ -917,7 +917,7 @@ describe('_addNavigationSpans', () => {
         }),
         expect.objectContaining({
           data: {
-            'sentry.op': 'browser.cache',
+            [SENTRY_OP]: 'browser.cache',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',
@@ -928,7 +928,7 @@ describe('_addNavigationSpans', () => {
         }),
         expect.objectContaining({
           data: {
-            'sentry.op': 'browser.DNS',
+            [SENTRY_OP]: 'browser.DNS',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',
@@ -939,7 +939,7 @@ describe('_addNavigationSpans', () => {
         }),
         expect.objectContaining({
           data: {
-            'sentry.op': 'browser.request',
+            [SENTRY_OP]: 'browser.request',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',
@@ -950,7 +950,7 @@ describe('_addNavigationSpans', () => {
         }),
         expect.objectContaining({
           data: {
-            'sentry.op': 'browser.response',
+            [SENTRY_OP]: 'browser.response',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',
@@ -962,7 +962,7 @@ describe('_addNavigationSpans', () => {
         expect.objectContaining({
           data: {
             'http.redirect_count': 2,
-            'sentry.op': 'browser.redirect',
+            [SENTRY_OP]: 'browser.redirect',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',

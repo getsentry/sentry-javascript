@@ -1,10 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import {
-  addNonEnumerableProperty,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  withActiveSpan,
-} from '@sentry/core';
+import { addNonEnumerableProperty, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
 import { isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
 
@@ -104,7 +100,7 @@ export function getMiddlewareSpanOptions(
   return {
     name: name ?? target.name ?? 'unknown',
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
+      [SENTRY_OP]: 'middleware.nestjs',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: middlewareOrigin(componentType),
     },
   };
@@ -121,7 +117,7 @@ export function getEventSpanOptions(event: string): {
   return {
     name: `event ${event}`,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'event.nestjs',
+      [SENTRY_OP]: 'event.nestjs',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: eventOrigin(),
     },
     forceTransaction: true,
@@ -139,7 +135,7 @@ export function getBullMQProcessSpanOptions(queueName: string): {
   return {
     name: `${queueName} process`,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
+      [SENTRY_OP]: 'queue.process',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: bullmqOrigin(),
       'messaging.system': 'bullmq',
       'messaging.destination.name': queueName,

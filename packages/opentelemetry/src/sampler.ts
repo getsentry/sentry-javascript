@@ -4,7 +4,7 @@ import { isSpanContextValid, SpanKind, trace } from '@opentelemetry/api';
 import { TraceState } from './utils/TraceState';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
-import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_URL, URL_FULL, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Client, SpanAttributes } from '@sentry/core';
 import {
   _INTERNAL_safeMathRandom,
@@ -14,7 +14,6 @@ import {
   hasSpanStreamingEnabled,
   parseSampleRate,
   sampleSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   shouldIgnoreSpan,
 } from '@sentry/core';
@@ -96,7 +95,7 @@ export class SentrySampler implements Sampler {
               shouldIgnoreSpan(
                 {
                   description: inferredChildName,
-                  op: spanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ?? childOp,
+                  op: spanAttributes[SENTRY_OP] ?? childOp,
                   attributes: spanAttributes,
                 },
                 ignoreSpans,
@@ -139,7 +138,7 @@ export class SentrySampler implements Sampler {
     };
 
     if (op) {
-      mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+      mergedAttributes[SENTRY_OP] = op;
     }
 
     if (
@@ -148,7 +147,7 @@ export class SentrySampler implements Sampler {
       shouldIgnoreSpan(
         {
           description: inferredSpanName,
-          op: mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ?? op,
+          op: mergedAttributes[SENTRY_OP] ?? op,
           attributes: mergedAttributes,
         },
         ignoreSpans,

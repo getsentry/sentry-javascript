@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -13,7 +14,7 @@ describe('httpIntegration-streamed', () => {
           span: container => {
             const serverSpan = container.items.find(
               item =>
-                item.attributes['sentry.op']?.type === 'string' && item.attributes['sentry.op'].value === 'http.server',
+                item.attributes[SENTRY_OP]?.type === 'string' && item.attributes[SENTRY_OP].value === 'http.server',
             );
 
             expect(serverSpan).toBeDefined();

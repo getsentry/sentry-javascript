@@ -1,6 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 
 describe('filtering child spans with ignoreSpans (streaming)', () => {
   afterAll(() => {
@@ -28,9 +28,7 @@ describe('filtering child spans with ignoreSpans (streaming)', () => {
             // Would be 7 if we didn't ignore the 'middleware - expressInit' and 'custom-to-drop' spans
             expect(container.items).toHaveLength(8);
             const getSpan = (name: string, op: string) =>
-              container.items.find(
-                item => item.name === name && item.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === op,
-              );
+              container.items.find(item => item.name === name && item.attributes[SENTRY_OP]?.value === op);
             const queryMiddlewareSpan = getSpan('query', 'middleware.express');
             const corsMiddlewareSpan = getSpan('corsMiddleware', 'middleware.express');
             const requestHandlerSpan = getSpan('/test/express', 'request_handler.express');

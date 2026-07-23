@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 /**
  * @vitest-environment jsdom
  */
@@ -52,7 +53,7 @@ describe('Sentry.trackComponent()', () => {
 
     expect(transaction.spans![0]).toEqual({
       data: {
-        'sentry.op': 'ui.svelte.init',
+        [SENTRY_OP]: 'ui.svelte.init',
         'sentry.origin': 'auto.ui.svelte',
       },
       description: '<Svelte Component>',
@@ -92,7 +93,7 @@ describe('Sentry.trackComponent()', () => {
 
     expect(transaction.spans![0]).toEqual({
       data: {
-        'sentry.op': 'ui.svelte.init',
+        [SENTRY_OP]: 'ui.svelte.init',
         'sentry.origin': 'auto.ui.svelte',
       },
       description: '<Svelte Component>',
@@ -107,7 +108,7 @@ describe('Sentry.trackComponent()', () => {
 
     expect(transaction.spans![1]).toEqual({
       data: {
-        'sentry.op': 'ui.svelte.update',
+        [SENTRY_OP]: 'ui.svelte.update',
         'sentry.origin': 'auto.ui.svelte',
       },
       description: '<Svelte Component>',
@@ -122,7 +123,7 @@ describe('Sentry.trackComponent()', () => {
 
     expect(transaction.spans![2]).toEqual({
       data: {
-        'sentry.op': 'ui.svelte.update',
+        [SENTRY_OP]: 'ui.svelte.update',
         'sentry.origin': 'auto.ui.svelte',
       },
       description: '<Svelte Component>',

@@ -1,5 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { generateInstrumentOnce, spanToJSON } from '@sentry/node';
 import { RemixInstrumentation } from '../../vendor/instrumentation';
 
@@ -23,7 +24,7 @@ export function addRemixSpanAttributes(span: Span): void {
   const type = attributes['code.function'];
 
   // If this is already set, or we have no remix span, no need to process again...
-  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
+  if (attributes[SENTRY_OP] || !type) {
     return;
   }
 
@@ -35,6 +36,6 @@ export function addRemixSpanAttributes(span: Span): void {
 
   span.setAttributes({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.remix',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+    [SENTRY_OP]: op,
   });
 }

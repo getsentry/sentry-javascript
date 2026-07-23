@@ -3,12 +3,13 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
 import type { IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
@@ -244,7 +245,7 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
           name: `auth ${isAdmin ? '(admin) ' : ''}${operation.name}`,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+            [SENTRY_OP]: 'db',
             'db.system': 'postgresql',
             'db.operation': `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
           },
@@ -408,7 +409,7 @@ function instrumentPostgRESTFilterBuilder(
           'db.system': 'postgresql',
           'db.operation': operation,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: 'db',
         };
 
         if (queryItems.length && shouldSendData) {

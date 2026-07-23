@@ -1,16 +1,9 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
+import { HTTP_TARGET, URL_QUERY, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { EventProcessor } from '@sentry/core';
-import {
-  applySdkMetadata,
-  debug,
-  getClient,
-  getGlobalScope,
-  GLOBAL_OBJ,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-} from '@sentry/core';
+import { applySdkMetadata, debug, getClient, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   experimentalUseDiagnosticsChannelInjection as nodeExperimentalUseDiagnosticsChannelInjection,
@@ -312,10 +305,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
       setName: (name: string) => {
         span.name = name;
       },
-      // For streamed spans, op lives in `attributes['sentry.op']` - mirror it there so middleware
+      // For streamed spans, op lives in `attributes[SENTRY_OP]` - mirror it there so middleware
       // overrides land somewhere readable (the legacy path uses a separate `event.contexts.trace.op`).
       setOp: (op: string) => {
-        attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+        attributes[SENTRY_OP] = op;
       },
     };
     enhanceHandleRequestRootSpan(mutableRootSpan);

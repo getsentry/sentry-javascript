@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
@@ -55,7 +56,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
     status: 'ok',
     attributes: expect.objectContaining({
       'sentry.origin': { value: ORIGIN, type: 'string' },
-      'sentry.op': { value: 'rpc', type: 'string' },
+      [SENTRY_OP]: { value: 'rpc', type: 'string' },
       'rpc.system': { value: 'aws-api', type: 'string' },
       'rpc.method': { value: 'PutObject', type: 'string' },
       'rpc.service': { value: 'S3', type: 'string' },

@@ -1,6 +1,7 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import {
   applySdkMetadata,
   getGlobalScope,
@@ -8,7 +9,6 @@ import {
   getRootSpan,
   GLOBAL_OBJ,
   registerSpanErrorInstrumentation,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
@@ -132,7 +132,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
     // Make sure middleware spans get the right op
     if (spanAttributes?.['next.span_type'] === 'Middleware.execute') {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server.middleware');
+      span.setAttribute(SENTRY_OP, 'http.server.middleware');
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
     }
 
@@ -180,7 +180,7 @@ export function init(options: VercelEdgeOptions = {}): void {
         span.name = name;
       },
       setOp: op => {
-        attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+        attributes[SENTRY_OP] = op;
       },
     });
   });

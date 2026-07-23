@@ -8,7 +8,7 @@ import {
   pagesRouterInstrumentNavigation,
   pagesRouterInstrumentPageLoad,
 } from '../../src/client/routing/pagesRouterRoutingInstrumentation';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { URL_TEMPLATE, SENTRY_OP } from '@sentry/conventions/attributes';
 
 const globalObject = WINDOW as typeof WINDOW & {
   __BUILD_MANIFEST?: {
@@ -126,7 +126,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
       {
         name: '/[user]/posts/[id]',
         attributes: {
-          'sentry.op': 'pageload',
+          [SENTRY_OP]: 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
           'sentry.source': 'route',
           [URL_TEMPLATE]: '/[user]/posts/[id]',
@@ -150,7 +150,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
       {
         name: '/some-page',
         attributes: {
-          'sentry.op': 'pageload',
+          [SENTRY_OP]: 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
           'sentry.source': 'route',
           [URL_TEMPLATE]: '/some-page',
@@ -166,7 +166,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
       {
         name: '/',
         attributes: {
-          'sentry.op': 'pageload',
+          [SENTRY_OP]: 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
           'sentry.source': 'route',
           [URL_TEMPLATE]: '/',
@@ -182,7 +182,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
       {
         name: '/lforst/posts/1337',
         attributes: {
-          'sentry.op': 'pageload',
+          [SENTRY_OP]: 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
           'sentry.source': 'url',
         },
@@ -332,7 +332,7 @@ describe('pagesRouterInstrumentNavigation', () => {
       const expectedStartSpanOptions = {
         name: expectedTransactionName,
         attributes: {
-          'sentry.op': 'navigation',
+          [SENTRY_OP]: 'navigation',
           'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
           'sentry.source': expectedTransactionSource,
           ...(expectedTransactionSource === 'route' ? { [URL_TEMPLATE]: expectedTransactionName } : {}),

@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Context, Span, SpanContext, SpanOptions, TimeInput, Tracer } from '@opentelemetry/api';
 import { context, SpanStatusCode, trace, TraceFlags } from '@opentelemetry/api';
 import { isTracingSuppressed, suppressTracing } from '@opentelemetry/core';
@@ -22,7 +23,6 @@ import {
   handleCallbackErrors,
   hasSpansEnabled,
   SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   spanToTraceContext,
 } from '@sentry/core';
@@ -202,7 +202,7 @@ function getSpanOptions(options: OpenTelemetrySpanContext): SpanOptions {
   return {
     attributes: op
       ? {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+          [SENTRY_OP]: op,
           ...attributes,
         }
       : attributes,

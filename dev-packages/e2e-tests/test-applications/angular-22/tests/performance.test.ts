@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 // Cannot use @sentry/angular here due to build stuff
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('angular-22', async transactionEvent => {
@@ -261,7 +261,7 @@ test.describe('TraceDirective', () => {
       expect.arrayContaining([
         expect.objectContaining({
           data: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
+            'sentry.op': 'ui.angular.init',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
           },
           description: '<sample-component>', // custom component name passed to trace directive
@@ -272,7 +272,7 @@ test.describe('TraceDirective', () => {
         }),
         expect.objectContaining({
           data: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
+            'sentry.op': 'ui.angular.init',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
           },
           description: '<app-sample-component>', // fallback selector name
@@ -305,7 +305,7 @@ test.describe('TraceClass Decorator', () => {
     expect(classDecoratorSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
+          'sentry.op': 'ui.angular.init',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
         },
         description: '<ComponentTrackingComponent>',
@@ -335,7 +335,7 @@ test.describe('TraceMethod Decorator', () => {
     expect(ngInitSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.ngOnInit',
+          'sentry.op': 'ui.angular.ngOnInit',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
         },
         description: '<ngOnInit>',
@@ -363,7 +363,7 @@ test.describe('TraceMethod Decorator', () => {
     expect(ngAfterViewInitSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.ngAfterViewInit',
+          'sentry.op': 'ui.angular.ngAfterViewInit',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
         },
         description: '<unnamed>',

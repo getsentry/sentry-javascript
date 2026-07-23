@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
@@ -34,7 +35,7 @@ sentryTest('strips query params in XHR request spans', async ({ getLocalTestUrl,
       'url.full': 'http://sentry-test-site.example/0?id=123;page=5',
       'http.query': '?id=123;page=5',
       'http.response.status_code': 200,
-      'sentry.op': 'http.client',
+      [SENTRY_OP]: 'http.client',
       'sentry.origin': 'auto.http.browser',
       type: 'xhr',
       'server.address': 'sentry-test-site.example',
@@ -77,7 +78,7 @@ sentryTest('strips hash fragment in XHR request spans', async ({ getLocalTestUrl
       'url.full': 'http://sentry-test-site.example/1#fragment',
       'http.fragment': '#fragment',
       'http.response.status_code': 200,
-      'sentry.op': 'http.client',
+      [SENTRY_OP]: 'http.client',
       'sentry.origin': 'auto.http.browser',
       type: 'xhr',
       'server.address': 'sentry-test-site.example',
@@ -121,7 +122,7 @@ sentryTest('strips hash fragment and query params in XHR request spans', async (
       'http.query': '?id=1',
       'http.fragment': '#fragment',
       'http.response.status_code': 200,
-      'sentry.op': 'http.client',
+      [SENTRY_OP]: 'http.client',
       'sentry.origin': 'auto.http.browser',
       type: 'xhr',
       'server.address': 'sentry-test-site.example',
@@ -165,7 +166,7 @@ sentryTest(
         'http.query': '?id=1',
         'http.fragment': '#fragment',
         'http.response.status_code': 200,
-        'sentry.op': 'http.client',
+        [SENTRY_OP]: 'http.client',
         'sentry.origin': 'auto.http.browser',
         type: 'xhr',
         'server.address': 'sentry-test.io',

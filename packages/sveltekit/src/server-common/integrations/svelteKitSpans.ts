@@ -1,9 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Integration, SpanJSON, SpanOrigin, StreamedSpanJSON } from '@sentry/core';
-import {
-  safeSetSpanJSONAttributes,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-} from '@sentry/core';
+import { safeSetSpanJSONAttributes, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
 /**
  * A small integration that preprocesses spans so that SvelteKit-generated spans
@@ -37,12 +34,12 @@ export function svelteKitSpansIntegration(): Integration {
 export function _enhanceKitSpan(span: SpanJSON): void {
   const { op, origin } = _getKitSpanEnhancement(span.description);
 
-  const previousOp = span.op || span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+  const previousOp = span.op || span.data[SENTRY_OP];
   const previousOrigin = span.origin || span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
 
   if (!previousOp && op) {
     span.op = op;
-    span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+    span.data[SENTRY_OP] = op;
   }
 
   if ((!previousOrigin || previousOrigin === 'manual') && origin) {
@@ -60,7 +57,7 @@ export function _enhanceKitSpanStreamed(span: StreamedSpanJSON): void {
   const previousOrigin = span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
 
   if (op) {
-    safeSetSpanJSONAttributes(span, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op });
+    safeSetSpanJSONAttributes(span, { [SENTRY_OP]: op });
   }
 
   if (previousOrigin === 'manual' && origin) {

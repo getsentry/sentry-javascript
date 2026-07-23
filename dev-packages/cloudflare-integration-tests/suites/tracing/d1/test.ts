@@ -1,5 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { createRunner } from '../../../runner';
 
 it('D1 database queries create spans with correct attributes', async ({ signal }) => {
@@ -13,7 +14,7 @@ it('D1 database queries create spans with correct attributes', async ({ signal }
           spans: [
             {
               data: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.query',
+                [SENTRY_OP]: 'db.query',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
                 'db.system.name': 'cloudflare-d1',
                 'db.operation.name': 'exec',
@@ -30,7 +31,7 @@ it('D1 database queries create spans with correct attributes', async ({ signal }
             },
             {
               data: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.query',
+                [SENTRY_OP]: 'db.query',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
                 'db.system.name': 'cloudflare-d1',
                 'db.operation.name': 'run',
@@ -61,7 +62,7 @@ it('D1 database queries create spans with correct attributes', async ({ signal }
           spans: [
             {
               data: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.query',
+                [SENTRY_OP]: 'db.query',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
                 'db.system.name': 'cloudflare-d1',
                 'db.operation.name': 'first',

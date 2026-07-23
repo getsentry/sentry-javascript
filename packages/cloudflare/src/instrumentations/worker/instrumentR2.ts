@@ -1,5 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { R2Bucket, R2ListOptions, R2MultipartUpload } from '@cloudflare/workers-types';
-import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 
 const ORIGIN = 'auto.faas.cloudflare.r2';
 
@@ -46,7 +47,7 @@ function createSpanOptions(bindingName: string, r2Op: R2OperationKey, key?: stri
       ...(requestKey !== undefined && { 'cloudflare.r2.request.key': requestKey }),
       ...(isR2ListOptions(key) && key.prefix !== undefined && { 'cloudflare.r2.request.prefix': key.prefix }),
       ...(isR2ListOptions(key) && key.delimiter !== undefined && { 'cloudflare.r2.request.delimiter': key.delimiter }),
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+      [SENTRY_OP]: op,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     },
   };

@@ -3,7 +3,6 @@ import {
   browserPerformanceTimeOrigin,
   debug,
   parseBaggageHeader,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   stripUrlQueryAndFragment,
@@ -18,7 +17,7 @@ import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import RouterImport from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { URL_TEMPLATE, SENTRY_OP } from '@sentry/conventions/attributes';
 
 // next/router v10 is CJS
 //
@@ -132,7 +131,7 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTime: origin ? origin / 1000 : undefined,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
         ...(route && { [URL_TEMPLATE]: route }),
@@ -172,7 +171,7 @@ export function pagesRouterInstrumentNavigation(client: Client): void {
       {
         name: newLocation,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
           ...(spanSource === 'route' && { [URL_TEMPLATE]: newLocation }),

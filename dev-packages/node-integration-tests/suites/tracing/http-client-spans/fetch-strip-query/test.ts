@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { createTestServer } from '@sentry-internal/test-utils';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
@@ -40,7 +41,7 @@ describe('outgoing fetch spans - strip query', () => {
                 'otel.kind': 'CLIENT',
                 'server.port': expect.any(Number),
                 'user_agent.original': 'node',
-                'sentry.op': 'http.client',
+                [SENTRY_OP]: 'http.client',
                 'sentry.origin': 'auto.http.otel.node_fetch',
                 'server.address': 'localhost',
               },

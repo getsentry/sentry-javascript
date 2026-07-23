@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { Hono } from 'hono';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -585,7 +586,7 @@ describe('applyPatches', () => {
           name: 'GET /hello',
           op: 'hono.request',
           attributes: expect.objectContaining({
-            'sentry.op': 'hono.request',
+            [SENTRY_OP]: 'hono.request',
             'sentry.origin': 'auto.http.hono.internal_request',
           }),
         }),

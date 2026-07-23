@@ -2,7 +2,7 @@
 import type { Span, TimeInput } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { HTTP_METHOD } from '@sentry/conventions/attributes';
+import { HTTP_METHOD, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Event, Scope } from '@sentry/core';
 import {
   getClient,
@@ -11,7 +11,6 @@ import {
   getDynamicSamplingContextFromSpan,
   getRootSpan,
   isTracingSuppressed,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -241,7 +240,7 @@ describe('trace', () => {
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
+            [SENTRY_OP]: 'my-op',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           });
         },
@@ -646,7 +645,7 @@ describe('trace', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
+        [SENTRY_OP]: 'my-op',
       });
     });
 
@@ -1766,7 +1765,7 @@ describe('trace (sampling)', () => {
       attributes: {
         attr1: 'yes',
         attr2: 1,
-        'sentry.op': 'test.op',
+        [SENTRY_OP]: 'test.op',
       },
       inheritOrSampleWith: expect.any(Function),
     });

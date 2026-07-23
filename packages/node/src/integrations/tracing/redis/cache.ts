@@ -1,9 +1,9 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   truncate,
 } from '@sentry/core';
@@ -92,7 +92,7 @@ export const cacheResponseHook: IORedisResponseCustomAttributeFunction = (
   }
 
   span.setAttributes({
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: cacheOperation,
+    [SENTRY_OP]: cacheOperation,
     [SEMANTIC_ATTRIBUTE_CACHE_KEY]: safeKey,
   });
 

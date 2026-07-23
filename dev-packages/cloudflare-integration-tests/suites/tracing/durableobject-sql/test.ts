@@ -1,5 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Envelope, TransactionEvent } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
 
@@ -34,7 +35,7 @@ it('instruments SQL exec operations on Durable Object storage', async ({ signal 
             op: 'db.query',
             origin: 'auto.db.cloudflare.durable_object.sql',
             data: expect.objectContaining({
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.query',
+              [SENTRY_OP]: 'db.query',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
               'db.system.name': 'cloudflare-durable-object-sql',
               'db.operation.name': 'exec',

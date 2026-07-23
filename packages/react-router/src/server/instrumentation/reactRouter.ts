@@ -1,12 +1,11 @@
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { HTTP_TARGET } from '@sentry/conventions/attributes';
+import { HTTP_TARGET, SENTRY_OP } from '@sentry/conventions/attributes';
 import {
   debug,
   getActiveSpan,
   getRootSpan,
   SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
@@ -125,7 +124,7 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
                   name: getSpanName(url.pathname, request.method),
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.server',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getOpName(url.pathname, request.method),
+                    [SENTRY_OP]: getOpName(url.pathname, request.method),
                   },
                 },
                 () => {

@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
@@ -11,7 +12,7 @@ Sentry.init({
     // so we infer the name from the unparameterized route instead
     return (
       samplingContext.name === 'GET /test/123' &&
-      samplingContext.attributes['sentry.op'] === 'http.server' &&
+      samplingContext.attributes[SENTRY_OP] === 'http.server' &&
       samplingContext.attributes['http.method'] === 'GET'
     );
   },

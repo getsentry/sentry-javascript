@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import * as Sentry from '@sentry/cloudflare';
 
 interface Env {
@@ -10,7 +11,7 @@ export default Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 0,
     traceLifecycle: 'stream',
-    ignoreSpans: [{ attributes: { 'sentry.op': 'http.client' } }],
+    ignoreSpans: [{ attributes: { [SENTRY_OP]: 'http.client' } }],
     tracePropagationTargets: [env.SERVER_URL],
   }),
   {

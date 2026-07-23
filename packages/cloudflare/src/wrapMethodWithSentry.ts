@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import type { SerializedTraceData } from '@sentry/core';
 import {
@@ -7,7 +8,6 @@ import {
   getClient,
   isThenable,
   type Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startNewTrace as startNewTraceCore,
   startSpan,
@@ -189,7 +189,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
             const attributes = wrapperOptions.spanOp
               ? {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
+                  [SENTRY_OP]: wrapperOptions.spanOp,
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
                 }
               : {};

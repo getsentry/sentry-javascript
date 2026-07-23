@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Client, IntegrationFn } from '@sentry/core';
 import { defineIntegration, fill, getClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
@@ -106,8 +107,8 @@ export function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodNa
         const span = startInactiveSpan({
           name: `${callType} ${methodName}`,
           onlyIfParent: true,
-          op: `grpc.${serviceIdentifier}`,
           attributes: {
+            [SENTRY_OP]: `grpc.${serviceIdentifier}`,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',
           },
         });

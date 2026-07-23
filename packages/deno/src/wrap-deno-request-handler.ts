@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import {
   captureException,
   continueTrace,
@@ -5,7 +6,6 @@ import {
   getHttpSpanDetailsFromUrlObject,
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
   startSpanManual,
   winterCGHeadersToDict,
@@ -74,7 +74,7 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     }
 
     Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), dataCollection));
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
+    attributes[SENTRY_OP] = 'http.server';
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: winterCGRequestToRequestData(request),
     });

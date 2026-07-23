@@ -1,13 +1,12 @@
 import { expect } from '@playwright/test';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { URL_FULL, URL_PATH, SENTRY_OP } from '@sentry/conventions/attributes';
 
 sentryTest('creates a pageload root span with navigation.redirect childspan', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -28,7 +27,7 @@ sentryTest('creates a pageload root span with navigation.redirect childspan', as
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+    [SENTRY_OP]: 'pageload',
     ['sentry.idle_span_finish_reason']: 'idleTimeout',
   });
 
@@ -51,7 +50,7 @@ sentryTest('creates a pageload root span with navigation.redirect childspan', as
   expect(redirectSpan?.timestamp).toEqual(redirectSpan?.start_timestamp);
   expect(redirectSpan).toEqual({
     data: {
-      'sentry.op': 'navigation.redirect',
+      [SENTRY_OP]: 'navigation.redirect',
       'sentry.origin': 'auto.navigation.browser',
       'sentry.source': 'url',
       [URL_FULL]: 'http://sentry-test.io/sub-page',

@@ -15,7 +15,13 @@
 /* eslint-disable max-lines */
 
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { HTTP_REQUEST_METHOD, HTTP_RESPONSE_STATUS_CODE, HTTP_ROUTE, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_STATUS_CODE,
+  HTTP_ROUTE,
+  URL_PATH,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
   isObjectLike,
@@ -23,7 +29,6 @@ import {
   getActiveSpan,
   getIsolationScope,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   spanToJSON,
@@ -190,7 +195,7 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
     // Update the route of the request on the root span, if it is a http.server span
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan && getRootSpan(activeSpan);
-    if (rootSpan && spanToJSON(rootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'http.server') {
+    if (rootSpan && spanToJSON(rootSpan).data[SENTRY_OP] === 'http.server') {
       rootSpan.setAttribute(HTTP_ROUTE, route);
     }
   }

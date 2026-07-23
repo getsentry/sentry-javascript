@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -33,7 +34,7 @@ sentryTest('captures CLS as a streamed span with source attributes', async ({ ge
   const clsSpan = await clsSpanPromise;
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(clsSpan.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.webvital.cls' });
+  expect(clsSpan.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'ui.webvital.cls' });
   expect(clsSpan.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.cls' });
   expect(clsSpan.attributes['sentry.exclusive_time']).toEqual({ type: 'integer', value: 0 });
   expect(clsSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));

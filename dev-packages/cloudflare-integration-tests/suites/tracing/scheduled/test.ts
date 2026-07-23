@@ -1,6 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
@@ -25,7 +25,7 @@ it('Scheduled handler creates transaction with correct attributes', async ({ sig
               op: 'faas.cron',
               origin: 'auto.faas.cloudflare.scheduled',
               data: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'faas.cron',
+                [SENTRY_OP]: 'faas.cron',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.scheduled',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,

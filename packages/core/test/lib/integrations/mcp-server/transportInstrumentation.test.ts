@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as currentScopes from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
@@ -280,7 +281,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'network.transport': 'pipe', // Should be pipe, not tcp
           'network.protocol.version': '2.0',
           'mcp.request.argument.path': '"/tmp/data.txt"',
-          'sentry.op': 'mcp.server',
+          [SENTRY_OP]: 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
           'sentry.source': 'route',
         },
@@ -432,7 +433,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'network.transport': 'tcp',
           'network.protocol.version': '2.0',
           'mcp.request.argument.input': '"test"',
-          'sentry.op': 'mcp.server',
+          [SENTRY_OP]: 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
           'sentry.source': 'route',
         }),

@@ -25,7 +25,6 @@ import {
   httpHeadersToSpanAttributes,
   isNodeEnv,
   loadModule,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
@@ -40,7 +39,7 @@ import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/util
 import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
 import { generateSentryServerTimingHeader, injectServerTimingHeaderValue } from './serverTimingTracePropagation';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { URL_FULL, URL_PATH, SENTRY_OP } from '@sentry/conventions/attributes';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -135,7 +134,7 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
               method: request.method,
               url: request.url,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
+              [SENTRY_OP]: 'function.remix.document_request',
             },
           },
           () => {
@@ -206,7 +205,7 @@ function makeWrappedDataFunction(
           name: id,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `function.remix.${name}`,
+            [SENTRY_OP]: `function.remix.${name}`,
             name,
           },
         },
@@ -375,7 +374,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                  [SENTRY_OP]: 'http.server',
                   [URL_FULL]: url.href,
                   [URL_PATH]: url.pathname,
                   method: request.method,

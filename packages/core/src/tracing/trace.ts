@@ -1,16 +1,13 @@
 /* eslint-disable max-lines */
 
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { getAsyncContextStrategy } from '../asyncContext';
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import type { ClientOptions } from '../types/options';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
@@ -663,7 +660,7 @@ function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: Se
   return shouldIgnoreSpan(
     {
       description: spanArguments.name || '',
-      op: spanArguments.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] || spanArguments.op,
+      op: spanArguments.attributes?.[SENTRY_OP] || spanArguments.op,
       attributes: spanArguments.attributes,
     },
     ignoreSpans,

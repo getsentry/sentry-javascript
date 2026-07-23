@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 Sentry.startSpan({ name: 'parent-span' }, () => {
   Sentry.startSpan({ name: 'keep-me' }, () => {});
 
@@ -22,7 +23,7 @@ Sentry.startSpan({ name: 'parent-span' }, () => {
   Sentry.startSpan({ name: 'name-passes-but-op-not-span-1', op: 'ignored-op' }, () => {});
   Sentry.startSpan(
     // sentry.op attribute has precedence over top op argument
-    { name: 'name-passes-but-op-not-span-2', op: 'keep', attributes: { 'sentry.op': 'ignored-op' } },
+    { name: 'name-passes-but-op-not-span-2', op: 'keep', attributes: { [SENTRY_OP]: 'ignored-op' } },
     () => {},
   );
 

@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
@@ -42,7 +43,7 @@ const expectedProducerSpan = (routingKey: string) =>
           }
         : {}),
       'otel.kind': 'PRODUCER',
-      'sentry.op': 'message',
+      [SENTRY_OP]: 'message',
       'sentry.origin': PUBLISHER_ORIGIN,
     }),
     status: 'ok',
@@ -67,7 +68,7 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
         }
       : {}),
     'otel.kind': 'CONSUMER',
-    'sentry.op': 'message',
+    [SENTRY_OP]: 'message',
     'sentry.origin': CONSUMER_ORIGIN,
   }),
   status: 'ok',
@@ -164,7 +165,7 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
                     data: expect.objectContaining({
                       'messaging.system': 'rabbitmq',
                       'otel.kind': 'CONSUMER',
-                      'sentry.op': 'message',
+                      [SENTRY_OP]: 'message',
                       'sentry.origin': CONSUMER_ORIGIN,
                     }),
                   }),

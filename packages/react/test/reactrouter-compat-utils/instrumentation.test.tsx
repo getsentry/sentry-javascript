@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 /**
  * @vitest-environment jsdom
  */
@@ -946,7 +947,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         expect.objectContaining({
           name: '/search',
           attributes: expect.objectContaining({
-            'sentry.op': 'navigation',
+            [SENTRY_OP]: 'navigation',
             'sentry.source': 'route',
           }),
         }),

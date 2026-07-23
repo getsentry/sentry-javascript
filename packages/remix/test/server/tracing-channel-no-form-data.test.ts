@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
@@ -54,7 +55,7 @@ describe('remixIntegration with orchestrion (no form-data capture configured)', 
       expect.objectContaining({
         name: 'ACTION routes/submit',
         attributes: expect.objectContaining({
-          'sentry.op': 'action.remix',
+          [SENTRY_OP]: 'action.remix',
           'code.function': 'action',
           'http.method': 'POST',
         }),

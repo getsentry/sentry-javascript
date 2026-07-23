@@ -3,9 +3,9 @@ import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createCjsTests, createEsmAndCjsTests } from '../../../utils/runner';
 import { startMysqlTestServer } from './mysql-test-server';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
+
 import { isOrchestrionEnabled } from '../../../utils';
-import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
+import { SENTRY_TRACE_LIFECYCLE, SENTRY_OP } from '@sentry/conventions/attributes';
 
 describe('mysql auto instrumentation', () => {
   // A minimal in-process MySQL server (on a random free port) so the client's
@@ -196,9 +196,7 @@ describe('mysql auto instrumentation', () => {
       const segmentSpan = container.items.find(item => item.is_segment);
       expect(segmentSpan?.name).toBe('Test Transaction');
 
-      const dbSpans = container.items.filter(
-        spanItem => spanItem.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db',
-      );
+      const dbSpans = container.items.filter(spanItem => spanItem.attributes[SENTRY_OP]?.value === 'db');
 
       expect(dbSpans.length).toBe(2);
 
@@ -231,7 +229,7 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: 'production',
         },
-        'sentry.op': {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'db',
         },

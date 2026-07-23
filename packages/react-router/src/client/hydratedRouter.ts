@@ -7,7 +7,6 @@ import {
   getRootSpan,
   GLOBAL_OBJ,
   isThenable,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
@@ -22,7 +21,7 @@ import {
   resolveNavigateAbsoluteUrl,
   resolveNavigateArg,
 } from './utils';
-import { URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { URL_PATH, URL_TEMPLATE, SENTRY_OP } from '@sentry/conventions/attributes';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __reactRouterDataRouter?: DataRouter;
@@ -187,7 +186,7 @@ function maybeCreateNavigationTransaction(name: string, url: string, source: 'ur
       name,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_OP]: 'navigation',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router',
         ...(source === 'route' ? { [URL_TEMPLATE]: name } : {}),
       },

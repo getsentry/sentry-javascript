@@ -1,5 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { SpanJSON, StreamedSpanJSON, TransactionEvent } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import {
   _enhanceKitSpan,
@@ -47,7 +48,7 @@ describe('svelteKitSpansIntegration', () => {
     expect(event.spans).toHaveLength(1);
     expect(event.spans?.[0]?.op).toBe('function.sveltekit.resolve');
     expect(event.spans?.[0]?.origin).toBe('auto.http.sveltekit');
-    expect(event.spans?.[0]?.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('function.sveltekit.resolve');
+    expect(event.spans?.[0]?.data[SENTRY_OP]).toBe('function.sveltekit.resolve');
     expect(event.spans?.[0]?.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.sveltekit');
   });
 
@@ -74,7 +75,7 @@ describe('svelteKitSpansIntegration', () => {
 
       expect(span.op).toBe(op);
       expect(span.origin).toBe(origin);
-      expect(span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe(op);
+      expect(span.data[SENTRY_OP]).toBe(op);
       expect(span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe(origin);
     });
 
@@ -88,7 +89,7 @@ describe('svelteKitSpansIntegration', () => {
 
       expect(span.op).toBeUndefined();
       expect(span.origin).toBeUndefined();
-      expect(span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBeUndefined();
+      expect(span.data[SENTRY_OP]).toBeUndefined();
       expect(span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBeUndefined();
     });
 
@@ -98,7 +99,7 @@ describe('svelteKitSpansIntegration', () => {
         op: 'http.server',
         origin: 'auto.http.sveltekit',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          [SENTRY_OP]: 'http.server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
         },
         span_id: '123',
@@ -108,7 +109,7 @@ describe('svelteKitSpansIntegration', () => {
 
       _enhanceKitSpan(rootHandleSpan);
 
-      expect(rootHandleSpan.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+      expect(rootHandleSpan.data[SENTRY_OP]).toBe('http.server');
       expect(rootHandleSpan.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.sveltekit');
       expect(rootHandleSpan.op).toBe('http.server');
       expect(rootHandleSpan.origin).toBe('auto.http.sveltekit');
@@ -118,7 +119,7 @@ describe('svelteKitSpansIntegration', () => {
       const span = {
         description: 'someOtherSpan',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: 'db',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.pg',
         },
         op: 'db',
@@ -132,7 +133,7 @@ describe('svelteKitSpansIntegration', () => {
 
       expect(span.op).toBe('db');
       expect(span.origin).toBe('auto.db.pg');
-      expect(span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('db');
+      expect(span.data[SENTRY_OP]).toBe('db');
       expect(span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.db.pg');
     });
 
@@ -142,7 +143,7 @@ describe('svelteKitSpansIntegration', () => {
         description: 'sveltekit.resolve',
         origin: 'auto.custom.origin',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'custom.op',
+          [SENTRY_OP]: 'custom.op',
         },
         span_id: '123',
         trace_id: 'abc',
@@ -152,7 +153,7 @@ describe('svelteKitSpansIntegration', () => {
       _enhanceKitSpan(span);
 
       expect(span.origin).toBe('auto.custom.origin');
-      expect(span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('custom.op');
+      expect(span.data[SENTRY_OP]).toBe('custom.op');
     });
 
     it('overwrites previously set "manual" origins on sveltekit spans', () => {
@@ -161,7 +162,7 @@ describe('svelteKitSpansIntegration', () => {
         description: 'sveltekit.resolve',
         origin: 'manual',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'custom.op',
+          [SENTRY_OP]: 'custom.op',
         },
         span_id: '123',
         trace_id: 'abc',
@@ -171,7 +172,7 @@ describe('svelteKitSpansIntegration', () => {
       _enhanceKitSpan(span);
 
       expect(span.origin).toBe('auto.http.sveltekit');
-      expect(span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('custom.op');
+      expect(span.data[SENTRY_OP]).toBe('custom.op');
     });
   });
 
@@ -202,7 +203,7 @@ describe('svelteKitSpansIntegration', () => {
 
       _enhanceKitSpanStreamed(span);
 
-      expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe(op);
+      expect(span.attributes?.[SENTRY_OP]).toBe(op);
       expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe(origin);
     });
 
@@ -211,7 +212,7 @@ describe('svelteKitSpansIntegration', () => {
 
       _enhanceKitSpanStreamed(span);
 
-      expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBeUndefined();
+      expect(span.attributes?.[SENTRY_OP]).toBeUndefined();
       expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBeUndefined();
     });
 
@@ -219,14 +220,14 @@ describe('svelteKitSpansIntegration', () => {
       const rootHandleSpan = makeStreamedSpan({
         name: 'sveltekit.handle.root',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          [SENTRY_OP]: 'http.server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
         },
       });
 
       _enhanceKitSpanStreamed(rootHandleSpan);
 
-      expect(rootHandleSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+      expect(rootHandleSpan.attributes?.[SENTRY_OP]).toBe('http.server');
       expect(rootHandleSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.sveltekit');
     });
 
@@ -234,14 +235,14 @@ describe('svelteKitSpansIntegration', () => {
       const span = makeStreamedSpan({
         name: 'someOtherSpan',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: 'db',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.pg',
         },
       });
 
       _enhanceKitSpanStreamed(span);
 
-      expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('db');
+      expect(span.attributes?.[SENTRY_OP]).toBe('db');
       expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.db.pg');
     });
 
@@ -250,14 +251,14 @@ describe('svelteKitSpansIntegration', () => {
       const span = makeStreamedSpan({
         name: 'sveltekit.resolve',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'custom.op',
+          [SENTRY_OP]: 'custom.op',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.custom.origin',
         },
       });
 
       _enhanceKitSpanStreamed(span);
 
-      expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('custom.op');
+      expect(span.attributes?.[SENTRY_OP]).toBe('custom.op');
       expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.custom.origin');
     });
 
@@ -265,14 +266,14 @@ describe('svelteKitSpansIntegration', () => {
       const span = makeStreamedSpan({
         name: 'sveltekit.resolve',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'custom.op',
+          [SENTRY_OP]: 'custom.op',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
         },
       });
 
       _enhanceKitSpanStreamed(span);
 
-      expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('custom.op');
+      expect(span.attributes?.[SENTRY_OP]).toBe('custom.op');
       expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.sveltekit');
     });
   });

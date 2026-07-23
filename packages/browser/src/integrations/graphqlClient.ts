@@ -4,13 +4,12 @@ import {
   isObjectLike,
   isString,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core/browser';
 import type { FetchHint, XhrHint } from '@sentry/browser-utils';
 import { getBodyString, getFetchRequestArgBody, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
-import { GRAPHQL_DOCUMENT, URL_FULL } from '@sentry/conventions/attributes';
+import { GRAPHQL_DOCUMENT, URL_FULL, SENTRY_OP } from '@sentry/conventions/attributes';
 
 interface GraphQLClientOptions {
   endpoints: Array<string | RegExp>;
@@ -60,7 +59,7 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
     const spanJSON = spanToJSON(span);
 
     const spanAttributes = spanJSON.data || {};
-    const spanOp = spanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+    const spanOp = spanAttributes[SENTRY_OP];
 
     const isHttpClientSpan = spanOp === 'http.client';
 

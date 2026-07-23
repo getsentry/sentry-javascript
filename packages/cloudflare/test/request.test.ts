@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 // Note: These tests run the handler in Node.js, which has some differences to the cloudflare workers runtime.
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
@@ -560,7 +561,7 @@ describe('withSentry', () => {
       expect(sentryEvent.contexts?.trace).toEqual({
         data: {
           'sentry.origin': 'auto.http.cloudflare',
-          'sentry.op': 'http.server',
+          [SENTRY_OP]: 'http.server',
           'sentry.source': 'route',
           'http.request.method': 'GET',
           'url.full': 'https://example.com/',

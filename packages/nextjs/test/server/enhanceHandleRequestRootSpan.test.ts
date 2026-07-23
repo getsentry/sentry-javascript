@@ -1,4 +1,5 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../../src/common/span-attributes-with-logic-attached';
@@ -29,7 +30,7 @@ describe('enhanceHandleRequestRootSpan', () => {
     enhanceHandleRequestRootSpan(span);
     expect(getName()).toBe('GET /api/foo');
     expect(getOp()).toBeUndefined();
-    expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBeUndefined();
+    expect(span.attributes[SENTRY_OP]).toBeUndefined();
   });
 
   it('sets http.server op and source=route for parameterized routes', () => {
@@ -44,7 +45,7 @@ describe('enhanceHandleRequestRootSpan', () => {
     enhanceHandleRequestRootSpan(span);
 
     expect(getOp()).toBe('http.server');
-    expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+    expect(span.attributes[SENTRY_OP]).toBe('http.server');
     expect(getName()).toBe('GET /api/users/[id]');
     expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
     expect(span.attributes[ATTR_NEXT_ROUTE]).toBe('/api/users/[id]');
@@ -139,7 +140,7 @@ describe('enhanceHandleRequestRootSpan', () => {
 
   it('writes the middleware op into attributes when the adapter mirrors op writes (streamed shape)', () => {
     // Mirrors the `processSegmentSpan` adapter in src/server/index.ts where `setOp` writes back
-    // into `attributes['sentry.op']` because that is the only op storage for streamed segment spans.
+    // into `attributes[SENTRY_OP]` because that is the only op storage for streamed segment spans.
     const attributes: Record<string, unknown> = {
       [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest',
       [ATTR_NEXT_SPAN_NAME]: 'middleware GET /api',
@@ -152,14 +153,14 @@ describe('enhanceHandleRequestRootSpan', () => {
         name = n;
       },
       setOp: (op: string) => {
-        attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+        attributes[SENTRY_OP] = op;
       },
     };
 
     enhanceHandleRequestRootSpan(span);
 
     expect(name).toBe('middleware GET');
-    expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server.middleware');
+    expect(attributes[SENTRY_OP]).toBe('http.server.middleware');
   });
 
   it('rewrites GET /_error using the http.target attribute', () => {

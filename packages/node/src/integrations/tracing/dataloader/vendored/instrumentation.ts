@@ -9,15 +9,9 @@
  */
 
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
-import { CACHE_KEY } from '@sentry/conventions/attributes';
+import { CACHE_KEY, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { BatchLoadFn, DataLoader, DataLoaderConstructor } from './types';
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
-  startSpan,
-} from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_KIND, startSpan } from '@sentry/core';
 
 const MODULE_NAME = 'dataloader';
 const PACKAGE_NAME = '@sentry/instrumentation-dataloader';
@@ -117,7 +111,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
           links: this._batch?.spanLinks,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('batch'),
+            [SENTRY_OP]: getSpanOp('batch'),
             [CACHE_KEY]: getCacheKey(args[0]),
           },
           onlyIfParent: true,
@@ -172,7 +166,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
           kind: SPAN_KIND.CLIENT,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('load'),
+            [SENTRY_OP]: getSpanOp('load'),
             [CACHE_KEY]: getCacheKey(args[0]),
           },
           onlyIfParent: true,
@@ -211,7 +205,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
           kind: SPAN_KIND.CLIENT,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('loadMany'),
+            [SENTRY_OP]: getSpanOp('loadMany'),
             [CACHE_KEY]: getCacheKey(args[0]),
           },
           onlyIfParent: true,
@@ -238,7 +232,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
           kind: SPAN_KIND.CLIENT,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('prime'),
+            [SENTRY_OP]: getSpanOp('prime'),
           },
           onlyIfParent: true,
         },
@@ -264,7 +258,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
           kind: SPAN_KIND.CLIENT,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('clear'),
+            [SENTRY_OP]: getSpanOp('clear'),
           },
           onlyIfParent: true,
         },
@@ -290,7 +284,7 @@ export class DataloaderInstrumentation extends InstrumentationBase {
           kind: SPAN_KIND.CLIENT,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getSpanOp('clearAll'),
+            [SENTRY_OP]: getSpanOp('clearAll'),
           },
           onlyIfParent: true,
         },

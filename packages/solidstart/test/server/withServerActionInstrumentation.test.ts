@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import {
@@ -5,7 +6,6 @@ import {
   getCurrentScope,
   getIsolationScope,
   NodeClient,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
@@ -105,7 +105,7 @@ describe('withServerActionInstrumentation', () => {
         op: 'function.server_action',
         description: 'getPrefecture',
         data: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.server_action',
+          [SENTRY_OP]: 'function.server_action',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
         }),

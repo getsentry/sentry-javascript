@@ -1,6 +1,6 @@
-import { defineIntegration, safeSetSpanJSONAttributes, SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core/browser';
+import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core/browser';
 import { getHttpRequestData, WINDOW } from '../helpers';
-import { URL_FULL } from '@sentry/conventions/attributes';
+import { URL_FULL, SENTRY_OP } from '@sentry/conventions/attributes';
 
 /**
  * Collects information about HTTP request headers and
@@ -28,7 +28,7 @@ export const httpContextIntegration = defineIntegration(() => {
       };
     },
     processSegmentSpan(span) {
-      const spanOp = span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+      const spanOp = span.attributes?.[SENTRY_OP];
 
       // if none of the information we want exists, don't bother
       if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {

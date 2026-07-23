@@ -1,12 +1,11 @@
 import { context, createContextKey } from '@opentelemetry/api';
-import { HTTP_REQUEST_METHOD, HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, HTTP_ROUTE, URL_FULL, URL_PATH, SENTRY_OP } from '@sentry/conventions/attributes';
 import {
   debug,
   flushIfServerless,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
@@ -62,7 +61,7 @@ export function createSentryServerInstrumentation(
             if (existingRootSpan) {
               updateSpanName(existingRootSpan, `${info.request.method} ${pathname}`);
               existingRootSpan.setAttributes({
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                [SENTRY_OP]: 'http.server',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
                 [URL_FULL]: info.request.url,
@@ -87,7 +86,7 @@ export function createSentryServerInstrumentation(
                   name: `${info.request.method} ${pathname}`,
                   forceTransaction: true,
                   attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                    [SENTRY_OP]: 'http.server',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
                     [HTTP_REQUEST_METHOD]: info.request.method,
@@ -132,7 +131,7 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.loader',
+                [SENTRY_OP]: 'function.react_router.loader',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -159,7 +158,7 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.action',
+                [SENTRY_OP]: 'function.react_router.action',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -198,7 +197,7 @@ export function createSentryServerInstrumentation(
             {
               name: `middleware ${middlewareName || routeId}`,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.middleware',
+                [SENTRY_OP]: 'function.react_router.middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
                 [HTTP_ROUTE]: routePattern,
@@ -224,7 +223,7 @@ export function createSentryServerInstrumentation(
             {
               name: 'Lazy Route Load',
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.lazy',
+                [SENTRY_OP]: 'function.react_router.lazy',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },

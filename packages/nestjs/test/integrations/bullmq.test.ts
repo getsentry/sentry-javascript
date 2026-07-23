@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import 'reflect-metadata';
 import * as core from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -57,7 +58,7 @@ describe('BullMQInstrumentation', () => {
           name: 'test-queue process',
           forceTransaction: true,
           attributes: expect.objectContaining({
-            'sentry.op': 'queue.process',
+            [SENTRY_OP]: 'queue.process',
             'sentry.origin': 'auto.queue.nestjs.bullmq',
             'messaging.system': 'bullmq',
             'messaging.destination.name': 'test-queue',

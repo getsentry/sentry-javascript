@@ -8,7 +8,6 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -33,7 +32,7 @@ import {
 } from '../../src/tracing/browserTracingIntegration';
 import { PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE } from '../../src/tracing/linkedTraces';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { URL_FULL, URL_PATH, SENTRY_OP } from '@sentry/conventions/attributes';
 
 const oldTextEncoder = global.window.TextEncoder;
 const oldTextDecoder = global.window.TextDecoder;
@@ -177,7 +176,7 @@ describe('browserTracingIntegration', () => {
       op: 'pageload',
       origin: 'auto.pageload.browser',
       data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
@@ -263,7 +262,7 @@ describe('browserTracingIntegration', () => {
       op: 'pageload',
       origin: 'auto.pageload.browser',
       data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
@@ -293,7 +292,7 @@ describe('browserTracingIntegration', () => {
       op: 'navigation',
       origin: 'auto.navigation.browser',
       data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_OP]: 'navigation',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
@@ -334,7 +333,7 @@ describe('browserTracingIntegration', () => {
       op: 'navigation',
       origin: 'auto.navigation.browser',
       data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_OP]: 'navigation',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
@@ -377,7 +376,7 @@ describe('browserTracingIntegration', () => {
       op: 'pageload',
       origin: 'auto.pageload.browser',
       data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
@@ -408,7 +407,7 @@ describe('browserTracingIntegration', () => {
     expect(getSpanDescendants(span).map(span => spanToJSON(span))).toContainEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation.redirect',
+          [SENTRY_OP]: 'navigation.redirect',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [URL_FULL]: 'https://example.com/test',
@@ -471,7 +470,7 @@ describe('browserTracingIntegration', () => {
         op: 'pageload',
         origin: 'manual',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+          [SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
@@ -509,7 +508,7 @@ describe('browserTracingIntegration', () => {
         op: 'pageload',
         origin: 'auto.test',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+          [SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
@@ -751,7 +750,7 @@ describe('browserTracingIntegration', () => {
         op: 'navigation',
         origin: 'manual',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
@@ -806,7 +805,7 @@ describe('browserTracingIntegration', () => {
         op: 'navigation',
         origin: 'auto.test',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',

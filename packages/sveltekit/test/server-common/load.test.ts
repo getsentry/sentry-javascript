@@ -1,9 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Event } from '@sentry/core';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { getCurrentScope, getIsolationScope, NodeClient, setCurrentClient } from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
@@ -258,7 +255,7 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.sveltekit.server.load',
+        [SENTRY_OP]: 'function.sveltekit.server.load',
         'http.method': 'GET',
         'sentry.sample_rate': 1,
       },

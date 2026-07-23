@@ -18,7 +18,6 @@ import {
   hasSpanStreamingEnabled,
   instrumentFetchRequest,
   parseUrl,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   setHttpStatus,
@@ -40,7 +39,7 @@ import {
 } from '@sentry/browser-utils';
 import type { BrowserClient } from '../client';
 import { baggageHeaderHasSentryValues, createHeadersSafely, getFullURL, isPerformanceResourceTiming } from './utils';
-import { HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_URL, URL_FULL, SENTRY_OP } from '@sentry/conventions/attributes';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -398,7 +397,7 @@ function xhrCallback(
             [URL_FULL]: sanitizedFullUrl,
             'server.address': parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+            [SENTRY_OP]: 'http.client',
             ...(parsedUrl?.search && { 'http.query': parsedUrl?.search }),
             ...(parsedUrl?.hash && { 'http.fragment': parsedUrl?.hash }),
           },

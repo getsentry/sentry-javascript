@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import type { Event } from '@sentry/core';
 import { createRunner } from '../../../../runner';
@@ -165,7 +166,7 @@ it('instruments inherited custom WorkerEntrypoint RPC methods and strips metadat
               op: 'rpc',
               origin: 'auto.faas.cloudflare.worker_entrypoint',
               data: expect.objectContaining({
-                'sentry.op': 'rpc',
+                [SENTRY_OP]: 'rpc',
                 'sentry.origin': 'auto.faas.cloudflare.worker_entrypoint',
               }),
             }),
@@ -186,7 +187,7 @@ it('instruments inherited custom WorkerEntrypoint RPC methods and strips metadat
               op: 'rpc',
               origin: 'auto.faas.cloudflare.worker_entrypoint',
               data: expect.objectContaining({
-                'sentry.op': 'rpc',
+                [SENTRY_OP]: 'rpc',
                 'sentry.origin': 'auto.faas.cloudflare.worker_entrypoint',
               }),
             }),

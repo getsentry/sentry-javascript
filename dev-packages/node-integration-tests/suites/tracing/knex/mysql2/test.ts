@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { describe, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../../utils';
 import { createEsmAndCjsTests, describeWithDockerCompose } from '../../../../utils/runner';
@@ -20,7 +21,7 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
                 'db.name': 'tests',
                 'db.user': 'root',
                 'sentry.origin': ORIGIN,
-                'sentry.op': 'db',
+                [SENTRY_OP]: 'db',
                 'net.peer.name': 'localhost',
                 'net.peer.port': 3307,
               }),
@@ -36,7 +37,7 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
                 'db.name': 'tests',
                 'db.user': 'root',
                 'sentry.origin': ORIGIN,
-                'sentry.op': 'db',
+                [SENTRY_OP]: 'db',
                 'net.peer.name': 'localhost',
                 'net.peer.port': 3307,
               }),
@@ -55,7 +56,7 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
                 'db.statement': 'select * from `User`',
                 'db.user': 'root',
                 'sentry.origin': ORIGIN,
-                'sentry.op': 'db',
+                [SENTRY_OP]: 'db',
               }),
               status: 'ok',
               description: 'select * from `User`',

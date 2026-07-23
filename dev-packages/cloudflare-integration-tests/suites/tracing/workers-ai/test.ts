@@ -1,4 +1,4 @@
-import { GEN_AI_PROVIDER_NAME } from '@sentry/conventions/attributes';
+import { GEN_AI_PROVIDER_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -44,7 +44,7 @@ it('traces a basic Workers AI text generation request', async ({ signal }) => {
               origin: 'auto.ai.cloudflare.workers_ai',
               data: {
                 'sentry.origin': 'auto.ai.cloudflare.workers_ai',
-                'sentry.op': 'gen_ai.chat',
+                [SENTRY_OP]: 'gen_ai.chat',
                 [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',
                 [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
                 [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: '@cf/meta/llama-3.1-8b-instruct',
@@ -89,7 +89,7 @@ it('traces a streaming Workers AI text generation request', async ({ signal }) =
               origin: 'auto.ai.cloudflare.workers_ai',
               data: {
                 'sentry.origin': 'auto.ai.cloudflare.workers_ai',
-                'sentry.op': 'gen_ai.chat',
+                [SENTRY_OP]: 'gen_ai.chat',
                 [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',
                 [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
                 [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: '@cf/meta/llama-3.1-8b-instruct',

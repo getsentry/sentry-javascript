@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
@@ -47,7 +48,7 @@ describe('remixIntegration (Orchestrion-based)', () => {
         kind: SentryCore.SPAN_KIND.SERVER,
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.orchestrion.remix',
-          'sentry.op': 'http.server',
+          [SENTRY_OP]: 'http.server',
           'code.function': 'requestHandler',
           'http.method': 'GET',
           'http.url': 'http://localhost/users',
@@ -99,7 +100,7 @@ describe('remixIntegration (Orchestrion-based)', () => {
         name: 'LOADER routes/users.$userId',
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.orchestrion.remix',
-          'sentry.op': 'loader.remix',
+          [SENTRY_OP]: 'loader.remix',
           'code.function': 'loader',
           'http.method': 'GET',
           'http.url': 'http://localhost/users/123',
@@ -138,7 +139,7 @@ describe('remixIntegration (Orchestrion-based)', () => {
       expect.objectContaining({
         name: 'ACTION routes/submit',
         attributes: expect.objectContaining({
-          'sentry.op': 'action.remix',
+          [SENTRY_OP]: 'action.remix',
           'code.function': 'action',
           'http.method': 'POST',
         }),

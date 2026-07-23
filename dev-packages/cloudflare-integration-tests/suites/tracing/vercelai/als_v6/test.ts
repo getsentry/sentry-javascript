@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -30,7 +31,7 @@ it('captures a transaction with Vercel AI v6 spans via @sentry/cloudflare vercel
             status: 'ok',
             is_segment: false,
             attributes: expect.objectContaining({
-              'sentry.op': { type: 'string', value: 'gen_ai.invoke_agent' },
+              [SENTRY_OP]: { type: 'string', value: 'gen_ai.invoke_agent' },
               'sentry.origin': { type: 'string', value: 'auto.vercelai.otel' },
               [GEN_AI_OPERATION_NAME_ATTRIBUTE]: { type: 'string', value: 'invoke_agent' },
               [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: { type: 'integer', value: 10 },
@@ -48,7 +49,7 @@ it('captures a transaction with Vercel AI v6 spans via @sentry/cloudflare vercel
             status: 'ok',
             is_segment: false,
             attributes: expect.objectContaining({
-              'sentry.op': { type: 'string', value: 'gen_ai.generate_content' },
+              [SENTRY_OP]: { type: 'string', value: 'gen_ai.generate_content' },
               'sentry.origin': { type: 'string', value: 'auto.vercelai.otel' },
               [GEN_AI_OPERATION_NAME_ATTRIBUTE]: { type: 'string', value: 'generate_content' },
             }),

@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import type { SerializedStreamedSpan } from '@sentry/core';
 import {
@@ -44,7 +45,7 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
         type: 'string',
         value: 'create_agent',
       });
-      expect(createAgentSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.create_agent' });
+      expect(createAgentSpan!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.create_agent' });
       expect(createAgentSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langgraph' });
       expect(createAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE]).toEqual({
         type: 'string',
@@ -60,7 +61,7 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
         type: 'string',
         value: 'invoke_agent',
       });
-      expect(invokeAgentSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.invoke_agent' });
+      expect(invokeAgentSpan!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.invoke_agent' });
       expect(invokeAgentSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langgraph' });
       expect(invokeAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE]).toEqual({
         type: 'string',

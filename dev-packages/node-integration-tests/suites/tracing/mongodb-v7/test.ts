@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { TransactionEvent } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, expect } from 'vitest';
@@ -31,7 +32,7 @@ conditionalTest({ min: 20 })('MongoDB v7 auto-instrumentation', () => {
     expect.objectContaining({
       data: expect.objectContaining({
         'sentry.origin': origin,
-        'sentry.op': 'db',
+        [SENTRY_OP]: 'db',
         'db.system': 'mongodb',
         'db.name': 'admin',
         'db.mongodb.collection': 'movies',

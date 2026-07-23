@@ -6,13 +6,9 @@ import {
   DB_SYSTEM_NAME,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
-import {
-  _INTERNAL_sanitizeSqlQuery,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-} from '@sentry/core';
+import { _INTERNAL_sanitizeSqlQuery, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
 // Channel names published by mysql2 >= 3.20.0 (see mysql2 `lib/tracing.js`).
@@ -105,7 +101,7 @@ function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelN
         name: queryText || 'mysql2.query',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: 'db',
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
           [DB_QUERY_TEXT]: queryText,
           [DB_OPERATION_NAME]: operation,
@@ -127,7 +123,7 @@ function setupConnectChannel(tracingChannel: MySQL2TracingChannelFactory, channe
         name: spanName,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: 'db',
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
           [DB_NAMESPACE]: data.database || undefined,
           [SERVER_ADDRESS]: data.serverAddress,

@@ -1,5 +1,5 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { URL_FULL, URL_PATH, SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, createRunner } from '../../../utils/runner';
 
@@ -126,7 +126,7 @@ describe('httpIntegration', () => {
                 'net.peer.port': expect.any(Number),
                 'net.transport': 'ip_tcp',
                 'otel.kind': 'SERVER',
-                'sentry.op': 'http.server',
+                [SENTRY_OP]: 'http.server',
                 'sentry.origin': 'auto.http.otel.http',
                 'sentry.sample_rate': 1,
                 'sentry.source': 'route',
@@ -170,7 +170,7 @@ describe('httpIntegration', () => {
                 'net.peer.port': expect.any(Number),
                 'net.transport': 'ip_tcp',
                 'otel.kind': 'SERVER',
-                'sentry.op': 'http.server',
+                [SENTRY_OP]: 'http.server',
                 'sentry.origin': 'auto.http.otel.http',
                 'sentry.sample_rate': 1,
                 'sentry.source': 'route',
@@ -207,7 +207,7 @@ describe('httpIntegration', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                        [SENTRY_OP]: 'http.server',
                       },
                     },
                   },
@@ -223,7 +223,7 @@ describe('httpIntegration', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                        [SENTRY_OP]: 'http.server',
                       },
                     },
                   },
@@ -239,7 +239,7 @@ describe('httpIntegration', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                        [SENTRY_OP]: 'http.server',
                       },
                     },
                   },
@@ -265,7 +265,7 @@ describe('httpIntegration', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                        [SENTRY_OP]: 'http.server',
                       },
                     },
                   },
@@ -281,7 +281,7 @@ describe('httpIntegration', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                        [SENTRY_OP]: 'http.server',
                       },
                     },
                   },
@@ -297,7 +297,7 @@ describe('httpIntegration', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                        [SENTRY_OP]: 'http.server',
                       },
                     },
                   },
@@ -322,7 +322,7 @@ describe('httpIntegration', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                        [SENTRY_OP]: 'http.server',
                       },
                     },
                   },
@@ -338,7 +338,7 @@ describe('httpIntegration', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                        [SENTRY_OP]: 'http.server',
                       },
                     },
                   },
@@ -354,7 +354,7 @@ describe('httpIntegration', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                        [SENTRY_OP]: 'http.server',
                       },
                     },
                   },
@@ -380,7 +380,7 @@ describe('httpIntegration', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                        [SENTRY_OP]: 'http.server',
                       },
                     },
                   },
@@ -396,7 +396,7 @@ describe('httpIntegration', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                        [SENTRY_OP]: 'http.server',
                       },
                     },
                   },
@@ -412,7 +412,7 @@ describe('httpIntegration', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                        [SENTRY_OP]: 'http.server',
                       },
                     },
                   },

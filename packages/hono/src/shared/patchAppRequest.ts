@@ -1,8 +1,8 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import {
   debug,
   getActiveSpan,
   getOriginalFunction,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
   type WrappedFunction,
@@ -56,7 +56,7 @@ export function patchAppRequest<E extends Env>(app: Hono<E>): void {
           op: INTERNAL_REQUEST_OP,
           onlyIfParent: true,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: INTERNAL_REQUEST_OP,
+            [SENTRY_OP]: INTERNAL_REQUEST_OP,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: INTERNAL_REQUEST_ORIGIN,
           },
         },

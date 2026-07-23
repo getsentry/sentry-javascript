@@ -1,10 +1,10 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import * as dc from 'node:diagnostics_channel';
 import {
   flushIfServerless,
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
@@ -68,7 +68,7 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
       return startInactiveSpan({
         name: cacheKeys.join(', ') || operation,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `cache.${normalizeMethodName(operation)}`,
+          [SENTRY_OP]: `cache.${normalizeMethodName(operation)}`,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_CACHE_KEY]: cacheKeys.length > 1 ? cacheKeys : cacheKeys[0],
           'db.operation.name': operation,

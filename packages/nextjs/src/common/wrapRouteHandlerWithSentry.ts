@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { RequestEventData } from '@sentry/core';
 import {
   captureException,
@@ -8,7 +9,6 @@ import {
   handleCallbackErrors,
   propagationContextFromHeaders,
   Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   setHttpStatus,
@@ -48,7 +48,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
 
         rootSpan.updateName(`${method} ${parameterizedRoute}`);
         rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+        rootSpan.setAttribute(SENTRY_OP, 'http.server');
       }
 
       return withIsolationScope(

@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Envelope } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../runner';
@@ -35,7 +36,7 @@ it('instruments D1 prepare().all() automatically via env', async ({ signal }) =>
           'cloudflare.d1.duration': expect.any(Number),
           'cloudflare.d1.rows_read': expect.any(Number),
           'cloudflare.d1.rows_written': expect.any(Number),
-          'sentry.op': 'db.query',
+          [SENTRY_OP]: 'db.query',
           'sentry.origin': 'auto.db.cloudflare.d1',
         },
         description: 'SELECT * FROM users WHERE id = ?',
@@ -112,7 +113,7 @@ it('instruments D1 exec() automatically via env', async ({ signal }) => {
           'db.system.name': 'cloudflare-d1',
           'db.operation.name': 'exec',
           'db.query.text': 'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)',
-          'sentry.op': 'db.query',
+          [SENTRY_OP]: 'db.query',
           'sentry.origin': 'auto.db.cloudflare.d1',
         },
         description: 'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)',
@@ -206,7 +207,7 @@ it('instruments D1 batch() automatically via env', async ({ signal }) => {
           'db.operation.name': 'batch',
           'db.query.text': 'INSERT INTO users (name) VALUES (?)\nINSERT INTO users (name) VALUES (?)',
           'db.operation.batch.size': 2,
-          'sentry.op': 'db.query',
+          [SENTRY_OP]: 'db.query',
           'sentry.origin': 'auto.db.cloudflare.d1',
         },
         description: 'D1 batch',

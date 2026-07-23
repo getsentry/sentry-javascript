@@ -7,14 +7,7 @@
  * guard is replaced with `getActiveSpan()`.
  */
 
-import {
-  getActiveSpan,
-  getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
-  startSpan,
-} from '@sentry/core';
+import { getActiveSpan, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, startSpan } from '@sentry/core';
 import type {
   LifecycleMethod,
   PatchableExtMethod,
@@ -27,7 +20,7 @@ import type {
   ServerRouteOptions,
 } from './hapi-types';
 // eslint-disable-next-line typescript/no-deprecated -- TODO(v11): Replace deprecated attributes
-import { HTTP_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { HTTP_METHOD, HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { AttributeNames, handlerPatched, HapiLayerType, HapiLifecycleMethodNames } from './hapi-types';
 
 type SpanAttributes = Record<string, string | undefined>;
@@ -53,7 +46,7 @@ function setHttpServerSpanRouteAttribute(route: string): void {
   if (!rootSpan) {
     return;
   }
-  if (spanToJSON(rootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'http.server') {
+  if (spanToJSON(rootSpan).data[SENTRY_OP] !== 'http.server') {
     return;
   }
   rootSpan.setAttribute(HTTP_ROUTE, route);

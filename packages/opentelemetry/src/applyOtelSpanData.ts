@@ -1,11 +1,10 @@
 import { SpanKind } from '@opentelemetry/api';
-import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
+import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE, SENTRY_OP } from '@sentry/conventions/attributes';
 import {
   addNonEnumerableProperty,
   getClient,
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanShouldInferOtelSource,
   spanSourceWasExplicitlySet,
@@ -21,7 +20,7 @@ type SentrySpanWithOtelKind = Span & { kind?: SpanKind };
 
 /**
  * Backfill a native Sentry span with the data the OpenTelemetry SDK pipeline would otherwise derive
- * from OTel semantic attributes: `sentry.op`, `sentry.source`, the span name, `otel.kind`, and status.
+ * from OTel semantic attributes: SENTRY_OP, `sentry.source`, the span name, `otel.kind`, and status.
  *
  * On the OTel SDK provider this happens in the `SentrySpanProcessor`/`SentrySpanExporter` while
  * converting `ReadableSpan`s to Sentry payloads (via `parseSpanDescription` + `mapStatus`).
@@ -50,8 +49,8 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
     span.setAttribute('otel.kind', SpanKind[kind]);
   }
 
-  if (inferred.op && attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === undefined) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, inferred.op);
+  if (inferred.op && attributes[SENTRY_OP] === undefined) {
+    span.setAttribute(SENTRY_OP, inferred.op);
   }
 
   // Don't apply 'url' source at creation time, only at span end (finalizeStatus).

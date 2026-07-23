@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -12,8 +13,8 @@ describe('http.client span with streaming enabled', () => {
         .expect({
           span: span => {
             const httpClientSpan = span.items.find(item =>
-              item.attributes['sentry.op']
-                ? item.attributes['sentry.op'].type === 'string' && item.attributes['sentry.op'].value === 'http.client'
+              item.attributes[SENTRY_OP]
+                ? item.attributes[SENTRY_OP].type === 'string' && item.attributes[SENTRY_OP].value === 'http.client'
                 : false,
             );
 

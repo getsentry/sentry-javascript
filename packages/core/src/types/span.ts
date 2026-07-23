@@ -1,3 +1,4 @@
+import type { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Attributes, RawAttributes } from '../attributes';
 import type { SpanLink, SpanLinkJSON } from './link';
 import type { Measurements } from './measurement';
@@ -26,7 +27,7 @@ export type SpanAttributeValue =
 
 export type SpanAttributes = Partial<{
   'sentry.origin': string;
-  'sentry.op': string;
+  [SENTRY_OP]: string;
   'sentry.source': TransactionSource;
   'sentry.sample_rate': number;
 }> &

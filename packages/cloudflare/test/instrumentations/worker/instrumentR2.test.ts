@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { R2Bucket, R2MultipartUpload } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -86,7 +87,7 @@ describe('instrumentR2Bucket', () => {
             'cloudflare.r2.operation': 'GetObject',
             'cloudflare.r2.bucket': 'MY_BUCKET',
             'cloudflare.r2.request.key': 'my-file.txt',
-            'sentry.op': 'object.get',
+            [SENTRY_OP]: 'object.get',
             'sentry.origin': 'auto.faas.cloudflare.r2',
           }),
         }),

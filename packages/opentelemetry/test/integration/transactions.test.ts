@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { SpanContext } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
 import { TraceState } from '../../src/utils/TraceState';
@@ -99,7 +100,7 @@ describe('Integration | Transactions', () => {
 
     expect(transaction.contexts?.trace).toEqual({
       data: {
-        'sentry.op': 'test op',
+        [SENTRY_OP]: 'test op',
         'sentry.origin': 'auto.test',
         'sentry.source': 'task',
         'sentry.sample_rate': 1,
@@ -251,7 +252,7 @@ describe('Integration | Transactions', () => {
         contexts: expect.objectContaining({
           trace: {
             data: {
-              'sentry.op': 'test op',
+              [SENTRY_OP]: 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
               'test.outer': 'test value',
@@ -289,7 +290,7 @@ describe('Integration | Transactions', () => {
         contexts: expect.objectContaining({
           trace: {
             data: {
-              'sentry.op': 'test op b',
+              [SENTRY_OP]: 'test op b',
               'sentry.origin': 'manual',
               'sentry.source': 'custom',
               'test.outer': 'test value b',
@@ -368,7 +369,7 @@ describe('Integration | Transactions', () => {
         contexts: expect.objectContaining({
           trace: {
             data: {
-              'sentry.op': 'test op',
+              [SENTRY_OP]: 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
             },

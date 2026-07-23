@@ -1,6 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
@@ -25,7 +25,7 @@ it('Workflow steps create transactions with correct attributes', async ({ signal
               origin: 'auto.faas.cloudflare.workflow',
               status: 'ok',
               data: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.step.do',
+                [SENTRY_OP]: 'function.step.do',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
@@ -52,7 +52,7 @@ it('Workflow steps create transactions with correct attributes', async ({ signal
               origin: 'auto.faas.cloudflare.workflow',
               status: 'ok',
               data: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.step.do',
+                [SENTRY_OP]: 'function.step.do',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,

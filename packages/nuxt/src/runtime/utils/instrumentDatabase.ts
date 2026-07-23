@@ -1,9 +1,9 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import {
   addBreadcrumb,
   captureException,
   debug,
   flushIfServerless,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   type Span,
   SPAN_STATUS_ERROR,
@@ -225,7 +225,7 @@ function createStartSpanOptions(query: string, data: DatabaseSpanData): StartSpa
     attributes: {
       'db.query.text': query,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.query',
+      [SENTRY_OP]: 'db.query',
       ...data,
     },
   };

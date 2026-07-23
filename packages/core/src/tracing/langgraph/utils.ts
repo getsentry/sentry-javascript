@@ -1,5 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span, SpanAttributes } from '../../types/span';
 import {
@@ -78,7 +79,7 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
       apply(target, thisArg, args: unknown[]): unknown {
         const spanAttributes: SpanAttributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
+          [SENTRY_OP]: GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
           [GEN_AI_TOOL_NAME_ATTRIBUTE]: toolName,
           [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',

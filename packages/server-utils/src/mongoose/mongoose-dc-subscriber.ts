@@ -8,14 +8,9 @@ import {
   DB_SYSTEM_NAME,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
-import {
-  isObjectLike,
-  debug,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-} from '@sentry/core';
+import { isObjectLike, debug, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
@@ -125,7 +120,7 @@ function setupChannel(tracingChannel: MongooseTracingChannelFactory, channelName
       name: collection ? `mongoose.${collection}.${data.operation}` : `mongoose.${data.operation}`,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+        [SENTRY_OP]: 'db',
         [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MONGODB,
         [DB_OPERATION_NAME]: data.operation,
         [DB_COLLECTION_NAME]: collection ?? undefined,

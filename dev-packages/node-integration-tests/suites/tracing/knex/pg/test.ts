@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { describe, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../../utils';
 import { createEsmAndCjsTests, describeWithDockerCompose } from '../../../../utils/runner';
@@ -19,7 +20,7 @@ describe('knex auto instrumentation', () => {
                 'db.system': 'postgresql',
                 'db.name': 'tests',
                 'sentry.origin': ORIGIN,
-                'sentry.op': 'db',
+                [SENTRY_OP]: 'db',
                 'net.peer.name': 'localhost',
                 'net.peer.port': 5445,
               }),
@@ -34,7 +35,7 @@ describe('knex auto instrumentation', () => {
                 'db.system': 'postgresql',
                 'db.name': 'tests',
                 'sentry.origin': ORIGIN,
-                'sentry.op': 'db',
+                [SENTRY_OP]: 'db',
                 'net.peer.name': 'localhost',
                 'net.peer.port': 5445,
               }),
@@ -53,7 +54,7 @@ describe('knex auto instrumentation', () => {
                 'db.name': 'tests',
                 'db.statement': 'select * from "User"',
                 'sentry.origin': ORIGIN,
-                'sentry.op': 'db',
+                [SENTRY_OP]: 'db',
               }),
               status: 'ok',
               description: 'select * from "User"',
@@ -69,7 +70,7 @@ describe('knex auto instrumentation', () => {
                 'db.name': 'tests',
                 'db.statement': 'select * from "DoesNotExist"',
                 'sentry.origin': ORIGIN,
-                'sentry.op': 'db',
+                [SENTRY_OP]: 'db',
               }),
               status: 'internal_error',
               description: 'select * from "DoesNotExist"',

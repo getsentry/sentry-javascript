@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { NODE_VERSION, type Event } from '@sentry/node';
 import { afterAll, describe, expect } from 'vitest';
 import {
@@ -59,7 +60,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
             span: container => {
               // Every emitted gen_ai span carries the version-appropriate origin.
               container.items
-                .filter(s => String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .filter(s => String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'))
                 .forEach(s => expect(s.attributes['sentry.origin']?.value).toBe(expectedOrigin));
               expect(container.items).toHaveLength(7);
               const firstInvokeAgentSpan = container.items.find(
@@ -71,7 +72,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(firstInvokeAgentSpan).toBeDefined();
               expect(firstInvokeAgentSpan.name).toBe('invoke_agent');
               expect(firstInvokeAgentSpan.status).toBe('ok');
-              expect(firstInvokeAgentSpan.attributes['sentry.op']?.value).toBe('gen_ai.invoke_agent');
+              expect(firstInvokeAgentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
               expect(firstInvokeAgentSpan.attributes['vercel.ai.operationId']?.value).toBe('ai.generateText');
               expect(firstInvokeAgentSpan.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value).toBe(
                 '[{"role":"user","content":"Where is the first span?"}]',
@@ -90,7 +91,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(firstGenerateContentSpan).toBeDefined();
               expect(firstGenerateContentSpan.name).toBe('generate_content mock-model-id');
               expect(firstGenerateContentSpan.status).toBe('ok');
-              expect(firstGenerateContentSpan.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(firstGenerateContentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.generate_content');
               expect(firstGenerateContentSpan.attributes['vercel.ai.operationId']?.value).toBe(
                 'ai.generateText.doGenerate',
               );
@@ -108,7 +109,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(secondInvokeAgentSpan).toBeDefined();
               expect(secondInvokeAgentSpan.name).toBe('invoke_agent');
               expect(secondInvokeAgentSpan.status).toBe('ok');
-              expect(secondInvokeAgentSpan.attributes['sentry.op']?.value).toBe('gen_ai.invoke_agent');
+              expect(secondInvokeAgentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
 
               const secondGenerateContentSpan = container.items.find(
                 span =>
@@ -120,7 +121,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(secondGenerateContentSpan).toBeDefined();
               expect(secondGenerateContentSpan.name).toBe('generate_content mock-model-id');
               expect(secondGenerateContentSpan.status).toBe('ok');
-              expect(secondGenerateContentSpan.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(secondGenerateContentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.generate_content');
 
               const toolInvokeAgentSpan = container.items.find(
                 span =>
@@ -143,7 +144,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(toolGenerateContentSpan).toBeDefined();
               expect(toolGenerateContentSpan.name).toBe('generate_content mock-model-id');
               expect(toolGenerateContentSpan.status).toBe('ok');
-              expect(toolGenerateContentSpan.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(toolGenerateContentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.generate_content');
               expect(toolGenerateContentSpan.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toBeDefined();
               expect(toolGenerateContentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(15);
 
@@ -151,7 +152,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(toolExecutionSpan).toBeDefined();
               expect(toolExecutionSpan.name).toBe('execute_tool getWeather');
               expect(toolExecutionSpan.status).toBe('ok');
-              expect(toolExecutionSpan.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
+              expect(toolExecutionSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
               expect(toolExecutionSpan.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE]?.value).toBe('getWeather');
               expect(toolExecutionSpan.attributes[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE]?.value).toBe(
                 'Get the current weather for a location',
@@ -183,7 +184,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
             span: container => {
               // Every emitted gen_ai span carries the version-appropriate origin.
               container.items
-                .filter(s => String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .filter(s => String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'))
                 .forEach(s => expect(s.attributes['sentry.origin']?.value).toBe(expectedOrigin));
               expect(container.items).toHaveLength(7);
               const firstInvokeAgentSpan = container.items.find(
@@ -196,7 +197,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(firstInvokeAgentSpan).toBeDefined();
               expect(firstInvokeAgentSpan.name).toBe('invoke_agent');
               expect(firstInvokeAgentSpan.status).toBe('ok');
-              expect(firstInvokeAgentSpan.attributes['sentry.op']?.value).toBe('gen_ai.invoke_agent');
+              expect(firstInvokeAgentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
               expect(firstInvokeAgentSpan.attributes['vercel.ai.operationId']?.value).toBe('ai.generateText');
               expect(firstInvokeAgentSpan.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
               expect(firstInvokeAgentSpan.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
@@ -215,7 +216,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(firstGenerateContentSpan).toBeDefined();
               expect(firstGenerateContentSpan.name).toBe('generate_content mock-model-id');
               expect(firstGenerateContentSpan.status).toBe('ok');
-              expect(firstGenerateContentSpan.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(firstGenerateContentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.generate_content');
               expect(firstGenerateContentSpan.attributes['vercel.ai.operationId']?.value).toBe(
                 'ai.generateText.doGenerate',
               );
@@ -233,7 +234,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(secondInvokeAgentSpan).toBeDefined();
               expect(secondInvokeAgentSpan.name).toBe('invoke_agent');
               expect(secondInvokeAgentSpan.status).toBe('ok');
-              expect(secondInvokeAgentSpan.attributes['sentry.op']?.value).toBe('gen_ai.invoke_agent');
+              expect(secondInvokeAgentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
               expect(secondInvokeAgentSpan.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value).toBe(
                 '[{"role":"user","content":"Where is the second span?"}]',
               );
@@ -250,7 +251,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(secondGenerateContentSpan).toBeDefined();
               expect(secondGenerateContentSpan.name).toBe('generate_content mock-model-id');
               expect(secondGenerateContentSpan.status).toBe('ok');
-              expect(secondGenerateContentSpan.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(secondGenerateContentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.generate_content');
               expect(secondGenerateContentSpan.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
               expect(secondGenerateContentSpan.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value as string).toContain(
                 'Where is the second span?',
@@ -280,7 +281,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(toolExecutionSpan).toBeDefined();
               expect(toolExecutionSpan.name).toBe('execute_tool getWeather');
               expect(toolExecutionSpan.status).toBe('ok');
-              expect(toolExecutionSpan.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
+              expect(toolExecutionSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
               expect(toolExecutionSpan.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE]?.value).toBe('getWeather');
               expect(toolExecutionSpan.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]?.value).toBe('call-1');
               expect(toolExecutionSpan.attributes[GEN_AI_TOOL_TYPE_ATTRIBUTE]?.value).toBe('function');
@@ -316,25 +317,25 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
             span: container => {
               // Every emitted gen_ai span carries the version-appropriate origin.
               container.items
-                .filter(s => String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .filter(s => String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'))
                 .forEach(s => expect(s.attributes['sentry.origin']?.value).toBe(expectedOrigin));
               expect(container.items).toHaveLength(3);
               const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent')!;
               expect(invokeAgentSpan).toBeDefined();
               expect(invokeAgentSpan.name).toBe('invoke_agent');
-              expect(invokeAgentSpan.attributes['sentry.op']?.value).toBe('gen_ai.invoke_agent');
+              expect(invokeAgentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
 
               const generateContentSpan = container.items.find(span => span.name === 'generate_content mock-model-id')!;
               expect(generateContentSpan).toBeDefined();
               expect(generateContentSpan.name).toBe('generate_content mock-model-id');
               expect(generateContentSpan.status).toBe('ok');
-              expect(generateContentSpan.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(generateContentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.generate_content');
 
               const toolSpan = container.items.find(span => span.name === 'execute_tool getWeather')!;
               expect(toolSpan).toBeDefined();
               expect(toolSpan.name).toBe('execute_tool getWeather');
               expect(toolSpan.status).toBe('error');
-              expect(toolSpan.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
+              expect(toolSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
               expect(toolSpan.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE]?.value).toBe('getWeather');
             },
           })
@@ -381,21 +382,21 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
             span: container => {
               // Every emitted gen_ai span carries the version-appropriate origin.
               container.items
-                .filter(s => String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .filter(s => String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'))
                 .forEach(s => expect(s.attributes['sentry.origin']?.value).toBe(expectedOrigin));
               expect(container.items).toHaveLength(7);
               const invokeAgentSpans = container.items.filter(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent',
               );
               expect(invokeAgentSpans).toHaveLength(3);
 
               const generateContentSpans = container.items.filter(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
               );
               expect(generateContentSpans).toHaveLength(3);
 
               const toolSpan = container.items.find(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.execute_tool',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.execute_tool',
               );
               expect(toolSpan).toBeDefined();
             },
@@ -423,14 +424,14 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
             span: container => {
               // Every emitted gen_ai span carries the version-appropriate origin.
               container.items
-                .filter(s => String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .filter(s => String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'))
                 .forEach(s => expect(s.attributes['sentry.origin']?.value).toBe(expectedOrigin));
               expect(container.items).toHaveLength(4);
               const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent weather_agent')!;
               expect(invokeAgentSpan).toBeDefined();
               expect(invokeAgentSpan.name).toBe('invoke_agent weather_agent');
               expect(invokeAgentSpan.status).toBe('ok');
-              expect(invokeAgentSpan.attributes['sentry.op']?.value).toBe('gen_ai.invoke_agent');
+              expect(invokeAgentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
               expect(invokeAgentSpan.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
 
               const toolCallsGenerateContentSpan = container.items.find(
@@ -439,7 +440,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(toolCallsGenerateContentSpan).toBeDefined();
               expect(toolCallsGenerateContentSpan.name).toBe('generate_content mock-model-id');
               expect(toolCallsGenerateContentSpan.status).toBe('ok');
-              expect(toolCallsGenerateContentSpan.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(toolCallsGenerateContentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.generate_content');
               expect(toolCallsGenerateContentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(10);
               expect(toolCallsGenerateContentSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]?.value).toBe(20);
 
@@ -447,7 +448,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(toolSpan).toBeDefined();
               expect(toolSpan.name).toBe('execute_tool getWeather');
               expect(toolSpan.status).toBe('ok');
-              expect(toolSpan.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
+              expect(toolSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
               expect(toolSpan.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE]?.value).toBe('getWeather');
               expect(toolSpan.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]?.value).toBe('call-1');
               expect(toolSpan.attributes[GEN_AI_TOOL_TYPE_ATTRIBUTE]?.value).toBe('function');
@@ -458,7 +459,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(finalGenerateContentSpan).toBeDefined();
               expect(finalGenerateContentSpan.name).toBe('generate_content mock-model-id');
               expect(finalGenerateContentSpan.status).toBe('ok');
-              expect(finalGenerateContentSpan.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(finalGenerateContentSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.generate_content');
               expect(finalGenerateContentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(15);
               expect(finalGenerateContentSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]?.value).toBe(25);
             },
@@ -486,13 +487,13 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
             span: container => {
               // Every emitted gen_ai span carries the version-appropriate origin.
               container.items
-                .filter(s => String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .filter(s => String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'))
                 .forEach(s => expect(s.attributes['sentry.origin']?.value).toBe(expectedOrigin));
               const invokeAgents = container.items.filter(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent',
               );
               const generateContents = container.items.filter(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
               );
 
               // Two concurrent operations -> two invoke_agent + two generate_content spans.
@@ -536,10 +537,10 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
           .expect({
             span: container => {
               const invokeAgents = container.items.filter(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent',
               );
               const generateContents = container.items.filter(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
               );
 
               // Two concurrent operations -> two invoke_agent + two generate_content spans.
@@ -581,16 +582,16 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
             span: container => {
               // Every emitted gen_ai span carries the version-appropriate origin.
               container.items
-                .filter(s => String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .filter(s => String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'))
                 .forEach(s => expect(s.attributes['sentry.origin']?.value).toBe(expectedOrigin));
               const invokeAgent = container.items.find(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent',
               )!;
               expect(invokeAgent).toBeDefined();
               expect(invokeAgent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamText');
 
               const generateContent = container.items.find(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
               )!;
               expect(generateContent).toBeDefined();
               expect(generateContent.parent_span_id).toBe(invokeAgent.span_id);
@@ -639,7 +640,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
           .expect({
             span: container => {
               const invokeAgent = container.items.find(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent',
               )!;
               expect(invokeAgent).toBeDefined();
               expect(invokeAgent.status).toBe('ok');
@@ -650,7 +651,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]?.value).toBe(70);
 
               const generateContents = container.items.filter(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
               );
               expect(generateContents).toHaveLength(2);
               generateContents.forEach(span => expect(span.parent_span_id).toBe(invokeAgent.span_id));
@@ -705,7 +706,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
           .expect({
             span: container => {
               const invokeAgent = container.items.find(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent',
               )!;
               expect(invokeAgent).toBeDefined();
               expect(invokeAgent.status).toBe('ok');
@@ -713,7 +714,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]?.value).toBe(30);
 
               const generateContent = container.items.find(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
               )!;
               expect(generateContent).toBeDefined();
               expect(generateContent.parent_span_id).toBe(invokeAgent.span_id);
@@ -750,18 +751,18 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
             span: container => {
               // Every emitted gen_ai span carries the version-appropriate origin.
               container.items
-                .filter(s => String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .filter(s => String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'))
                 .forEach(s => expect(s.attributes['sentry.origin']?.value).toBe(expectedOrigin));
               // The model throws, so the operation rejects. The spans must still be *finished* (and
               // therefore present in the transaction) with an error status — not left open.
               const invokeAgent = container.items.find(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent',
               )!;
               expect(invokeAgent).toBeDefined();
               expect(invokeAgent.status).toBe('error');
 
               const generateContent = container.items.find(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
               )!;
               expect(generateContent).toBeDefined();
               expect(generateContent.status).toBe('error');
@@ -790,10 +791,10 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
             span: container => {
               // Every emitted gen_ai span carries the version-appropriate origin.
               container.items
-                .filter(s => String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .filter(s => String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'))
                 .forEach(s => expect(s.attributes['sentry.origin']?.value).toBe(expectedOrigin));
               const generateContent = container.items.find(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
               )!;
               expect(generateContent).toBeDefined();
 
@@ -805,7 +806,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(generateContent.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]?.value).toBe('resp_abc123');
 
               const invokeAgent = container.items.find(
-                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent',
               )!;
               expect(invokeAgent).toBeDefined();
 
@@ -847,7 +848,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
             span: container => {
               // Every emitted gen_ai span carries the version-appropriate origin.
               container.items
-                .filter(s => String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .filter(s => String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'))
                 .forEach(s => expect(s.attributes['sentry.origin']?.value).toBe(expectedOrigin));
 
               const embedSpan = container.items.find(
@@ -856,7 +857,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(embedSpan).toBeDefined();
               expect(embedSpan.name).toBe('embeddings mock-model-id');
               expect(embedSpan.status).toBe('ok');
-              expect(embedSpan.attributes['sentry.op']?.value).toBe('gen_ai.embeddings');
+              expect(embedSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.embeddings');
               expect(embedSpan.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
               expect(embedSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(10);
 
@@ -867,7 +868,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
                 expect(embedManySpan).toBeDefined();
                 expect(embedManySpan!.name).toBe('embeddings mock-model-id');
                 expect(embedManySpan!.status).toBe('ok');
-                expect(embedManySpan!.attributes['sentry.op']?.value).toBe('gen_ai.embeddings');
+                expect(embedManySpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.embeddings');
                 expect(embedManySpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(20);
               } else {
                 expect(embedManySpan).toBeUndefined();
@@ -901,13 +902,13 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
             span: container => {
               // Every emitted gen_ai span carries the version-appropriate origin.
               container.items
-                .filter(s => String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'))
+                .filter(s => String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'))
                 .forEach(s => expect(s.attributes['sentry.origin']?.value).toBe(expectedOrigin));
 
               const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent');
               expect(invokeAgentSpan).toBeDefined();
               expect(invokeAgentSpan!.status).toBe('ok');
-              expect(invokeAgentSpan!.attributes['sentry.op']?.value).toBe('gen_ai.invoke_agent');
+              expect(invokeAgentSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
               expect(invokeAgentSpan!.attributes['vercel.ai.operationId']?.value).toBe('ai.generateObject');
               expect(invokeAgentSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]?.value).toBe('mock-model-id');
               expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value).toBe(15);
@@ -917,7 +918,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const generateContentSpan = container.items.find(span => span.name === 'generate_content mock-model-id');
               expect(generateContentSpan).toBeDefined();
               expect(generateContentSpan!.status).toBe('ok');
-              expect(generateContentSpan!.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
+              expect(generateContentSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.generate_content');
               expect(generateContentSpan!.attributes['vercel.ai.operationId']?.value).toBe(
                 'ai.generateObject.doGenerate',
               );

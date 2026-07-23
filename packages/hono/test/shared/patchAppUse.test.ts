@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -42,7 +43,7 @@ describe('patchAppUse (middleware spans)', () => {
         op: 'middleware.hono',
         onlyIfParent: true,
         attributes: expect.objectContaining({
-          'sentry.op': 'middleware.hono',
+          [SENTRY_OP]: 'middleware.hono',
           'sentry.origin': 'auto.middleware.hono',
         }),
       }),
@@ -229,7 +230,7 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
         onlyIfParent: true,
         parentSpan: undefined,
         attributes: {
-          'sentry.op': 'middleware.hono',
+          [SENTRY_OP]: 'middleware.hono',
           'sentry.origin': 'auto.middleware.hono',
         },
       });

@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -18,7 +19,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           op: 'db',
           origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.op': 'db',
+            [SENTRY_OP]: 'db',
             'db.system': 'redis',
             'net.peer.name': 'localhost',
             'net.peer.port': 6383,
@@ -30,7 +31,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           op: 'db',
           origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.op': 'db',
+            [SENTRY_OP]: 'db',
             'db.system': 'redis',
             'net.peer.name': 'localhost',
             'net.peer.port': 6383,

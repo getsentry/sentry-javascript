@@ -16,7 +16,6 @@ vi.mock('@sentry/core', async () => {
       log: vi.fn(),
     },
     SDK_VERSION: '1.0.0',
-    SEMANTIC_ATTRIBUTE_SENTRY_OP: 'sentry.op',
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
     SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
     startSpan: vi.fn((opts, fn) => fn({})),

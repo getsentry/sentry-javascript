@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import {
   captureException,
@@ -6,7 +7,6 @@ import {
   getHttpSpanDetailsFromUrlObject,
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
   startSpanManual,
   winterCGHeadersToDict,
@@ -85,7 +85,7 @@ export function wrapRequestHandler(
       ),
     );
 
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
+    attributes[SENTRY_OP] = 'http.server';
 
     addCloudResourceContext(isolationScope);
     addRequest(isolationScope, request);

@@ -1,7 +1,8 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
+
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
@@ -47,7 +48,7 @@ sentryTest(
             value: 'https://sentry-test-site.example/path/to/script.js',
           },
           'browser.script.invoker_type': { type: 'string', value: 'classic-script' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'ui.long-animation-frame' },
+          [SENTRY_OP]: { type: 'string', value: 'ui.long-animation-frame' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.ui.browser.metrics' },
         }),
       }),
@@ -96,7 +97,7 @@ sentryTest('captures long animation frame span for event listener.', async ({ br
         'browser.script.invoker': { type: 'string', value: 'BUTTON#clickme.onclick' },
         'browser.script.invoker_type': { type: 'string', value: 'event-listener' },
         'code.filepath': { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'ui.long-animation-frame' },
+        [SENTRY_OP]: { type: 'string', value: 'ui.long-animation-frame' },
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.ui.browser.metrics' },
       }),
     }),

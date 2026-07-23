@@ -5,12 +5,11 @@ import { BrowserClient } from '@sentry/browser';
 import {
   createTransport,
   getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '@sentry/core';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { URL_TEMPLATE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { render } from '@testing-library/react';
 import * as React from 'react';
 import { act } from 'react';
@@ -107,7 +106,7 @@ describe('browserTracingReactRouterV3', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [URL_TEMPLATE]: '/',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
       },
     });
   });
@@ -144,7 +143,7 @@ describe('browserTracingReactRouterV3', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [URL_TEMPLATE]: '/about',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_OP]: 'navigation',
       },
     });
 
@@ -158,7 +157,7 @@ describe('browserTracingReactRouterV3', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [URL_TEMPLATE]: '/features',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_OP]: 'navigation',
       },
     });
   });
@@ -200,7 +199,7 @@ describe('browserTracingReactRouterV3', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [URL_TEMPLATE]: '/users/:userid',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_OP]: 'navigation',
       },
     });
     expect(getCurrentScope().getScopeData().transactionName).toEqual('/users/:userid');
@@ -216,7 +215,7 @@ describe('browserTracingReactRouterV3', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [URL_TEMPLATE]: '/teams/:teamId/details',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_OP]: 'navigation',
       },
     });
     expect(getCurrentScope().getScopeData().transactionName).toEqual('/teams/:teamId/details');

@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { SpanJSON } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -85,7 +86,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
 
               expectPrismaSpanToIncludeSpanWith({
                 data: {
-                  'sentry.op': 'db',
+                  [SENTRY_OP]: 'db',
                   'db.query.text':
                     'SELECT "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" FROM "public"."User" WHERE 1=1 OFFSET $1',
                   'db.system': 'postgresql',
@@ -97,7 +98,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
 
               expectPrismaSpanToIncludeSpanWith({
                 data: {
-                  'sentry.op': 'db',
+                  [SENTRY_OP]: 'db',
                   'db.query.text': 'DELETE FROM "public"."User" WHERE "public"."User"."email"::text LIKE $1',
                   'db.system': 'postgresql',
                   'otel.kind': 'CLIENT',

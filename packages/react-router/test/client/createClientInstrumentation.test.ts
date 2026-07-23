@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import * as browser from '@sentry/browser';
 import * as core from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,7 +20,6 @@ vi.mock('@sentry/core', async () => {
     spanToJSON: vi.fn(),
     updateSpanName: vi.fn(),
     GLOBAL_OBJ: globalThis,
-    SEMANTIC_ATTRIBUTE_SENTRY_OP: 'sentry.op',
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
     SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
   };
@@ -110,7 +110,7 @@ describe('createSentryClientInstrumentation', () => {
         name: '/about',
         attributes: expect.objectContaining({
           'sentry.source': 'url',
-          'sentry.op': 'navigation',
+          [SENTRY_OP]: 'navigation',
           'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
           'navigation.type': 'router.navigate',
         }),
@@ -180,7 +180,7 @@ describe('createSentryClientInstrumentation', () => {
         name: '/items/123',
         attributes: expect.objectContaining({
           'sentry.source': 'url',
-          'sentry.op': 'navigation',
+          [SENTRY_OP]: 'navigation',
           'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
           'navigation.type': 'router.navigate',
         }),
@@ -213,7 +213,7 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'Fetcher fetcher-1',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.fetcher',
+          [SENTRY_OP]: 'function.react_router.fetcher',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -252,7 +252,7 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_loader',
+          [SENTRY_OP]: 'function.react_router.client_loader',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -289,7 +289,7 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_action',
+          [SENTRY_OP]: 'function.react_router.client_action',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -436,7 +436,7 @@ describe('createSentryClientInstrumentation', () => {
             name: '/current-page',
             attributes: expect.objectContaining({
               'sentry.source': 'url',
-              'sentry.op': 'navigation',
+              [SENTRY_OP]: 'navigation',
               'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
               'navigation.type': expectedType,
             }),
@@ -603,7 +603,7 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'middleware test-route',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_middleware',
+          [SENTRY_OP]: 'function.react_router.client_middleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
           'react_router.route.id': 'test-route',
           'http.route': '/users/:id',
@@ -636,7 +636,7 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'Lazy Route Load',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_lazy',
+          [SENTRY_OP]: 'function.react_router.client_lazy',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -702,7 +702,7 @@ describe('createSentryClientInstrumentation', () => {
           name: '/current-page',
           attributes: expect.objectContaining({
             'sentry.source': 'url',
-            'sentry.op': 'navigation',
+            [SENTRY_OP]: 'navigation',
             'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
             'navigation.type': 'browser.popstate',
           }),

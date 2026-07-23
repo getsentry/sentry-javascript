@@ -5,7 +5,6 @@ import {
   isObjectLike,
   isURLObjectRelative,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_KIND,
   startInactiveSpan,
@@ -20,6 +19,7 @@ import {
   HTTP_URL,
   URL_FULL,
   URL_PATH,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { remixChannels } from '@sentry/server-utils/orchestrion';
 
@@ -137,7 +137,7 @@ function subscribeRequestHandler(): void {
         kind: SPAN_KIND.SERVER,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          [SENTRY_OP]: 'http.server',
           [CODE_FUNCTION]: 'requestHandler',
           ...getRequestAttributes(data.arguments[0]),
         },
@@ -171,7 +171,7 @@ function subscribeCallRouteLoader(): void {
         name: `LOADER ${params.routeId}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'loader.remix',
+          [SENTRY_OP]: 'loader.remix',
           [CODE_FUNCTION]: 'loader',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),
@@ -205,7 +205,7 @@ function subscribeCallRouteAction(actionFormDataAttributes: Record<string, strin
         name: `ACTION ${params.routeId}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'action.remix',
+          [SENTRY_OP]: 'action.remix',
           [CODE_FUNCTION]: 'action',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),

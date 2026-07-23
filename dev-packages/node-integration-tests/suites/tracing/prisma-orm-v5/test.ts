@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -77,7 +78,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
           'db.statement': expect.stringContaining('INSERT INTO'),
           'db.system': 'postgresql',
           'otel.kind': 'CLIENT',
-          'sentry.op': 'db',
+          [SENTRY_OP]: 'db',
           'sentry.origin': 'auto.db.otel.prisma',
         },
         op: 'db',
@@ -89,7 +90,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
           'db.statement': expect.stringContaining('SELECT'),
           'db.system': 'postgresql',
           'otel.kind': 'CLIENT',
-          'sentry.op': 'db',
+          [SENTRY_OP]: 'db',
           'sentry.origin': 'auto.db.otel.prisma',
         },
         op: 'db',
@@ -101,7 +102,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
           'db.statement': expect.stringContaining('DELETE'),
           'db.system': 'postgresql',
           'otel.kind': 'CLIENT',
-          'sentry.op': 'db',
+          [SENTRY_OP]: 'db',
           'sentry.origin': 'auto.db.otel.prisma',
         },
         op: 'db',

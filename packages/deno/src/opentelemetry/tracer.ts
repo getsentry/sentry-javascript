@@ -1,11 +1,7 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Context, Span, SpanOptions, Tracer, TracerProvider } from '@opentelemetry/api';
 import { SpanKind, trace } from '@opentelemetry/api';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-  startSpanManual,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, startSpanManual } from '@sentry/core';
 
 /**
  * Set up a mock OTEL tracer to allow inter-op with OpenTelemetry emitted spans.
@@ -43,7 +39,7 @@ class SentryDenoTracer implements Tracer {
       attributes: {
         ...options?.attributes,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
-        ...(op ? { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op } : {}),
+        ...(op ? { [SENTRY_OP]: op } : {}),
         'sentry.deno_tracer': true,
       },
     });
@@ -77,7 +73,7 @@ class SentryDenoTracer implements Tracer {
       attributes: {
         ...opts.attributes,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
-        ...(op ? { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op } : {}),
+        ...(op ? { [SENTRY_OP]: op } : {}),
         'sentry.deno_tracer': true,
       },
     };

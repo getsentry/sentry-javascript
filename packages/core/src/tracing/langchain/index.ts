@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types/span';
@@ -108,7 +109,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           attributes: {
             ...getAgentNameFromMetadata(metadata),
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+            [SENTRY_OP]: 'gen_ai.chat',
           },
         },
         span => {
@@ -154,7 +155,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           attributes: {
             ...getAgentNameFromMetadata(metadata),
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+            [SENTRY_OP]: 'gen_ai.chat',
           },
         },
         span => {
@@ -232,7 +233,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           op: 'gen_ai.invoke_agent',
           attributes: {
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+            [SENTRY_OP]: 'gen_ai.invoke_agent',
           },
         },
         span => {
@@ -307,7 +308,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           op: 'gen_ai.execute_tool',
           attributes: {
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
+            [SENTRY_OP]: 'gen_ai.execute_tool',
           },
         },
         span => {

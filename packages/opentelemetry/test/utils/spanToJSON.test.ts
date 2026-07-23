@@ -1,12 +1,8 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span, SpanOptions } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  spanToJSON,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, spanToJSON } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
@@ -49,7 +45,7 @@ describe('spanToJSON', () => {
       span.setAttributes({
         attr1: 'value1',
         attr2: 2,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
+        [SENTRY_OP]: 'test op',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
       });
 
@@ -67,7 +63,7 @@ describe('spanToJSON', () => {
         data: {
           attr1: 'value1',
           attr2: 2,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
+          [SENTRY_OP]: 'test op',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         },

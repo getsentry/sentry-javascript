@@ -7,13 +7,12 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   startSpan,
 } from '@sentry/core';
 // oxlint-disable-next-line typescript/no-deprecated
-import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_NAME, KOA_TYPE } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_NAME, KOA_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 
@@ -247,7 +246,7 @@ function setHttpServerSpanRouteAttribute(route: string): void {
   if (!rootSpan) {
     return;
   }
-  if (spanToJSON(rootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'http.server') {
+  if (spanToJSON(rootSpan).data[SENTRY_OP] !== 'http.server') {
     return;
   }
   rootSpan.setAttribute(HTTP_ROUTE, route);

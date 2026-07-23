@@ -7,7 +7,6 @@ import {
   getClient,
   getRootSpan,
   GLOBAL_OBJ,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
@@ -24,7 +23,7 @@ import {
   finalizeNavigationSpanFromHydratedRouter,
   updateNavigationSpanUrlFromLocation,
 } from './utils';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { URL_TEMPLATE, SENTRY_OP } from '@sentry/conventions/attributes';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -107,7 +106,7 @@ export function createSentryClientInstrumentation(
               name: pathname,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                [SENTRY_OP]: 'navigation',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                 'navigation.type': 'browser.popstate',
               },
@@ -150,7 +149,7 @@ export function createSentryClientInstrumentation(
                   name: currentPathname,
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                    [SENTRY_OP]: 'navigation',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                     'navigation.type': navigationType,
                   },
@@ -195,7 +194,7 @@ export function createSentryClientInstrumentation(
                 name: toPath,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                  [SENTRY_OP]: 'navigation',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                   'navigation.type': 'router.navigate',
                 },
@@ -221,7 +220,7 @@ export function createSentryClientInstrumentation(
             {
               name: `Fetcher ${info.fetcherKey}`,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.fetcher',
+                [SENTRY_OP]: 'function.react_router.fetcher',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -255,7 +254,7 @@ export function createSentryClientInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.client_loader',
+                [SENTRY_OP]: 'function.react_router.client_loader',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -281,7 +280,7 @@ export function createSentryClientInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.client_action',
+                [SENTRY_OP]: 'function.react_router.client_action',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -314,7 +313,7 @@ export function createSentryClientInstrumentation(
             {
               name: `middleware ${routeId}`,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.client_middleware',
+                [SENTRY_OP]: 'function.react_router.client_middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
                 'http.route': routePattern,
@@ -338,7 +337,7 @@ export function createSentryClientInstrumentation(
             {
               name: 'Lazy Route Load',
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.client_lazy',
+                [SENTRY_OP]: 'function.react_router.client_lazy',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },

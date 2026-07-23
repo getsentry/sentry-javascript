@@ -5,15 +5,15 @@
  * arguments of the injected `parse`/`validate`/`execute` calls rather than graphql's native events.
  */
 
-import { GRAPHQL_DOCUMENT, GRAPHQL_OPERATION_NAME, GRAPHQL_OPERATION_TYPE } from '@sentry/conventions/attributes';
+import {
+  GRAPHQL_DOCUMENT,
+  GRAPHQL_OPERATION_NAME,
+  GRAPHQL_OPERATION_TYPE,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
 import { WEB_SERVER_GRAPHQL_SPAN_OP } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startInactiveSpan,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
 import type { GraphqlDocumentNode } from '../../../graphql/utils';
 import {
   collectGraphqlDocument,
@@ -34,7 +34,7 @@ import type {
 
 const BASE_ATTRIBUTES = {
   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+  [SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
 } as const;
 
 export function startParseSpan(): Span {

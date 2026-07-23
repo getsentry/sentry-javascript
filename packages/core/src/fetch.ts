@@ -1,6 +1,6 @@
-import { HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_URL, URL_FULL, SENTRY_OP } from '@sentry/conventions/attributes';
 import { getClient } from './currentScopes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, spanIsIgnored, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
@@ -389,7 +389,7 @@ function getFetchSpanAttributes(
     type: 'fetch',
     'http.method': method,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+    [SENTRY_OP]: 'http.client',
   };
   if (parsedUrl) {
     if (!isURLObjectRelative(parsedUrl)) {

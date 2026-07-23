@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import {
@@ -43,7 +44,7 @@ describe('SentryTracerProvider', () => {
     expect(spanToJSON(span as Span)).toEqual({
       data: {
         'sentry.origin': 'manual',
-        'sentry.op': 'db',
+        [SENTRY_OP]: 'db',
         'sentry.sample_rate': 1,
         'sentry.source': 'task',
         'db.system.name': 'postgresql',

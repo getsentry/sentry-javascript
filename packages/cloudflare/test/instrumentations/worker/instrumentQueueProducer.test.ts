@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Queue } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -44,7 +45,7 @@ describe('instrumentQueueProducer', () => {
           'messaging.operation.type': 'send',
           'messaging.operation.name': 'send',
           'messaging.message.body.size': 5,
-          'sentry.op': 'queue.publish',
+          [SENTRY_OP]: 'queue.publish',
           'sentry.origin': 'auto.faas.cloudflare.queue',
         },
       });
@@ -117,7 +118,7 @@ describe('instrumentQueueProducer', () => {
           'messaging.operation.name': 'send',
           'messaging.batch.message_count': 2,
           'messaging.message.body.size': 5,
-          'sentry.op': 'queue.publish',
+          [SENTRY_OP]: 'queue.publish',
           'sentry.origin': 'auto.faas.cloudflare.queue',
         },
       });

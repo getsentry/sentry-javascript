@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { context, trace, TraceFlags } from '@opentelemetry/api';
 import type { ErrorEvent, TransactionEvent } from '@sentry/core';
 import { debug, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
@@ -85,7 +86,7 @@ describe('Integration | Transactions', () => {
 
     expect(transaction.contexts?.trace).toEqual({
       data: {
-        'sentry.op': 'test op',
+        [SENTRY_OP]: 'test op',
         'sentry.origin': 'auto.test',
         'sentry.source': 'task',
         'sentry.sample_rate': 1,
@@ -239,7 +240,7 @@ describe('Integration | Transactions', () => {
         contexts: expect.objectContaining({
           trace: {
             data: {
-              'sentry.op': 'test op',
+              [SENTRY_OP]: 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
               'test.outer': 'test value',
@@ -277,7 +278,7 @@ describe('Integration | Transactions', () => {
         contexts: expect.objectContaining({
           trace: {
             data: {
-              'sentry.op': 'test op b',
+              [SENTRY_OP]: 'test op b',
               'sentry.origin': 'manual',
               'sentry.source': 'custom',
               'test.outer': 'test value b',
@@ -489,7 +490,7 @@ describe('Integration | Transactions', () => {
         contexts: expect.objectContaining({
           trace: {
             data: {
-              'sentry.op': 'test op',
+              [SENTRY_OP]: 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
             },

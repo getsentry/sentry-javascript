@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event as SentryEvent, SpanEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -63,7 +64,7 @@ sentryTest('should capture an INP click event span after pageload', async ({ bro
   expect(spanEnvelopeItem).toEqual({
     data: {
       'sentry.exclusive_time': inpValue,
-      'sentry.op': 'ui.interaction.click',
+      [SENTRY_OP]: 'ui.interaction.click',
       'sentry.origin': 'auto.http.browser.inp',
       'sentry.source': 'custom',
       transaction: 'test-url',

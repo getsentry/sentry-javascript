@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
@@ -8,7 +9,6 @@ import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
@@ -134,7 +134,7 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
   const name = cachedInteractionContext?.elementName || htmlTreeAsString(entry.target);
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.inp',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.interaction.${interactionType}`,
+    [SENTRY_OP]: `ui.interaction.${interactionType}`,
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
   };
 

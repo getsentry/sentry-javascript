@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { createCjsTests } from '../../../utils/runner/createEsmAndCjsTests';
@@ -22,7 +23,7 @@ describe('lru-memoizer', () => {
                 trace: expect.objectContaining({
                   op: 'run',
                   data: expect.objectContaining({
-                    'sentry.op': 'run',
+                    [SENTRY_OP]: 'run',
                     'sentry.origin': 'manual',
                     'memoized.context_preserved': true,
                   }),

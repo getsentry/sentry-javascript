@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import type { Event } from '@sentry/core';
 import { createRunner } from '../../../runner';
@@ -12,7 +13,7 @@ it('traces a durable object method', async ({ signal }) => {
             trace: expect.objectContaining({
               op: 'rpc',
               data: expect.objectContaining({
-                'sentry.op': 'rpc',
+                [SENTRY_OP]: 'rpc',
                 'sentry.origin': 'auto.faas.cloudflare.durable_object',
               }),
               origin: 'auto.faas.cloudflare.durable_object',

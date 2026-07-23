@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
@@ -16,7 +17,7 @@ Sentry.startSpan(
     attributes: {
       'http.method': 'GET',
       'http.route': '/route',
-      [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+      [SENTRY_OP]: 'http.server',
       [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
     },
   },

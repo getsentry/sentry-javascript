@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { TransactionEvent } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
@@ -24,7 +25,7 @@ describe('MongoDB auto-instrumentation', () => {
   const SPAN_FIND_MATCHER = expect.objectContaining({
     data: {
       'sentry.origin': origin,
-      'sentry.op': 'db',
+      [SENTRY_OP]: 'db',
       'db.system': 'mongodb',
       'db.name': 'admin',
       'db.mongodb.collection': 'movies',
@@ -43,7 +44,7 @@ describe('MongoDB auto-instrumentation', () => {
   const SPAN_INSERT_MATCHER = expect.objectContaining({
     data: {
       'sentry.origin': origin,
-      'sentry.op': 'db',
+      [SENTRY_OP]: 'db',
       'db.system': 'mongodb',
       'db.name': 'admin',
       'db.mongodb.collection': 'movies',
@@ -62,7 +63,7 @@ describe('MongoDB auto-instrumentation', () => {
   const SPAN_ISMASTER_MATCHER = expect.objectContaining({
     data: {
       'sentry.origin': origin,
-      'sentry.op': 'db',
+      [SENTRY_OP]: 'db',
       'db.system': 'mongodb',
       'db.name': 'admin',
       'db.mongodb.collection': '$cmd',
@@ -83,7 +84,7 @@ describe('MongoDB auto-instrumentation', () => {
   const SPAN_UPDATE_MATCHER = expect.objectContaining({
     data: {
       'sentry.origin': origin,
-      'sentry.op': 'db',
+      [SENTRY_OP]: 'db',
       'db.system': 'mongodb',
       'db.name': 'admin',
       'db.mongodb.collection': 'movies',
@@ -103,7 +104,7 @@ describe('MongoDB auto-instrumentation', () => {
   const SPAN_FIND_ERROR_MATCHER = expect.objectContaining({
     data: expect.objectContaining({
       'sentry.origin': origin,
-      'sentry.op': 'db',
+      [SENTRY_OP]: 'db',
       'db.system': 'mongodb',
       'db.operation': 'find',
       'db.statement': '{"$thisOperatorDoesNotExist":"?"}',
@@ -118,7 +119,7 @@ describe('MongoDB auto-instrumentation', () => {
   const SPAN_ENDSESSIONS_MATCHER = expect.objectContaining({
     data: {
       'sentry.origin': origin,
-      'sentry.op': 'db',
+      [SENTRY_OP]: 'db',
       'db.system': 'mongodb',
       'db.name': 'admin',
       'db.mongodb.collection': '$cmd',

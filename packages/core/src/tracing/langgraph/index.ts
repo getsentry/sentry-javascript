@@ -1,5 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
@@ -53,7 +54,7 @@ export function _INTERNAL_getLangGraphCreateAgentSpanOptions(agentName?: string)
 } {
   const attributes: Record<string, SpanAttributeValue> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
+    [SENTRY_OP]: 'gen_ai.create_agent',
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
   };
 
@@ -158,7 +159,7 @@ export function instrumentCompiledGraphInvoke(
           name: 'invoke_agent',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
+            [SENTRY_OP]: GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
             [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
           },
         },

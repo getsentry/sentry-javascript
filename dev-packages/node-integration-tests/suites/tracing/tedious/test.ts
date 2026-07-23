@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -15,7 +16,7 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
       origin: ORIGIN,
       data: expect.objectContaining({
         'sentry.origin': ORIGIN,
-        'sentry.op': 'db',
+        [SENTRY_OP]: 'db',
         'db.system': 'mssql',
         'db.name': 'master',
         'db.user': 'sa',

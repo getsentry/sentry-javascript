@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { htmlTreeAsString } from '../../src/htmlTreeAsString';
@@ -76,7 +77,7 @@ describe('_emitWebVitalSpan', () => {
       name: 'Test Vital',
       attributes: {
         'sentry.origin': 'auto.http.browser.lcp',
-        'sentry.op': 'ui.webvital.lcp',
+        [SENTRY_OP]: 'ui.webvital.lcp',
         'sentry.exclusive_time': 0,
         'browser.web_vital.lcp.value': 100,
         'sentry.transaction': 'test-transaction',
@@ -97,7 +98,7 @@ describe('_emitWebVitalSpan', () => {
   it('includes pageload span id when parentSpan is a pageload span', () => {
     const mockPageloadSpan = createMockPageloadSpan('abc123');
     vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
-      attributes: { 'sentry.op': 'pageload' },
+      attributes: { [SENTRY_OP]: 'pageload' },
     } as any);
 
     _emitWebVitalSpan({
@@ -123,7 +124,7 @@ describe('_emitWebVitalSpan', () => {
   it('does not include pageload span id when parentSpan is not a pageload span', () => {
     const mockNonPageloadSpan = createMockPageloadSpan('xyz789');
     vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
-      attributes: { 'sentry.op': 'ui.interaction.click' },
+      attributes: { [SENTRY_OP]: 'ui.interaction.click' },
     } as any);
 
     _emitWebVitalSpan({
@@ -218,7 +219,7 @@ describe('_sendLcpSpan', () => {
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
-      attributes: { 'sentry.op': 'pageload' },
+      attributes: { [SENTRY_OP]: 'pageload' },
     } as any);
   });
 
@@ -246,7 +247,7 @@ describe('_sendLcpSpan', () => {
         name: '<img>',
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.browser.lcp',
-          'sentry.op': 'ui.webvital.lcp',
+          [SENTRY_OP]: 'ui.webvital.lcp',
           'sentry.exclusive_time': 0,
           'sentry.pageload.span_id': 'pageload-123',
           'browser.web_vital.lcp.element': '<img>',
@@ -305,7 +306,7 @@ describe('_sendClsSpan', () => {
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
-      attributes: { 'sentry.op': 'pageload' },
+      attributes: { [SENTRY_OP]: 'pageload' },
     } as any);
   });
 
@@ -344,7 +345,7 @@ describe('_sendClsSpan', () => {
         name: '<div>',
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.browser.cls',
-          'sentry.op': 'ui.webvital.cls',
+          [SENTRY_OP]: 'ui.webvital.cls',
           'sentry.pageload.span_id': 'pageload-789',
           'browser.web_vital.cls.source.1': '<div>',
           'browser.web_vital.cls.source.2': '<span>',
@@ -414,7 +415,7 @@ describe('_sendInpSpan', () => {
         startTime: 1.5,
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.browser.inp',
-          'sentry.op': 'ui.interaction.click',
+          [SENTRY_OP]: 'ui.interaction.click',
           'sentry.exclusive_time': 120,
           'sentry.transaction': 'test-route',
           'sentry.segment.name': 'test-route',
@@ -442,7 +443,7 @@ describe('_sendInpSpan', () => {
     expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          'sentry.op': 'ui.interaction.press',
+          [SENTRY_OP]: 'ui.interaction.press',
         }),
       }),
     );
@@ -452,7 +453,7 @@ describe('_sendInpSpan', () => {
     const mockRootSpan = createMockPageloadSpan('span-42');
     vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
       name: 'cached-route',
-      attributes: { 'sentry.op': 'navigation' },
+      attributes: { [SENTRY_OP]: 'navigation' },
     } as any);
     vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue({
       elementName: 'body > CachedButton',

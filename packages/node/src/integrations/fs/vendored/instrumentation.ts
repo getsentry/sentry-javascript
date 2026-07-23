@@ -12,9 +12,9 @@
  * - Completely reworked to no longer reference OpenTelemetry.
  */
 
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   getActiveSpan,
@@ -97,7 +97,7 @@ function getSpanAttributes(
   config: FsInstrumentationConfig,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: SPAN_OP,
+    [SENTRY_OP]: SPAN_OP,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SPAN_ORIGIN,
   };
 

@@ -32,16 +32,12 @@ import { recordRequestSession } from './record-request-session';
 import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
 import { continueTrace } from '../../tracing/trace';
 import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR, startSpanManual } from '../../tracing';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
 import { SPAN_KIND } from '../../spanKind';
 import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
-import { HTTP_URL, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_URL, URL_FULL, URL_PATH, SENTRY_OP } from '@sentry/conventions/attributes';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -285,7 +281,7 @@ function buildServerSpanWrap(
           kind: SPAN_KIND.SERVER,
           attributes: {
             // Sentry-specific attributes
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+            [SENTRY_OP]: 'http.server',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
             // Set http.route to the URL path as a best-effort route name.

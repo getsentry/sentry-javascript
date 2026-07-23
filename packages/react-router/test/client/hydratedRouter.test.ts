@@ -15,7 +15,6 @@ vi.mock('@sentry/core', async () => {
     debug: {
       warn: vi.fn(),
     },
-    SEMANTIC_ATTRIBUTE_SENTRY_OP: 'op',
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'origin',
     SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'source',
     GLOBAL_OBJ: globalThis,

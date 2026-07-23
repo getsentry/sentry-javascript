@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Page } from '@playwright/test';
 import type { SerializedStreamedSpan, StreamedSpanEnvelope } from '@sentry/core';
 import { properFullEnvelopeParser } from './helpers';
@@ -125,7 +126,7 @@ export async function observeStreamedSpan(
 }
 
 export function getSpanOp(span: SerializedStreamedSpan): string | undefined {
-  return span.attributes['sentry.op']?.type === 'string' ? span.attributes['sentry.op']?.value : undefined;
+  return span.attributes[SENTRY_OP]?.type === 'string' ? span.attributes[SENTRY_OP]?.value : undefined;
 }
 
 export function getSpansFromEnvelope(envelope: StreamedSpanEnvelope): SerializedStreamedSpan[] {

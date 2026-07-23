@@ -1,5 +1,5 @@
 import * as otelApi from '@opentelemetry/api';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { URL_FULL, URL_PATH, SENTRY_OP } from '@sentry/conventions/attributes';
 import * as core from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -19,7 +19,6 @@ vi.mock('@sentry/core', async () => {
     getRootSpan: vi.fn(),
     updateSpanName: vi.fn(),
     GLOBAL_OBJ: globalThis,
-    SEMANTIC_ATTRIBUTE_SENTRY_OP: 'sentry.op',
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
     SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
   };
@@ -114,7 +113,7 @@ describe('createSentryServerInstrumentation', () => {
     // Should update the root span name and attributes
     expect(core.updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /test-path');
     expect(mockSetAttributes).toHaveBeenCalledWith({
-      'sentry.op': 'http.server',
+      [SENTRY_OP]: 'http.server',
       'sentry.origin': 'auto.http.react_router.instrumentation_api',
       'sentry.source': 'url',
       [URL_FULL]: 'http://example.com/test-path',
@@ -146,7 +145,7 @@ describe('createSentryServerInstrumentation', () => {
         name: 'GET /api/users',
         forceTransaction: true,
         attributes: expect.objectContaining({
-          'sentry.op': 'http.server',
+          [SENTRY_OP]: 'http.server',
           'sentry.origin': 'auto.http.react_router.instrumentation_api',
           'sentry.source': 'url',
           'http.request.method': 'GET',
@@ -284,7 +283,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.loader',
+          [SENTRY_OP]: 'function.react_router.loader',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -324,7 +323,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.action',
+          [SENTRY_OP]: 'function.react_router.action',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -381,7 +380,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: 'middleware test-route',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.middleware',
+          [SENTRY_OP]: 'function.react_router.middleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
           'react_router.route.id': 'test-route',
           'http.route': '/users/:id',
@@ -412,7 +411,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: 'middleware authMiddleware',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.middleware',
+          [SENTRY_OP]: 'function.react_router.middleware',
           'react_router.route.id': 'routes/protected',
           'http.route': '/protected',
           'react_router.middleware.name': 'authMiddleware',
@@ -472,7 +471,7 @@ describe('createSentryServerInstrumentation', () => {
 
     // Filter to only middleware spans
     const middlewareSpans = startSpanCalls.filter(
-      opts => opts.attributes?.['sentry.op'] === 'function.react_router.middleware',
+      opts => opts.attributes?.[SENTRY_OP] === 'function.react_router.middleware',
     );
 
     expect(middlewareSpans).toHaveLength(3);
@@ -504,7 +503,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: 'Lazy Route Load',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.lazy',
+          [SENTRY_OP]: 'function.react_router.lazy',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),

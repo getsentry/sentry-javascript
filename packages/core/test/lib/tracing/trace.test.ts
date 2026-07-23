@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getCapturedScopesOnSpan,
@@ -7,7 +8,6 @@ import {
   getMainCarrier,
   getTraceData,
   Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setAsyncContextStrategy,
@@ -115,7 +115,7 @@ describe('startSpan', () => {
       });
       try {
         await startSpan({ name: 'GET users/[id]' }, span => {
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+          span.setAttribute(SENTRY_OP, 'http.server');
           return callback();
         });
       } catch {
@@ -161,7 +161,7 @@ describe('startSpan', () => {
       try {
         await startSpan({ name: 'GET users/[id]' }, () => {
           return startSpan({ name: 'SELECT * from users' }, childSpan => {
-            childSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'db.query');
+            childSpan.setAttribute(SENTRY_OP, 'db.query');
             return callback();
           });
         });

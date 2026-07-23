@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { describe, expect, it, vi } from 'vitest';
 import {
   getOutgoingRequestSpanData,
@@ -51,7 +52,7 @@ describe('getOutgoingRequestSpanData', () => {
 
   it('sets sentry.op to "http.client"', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest());
-    expect(result.attributes!['sentry.op']).toBe('http.client');
+    expect(result.attributes![SENTRY_OP]).toBe('http.client');
   });
 
   it('sets otel.kind to "CLIENT"', () => {

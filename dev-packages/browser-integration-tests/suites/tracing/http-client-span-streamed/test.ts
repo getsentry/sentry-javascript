@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../utils/helpers';
@@ -26,6 +27,6 @@ sentryTest(
 
     expect(span.name).toMatch(/^GET /);
     expect(span.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser' });
-    expect(span.attributes['sentry.op']).toEqual({ type: 'string', value: 'http.client' });
+    expect(span.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'http.client' });
   },
 );

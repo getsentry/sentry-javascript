@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -21,7 +22,7 @@ describe('fastify auto-instrumentation', () => {
                   origin: 'auto.http.otel.fastify',
                   data: expect.objectContaining({
                     'fastify.type': 'hook',
-                    'sentry.op': 'hook.fastify',
+                    [SENTRY_OP]: 'hook.fastify',
                     'sentry.origin': 'auto.http.otel.fastify',
                   }),
                 }),
@@ -29,7 +30,7 @@ describe('fastify auto-instrumentation', () => {
                   op: 'request_handler.fastify',
                   origin: 'auto.http.otel.fastify',
                   data: expect.objectContaining({
-                    'sentry.op': 'request_handler.fastify',
+                    [SENTRY_OP]: 'request_handler.fastify',
                     'sentry.origin': 'auto.http.otel.fastify',
                   }),
                 }),

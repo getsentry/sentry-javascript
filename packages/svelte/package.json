@@ -40,6 +40,7 @@
     "svelte": "3.x || 4.x || 5.x"
   },
   "devDependencies": {
+    "@sentry/conventions": "^0.16.0",
     "@sveltejs/vite-plugin-svelte": "1.4.0",
     "@testing-library/svelte": "^3.2.1",
     "svelte": "3.59.2",

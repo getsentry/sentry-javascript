@@ -2,7 +2,6 @@ import type { Client, Span } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   GLOBAL_OBJ,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
@@ -13,7 +12,7 @@ import {
   getAbsoluteUrl,
 } from '@sentry/react';
 import { maybeParameterizeRoute } from './parameterization';
-import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { URL_FULL, URL_PATH, URL_TEMPLATE, SENTRY_OP } from '@sentry/conventions/attributes';
 
 /**
  * Strips trailing slash from a pathname, unless it's the root path.
@@ -64,7 +63,7 @@ export function appRouterInstrumentPageLoad(client: Client): void {
     // pageload should always start at timeOrigin (and needs to be in s, not ms)
     startTime: origin ? origin / 1000 : undefined,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+      [SENTRY_OP]: 'pageload',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
       ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
@@ -140,7 +139,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
         {
           name: pathname,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+            [SENTRY_OP]: 'navigation',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
             'navigation.type': `router.${navigationType}`,
@@ -247,7 +246,7 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
 
           let transactionName = INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME;
           const transactionAttributes: Record<string, string> = {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+            [SENTRY_OP]: 'navigation',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           };

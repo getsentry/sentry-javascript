@@ -3,7 +3,6 @@ import type { Contexts, StreamedSpanJSON } from '../../../../src';
 import {
   captureSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
@@ -27,6 +26,7 @@ import {
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 
 describe('captureSpan', () => {
@@ -52,7 +52,7 @@ describe('captureSpan', () => {
           ip_address: '127.0.0.1',
         });
 
-        const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+        const span = startInactiveSpan({ name: 'my-span', attributes: { [SENTRY_OP]: 'http.client' } });
         span.end();
 
         return span;
@@ -73,7 +73,7 @@ describe('captureSpan', () => {
             type: 'string',
             value: 'stream',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+          [SENTRY_OP]: {
             type: 'string',
             value: 'http.client',
           },
@@ -157,7 +157,7 @@ describe('captureSpan', () => {
         ip_address: '127.0.0.1',
       });
 
-      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      const span = startInactiveSpan({ name: 'my-span', attributes: { [SENTRY_OP]: 'http.client' } });
       span.end();
 
       return span;
@@ -174,7 +174,7 @@ describe('captureSpan', () => {
       status: 'ok',
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
@@ -257,7 +257,7 @@ describe('captureSpan', () => {
     const span = withScope(scope => {
       scope.setClient(client);
 
-      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      const span = startInactiveSpan({ name: 'my-span', attributes: { [SENTRY_OP]: 'http.client' } });
       span.end();
 
       return span;
@@ -274,7 +274,7 @@ describe('captureSpan', () => {
       status: 'ok',
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
@@ -342,7 +342,7 @@ describe('captureSpan', () => {
 
     const span = withScope(scope => {
       scope.setClient(client);
-      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      const span = startInactiveSpan({ name: 'my-span', attributes: { [SENTRY_OP]: 'http.client' } });
       span.end();
       return span;
     });
@@ -359,7 +359,7 @@ describe('captureSpan', () => {
       is_segment: true,
       attributes: {
         [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.client' },
+        [SENTRY_OP]: { type: 'string', value: 'http.client' },
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
         [SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
@@ -420,7 +420,7 @@ describe('captureSpan', () => {
       client.on('processSpan', processSpanFn);
       client.on('processSegmentSpan', processSegmentSpanFn);
 
-      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      const span = startInactiveSpan({ name: 'my-span', attributes: { [SENTRY_OP]: 'http.client' } });
 
       captureSpan(span, client);
 
@@ -494,7 +494,7 @@ describe('captureSpan', () => {
         }),
       );
 
-      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      const span = startInactiveSpan({ name: 'my-span', attributes: { [SENTRY_OP]: 'http.client' } });
       span.end();
 
       captureSpan(span, client);
@@ -515,7 +515,7 @@ describe('captureSpan', () => {
         }),
       );
 
-      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      const span = startInactiveSpan({ name: 'my-span', attributes: { [SENTRY_OP]: 'http.client' } });
       span.end();
 
       captureSpan(span, client);
@@ -538,7 +538,7 @@ describe('captureSpan', () => {
         }),
       );
 
-      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      const span = startInactiveSpan({ name: 'my-span', attributes: { [SENTRY_OP]: 'http.client' } });
       span.end();
 
       captureSpan(span, client);

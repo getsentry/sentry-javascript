@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import type { SerializedStreamedSpan } from '@sentry/core';
 import {
@@ -42,7 +43,7 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
         is_segment: false,
         attributes: {
           'sentry.origin': { value: 'auto.ai.google_genai', type: 'string' },
-          'sentry.op': { value: 'gen_ai.chat', type: 'string' },
+          [SENTRY_OP]: { value: 'gen_ai.chat', type: 'string' },
           [GEN_AI_SYSTEM_ATTRIBUTE]: { value: 'google_genai', type: 'string' },
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: { value: 'chat', type: 'string' },
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: { value: 'gemini-1.5-pro', type: 'string' },
@@ -63,7 +64,7 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
         is_segment: false,
         attributes: {
           'sentry.origin': { value: 'auto.ai.google_genai', type: 'string' },
-          'sentry.op': { value: 'gen_ai.generate_content', type: 'string' },
+          [SENTRY_OP]: { value: 'gen_ai.generate_content', type: 'string' },
           [GEN_AI_SYSTEM_ATTRIBUTE]: { value: 'google_genai', type: 'string' },
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: { value: 'generate_content', type: 'string' },
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: { value: 'gemini-1.5-flash', type: 'string' },
@@ -87,7 +88,7 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
         is_segment: false,
         attributes: {
           'sentry.origin': { value: 'auto.ai.google_genai', type: 'string' },
-          'sentry.op': { value: 'gen_ai.embeddings', type: 'string' },
+          [SENTRY_OP]: { value: 'gen_ai.embeddings', type: 'string' },
           [GEN_AI_SYSTEM_ATTRIBUTE]: { value: 'google_genai', type: 'string' },
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: { value: 'embeddings', type: 'string' },
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: { value: 'text-embedding-004', type: 'string' },

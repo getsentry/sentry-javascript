@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
@@ -35,7 +36,7 @@ sentryTest('strips query params in fetch request spans', async ({ getLocalTestUr
       'http.query': '?id=123;page=5',
       'http.response.status_code': 200,
       'http.response_content_length': 2,
-      'sentry.op': 'http.client',
+      [SENTRY_OP]: 'http.client',
       'sentry.origin': 'auto.http.browser',
       type: 'fetch',
       'server.address': 'sentry-test-site.example',
@@ -79,7 +80,7 @@ sentryTest('strips hash fragment in fetch request spans', async ({ getLocalTestU
       'http.fragment': '#fragment',
       'http.response.status_code': 200,
       'http.response_content_length': 2,
-      'sentry.op': 'http.client',
+      [SENTRY_OP]: 'http.client',
       'sentry.origin': 'auto.http.browser',
       type: 'fetch',
       'server.address': 'sentry-test-site.example',
@@ -124,7 +125,7 @@ sentryTest('strips hash fragment and query params in fetch request spans', async
       'http.fragment': '#fragment',
       'http.response.status_code': 200,
       'http.response_content_length': 2,
-      'sentry.op': 'http.client',
+      [SENTRY_OP]: 'http.client',
       'sentry.origin': 'auto.http.browser',
       type: 'fetch',
       'server.address': 'sentry-test-site.example',
@@ -169,7 +170,7 @@ sentryTest(
         'http.fragment': '#fragment',
         'http.response.status_code': 200,
         'http.response_content_length': 2,
-        'sentry.op': 'http.client',
+        [SENTRY_OP]: 'http.client',
         'sentry.origin': 'auto.http.browser',
         type: 'fetch',
         'server.address': 'sentry-test.io',

@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { describe, expect, it } from 'vitest';
 import { getMiddlewareSpanOptions } from '../../src/server/utils';
 
@@ -8,7 +9,7 @@ describe('getMiddlewareSpanOptions', () => {
       op: 'middleware.tanstackstart',
       name: 'testMiddleware',
       attributes: {
-        'sentry.op': 'middleware.tanstackstart',
+        [SENTRY_OP]: 'middleware.tanstackstart',
         'sentry.origin': 'auto.middleware.tanstackstart',
       },
     });

@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -27,7 +28,7 @@ sentryTest('captures INP click as a streamed span', async ({ getLocalTestUrl, pa
   const inpSpan = await inpSpanPromise;
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(inpSpan.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.interaction.click' });
+  expect(inpSpan.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'ui.interaction.click' });
   expect(inpSpan.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.inp' });
   expect(inpSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
 

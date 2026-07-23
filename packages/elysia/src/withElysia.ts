@@ -1,4 +1,4 @@
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { URL_FULL, URL_PATH, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
   captureException,
@@ -7,7 +7,6 @@ import {
   getIsolationScope,
   getRootSpan,
   getTraceData,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
@@ -111,7 +110,7 @@ function instrumentLifecyclePhase(phaseName: string, listener: TraceListener, ro
       name: phaseName,
       parentSpan: rootSpan,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+        [SENTRY_OP]: op,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
       },
     });
@@ -125,7 +124,7 @@ function instrumentLifecyclePhase(phaseName: string, listener: TraceListener, ro
           name: handlerName,
           parentSpan: phaseSpan,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+            [SENTRY_OP]: op,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
           },
         });

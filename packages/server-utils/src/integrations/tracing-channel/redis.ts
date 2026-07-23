@@ -11,6 +11,7 @@ import {
   NET_PEER_PORT,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
@@ -18,7 +19,6 @@ import {
   debug,
   defineIntegration,
   getActiveSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_KIND,
   SPAN_STATUS_ERROR,
@@ -148,7 +148,7 @@ function startCommandSpan(commandName: string, commandArgs: Array<string | Buffe
     kind: SPAN_KIND.CLIENT,
     attributes: {
       ...attributes,
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+      [SENTRY_OP]: 'db',
       [DB_STATEMENT]: defaultDbStatementSerializer(commandName, commandArgs),
     },
   });
@@ -273,7 +273,7 @@ function bindNodeRedisConnectChannel(): void {
     return startInactiveSpan({
       name: 'redis-connect',
       kind: SPAN_KIND.CLIENT,
-      attributes: { ...nodeRedisAttributes(options), [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db' },
+      attributes: { ...nodeRedisAttributes(options), [SENTRY_OP]: 'db' },
     });
   });
 }
@@ -292,7 +292,7 @@ function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: Com
       kind: SPAN_KIND.CLIENT,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
+        [SENTRY_OP]: 'db.redis',
         [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
         ...(size && size > 1 ? { [DB_OPERATION_BATCH_SIZE]: size } : {}),
         ...(socket?.host != null ? { [SERVER_ADDRESS]: socket.host } : {}),

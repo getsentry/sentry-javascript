@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import type { Event } from '@sentry/core';
 import { createRunner } from '../../../../runner';
@@ -17,7 +18,7 @@ it('traces a workflow that calls a durable object with the same trace id', async
             trace: expect.objectContaining({
               op: 'function.step.do',
               data: expect.objectContaining({
-                'sentry.op': 'function.step.do',
+                [SENTRY_OP]: 'function.step.do',
                 'sentry.origin': 'auto.faas.cloudflare.workflow',
               }),
               origin: 'auto.faas.cloudflare.workflow',

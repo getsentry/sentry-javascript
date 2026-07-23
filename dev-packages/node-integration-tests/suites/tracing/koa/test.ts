@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -40,7 +41,7 @@ describe('koa auto-instrumentation', () => {
                   'http.route': '/',
                   'koa.type': 'router',
                   'koa.name': '/',
-                  'sentry.op': 'router.koa',
+                  [SENTRY_OP]: 'router.koa',
                   'sentry.origin': origin,
                 }),
               }),
@@ -53,7 +54,7 @@ describe('koa auto-instrumentation', () => {
                   'koa.type': 'middleware',
                   'koa.name': 'simpleMiddleware',
                   'code.function.name': 'simpleMiddleware',
-                  'sentry.op': 'middleware.koa',
+                  [SENTRY_OP]: 'middleware.koa',
                   'sentry.origin': origin,
                 }),
               }),
@@ -79,7 +80,7 @@ describe('koa auto-instrumentation', () => {
                   'http.route': '/test-param/:id',
                   'koa.type': 'router',
                   'koa.name': '/test-param/:id',
-                  'sentry.op': 'router.koa',
+                  [SENTRY_OP]: 'router.koa',
                   'sentry.origin': origin,
                 }),
               }),

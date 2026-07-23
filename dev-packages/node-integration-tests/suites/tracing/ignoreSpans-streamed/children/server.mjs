@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import express from 'express';
 import cors from 'cors';
 import * as Sentry from '@sentry/node';
@@ -34,7 +35,7 @@ app.get('/test/express', (_req, res) => {
   Sentry.startSpan({ name: 'name-passes-but-op-not-span-1', op: 'ignored-op' }, () => {});
   Sentry.startSpan(
     // sentry.op attribute has precedence over top op argument
-    { name: 'name-passes-but-op-not-span-2', op: 'keep', attributes: { 'sentry.op': 'ignored-op' } },
+    { name: 'name-passes-but-op-not-span-2', op: 'keep', attributes: { [SENTRY_OP]: 'ignored-op' } },
     () => {},
   );
   res.send({ response: 'response 1' });

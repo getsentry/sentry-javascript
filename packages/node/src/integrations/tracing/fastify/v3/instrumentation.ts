@@ -27,16 +27,9 @@ import {
   InstrumentationNodeModuleDefinition,
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import {
-  getClient,
-  getIsolationScope,
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
-} from '@sentry/core';
+import { getClient, getIsolationScope, SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
 import { setHttpServerSpanRouteAttribute } from '../../../../utils/setHttpServerSpanRouteAttribute';
 import type {
   FastifyErrorCodes,
@@ -312,13 +305,13 @@ function addFastifyV3SpanAttributes(span: Span): void {
   const type = attributes['fastify.type'];
 
   // If this is already set, or we have no fastify span, no need to process again...
-  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
+  if (attributes[SENTRY_OP] || !type) {
     return;
   }
 
   span.setAttributes({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.fastify',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.fastify`,
+    [SENTRY_OP]: `${type}.fastify`,
   });
 
   // Also update the name, we don't need to "middleware - " prefix

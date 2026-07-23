@@ -1,5 +1,5 @@
 import type * as diagnosticsChannel from 'node:diagnostics_channel';
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
   debug,
@@ -7,7 +7,6 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   startInactiveSpan,
@@ -220,7 +219,7 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
     name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.express`,
+      [SENTRY_OP]: `${type}.express`,
       [ATTR_EXPRESS_NAME]: name,
       [ATTR_EXPRESS_TYPE]: type,
       ...(matchedRoute ? { [HTTP_ROUTE]: matchedRoute } : {}),
@@ -265,7 +264,7 @@ function setHttpServerSpanRoute(route: string): void {
   if (!rootSpan) {
     return;
   }
-  if (spanToJSON(rootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'http.server') {
+  if (spanToJSON(rootSpan).data[SENTRY_OP] !== 'http.server') {
     return;
   }
   rootSpan.setAttribute(HTTP_ROUTE, route);

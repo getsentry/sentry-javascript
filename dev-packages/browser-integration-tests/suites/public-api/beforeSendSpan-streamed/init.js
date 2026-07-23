@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
@@ -7,7 +8,7 @@ Sentry.init({
   integrations: [Sentry.browserTracingIntegration(), Sentry.spanStreamingIntegration()],
   tracesSampleRate: 1,
   beforeSendSpan: Sentry.withStreamedSpan(span => {
-    if (span.attributes['sentry.op'] === 'pageload') {
+    if (span.attributes[SENTRY_OP] === 'pageload') {
       span.name = 'customPageloadSpanName';
       span.links = [
         {
