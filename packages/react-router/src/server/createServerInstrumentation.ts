@@ -65,6 +65,8 @@ export function createSentryServerInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                [URL_FULL]: info.request.url,
+                [URL_PATH]: pathname,
               });
 
               try {
