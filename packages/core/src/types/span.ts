@@ -85,7 +85,7 @@ export interface SpanJSON {
   parent_span_id?: string;
   span_id: string;
   start_timestamp: number;
-  status?: string;
+  status: string;
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;

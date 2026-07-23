@@ -245,8 +245,8 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
    */
   private _updateSpanFromResult(span: Span, result: ExecutionResult): void {
     // We want to ensure spans are marked as errored if there are errors in the result
-    // We only do that if the span is not already marked with a status
-    if (result.errors?.length && !spanToJSON(span).status) {
+    // We only do that if the span is not already marked with another error status
+    if (result.errors?.length && spanToJSON(span).status === 'ok') {
       span.setStatus({ code: SPAN_STATUS_ERROR });
     }
 
