@@ -1,5 +1,6 @@
 import { builtinModules } from 'node:module';
 import commonjs from '@rollup/plugin-commonjs';
+import license from 'rollup-plugin-license';
 import { defineConfig } from 'rollup';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
@@ -59,6 +60,25 @@ const debugNodeAlias = {
 const sanitizedFileNames = info =>
   `${info.name.replace(/^packages\/server-utils\/src\//, '').replace(/node_modules/g, 'vendored')}.js`;
 
+// The vendored dependencies (see above) are third-party code redistributed inside this package's
+// published `build/`, so their licenses require us to carry each one's copyright/permission notice
+// (and, for Apache-2.0 deps like `@apm-js-collab/*`, the upstream NOTICE). Rollup strips per-file
+// banners, so instead we aggregate them into a single `build/THIRD-PARTY-LICENSES.txt`. The default
+// template emits each dependency's license text AND its NOTICE text, which covers the MIT/ISC/BSD
+// notice requirement and the Apache-2.0 §4(d) NOTICE requirement. Only bundled (non-external)
+// packages are collected — our own `@sentry/*` deps stay external and are excluded.
+//
+// Both the CJS and ESM build variants run this and bundle the same dependency set, so each writes
+// the same file; the last write wins and the content is identical.
+const thirdPartyLicensePlugin = license({
+  thirdParty: {
+    includePrivate: false,
+    output: {
+      file: 'build/THIRD-PARTY-LICENSES.txt',
+    },
+  },
+});
+
 const orchestrionRuntimeHooks = [
   // EXPERIMENTAL — orchestrion.js runtime hook. A hand-written `.mjs` shim that SDKs reference via
   // a `--import .../orchestrion/import-hook` flag. We pass it through rollup only to copy it into
@@ -104,7 +124,7 @@ export default [
         'src/orchestrion/bundler/esbuild.ts',
       ],
       packageSpecificConfig: {
-        plugins: [debugNodeAlias, commonJSPlugin],
+        plugins: [debugNodeAlias, commonJSPlugin, thirdPartyLicensePlugin],
         output: {
           // set exports to 'named' or 'auto' so that rollup doesn't warn
           exports: 'named',
