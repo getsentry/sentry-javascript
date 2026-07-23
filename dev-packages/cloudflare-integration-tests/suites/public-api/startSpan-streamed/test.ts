@@ -206,6 +206,10 @@ it('sends a streamed span envelope with correct spans for a manually started spa
             type: 'string',
             value: 'localhost',
           },
+          url: {
+            type: 'string',
+            value: expect.stringMatching(/^http:\/\/localhost:.+$/),
+          },
           'url.full': {
             type: 'string',
             value: expect.stringMatching(/^http:\/\/localhost:.+$/),

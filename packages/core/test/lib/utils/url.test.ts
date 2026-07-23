@@ -415,6 +415,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.origin': 'test-origin',
       'sentry.source': 'url',
       'url.path': '/api/users',
+      url: '/api/users',
     });
   });
 
