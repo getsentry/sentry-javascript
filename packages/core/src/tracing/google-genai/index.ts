@@ -369,6 +369,9 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       if (cachedEntry && cachedEntry.original === value) {
         return cachedEntry.wrapped;
       }
+      if (cachedEntry) {
+        propertyCache.delete(prop);
+      }
 
       const methodPath = buildMethodPath(currentPath, String(prop));
 
