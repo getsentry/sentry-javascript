@@ -6,8 +6,6 @@
 
 ## 10.68.0
 
-### Other Changes
-
 - feat(cloudflare): Add @sentry/cloudflare/vite orchestrion plugin ([#21967](https://github.com/getsentry/sentry-javascript/pull/21967))
 - feat(nestjs): Support WebSocket errors in SentryGlobalFilter ([#22224](https://github.com/getsentry/sentry-javascript/pull/22224))
 - feat(node,server-utils): Set `cache.key` on dataloader spans and capture redis delete operations as `cache.remove` ([#22389](https://github.com/getsentry/sentry-javascript/pull/22389))
