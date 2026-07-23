@@ -1,6 +1,6 @@
 /* eslint-disable typescript/no-deprecated */
 import type { Span, TimeInput } from '@opentelemetry/api';
-import { context, ROOT_CONTEXT,  trace, TraceFlags } from '@opentelemetry/api';
+import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { HTTP_METHOD, SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { Event, Scope } from '@sentry/core';
