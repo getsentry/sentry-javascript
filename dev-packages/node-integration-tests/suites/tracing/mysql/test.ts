@@ -66,7 +66,7 @@ describe('mysql auto instrumentation', () => {
 
   // Each case maps to one of the two documented use cases, in opt-in and
   // non-opt-in form. `flags` are extra Node CLI flags; the instrument file is
-  // always loaded via `--import` (esm) / `--require` (cjs) by the runner.
+  // always loaded via `--import` by the runner.
   const CASES = [
     // OpenTelemetry default — no opt-in, no injection. (OTel does not support ESM.)
     { label: 'opentelemetry (default)', env: {}, flags: [], origin: undefined, failsOnEsm: true },

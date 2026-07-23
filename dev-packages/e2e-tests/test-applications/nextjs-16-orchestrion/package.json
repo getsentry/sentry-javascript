@@ -14,14 +14,22 @@
     "test:build-webpack": "pnpm install && pnpm build-webpack",
     "test:assert": "pnpm test:prod"
   },
-  "//": "Pin `ioredis` to 5.10.1 because that's the last version before it publishes its own `ioredis:*` diagnostics channels; orchestrion's ioredis config covers `<5.11.0`.",
+  "//": "Pin `ioredis` to 5.10.1 and `mysql2` to 3.19.1: both are the last versions before the driver publishes its own native diagnostics channels; orchestrion's configs cover `ioredis <5.11.0` and `mysql2 <3.20.0`.",
   "dependencies": {
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "dataloader": "2.2.2",
+    "generic-pool": "^3.9.0",
     "ioredis": "5.10.1",
+    "knex": "^2.5.1",
+    "lru-memoizer": "2.3.0",
+    "mongodb": "^6.4.0",
+    "mongoose": "^7.8.11",
     "mysql": "^2.18.1",
+    "mysql2": "3.19.1",
     "next": "16.2.10",
     "pg": "^8.13.1",
+    "postgres": "^3.4.7",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
