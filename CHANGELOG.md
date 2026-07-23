@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(astro)!: Drop Astro 3 support (minimum is now Astro 4)
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 Work in this release was contributed by @psh4607, @trinitiwowka, and @nehaprasad-dev. Thank you for your contributions!

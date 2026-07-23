@@ -24,6 +24,7 @@ const config = {
 
 const baseConfigHookObject = {
   logger: { warn: vi.fn(), info: vi.fn() },
+  addMiddleware: vi.fn(),
 };
 
 describe('sentryAstro integration', () => {
@@ -516,24 +517,6 @@ describe('sentryAstro integration', () => {
     });
 
     expect(addMiddleware).toHaveBeenCalledTimes(0);
-  });
-
-  it("doesn't add middleware (i.e. crash) if `addMiddleware` is N/A", async () => {
-    const integration = sentryAstro({ autoInstrumentation: { requestHandler: false } });
-    const updateConfig = vi.fn();
-    const injectScript = vi.fn();
-
-    expect(integration.hooks['astro:config:setup']).toBeDefined();
-    // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({
-      // @ts-expect-error - we only need to pass what we actually use
-      config: { output: 'server' },
-      updateConfig,
-      injectScript,
-    });
-
-    expect(updateConfig).toHaveBeenCalledTimes(1);
-    expect(injectScript).toHaveBeenCalledTimes(2);
   });
 
   it("doesn't add middleware if the SDK is disabled", () => {

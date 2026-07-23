@@ -26,7 +26,7 @@ import {
   winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/node';
-import type { APIContext, MiddlewareResponseHandler, RoutePart } from 'astro';
+import type { APIContext, MiddlewareHandler, RoutePart } from 'astro';
 
 type MiddlewareOptions = {
   /**
@@ -62,7 +62,7 @@ type AstroLocalsWithSentry = Record<string, unknown> & {
   __sentry_wrapped__?: boolean;
 };
 
-export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseHandler = options => {
+export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler = options => {
   const handlerOptions = {
     trackClientIp: false,
     ...options,
@@ -102,8 +102,8 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
 };
 
 async function handleStaticRoute(
-  ctx: Parameters<MiddlewareResponseHandler>[0],
-  next: Parameters<MiddlewareResponseHandler>[1],
+  ctx: Parameters<MiddlewareHandler>[0],
+  next: Parameters<MiddlewareHandler>[1],
 ): Promise<Response> {
   const parametrizedRoute = getParametrizedRoute(ctx);
   try {
@@ -120,8 +120,8 @@ async function handleStaticRoute(
 }
 
 async function enhanceHttpServerSpan(
-  ctx: Parameters<MiddlewareResponseHandler>[0],
-  next: Parameters<MiddlewareResponseHandler>[1],
+  ctx: Parameters<MiddlewareHandler>[0],
+  next: Parameters<MiddlewareHandler>[1],
   rootSpan: Span,
 ): Promise<Response> {
   // Make sure we don't accidentally double wrap (e.g. user added middleware and integration auto added it)
@@ -169,8 +169,8 @@ async function enhanceHttpServerSpan(
 }
 
 async function instrumentRequestStartHttpServerSpan(
-  ctx: Parameters<MiddlewareResponseHandler>[0],
-  next: Parameters<MiddlewareResponseHandler>[1],
+  ctx: Parameters<MiddlewareHandler>[0],
+  next: Parameters<MiddlewareHandler>[1],
   options: MiddlewareOptions,
 ): Promise<Response> {
   // Make sure we don't accidentally double wrap (e.g. user added middleware and integration auto added it)
@@ -395,7 +395,7 @@ function tryDecodeUrl(url: string): string | undefined {
  * We can check this by looking at the middleware's `clientAddress` context property because accessing
  * this prop in a static route will throw an error which we can conveniently catch.
  */
-function checkIsDynamicPageRequest(context: Parameters<MiddlewareResponseHandler>[0]): boolean {
+function checkIsDynamicPageRequest(context: Parameters<MiddlewareHandler>[0]): boolean {
   try {
     return context.clientAddress != null;
   } catch {
@@ -418,9 +418,7 @@ function joinRouteSegments(segments: RoutePart[][]): string {
   return `/${parthArray.join('/')}`;
 }
 
-function getParametrizedRoute(
-  ctx: Parameters<MiddlewareResponseHandler>[0] & { routePattern?: string },
-): string | undefined {
+function getParametrizedRoute(ctx: Parameters<MiddlewareHandler>[0] & { routePattern?: string }): string | undefined {
   try {
     // `routePattern` is available after Astro 5
     const contextWithRoutePattern = ctx;

@@ -5,7 +5,7 @@ type MiddlewareHandler = (ctx: unknown, next: MiddlewareNext) => Promise<Respons
 
 /**
  * This export is used by our integration to automatically add the middleware
- * to astro ^3.5.0 projects.
+ * to Astro projects.
  *
  * It's not possible to pass options at this moment, so we'll call our middleware
  * factory function with the default options. Users can deactivate the automatic

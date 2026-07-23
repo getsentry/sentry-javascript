@@ -53,7 +53,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "astro": ">=3.x || >=4.0.0-beta || >=7.0.0-beta"
+    "astro": ">=4.0.0-beta || >=7.0.0-beta"
   },
   "dependencies": {
     "@sentry/browser": "10.67.0",
@@ -63,8 +63,8 @@
     "@sentry/bundler-plugins": "10.67.0"
   },
   "devDependencies": {
-    "astro": "^3.5.0",
-    "vite": "^6.4.3"
+    "astro": "^4.16.19",
+    "vite": "^5.4.11"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
