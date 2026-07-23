@@ -27,7 +27,7 @@ import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } fro
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import { headersToDict, httpHeadersToSpanAttributes, httpRequestToRequestData } from '../../utils/request';
 import { patchRequestToCaptureBody } from './patch-request-to-capture-body';
-import { parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
+import { isURLObjectRelative, parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
 import { recordRequestSession } from './record-request-session';
 import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
 import { continueTrace } from '../../tracing/trace';
@@ -300,7 +300,7 @@ function buildServerSpanWrap(
             'net.peer.port': remotePort,
             'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
             // Old Semantic Conventions attributes for compatibility
-            [URL_FULL]: fullUrl,
+            [URL_FULL]: urlObj && !isURLObjectRelative(urlObj) ? urlObj.href : undefined,
             [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
             // oxlint-disable-next-line typescript-eslint(no-deprecated)
             [HTTP_URL]: fullUrl,
