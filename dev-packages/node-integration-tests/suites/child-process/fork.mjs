@@ -6,6 +6,7 @@ import * as path from 'path';
 const __dirname = new URL('.', import.meta.url).pathname;
 
 Sentry.init({
+  traceLifecycle: 'static',
   debug: true,
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
