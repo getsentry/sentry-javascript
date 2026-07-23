@@ -7,10 +7,6 @@ export { init } from './sdk';
 // eslint-disable-next-line typescript/no-deprecated
 export { wrapSentryHandleRequest, sentryHandleRequest } from './wrapSentryHandleRequest';
 export { createSentryHandleRequest, type SentryHandleRequestOptions } from './createSentryHandleRequest';
-// eslint-disable-next-line typescript/no-deprecated
-export { wrapServerAction } from './wrapServerAction';
-// eslint-disable-next-line typescript/no-deprecated
-export { wrapServerLoader } from './wrapServerLoader';
 export { createSentryHandleError, type SentryHandleErrorOptions } from './createSentryHandleError';
 export { getMetaTagTransformer } from './getMetaTagTransformer';
 

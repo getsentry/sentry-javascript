@@ -1,6 +1,6 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { dataloaderChannelIntegration, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import { DataloaderInstrumentation } from './vendored/instrumentation';
 

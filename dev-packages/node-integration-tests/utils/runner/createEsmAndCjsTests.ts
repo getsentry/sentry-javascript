@@ -241,7 +241,10 @@ function prepareTmpDir(
   const cjsScenarioPath = join(tmpDirPath, esmScenarioBasename.replace('.mjs', '.cjs'));
   const cjsInstrumentPath = join(tmpDirPath, esmInstrumentBasename.replace('.mjs', '.cjs'));
 
-  const cjsFlags: string[] = ['--require', cjsInstrumentPath];
+  // `--import` for both: the `.cjs` extension is what makes Node load the instrument file (and
+  // therefore the SDK) as CommonJS. `--require` would additionally re-run the preload on Node's
+  // module loader thread, which the SDK no longer supports.
+  const cjsFlags: string[] = ['--import', cjsInstrumentPath];
   const esmFlags: string[] = ['--import', esmInstrumentPathForRun];
 
   async function createTmpDir(): Promise<void> {
@@ -274,7 +277,7 @@ experimentalUseDiagnosticsChannelInjection();`,
       );
 
       esmFlags.unshift('--import', mjsInjectOrchetrionPath);
-      cjsFlags.unshift('--require', cjsInjectOrchetrionPath);
+      cjsFlags.unshift('--import', cjsInjectOrchetrionPath);
     }
 
     // Copy any additional files/dirs into tmp dir

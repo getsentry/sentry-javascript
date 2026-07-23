@@ -86,6 +86,9 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     super(opts);
 
+    // Unhandled errors don't actually crash the browser, so we report `unhandled` rather than `crashed`.
+    this._unhandledSessionStatus = 'unhandled';
+
     const { userInfo } = this.getDataCollectionOptions();
 
     if (opts._metadata?.sdk) {

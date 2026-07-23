@@ -1,6 +1,6 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { AmqplibInstrumentation } from './vendored/instrumentation';
 
 const INTEGRATION_NAME = 'Amqplib' as const;

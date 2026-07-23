@@ -82,7 +82,7 @@ export class IsolatedPromiseBuffer {
 export function makeCloudflareTransport(options: CloudflareTransportOptions): Transport {
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
     const requestOptions: RequestInit = {
-      body: request.body,
+      body: request.body as BodyInit,
       method: 'POST',
       headers: options.headers,
       ...options.fetchOptions,

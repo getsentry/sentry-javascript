@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { SerializedSession } from '@sentry/core/src';
+import type { SerializedSession } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
 import {
   envelopeRequestParser,
@@ -99,7 +99,7 @@ sentryTest('Updates the session when an error is thrown', async ({ getLocalTestU
     ...initialSession,
     errors: 1,
     init: false,
-    status: 'crashed',
+    status: 'unhandled',
     timestamp: expect.any(String),
   });
 });

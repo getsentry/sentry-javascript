@@ -2,7 +2,8 @@ import type { KoaInstrumentationConfig, KoaLayerType } from './vendored/types';
 import { KoaInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { captureException, defineIntegration } from '@sentry/core';
-import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce } from '../../../otel/instrument';
+import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
 
 interface KoaOptions {
   /**

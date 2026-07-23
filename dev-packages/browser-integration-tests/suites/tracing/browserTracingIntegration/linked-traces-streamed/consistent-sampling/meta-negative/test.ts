@@ -1,7 +1,6 @@
 import { expect } from '@playwright/test';
-import type { ClientReport } from '@sentry/core';
+import type { ClientReport, SerializedStreamedSpan } from '@sentry/core';
 import { extractTraceparentData, parseBaggageHeader } from '@sentry/core';
-import type { SerializedStreamedSpan } from '@sentry/core/src';
 import { sentryTest } from '../../../../../../utils/fixtures';
 import {
   envelopeRequestParser,

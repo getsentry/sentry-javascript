@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { instrumentCreateReactAgent, instrumentStateGraphCompile } from '../../../src/tracing/langgraph';
+import {
+  instrumentCreateReactAgent,
+  instrumentStateGraph,
+  instrumentStateGraphCompile,
+} from '../../../src/tracing/langgraph';
 
 describe('langgraph double-patch guard', () => {
   it('instrumentStateGraphCompile returns the same wrapper when applied twice', () => {
@@ -14,5 +18,17 @@ describe('langgraph double-patch guard', () => {
     const first = instrumentCreateReactAgent(original);
     const second = instrumentCreateReactAgent(first);
     expect(second).toBe(first);
+  });
+});
+
+describe('instrumentStateGraph', () => {
+  it('wraps the compile method of a StateGraph instance and returns the same instance', () => {
+    const originalCompile = () => ({});
+    const stateGraph = { compile: originalCompile };
+
+    const result = instrumentStateGraph(stateGraph);
+
+    expect(result).toBe(stateGraph);
+    expect(stateGraph.compile).not.toBe(originalCompile);
   });
 });
