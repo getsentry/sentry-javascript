@@ -4,6 +4,7 @@ const Sentry = require('@sentry/electron/main');
 const path = require('node:path');
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
   debug: true,
   tracesSampleRate: 1.0,

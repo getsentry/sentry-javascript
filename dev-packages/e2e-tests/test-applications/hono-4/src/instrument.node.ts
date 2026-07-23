@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/hono/node';
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: process.env.E2E_TEST_DSN,
   environment: 'qa',
   tracesSampleRate: 1.0,

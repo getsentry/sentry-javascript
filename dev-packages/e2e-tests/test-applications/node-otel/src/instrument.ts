@@ -3,6 +3,7 @@ const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http')
 const Sentry = require('@sentry/node');
 
 const sentryClient = Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn:
     process.env.E2E_TEST_DSN ||

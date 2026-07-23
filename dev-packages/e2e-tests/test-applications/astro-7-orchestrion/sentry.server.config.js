@@ -7,6 +7,7 @@ import { experimentalUseDiagnosticsChannelInjection } from '@sentry/node';
 experimentalUseDiagnosticsChannelInjection();
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
   environment: 'qa',
   tracesSampleRate: 1.0,

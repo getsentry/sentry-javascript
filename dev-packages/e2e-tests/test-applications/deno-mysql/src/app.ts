@@ -6,6 +6,7 @@ import '@sentry/deno/import';
 import * as Sentry from '@sentry/deno';
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa',
   dsn: Deno.env.get('E2E_TEST_DSN'),
   debug: !!Deno.env.get('DEBUG'),
