@@ -677,12 +677,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Register a callback to preprocess a span JSON _before_ it is passed to the `processSpan` and
    * `processSegmentSpan` hooks. Use this to backfill data that subsequent hooks rely on.
-   * The optional `hint` exposes additional context about the originating span (e.g. the OTel `spanKind`).
    */
-  public on(
-    hook: 'preprocessSpan',
-    callback: (streamedSpanJSON: StreamedSpanJSON, hint?: { spanKind?: number }) => void,
-  ): () => void;
+  public on(hook: 'preprocessSpan', callback: (streamedSpanJSON: StreamedSpanJSON) => void): () => void;
 
   /**
    * Register a callback for when a span JSON is processed, to add some data to the span JSON.
@@ -992,7 +988,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Fire a hook event to preprocess a span JSON before the `processSpan` and `processSegmentSpan` hooks run.
    */
-  public emit(hook: 'preprocessSpan', streamedSpanJSON: StreamedSpanJSON, hint?: { spanKind?: number }): void;
+  public emit(hook: 'preprocessSpan', streamedSpanJSON: StreamedSpanJSON): void;
 
   /**
    * Fire a hook event when a span JSON is processed, to add some data to the span JSON.

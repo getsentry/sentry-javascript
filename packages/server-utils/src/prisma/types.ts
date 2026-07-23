@@ -11,7 +11,7 @@
  *   package does not need to depend on OpenTelemetry
  */
 
-import type { Span, SpanAttributes, SpanKindValue, SpanLink, SpanTimeInput } from '@sentry/core';
+import type { Span, SpanAttributes, SpanKind, SpanLink, SpanTimeInput } from '@sentry/core';
 
 export type SpanCallback<R> = (span?: Span, parentSpan?: Span) => R;
 
@@ -23,7 +23,7 @@ export interface ExtendedSpanOptions {
   /** Whether it propagates context (?=true) */
   active?: boolean;
   attributes?: SpanAttributes;
-  kind?: SpanKindValue;
+  kind?: SpanKind;
   links?: SpanLink[];
   startTime?: SpanTimeInput;
 }

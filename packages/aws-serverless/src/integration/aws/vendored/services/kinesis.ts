@@ -7,7 +7,7 @@
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
 
-import { Attributes, SpanKind } from '@opentelemetry/api';
+import { Attributes } from '@opentelemetry/api';
 import { AWS_KINESIS_STREAM_NAME } from '../enums';
 import { AwsSdkInstrumentationConfig, NormalizedRequest } from '../types';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
@@ -15,7 +15,6 @@ import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 export class KinesisServiceExtension implements ServiceExtension {
   requestPreSpanHook(request: NormalizedRequest, _config: AwsSdkInstrumentationConfig): RequestMetadata {
     const streamName = request.commandInput?.StreamName;
-    const spanKind: SpanKind = SpanKind.CLIENT;
     const spanAttributes: Attributes = {};
 
     if (streamName) {
@@ -27,7 +26,6 @@ export class KinesisServiceExtension implements ServiceExtension {
     return {
       isIncoming,
       spanAttributes,
-      spanKind,
     };
   }
 }

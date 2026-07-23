@@ -7,7 +7,7 @@
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
 
-import { Span, SpanKind, diag, Attributes } from '@opentelemetry/api';
+import { Span, diag, Attributes } from '@opentelemetry/api';
 import { ATTR_FAAS_INVOKED_NAME, ATTR_FAAS_INVOKED_PROVIDER, ATTR_FAAS_INVOKED_REGION } from '../semconv';
 import { ATTR_FAAS_EXECUTION } from '../semconv-obsolete';
 import { AwsSdkInstrumentationConfig, NormalizedRequest, NormalizedResponse } from '../types';
@@ -40,7 +40,6 @@ export class LambdaServiceExtension implements ServiceExtension {
     return {
       isIncoming: false,
       spanAttributes,
-      spanKind: SpanKind.CLIENT,
       spanName,
     };
   }

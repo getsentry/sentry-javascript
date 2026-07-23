@@ -37,7 +37,7 @@ describe('outgoing fetch spans - strip query', () => {
                 'http.response.status_code': 200,
                 'network.peer.address': '::1',
                 'network.peer.port': expect.any(Number),
-                'otel.kind': 'CLIENT',
+                'sentry.kind': 'client',
                 'server.port': expect.any(Number),
                 'user_agent.original': 'node',
                 'sentry.op': 'http.client',

@@ -5,7 +5,6 @@ import {
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -20,6 +19,7 @@ import {
   DB_USER,
   NET_PEER_NAME,
   NET_PEER_PORT,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 
 const INTEGRATION_NAME = 'Mysql2' as const;
@@ -82,8 +82,8 @@ function subscribeQueryChannel(channelName: ChannelName): void {
 
       return startInactiveSpan({
         name: statement ?? 'mysql2.query',
-        kind: SPAN_KIND.CLIENT,
         attributes: {
+          [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
           // oxlint-disable-next-line typescript/no-deprecated

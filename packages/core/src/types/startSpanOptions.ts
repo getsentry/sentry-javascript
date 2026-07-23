@@ -1,5 +1,4 @@
 import type { Scope } from '../scope';
-import type { SpanKindValue } from '../spanKind';
 import type { SpanLink } from './link';
 import type { Span, SpanAttributes, SpanTimeInput } from './span';
 
@@ -28,20 +27,6 @@ export interface StartSpanOptions {
 
   /** An op for the span. This is a categorization for spans. */
   op?: string;
-
-  /**
-   * The kind of the span, following OpenTelemetry's SpanKind enum.
-   * - 0 = INTERNAL (default)
-   * - 1 = SERVER
-   * - 2 = CLIENT
-   * - 3 = PRODUCER
-   * - 4 = CONSUMER
-   *
-   * This is used by OpenTelemetry-based SDK implementations to set the correct
-   * span kind on the underlying OTel span, which affects how the span is
-   * displayed and sampled.
-   */
-  kind?: SpanKindValue;
 
   /**
    * If provided, make the new span a child of this span.

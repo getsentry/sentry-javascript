@@ -1,5 +1,3 @@
-import type { SpanKindValue } from '@sentry/core';
-
 // Command inputs are service-specific shapes from hundreds of AWS APIs; typing them would require
 // depending on the `@aws-sdk/*` client types. The per-service hooks read fields defensively instead.
 export type CommandInput = Record<string, any>;
@@ -29,7 +27,6 @@ export interface RequestMetadata {
   // consumed.
   isStream?: boolean;
   spanAttributes?: Record<string, unknown>;
-  spanKind?: SpanKindValue;
   spanName?: string;
   // Overrides the default `rpc` span op (e.g. `db` for DynamoDB).
   spanOp?: string;

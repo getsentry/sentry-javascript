@@ -2,7 +2,7 @@
 import type { Span, TimeInput } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { HTTP_METHOD } from '@sentry/conventions/attributes';
+import { HTTP_METHOD, SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { Event, Scope } from '@sentry/core';
 import {
   getClient,
@@ -26,7 +26,6 @@ import { continueTrace, startInactiveSpan, startNewTrace, startSpan, startSpanMa
 import type { AbstractSpan } from '../src/types';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
 import { getSamplingDecision } from '../src/utils/getSamplingDecision';
-import { getSpanKind } from '../src/utils/getSpanKind';
 import { makeTraceState } from '../src/utils/makeTraceState';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
 import { isSpan } from './helpers/isSpan';
@@ -269,8 +268,8 @@ describe('trace', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
             test1: 'test 1',
             test2: 2,
+            [SENTRY_KIND]: 'client',
           });
-          expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
         },
       );
     });
@@ -670,8 +669,8 @@ describe('trace', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         test1: 'test 1',
         test2: 2,
+        [SENTRY_KIND]: 'client',
       });
-      expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
     });
 
     it('allows to pass a startTime in seconds', () => {
@@ -1012,8 +1011,8 @@ describe('trace', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
             test1: 'test 1',
             test2: 2,
+            [SENTRY_KIND]: 'client',
           });
-          expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
         },
       );
     });

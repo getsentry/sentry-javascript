@@ -1,5 +1,4 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
-import { SpanKind } from '@opentelemetry/api';
 import {
   DB_STATEMENT,
   DB_SYSTEM,
@@ -12,9 +11,10 @@ import {
   HTTP_URL,
   MESSAGING_SYSTEM,
   RPC_SERVICE,
+  SENTRY_KIND,
   URL_FULL,
 } from '@sentry/conventions/attributes';
-import type { Span, SpanAttributes, TransactionSource } from '@sentry/core';
+import type { Span, SpanAttributes, TransactionSource, SpanKind } from '@sentry/core';
 import {
   getSanitizedUrlString,
   parseUrl,
@@ -27,7 +27,6 @@ import {
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
 import type { AbstractSpan } from '../types';
-import { getSpanKind } from './getSpanKind';
 import { spanHasAttributes, spanHasName } from './spanTypes';
 
 interface SpanDescription {
@@ -40,7 +39,9 @@ interface SpanDescription {
 /**
  * Infer the op & description for a set of name, attributes and kind of a span.
  */
-export function inferSpanData(spanName: string, attributes: SpanAttributes, kind: SpanKind): SpanDescription {
+export function inferSpanData(spanName: string, attributes: SpanAttributes): SpanDescription {
+  const kind = attributes[SENTRY_KIND];
+
   // if http.method exists, this is an http request span
   // eslint-disable-next-line typescript/no-deprecated
   const httpMethod = attributes[HTTP_REQUEST_METHOD] || attributes[HTTP_METHOD];
@@ -120,8 +121,7 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
     name = spanHasName(span) ? span.name : json?.description || '<unknown>';
   }
 
-  const kind = getSpanKind(span);
-  return inferSpanData(name, attributes, kind);
+  return inferSpanData(name, attributes);
 }
 
 function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; name: string }): SpanDescription {
@@ -151,16 +151,16 @@ function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; 
 
 /** Only exported for tests. */
 export function descriptionForHttpMethod(
-  { name, kind, attributes }: { name: string; attributes: Attributes; kind: SpanKind },
+  { name, kind, attributes }: { name: string; attributes: Attributes; kind: SpanKind | undefined },
   httpMethod: AttributeValue,
 ): SpanDescription {
   const opParts = ['http'];
 
   switch (kind) {
-    case SpanKind.CLIENT:
+    case 'client':
       opParts.push('client');
       break;
-    case SpanKind.SERVER:
+    case 'server':
       opParts.push('server');
       break;
   }
@@ -208,7 +208,7 @@ export function descriptionForHttpMethod(
 
   // If the span kind is neither client nor server, we use the original name
   // this infers that somebody manually started this span, in which case we don't want to overwrite the name
-  const isClientOrServerKind = kind === SpanKind.CLIENT || kind === SpanKind.SERVER;
+  const isClientOrServerKind = kind === 'client' || kind === 'server';
 
   // If the span is an auto-span (=it comes from one of our instrumentations),
   // we always want to infer the name
@@ -255,7 +255,7 @@ function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
 /** Exported for tests only */
 export function getSanitizedUrl(
   attributes: Attributes,
-  kind: SpanKind,
+  kind: SpanKind | undefined,
 ): {
   url: string | undefined;
   urlPath: string | undefined;
@@ -281,7 +281,7 @@ export function getSanitizedUrl(
     return { urlPath: httpRoute, url, query, fragment, hasRoute: true };
   }
 
-  if (kind === SpanKind.SERVER && typeof httpTarget === 'string') {
+  if (kind === 'server' && typeof httpTarget === 'string') {
     return { urlPath: stripUrlQueryAndFragment(httpTarget), url, query, fragment, hasRoute: false };
   }
 

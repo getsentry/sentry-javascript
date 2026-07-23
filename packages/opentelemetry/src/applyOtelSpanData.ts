@@ -1,7 +1,5 @@
-import { SpanKind } from '@opentelemetry/api';
-import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
+import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE, SENTRY_KIND } from '@sentry/conventions/attributes';
 import {
-  addNonEnumerableProperty,
   getClient,
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
@@ -13,15 +11,13 @@ import {
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
 } from '@sentry/core';
-import type { Span, SpanAttributes } from '@sentry/core';
+import type { Span, SpanAttributes, SpanKind } from '@sentry/core';
 import { inferStatusFromAttributes, isStatusErrorMessageValid } from './utils/mapStatus';
 import { inferSpanData } from './utils/parseSpanDescription';
 
-type SentrySpanWithOtelKind = Span & { kind?: SpanKind };
-
 /**
  * Backfill a native Sentry span with the data the OpenTelemetry SDK pipeline would otherwise derive
- * from OTel semantic attributes: `sentry.op`, `sentry.source`, the span name, `otel.kind`, and status.
+ * from OTel semantic attributes: `sentry.op`, `sentry.source`, the span name, `sentry.kind`, and status.
  *
  * On the OTel SDK provider this happens in the `SentrySpanProcessor`/`SentrySpanExporter` while
  * converting `ReadableSpan`s to Sentry payloads (via `parseSpanDescription` + `mapStatus`).
@@ -32,7 +28,6 @@ type SentrySpanWithOtelKind = Span & { kind?: SpanKind };
 export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolean } = {}): void {
   const spanJSON = spanToJSON(span);
   const attributes = spanJSON.data;
-  const kind = (span as SentrySpanWithOtelKind).kind ?? SpanKind.INTERNAL;
   const mayInferSource = spanShouldInferOtelSource(span);
   const hasCustomSpanName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME] !== undefined;
   // We may only infer the source/name when the span is OTel-branded and user code hasn't already
@@ -44,11 +39,9 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
     canInferSource && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom'
       ? { ...attributes, [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: undefined }
       : attributes;
-  const inferred = inferSpanData(spanJSON.description || '<unknown>', attributesForInference, kind);
 
-  if (kind !== SpanKind.INTERNAL && attributes['otel.kind'] === undefined) {
-    span.setAttribute('otel.kind', SpanKind[kind]);
-  }
+  const inferred = inferSpanData(spanJSON.description || '<unknown>', attributesForInference);
+  const kind = attributes[SENTRY_KIND];
 
   if (inferred.op && attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === undefined) {
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, inferred.op);
@@ -67,7 +60,7 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
     inferred.source !== undefined &&
     inferred.source !== 'custom' &&
     (options.finalizeStatus || inferred.source !== 'url') &&
-    (spanJSON.parent_span_id === undefined || kind === SpanKind.SERVER);
+    (spanJSON.parent_span_id === undefined || kind === 'server');
 
   if (shouldApplyInferredSource && (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === undefined || canInferSource)) {
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, inferred.source);
@@ -99,11 +92,6 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
   ) {
     span.updateName(inferred.description);
   }
-}
-
-/** Stash the OTel span kind on a Sentry span so {@link applyOtelSpanData} can read it. */
-export function applyOtelSpanKind(span: Span, kind: SpanKind | undefined): void {
-  addNonEnumerableProperty(span as SentrySpanWithOtelKind, 'kind', kind ?? SpanKind.INTERNAL);
 }
 
 function applyOtelSpanStatus(

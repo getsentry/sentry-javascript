@@ -58,7 +58,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
-                  'otel.kind': 'PRODUCER',
+                  'sentry.kind': 'producer',
                   'sentry.op': 'message',
                   'sentry.origin': producerOrigin,
                 }),
@@ -72,7 +72,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
-                  'otel.kind': 'CONSUMER',
+                  'sentry.kind': 'consumer',
                   'sentry.op': 'message',
                   'sentry.origin': consumerOrigin,
                 }),
@@ -98,7 +98,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'invalid topic name',
-                  'otel.kind': 'PRODUCER',
+                  'sentry.kind': 'producer',
                   'sentry.op': 'message',
                   'sentry.origin': producerOrigin,
                   'error.type': 'KafkaJSNonRetriableError',

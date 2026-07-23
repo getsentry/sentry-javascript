@@ -25,6 +25,7 @@ import {
   SENTRY_HTTP_PREFETCH,
   URL_FULL,
   URL_PATH,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import type {
   Event,
@@ -51,7 +52,6 @@ import {
   bindScopeToEmitter,
   startInactiveSpan,
   withActiveSpan,
-  SPAN_KIND,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -168,9 +168,9 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
           const span = startInactiveSpan({
             name: bestEffortTransactionName,
-            kind: SPAN_KIND.SERVER,
             attributes: {
               // Sentry specific attributes
+              [SENTRY_KIND]: 'server',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,

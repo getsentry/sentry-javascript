@@ -4,7 +4,6 @@ import {
   debug,
   defineIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -13,6 +12,7 @@ import {
   AWS_REQUEST_EXTENDED_ID,
   CLOUD_REGION,
   HTTP_STATUS_CODE,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../../debug-build';
 import { CHANNELS } from '../../../orchestrion/channels';
@@ -110,11 +110,11 @@ const _awsChannelIntegration = (() => {
 
           const span = startInactiveSpan({
             name: requestMetadata.spanName ?? `${normalizedRequest.serviceName}.${normalizedRequest.commandName}`,
-            kind: requestMetadata.spanKind ?? SPAN_KIND.CLIENT,
             // `rpc` matches what the exporter infers from `rpc.service` for the OTel aws-sdk spans;
             // service extensions override it where inference yields a different op (DynamoDB: `db`).
             op: requestMetadata.spanOp || 'rpc',
             attributes: {
+              [SENTRY_KIND]: 'client',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: AWS_SDK_ORIGIN,
               ...extractAttributesFromNormalizedRequest(normalizedRequest),
               ...requestMetadata.spanAttributes,
