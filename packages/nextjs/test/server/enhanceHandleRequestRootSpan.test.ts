@@ -1,3 +1,4 @@
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
@@ -105,6 +106,7 @@ describe('enhanceHandleRequestRootSpan', () => {
     enhanceHandleRequestRootSpan(span);
 
     expect(getName()).toBe('GET /posts/[slug]');
+    expect(span.attributes[HTTP_ROUTE]).toBe('/posts/[slug]');
   });
 
   it('does not apply the backfill for the special GET /_app transaction', () => {
