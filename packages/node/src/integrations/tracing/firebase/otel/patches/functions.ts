@@ -1,12 +1,12 @@
 import type { InstrumentationBase } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleFile } from '../../../InstrumentationNodeModuleFile';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
 import {
   captureException,
   flush,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startSpanManual,
 } from '@sentry/core';
@@ -68,6 +68,7 @@ export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions
         const functionName = process.env.FUNCTION_TARGET || process.env.K_SERVICE || 'unknown';
 
         const attributes: SpanAttributes = {
+          [SENTRY_KIND]: 'server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.firebase.otel.functions',
           'faas.name': functionName,
           'faas.trigger': triggerType,
@@ -87,7 +88,6 @@ export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions
           {
             name: `firebase.function.${triggerType}`,
             op: 'http.request',
-            kind: SPAN_KIND.SERVER,
             attributes,
           },
           async span => {

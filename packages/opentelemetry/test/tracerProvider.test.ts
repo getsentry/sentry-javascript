@@ -146,7 +146,7 @@ describe('SentryTracerProvider', () => {
 
     expect(json.trace_id).toBe('12312012123120121231201212312012');
     expect(json.parent_span_id).toBe('1121201211212012');
-    expect(json.data?.['otel.kind']).toBe('SERVER');
+    expect(json.data?.['sentry.kind']).toBe('server');
   });
 
   it('finalizes span statuses like the OpenTelemetry exporter', () => {

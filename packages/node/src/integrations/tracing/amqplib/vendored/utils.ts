@@ -12,10 +12,9 @@
  * - Replaced the OTel context-key confirm-channel marker with a synchronous flag on the channel instance
  */
 
-import { SpanKind } from '@opentelemetry/api';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { getTraceData, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
-import { MESSAGING_SYSTEM, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
+import { MESSAGING_SYSTEM, NET_PEER_NAME, NET_PEER_PORT, SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { Channel, ConfirmChannel, Connection, Options } from './amqplib-types';
 import {
   ATTR_MESSAGING_CONVERSATION_ID,
@@ -158,8 +157,8 @@ export function startPublishSpan(
 
   const span = startInactiveSpan({
     name: `publish ${normalizedExchange}`,
-    kind: SpanKind.PRODUCER,
     attributes: {
+      [SENTRY_KIND]: 'producer',
       ...channel.connection[CONNECTION_ATTRIBUTES],
       [ATTR_MESSAGING_DESTINATION]: exchange,
       [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_DESTINATION_KIND_VALUE_TOPIC,
@@ -192,8 +191,8 @@ export function startConsumeSpan(
 ): Span {
   return startInactiveSpan({
     name: `${queue} process`,
-    kind: SpanKind.CONSUMER,
     attributes: {
+      [SENTRY_KIND]: 'consumer',
       ...channel?.connection?.[CONNECTION_ATTRIBUTES],
       [ATTR_MESSAGING_DESTINATION]: msg.fields?.exchange,
       [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_DESTINATION_KIND_VALUE_TOPIC,

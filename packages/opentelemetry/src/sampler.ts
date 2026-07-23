@@ -91,7 +91,7 @@ export class SentrySampler implements Sampler {
         // Likewise, we only record client outcomes for child spans when streaming
         if (parentSampled) {
           if (ignoreSpans?.length) {
-            const { description: inferredChildName, op: childOp } = inferSpanData(spanName, spanAttributes, spanKind);
+            const { description: inferredChildName, op: childOp } = inferSpanData(spanName, spanAttributes);
             if (
               shouldIgnoreSpan(
                 {
@@ -127,11 +127,7 @@ export class SentrySampler implements Sampler {
     }
 
     // We want to pass the inferred name & attributes to the sampler method
-    const {
-      description: inferredSpanName,
-      data: inferredAttributes,
-      op,
-    } = inferSpanData(spanName, spanAttributes, spanKind);
+    const { description: inferredSpanName, data: inferredAttributes, op } = inferSpanData(spanName, spanAttributes);
 
     const mergedAttributes = {
       ...inferredAttributes,

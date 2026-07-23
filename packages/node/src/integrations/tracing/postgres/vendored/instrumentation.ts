@@ -14,14 +14,8 @@
 
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import type { Span } from '@sentry/core';
-import {
-  getActiveSpan,
-  SDK_VERSION,
-  SPAN_KIND,
-  SPAN_STATUS_ERROR,
-  startInactiveSpan,
-  withActiveSpan,
-} from '@sentry/core';
+import { getActiveSpan, SDK_VERSION, SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import { SpanNames } from './enums/SpanNames';
 import type {
@@ -163,8 +157,10 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
 
         const span = startInactiveSpan({
           name: SpanNames.CONNECT,
-          kind: SPAN_KIND.CLIENT,
-          attributes: utils.getSemanticAttributesFromConnection(this),
+          attributes: {
+            [SENTRY_KIND]: 'client',
+            ...utils.getSemanticAttributesFromConnection(this),
+          },
         });
 
         let cb = callback;
@@ -283,8 +279,10 @@ export class PgInstrumentation extends InstrumentationBase<PgInstrumentationConf
 
         const span = startInactiveSpan({
           name: SpanNames.POOL_CONNECT,
-          kind: SPAN_KIND.CLIENT,
-          attributes: utils.getSemanticAttributesFromPoolConnection(this.options),
+          attributes: {
+            [SENTRY_KIND]: 'client',
+            ...utils.getSemanticAttributesFromPoolConnection(this.options),
+          },
         });
 
         let cb = callback;

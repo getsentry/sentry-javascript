@@ -15,13 +15,13 @@ import {
   MESSAGING_OPERATION_NAME,
   MESSAGING_OPERATION_TYPE,
   MESSAGING_SYSTEM,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
 import {
   getTraceData,
   propagationContextFromHeaders,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
@@ -99,9 +99,9 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
 
   return startInactiveSpan({
     name: `${operationName} ${topic}`,
-    kind: operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE ? SPAN_KIND.CLIENT : SPAN_KIND.CONSUMER,
     links,
     attributes: {
+      [SENTRY_KIND]: operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE ? 'client' : 'consumer',
       ...attributes,
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
       [MESSAGING_DESTINATION_NAME]: topic,
@@ -121,8 +121,8 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
 export function startProducerSpan(topic: string, message: Message): Span {
   const span = startInactiveSpan({
     name: `send ${topic}`,
-    kind: SPAN_KIND.PRODUCER,
     attributes: {
+      [SENTRY_KIND]: 'producer',
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
       [MESSAGING_DESTINATION_NAME]: topic,
       [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: message.key ? String(message.key) : undefined,

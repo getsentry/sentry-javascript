@@ -104,7 +104,7 @@ describe('getHttpServerSubscriptions', () => {
           'http.response.status_code': 200,
           'http.status_code': 200,
           'http.target': '/users/42?foo=bar',
-          'otel.kind': 'SERVER',
+          'sentry.kind': 'server',
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.server',
           'sentry.source': 'url',

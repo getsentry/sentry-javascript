@@ -424,10 +424,7 @@ describe('captureSpan', () => {
 
       captureSpan(span, client);
 
-      expect(preprocessSpanFn).toHaveBeenCalledWith(
-        expect.objectContaining({ span_id: span.spanContext().spanId }),
-        expect.objectContaining({ spanKind: undefined }),
-      );
+      expect(preprocessSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: span.spanContext().spanId }));
       expect(processSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: span.spanContext().spanId }));
       expect(processSegmentSpanFn).toHaveBeenCalledWith(
         expect.objectContaining({ span_id: span.spanContext().spanId }),
@@ -471,10 +468,7 @@ describe('captureSpan', () => {
       expect(serializedChildSpan?.name).toBe('child');
       expect(serializedChildSpan?.is_segment).toBe(false);
 
-      expect(preprocessSpanFn).toHaveBeenCalledWith(
-        expect.objectContaining({ span_id: serializedChildSpan?.span_id }),
-        expect.objectContaining({ spanKind: undefined }),
-      );
+      expect(preprocessSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: serializedChildSpan?.span_id }));
       expect(processSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: serializedChildSpan?.span_id }));
       expect(processSegmentSpanFn).not.toHaveBeenCalled();
     });

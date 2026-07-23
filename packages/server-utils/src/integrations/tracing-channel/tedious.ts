@@ -9,7 +9,6 @@ import {
   debug,
   defineIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   waitForTracingChannelBinding,
@@ -21,6 +20,7 @@ import {
   DB_USER,
   NET_PEER_NAME,
   NET_PEER_PORT,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -129,6 +129,7 @@ function subscribeQuery(channelName: string, operation: string): void {
     const sql = extractSql(request);
 
     const attributes: SpanAttributes = {
+      [SENTRY_KIND]: 'client',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       [DB_SYSTEM]: DB_SYSTEM_VALUE_MSSQL,
       [DB_NAME]: databaseName,
@@ -142,7 +143,6 @@ function subscribeQuery(channelName: string, operation: string): void {
 
     const span = startInactiveSpan({
       name: getSpanName(operation, databaseName, sql, request.table),
-      kind: SPAN_KIND.CLIENT,
       op: 'db',
       attributes,
     });

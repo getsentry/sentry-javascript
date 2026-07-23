@@ -26,6 +26,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanKindToName,
   spanTimeInputToSeconds,
   timedEventsToMeasurements,
 } from '@sentry/core';
@@ -438,7 +439,7 @@ function getData(span: ReadableSpan): Record<string, unknown> {
   const data: Record<string, unknown> = {};
 
   if (span.kind !== SpanKind.INTERNAL) {
-    data['otel.kind'] = SpanKind[span.kind];
+    data['sentry.kind'] = spanKindToName(span.kind);
   }
 
   // eslint-disable-next-line typescript/no-deprecated

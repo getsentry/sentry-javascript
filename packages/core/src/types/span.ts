@@ -1,4 +1,5 @@
 import type { Attributes, RawAttributes } from '../attributes';
+import type { SpanKind } from '../spanKind';
 import type { SpanLink, SpanLinkJSON } from './link';
 import type { Measurements } from './measurement';
 import type { HrTime } from './opentelemetry';
@@ -29,6 +30,7 @@ export type SpanAttributes = Partial<{
   'sentry.op': string;
   'sentry.source': TransactionSource;
   'sentry.sample_rate': number;
+  'sentry.kind': SpanKind;
 }> &
   Record<string, SpanAttributeValue | undefined>;
 

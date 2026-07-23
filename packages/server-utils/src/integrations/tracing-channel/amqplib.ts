@@ -7,7 +7,6 @@ import {
   defineIntegration,
   getTraceData,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   timestampInSeconds,
@@ -23,6 +22,7 @@ import {
   NET_PEER_PORT,
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
+  SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FULL,
@@ -475,8 +475,8 @@ function startPublishSpan(data: AmqpChannelContext): Span {
   const span = startInactiveSpan({
     name: `publish ${normalizeExchange(exchange)}`,
     op: 'message',
-    kind: SPAN_KIND.PRODUCER,
     attributes: {
+      [SENTRY_KIND]: 'producer',
       ...getStoredConnectionAttributes(data.self),
       [ATTR_MESSAGING_DESTINATION]: exchange, // TODO(v11) remove this attribute
       [MESSAGING_DESTINATION_NAME]: exchange,
@@ -513,8 +513,8 @@ function startConsumeSpan(queue: string, msg: ConsumeMessage, channel: ChannelLi
   return startInactiveSpan({
     name: `${queue} process`,
     op: 'message',
-    kind: SPAN_KIND.CONSUMER,
     attributes: {
+      [SENTRY_KIND]: 'consumer',
       ...getStoredConnectionAttributes(channel),
       [ATTR_MESSAGING_DESTINATION]: msg.fields?.exchange, // TODO(v11) remove this attribute
       [MESSAGING_DESTINATION_NAME]: msg.fields?.exchange,

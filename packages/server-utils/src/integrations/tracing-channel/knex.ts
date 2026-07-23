@@ -9,7 +9,6 @@ import {
   defineIntegration,
   getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   truncate,
@@ -24,6 +23,7 @@ import {
   NET_PEER_NAME,
   NET_PEER_PORT,
   NET_TRANSPORT,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -167,6 +167,7 @@ function subscribeQuery(): void {
         connection?.filename || connection?.database || extractDatabaseFromConnectionString(connectionString);
 
       const attributes: SpanAttributes = {
+        [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         'knex.version': data.moduleVersion,
         [DB_SYSTEM]: mapSystem(client?.driverName),
@@ -182,7 +183,6 @@ function subscribeQuery(): void {
 
       return startInactiveSpan({
         name: getName(name, operation, table) ?? 'knex.query',
-        kind: SPAN_KIND.CLIENT,
         op: 'db',
         parentSpan,
         attributes,

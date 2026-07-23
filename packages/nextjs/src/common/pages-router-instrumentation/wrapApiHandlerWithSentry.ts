@@ -18,7 +18,7 @@ import type { NextApiRequest } from 'next';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
 import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
 import { dropNextjsRootContext, escapeNextjsTracing } from '../utils/tracingUtils';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_KIND, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export type AugmentedNextApiRequest = NextApiRequest & {
   __withSentry_applied__?: boolean;
@@ -90,6 +90,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                   op: 'http.server',
                   forceTransaction: true,
                   attributes: {
+                    [SENTRY_KIND]: 'server',
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
                     [URL_FULL]: urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined,

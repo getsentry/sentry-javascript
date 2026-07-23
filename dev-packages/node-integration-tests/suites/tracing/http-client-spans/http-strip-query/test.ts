@@ -41,7 +41,7 @@ describe('outgoing http spans - strip query', () => {
                 'net.peer.name': 'localhost',
                 'net.peer.port': expect.any(Number),
                 'net.transport': 'ip_tcp',
-                'otel.kind': 'CLIENT',
+                'sentry.kind': 'client',
                 'sentry.op': 'http.client',
                 'sentry.origin': 'auto.http.client',
               },

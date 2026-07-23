@@ -1,5 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { DB_QUERY_TEXT, DB_SYSTEM_NAME, ERROR_TYPE } from '@sentry/conventions/attributes';
+import { DB_QUERY_TEXT, DB_SYSTEM_NAME, ERROR_TYPE, SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { IntegrationFn, PostgresConnectionContext, Span } from '@sentry/core';
 import {
   _INTERNAL_buildPostgresConnectionContext,
@@ -10,7 +10,6 @@ import {
   debug,
   defineIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   waitForTracingChannelBinding,
@@ -266,12 +265,12 @@ const _postgresJsChannelIntegration = ((options: PostgresJsChannelIntegrationOpt
             const fullQuery = _INTERNAL_reconstructPostgresQuery(query.strings);
             const sanitizedSqlQuery = _INTERNAL_sanitizeSqlQuery(fullQuery);
 
-            // `kind: CLIENT` matches the mysql/pg channel subscribers.
+            // `sentry.kind: 'client'` matches the mysql/pg channel subscribers.
             const span = startInactiveSpan({
               name: sanitizedSqlQuery || 'postgresjs.query',
               op: 'db',
-              kind: SPAN_KIND.CLIENT,
               attributes: {
+                [SENTRY_KIND]: 'client',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
                 [DB_SYSTEM_NAME]: 'postgres',
                 [DB_QUERY_TEXT]: sanitizedSqlQuery,

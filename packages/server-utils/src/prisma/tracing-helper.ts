@@ -19,13 +19,12 @@ import {
   getActiveSpan,
   LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   startInactiveSpan,
   startSpanManual,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { EngineSpan, ExtendedSpanOptions, SpanCallback, TracingHelper } from './types';
-import { DB_SYSTEM } from '@sentry/conventions/attributes';
+import { DB_SYSTEM, SENTRY_KIND } from '@sentry/conventions/attributes';
 
 // Reading `process.env` can throw in runtimes that gate env access (e.g. Deno without `--allow-env`)
 // and `process` may be absent altogether (edge runtimes), so this degrades to `false` in those cases.
@@ -135,8 +134,10 @@ function createResolvedEngineSpans(): void {
       const attributes = buildSpanAttributes(engineSpan.name, engineSpan.attributes);
       const span = startInactiveSpan({
         name: buildSpanName(engineSpan.name, attributes),
-        attributes,
-        kind: engineSpan.kind === 'client' ? SPAN_KIND.CLIENT : SPAN_KIND.INTERNAL,
+        attributes: {
+          ...attributes,
+          [SENTRY_KIND]: engineSpan.kind === 'client' ? 'client' : undefined,
+        },
         startTime: engineSpan.start_time,
         parentSpan,
       });
@@ -275,8 +276,10 @@ function dispatchEngineSpan(
   startSpanManual(
     {
       name: buildSpanName(engineSpan.name, attributes),
-      attributes,
-      kind: engineSpan.kind === 'client' ? SPAN_KIND.CLIENT : SPAN_KIND.INTERNAL,
+      attributes: {
+        ...attributes,
+        [SENTRY_KIND]: engineSpan.kind === 'client' ? 'client' : undefined,
+      },
       startTime: engineSpan.startTime,
     },
     span => {

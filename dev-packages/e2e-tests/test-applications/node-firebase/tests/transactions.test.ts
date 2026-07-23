@@ -21,7 +21,7 @@ function firestoreSpan(operation: string): unknown {
     'sentry.op': 'db.query',
   };
   if (!orchestrion) {
-    data['otel.kind'] = 'CLIENT';
+    data['sentry.kind'] = 'client';
   }
 
   return expect.objectContaining({

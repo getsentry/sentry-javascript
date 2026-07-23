@@ -41,7 +41,7 @@ const expectedProducerSpan = (routingKey: string) =>
             'url.full': 'amqp://sentry:***@localhost:5672/',
           }
         : {}),
-      'otel.kind': 'PRODUCER',
+      'sentry.kind': 'producer',
       'sentry.op': 'message',
       'sentry.origin': PUBLISHER_ORIGIN,
     }),
@@ -66,7 +66,7 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
           'messaging.operation.type': 'process',
         }
       : {}),
-    'otel.kind': 'CONSUMER',
+    'sentry.kind': 'consumer',
     'sentry.op': 'message',
     'sentry.origin': CONSUMER_ORIGIN,
   }),
@@ -163,7 +163,7 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
                     status: 'internal_error',
                     data: expect.objectContaining({
                       'messaging.system': 'rabbitmq',
-                      'otel.kind': 'CONSUMER',
+                      'sentry.kind': 'consumer',
                       'sentry.op': 'message',
                       'sentry.origin': CONSUMER_ORIGIN,
                     }),

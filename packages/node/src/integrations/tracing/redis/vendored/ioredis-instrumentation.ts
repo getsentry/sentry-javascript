@@ -15,11 +15,10 @@ import {
   getActiveSpan,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
-import { DB_STATEMENT, DB_SYSTEM, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
+import { DB_STATEMENT, DB_SYSTEM, NET_PEER_NAME, NET_PEER_PORT, SENTRY_KIND } from '@sentry/conventions/attributes';
 import { defaultDbStatementSerializer } from '@sentry/server-utils';
 import { ATTR_DB_CONNECTION_STRING, DB_SYSTEM_VALUE_REDIS } from './semconv';
 import type { IORedisInstrumentationConfig } from './types';
@@ -112,6 +111,7 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
 
         const { host, port } = this.options;
         const attributes: SpanAttributes = {
+          [SENTRY_KIND]: 'client',
           // oxlint-disable-next-line typescript/no-deprecated
           [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
           // oxlint-disable-next-line typescript/no-deprecated
@@ -124,7 +124,7 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };
 
-        const span = startInactiveSpan({ name: cmd.name, kind: SPAN_KIND.CLIENT, attributes });
+        const span = startInactiveSpan({ name: cmd.name, attributes });
 
         try {
           const result = original.apply(this, args);
@@ -157,6 +157,7 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
 
         const { host, port } = this.options;
         const attributes: SpanAttributes = {
+          [SENTRY_KIND]: 'client',
           // oxlint-disable-next-line typescript/no-deprecated
           [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
           // oxlint-disable-next-line typescript/no-deprecated
@@ -169,7 +170,7 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         };
 
-        const span = startInactiveSpan({ name: 'connect', kind: SPAN_KIND.CLIENT, attributes });
+        const span = startInactiveSpan({ name: 'connect', attributes });
 
         try {
           const result = original.apply(this, args) as Promise<unknown> | undefined;

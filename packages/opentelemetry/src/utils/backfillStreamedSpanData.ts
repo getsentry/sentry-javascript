@@ -3,8 +3,6 @@ import {
   safeSetSpanJSONAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SPAN_KIND,
-  spanKindToName,
 } from '@sentry/core';
 import { inferSpanData } from './parseSpanDescription';
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
@@ -20,11 +18,10 @@ import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
  * child spans, which `applyOtelSpanData` only sets on segment roots). `inferSpanData` is deterministic
  * on the same attributes, so re-running it here is a no-op for already-inferred fields.
  */
-export function backfillStreamedSpanDataFromOtel(spanJSON: StreamedSpanJSON, hint?: { spanKind?: number }): void {
+export function backfillStreamedSpanDataFromOtel(spanJSON: StreamedSpanJSON): void {
   const attributes = spanJSON.attributes ?? {};
 
-  const kind = hint?.spanKind ?? SPAN_KIND.INTERNAL;
-  const { op, description, source, data } = inferSpanData(spanJSON.name, attributes as unknown as SpanAttributes, kind);
+  const { op, description, source, data } = inferSpanData(spanJSON.name, attributes as unknown as SpanAttributes);
 
   spanJSON.name = description;
 
@@ -38,10 +35,4 @@ export function backfillStreamedSpanDataFromOtel(spanJSON: StreamedSpanJSON, hin
     [SENTRY_ORIGIN]: 'manual',
     ...data,
   });
-
-  if (kind !== SPAN_KIND.INTERNAL) {
-    safeSetSpanJSONAttributes(spanJSON, {
-      'otel.kind': spanKindToName(kind),
-    });
-  }
 }

@@ -18,7 +18,6 @@ import {
   getActiveSpan,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startSpan,
 } from '@sentry/core';
@@ -31,6 +30,7 @@ import {
   NET_PEER_NAME,
   NET_PEER_PORT,
   NET_TRANSPORT,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import { ATTR_DB_SQL_TABLE } from './semconv';
@@ -122,6 +122,7 @@ export class KnexInstrumentation extends InstrumentationBase<InstrumentationConf
           utils.extractDatabaseFromConnectionString(connectionString);
 
         const attributes: SpanAttributes = {
+          [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           'knex.version': moduleVersion,
           [DB_SYSTEM]: utils.mapSystem(this.client.driverName),
@@ -143,7 +144,6 @@ export class KnexInstrumentation extends InstrumentationBase<InstrumentationConf
         return startSpan(
           {
             name: utils.getName(name, operation, table),
-            kind: SPAN_KIND.CLIENT,
             attributes,
             parentSpan,
             onlyIfParent: true,

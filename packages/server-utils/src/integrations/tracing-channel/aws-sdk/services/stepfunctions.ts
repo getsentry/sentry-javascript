@@ -1,4 +1,3 @@
-import { SPAN_KIND } from '@sentry/core';
 import {
   AWS_STEP_FUNCTIONS_ACTIVITY_ARN as ATTR_AWS_STEP_FUNCTIONS_ACTIVITY_ARN,
   AWS_STEP_FUNCTIONS_STATE_MACHINE_ARN as ATTR_AWS_STEP_FUNCTIONS_STATE_MACHINE_ARN,
@@ -22,7 +21,6 @@ export class StepFunctionsServiceExtension implements ServiceExtension {
 
     return {
       spanAttributes,
-      spanKind: SPAN_KIND.CLIENT,
     };
   }
 }

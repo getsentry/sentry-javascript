@@ -1,5 +1,5 @@
 import * as SentryCore from '@sentry/core';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_KIND, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -51,6 +51,7 @@ describe('withSentry', () => {
           op: 'http.server',
           forceTransaction: true,
           attributes: {
+            [SENTRY_KIND]: 'server',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
             [URL_FULL]: 'https://dogs.are.great/api/dogs?good=true',

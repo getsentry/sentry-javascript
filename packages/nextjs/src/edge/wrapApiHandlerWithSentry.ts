@@ -18,7 +18,7 @@ import {
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_KIND, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 /**
  * Wraps a Next.js edge route handler with Sentry error and performance instrumentation.
@@ -90,6 +90,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
             name: spanName,
             op: op,
             attributes: {
+              [SENTRY_KIND]: 'server',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_api_handler',
               ...urlAttributes,

@@ -1,7 +1,7 @@
 import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import { TraceState } from '../src/utils/TraceState';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
-import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, SENTRY_KIND } from '@sentry/conventions/attributes';
 import { generateSpanId, generateTraceId } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -205,7 +205,10 @@ describe('SentrySampler', () => {
       const traceId = generateTraceId();
       const spanName = 'GET /health';
       const spanKind = SpanKind.SERVER;
-      const spanAttributes = { [HTTP_REQUEST_METHOD]: 'GET' };
+      const spanAttributes = {
+        [HTTP_REQUEST_METHOD]: 'GET',
+        [SENTRY_KIND]: 'server' as const,
+      };
 
       const actual = sampler.shouldSample(ctx, traceId, spanName, spanKind, spanAttributes, undefined);
       expect(actual.decision).toBe(SamplingDecision.NOT_RECORD);

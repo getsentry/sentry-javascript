@@ -7,7 +7,7 @@
  * - Upstream version: @opentelemetry/instrumentation-aws-sdk@0.73.0
  */
 
-import { Attributes, DiagLogger, Span, SpanKind } from '@opentelemetry/api';
+import { Attributes, DiagLogger, Span } from '@opentelemetry/api';
 import { RequestMetadata, ServiceExtension } from './ServiceExtension';
 import {
   ATTR_AWS_DYNAMODB_ATTRIBUTE_DEFINITIONS,
@@ -46,7 +46,6 @@ export class DynamodbServiceExtension implements ServiceExtension {
     _config: AwsSdkInstrumentationConfig,
     _diag: DiagLogger,
   ): RequestMetadata {
-    const spanKind: SpanKind = SpanKind.CLIENT;
     const isIncoming = false;
     const operation = normalizedRequest.commandName;
     const tableName = normalizedRequest.commandInput?.TableName;
@@ -168,7 +167,6 @@ export class DynamodbServiceExtension implements ServiceExtension {
     return {
       isIncoming,
       spanAttributes,
-      spanKind,
     };
   }
 

@@ -26,7 +26,7 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
       // TODO(v11): Update these to the Sentry semantic attributes for urls.
       // https://getsentry.github.io/sentry-conventions/attributes/
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-      'otel.kind': 'CLIENT',
+      'sentry.kind': 'client',
       'http.url': url,
       'http.method': request.method,
       'http.target': request.path || '/',

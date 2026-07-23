@@ -119,7 +119,7 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
             'http.response.status_code': 200,
             'network.peer.address': '::1',
             'network.peer.port': 3030,
-            'otel.kind': 'CLIENT',
+            'sentry.kind': 'client',
             'sentry.op': 'http.client',
             'sentry.origin': 'auto.http.otel.node_fetch',
             'server.address': 'localhost',

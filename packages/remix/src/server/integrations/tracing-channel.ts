@@ -7,7 +7,6 @@ import {
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -20,6 +19,7 @@ import {
   HTTP_URL,
   URL_FULL,
   URL_PATH,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { remixChannels } from '@sentry/server-utils/orchestrion';
 
@@ -134,8 +134,8 @@ function subscribeRequestHandler(): void {
     data =>
       startInactiveSpan({
         name: 'remix.request',
-        kind: SPAN_KIND.SERVER,
         attributes: {
+          [SENTRY_KIND]: 'server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
           [CODE_FUNCTION]: 'requestHandler',
