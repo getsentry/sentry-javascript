@@ -1,3 +1,8 @@
+// `@sentry/conventions` marks several gen_ai attributes (e.g. `GEN_AI_SYSTEM`, `GEN_AI_PROMPT`,
+// `GEN_AI_REQUEST_AVAILABLE_TOOLS`, `GEN_AI_TOOL_*`) as deprecated in favour of newer semconv names. We
+// intentionally keep emitting the current names so these spans match what the Sentry product consumes
+// today; migrating to the new names is a separate, coordinated change.
+/* eslint-disable typescript-eslint/no-deprecated */
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
@@ -7,16 +12,16 @@ import { hasSpanStreamingEnabled } from '../spans/hasSpanStreamingEnabled';
 import type { Span } from '../../types/span';
 import { isThenable } from '../../utils/is';
 import {
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_ID_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from './gen-ai-attributes';
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
 import { truncateGenAiMessages, truncateGenAiStringInput } from './messageTruncation';
 
 export interface AIRecordingOptions {
@@ -102,12 +107,12 @@ export function setTokenUsageAttributes(
 ): void {
   if (promptTokens !== undefined) {
     span.setAttributes({
-      [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: promptTokens,
+      [GEN_AI_USAGE_INPUT_TOKENS]: promptTokens,
     });
   }
   if (completionTokens !== undefined) {
     span.setAttributes({
-      [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: completionTokens,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: completionTokens,
     });
   }
   if (
@@ -124,7 +129,7 @@ export function setTokenUsageAttributes(
       (promptTokens ?? 0) + (completionTokens ?? 0) + (cachedInputTokens ?? 0) + (cachedOutputTokens ?? 0);
 
     span.setAttributes({
-      [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: totalTokens,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: totalTokens,
     });
   }
 }
@@ -152,25 +157,25 @@ export function endStreamSpan(span: Span, state: StreamResponseState, recordOutp
   }
 
   const attrs: Record<string, string | number | boolean> = {
-    [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
+    [GEN_AI_RESPONSE_STREAMING]: true,
   };
 
-  if (state.responseId) attrs[GEN_AI_RESPONSE_ID_ATTRIBUTE] = state.responseId;
-  if (state.responseModel) attrs[GEN_AI_RESPONSE_MODEL_ATTRIBUTE] = state.responseModel;
+  if (state.responseId) attrs[GEN_AI_RESPONSE_ID] = state.responseId;
+  if (state.responseModel) attrs[GEN_AI_RESPONSE_MODEL] = state.responseModel;
 
-  if (state.promptTokens !== undefined) attrs[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = state.promptTokens;
-  if (state.completionTokens !== undefined) attrs[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = state.completionTokens;
+  if (state.promptTokens !== undefined) attrs[GEN_AI_USAGE_INPUT_TOKENS] = state.promptTokens;
+  if (state.completionTokens !== undefined) attrs[GEN_AI_USAGE_OUTPUT_TOKENS] = state.completionTokens;
 
   // Use explicit total if provided (OpenAI, Google), otherwise compute from cache tokens (Anthropic)
   if (state.totalTokens !== undefined) {
-    attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] = state.totalTokens;
+    attrs[GEN_AI_USAGE_TOTAL_TOKENS] = state.totalTokens;
   } else if (
     state.promptTokens !== undefined ||
     state.completionTokens !== undefined ||
     state.cacheCreationInputTokens !== undefined ||
     state.cacheReadInputTokens !== undefined
   ) {
-    attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] =
+    attrs[GEN_AI_USAGE_TOTAL_TOKENS] =
       (state.promptTokens ?? 0) +
       (state.completionTokens ?? 0) +
       (state.cacheCreationInputTokens ?? 0) +
@@ -178,13 +183,13 @@ export function endStreamSpan(span: Span, state: StreamResponseState, recordOutp
   }
 
   if (state.finishReasons.length) {
-    attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE] = JSON.stringify(state.finishReasons);
+    attrs[GEN_AI_RESPONSE_FINISH_REASONS] = JSON.stringify(state.finishReasons);
   }
   if (recordOutputs && state.responseTexts.length) {
-    attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE] = state.responseTexts.join('');
+    attrs[GEN_AI_RESPONSE_TEXT] = state.responseTexts.join('');
   }
   if (recordOutputs && state.toolCalls.length) {
-    attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] = JSON.stringify(state.toolCalls);
+    attrs[GEN_AI_RESPONSE_TOOL_CALLS] = JSON.stringify(state.toolCalls);
   }
 
   span.setAttributes(attrs);

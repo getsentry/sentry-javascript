@@ -1,25 +1,30 @@
+// `@sentry/conventions` marks several gen_ai attributes (e.g. `GEN_AI_SYSTEM`, `GEN_AI_PROMPT`,
+// `GEN_AI_REQUEST_AVAILABLE_TOOLS`, `GEN_AI_TOOL_*`) as deprecated in favour of newer semconv names. We
+// intentionally keep emitting the current names so these spans match what the Sentry product consumes
+// today; migrating to the new names is a separate, coordinated change.
+/* eslint-disable typescript-eslint/no-deprecated */
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types/span';
 import {
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_PROMPT_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_K_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
-  GEN_AI_RESPONSE_ID_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_PROMPT,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_REQUEST_FREQUENCY_PENALTY,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_REQUEST_TOP_K,
+  GEN_AI_REQUEST_TOP_P,
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_SYSTEM,
+} from '@sentry/conventions/attributes';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../ai/utils';
 import {
   resolveAIRecordingOptions,
@@ -50,31 +55,30 @@ export function extractRequestAttributes(
   operationName: string,
 ): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
-    [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
+    [GEN_AI_SYSTEM]: 'anthropic',
+    [GEN_AI_OPERATION_NAME]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
   };
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
     if (params.tools && Array.isArray(params.tools)) {
-      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = JSON.stringify(params.tools);
+      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] = JSON.stringify(params.tools);
     }
 
-    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = params.model ?? 'unknown';
-    if ('temperature' in params) attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = params.temperature;
-    if ('top_p' in params) attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE] = params.top_p;
+    attributes[GEN_AI_REQUEST_MODEL] = params.model ?? 'unknown';
+    if ('temperature' in params) attributes[GEN_AI_REQUEST_TEMPERATURE] = params.temperature;
+    if ('top_p' in params) attributes[GEN_AI_REQUEST_TOP_P] = params.top_p;
     if ('stream' in params) attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = params.stream;
-    if ('top_k' in params) attributes[GEN_AI_REQUEST_TOP_K_ATTRIBUTE] = params.top_k;
-    if ('frequency_penalty' in params)
-      attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = params.frequency_penalty;
-    if ('max_tokens' in params) attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE] = params.max_tokens;
+    if ('top_k' in params) attributes[GEN_AI_REQUEST_TOP_K] = params.top_k;
+    if ('frequency_penalty' in params) attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY] = params.frequency_penalty;
+    if ('max_tokens' in params) attributes[GEN_AI_REQUEST_MAX_TOKENS] = params.max_tokens;
   } else {
     if (methodPath === 'models.retrieve' || methodPath === 'models.get') {
       // models.retrieve(model-id) and models.get(model-id)
-      attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = args[0];
+      attributes[GEN_AI_REQUEST_MODEL] = args[0];
     } else {
-      attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
+      attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
     }
   }
 
@@ -94,7 +98,7 @@ export function addPrivateRequestAttributes(
   setMessagesAttribute(span, messages, enableTruncation);
 
   if ('prompt' in params) {
-    span.setAttributes({ [GEN_AI_PROMPT_ATTRIBUTE]: JSON.stringify(params.prompt) });
+    span.setAttributes({ [GEN_AI_PROMPT]: JSON.stringify(params.prompt) });
   }
 }
 
@@ -106,7 +110,7 @@ function addContentAttributes(span: Span, response: AnthropicAiResponse): void {
   if ('content' in response) {
     if (Array.isArray(response.content)) {
       span.setAttributes({
-        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.content
+        [GEN_AI_RESPONSE_TEXT]: response.content
           .map((item: ContentBlock) => item.text)
           .filter(text => !!text)
           .join(''),
@@ -120,17 +124,17 @@ function addContentAttributes(span: Span, response: AnthropicAiResponse): void {
         }
       }
       if (toolCalls.length > 0) {
-        span.setAttributes({ [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(toolCalls) });
+        span.setAttributes({ [GEN_AI_RESPONSE_TOOL_CALLS]: JSON.stringify(toolCalls) });
       }
     }
   }
   // Completions.create
   if ('completion' in response) {
-    span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.completion });
+    span.setAttributes({ [GEN_AI_RESPONSE_TEXT]: response.completion });
   }
   // Models.countTokens
   if ('input_tokens' in response) {
-    span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: JSON.stringify(response.input_tokens) });
+    span.setAttributes({ [GEN_AI_RESPONSE_TEXT]: JSON.stringify(response.input_tokens) });
   }
 }
 
@@ -140,8 +144,8 @@ function addContentAttributes(span: Span, response: AnthropicAiResponse): void {
 function addMetadataAttributes(span: Span, response: AnthropicAiResponse): void {
   if ('id' in response && 'model' in response) {
     span.setAttributes({
-      [GEN_AI_RESPONSE_ID_ATTRIBUTE]: response.id,
-      [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
+      [GEN_AI_RESPONSE_ID]: response.id,
+      [GEN_AI_RESPONSE_MODEL]: response.model,
     });
 
     if ('usage' in response && response.usage) {
@@ -207,7 +211,7 @@ function handleStreamingRequest<T extends unknown[], R>(
   isStreamRequested: boolean,
   isStreamingMethod: boolean,
 ): R | Promise<R> {
-  const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
+  const model = requestAttributes[GEN_AI_REQUEST_MODEL] ?? 'unknown';
   const spanConfig = {
     name: `${operationName} ${model}`,
     op: `gen_ai.${operationName}`,
@@ -291,7 +295,7 @@ function instrumentMethod<T extends unknown[], R>(
 
       const operationName = instrumentedMethod.operation || 'unknown';
       const requestAttributes = extractRequestAttributes(args, methodPath, operationName);
-      const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
+      const model = requestAttributes[GEN_AI_REQUEST_MODEL] ?? 'unknown';
 
       const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
       const isStreamRequested = Boolean(params?.stream);

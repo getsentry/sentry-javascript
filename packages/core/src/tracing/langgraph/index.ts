@@ -1,17 +1,24 @@
+// `@sentry/conventions` marks several gen_ai attributes (e.g. `GEN_AI_SYSTEM`, `GEN_AI_PROMPT`,
+// `GEN_AI_REQUEST_AVAILABLE_TOOLS`, `GEN_AI_TOOL_*`) as deprecated in favour of newer semconv names. We
+// intentionally keep emitting the current names so these spans match what the Sentry product consumes
+// today; migrating to the new names is a separate, coordinated change.
+/* eslint-disable typescript-eslint/no-deprecated */
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import {
-  GEN_AI_AGENT_NAME_ATTRIBUTE,
-  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_AGENT_NAME,
+  GEN_AI_CONVERSATION_ID,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_PIPELINE_NAME,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+} from '@sentry/conventions/attributes';
+import {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_PIPELINE_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import {
   extractSystemInstructions,
@@ -54,11 +61,11 @@ export function _INTERNAL_getLangGraphCreateAgentSpanOptions(agentName?: string)
   const attributes: Record<string, SpanAttributeValue> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
+    [GEN_AI_OPERATION_NAME]: 'create_agent',
   };
 
   if (agentName) {
-    attributes[GEN_AI_AGENT_NAME_ATTRIBUTE] = agentName;
+    attributes[GEN_AI_AGENT_NAME] = agentName;
   }
 
   return {
@@ -100,7 +107,7 @@ export function instrumentStateGraphCompile(
 
           // Extract graph name
           if (compileOptions?.name && typeof compileOptions.name === 'string') {
-            span.setAttribute(GEN_AI_AGENT_NAME_ATTRIBUTE, compileOptions.name);
+            span.setAttribute(GEN_AI_AGENT_NAME, compileOptions.name);
             span.updateName(`create_agent ${compileOptions.name}`);
           }
 
@@ -159,7 +166,7 @@ export function instrumentCompiledGraphInvoke(
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
-            [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+            [GEN_AI_OPERATION_NAME]: 'invoke_agent',
           },
         },
         async span => {
@@ -167,13 +174,13 @@ export function instrumentCompiledGraphInvoke(
             const graphName = compileOptions?.name;
 
             if (graphName && typeof graphName === 'string') {
-              span.setAttribute(GEN_AI_PIPELINE_NAME_ATTRIBUTE, graphName);
-              span.setAttribute(GEN_AI_AGENT_NAME_ATTRIBUTE, graphName);
+              span.setAttribute(GEN_AI_PIPELINE_NAME, graphName);
+              span.setAttribute(GEN_AI_AGENT_NAME, graphName);
               span.updateName(`invoke_agent ${graphName}`);
             }
 
             if (modelName) {
-              span.setAttribute(GEN_AI_REQUEST_MODEL_ATTRIBUTE, modelName);
+              span.setAttribute(GEN_AI_REQUEST_MODEL, modelName);
             }
 
             // Extract thread_id from the config (second argument)
@@ -182,7 +189,7 @@ export function instrumentCompiledGraphInvoke(
             const configurable = config?.configurable as Record<string, unknown> | undefined;
             const threadId = configurable?.thread_id;
             if (threadId && typeof threadId === 'string') {
-              span.setAttribute(GEN_AI_CONVERSATION_ID_ATTRIBUTE, threadId);
+              span.setAttribute(GEN_AI_CONVERSATION_ID, threadId);
             }
 
             // Inject callback handler and agent name into invoke config
@@ -206,7 +213,7 @@ export function instrumentCompiledGraphInvoke(
             // Extract available tools from the graph instance
             const tools = extractToolsFromCompiledGraph(graphInstance);
             if (tools) {
-              span.setAttribute(GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE, JSON.stringify(tools));
+              span.setAttribute(GEN_AI_REQUEST_AVAILABLE_TOOLS, JSON.stringify(tools));
             }
 
             // Parse input messages
@@ -220,13 +227,13 @@ export function instrumentCompiledGraphInvoke(
               const { systemInstructions, filteredMessages } = extractSystemInstructions(normalizedMessages);
 
               if (systemInstructions) {
-                span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+                span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
               }
 
               const enableTruncation = shouldEnableTruncation(options.enableTruncation);
               const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
               span.setAttributes({
-                [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
+                [GEN_AI_INPUT_MESSAGES]: enableTruncation
                   ? getTruncatedJsonString(filteredMessages)
                   : stringify(filteredMessages),
                 [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,

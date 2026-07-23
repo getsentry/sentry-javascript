@@ -1,26 +1,28 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
-  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
-  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_CONVERSATION_ID,
+  GEN_AI_EMBEDDINGS_INPUT,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_SYSTEM,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
+import {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_ID_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -39,12 +41,12 @@ describe('OpenAI integration', () => {
           span: container => {
             expect(container.items).toHaveLength(6);
             const chatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-mock123',
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
             );
             expect(chatCompletionSpan).toBeDefined();
             expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
             expect(chatCompletionSpan!.status).toBe('ok');
-            expect(chatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -56,50 +58,50 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-3.5-turbo',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({
               type: 'double',
               value: 0.7,
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-3.5-turbo',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
               value: 'chatcmpl-mock123',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
               type: 'string',
               value: '["stop"]',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 10,
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 15,
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 25,
             });
 
             const responsesSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_mock456',
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456',
             );
             expect(responsesSpan).toBeDefined();
             expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
             expect(responsesSpan!.status).toBe('ok');
-            expect(responsesSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -111,32 +113,32 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(responsesSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
-            expect(responsesSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_SYSTEM]).toEqual({ type: 'string', value: 'openai' });
+            expect(responsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-3.5-turbo',
             });
-            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-3.5-turbo',
             });
-            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
               value: 'resp_mock456',
             });
-            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
               type: 'string',
               value: '["completed"]',
             });
-            expect(responsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 5,
             });
-            expect(responsesSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 8,
             });
-            expect(responsesSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 13,
             });
@@ -149,7 +151,7 @@ describe('OpenAI integration', () => {
             expect(nonStreamingErrorSpan!.name).toBe('chat error-model');
             expect(nonStreamingErrorSpan!.status).toBe('error');
             expect(nonStreamingErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
-            expect(nonStreamingErrorSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -161,22 +163,22 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(nonStreamingErrorSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(nonStreamingErrorSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'error-model',
             });
 
             const streamingChatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-stream-123',
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
             );
             expect(streamingChatCompletionSpan).toBeDefined();
             expect(streamingChatCompletionSpan!.name).toBe('chat gpt-4');
             expect(streamingChatCompletionSpan!.status).toBe('ok');
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -188,15 +190,15 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({
               type: 'double',
               value: 0.8,
             });
@@ -204,42 +206,42 @@ describe('OpenAI integration', () => {
               type: 'boolean',
               value: true,
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
               value: 'chatcmpl-stream-123',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
               type: 'string',
               value: '["stop"]',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 12,
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 18,
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 30,
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_STREAMING]).toEqual({
               type: 'boolean',
               value: true,
             });
 
             const streamingResponsesSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_stream_456',
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_stream_456',
             );
             expect(streamingResponsesSpan).toBeDefined();
             expect(streamingResponsesSpan!.name).toBe('chat gpt-4');
             expect(streamingResponsesSpan!.status).toBe('ok');
-            expect(streamingResponsesSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -251,11 +253,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
             });
@@ -263,31 +265,31 @@ describe('OpenAI integration', () => {
               type: 'boolean',
               value: true,
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
               value: 'resp_stream_456',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
               type: 'string',
               value: '["in_progress","completed"]',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 6,
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 10,
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 16,
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_STREAMING]).toEqual({
               type: 'boolean',
               value: true,
             });
@@ -299,11 +301,11 @@ describe('OpenAI integration', () => {
             expect(streamingErrorSpan).toBeDefined();
             expect(streamingErrorSpan!.name).toBe('chat error-model');
             expect(streamingErrorSpan!.status).toBe('error');
-            expect(streamingErrorSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(streamingErrorSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
-            expect(streamingErrorSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(streamingErrorSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'error-model',
             });
@@ -311,7 +313,7 @@ describe('OpenAI integration', () => {
               type: 'boolean',
               value: true,
             });
-            expect(streamingErrorSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(streamingErrorSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -339,12 +341,12 @@ describe('OpenAI integration', () => {
           span: container => {
             expect(container.items).toHaveLength(6);
             const chatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-mock123',
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
             );
             expect(chatCompletionSpan).toBeDefined();
             expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
             expect(chatCompletionSpan!.status).toBe('ok');
-            expect(chatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -356,15 +358,15 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-3.5-turbo',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({
               type: 'double',
               value: 0.7,
             });
@@ -372,50 +374,50 @@ describe('OpenAI integration', () => {
               type: 'integer',
               value: 1,
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
               type: 'string',
               value: '[{"role":"user","content":"What is the capital of France?"}]',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toEqual({
               type: 'string',
               value: JSON.stringify([{ type: 'text', content: 'You are a helpful assistant.' }]),
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-3.5-turbo',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
               value: 'chatcmpl-mock123',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
               type: 'string',
               value: '["stop"]',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toEqual({
               type: 'string',
               value: '["Hello from OpenAI mock!"]',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 10,
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 15,
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 25,
             });
 
             const responsesSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_mock456',
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456',
             );
             expect(responsesSpan).toBeDefined();
             expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
             expect(responsesSpan!.status).toBe('ok');
-            expect(responsesSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -427,8 +429,8 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(responsesSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
-            expect(responsesSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_SYSTEM]).toEqual({ type: 'string', value: 'openai' });
+            expect(responsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-3.5-turbo',
             });
@@ -436,35 +438,35 @@ describe('OpenAI integration', () => {
               type: 'integer',
               value: 1,
             });
-            expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
               type: 'string',
               value: 'Translate this to French: Hello',
             });
-            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toEqual({
               type: 'string',
               value: 'Response to: Translate this to French: Hello',
             });
-            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
               type: 'string',
               value: '["completed"]',
             });
-            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-3.5-turbo',
             });
-            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
               value: 'resp_mock456',
             });
-            expect(responsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 5,
             });
-            expect(responsesSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 8,
             });
-            expect(responsesSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+            expect(responsesSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 13,
             });
@@ -477,7 +479,7 @@ describe('OpenAI integration', () => {
             expect(nonStreamingErrorSpan!.name).toBe('chat error-model');
             expect(nonStreamingErrorSpan!.status).toBe('error');
             expect(nonStreamingErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
-            expect(nonStreamingErrorSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -489,11 +491,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(nonStreamingErrorSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(nonStreamingErrorSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'error-model',
             });
@@ -501,18 +503,18 @@ describe('OpenAI integration', () => {
               type: 'integer',
               value: 1,
             });
-            expect(nonStreamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
               type: 'string',
               value: '[{"role":"user","content":"This will fail"}]',
             });
 
             const streamingChatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-stream-123',
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
             );
             expect(streamingChatCompletionSpan).toBeDefined();
             expect(streamingChatCompletionSpan!.name).toBe('chat gpt-4');
             expect(streamingChatCompletionSpan!.status).toBe('ok');
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -524,15 +526,15 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({
               type: 'double',
               value: 0.8,
             });
@@ -544,54 +546,54 @@ describe('OpenAI integration', () => {
               type: 'integer',
               value: 1,
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
               type: 'string',
               value: '[{"role":"user","content":"Tell me about streaming"}]',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toEqual({
               type: 'string',
               value: JSON.stringify([{ type: 'text', content: 'You are a helpful assistant.' }]),
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toEqual({
               type: 'string',
               value: 'Hello from OpenAI streaming!',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
               type: 'string',
               value: '["stop"]',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
               value: 'chatcmpl-stream-123',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 12,
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 18,
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 30,
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_STREAMING]).toEqual({
               type: 'boolean',
               value: true,
             });
 
             const streamingResponsesSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_stream_456',
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_stream_456',
             );
             expect(streamingResponsesSpan).toBeDefined();
             expect(streamingResponsesSpan!.name).toBe('chat gpt-4');
             expect(streamingResponsesSpan!.status).toBe('ok');
-            expect(streamingResponsesSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -603,11 +605,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
             });
@@ -619,39 +621,39 @@ describe('OpenAI integration', () => {
               type: 'integer',
               value: 1,
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
               type: 'string',
               value: 'Test streaming responses API',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toEqual({
               type: 'string',
               value: 'Streaming response to: Test streaming responses APITest streaming responses API',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
               type: 'string',
               value: '["in_progress","completed"]',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
               value: 'resp_stream_456',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 6,
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 10,
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 16,
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_RESPONSE_STREAMING]).toEqual({
               type: 'boolean',
               value: true,
             });
@@ -663,11 +665,11 @@ describe('OpenAI integration', () => {
             expect(streamingErrorSpan).toBeDefined();
             expect(streamingErrorSpan!.name).toBe('chat error-model');
             expect(streamingErrorSpan!.status).toBe('error');
-            expect(streamingErrorSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(streamingErrorSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
-            expect(streamingErrorSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(streamingErrorSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'error-model',
             });
@@ -679,11 +681,11 @@ describe('OpenAI integration', () => {
               type: 'integer',
               value: 1,
             });
-            expect(streamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+            expect(streamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
               type: 'string',
               value: '[{"role":"user","content":"This will fail"}]',
             });
-            expect(streamingErrorSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(streamingErrorSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -711,32 +713,32 @@ describe('OpenAI integration', () => {
           span: container => {
             expect(container.items).toHaveLength(6);
             const chatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-mock123',
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
             );
             expect(chatCompletionSpan).toBeDefined();
             expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
-            expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toMatchObject({
+            expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
               type: 'string',
               value: expect.any(String),
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toMatchObject({
+            expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toMatchObject({
               type: 'string',
               value: expect.any(String),
             });
 
             const streamingChatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-stream-123',
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
             );
             expect(streamingChatCompletionSpan).toBeDefined();
             expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({
               type: 'boolean',
               value: true,
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toMatchObject({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
               type: 'string',
               value: expect.any(String),
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toMatchObject({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toMatchObject({
               type: 'string',
               value: expect.any(String),
             });
@@ -766,14 +768,14 @@ describe('OpenAI integration', () => {
             span: container => {
               expect(container.items).toHaveLength(2);
               const chatCompletionSpan = container.items.find(
-                span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-mock123',
+                span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
               );
               expect(chatCompletionSpan).toBeDefined();
-              expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+              expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
                 type: 'string',
                 value: 'chatcmpl-mock123',
               });
-              expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toMatchObject({
+              expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
                 type: 'string',
                 value: JSON.stringify([
                   { role: 'user', content: longContent },
@@ -787,14 +789,14 @@ describe('OpenAI integration', () => {
               });
 
               const responsesSpan = container.items.find(
-                span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_mock456',
+                span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456',
               );
               expect(responsesSpan).toBeDefined();
-              expect(responsesSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+              expect(responsesSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
                 type: 'string',
                 value: 'resp_mock456',
               });
-              expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toMatchObject({
+              expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
                 type: 'string',
                 value: 'B'.repeat(50_000),
               });
@@ -830,7 +832,7 @@ describe('OpenAI integration', () => {
             expect(singleEmbeddingSpan).toBeDefined();
             expect(singleEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
             expect(singleEmbeddingSpan!.status).toBe('ok');
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'embeddings',
             });
@@ -842,11 +844,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'text-embedding-3-small',
             });
@@ -858,15 +860,15 @@ describe('OpenAI integration', () => {
               type: 'integer',
               value: 1536,
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'text-embedding-3-small',
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 10,
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 10,
             });
@@ -875,7 +877,7 @@ describe('OpenAI integration', () => {
             expect(errorEmbeddingSpan).toBeDefined();
             expect(errorEmbeddingSpan!.name).toBe('embeddings error-model');
             expect(errorEmbeddingSpan!.status).toBe('error');
-            expect(errorEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'embeddings',
             });
@@ -887,11 +889,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(errorEmbeddingSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(errorEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'error-model',
             });
@@ -904,7 +906,7 @@ describe('OpenAI integration', () => {
             expect(multiEmbeddingSpan).toBeDefined();
             expect(multiEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
             expect(multiEmbeddingSpan!.status).toBe('ok');
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'embeddings',
             });
@@ -916,23 +918,23 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'text-embedding-3-small',
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'text-embedding-3-small',
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 10,
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 10,
             });
@@ -956,12 +958,12 @@ describe('OpenAI integration', () => {
           span: container => {
             expect(container.items).toHaveLength(3);
             const singleEmbeddingSpan = container.items.find(
-              span => span.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]?.value === 'Embedding test!',
+              span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Embedding test!',
             );
             expect(singleEmbeddingSpan).toBeDefined();
             expect(singleEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
             expect(singleEmbeddingSpan!.status).toBe('ok');
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'embeddings',
             });
@@ -973,11 +975,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'text-embedding-3-small',
             });
@@ -989,30 +991,30 @@ describe('OpenAI integration', () => {
               type: 'integer',
               value: 1536,
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toEqual({
               type: 'string',
               value: 'Embedding test!',
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'text-embedding-3-small',
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 10,
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 10,
             });
 
             const errorEmbeddingSpan = container.items.find(
-              span => span.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]?.value === 'Error embedding test!',
+              span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Error embedding test!',
             );
             expect(errorEmbeddingSpan).toBeDefined();
             expect(errorEmbeddingSpan!.name).toBe('embeddings error-model');
             expect(errorEmbeddingSpan!.status).toBe('error');
-            expect(errorEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'embeddings',
             });
@@ -1024,28 +1026,28 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(errorEmbeddingSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(errorEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'error-model',
             });
-            expect(errorEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toEqual({
               type: 'string',
               value: 'Error embedding test!',
             });
 
             const multiEmbeddingSpan = container.items.find(
               span =>
-                span.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]?.value ===
+                span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value ===
                 '["First input text","Second input text","Third input text"]',
             );
             expect(multiEmbeddingSpan).toBeDefined();
             expect(multiEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
             expect(multiEmbeddingSpan!.status).toBe('ok');
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'embeddings',
             });
@@ -1057,27 +1059,27 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'text-embedding-3-small',
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toEqual({
               type: 'string',
               value: '["First input text","Second input text","Third input text"]',
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'text-embedding-3-small',
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
               value: 10,
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
               type: 'integer',
               value: 10,
             });
@@ -1105,20 +1107,20 @@ describe('OpenAI integration', () => {
                 span_id: expect.any(String),
                 trace_id: expect.any(String),
                 data: {
-                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+                  [GEN_AI_OPERATION_NAME]: 'chat',
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: isOrchestrionEnabled()
                     ? 'auto.ai.orchestrion.openai'
                     : 'auto.ai.openai',
-                  [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
-                  [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
-                  [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
-                  [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
-                  [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'chatcmpl-mock123',
-                  [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["stop"]',
-                  [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
-                  [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
-                  [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
+                  [GEN_AI_SYSTEM]: 'openai',
+                  [GEN_AI_REQUEST_MODEL]: 'gpt-3.5-turbo',
+                  [GEN_AI_REQUEST_TEMPERATURE]: 0.7,
+                  [GEN_AI_RESPONSE_MODEL]: 'gpt-3.5-turbo',
+                  [GEN_AI_RESPONSE_ID]: 'chatcmpl-mock123',
+                  [GEN_AI_RESPONSE_FINISH_REASONS]: '["stop"]',
+                  [GEN_AI_USAGE_INPUT_TOKENS]: 10,
+                  [GEN_AI_USAGE_OUTPUT_TOKENS]: 15,
+                  [GEN_AI_USAGE_TOTAL_TOKENS]: 25,
                 },
                 op: 'gen_ai.chat',
                 origin: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
@@ -1149,20 +1151,20 @@ describe('OpenAI integration', () => {
                 span_id: expect.any(String),
                 trace_id: expect.any(String),
                 data: {
-                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+                  [GEN_AI_OPERATION_NAME]: 'chat',
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: isOrchestrionEnabled()
                     ? 'auto.ai.orchestrion.openai'
                     : 'auto.ai.openai',
-                  [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
-                  [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
-                  [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
-                  [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
-                  [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'chatcmpl-mock123',
-                  [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["stop"]',
-                  [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
-                  [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
-                  [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
+                  [GEN_AI_SYSTEM]: 'openai',
+                  [GEN_AI_REQUEST_MODEL]: 'gpt-3.5-turbo',
+                  [GEN_AI_REQUEST_TEMPERATURE]: 0.7,
+                  [GEN_AI_RESPONSE_MODEL]: 'gpt-3.5-turbo',
+                  [GEN_AI_RESPONSE_ID]: 'chatcmpl-mock123',
+                  [GEN_AI_RESPONSE_FINISH_REASONS]: '["stop"]',
+                  [GEN_AI_USAGE_INPUT_TOKENS]: 10,
+                  [GEN_AI_USAGE_OUTPUT_TOKENS]: 15,
+                  [GEN_AI_USAGE_TOTAL_TOKENS]: 25,
                 },
                 op: 'gen_ai.chat',
                 origin: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
@@ -1193,14 +1195,14 @@ describe('OpenAI integration', () => {
             span: container => {
               expect(container.items).toHaveLength(2);
               const truncatedMessageSpan = container.items.find(span =>
-                getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.match(
+                getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.match(
                   /^\[\{"role":"user","content":"C+"\}\]$/,
                 ),
               );
               expect(truncatedMessageSpan).toBeDefined();
               expect(truncatedMessageSpan!.name).toBe('chat gpt-3.5-turbo');
               expect(truncatedMessageSpan!.status).toBe('ok');
-              expect(truncatedMessageSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+              expect(truncatedMessageSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
                 type: 'string',
                 value: 'chat',
               });
@@ -1212,11 +1214,11 @@ describe('OpenAI integration', () => {
                 type: 'string',
                 value: 'auto.ai.openai',
               });
-              expect(truncatedMessageSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+              expect(truncatedMessageSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
                 value: 'openai',
               });
-              expect(truncatedMessageSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+              expect(truncatedMessageSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
                 type: 'string',
                 value: 'gpt-3.5-turbo',
               });
@@ -1224,22 +1226,22 @@ describe('OpenAI integration', () => {
                 type: 'integer',
                 value: 2,
               });
-              expect(truncatedMessageSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toMatch(
+              expect(truncatedMessageSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toMatch(
                 /^\[\{"role":"user","content":"C+"\}\]$/,
               );
-              expect(truncatedMessageSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE].value).toMatch(
+              expect(truncatedMessageSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toMatch(
                 /^\[\{"type":"text","content":"A+"\}\]$/,
               );
 
               const smallMessageSpan = container.items.find(
                 span =>
-                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value ===
+                  span.attributes[GEN_AI_INPUT_MESSAGES]?.value ===
                   JSON.stringify([{ role: 'user', content: 'This is a small message that fits within the limit' }]),
               );
               expect(smallMessageSpan).toBeDefined();
               expect(smallMessageSpan!.name).toBe('chat gpt-3.5-turbo');
               expect(smallMessageSpan!.status).toBe('ok');
-              expect(smallMessageSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+              expect(smallMessageSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
                 type: 'string',
                 value: 'chat',
               });
@@ -1251,15 +1253,15 @@ describe('OpenAI integration', () => {
                 type: 'string',
                 value: 'auto.ai.openai',
               });
-              expect(smallMessageSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+              expect(smallMessageSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
                 value: 'openai',
               });
-              expect(smallMessageSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+              expect(smallMessageSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
                 type: 'string',
                 value: 'gpt-3.5-turbo',
               });
-              expect(smallMessageSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+              expect(smallMessageSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
                 value: JSON.stringify([
                   { role: 'user', content: 'This is a small message that fits within the limit' },
@@ -1269,7 +1271,7 @@ describe('OpenAI integration', () => {
                 type: 'integer',
                 value: 2,
               });
-              expect(smallMessageSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE].value).toMatch(
+              expect(smallMessageSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toMatch(
                 /^\[\{"type":"text","content":"A+"\}\]$/,
               );
             },
@@ -1301,7 +1303,7 @@ describe('OpenAI integration', () => {
               // [0] long A-string input is truncated
               expect(firstSpan!.name).toBe('chat gpt-3.5-turbo');
               expect(firstSpan!.status).toBe('ok');
-              expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
+              expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
               expect(firstSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
@@ -1310,8 +1312,8 @@ describe('OpenAI integration', () => {
                 type: 'string',
                 value: 'auto.ai.openai',
               });
-              expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
-              expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+              expect(firstSpan!.attributes[GEN_AI_SYSTEM]).toEqual({ type: 'string', value: 'openai' });
+              expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
                 type: 'string',
                 value: 'gpt-3.5-turbo',
               });
@@ -1319,7 +1321,7 @@ describe('OpenAI integration', () => {
                 type: 'integer',
                 value: 1,
               });
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toMatch(/^A+$/);
+              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toMatch(/^A+$/);
             },
           })
           .start()
@@ -1345,7 +1347,7 @@ describe('OpenAI integration', () => {
             expect(conversationCreateSpan).toBeDefined();
             expect(conversationCreateSpan!.name).toBe('chat unknown');
             expect(conversationCreateSpan!.status).toBe('ok');
-            expect(conversationCreateSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(conversationCreateSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -1357,24 +1359,24 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(conversationCreateSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(conversationCreateSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(conversationCreateSpan!.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toEqual({
+            expect(conversationCreateSpan!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
               type: 'string',
               value: 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
             });
 
             const conversationResponseSpan = container.items.find(
               span =>
-                span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]?.value ===
+                span.attributes[GEN_AI_CONVERSATION_ID]?.value ===
                   'conv_689667905b048191b4740501625afd940c7533ace33a2dab' &&
-                span.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]?.value === 'gpt-4',
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4',
             );
             expect(conversationResponseSpan).toBeDefined();
             expect(conversationResponseSpan!.status).toBe('ok');
-            expect(conversationResponseSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(conversationResponseSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -1386,15 +1388,15 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(conversationResponseSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(conversationResponseSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(conversationResponseSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(conversationResponseSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
             });
-            expect(conversationResponseSpan!.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toEqual({
+            expect(conversationResponseSpan!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
               type: 'string',
               value: 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
             });
@@ -1402,7 +1404,7 @@ describe('OpenAI integration', () => {
             const unlinkedResponseSpan = container.items.find(
               span =>
                 span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.chat' &&
-                span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE] === undefined,
+                span.attributes[GEN_AI_CONVERSATION_ID] === undefined,
             );
             expect(unlinkedResponseSpan).toBeDefined();
             expect(unlinkedResponseSpan!.status).toBe('ok');
@@ -1410,14 +1412,14 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(unlinkedResponseSpan!.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBeUndefined();
+            expect(unlinkedResponseSpan!.attributes[GEN_AI_CONVERSATION_ID]).toBeUndefined();
 
             const previousResponseSpan = container.items.find(
-              span => span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]?.value === 'resp_mock_conv_123',
+              span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === 'resp_mock_conv_123',
             );
             expect(previousResponseSpan).toBeDefined();
             expect(previousResponseSpan!.status).toBe('ok');
-            expect(previousResponseSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+            expect(previousResponseSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
               value: 'chat',
             });
@@ -1429,15 +1431,15 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
             });
-            expect(previousResponseSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+            expect(previousResponseSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
               type: 'string',
               value: 'openai',
             });
-            expect(previousResponseSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+            expect(previousResponseSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
             });
-            expect(previousResponseSpan!.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toEqual({
+            expect(previousResponseSpan!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
               type: 'string',
               value: 'resp_mock_conv_123',
             });
@@ -1565,7 +1567,7 @@ describe('OpenAI integration', () => {
               const [firstSpan] = container.items;
 
               // [0] chat completion with system instructions extracted from messages
-              expect(firstSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]).toEqual({
+              expect(firstSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toEqual({
                 type: 'string',
                 value: JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]),
               });
@@ -1594,9 +1596,9 @@ describe('OpenAI integration', () => {
             for (const span of container.items) {
               expect(span!.name).toBe('chat gpt-4');
               expect(span!.status).toBe('ok');
-              expect(span!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-              expect(span!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-              expect(span!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+              expect(span!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
+              expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
+              expect(span!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
                 type: 'string',
                 value: 'chatcmpl-withresponse',
               });
@@ -1625,13 +1627,13 @@ describe('OpenAI integration', () => {
             for (const span of container.items) {
               expect(span!.name).toBe('chat gpt-4o');
               expect(span!.status).toBe('ok');
-              expect(span!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-              expect(span!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4o' });
+              expect(span!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
+              expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4o' });
               expect(span!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
                 type: 'integer',
                 value: 1,
               });
-              expect(span!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain('[Blob substitute]');
+              expect(span!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('[Blob substitute]');
             }
           },
         })
@@ -1651,12 +1653,12 @@ describe('OpenAI integration', () => {
           span: container => {
             expect(container.items).toHaveLength(2);
             const multipleImagesSpan = container.items.find(span =>
-              getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
+              getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(
                 'https://example.com/image.png',
               ),
             );
             expect(multipleImagesSpan).toBeDefined();
-            expect(multipleImagesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain(
+            expect(multipleImagesSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain(
               'https://example.com/image.png',
             );
           },
@@ -1677,16 +1679,12 @@ describe('OpenAI integration', () => {
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
-                streamingLongContent,
-              ),
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(streamingLongContent),
             );
             expect(chatSpan).toBeDefined();
 
             const responsesSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.includes(
-                streamingLongString,
-              ),
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(streamingLongString),
             );
             expect(responsesSpan).toBeDefined();
           },
@@ -1710,23 +1708,22 @@ describe('OpenAI integration', () => {
               // With explicit enableTruncation: true, content should be truncated despite streaming.
               // Truncation keeps only the last message (50k 'A's) and crops it to the byte limit.
               const chatSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith(
+                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.startsWith(
                   '[{"role":"user","content":"AAAA',
                 ),
               );
               expect(chatSpan).toBeDefined();
               expect(
-                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value) ?? '').length,
+                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES].value) ?? '').length,
               ).toBeLessThan(streamingLongContent.length);
 
               // The responses API string input (50k 'B's) should also be truncated.
               const responsesSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value)?.startsWith('BBB'),
+                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.startsWith('BBB'),
               );
               expect(responsesSpan).toBeDefined();
               expect(
-                (getStringAttributeValue(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value) ?? '')
-                  .length,
+                (getStringAttributeValue(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES].value) ?? '').length,
               ).toBeLessThan(streamingLongString.length);
             },
           })

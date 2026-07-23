@@ -1,3 +1,4 @@
+import { GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { GoogleGenAIOptions, GoogleGenAIResponse, IntegrationFn, Span } from '@sentry/core';
 import {
@@ -7,7 +8,6 @@ import {
   debug,
   defineIntegration,
   extractGoogleGenAIRequestAttributes,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   getActiveSpan,
   instrumentGoogleGenAIStream,
   resolveAIRecordingOptions,
@@ -119,7 +119,7 @@ function createGenAiSpan(
   const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   const attributes = extractGoogleGenAIRequestAttributes(operation, params, data.self);
-  const model = (attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
+  const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
 
   const span = startInactiveSpan({
