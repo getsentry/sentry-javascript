@@ -171,6 +171,8 @@ describe('sentryHandle', () => {
       }
 
       expect(_span).toBeUndefined();
+      expect(spanToJSON(kitRootSpan).description).toEqual('GET /users/[id]');
+      expect(spanToJSON(kitRootSpan).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
       expect(spanToJSON(kitRootSpan).data?.[HTTP_ROUTE]).toEqual('/users/[id]');
       kitRootSpan.end();
     });

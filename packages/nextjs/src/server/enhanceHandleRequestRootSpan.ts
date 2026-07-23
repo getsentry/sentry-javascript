@@ -47,6 +47,7 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
     const cleanRoute = route.replace(/\/route$/, '');
     span.setName(`${method} ${cleanRoute}`);
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+    attributes[HTTP_ROUTE] = cleanRoute;
     // Preserve next.route in case it did not get hoisted
     attributes[ATTR_NEXT_ROUTE] = cleanRoute;
   }

@@ -169,7 +169,8 @@ async function instrumentHandle(
         const kitRootSpanAttributes = spanJson.data;
         const originalName = spanJson.description;
 
-        const routeName = kitRootSpanAttributes['http.route'];
+        const kitRoute = kitRootSpanAttributes[HTTP_ROUTE];
+        const routeName = typeof kitRoute === 'string' ? kitRoute : routeId;
         if (routeName && typeof routeName === 'string') {
           updateSpanName(kitRootSpan, `${event.request.method ?? 'GET'} ${routeName}`);
         }
@@ -182,8 +183,8 @@ async function instrumentHandle(
           // oxlint-disable-next-line typescript-eslint(no-deprecated)
           [URL_FULL]: kitRootSpanAttributes[URL_FULL] ?? kitRootSpanAttributes[HTTP_URL] ?? event.url.href,
           [URL_PATH]: kitRootSpanAttributes[URL_PATH] ?? event.url.pathname,
-          ...(routeId && {
-            [HTTP_ROUTE]: kitRootSpanAttributes[HTTP_ROUTE] ?? routeId,
+          ...(routeName && {
+            [HTTP_ROUTE]: routeName,
           }),
           ...httpHeadersToSpanAttributes(
             winterCGHeadersToDict(event.request.headers),
