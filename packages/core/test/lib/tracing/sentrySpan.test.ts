@@ -355,6 +355,7 @@ describe('SentrySpan', () => {
             origin: 'manual',
             span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
             trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+            status: 'ok',
           },
         },
         sdkProcessingMetadata: {

@@ -21,6 +21,7 @@ describe('SentryNonRecordingSpan', () => {
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       data: {},
       start_timestamp: 0,
+      status: 'ok',
     });
 
     // Ensure all methods work
@@ -37,6 +38,7 @@ describe('SentryNonRecordingSpan', () => {
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       data: {},
       start_timestamp: 0,
+      status: 'ok',
     });
   });
 });

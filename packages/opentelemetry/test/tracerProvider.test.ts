@@ -55,7 +55,7 @@ describe('SentryTracerProvider', () => {
       parent_span_id: undefined,
       span_id: span.spanContext().spanId,
       start_timestamp: expect.any(Number),
-      status: undefined,
+      status: 'ok',
       timestamp: undefined,
       trace_id: span.spanContext().traceId,
       profile_id: undefined,

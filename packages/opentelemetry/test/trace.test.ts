@@ -1960,6 +1960,7 @@ describe('continueTrace', () => {
           trace_id: '12312012123120121231201212312012',
           data: {},
           start_timestamp: 0,
+          status: 'ok',
         });
         expect(getSamplingDecision(span.spanContext())).toBe(false);
         expect(spanIsSampled(span)).toBe(false);
@@ -1981,6 +1982,7 @@ describe('continueTrace', () => {
           trace_id: '12312012123120121231201212312012',
           data: {},
           start_timestamp: 0,
+          status: 'ok',
         });
         expect(getSamplingDecision(span.spanContext())).toBe(true);
         expect(spanIsSampled(span)).toBe(true);
@@ -2002,6 +2004,7 @@ describe('continueTrace', () => {
           trace_id: '12312012123120121231201212312012',
           data: {},
           start_timestamp: 0,
+          status: 'ok',
         });
         expect(getSamplingDecision(span.spanContext())).toBe(true);
         expect(spanIsSampled(span)).toBe(true);

@@ -43,13 +43,13 @@ describe('registerErrorHandlers()', () => {
     registerSpanErrorInstrumentation();
 
     const transaction = startInactiveSpan({ name: 'test' })!;
-    expect(spanToJSON(transaction).status).toBe(undefined);
+    expect(spanToJSON(transaction).status).toBe('ok');
 
     mockErrorCallback({} as HandlerDataError);
-    expect(spanToJSON(transaction).status).toBe(undefined);
+    expect(spanToJSON(transaction).status).toBe('ok');
 
     mockUnhandledRejectionCallback({});
-    expect(spanToJSON(transaction).status).toBe(undefined);
+    expect(spanToJSON(transaction).status).toBe('ok');
 
     transaction.end();
   });

@@ -109,10 +109,10 @@ export function applyOtelSpanKind(span: Span, kind: SpanKind | undefined): void 
 function applyOtelSpanStatus(
   span: Span,
   attributes: SpanAttributes,
-  status: string | undefined,
+  status: string,
   spanStreamingEnabled: boolean,
 ): void {
-  if (status === undefined) {
+  if (status === 'ok') {
     span.setStatus(inferStatusFromAttributes(attributes) || { code: SPAN_STATUS_OK });
     return;
   }

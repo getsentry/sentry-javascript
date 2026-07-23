@@ -37,6 +37,7 @@ describe('spanToJSON', () => {
         trace_id: span.spanContext().traceId,
         start_timestamp: 123,
         description: 'test span',
+        status: 'ok',
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         },
