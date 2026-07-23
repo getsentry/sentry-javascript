@@ -17,13 +17,11 @@
     "no-unused-expressions": ["error", { "allowShortCircuit": true }],
     "guard-for-in": "error",
     "array-callback-return": ["error", { "allowImplicit": true }],
-    "quotes": ["error", "single", { "avoidEscape": true }],
-    "no-return-await": "error",
+    "typescript/return-await": "error",
     "max-lines": ["error", { "max": 300, "skipComments": true, "skipBlankLines": true }],
 
     // === Import rules ===
     "import/namespace": "off",
-    "import/no-unresolved": "off",
 
     // === Rules turned off (not enforced in ESLint or causing false positives) ===
     "no-control-regex": "off",
@@ -104,12 +102,6 @@
         "typescript/no-base-to-string": "off",
         "typescript/await-thenable": "off",
         "typescript/no-deprecated": "off"
-      }
-    },
-    {
-      "files": ["*.tsx"],
-      "rules": {
-        "jsdoc/require-jsdoc": "off"
       }
     },
     {

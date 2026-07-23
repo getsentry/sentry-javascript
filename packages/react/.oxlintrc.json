@@ -4,13 +4,5 @@
   "plugins": ["react"],
   "env": {
     "browser": true
-  },
-  "overrides": [
-    {
-      "files": ["test/**"],
-      "rules": {
-        "react/prop-types": "off"
-      }
-    }
-  ]
+  }
 }
