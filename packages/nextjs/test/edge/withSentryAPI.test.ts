@@ -68,4 +68,26 @@ describe('wrapApiHandlerWithSentry', () => {
       [HTTP_ROUTE]: parameterizedRoute,
     });
   });
+
+  it('replaces a concrete root span route with the parameterized route', async () => {
+    const rootSpan = {
+      updateName: vi.fn(),
+      setAttributes: vi.fn(),
+    };
+    vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValueOnce({} as any);
+    vi.spyOn(SentryCore, 'getRootSpan').mockReturnValueOnce(rootSpan as any);
+    vi.spyOn(SentryCore, 'spanToJSON').mockReturnValueOnce({
+      data: { [HTTP_ROUTE]: '/user/123/post/456' },
+    } as any);
+    const parameterizedRoute = '/user/[userId]/post/[postId]';
+    const wrappedFunction = wrapApiHandlerWithSentry(() => new Response(), parameterizedRoute);
+
+    await wrappedFunction(new Request('https://dogs.are.great/user/123/post/456'));
+
+    expect(rootSpan.setAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        [HTTP_ROUTE]: parameterizedRoute,
+      }),
+    );
+  });
 });

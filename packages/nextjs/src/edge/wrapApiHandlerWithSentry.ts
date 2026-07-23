@@ -57,9 +57,6 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
         const urlAttributes = {
           [URL_FULL]: urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined,
           [URL_PATH]: urlObject?.pathname,
-          ...(parameterizedRoute && {
-            [HTTP_ROUTE]: parameterizedRoute,
-          }),
         };
 
         const activeSpan = getActiveSpan();
@@ -78,7 +75,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               [URL_FULL]: rootSpanAttributes[URL_FULL] ?? urlAttributes[URL_FULL],
               [URL_PATH]: rootSpanAttributes[URL_PATH] ?? urlAttributes[URL_PATH],
-              [HTTP_ROUTE]: rootSpanAttributes[HTTP_ROUTE] ?? urlAttributes[HTTP_ROUTE],
+              [HTTP_ROUTE]: parameterizedRoute,
               ...headerAttributes,
             });
             setCapturedScopesOnSpan(rootSpan, currentScope, isolationScope);
@@ -97,6 +94,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
               [SENTRY_KIND]: 'server',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_api_handler',
+              [HTTP_ROUTE]: parameterizedRoute,
               ...urlAttributes,
               ...headerAttributes,
             },
