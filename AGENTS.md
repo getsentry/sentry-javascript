@@ -135,6 +135,16 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - When modifying files, cover all occurrences (including `src/` and `test/`)
 - Comments explain **why**, never **what** — never add a comment that restates what the code does or describes the change being made; only comment when the reasoning isn't obvious from the code itself
 
+## Lazy Loading Is a Last Resort
+
+Do NOT "fix" a bundler, runtime, or platform incompatibility by making an import lazy or opaque — `createRequire`, require-inside-a-function, dynamic `import()`, computed specifiers. Not all bundlers understand `createRequire`, and anything opaque to static analysis just moves the breakage to a different consumer (pnpm isolation, workerd, Turbopack, nft tracing) while masking the real defect. SDK code must stay statically analyzable.
+
+Before even proposing lazy loading:
+
+1. Reproduce the failure and read the **actual** error — not a plausible theory about it. If the error is swallowed, extract it (debug logging, running the server/bundle directly) before choosing a fix.
+2. Fix the root cause at the layer it lives in, in roughly this order: build output shape (rollup/commonjs options like `interop`, `strictRequires`, `requireReturnsDefault`, `output.paths`), module resolution (`exports` maps, self-references, absolute-path externals), packaging (what ships in the tarball, bundled vs external deps), and only then consumer-side configuration.
+3. If, after exhausting these, lazy loading still seems necessary, stop and ask — explain what was tried and why nothing else works. Do not implement it first.
+
 ## Reference Documentation
 
 - [Span Attributes](https://develop.sentry.dev/sdk/telemetry/attributes.md)
