@@ -33,7 +33,8 @@ function isVueViewModel(wat: unknown): wat is VueViewModel {
  * probe that works on either Vue version.
  */
 function isVNode(wat: unknown): wat is VNode {
-  return !!(typeof wat === 'object' && wat?.__v_isVNode);
+  // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast reaches VNode's `__v_isVNode`; tsc errors without it
+  return !!(typeof wat === 'object' && (wat as VNode | null)?.__v_isVNode);
 }
 
 export function normalizeStringifyValue(value: Exclude<unknown, string | number | boolean | null>): string | undefined {

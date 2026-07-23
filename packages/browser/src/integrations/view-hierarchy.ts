@@ -91,7 +91,8 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
       const { x, y, width, height } = child.getBoundingClientRect();
 
       const window: ViewHierarchyWindow = {
-        identifier: child.id || undefined,
+        // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast drops `undefined` to satisfy `identifier: string`; tsc errors without it
+        identifier: (child.id || undefined) as string,
         type: componentName || tagName,
         visible: true,
         alpha: 1,

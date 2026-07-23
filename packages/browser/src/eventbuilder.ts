@@ -74,14 +74,14 @@ function eventFromPlainObject(
     };
   }
 
+  const exceptionValue: Exception = {
+    type: isEvent(exception) ? exception.constructor.name : isUnhandledRejection ? 'UnhandledRejection' : 'Error',
+    value: getNonErrorObjectExceptionValue(exception, { isUnhandledRejection }),
+  };
+
   const event = {
     exception: {
-      values: [
-        {
-          type: isEvent(exception) ? exception.constructor.name : isUnhandledRejection ? 'UnhandledRejection' : 'Error',
-          value: getNonErrorObjectExceptionValue(exception, { isUnhandledRejection }),
-        },
-      ],
+      values: [exceptionValue],
     },
     extra,
   } satisfies Event;

@@ -6,6 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/core';
+import type { CloudflareClientOptions } from '../client';
 import { targetsCloudflareInternalTable } from '../utils/internalSqlQuery';
 
 /**
@@ -29,7 +30,9 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
         const sanitizedQuery = _INTERNAL_sanitizeSqlQuery(query);
         const querySummary = _INTERNAL_getSqlQuerySummary(sanitizedQuery);
 
-        const allowlist = getClient()?.getOptions()?.durableObjectSqlSpanAllowlist;
+        // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast reaches the Cloudflare-only `durableObjectSqlSpanAllowlist`; tsc errors without it
+        const allowlist = (getClient()?.getOptions() as CloudflareClientOptions | undefined)
+          ?.durableObjectSqlSpanAllowlist;
 
         if (targetsCloudflareInternalTable(querySummary, allowlist, sanitizedQuery)) {
           return (original as (...a: unknown[]) => ReturnType<SqlStorage['exec']>).apply(target, args);
