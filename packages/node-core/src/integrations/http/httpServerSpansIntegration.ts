@@ -42,6 +42,7 @@ import {
   getIsolationScope,
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
+  isURLObjectRelative,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -174,7 +175,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
-              [URL_FULL]: fullUrl,
+              [URL_FULL]: urlObj && !isURLObjectRelative(urlObj) ? urlObj.href : undefined,
               [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
               // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
               /* eslint-disable typescript/no-deprecated */
