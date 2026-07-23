@@ -638,9 +638,8 @@ export function createSentryBuildPluginManager(
                 globAssets = buildArtifactPaths;
               }
 
-              const globResult = await startSpan(
-                { name: 'glob', scope: sentryScope },
-                async () => await globFiles(globAssets, { ignore: options.sourcemaps?.ignore }),
+              const globResult = await startSpan({ name: 'glob', scope: sentryScope }, async () =>
+                globFiles(globAssets, { ignore: options.sourcemaps?.ignore }),
               );
 
               const debugIdChunkFilePaths = globResult.filter(debugIdChunkFilePath => {

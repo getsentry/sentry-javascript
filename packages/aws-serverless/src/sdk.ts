@@ -129,7 +129,7 @@ function setupTimeoutWarning(context: Context, options: WrapperOptions): NodeJS.
         scope.setTag('timeout', humanReadableTimeout);
         captureMessage(`Possible function timeout: ${context.functionName}`, 'warning');
       });
-    }, timeoutWarningDelay) as unknown as NodeJS.Timeout;
+    }, timeoutWarningDelay);
   }
 
   return undefined;
@@ -184,6 +184,7 @@ export function wrapHandler<TEvent, TResult>(
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
     captureAllSettledReasons: false,
+    // oxlint-disable-next-line typescript/no-deprecated -- set only to satisfy the type; see the TODO below
     startTrace: true, // TODO(v11): Remove this option. Set to true here to satisfy the type, but has no effect.
     ...wrapOptions,
   };

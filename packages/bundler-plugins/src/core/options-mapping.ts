@@ -113,10 +113,7 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
       create: userOptions.release?.create ?? true,
       finalize: userOptions.release?.finalize ?? true,
       vcsRemote: userOptions.release?.vcsRemote ?? process.env['SENTRY_VSC_REMOTE'] ?? 'origin',
-      setCommits: userOptions.release?.setCommits as
-        | (SetCommitsOptions & { shouldNotThrowOnFailure?: boolean })
-        | false
-        | undefined,
+      setCommits: userOptions.release?.setCommits,
     },
     bundleSizeOptimizations: userOptions.bundleSizeOptimizations,
     reactComponentAnnotation: userOptions.reactComponentAnnotation,

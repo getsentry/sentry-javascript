@@ -6,7 +6,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/core';
-import type { CloudflareClientOptions } from '../client';
 import { targetsCloudflareInternalTable } from '../utils/internalSqlQuery';
 
 /**
@@ -30,8 +29,7 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
         const sanitizedQuery = _INTERNAL_sanitizeSqlQuery(query);
         const querySummary = _INTERNAL_getSqlQuerySummary(sanitizedQuery);
 
-        const allowlist = (getClient()?.getOptions() as CloudflareClientOptions | undefined)
-          ?.durableObjectSqlSpanAllowlist;
+        const allowlist = getClient()?.getOptions()?.durableObjectSqlSpanAllowlist;
 
         if (targetsCloudflareInternalTable(querySummary, allowlist, sanitizedQuery)) {
           return (original as (...a: unknown[]) => ReturnType<SqlStorage['exec']>).apply(target, args);

@@ -91,7 +91,7 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
       const { x, y, width, height } = child.getBoundingClientRect();
 
       const window: ViewHierarchyWindow = {
-        identifier: (child.id || undefined) as string,
+        identifier: child.id || undefined,
         type: componentName || tagName,
         visible: true,
         alpha: 1,

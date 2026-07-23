@@ -264,7 +264,7 @@ function getName(db: string | undefined, operation?: string, table?: string): st
 function extractTableName(builder: KnexBuilder | undefined): string | undefined {
   const table = builder?._single?.table;
   if (table && typeof table === 'object') {
-    return extractTableName(table as KnexBuilder);
+    return extractTableName(table);
   }
   return typeof table === 'string' ? table : undefined;
 }

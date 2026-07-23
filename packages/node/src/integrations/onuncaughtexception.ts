@@ -71,7 +71,7 @@ export function makeErrorHandler(client: NodeClient, options: OnUncaughtExceptio
       if (options.onFatalError) {
         onFatalError = options.onFatalError;
       } else if (clientOptions.onFatalError) {
-        onFatalError = clientOptions.onFatalError as OnFatalErrorHandler;
+        onFatalError = clientOptions.onFatalError;
       }
 
       // Attaching a listener to `uncaughtException` will prevent the node process from exiting. We generally do not

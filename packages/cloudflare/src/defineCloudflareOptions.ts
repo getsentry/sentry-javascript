@@ -39,7 +39,7 @@ export function defineCloudflareOptions<Env = typeof cloudflareEnv>(
   optionsOrCallback: CloudflareOptions | ((env: Env) => CloudflareOptions | undefined),
 ): (env: Env) => CloudflareOptions | undefined {
   if (typeof optionsOrCallback === 'function') {
-    return optionsOrCallback as (env: Env) => CloudflareOptions | undefined;
+    return optionsOrCallback;
   }
 
   return () => optionsOrCallback;

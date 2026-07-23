@@ -24,7 +24,7 @@ export function createMetricContainerEnvelopeItem(
       type: 'trace_metric',
       item_count: items.length,
       content_type: 'application/vnd.sentry.items.trace-metric+json',
-    } as MetricContainerItem[0],
+    },
     {
       version: 2,
       ...(isBrowser() && {

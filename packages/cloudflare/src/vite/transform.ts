@@ -155,7 +155,7 @@ export function applyAutoInstrumentTransforms(
   // would otherwise wrap it twice).
   for (const node of ast.body) {
     if (node.type === 'ExportNamedDeclaration') {
-      handleNamedExport(node as ExportNamedNode, ctx, state);
+      handleNamedExport(node, ctx, state);
     }
   }
   for (const node of ast.body) {
@@ -260,13 +260,13 @@ function handleNamedExport(node: ExportNamedNode, ctx: TransformContext, state: 
   // `export const MyDO = instrumentDurableObjectWithSentry(...)` — count it
   // as wrapped so the plugin doesn't warn about it, but leave it alone.
   if (decl?.type === 'VariableDeclaration') {
-    collectManuallyWrappedClassExports(decl as VariableDeclarationNode, ctx, state);
+    collectManuallyWrappedClassExports(decl, ctx, state);
     return;
   }
 
   // ---- Named class export matching a configured binding ----
   if (decl?.type === 'ClassDeclaration') {
-    wrapInlineClassExport(node, decl as ClassDeclarationNode, ctx, state);
+    wrapInlineClassExport(node, decl, ctx, state);
     return;
   }
 

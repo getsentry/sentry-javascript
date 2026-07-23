@@ -374,7 +374,7 @@ export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: S
   // We store the root span reference on the child span
   // We need this for `getRootSpan()` to work
   const rootSpan = span[ROOT_SPAN_FIELD] || span;
-  addNonEnumerableProperty(childSpan as SpanWithPotentialChildren, ROOT_SPAN_FIELD, rootSpan);
+  addNonEnumerableProperty(childSpan, ROOT_SPAN_FIELD, rootSpan);
 
   // We store a list of child spans on the parent span
   // We need this for `getSpanDescendants()` to work

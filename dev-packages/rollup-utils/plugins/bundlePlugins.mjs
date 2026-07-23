@@ -157,7 +157,7 @@ export function makeTerserPlugin() {
         ],
       },
     },
-    output: {
+    format: {
       comments: false,
     },
   });

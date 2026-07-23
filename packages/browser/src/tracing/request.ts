@@ -133,6 +133,7 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   traceFetch: true,
   traceXHR: true,
   enableHTTPTimings: true,
+  // oxlint-disable-next-line typescript/no-deprecated -- default for the deprecated option, kept until it is removed
   trackFetchStreamPerformance: false,
 };
 

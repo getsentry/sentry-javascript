@@ -188,7 +188,7 @@ function createResourceEntry(
  * Add a LCP event to the replay based on a LCP metric.
  */
 export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { element?: Node }) | undefined;
+  const lastEntry = metric.entries[metric.entries.length - 1];
   const node = lastEntry?.element ? [lastEntry.element] : undefined;
   return getWebVital(metric, 'largest-contentful-paint', node);
 }
@@ -226,7 +226,7 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
  * Add an INP event to the replay based on an INP metric.
  */
 export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
+  const lastEntry = metric.entries[metric.entries.length - 1];
   const node = lastEntry?.target ? [lastEntry.target] : undefined;
   return getWebVital(metric, 'interaction-to-next-paint', node);
 }
