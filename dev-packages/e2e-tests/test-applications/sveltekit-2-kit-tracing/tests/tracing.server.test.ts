@@ -82,6 +82,8 @@ test('server pageload request span has nested request span for sub request', asy
           'http.method': 'GET',
           'http.route': '/api/users',
           'http.url': 'http://localhost:3030/api/users',
+          'url.full': 'http://localhost:3030/api/users',
+          'url.path': '/api/users',
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.sveltekit',
           'sentry.source': 'route',

@@ -40,6 +40,7 @@ import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/util
 import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
 import { generateSentryServerTimingHeader, injectServerTimingHeaderValue } from './serverTimingTracePropagation';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -337,8 +338,8 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
         DEBUG_BUILD && debug.warn('Failed to normalize Remix request');
       }
 
+      const url = new URL(request.url);
       if (options?.instrumentTracing && resolvedRoutes) {
-        const url = new URL(request.url);
         [name, source] = getTransactionName(resolvedRoutes, url);
 
         isolationScope.setTransactionName(name);
@@ -375,6 +376,8 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                  [URL_FULL]: url.href,
+                  [URL_PATH]: url.pathname,
                   method: request.method,
                   ...httpHeadersToSpanAttributes(
                     winterCGHeadersToDict(request.headers),

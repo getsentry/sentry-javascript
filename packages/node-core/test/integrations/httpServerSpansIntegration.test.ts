@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { EventEmitter } from 'node:events';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import * as SentryCore from '@sentry/core';
+import { describe, expect, it, vi } from 'vitest';
 import {
   httpServerSpansIntegration,
   isStaticAssetRequest,
@@ -33,6 +36,49 @@ describe('httpIntegration', () => {
     ])('returns %s -> %s', (urlPath, expected) => {
       expect(isStaticAssetRequest(urlPath)).toBe(expected);
     });
+  });
+
+  it('omits url.full when the incoming request URL is relative', () => {
+    let onHttpServerRequest:
+      | ((request: unknown, response: unknown, normalizedRequest: SentryCore.RequestEventData) => void)
+      | undefined;
+    const client = {
+      on: (hook: string, callback: typeof onHttpServerRequest) => {
+        if (hook === 'httpServerRequest') {
+          onHttpServerRequest = callback;
+        }
+      },
+      getDataCollectionOptions: () => false,
+    };
+    const span = {
+      end: () => undefined,
+      setAttributes: () => undefined,
+      setStatus: () => undefined,
+    } as unknown as SentryCore.Span;
+    const startInactiveSpan = vi.spyOn(SentryCore, 'startInactiveSpan').mockReturnValue(span);
+    const request = Object.assign(new EventEmitter(), {
+      headers: {},
+      httpVersion: '1.0',
+      method: 'GET',
+      socket: {},
+      url: '/users/42?foo=bar',
+    }) as EventEmitter & {
+      _startSpanCallback?: { deref: () => ((next: () => boolean) => boolean) | undefined };
+    };
+    const response = Object.assign(new EventEmitter(), { statusCode: 200 });
+
+    const integration = httpServerSpansIntegration();
+    integration.setup?.(client as Parameters<NonNullable<typeof integration.setup>>[0]);
+    onHttpServerRequest?.(request, response, { headers: {}, method: 'GET' });
+    request._startSpanCallback?.deref()(() => true);
+
+    const attributes = startInactiveSpan.mock.calls[0]?.[0].attributes;
+    expect(attributes).toEqual(
+      expect.objectContaining({
+        [URL_PATH]: '/users/42',
+      }),
+    );
+    expect(attributes?.[URL_FULL]).toBeUndefined();
   });
 
   describe('processEvent', () => {

@@ -21,6 +21,8 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
       'otel.kind': 'SERVER',
       'http.response.status_code': 200,
       'http.url': 'http://localhost:3030/task',
+      'url.full': 'http://localhost:3030/task',
+      'url.path': '/task',
       'http.host': 'localhost:3030',
       'net.host.name': 'localhost',
       'http.method': 'GET',

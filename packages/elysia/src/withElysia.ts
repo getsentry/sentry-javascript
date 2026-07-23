@@ -1,3 +1,4 @@
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
   captureException,
@@ -198,6 +199,8 @@ export function withElysia<T extends AnyElysia>(app: T, options: ElysiaHandlerOp
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                    [URL_FULL]: request.url,
+                    [URL_PATH]: new URL(request.url).pathname,
                   },
                 },
                 rootSpan => {

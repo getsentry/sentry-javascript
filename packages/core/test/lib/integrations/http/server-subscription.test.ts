@@ -1,4 +1,6 @@
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import * as http from 'node:http';
+import * as net from 'node:net';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -67,6 +69,18 @@ describe('getHttpServerSubscriptions', () => {
     });
   }
 
+  async function makeRequestWithoutHost(path: string): Promise<void> {
+    const { port } = server.address() as AddressInfo;
+    return new Promise<void>((resolve, reject) => {
+      const socket = net.createConnection(port, '127.0.0.1', () => {
+        socket.write(`GET ${path} HTTP/1.0\r\nConnection: close\r\n\r\n`);
+      });
+      socket.on('data', () => undefined);
+      socket.on('end', resolve);
+      socket.on('error', reject);
+    });
+  }
+
   function instrument(spans: boolean, extra: { ignoreStaticAssets?: boolean } = {}): void {
     const { [HTTP_ON_SERVER_REQUEST]: onServerRequest } = getHttpServerSubscriptions({ spans, ...extra });
     // Fire the channel listener manually with the server we're about to use.
@@ -107,9 +121,27 @@ describe('getHttpServerSubscriptions', () => {
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.server',
           'sentry.source': 'url',
+          [URL_FULL]: expect.stringMatching(/\/users\/42\?foo=bar$/),
+          [URL_PATH]: '/users/42',
         }),
       }),
     );
+  });
+
+  it('omits url.full when the incoming request URL is relative', async () => {
+    server = http.createServer((_req, res) => res.end('ok'));
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+    instrument(true);
+
+    await makeRequestWithoutHost('/users/42?foo=bar');
+    const transaction = await waitForTransaction();
+
+    expect(transaction.contexts?.trace?.data).toEqual(
+      expect.objectContaining({
+        [URL_PATH]: '/users/42',
+      }),
+    );
+    expect(transaction.contexts?.trace?.data).not.toHaveProperty(URL_FULL);
   });
 
   it('reports a 500 status with internal_error span status', async () => {
