@@ -12,10 +12,7 @@ import {
   GEN_AI_REQUEST_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
-import {
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+import { GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import {
   extractSystemInstructions,
   getTruncatedJsonString,
@@ -227,12 +224,10 @@ export function instrumentCompiledGraphInvoke(
               }
 
               const enableTruncation = shouldEnableTruncation(options.enableTruncation);
-              const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
               span.setAttributes({
                 [GEN_AI_INPUT_MESSAGES]: enableTruncation
                   ? getTruncatedJsonString(filteredMessages)
                   : stringify(filteredMessages),
-                [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
               });
             }
 

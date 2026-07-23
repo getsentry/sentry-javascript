@@ -19,10 +19,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import {
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
-} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
 
@@ -488,9 +485,6 @@ describe('Vercel AI integration (v4)', () => {
               expect(truncatedInvokeAgentSpan).toBeDefined();
               expect(truncatedInvokeAgentSpan!.name).toBe('invoke_agent');
               expect(truncatedInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-              expect(truncatedInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(
-                3,
-              );
               expect(truncatedInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toMatch(
                 /^\[.*"(?:text|content)":"C+".*\]$/,
               );
@@ -505,9 +499,6 @@ describe('Vercel AI integration (v4)', () => {
               expect(smallMessageInvokeAgentSpan).toBeDefined();
               expect(smallMessageInvokeAgentSpan!.name).toBe('invoke_agent');
               expect(smallMessageInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-              expect(
-                smallMessageInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value,
-              ).toBe(3);
               expect(smallMessageInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain(
                 'This is a small message that fits within the limit',
               );
@@ -638,7 +629,6 @@ describe('Vercel AI integration (v4)', () => {
                   { role: 'user', content: 'Follow-up question' },
                 ]),
               );
-              expect(invokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
 
               const generateContentSpan = container.items.find(span => span.name === 'generate_content mock-model-id');
               expect(generateContentSpan).toBeDefined();

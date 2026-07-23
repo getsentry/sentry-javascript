@@ -27,7 +27,6 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../ai/utils';
 import { stringify } from '../../utils/string';
 import {
@@ -190,9 +189,7 @@ export function addPrivateRequestAttributes(
       span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
     }
 
-    const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
     span.setAttributes({
-      [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
       [GEN_AI_INPUT_MESSAGES]: enableTruncation
         ? getTruncatedJsonString(filteredMessages)
         : stringify(filteredMessages),
