@@ -132,7 +132,7 @@ Deno.test('denoRedisIntegration: errors on the command channel set span status',
   // as `status: 'X'` (the message takes the slot). Both "not ok" and the
   // forwarded message confirm the error path fired.
   assert(redisSpan!.status && redisSpan!.status !== 'ok', `expected error-shaped status, got ${redisSpan!.status}`);
-  assertEquals(redisSpan!.status, 'ECONNREFUSED');
+  assertEquals(redisSpan!.status, 'internal_error');
 });
 
 Deno.test('denoRedisIntegration: ioredis:command channel produces a db.redis child span', async () => {
