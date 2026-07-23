@@ -1,13 +1,48 @@
+import { builtinModules } from 'node:module';
+import commonjs from '@rollup/plugin-commonjs';
 import { defineConfig } from 'rollup';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
-// EXPERIMENTAL — orchestrion.js runtime hook. A hand-written `.mjs` shim that
-// SDKs reference via a `--import .../orchestrion/import-hook` flag. We pass it
-// through rollup only to copy it into `build/orchestrion/` at the path the
-// package.json `exports` map expects; `external: /.*/` keeps every import (e.g.
-// `@sentry/server-utils/orchestrion/config`) as a runtime resolution
-// against the installed package.
+// The orchestrion runtime dependency chain (`@apm-js-collab/tracing-hooks` →
+// `@apm-js-collab/code-transformer` → meriyah/esquery/astring/…) is bundled into this package's
+// build instead of installed as runtime dependencies. Everything in the chain is plain JS, and
+// bundling removes two whole classes of downstream breakage:
+//
+// 1. `require(esm)`: the chain's only sync entry (`hook-sync.mjs`) is ESM-only, so an installed
+//    dependency forces our CJS build through Node's `require(esm)` bridge — unavailable on the AWS
+//    Lambda runtime (`--no-experimental-require-module`) and broken on `Module.register()` loader
+//    threads on Node 22.15–24.12 (`The resolveSync() method is not implemented`). Compiled into our
+//    own dual build, the CJS variant is genuine CJS.
+// 2. Tracer/runtime exports-map mismatches: meriyah 6.1's `module-sync`-first exports map is
+//    resolved differently by build-time tracers (`@vercel/nft`, nf3, Nitro externals) than by the
+//    runtime CJS loader, producing pruned server bundles that crash with `MODULE_NOT_FOUND`
+//    (https://github.com/vercel/nft/issues/603, https://github.com/nitrojs/nitro/issues/4456).
+//    Bundled, there is no runtime package resolution left to get wrong.
+//
+// `@apm-js-collab/code-transformer-bundler-plugins` (build-time only) is bundled as well so the
+// build-time and runtime transforms always ship the same `code-transformer` version, and so this
+// package has no `@apm-js-collab/*` install footprint at all.
+//
+// `requireReturnsDefault: 'auto'`: node-resolve prefers a dependency's ESM build even for CJS
+// `require()`s inside the vendored graph. Default-export-only ESM (e.g. esquery) must then resolve
+// to the default itself, not a `{ default }` namespace — CJS callers use it as
+// `require('esquery').parse(...)`.
+const commonJSOptions = { transformMixedEsModules: true, requireReturnsDefault: 'auto' };
+const commonJSPlugin = commonjs(commonJSOptions);
+
+// Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
+// repo root, so `preserveModules` names our own files `packages/server-utils/src/...` — strip that
+// prefix to keep the `build/cjs/index.js` layout the `exports` map points at. And npm never packs
+// `node_modules` directories, so the vendored dependencies must not be emitted under that name.
+const sanitizedFileNames = info =>
+  `${info.name.replace(/^packages\/server-utils\/src\//, '').replace(/node_modules/g, 'vendored')}.js`;
+
 const orchestrionRuntimeHooks = [
+  // EXPERIMENTAL — orchestrion.js runtime hook. A hand-written `.mjs` shim that SDKs reference via
+  // a `--import .../orchestrion/import-hook` flag. We pass it through rollup only to copy it into
+  // `build/orchestrion/` at the path the package.json `exports` map expects; `external: /.*/` keeps
+  // every import (e.g. `@sentry/server-utils/orchestrion/config`) as a runtime resolution against
+  // the installed package.
   defineConfig({
     input: 'src/orchestrion/runtime/import-hook.mjs',
     external: /.*/,
@@ -33,30 +68,32 @@ export default [
         // subpath export; the Node SDK `require`s it synchronously from
         // `Sentry.init()` to install the channel-injection hooks.
         'src/orchestrion/runtime/register.ts',
+        // The async module hooks passed to `Module.register()`. They load on Node's ESM loader
+        // thread, which cannot resolve bare specifiers into our bundled dependency graph — but
+        // relative imports of on-disk files work, and `build/esm` is a `"type": "module"` scope, so
+        // this entrypoint shares the vendored chunks with the rest of the build. The `./orchestrion/
+        // hook` export only maps its `import` condition (nothing ever `require()`s it), so the copy
+        // in `build/cjs` is unused.
+        'src/orchestrion/runtime/hook.mjs',
         'src/orchestrion/bundler/vite.ts',
         'src/orchestrion/bundler/rollup.ts',
         'src/orchestrion/bundler/webpack.ts',
+        'src/orchestrion/bundler/webpack-loader.ts',
         'src/orchestrion/bundler/esbuild.ts',
       ],
       packageSpecificConfig: {
+        plugins: [commonJSPlugin],
         output: {
           // set exports to 'named' or 'auto' so that rollup doesn't warn
           exports: 'named',
           // set preserveModules to true because we don't want to bundle everything into one file.
           preserveModules: true,
-          // `@apm-js-collab/code-transformer-bundler-plugins` and `@apm-js-collab/tracing-hooks`
-          // ship CJS entries as bare `module.exports = fn`/`= class` with no `__esModule`/`.default`.
-          // The repo default `interop: 'esModule'` assumes ESM-shaped externals and would dereference
-          // a nonexistent `.default`, so a default import compiles to `codeTransformer.default(...)` /
-          // `ModulePatch.default(...)` → "not a function"/"not a constructor". Use 'auto' for just
-          // these so Rollup emits its interop helper. Scoped here (not repo-wide) because 'auto' also
-          // turns `import * as x` into a copy, which breaks in-place monkey-patching that other
-          // packages (e.g. the OTel fs instrumentation) depend on.
-          interop: id =>
-            id?.startsWith('@apm-js-collab/code-transformer-bundler-plugins') ||
-            id?.startsWith('@apm-js-collab/tracing-hooks')
-              ? 'auto'
-              : 'esModule',
+          entryFileNames: sanitizedFileNames,
+          // The repo default `interop: 'esModule'` dereferences `.default` on default imports of
+          // externals. The commonjs-converted vendored dependencies import Node builtins that way
+          // (e.g. `require('path')` → default import of `path`), and builtins have no `.default` in
+          // CJS — so builtins need `'default'` interop (the module itself is the default export).
+          interop: id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule'),
         },
       },
     }),

@@ -81,7 +81,10 @@ export function registerDiagnosticsChannelInjection(): void {
       parentURL = import.meta.url;
       /*! rollup-include-esm-only-end */
 
-      mod.register('@apm-js-collab/tracing-hooks/hook.mjs', {
+      // Our own bundled copy of the tracing-hooks async hooks (see
+      // `src/orchestrion/runtime/hook.mjs`) — the dependency itself is bundled into this package's
+      // build and no longer resolvable as a bare specifier at runtime.
+      mod.register('@sentry/server-utils/orchestrion/hook', {
         parentURL,
         data: { instrumentations: SENTRY_INSTRUMENTATIONS, diagnosticsPort },
         transferList: [diagnosticsPort],

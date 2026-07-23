@@ -9,22 +9,17 @@ import { resolveOrchestrionRuntimeRequest } from '@sentry/server-utils/orchestri
 export const BUNDLE_SAFE_INSTRUMENTED_PACKAGES = ['ioredis'];
 
 /**
- * The orchestrion runtime machinery must stay external — its parser breaks when bundled, which
- * silently disables the runtime module hook.
+ * `@sentry/server-utils` (where `register.ts` and the bundled orchestrion runtime ship) must stay
+ * external: `register.ts` passes its own `__filename`/`import.meta.url` as the `parentURL` for
+ * `Module.register('@sentry/server-utils/orchestrion/hook.mjs', …)`, so that self-reference only
+ * resolves while the code still lives at its real `node_modules` location. Bundled into an app
+ * server chunk instead, the specifier would have to resolve from the chunk's output location,
+ * which fails under isolated installs (pnpm) where the package is a transitive dependency.
  *
- * `@sentry/server-utils` (the package `register.ts` — the code that actually calls into
- * `@apm-js-collab/tracing-hooks` — ships in) is included too: if it stays external, its own
- * `__filename`/`import.meta.url` keep pointing at their real `node_modules` location, so its
- * bare-specifier `require`/`import` of the (also-external) tracing-hooks packages resolve
- * correctly. If `@sentry/server-utils` were bundled into an app server chunk instead, its code
- * would be relocated away from `node_modules`, and those same specifiers would fail to resolve
- * under isolated installs (pnpm).
+ * (The `@apm-js-collab/*` packages no longer appear here: they are bundled into
+ * `@sentry/server-utils`' build, so no import of them exists at runtime.)
  */
-export const ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES = [
-  '@apm-js-collab/tracing-hooks',
-  '@apm-js-collab/code-transformer',
-  '@sentry/server-utils',
-];
+export const ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES = ['@sentry/server-utils'];
 
 /** Remove the given packages from a `serverExternalPackages` list. */
 export function filterInstrumentedExternals(externals: string[], packagesToBundle: string[]): string[] {
@@ -41,12 +36,12 @@ export function filterInstrumentedExternals(externals: string[], packagesToBundl
  * package when its bare specifier also resolves from the project root (`resolveExternal`'s
  * base-resolve check in `next/dist/build/handle-externals.js`) — otherwise the
  * `require('<bare specifier>')` it emits into the chunk would dangle at runtime, so Next silently
- * bundles the package instead. Under isolated installs (pnpm) these packages are transitive
- * dependencies that never resolve from the project root, so the whole orchestrion runtime ended up
- * compiled into the server chunk, which breaks it twice over: the code-transformer parser doesn't
- * survive bundling, and the runtime hook's own bare specifiers can't resolve from the chunk's
- * output location. Absolute paths sidestep all of this — webpack emits `require('/abs/path/…')`,
- * which loads the real files from `node_modules` no matter where the chunk lives.
+ * bundles the package instead. Under isolated installs (pnpm) the package is a transitive
+ * dependency that never resolves from the project root, so the orchestrion runtime ended up
+ * compiled into the server chunk — breaking the `Module.register` self-reference described on
+ * {@link ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES}. Absolute paths sidestep all of this — webpack
+ * emits `require('/abs/path/…')`, which loads the real files from `node_modules` no matter where
+ * the chunk lives.
  *
  * Must be placed *before* Next's own externals handler in the `externals` array: webpack calls
  * array entries in order and stops at the first one that returns a result.

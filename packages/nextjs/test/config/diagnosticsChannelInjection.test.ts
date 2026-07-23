@@ -36,8 +36,7 @@ describe('getServerExternalPackagesPatch (diagnostics-channel injection)', () =>
     expect(externals).toContain('pg');
     expect(externals).toContain('pg-pool');
     // The orchestrion machinery must be external for the runtime hook to work.
-    expect(externals).toContain('@apm-js-collab/tracing-hooks');
-    expect(externals).toContain('@apm-js-collab/code-transformer');
+    expect(externals).toContain('@sentry/server-utils');
   });
 
   it('respects user-provided externals even for bundle-safe packages', () => {
@@ -55,21 +54,22 @@ describe('getServerExternalPackagesPatch (diagnostics-channel injection)', () =>
 });
 
 describe('externalizeOrchestrionRuntimePackages', () => {
-  it.each([
-    '@sentry/server-utils',
-    '@sentry/server-utils/orchestrion',
-    '@sentry/server-utils/orchestrion/register',
-    '@apm-js-collab/tracing-hooks',
-    '@apm-js-collab/tracing-hooks/hook-sync.mjs',
-    '@apm-js-collab/tracing-hooks/lib/diagnostics.js',
-    '@apm-js-collab/code-transformer',
-  ])('externalizes %s as an absolute-path commonjs require', async request => {
-    const external = await externalizeOrchestrionRuntimePackages({ request });
+  it.each(['@sentry/server-utils', '@sentry/server-utils/orchestrion', '@sentry/server-utils/orchestrion/register'])(
+    'externalizes %s as an absolute-path commonjs require',
+    async request => {
+      const external = await externalizeOrchestrionRuntimePackages({ request });
 
-    expect(external).toMatch(/^commonjs /);
-    const resolvedPath = external!.slice('commonjs '.length);
-    expect(isAbsolute(resolvedPath)).toBe(true);
-    expect(existsSync(resolvedPath)).toBe(true);
+      expect(external).toMatch(/^commonjs /);
+      const resolvedPath = external!.slice('commonjs '.length);
+      expect(isAbsolute(resolvedPath)).toBe(true);
+      expect(existsSync(resolvedPath)).toBe(true);
+    },
+  );
+
+  it('ignores the bundled @apm-js-collab packages — no import of them exists in the dist anymore', async () => {
+    await expect(
+      externalizeOrchestrionRuntimePackages({ request: '@apm-js-collab/tracing-hooks' }),
+    ).resolves.toBeUndefined();
   });
 
   it('resolves @sentry/server-utils subpaths to the CJS build, since the emitted external is a require()', async () => {

@@ -13,7 +13,6 @@ import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
 import { addDatabaseInstrumentation } from './vite/databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
-import { setupModuleSyncTracing } from './vite/moduleSyncTracing';
 import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { addStorageInstrumentation } from './vite/storageConfig';
@@ -86,10 +85,6 @@ export default defineNuxtModule<ModuleOptions>({
     const isMinNuxtV4 = nuxtMajor >= 4;
 
     if (serverConfigFile) {
-      // Deliberately not gated on the orchestrion opt-in: the server SDK's dependency graph reaches
-      // `module-sync` packages either way, so every traced server build needs this.
-      setupModuleSyncTracing(nuxt, isNitroV3);
-
       if (moduleOptions._experimental?.useDiagnosticsChannelInjection) {
         setupOrchestrion(nuxt);
       }

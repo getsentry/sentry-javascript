@@ -25,9 +25,13 @@ function getOrchestrionRequire(): ReturnType<typeof createRequire> {
   return nodeRequire;
 }
 
-/** Absolute path to the code-transform loader (a webpack loader; also usable as a Turbopack loader). */
+/**
+ * Absolute path to the code-transform loader (a webpack loader; also usable as a Turbopack loader).
+ * Resolved via self-reference to this package's own bundled copy — the `@apm-js-collab` packages
+ * are bundled devDependencies and not resolvable on user installs.
+ */
 export function getOrchestrionLoaderPath(): string {
-  return getOrchestrionRequire().resolve('@apm-js-collab/code-transformer-bundler-plugins/webpack-loader');
+  return getOrchestrionRequire().resolve('@sentry/server-utils/orchestrion/webpack-loader');
 }
 
 /**
