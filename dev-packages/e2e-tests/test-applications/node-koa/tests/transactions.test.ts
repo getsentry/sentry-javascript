@@ -84,15 +84,15 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     },
     {
       data: {
-        'koa.name': '',
-        'code.function.name': '',
+        'koa.name': 'middleware',
+        'code.function.name': 'middleware',
         'koa.type': 'middleware',
         'sentry.origin': 'auto.http.orchestrion.koa',
         'sentry.op': 'middleware.koa',
       },
       op: 'middleware.koa',
       origin: 'auto.http.orchestrion.koa',
-      description: '< unknown >',
+      description: 'middleware',
       parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
