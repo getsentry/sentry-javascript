@@ -68,9 +68,8 @@ describe('createSentryServerInstrumentation', () => {
 
     createSentryServerInstrumentation();
 
-    // Creating the instrumentation must not mark the API active. On React Router versions that
-    // don't support the instrumentations API, the registration callbacks are never invoked, so
-    // the legacy OTel data-loader path must stay active.
+    // Creating the instrumentation must not mark the API active - the flag should only flip once
+    // React Router actually invokes the registration callbacks.
     expect((globalThis as any).__sentryReactRouterServerInstrumentationUsed).toBeUndefined();
   });
 

@@ -18,6 +18,9 @@ export function makeServerBuildCapturePlugin(): Plugin {
     },
 
     transform(code, id) {
+      // TODO: This only captures the server build for production SSR builds. Dev mode
+      // (`react-router dev`) is not covered yet, so middleware names may be missing there - this
+      // should be handled for dev too.
       if (!isSsrBuild) {
         return null;
       }
