@@ -82,6 +82,7 @@ sentryTest(
       exclusive_time: inpValue,
       op: 'ui.interaction.click',
       origin: 'auto.http.browser.inp',
+      status: 'ok',
       is_segment: true,
       segment_id: spanEnvelopeItem.span_id,
       span_id: expect.stringMatching(/[a-f\d]{16}/),

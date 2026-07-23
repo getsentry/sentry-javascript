@@ -105,7 +105,7 @@ describe('startSpan', () => {
       expect(_span).toBeDefined();
 
       expect(spanToJSON(_span!).description).toEqual('GET users/[id]');
-      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : undefined);
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
     });
 
     it('allows for transaction to be mutated', async () => {
@@ -148,7 +148,7 @@ describe('startSpan', () => {
       expect(spans).toHaveLength(2);
       expect(spanToJSON(spans[1]!).description).toEqual('SELECT * from users');
       expect(spanToJSON(spans[1]!).parent_span_id).toEqual(_span!.spanContext().spanId);
-      expect(spanToJSON(spans[1]!).status).toEqual(isError ? 'internal_error' : undefined);
+      expect(spanToJSON(spans[1]!).status).toEqual(isError ? 'internal_error' : 'ok');
     });
 
     it('allows for span to be mutated', async () => {
@@ -207,7 +207,7 @@ describe('startSpan', () => {
         description: 'GET users/[id]',
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
-        status: isError ? 'internal_error' : undefined,
+        status: isError ? 'internal_error' : 'ok',
         timestamp: expect.any(Number),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
@@ -573,6 +573,7 @@ describe('startSpan', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
+        status: 'ok',
       },
     });
     expect(outerTransaction?.spans).toEqual([{ name: 'inner span', id: expect.any(String) }]);
@@ -598,6 +599,7 @@ describe('startSpan', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
+        status: 'ok',
       },
     });
     expect(innerTransaction?.spans).toEqual([{ name: 'inner span 2', id: expect.any(String) }]);
@@ -1212,6 +1214,7 @@ describe('startSpanManual', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
+        status: 'ok',
       },
     });
     expect(outerTransaction?.spans).toEqual([{ name: 'inner span', id: expect.any(String) }]);
@@ -1237,6 +1240,7 @@ describe('startSpanManual', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
+        status: 'ok',
       },
     });
     expect(innerTransaction?.spans).toEqual([{ name: 'inner span 2', id: expect.any(String) }]);
@@ -1639,6 +1643,7 @@ describe('startInactiveSpan', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
+        status: 'ok',
       },
     });
     expect(outerTransaction?.spans).toEqual([{ name: 'inner span', id: expect.any(String) }]);
@@ -1664,6 +1669,7 @@ describe('startInactiveSpan', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
+        status: 'ok',
       },
     });
     expect(innerTransaction?.spans).toEqual([]);

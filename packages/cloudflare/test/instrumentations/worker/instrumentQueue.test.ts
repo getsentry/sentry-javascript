@@ -287,6 +287,7 @@ describe('instrumentQueue', () => {
         },
         op: 'queue.process',
         origin: 'auto.faas.cloudflare.queue',
+        status: 'ok',
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });

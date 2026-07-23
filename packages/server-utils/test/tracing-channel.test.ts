@@ -274,7 +274,7 @@ describe('bindTracingChannelToSpan', () => {
 
       expect(endSpy).toHaveBeenCalledTimes(1);
       expect(spanToJSON(span).timestamp).toBeDefined();
-      expect(spanToJSON(span).status).toBeUndefined();
+      expect(spanToJSON(span).status).toBe('ok');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -338,7 +338,7 @@ describe('bindTracingChannelToSpan', () => {
 
       expect(endSpy).toHaveBeenCalledTimes(1);
       expect(spanToJSON(span).timestamp).toBeDefined();
-      expect(spanToJSON(span).status).toBeUndefined();
+      expect(spanToJSON(span).status).toBe('ok');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -400,7 +400,7 @@ describe('bindTracingChannelToSpan', () => {
 
       expect(endSpy).toHaveBeenCalledTimes(1);
       expect(spanToJSON(span).timestamp).toBeDefined();
-      expect(spanToJSON(span).status).toBeUndefined();
+      expect(spanToJSON(span).status).toBe('ok');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -820,7 +820,7 @@ describe('bindTracingChannelToSpan', () => {
       end();
       expect(endSpy).toHaveBeenCalledTimes(1);
       expect(spanToJSON(span).timestamp).toBeDefined();
-      expect(spanToJSON(span).status).toBeUndefined();
+      expect(spanToJSON(span).status).toBe('ok');
     });
 
     it('`end(error)` sets error status and the `error.type` attribute, then ends', () => {

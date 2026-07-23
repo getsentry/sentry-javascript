@@ -78,6 +78,7 @@ sentryTest('should capture an INP click event span during pageload', async ({ br
     exclusive_time: inpValue,
     op: 'ui.interaction.click',
     origin: 'auto.http.browser.inp',
+    status: 'ok',
     segment_id: expect.not.stringMatching(spanEnvelopeItem.span_id!),
     // Parent is the pageload span
     parent_span_id: expect.stringMatching(/[a-f\d]{16}/),

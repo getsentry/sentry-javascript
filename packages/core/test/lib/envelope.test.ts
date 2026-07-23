@@ -133,6 +133,7 @@ describe('createSpanEnvelope', () => {
       start_timestamp: 1,
       timestamp: 2,
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+      status: 'ok',
     });
   });
 
@@ -223,6 +224,7 @@ describe('createSpanEnvelope', () => {
       start_timestamp: 1,
       timestamp: 2,
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+      status: 'ok',
     });
   });
 
@@ -258,6 +260,7 @@ describe('createSpanEnvelope', () => {
       start_timestamp: 1,
       timestamp: 2,
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+      status: 'ok',
     });
   });
 });

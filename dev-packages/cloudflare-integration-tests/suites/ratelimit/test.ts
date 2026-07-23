@@ -32,6 +32,7 @@ it('instruments an allowed rate limiter call automatically via env', async ({ si
           },
           description: 'rate_limit MY_RATE_LIMITER',
           origin: 'auto.faas.cloudflare.rate_limit',
+          status: 'ok',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
