@@ -1,4 +1,4 @@
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
   captureException,
@@ -60,18 +60,24 @@ const instrumentedApps = new WeakSet<Elysia>();
 function updateRouteTransactionName(request: Request, method: string, route: string): void {
   const transactionName = `${method} ${route}`;
 
+  function applyRouteToSpan(span: Span): void {
+    updateSpanName(span, transactionName);
+    span.setAttributes({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [HTTP_ROUTE]: route,
+    });
+  }
+
   // Try the stored root span first (reliable across async contexts),
   // then fall back to getActiveSpan() for cases where async context is preserved.
   const rootSpan = rootSpanForRequest.get(request);
   if (rootSpan) {
-    updateSpanName(rootSpan, transactionName);
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    applyRouteToSpan(rootSpan);
   } else {
     const activeSpan = getActiveSpan();
     if (activeSpan) {
       const root = getRootSpan(activeSpan);
-      updateSpanName(root, transactionName);
-      root.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      applyRouteToSpan(root);
     }
   }
 

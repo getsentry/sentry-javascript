@@ -23,7 +23,7 @@ import {
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
-import { HTTP_URL, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, HTTP_URL, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export type SentryHandleOptions = {
   /**
@@ -169,7 +169,8 @@ async function instrumentHandle(
         const kitRootSpanAttributes = spanJson.data;
         const originalName = spanJson.description;
 
-        const routeName = kitRootSpanAttributes['http.route'];
+        const kitRoute = kitRootSpanAttributes[HTTP_ROUTE];
+        const routeName = typeof kitRoute === 'string' ? kitRoute : routeId;
         if (routeName && typeof routeName === 'string') {
           updateSpanName(kitRootSpan, `${event.request.method ?? 'GET'} ${routeName}`);
         }
@@ -182,6 +183,9 @@ async function instrumentHandle(
           // oxlint-disable-next-line typescript-eslint(no-deprecated)
           [URL_FULL]: kitRootSpanAttributes[URL_FULL] ?? kitRootSpanAttributes[HTTP_URL] ?? event.url.href,
           [URL_PATH]: kitRootSpanAttributes[URL_PATH] ?? event.url.pathname,
+          ...(routeName && {
+            [HTTP_ROUTE]: routeName,
+          }),
           ...httpHeadersToSpanAttributes(
             winterCGHeadersToDict(event.request.headers),
             getClient()?.getDataCollectionOptions() ?? false,
@@ -213,6 +217,9 @@ async function instrumentHandle(
               'http.method': event.request.method,
               [URL_FULL]: event.url.href,
               [URL_PATH]: event.url.pathname,
+              ...(routeId && {
+                [HTTP_ROUTE]: routeId,
+              }),
               ...httpHeadersToSpanAttributes(
                 winterCGHeadersToDict(event.request.headers),
                 getClient()?.getDataCollectionOptions() ?? false,

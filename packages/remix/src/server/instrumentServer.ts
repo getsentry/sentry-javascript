@@ -40,7 +40,7 @@ import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/util
 import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
 import { generateSentryServerTimingHeader, injectServerTimingHeaderValue } from './serverTimingTracePropagation';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -171,7 +171,7 @@ function updateSpanWithRoute(args: DataFunctionArgs, build: ServerBuild): void {
 
     const routes = createRoutes(build.routes);
     const url = new URL(args.request.url);
-    const [transactionName] = getTransactionName(routes, url);
+    const [transactionName, source] = getTransactionName(routes, url);
 
     // Preserve the HTTP method prefix if the span already has one
     const method = args.request.method.toUpperCase();
@@ -179,6 +179,9 @@ function updateSpanWithRoute(args: DataFunctionArgs, build: ServerBuild): void {
     const newSpanName = currentSpanName?.startsWith(method) ? `${method} ${transactionName}` : transactionName;
 
     rootSpan.updateName(newSpanName);
+    if (source === 'route') {
+      rootSpan.setAttribute(HTTP_ROUTE, transactionName);
+    }
   } catch (e) {
     DEBUG_BUILD && debug.warn('Failed to update span name with route', e);
   }
@@ -349,6 +352,12 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
         if (parentSpan) {
           const rootSpan = getRootSpan(parentSpan);
           rootSpan?.updateName(name);
+          rootSpan?.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            ...(source === 'route' && {
+              [HTTP_ROUTE]: name,
+            }),
+          });
         }
       }
 
@@ -379,6 +388,9 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
                   [URL_FULL]: url.href,
                   [URL_PATH]: url.pathname,
                   method: request.method,
+                  ...(source === 'route' && {
+                    [HTTP_ROUTE]: name,
+                  }),
                   ...httpHeadersToSpanAttributes(
                     winterCGHeadersToDict(request.headers),
                     getClient()?.getDataCollectionOptions(),
