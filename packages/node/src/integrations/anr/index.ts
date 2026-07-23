@@ -11,7 +11,6 @@ import {
   getIsolationScope,
   GLOBAL_OBJ,
 } from '@sentry/core';
-import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import { isDebuggerEnabled } from '../../utils/debug';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';
@@ -65,10 +64,6 @@ type AnrInternal = { startWorker: () => void; stopWorker: () => void };
 
 // eslint-disable-next-line typescript/no-deprecated
 const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
-  if (NODE_VERSION.major < 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor < 17)) {
-    throw new Error('ANR detection requires Node 16.17.0 or later');
-  }
-
   let worker: Promise<() => void> | undefined;
   let client: NodeClient | undefined;
 

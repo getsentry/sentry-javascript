@@ -1,6 +1,5 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration } from '@sentry/core';
-import * as dc from 'node:diagnostics_channel';
 import { redisIntegration as redisChannelIntegration } from '@sentry/server-utils';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { isDiagnosticsChannelInjectionEnabled } from '../../../sdk/diagnosticsChannelInjection';
@@ -35,9 +34,8 @@ export const instrumentRedis = Object.assign(
   (): void => {
     // When diagnostics-channel injection is opted in, orchestrion fully owns the older
     // ioredis (`<5.11.0`) and redis/node-redis (`<5.12.0`) ranges — commands, connect, and
-    // batches — so skip both OTel monkey-patches to avoid double instrumentation. On Node
-    // without `tracingChannel` (<18.19) orchestrion can't run, so keep the OTel patches there.
-    if (!isDiagnosticsChannelInjectionEnabled() || !dc.tracingChannel) {
+    // batches — so skip both OTel monkey-patches to avoid double instrumentation.
+    if (!isDiagnosticsChannelInjectionEnabled()) {
       instrumentIORedis();
       instrumentRedisModule();
     }

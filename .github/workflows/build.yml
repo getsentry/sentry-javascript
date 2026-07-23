@@ -800,7 +800,6 @@ jobs:
           # Only check typescript for latest version (to streamline CI)
           - node: 24
             typescript: '5.0'
-          # No need to test orchestrion for v18
           - node: 20.19
             use_orchestrion: 'true'
           - node: 22
