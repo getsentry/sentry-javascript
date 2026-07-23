@@ -73,14 +73,14 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/core": "10.67.0"
+    "@sentry/core": "10.67.0",
+    "@sentry/conventions": "^0.16.0"
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x",
     "@hono/node-server": "^1.x || ^2.x",
     "@sentry/bun": "10.67.0",
     "@sentry/cloudflare": "10.67.0",
-    "@sentry/conventions": "^0.16.0",
     "@sentry/deno": "10.67.0",
     "@sentry/node": "10.67.0",
     "hono": "^4.x"
