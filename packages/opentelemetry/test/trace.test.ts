@@ -1,6 +1,6 @@
 /* eslint-disable typescript/no-deprecated */
 import type { Span, TimeInput } from '@opentelemetry/api';
-import { context, ROOT_CONTEXT, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
+import { context, ROOT_CONTEXT,  trace, TraceFlags } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { HTTP_METHOD, SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { Event, Scope } from '@sentry/core';
@@ -253,10 +253,10 @@ describe('trace', () => {
       startSpan(
         {
           name: 'outer',
-          kind: SpanKind.CLIENT,
           attributes: {
             test1: 'test 1',
             test2: 2,
+            [SENTRY_KIND]: 'client',
           },
           startTime: date,
         },
@@ -654,10 +654,10 @@ describe('trace', () => {
 
       const span = startInactiveSpan({
         name: 'outer',
-        kind: SpanKind.CLIENT,
         attributes: {
           test1: 'test 1',
           test2: 2,
+          [SENTRY_KIND]: 'client',
         },
         startTime: date,
       });
@@ -996,10 +996,10 @@ describe('trace', () => {
       startSpanManual(
         {
           name: 'outer',
-          kind: SpanKind.CLIENT,
           attributes: {
             test1: 'test 1',
             test2: 2,
+            [SENTRY_KIND]: 'client',
           },
           startTime: date,
         },

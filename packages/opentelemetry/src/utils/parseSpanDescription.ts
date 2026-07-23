@@ -14,7 +14,7 @@ import {
   SENTRY_KIND,
   URL_FULL,
 } from '@sentry/conventions/attributes';
-import type { Span, SpanAttributes, TransactionSource, SpanKind } from '@sentry/core';
+import type { Span, SpanAttributes, TransactionSource } from '@sentry/core';
 import {
   getSanitizedUrlString,
   parseUrl,
@@ -40,13 +40,11 @@ interface SpanDescription {
  * Infer the op & description for a set of name, attributes and kind of a span.
  */
 export function inferSpanData(spanName: string, attributes: SpanAttributes): SpanDescription {
-  const kind = attributes[SENTRY_KIND];
-
   // if http.method exists, this is an http request span
   // eslint-disable-next-line typescript/no-deprecated
   const httpMethod = attributes[HTTP_REQUEST_METHOD] || attributes[HTTP_METHOD];
   if (httpMethod) {
-    return descriptionForHttpMethod({ attributes, name: spanName, kind }, httpMethod);
+    return descriptionForHttpMethod({ attributes, name: spanName }, httpMethod);
   }
 
   // eslint-disable-next-line typescript/no-deprecated
@@ -151,10 +149,11 @@ function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; 
 
 /** Only exported for tests. */
 export function descriptionForHttpMethod(
-  { name, kind, attributes }: { name: string; attributes: Attributes; kind: SpanKind | undefined },
+  { name, attributes }: { name: string; attributes: Attributes },
   httpMethod: AttributeValue,
 ): SpanDescription {
   const opParts = ['http'];
+  const kind = attributes[SENTRY_KIND];
 
   switch (kind) {
     case 'client':
@@ -170,7 +169,7 @@ export function descriptionForHttpMethod(
     opParts.push('prefetch');
   }
 
-  const { urlPath, url, query, fragment, hasRoute } = getSanitizedUrl(attributes, kind);
+  const { urlPath, url, query, fragment, hasRoute } = getSanitizedUrl(attributes);
 
   if (!urlPath) {
     return { ...getUserUpdatedNameAndSource(name, attributes), op: opParts.join('.') };
@@ -253,16 +252,15 @@ function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
 }
 
 /** Exported for tests only */
-export function getSanitizedUrl(
-  attributes: Attributes,
-  kind: SpanKind | undefined,
-): {
+export function getSanitizedUrl(attributes: Attributes): {
   url: string | undefined;
   urlPath: string | undefined;
   query: string | undefined;
   fragment: string | undefined;
   hasRoute: boolean;
 } {
+  const kind = attributes[SENTRY_KIND];
+
   // This is the relative path of the URL, e.g. /sub
   // eslint-disable-next-line typescript/no-deprecated
   const httpTarget = attributes[HTTP_TARGET];
