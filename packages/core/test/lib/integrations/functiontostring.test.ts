@@ -17,6 +17,7 @@ describe('FunctionToString', () => {
 
   afterEach(() => {
     vi.mocked(currentScopes.getClient).mockClear();
+    vi.restoreAllMocks();
   });
 
   afterAll(() => {
@@ -65,6 +66,22 @@ describe('FunctionToString', () => {
     testClient.addIntegration(fts);
 
     expect(foo.bar.toString()).not.toBe(originalFunction);
+  });
+
+  it('does not recurse when Reflect.apply performs a function toString check', () => {
+    function inspectedFunction(): void {}
+
+    const fts = functionToStringIntegration();
+    getClient()?.addIntegration(fts);
+    const expected = inspectedFunction.toString();
+    const originalReflectApply = Reflect.apply;
+
+    vi.spyOn(Reflect, 'apply').mockImplementation((target, thisArgument, argumentsList) => {
+      target.toString();
+      return originalReflectApply(target, thisArgument, argumentsList);
+    });
+
+    expect(inspectedFunction.toString()).toBe(expected);
   });
 
   it('falls back to native toString and does not throw when the carrier read throws', () => {
