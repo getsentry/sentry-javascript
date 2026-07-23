@@ -1,23 +1,26 @@
+/* eslint-disable typescript-eslint/no-deprecated */
 import type { Span } from '../../types/span';
 import type { SpanAttributeValue } from '../../types/span';
 import {
-  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
+  GEN_AI_CONVERSATION_ID,
+  GEN_AI_REQUEST_FREQUENCY_PENALTY,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_PRESENCE_PENALTY,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_REQUEST_TOP_P,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
+import {
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
-  GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_ID_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import type { ChatCompletionChunk, ResponseStreamingEvent } from './types';
 
@@ -58,17 +61,17 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
 
   // Response ID
   if (typeof response.id === 'string') {
-    attrs[GEN_AI_RESPONSE_ID_ATTRIBUTE] = response.id;
+    attrs[GEN_AI_RESPONSE_ID] = response.id;
   }
 
   // Response model
   if (typeof response.model === 'string') {
-    attrs[GEN_AI_RESPONSE_MODEL_ATTRIBUTE] = response.model;
+    attrs[GEN_AI_RESPONSE_MODEL] = response.model;
   }
 
   // Conversation ID (conversation objects use id as conversation link)
   if (response.object === 'conversation' && typeof response.id === 'string') {
-    attrs[GEN_AI_CONVERSATION_ID_ATTRIBUTE] = response.id;
+    attrs[GEN_AI_CONVERSATION_ID] = response.id;
   }
 
   // Token usage — supports both naming conventions (chat: prompt_tokens/completion_tokens, responses: input_tokens/output_tokens)
@@ -77,16 +80,16 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
 
     const inputTokens = usage.prompt_tokens ?? usage.input_tokens;
     if (typeof inputTokens === 'number') {
-      attrs[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = inputTokens;
+      attrs[GEN_AI_USAGE_INPUT_TOKENS] = inputTokens;
     }
 
     const outputTokens = usage.completion_tokens ?? usage.output_tokens;
     if (typeof outputTokens === 'number') {
-      attrs[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = outputTokens;
+      attrs[GEN_AI_USAGE_OUTPUT_TOKENS] = outputTokens;
     }
 
     if (typeof usage.total_tokens === 'number') {
-      attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] = usage.total_tokens;
+      attrs[GEN_AI_USAGE_TOTAL_TOKENS] = usage.total_tokens;
     }
   }
 
@@ -97,7 +100,7 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
       .map(choice => choice.finish_reason)
       .filter((reason): reason is string => typeof reason === 'string');
     if (finishReasons.length > 0) {
-      attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE] = JSON.stringify(finishReasons);
+      attrs[GEN_AI_RESPONSE_FINISH_REASONS] = JSON.stringify(finishReasons);
     }
 
     if (recordOutputs) {
@@ -106,7 +109,7 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
         const message = choice.message as Record<string, unknown> | undefined;
         return (message?.content as string) || '';
       });
-      attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE] = JSON.stringify(responseTexts);
+      attrs[GEN_AI_RESPONSE_TEXT] = JSON.stringify(responseTexts);
 
       // Tool calls from choices
       const toolCalls = choices
@@ -118,7 +121,7 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
         .flat();
 
       if (toolCalls.length > 0) {
-        attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] = JSON.stringify(toolCalls);
+        attrs[GEN_AI_RESPONSE_TOOL_CALLS] = JSON.stringify(toolCalls);
       }
     }
   }
@@ -126,24 +129,24 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
   // Finish reason from status (responses API)
   if (typeof response.status === 'string') {
     // Only set if not already set from choices
-    if (!attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]) {
-      attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE] = JSON.stringify([response.status]);
+    if (!attrs[GEN_AI_RESPONSE_FINISH_REASONS]) {
+      attrs[GEN_AI_RESPONSE_FINISH_REASONS] = JSON.stringify([response.status]);
     }
   }
 
   if (recordOutputs) {
     // Response text from output_text (responses API)
-    if (typeof response.output_text === 'string' && !attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]) {
-      attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE] = response.output_text;
+    if (typeof response.output_text === 'string' && !attrs[GEN_AI_RESPONSE_TEXT]) {
+      attrs[GEN_AI_RESPONSE_TEXT] = response.output_text;
     }
 
     // Tool calls from output array (responses API)
-    if (Array.isArray(response.output) && response.output.length > 0 && !attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]) {
+    if (Array.isArray(response.output) && response.output.length > 0 && !attrs[GEN_AI_RESPONSE_TOOL_CALLS]) {
       const functionCalls = (response.output as Array<Record<string, unknown>>).filter(
         item => item?.type === 'function_call',
       );
       if (functionCalls.length > 0) {
-        attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] = JSON.stringify(functionCalls);
+        attrs[GEN_AI_RESPONSE_TOOL_CALLS] = JSON.stringify(functionCalls);
       }
     }
   }
@@ -173,13 +176,13 @@ function extractConversationId(params: Record<string, unknown>): string | undefi
  */
 export function extractRequestParameters(params: Record<string, unknown>): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
-    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: params.model ?? 'unknown',
+    [GEN_AI_REQUEST_MODEL]: params.model ?? 'unknown',
   };
 
-  if ('temperature' in params) attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = params.temperature;
-  if ('top_p' in params) attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE] = params.top_p;
-  if ('frequency_penalty' in params) attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = params.frequency_penalty;
-  if ('presence_penalty' in params) attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = params.presence_penalty;
+  if ('temperature' in params) attributes[GEN_AI_REQUEST_TEMPERATURE] = params.temperature;
+  if ('top_p' in params) attributes[GEN_AI_REQUEST_TOP_P] = params.top_p;
+  if ('frequency_penalty' in params) attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY] = params.frequency_penalty;
+  if ('presence_penalty' in params) attributes[GEN_AI_REQUEST_PRESENCE_PENALTY] = params.presence_penalty;
   if ('stream' in params) attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = params.stream;
   if ('encoding_format' in params) attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE] = params.encoding_format;
   if ('dimensions' in params) attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = params.dimensions;
@@ -187,7 +190,7 @@ export function extractRequestParameters(params: Record<string, unknown>): Recor
   // Capture conversation ID for linking messages across API calls
   const conversationId = extractConversationId(params);
   if (conversationId) {
-    attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE] = conversationId;
+    attributes[GEN_AI_CONVERSATION_ID] = conversationId;
   }
 
   return attributes;

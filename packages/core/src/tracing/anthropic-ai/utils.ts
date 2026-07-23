@@ -2,11 +2,8 @@ import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types/span';
 import type { SpanStatusType } from '../../types/spanStatus';
-import {
-  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+import { GEN_AI_INPUT_MESSAGES, GEN_AI_SYSTEM_INSTRUCTIONS } from '@sentry/conventions/attributes';
+import { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
 import { stringify } from '../../utils/string';
 import type { AnthropicAiResponse } from './types';
@@ -24,15 +21,13 @@ export function setMessagesAttribute(span: Span, messages: unknown, enableTrunca
 
   if (systemInstructions) {
     span.setAttributes({
-      [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: systemInstructions,
+      [GEN_AI_SYSTEM_INSTRUCTIONS]: systemInstructions,
     });
   }
 
   const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 1;
   span.setAttributes({
-    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
-      ? getTruncatedJsonString(filteredMessages)
-      : stringify(filteredMessages),
+    [GEN_AI_INPUT_MESSAGES]: enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
     [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
   });
 }

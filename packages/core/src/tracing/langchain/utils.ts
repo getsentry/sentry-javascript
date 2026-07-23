@@ -1,31 +1,34 @@
+/* eslint-disable typescript-eslint/no-deprecated */
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { SpanAttributeValue } from '../../types/span';
 import { stringify } from '../../utils/string';
 import {
-  GEN_AI_AGENT_NAME_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_AGENT_NAME,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_FREQUENCY_PENALTY,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_PRESENCE_PENALTY,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_REQUEST_TOP_P,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_SYSTEM,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
+import {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_ID_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { isContentMedia, stripInlineMediaFromSingleMessage } from '../ai/mediaStripping';
 import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
@@ -223,19 +226,19 @@ function extractCommonRequestAttributes(
   const kwargs = 'kwargs' in serialized ? serialized.kwargs : undefined;
 
   const temperature = invocationParams?.temperature ?? langSmithMetadata?.ls_temperature ?? kwargs?.temperature;
-  setNumberIfDefined(attrs, GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE, temperature);
+  setNumberIfDefined(attrs, GEN_AI_REQUEST_TEMPERATURE, temperature);
 
   const maxTokens = invocationParams?.max_tokens ?? langSmithMetadata?.ls_max_tokens ?? kwargs?.max_tokens;
-  setNumberIfDefined(attrs, GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE, maxTokens);
+  setNumberIfDefined(attrs, GEN_AI_REQUEST_MAX_TOKENS, maxTokens);
 
   const topP = invocationParams?.top_p ?? kwargs?.top_p;
-  setNumberIfDefined(attrs, GEN_AI_REQUEST_TOP_P_ATTRIBUTE, topP);
+  setNumberIfDefined(attrs, GEN_AI_REQUEST_TOP_P, topP);
 
   const frequencyPenalty = invocationParams?.frequency_penalty;
-  setNumberIfDefined(attrs, GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE, frequencyPenalty);
+  setNumberIfDefined(attrs, GEN_AI_REQUEST_FREQUENCY_PENALTY, frequencyPenalty);
 
   const presencePenalty = invocationParams?.presence_penalty;
-  setNumberIfDefined(attrs, GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE, presencePenalty);
+  setNumberIfDefined(attrs, GEN_AI_REQUEST_PRESENCE_PENALTY, presencePenalty);
 
   // LangChain uses `stream`. We only set the attribute if the key actually exists
   // (some callbacks report `false` even on streamed requests, this stems from LangChain's callback handler).
@@ -258,9 +261,9 @@ function baseRequestAttributes(
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue | undefined> {
   return {
-    [GEN_AI_SYSTEM_ATTRIBUTE]: stringify(system ?? 'langchain', String),
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: stringify(modelName, String),
+    [GEN_AI_SYSTEM]: stringify(system ?? 'langchain', String),
+    [GEN_AI_OPERATION_NAME]: 'chat',
+    [GEN_AI_REQUEST_MODEL]: stringify(modelName, String),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     ...extractCommonRequestAttributes(serialized, invocationParams, langSmithMetadata),
   };
@@ -292,7 +295,7 @@ export function extractLLMRequestAttributes(
     const messages = prompts.map(p => ({ role: 'user', content: p }));
     setIfDefined(
       attrs,
-      GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+      GEN_AI_INPUT_MESSAGES,
       enableTruncation ? getTruncatedJsonString(messages) : stringify(messages),
     );
   }
@@ -328,7 +331,7 @@ export function extractChatModelRequestAttributes(
     const { systemInstructions, filteredMessages } = extractSystemInstructions(normalized);
 
     if (systemInstructions) {
-      setIfDefined(attrs, GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+      setIfDefined(attrs, GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
     }
 
     const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
@@ -336,7 +339,7 @@ export function extractChatModelRequestAttributes(
 
     setIfDefined(
       attrs,
-      GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+      GEN_AI_INPUT_MESSAGES,
       enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
     );
   }
@@ -372,7 +375,7 @@ function addToolCallsAttributes(generations: LangChainMessage[][], attrs: Record
   }
 
   if (toolCalls.length > 0) {
-    setIfDefined(attrs, GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, stringify(toolCalls, String));
+    setIfDefined(attrs, GEN_AI_RESPONSE_TOOL_CALLS, stringify(toolCalls, String));
   }
 }
 
@@ -401,18 +404,18 @@ function addTokenUsageAttributes(
     | undefined;
 
   if (tokenUsage) {
-    setNumberIfDefined(attrs, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE, tokenUsage.promptTokens);
-    setNumberIfDefined(attrs, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE, tokenUsage.completionTokens);
-    setNumberIfDefined(attrs, GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, tokenUsage.totalTokens);
+    setNumberIfDefined(attrs, GEN_AI_USAGE_INPUT_TOKENS, tokenUsage.promptTokens);
+    setNumberIfDefined(attrs, GEN_AI_USAGE_OUTPUT_TOKENS, tokenUsage.completionTokens);
+    setNumberIfDefined(attrs, GEN_AI_USAGE_TOTAL_TOKENS, tokenUsage.totalTokens);
   } else if (anthropicUsage) {
-    setNumberIfDefined(attrs, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE, anthropicUsage.input_tokens);
-    setNumberIfDefined(attrs, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE, anthropicUsage.output_tokens);
+    setNumberIfDefined(attrs, GEN_AI_USAGE_INPUT_TOKENS, anthropicUsage.input_tokens);
+    setNumberIfDefined(attrs, GEN_AI_USAGE_OUTPUT_TOKENS, anthropicUsage.output_tokens);
 
     // Compute total when not provided by the provider.
     const input = Number(anthropicUsage.input_tokens);
     const output = Number(anthropicUsage.output_tokens);
     const total = (Number.isNaN(input) ? 0 : input) + (Number.isNaN(output) ? 0 : output);
-    if (total > 0) setNumberIfDefined(attrs, GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, total);
+    if (total > 0) setNumberIfDefined(attrs, GEN_AI_USAGE_TOTAL_TOKENS, total);
 
     // Extra Anthropic cache metrics (present only when caching is enabled)
     if (anthropicUsage.cache_creation_input_tokens !== undefined)
@@ -460,7 +463,7 @@ export function extractLlmResponseAttributes(
       .filter((r): r is string => typeof r === 'string');
 
     if (finishReasons.length > 0) {
-      setIfDefined(attrs, GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE, stringify(finishReasons, String));
+      setIfDefined(attrs, GEN_AI_RESPONSE_FINISH_REASONS, stringify(finishReasons, String));
     }
 
     // Tool calls metadata (names, IDs) are not PII, so capture them regardless of recordOutputs
@@ -473,7 +476,7 @@ export function extractLlmResponseAttributes(
         .filter(t => typeof t === 'string');
 
       if (texts.length > 0) {
-        setIfDefined(attrs, GEN_AI_RESPONSE_TEXT_ATTRIBUTE, stringify(texts, String));
+        setIfDefined(attrs, GEN_AI_RESPONSE_TEXT, stringify(texts, String));
       }
     }
   }
@@ -489,12 +492,12 @@ export function extractLlmResponseAttributes(
   // Provider model identifier: `model_name` (OpenAI-style) or `model` (others)
   // v1 stores this in message.response_metadata.model_name
   const modelName = llmOutput?.model_name ?? llmOutput?.model ?? v1Message?.response_metadata?.model_name;
-  if (modelName) setIfDefined(attrs, GEN_AI_RESPONSE_MODEL_ATTRIBUTE, modelName);
+  if (modelName) setIfDefined(attrs, GEN_AI_RESPONSE_MODEL, modelName);
 
   // Response ID: v1 stores this in message.id
   const responseId = llmOutput?.id ?? v1Message?.id;
   if (responseId) {
-    setIfDefined(attrs, GEN_AI_RESPONSE_ID_ATTRIBUTE, responseId);
+    setIfDefined(attrs, GEN_AI_RESPONSE_ID, responseId);
   }
 
   // Stop reason: v1 stores this in message.response_metadata.finish_reason
@@ -511,7 +514,7 @@ export function getAgentNameFromMetadata(metadata?: Record<string, unknown>): Re
   // lc_agent_name is injected by instrumentCompiledGraphInvoke (langgraph integration)
   const agentName = metadata?.lc_agent_name;
   if (typeof agentName === 'string') {
-    attrs[GEN_AI_AGENT_NAME_ATTRIBUTE] = agentName;
+    attrs[GEN_AI_AGENT_NAME] = agentName;
   }
   return attrs;
 }

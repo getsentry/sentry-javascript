@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { Span } from '../../../src';
 import {
-  GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../../../src/tracing/ai/gen-ai-attributes';
+  GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
 import { instrumentWorkersAiStream } from '../../../src/tracing/workers-ai/streaming';
 
 function createMockSpan(): { span: Span; attributes: Record<string, unknown>; ended: () => boolean } {
@@ -68,11 +68,11 @@ describe('instrumentWorkersAiStream', () => {
     const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
     await new Response(instrumented).text();
 
-    expect(attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toBe(true);
-    expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBe('The capital of France is Paris.');
-    expect(attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toBe(12);
-    expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toBe(7);
-    expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toBe(19);
+    expect(attributes[GEN_AI_RESPONSE_STREAMING]).toBe(true);
+    expect(attributes[GEN_AI_RESPONSE_TEXT]).toBe('The capital of France is Paris.');
+    expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(12);
+    expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(7);
+    expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(19);
     expect(ended()).toBe(true);
   });
 
@@ -86,8 +86,8 @@ describe('instrumentWorkersAiStream', () => {
     const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, false);
     await new Response(instrumented).text();
 
-    expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeUndefined();
-    expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toBe(1);
+    expect(attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+    expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(1);
   });
 
   it('ignores malformed SSE payloads without throwing', async () => {
@@ -97,7 +97,7 @@ describe('instrumentWorkersAiStream', () => {
     const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
     await new Response(instrumented).text();
 
-    expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBe('ok');
+    expect(attributes[GEN_AI_RESPONSE_TEXT]).toBe('ok');
     expect(ended()).toBe(true);
   });
 
@@ -117,11 +117,11 @@ describe('instrumentWorkersAiStream', () => {
     const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
     await new Response(instrumented).text();
 
-    expect(attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toBe(true);
-    expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBe('The capital of France is Paris.');
-    expect(attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toBe(12);
-    expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toBe(7);
-    expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toBe(19);
+    expect(attributes[GEN_AI_RESPONSE_STREAMING]).toBe(true);
+    expect(attributes[GEN_AI_RESPONSE_TEXT]).toBe('The capital of France is Paris.');
+    expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBe(12);
+    expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(7);
+    expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(19);
     expect(ended()).toBe(true);
   });
 
@@ -136,7 +136,7 @@ describe('instrumentWorkersAiStream', () => {
     const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
     await new Response(instrumented).text();
 
-    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] as string);
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
     expect(toolCalls).toEqual([
       {
         index: 0,
@@ -147,7 +147,7 @@ describe('instrumentWorkersAiStream', () => {
     ]);
 
     // The product reads model output from `gen_ai.output.messages`; tool calls must appear there too.
-    expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE] as string)).toEqual([
+    expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
       {
         role: 'assistant',
         parts: [
@@ -175,7 +175,7 @@ describe('instrumentWorkersAiStream', () => {
     const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, true);
     await new Response(instrumented).text();
 
-    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] as string);
+    const toolCalls = JSON.parse(attributes[GEN_AI_RESPONSE_TOOL_CALLS] as string);
     expect(toolCalls).toEqual([
       {
         index: 0,
@@ -185,7 +185,7 @@ describe('instrumentWorkersAiStream', () => {
       },
     ]);
 
-    expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE] as string)).toEqual([
+    expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
       {
         role: 'assistant',
         parts: [{ type: 'tool_call', id: 'call_1', name: 'getRepoInfo', arguments: '{"owner":"cloudflare"}' }],
@@ -203,10 +203,10 @@ describe('instrumentWorkersAiStream', () => {
     const instrumented = instrumentWorkersAiStream(streamFromChunks(chunks), span, false);
     await new Response(instrumented).text();
 
-    expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeUndefined();
-    expect(attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toBeUndefined();
-    expect(attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]).toBeUndefined();
-    expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toBe(1);
+    expect(attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+    expect(attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeUndefined();
+    expect(attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+    expect(attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(1);
   });
 
   it('ends the span when the consumer cancels the stream', async () => {
@@ -219,6 +219,6 @@ describe('instrumentWorkersAiStream', () => {
     await reader.cancel('no longer needed');
 
     expect(ended()).toBe(true);
-    expect(attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toBe(true);
+    expect(attributes[GEN_AI_RESPONSE_STREAMING]).toBe(true);
   });
 });

@@ -1,3 +1,4 @@
+import { GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { AnthropicAiOptions, AnthropicAiResponse, IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
@@ -7,7 +8,6 @@ import {
   debug,
   defineIntegration,
   extractAnthropicRequestAttributes,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   instrumentAsyncIterableStream,
   instrumentMessageStream,
   resolveAIRecordingOptions,
@@ -116,7 +116,7 @@ function createGenAiSpan(
   const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   const attributes = extractAnthropicRequestAttributes(args, methodPath, operation);
-  const model = (attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
+  const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
 
   const span = startInactiveSpan({
