@@ -1,7 +1,3 @@
-// `@sentry/conventions` marks several gen_ai attributes (e.g. `GEN_AI_SYSTEM`, `GEN_AI_PROMPT`,
-// `GEN_AI_REQUEST_AVAILABLE_TOOLS`, `GEN_AI_TOOL_*`) as deprecated in favour of newer semconv names. We
-// intentionally keep emitting the current names so these spans match what the Sentry product consumes
-// today; migrating to the new names is a separate, coordinated change.
 /* eslint-disable typescript-eslint/no-deprecated */
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
