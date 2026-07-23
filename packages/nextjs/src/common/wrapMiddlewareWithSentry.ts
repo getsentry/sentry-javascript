@@ -15,6 +15,7 @@ import {
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import { isPathnameUnderSentryTunnelRoute } from '../common/utils/tunnelPathnameMatch';
 import type { EdgeRouteHandler } from '../edge/types';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 
 /**
  * Wraps Next.js middleware with Sentry error and performance instrumentation.
@@ -92,6 +93,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
             name: spanName,
             op: 'http.server.middleware',
             attributes: {
+              [SENTRY_KIND]: 'server',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_middleware',
             },
