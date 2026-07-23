@@ -27,7 +27,13 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 // `require()`s inside the vendored graph. Default-export-only ESM (e.g. esquery) must then resolve
 // to the default itself, not a `{ default }` namespace — CJS callers use it as
 // `require('esquery').parse(...)`.
-const commonJSOptions = { transformMixedEsModules: true, requireReturnsDefault: 'auto' };
+//
+// `strictRequires: false`: the default `'auto'` wraps conditionally-required modules (e.g.
+// `debug`'s browser/node split) in lazy initializers exported as `__require` — an export name that
+// downstream re-bundlers mishandle (Turbopack renames it, producing `.require is not a function`
+// crashes in Next.js on Cloudflare). Hoisting is safe here: the vendored graph is closed (nothing
+// optional/missing) and has no require cycles that depend on lazy evaluation.
+const commonJSOptions = { transformMixedEsModules: true, requireReturnsDefault: 'auto', strictRequires: false };
 const commonJSPlugin = commonjs(commonJSOptions);
 
 // Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the

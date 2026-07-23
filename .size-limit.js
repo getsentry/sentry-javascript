@@ -390,7 +390,7 @@ module.exports = [
     import: createImport('init', 'experimentalUseDiagnosticsChannelInjection'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '230 KB',
+    limit: '190 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
