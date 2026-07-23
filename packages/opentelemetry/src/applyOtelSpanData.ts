@@ -11,7 +11,7 @@ import {
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
 } from '@sentry/core';
-import type { Span, SpanAttributes, SpanKind } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import { inferStatusFromAttributes, isStatusErrorMessageValid } from './utils/mapStatus';
 import { inferSpanData } from './utils/parseSpanDescription';
 

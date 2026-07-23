@@ -36,12 +36,7 @@ import {
 import { propwrap } from './propwrap';
 import { RequestMetadata } from './services/ServiceExtension';
 import { HTTP_STATUS_CODE, SENTRY_KIND } from '@sentry/conventions/attributes';
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-} from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
 const PACKAGE_NAME = '@sentry/instrumentation-aws-sdk';
 
