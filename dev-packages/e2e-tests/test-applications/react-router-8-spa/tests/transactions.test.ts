@@ -92,4 +92,5 @@ test('sends an INP span', async ({ page }) => {
   expect(inpSpan.attributes['sentry.op']?.value).toBe('ui.interaction.click');
   expect(inpSpan.attributes['sentry.origin']?.value).toBe('auto.http.browser.inp');
   expect(inpSpan.attributes['sentry.exclusive_time']?.value).toEqual(expect.any(Number));
+  expect(inpSpan.attributes['browser.web_vital.inp.value']?.value).toBeGreaterThan(0);
 });
