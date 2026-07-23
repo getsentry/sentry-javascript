@@ -402,7 +402,10 @@ Sentry.init({
 
 ### `@sentry/react-router`
 
-- The React Router server request wrappers were removed.
+- The deprecated server wrappers `wrapServerLoader` and `wrapServerAction` were removed. Loaders and
+  actions are instrumented automatically via the instrumentation API - export
+  `instrumentations = [Sentry.createSentryServerInstrumentation()]` from your `entry.server.tsx`
+  instead of wrapping them individually.
 
 ### `@sentry/profiling-node`
 
