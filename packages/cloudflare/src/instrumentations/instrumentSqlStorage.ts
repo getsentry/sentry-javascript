@@ -6,6 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/core';
+import type { CloudflareClientOptions } from '../client';
 import { targetsCloudflareInternalTable } from '../utils/internalSqlQuery';
 
 /**
