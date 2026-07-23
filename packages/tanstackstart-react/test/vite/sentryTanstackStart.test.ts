@@ -41,8 +41,17 @@ const mockRoutePatternPlugin: Plugin = {
   config: vi.fn(),
 };
 
+const mockModuleSyncTracingPlugin: Plugin = {
+  name: 'sentry-tanstackstart-react-module-sync-tracing',
+  config: vi.fn(),
+};
+
 vi.mock('../../src/vite/routePatterns', () => ({
   makeRoutePatternPlugin: vi.fn(() => mockRoutePatternPlugin),
+}));
+
+vi.mock('../../src/vite/moduleSyncTracing', () => ({
+  makeModuleSyncTracingPlugin: vi.fn(() => mockModuleSyncTracingPlugin),
 }));
 
 vi.mock('../../src/vite/sourceMaps', () => ({
@@ -74,6 +83,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockModuleSyncTracingPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockEnableSourceMapsPlugin,
@@ -85,7 +95,7 @@ describe('sentryTanstackStart()', () => {
 
       const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin]);
+      expect(plugins).toEqual([mockRoutePatternPlugin, mockModuleSyncTracingPlugin]);
     });
 
     it('returns only the tunnel route plugin in development mode when tunnelRoute is configured', () => {
@@ -96,7 +106,7 @@ describe('sentryTanstackStart()', () => {
         tunnelRoute: { allowedDsns: ['https://public@o0.ingest.sentry.io/0'] },
       });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin, mockTunnelRoutePlugin]);
+      expect(plugins).toEqual([mockRoutePatternPlugin, mockModuleSyncTracingPlugin, mockTunnelRoutePlugin]);
     });
 
     it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is true', () => {
@@ -105,7 +115,12 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: true },
       });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin, mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockModuleSyncTracingPlugin,
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+      ]);
     });
 
     it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is "disable-upload"', () => {
@@ -114,7 +129,12 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: 'disable-upload' },
       });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin, mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockModuleSyncTracingPlugin,
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+      ]);
     });
 
     it('returns Sentry Vite plugins and enable source maps plugin when sourcemaps.disable is false', () => {
@@ -125,6 +145,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockModuleSyncTracingPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockEnableSourceMapsPlugin,
@@ -138,6 +159,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockModuleSyncTracingPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockMiddlewarePlugin,
@@ -152,6 +174,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockModuleSyncTracingPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockMiddlewarePlugin,
@@ -164,7 +187,12 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: true },
       });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin, mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockModuleSyncTracingPlugin,
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+      ]);
     });
 
     it('passes correct options to makeAutoInstrumentMiddlewarePlugin', () => {
@@ -192,6 +220,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockModuleSyncTracingPlugin,
         mockTunnelRoutePlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,

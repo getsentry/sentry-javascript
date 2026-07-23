@@ -173,4 +173,30 @@ describe('withSentry()', () => {
     expect(modules[0]).toBe(existingModule);
     expect(typeof modules[1]).toBe('function');
   });
+
+  it('sets moduleSyncCatchall in externals.traceOptions', () => {
+    const config = withSentry(solidStartConfig, {});
+
+    expect((config?.server as { externals?: unknown })?.externals).toEqual({
+      traceOptions: { moduleSyncCatchall: true },
+    });
+  });
+
+  it('preserves existing externals and lets an explicit user traceOptions value win', () => {
+    const config = withSentry(
+      {
+        ...solidStartConfig,
+        server: {
+          ...solidStartConfig.server,
+          externals: { inline: ['some-pkg'], traceOptions: { base: '/', moduleSyncCatchall: false } },
+        } as typeof solidStartConfig.server,
+      },
+      {},
+    );
+
+    expect((config?.server as { externals?: unknown })?.externals).toEqual({
+      inline: ['some-pkg'],
+      traceOptions: { base: '/', moduleSyncCatchall: false },
+    });
+  });
 });

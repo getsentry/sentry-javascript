@@ -68,11 +68,26 @@ export function withSentry(
 
   const existingModules = (server as SolidStartInlineServerConfig & { modules?: unknown[] }).modules || [];
 
+  // `@vercel/nft` only traces the `module-sync` target of a package's `exports` map when the Node
+  // process *running the build* is >= 22, but Node's CJS loader matches `module-sync` at runtime
+  // from 20.19 — so a server built on Node 20 is missing files its own runtime resolves and crashes
+  // with `MODULE_NOT_FOUND`. Nitro spreads `externals.traceOptions` into `nodeFileTrace()`, and
+  // nft's `moduleSyncCatchall` option (>= 1.10.0, ignored by older versions) makes it emit both
+  // targets. Remove once https://github.com/vercel/nft/issues/603 is fixed and picked up by Nitro.
+  const existingExternals = (server as { externals?: { traceOptions?: Record<string, unknown> } }).externals;
+
   return {
     ...solidStartConfig,
     vite,
     server: {
       ...server,
+      externals: {
+        ...existingExternals,
+        traceOptions: {
+          moduleSyncCatchall: true,
+          ...existingExternals?.traceOptions,
+        },
+      },
       modules: [...existingModules, sentryNitroModule],
     },
   };
