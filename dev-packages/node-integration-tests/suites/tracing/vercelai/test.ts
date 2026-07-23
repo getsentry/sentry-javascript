@@ -3,7 +3,6 @@ import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
@@ -501,9 +500,6 @@ describe('Vercel AI integration (v4)', () => {
               expect(truncatedInvokeAgentSpan).toBeDefined();
               expect(truncatedInvokeAgentSpan!.name).toBe('invoke_agent');
               expect(truncatedInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-              expect(truncatedInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(
-                3,
-              );
               expect(truncatedInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toMatch(
                 /^\[.*"(?:text|content)":"C+".*\]$/,
               );
@@ -518,9 +514,6 @@ describe('Vercel AI integration (v4)', () => {
               expect(smallMessageInvokeAgentSpan).toBeDefined();
               expect(smallMessageInvokeAgentSpan!.name).toBe('invoke_agent');
               expect(smallMessageInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-              expect(
-                smallMessageInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value,
-              ).toBe(3);
               expect(smallMessageInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain(
                 'This is a small message that fits within the limit',
               );
@@ -655,7 +648,6 @@ describe('Vercel AI integration (v4)', () => {
                   { role: 'user', content: 'Follow-up question' },
                 ]),
               );
-              expect(invokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
 
               const generateContentSpan = container.items.find(span => span.name === 'generate_content mock-model-id');
               expect(generateContentSpan).toBeDefined();

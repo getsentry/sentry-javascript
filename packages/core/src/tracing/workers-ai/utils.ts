@@ -15,7 +15,6 @@ import {
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Span, SpanAttributeValue } from '../../types/span';
 import {
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
@@ -128,11 +127,6 @@ export function addRequestAttributes(
   span.setAttribute(
     GEN_AI_INPUT_MESSAGES,
     enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
-  );
-
-  span.setAttribute(
-    GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-    Array.isArray(filteredMessages) ? filteredMessages.length : 1,
   );
 }
 

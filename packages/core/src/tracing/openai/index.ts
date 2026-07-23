@@ -8,7 +8,6 @@ import { debug } from '../../utils/debug-logger';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
@@ -130,12 +129,6 @@ export function addRequestAttributes(
     GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
     enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
   );
-
-  if (Array.isArray(filteredMessages)) {
-    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredMessages.length);
-  } else {
-    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, 1);
-  }
 }
 
 /**

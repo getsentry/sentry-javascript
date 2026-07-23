@@ -4,7 +4,6 @@ import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
@@ -305,7 +304,6 @@ describe('LangGraph integration', () => {
 
               expect(invokeAgentSpan).toBeDefined();
               expect(invokeAgentSpan!.name).toBe('invoke_agent weather_assistant');
-              expect(invokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
             },
           })
           .start()

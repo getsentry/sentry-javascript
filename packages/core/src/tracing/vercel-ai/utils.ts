@@ -2,7 +2,6 @@ import type { TraceContext } from '../../types/context';
 import type { Span, SpanAttributes, SpanJSON } from '../../types/span';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
@@ -241,13 +240,11 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
       }
 
-      const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
       const messagesJson = enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages);
 
       span.setAttributes({
         [AI_PROMPT_ATTRIBUTE]: messagesJson,
         [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: messagesJson,
-        [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
       });
     }
   } else if (typeof attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] === 'string') {
@@ -263,8 +260,6 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
           span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
         }
 
-        const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
-
         // `extractSystemInstructions` returns the original array reference unchanged when no
         // system message is extracted. When truncation is also disabled, re-serializing would
         // reproduce the SDK's own input string, so we reuse it instead of allocating a second
@@ -279,7 +274,6 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         span.setAttributes({
           [AI_PROMPT_MESSAGES_ATTRIBUTE]: messagesJson,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: messagesJson,
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
         });
       }
       // eslint-disable-next-line no-empty

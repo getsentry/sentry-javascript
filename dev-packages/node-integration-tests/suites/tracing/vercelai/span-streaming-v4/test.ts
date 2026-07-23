@@ -2,7 +2,6 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
@@ -141,7 +140,6 @@ describe('Vercel AI integration (streaming v4)', () => {
         name: 'invoke_agent',
         status: 'ok',
         attributes: expect.objectContaining({
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: attr(1),
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: attr('[{"role":"user","content":"Where is the first span?"}]'),
           [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]: attr(
             '[{"role":"assistant","parts":[{"type":"text","content":"First span here!"}],"finish_reason":"stop"}]',

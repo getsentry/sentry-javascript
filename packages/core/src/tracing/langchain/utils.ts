@@ -4,7 +4,6 @@ import { stringify } from '../../utils/string';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
@@ -288,7 +287,6 @@ export function extractLLMRequestAttributes(
   const attrs = baseRequestAttributes(system, modelName, llm, invocationParams, langSmithMetadata);
 
   if (recordInputs && Array.isArray(prompts) && prompts.length > 0) {
-    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, prompts.length);
     const messages = prompts.map(p => ({ role: 'user', content: p }));
     setIfDefined(
       attrs,
@@ -330,9 +328,6 @@ export function extractChatModelRequestAttributes(
     if (systemInstructions) {
       setIfDefined(attrs, GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
     }
-
-    const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
-    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredLength);
 
     setIfDefined(
       attrs,

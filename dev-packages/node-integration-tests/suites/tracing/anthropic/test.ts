@@ -1,7 +1,6 @@
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
@@ -634,7 +633,6 @@ describe('Anthropic integration', () => {
               expect(truncatedSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
               expect(truncatedSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
               expect(truncatedSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('claude-3-haiku-20240307');
-              expect(truncatedSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
 
               const smallMessageSpan = container.items.find(
                 span => span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value === smallMsgValue,
@@ -649,7 +647,6 @@ describe('Anthropic integration', () => {
               expect(smallMessageSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe(
                 'claude-3-haiku-20240307',
               );
-              expect(smallMessageSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
             },
           })
           .start()
@@ -700,7 +697,6 @@ describe('Anthropic integration', () => {
               expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
               expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('anthropic');
               expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('claude-3-haiku-20240307');
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(2);
             },
           })
           .start()
@@ -767,13 +763,11 @@ describe('Anthropic integration', () => {
                 span => span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value === expectedAllMessages,
               );
               expect(conversationSpan).toBeDefined();
-              expect(conversationSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
 
               const longStringSpan = container.items.find(
                 span => span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value === expectedLongString,
               );
               expect(longStringSpan).toBeDefined();
-              expect(longStringSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(1);
             },
           })
           .start()

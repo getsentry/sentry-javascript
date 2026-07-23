@@ -8,7 +8,6 @@ import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
@@ -192,9 +191,7 @@ export function addPrivateRequestAttributes(
       span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
     }
 
-    const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
     span.setAttributes({
-      [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
       [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
         ? getTruncatedJsonString(filteredMessages)
         : stringify(filteredMessages),
