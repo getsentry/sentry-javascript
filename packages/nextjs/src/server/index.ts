@@ -193,12 +193,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // like it, resolving `SENTRY_TRACES_SAMPLE_RATE` so tracing enabled purely via env still registers.
   const tracingHooksDir =
     process.env._sentryOrchestrionTracingHooksDir || globalWithInjectedValues._sentryOrchestrionTracingHooksDir;
-  const tracesSampleRateFromEnv = process.env.SENTRY_TRACES_SAMPLE_RATE;
-  const optionsWithResolvedTracing = {
-    ...opts,
-    tracesSampleRate:
-      opts.tracesSampleRate ?? (tracesSampleRateFromEnv != null ? parseFloat(tracesSampleRateFromEnv) : undefined),
-  };
+  const optionsWithResolvedTracing = { ...opts, tracesSampleRate: resolveTracesSampleRate(opts.tracesSampleRate) };
   if (tracingHooksDir && hasSpansEnabled(optionsWithResolvedTracing)) {
     registerDiagnosticsChannelInjection({ tracingHooksDir });
   }
@@ -331,6 +326,23 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
 function sdkAlreadyInitialized(): boolean {
   return !!getClient();
+}
+
+/**
+ * Resolve the effective `tracesSampleRate`, falling back to `SENTRY_TRACES_SAMPLE_RATE`. Mirrors
+ * `@sentry/node`'s internal `getTracesSampleRate`, including dropping non-finite env values so an
+ * invalid env var does not read as "tracing enabled".
+ */
+function resolveTracesSampleRate(tracesSampleRate: NodeOptions['tracesSampleRate']): number | undefined {
+  if (tracesSampleRate !== undefined) {
+    return tracesSampleRate;
+  }
+  const sampleRateFromEnv = process.env.SENTRY_TRACES_SAMPLE_RATE;
+  if (!sampleRateFromEnv) {
+    return undefined;
+  }
+  const parsed = parseFloat(sampleRateFromEnv);
+  return isFinite(parsed) ? parsed : undefined;
 }
 
 export * from '../common';
