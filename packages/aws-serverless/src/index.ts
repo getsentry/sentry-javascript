@@ -170,7 +170,7 @@ export {
   rewriteFramesIntegration,
 } from '@sentry/core';
 
-export { awsIntegration } from './integration/aws';
+export { awsChannelIntegration as awsIntegration } from '@sentry/server-utils/orchestrion';
 export { awsLambdaIntegration } from './integration/awslambda';
 
 export { getDefaultIntegrations, init } from './init';
