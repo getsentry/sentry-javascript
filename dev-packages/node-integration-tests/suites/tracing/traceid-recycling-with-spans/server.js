@@ -1,6 +1,6 @@
-import * as Sentry from '@sentry/node';
-import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
-import express from 'express';
+const Sentry = require('@sentry/node');
+const { startExpressServerAndSendPortToRunner } = require('@sentry-internal/node-integration-tests');
+const express = require('express');
 
 const app = express();
 

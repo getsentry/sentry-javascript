@@ -23,7 +23,7 @@ export function parseProcessPaths(proc: ProcessInterface): ProcessArgs {
 
   const joinedArgs = execArgv.join(' ');
   const importPaths = Array.from(joinedArgs.matchAll(/--import[ =](\S+)/g)).map(e => resolve(cwd, e[1] || ''));
-  const requirePaths = Array.from(joinedArgs.matchAll(/--require[ =](\S+)/g)).map(e => resolve(cwd, e[1] || ''));
+  const requirePaths = Array.from(joinedArgs.matchAll(/(?:--require|-r)[ =](\S+)/g)).map(e => resolve(cwd, e[1] || ''));
 
   return { appPath, importPaths, requirePaths };
 }

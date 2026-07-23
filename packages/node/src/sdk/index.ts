@@ -21,6 +21,7 @@ import {
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
 } from '@sentry/opentelemetry';
+import { isMainThread, parentPort } from 'node:worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
 import { consoleIntegration } from '../integrations/console';
@@ -38,6 +39,7 @@ import { systemErrorIntegration } from '../integrations/systemError';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
+import { getEntryPointType } from '../utils/entry-point';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
@@ -150,6 +152,24 @@ function _init(
   options: NodeOptions | undefined = {},
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
 ): NodeClient | undefined {
+  // Node re-runs `--require` preloads (though not `--import` ones) on the module loader thread it
+  // spawns for `Module.register()`, which `init()` itself triggers (channel injection, the ESM
+  // loader hook). So a `--require`d instrument file re-enters `init()` there, on a thread that
+  // never runs app code. It is recognizable as the only thread without a `parentPort`:
+  // user-created workers always have one and are legitimately instrumented.
+  if (!isMainThread && !parentPort) {
+    return undefined;
+  }
+
+  if (getEntryPointType() === 'require') {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Sentry] Initializing the SDK via the Node `--require` flag is no longer supported, because Node re-runs `--require` preloads on its module loader thread. Use `--import` instead: `node --import ./instrument.js app.js`',
+      );
+    });
+  }
+
   applySdkMetadata(options, 'node');
 
   // Resolve the tracing-affecting options (e.g. `SENTRY_TRACES_SAMPLE_RATE`) up front so that both

@@ -136,10 +136,7 @@ describe('OnUncaughtException integration', () => {
   conditionalTest({ min: 20 })('Worker thread error handling Node 20+', () => {
     test.each(['mjs', 'js'])('should not interfere with worker thread error handling ".%s"', async extension => {
       const runner = createRunner(__dirname, `worker-thread/caught-worker.${extension}`)
-        .withFlags(
-          extension === 'mjs' ? '--import' : '--require',
-          path.join(__dirname, `worker-thread/instrument.${extension}`),
-        )
+        .withFlags('--import', path.join(__dirname, `worker-thread/instrument.${extension}`))
         .expect({
           event: {
             level: 'error',
