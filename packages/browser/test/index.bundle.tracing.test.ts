@@ -5,7 +5,12 @@ import {
   replayIntegrationShim,
 } from '@sentry-internal/integration-shims';
 import { describe, expect, it } from 'vitest';
-import { browserTracingIntegration, spanStreamingIntegration, webVitalsIntegration } from '../src';
+import {
+  browserTracingIntegration,
+  spanStreamingIntegration,
+  userTimingSpansIntegration,
+  webVitalsIntegration,
+} from '../src';
 import * as TracingBundle from '../src/index.bundle.tracing';
 
 describe('index.bundle.tracing', () => {
@@ -15,6 +20,7 @@ describe('index.bundle.tracing', () => {
     expect(TracingBundle.feedbackIntegration).toBe(feedbackIntegrationShim);
     expect(TracingBundle.replayIntegration).toBe(replayIntegrationShim);
     expect(TracingBundle.spanStreamingIntegration).toBe(spanStreamingIntegration);
+    expect(TracingBundle.userTimingSpansIntegration).toBe(userTimingSpansIntegration);
     expect(TracingBundle.webVitalsIntegration).toBe(webVitalsIntegration);
 
     expect(TracingBundle.logger).toBe(loggerShim);

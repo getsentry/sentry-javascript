@@ -40,6 +40,7 @@ export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { spanStreamingIntegration } from './integrations/spanstreaming';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 export { webVitalsIntegration } from './integrations/webVitals';
+export { userTimingSpansIntegration } from '@sentry/browser-utils';
 
 export {
   feedbackIntegrationShim as feedbackAsyncIntegration,
