@@ -51,7 +51,7 @@ test('Should record a transaction for route with parameters', async ({ request }
       'net.peer.ip': expect.any(String),
       'net.peer.port': expect.any(Number),
       'net.transport': 'ip_tcp',
-      'otel.kind': 'SERVER',
+      'sentry.kind': 'server',
       'sentry.op': 'http.server',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.sample_rate': 1,
