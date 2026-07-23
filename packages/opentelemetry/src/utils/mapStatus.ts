@@ -1,7 +1,7 @@
 import { SpanStatusCode } from '@opentelemetry/api';
 import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE, RPC_GRPC_STATUS_CODE } from '@sentry/conventions/attributes';
 import type { SpanAttributes, SpanStatus } from '@sentry/core';
-import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '@sentry/core';
+import { getSpanStatusFromHttpCode, isStatusErrorMessageValid, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '@sentry/core';
 import type { AbstractSpan } from '../types';
 import { spanHasAttributes, spanHasStatus } from './spanTypes';
 
@@ -24,10 +24,6 @@ const canonicalGrpcErrorCodesMap: Record<string, SpanStatus['message']> = {
   '15': 'data_loss',
   '16': 'unauthenticated',
 } as const;
-
-export const isStatusErrorMessageValid = (message: string): boolean => {
-  return Object.values(canonicalGrpcErrorCodesMap).includes(message as SpanStatus['message']);
-};
 
 /**
  * Get a Sentry span status from an otel span.

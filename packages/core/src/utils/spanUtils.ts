@@ -12,7 +12,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
-import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
+import { isStatusErrorMessageValid, SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type { TraceContext } from '../types/context';
 import type { SpanLink, SpanLinkJSON } from '../types/link';
@@ -327,7 +327,7 @@ export function getStatusMessage(status: SpanStatus | undefined): string {
     return 'ok';
   }
 
-  return status.message || 'internal_error';
+  return status.message && isStatusErrorMessageValid(status.message) ? status.message : 'internal_error';
 }
 
 /**
