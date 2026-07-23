@@ -50,4 +50,22 @@ export interface StartSpanOptions {
    * as it allows sampling decisions to consider the link information.
    */
   links?: SpanLink[];
+
+  /**
+   * Experimental options without any stability guarantees. Use with caution!
+   */
+  experimental?: {
+    /**
+     * If set to true, the span is sent on its own as a v2 streamed span instead of being folded
+     * into a transaction. Used internally for late web vital spans (INP) when span streaming is
+     * disabled.
+     *
+     * @internal this option is currently experimental and should only be used within SDK code. It
+     * might be removed or changed in the future.
+     * @hidden
+     *
+     * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
+     */
+    standalone?: boolean;
+  };
 }

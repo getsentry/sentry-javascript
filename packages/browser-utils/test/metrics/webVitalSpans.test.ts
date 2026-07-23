@@ -102,6 +102,22 @@ describe('_emitWebVitalSpan', () => {
     expect(mockSpan.end).toHaveBeenCalledWith(1.5);
   });
 
+  it('marks the span as standalone when standalone is set', () => {
+    _emitWebVitalSpan({
+      name: 'Test',
+      op: 'ui.interaction.click',
+      origin: 'auto.http.browser.inp',
+      metricName: 'inp',
+      value: 100,
+      startTime: 1.5,
+      standalone: true,
+    });
+
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({ experimental: { standalone: true } }),
+    );
+  });
+
   it('includes pageload span id when parentSpan is a pageload span', () => {
     const mockPageloadSpan = createMockPageloadSpan('abc123');
     vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
@@ -525,13 +541,22 @@ describe('trackInpAsSpan', () => {
     vi.clearAllMocks();
   });
 
-  it('emits INP as a streamed span', () => {
+  it('emits INP as a streamed span when span streaming is enabled', () => {
     trackInpAsSpan(streamingClient);
     inpCallback({ metric: validMetric });
 
     const call = vi.mocked(SentryCore.startInactiveSpan).mock.calls[0]![0];
     expect(call.experimental).toBeUndefined();
     expect(call.attributes?.['sentry.op']).toBe('ui.interaction.click');
+  });
+
+  it('emits INP as a standalone span when span streaming is disabled', () => {
+    const staticClient = { getOptions: () => ({ traceLifecycle: 'static' }), on: vi.fn() } as any;
+    trackInpAsSpan(staticClient);
+    inpCallback({ metric: validMetric });
+
+    const call = vi.mocked(SentryCore.startInactiveSpan).mock.calls[0]![0];
+    expect(call.experimental).toEqual({ standalone: true });
   });
 
   it('ignores INP metrics without a value', () => {

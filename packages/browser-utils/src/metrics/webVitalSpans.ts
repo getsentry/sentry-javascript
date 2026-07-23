@@ -1,19 +1,14 @@
 import type { Client, Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
-  captureSpan,
-  createStreamedSpanEnvelope,
   debug,
   getActiveSpan,
   getCurrentScope,
-  getDynamicSamplingContextFromSpan,
   getRootSpan,
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanIsSampled,
-  spanToJSON,
   spanToStreamedSpanJSON,
   startInactiveSpan,
   timestampInSeconds,
@@ -60,10 +55,19 @@ interface WebVitalSpanOptions {
   reportEvent?: WebVitalReportEvent;
   startTime: number;
   endTime?: number;
+  /**
+   * When `true`, the span is sent on its own as a v2 streamed span instead of being folded into a
+   * transaction. Used for INP when span streaming is disabled (it reports late, so it can't ride
+   * the pageload transaction).
+   *
+   * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped and INP always streams.
+   */
+  standalone?: boolean;
 }
 
 /**
- * Emits a web vital span that flows through the span streaming pipeline as a child of `parentSpan`.
+ * Emits a web vital span. When `standalone` is set it is sent on its own as a v2 streamed span;
+ * otherwise it flows through the span streaming pipeline as a child of `parentSpan`.
  */
 export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
   const {
@@ -77,6 +81,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     reportEvent,
     startTime,
     endTime,
+    standalone,
   } = options;
 
   const routeName = getCurrentScope().getScopeData().transactionName;
@@ -108,6 +113,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     attributes,
     startTime,
     parentSpan,
+    experimental: standalone ? { standalone: true } : undefined,
   });
 
   if (span) {
@@ -246,7 +252,7 @@ export function _sendClsSpan(
 }
 
 /**
- * Tracks INP and emits it as a streamed web vital span, as a child of the interaction's root span.
+ * Tracks INP and emits it as a web vital span, as a child of the interaction's root span.
  * Requires `registerInpInteractionListener()` to be called separately for cached element names and
  * root spans per interaction.
  */
@@ -256,20 +262,12 @@ export function trackInpAsSpan(client: Client): void {
     return;
   }
 
-  // INP is reported late (on pagehide, after the pageload span has already ended). With span
-  // streaming enabled, the streaming pipeline delivers this late span. With streaming disabled it
-  // would be dropped, so we send INP spans as v2 streamed spans ourselves here, overriding the
-  // static trace lifecycle for INP only. This is a single span per interaction, so we send it
-  // directly rather than pulling in the span streaming buffer.
-  if (!hasSpanStreamingEnabled(client)) {
-    client.on('afterSpanEnd', span => {
-      if (spanIsSampled(span) && spanToJSON(span).origin === 'auto.http.browser.inp') {
-        const { _segmentSpan, ...serializedSpan } = captureSpan(span, client);
-        const dsc = getDynamicSamplingContextFromSpan(_segmentSpan);
-        void client.sendEnvelope(createStreamedSpanEnvelope([serializedSpan], dsc, client));
-      }
-    });
-  }
+  // INP reports late (on pagehide, after the pageload span has ended). With span streaming enabled
+  // it rides the streaming pipeline. With streaming disabled it would be dropped as a late span, so
+  // it is emitted as its own standalone v2 span instead (see `_emitWebVitalSpan`), overriding the
+  // static trace lifecycle for INP only.
+  // TODO(standalone): once the static trace lifecycle is dropped, INP always streams; drop this flag.
+  const standalone = !hasSpanStreamingEnabled(client);
 
   const onInp: InstrumentationHandlerCallback = ({ metric }) => {
     if (metric.value == null) {
@@ -288,7 +286,7 @@ export function trackInpAsSpan(client: Client): void {
       return;
     }
 
-    _sendInpSpan(metric.value, entry);
+    _sendInpSpan(metric.value, entry, standalone);
   };
 
   addInpInstrumentationHandler(onInp);
@@ -297,7 +295,7 @@ export function trackInpAsSpan(client: Client): void {
 /**
  * Exported only for testing.
  */
-export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming): void {
+export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, standalone = false): void {
   DEBUG_BUILD && debug.log(`Sending INP span (${inpValue})`);
 
   const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
@@ -329,5 +327,6 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming): v
     startTime,
     endTime: startTime + duration,
     parentSpan: spanToUse,
+    standalone,
   });
 }

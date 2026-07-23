@@ -478,6 +478,8 @@ function createChildOrRootSpan({
  */
 function parseSentrySpanArguments(options: StartSpanOptions): SentrySpanArguments {
   const initialCtx: SentrySpanArguments = {
+    // TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
+    isStandalone: options.experimental?.standalone,
     ...options,
   };
 
