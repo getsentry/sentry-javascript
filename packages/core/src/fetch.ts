@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import {
   HTTP_FRAGMENT,
   HTTP_METHOD,
@@ -394,6 +395,7 @@ function getFetchSpanAttributes(
   const attributes: SpanAttributes = {
     url: stripDataUrlContent(url),
     type: 'fetch',
+    // oxlint-disable-next-line typescript/no-deprecated
     [HTTP_METHOD]: method,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',

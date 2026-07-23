@@ -496,8 +496,8 @@ describe('instrumentFetchRequest', () => {
           'http.url': url,
           [URL_FULL]: url,
           'server.address': 'api.example.com',
-          'http.query': '?include=profile',
-          'http.fragment': '#bio',
+          'http.query': 'include=profile',
+          'http.fragment': 'bio',
         },
       });
     });

@@ -81,7 +81,7 @@ describe('addOutgoingRequestBreadcrumb', () => {
 
     expect(breadcrumbsModule.addBreadcrumb).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ 'http.query': '?foo=bar' }),
+        data: expect.objectContaining({ 'http.query': 'foo=bar' }),
       }),
       expect.anything(),
     );

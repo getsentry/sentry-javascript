@@ -187,6 +187,8 @@ export function getHttpSpanDetailsFromUrlObject(
   }
 
   if (urlObject) {
+    attributes['url'] = getSanitizedUrlStringFromUrlObject(urlObject);
+
     if (urlObject.search) {
       const query = urlObject.search.slice(1) || undefined;
       attributes[URL_QUERY] = query;
@@ -217,7 +219,6 @@ export function getHttpSpanDetailsFromUrlObject(
       if (urlObject.hostname) {
         attributes[kind === 'server' ? SERVER_ADDRESS : URL_DOMAIN] = urlObject.hostname;
       }
-      attributes['url'] = getSanitizedUrlStringFromUrlObject(urlObject);
     }
   }
 
