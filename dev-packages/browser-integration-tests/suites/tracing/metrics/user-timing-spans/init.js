@@ -6,9 +6,8 @@ Sentry.init({
   traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
-    Sentry.browserTracingIntegration({
-      ignorePerformanceApiSpans: ['measure-ignore', /mark-i/],
-    }),
+    Sentry.browserTracingIntegration(),
+    Sentry.userTimingSpansIntegration({ ignore: ['measure-ignore', /mark-i/] }),
   ],
   tracesSampleRate: 1,
 });

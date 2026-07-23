@@ -21,6 +21,8 @@ interface PerformanceEntryMap {
   'largest-contentful-paint': LargestContentfulPaint[];
   'long-animation-frame': PerformanceLongAnimationFrameTiming[];
   paint: PerformancePaintTiming[];
+  mark: PerformanceMark[];
+  measure: PerformanceMeasure[];
   navigation: PerformanceNavigationTiming[];
   resource: PerformanceResourceTiming[];
   // Sentry-specific change:

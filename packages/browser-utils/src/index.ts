@@ -20,6 +20,8 @@ export {
 // eslint-disable-next-line typescript/no-deprecated
 export { elementTimingIntegration, startTrackingElementTiming } from './metrics/elementTiming';
 
+export { userTimingSpansIntegration } from './metrics/userTimingSpans';
+
 export { extractNetworkProtocol } from './metrics/utils';
 
 export { trackClsAsSpan, trackInpAsSpan, trackLcpAsSpan } from './metrics/webVitalSpans';
