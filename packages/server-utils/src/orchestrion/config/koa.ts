@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '../apmTypes';
 import { toSubscribeInjections } from './subscribe-injection';
 
 export const koaConfig = [

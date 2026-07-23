@@ -1,5 +1,5 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/rollup';
-import type { NormalizedInputOptions, PluginContext } from 'rollup';
+import type { NormalizedInputOptions, Plugin, PluginContext } from 'rollup';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalizedModulesWarning, orchestrionTransformOptions } from './options';
@@ -17,7 +17,7 @@ import { externalizedModulesWarning, orchestrionTransformOptions } from './optio
  * export default { plugins: [sentryOrchestrionPlugin()] };
  * ```
  */
-export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
+export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
   const moduleNames = instrumentedModuleNames(options.instrumentations);
 
   return {

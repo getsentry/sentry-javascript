@@ -94,6 +94,10 @@ export default [
           // (e.g. `require('path')` → default import of `path`), and builtins have no `.default` in
           // CJS — so builtins need `'default'` interop (the module itself is the default export).
           interop: id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule'),
+          // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which
+          // Deno rejects outright and vite-node (Node 26) misresolves as a relative path. Emit them
+          // `node:`-prefixed.
+          paths: Object.fromEntries(builtinModules.map(m => [m, `node:${m}`])),
         },
       },
     }),
