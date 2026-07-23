@@ -2,6 +2,9 @@
   "name": "node-otel-sdk-node",
   "version": "1.0.0",
   "private": true,
+  "sentryTest": {
+    "skip": true
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/app.js",

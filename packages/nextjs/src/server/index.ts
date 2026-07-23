@@ -9,10 +9,12 @@ import {
   getClient,
   getGlobalScope,
   GLOBAL_OBJ,
+  hasSpansEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
+import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -41,6 +43,7 @@ export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/n
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
+  _sentryOrchestrionTracingHooksDir?: string;
 };
 
 // Call at module level so `next build` prerender workers still register the runner without `init`
@@ -180,6 +183,18 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   // Use appropriate SDK metadata based on the runtime environment
   applySdkMetadata(opts, 'nextjs', ['nextjs', cloudflareConfig ? 'cloudflare' : 'node']);
+
+  // Next.js bundles the SDK into its server build, so the channel-injection module hook can't
+  // resolve the bare `@apm-js-collab/tracing-hooks` specifier from the emitted chunk under isolated
+  // installs (pnpm). `withSentryConfig` resolves that package at build time and inlines its location
+  // here; register the hooks with it before `nodeInit()` runs. `nodeInit()` then calls
+  // `registerDiagnosticsChannelInjection()` again with no directory, which is a no-op because
+  // registration is idempotent. Gated on span recording to match `@sentry/node`'s own gate.
+  const tracingHooksDir =
+    process.env._sentryOrchestrionTracingHooksDir || globalWithInjectedValues._sentryOrchestrionTracingHooksDir;
+  if (tracingHooksDir && hasSpansEnabled(opts)) {
+    registerDiagnosticsChannelInjection({ tracingHooksDir });
+  }
 
   const client = nodeInit(opts);
 
