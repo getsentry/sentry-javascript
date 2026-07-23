@@ -64,8 +64,9 @@ export function getMockAiPort() {
         return;
       }
 
-      // Google GenAI: generateContent (the model name is embedded in the path before `:generateContent`)
-      if (req.method === 'POST' && /\/v1beta\/models\/.+:generateContent$/.test(url)) {
+      // Google GenAI: generateContent (the model name is embedded in the path before `:generateContent`).
+      // Plain string checks avoid the polynomial-backtracking risk of a `.+` regex on the URL.
+      if (req.method === 'POST' && url.startsWith('/v1beta/models/') && url.endsWith(':generateContent')) {
         await readJson(req);
         sendJson(res, 200, {
           candidates: [
