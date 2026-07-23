@@ -31,6 +31,24 @@
     "no-constant-binary-expression": "off",
     "vitest/hoisted-apis-on-top": "off",
     "vitest/no-conditional-tests": "off",
+    // Vitest correctness rules newly surfaced by the oxlint 1.75 bump. We keep the vitest plugin
+    // (and its many other rules), but disable the ones now firing across the existing test suite.
+    "vitest/no-standalone-expect": "off",
+    "vitest/require-mock-type-parameters": "off",
+    "vitest/no-conditional-expect": "off",
+    "vitest/expect-expect": "off",
+    "vitest/require-to-throw-message": "off",
+    "vitest/valid-title": "off",
+    "vitest/valid-expect": "off",
+    "vitest/no-disabled-tests": "off",
+    "vitest/valid-describe-callback": "off",
+    // Not trusted / false positives for this codebase: the default-assignment and spread-fallback
+    // rules over-trigger, and we intentionally implement thenables (SyncPromise etc.).
+    "typescript/no-useless-default-assignment": "off",
+    "unicorn/no-useless-fallback-in-spread": "off",
+    "unicorn/no-thenable": "off",
+    "unicorn/prefer-string-starts-ends-with": "off",
+    "unicorn/no-new-array": "off",
     "no-unsafe-optional-chaining": "off",
     "no-eval": "off",
     "no-import-assign": "off",
@@ -101,7 +119,12 @@
         "typescript/require-array-sort-compare": "off",
         "typescript/no-base-to-string": "off",
         "typescript/await-thenable": "off",
-        "typescript/no-deprecated": "off"
+        "typescript/no-deprecated": "off",
+        "no-unreachable": "off",
+        "unicorn/no-empty-file": "off",
+        "unicorn/no-single-promise-in-promise-methods": "off",
+        "unicorn/no-invalid-fetch-options": "off",
+        "unicorn/no-await-in-promise-methods": "off"
       }
     },
     {
@@ -193,6 +216,14 @@
       "files": ["**/src/**"],
       "rules": {
         "no-restricted-globals": ["error", "window", "document", "location", "navigator"]
+      }
+    },
+    {
+      // Intentionally comment-only: a grep marker for the release-injection file, and a
+      // resolvable-but-empty module used to mock `$app/stores` in sveltekit tests.
+      "files": ["**/sentry-release-injection-file.js", "**/.empty.js"],
+      "rules": {
+        "unicorn/no-empty-file": "off"
       }
     }
   ]
