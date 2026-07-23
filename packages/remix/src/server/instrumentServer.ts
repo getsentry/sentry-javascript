@@ -40,7 +40,7 @@ import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/util
 import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
 import { generateSentryServerTimingHeader, injectServerTimingHeaderValue } from './serverTimingTracePropagation';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -349,6 +349,12 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
         if (parentSpan) {
           const rootSpan = getRootSpan(parentSpan);
           rootSpan?.updateName(name);
+          rootSpan?.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            ...(source === 'route' && {
+              [HTTP_ROUTE]: name,
+            }),
+          });
         }
       }
 
@@ -379,6 +385,9 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
                   [URL_FULL]: url.href,
                   [URL_PATH]: url.pathname,
                   method: request.method,
+                  ...(source === 'route' && {
+                    [HTTP_ROUTE]: name,
+                  }),
                   ...httpHeadersToSpanAttributes(
                     winterCGHeadersToDict(request.headers),
                     getClient()?.getDataCollectionOptions(),

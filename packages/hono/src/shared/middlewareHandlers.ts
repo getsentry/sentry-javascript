@@ -15,6 +15,7 @@ import { defaultShouldHandleError } from './defaultShouldHandleError';
 import { resolveRouteName } from './resolveRouteName';
 import { type SentryHonoMiddlewareOptions } from '../shared/types';
 import { type GetConnInfo } from 'hono/conninfo';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 
 /**
  * Request handler for Hono framework
@@ -108,7 +109,10 @@ function updateSpanRouteName(isolationScope: Scope, context: Context): void {
 
     const rootSpan = getRootSpan(activeSpan);
     updateSpanName(rootSpan, routeName);
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    rootSpan.setAttributes({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [HTTP_ROUTE]: routeName,
+    });
   }
 
   isolationScope.setTransactionName(routeName);
