@@ -1,6 +1,6 @@
 import type { Event } from '@sentry/core';
 import { getClient } from '@sentry/core';
-import { URL_FULL } from '@sentry/conventions/attributes';
+import { URL_PATH } from '@sentry/conventions/attributes';
 import { getSanitizedRequestUrl } from './urls';
 
 /**
@@ -21,7 +21,7 @@ export function setUrlProcessingMetadata(event: Event): void {
 
   // Get the route from trace data
   const componentRoute = traceData['next.route'] || traceData['http.route'];
-  const httpTarget = traceData['http.target'] as string | undefined;
+  const httpTarget = (traceData['http.target'] || traceData[URL_PATH]) as string | undefined;
 
   if (!componentRoute) {
     return;
@@ -31,11 +31,7 @@ export function setUrlProcessingMetadata(event: Event): void {
   const isolationScopeData = event.sdkProcessingMetadata?.capturedSpanIsolationScope?.getScopeData();
   const headersDict = isolationScopeData?.sdkProcessingMetadata?.normalizedRequest?.headers;
 
-  const fullUrl = traceData[URL_FULL];
-  const url =
-    typeof fullUrl === 'string'
-      ? fullUrl
-      : getSanitizedRequestUrl(componentRoute, undefined, headersDict, httpTarget?.toString());
+  const url = getSanitizedRequestUrl(componentRoute, undefined, headersDict, httpTarget?.toString());
 
   // Add URL to the isolation scope's normalizedRequest so requestDataIntegration picks it up
   if (url && isolationScopeData?.sdkProcessingMetadata) {

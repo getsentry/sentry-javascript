@@ -1,6 +1,6 @@
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { HTTP_ROUTE, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { describe, expect, it, vi } from 'vitest';
 import { setUrlProcessingMetadata } from '../../src/common/utils/setUrlProcessingMetadata';
 
@@ -70,7 +70,8 @@ describe('setUrlProcessingMetadata', () => {
           op: 'http.server',
           data: {
             [HTTP_ROUTE]: '/api/users/[id]',
-            [URL_FULL]: 'https://example.com/api/users/123',
+            [URL_FULL]: 'https://example.com/api/users/123?token=secret#fragment',
+            [URL_PATH]: '/api/users/123',
           },
         },
       },
