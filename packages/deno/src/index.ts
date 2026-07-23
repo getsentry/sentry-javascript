@@ -111,14 +111,32 @@ export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
 export { denoRedisIntegration } from './integrations/redis';
 export type { DenoRedisIntegrationOptions } from './integrations/redis';
+// The orchestrion channel integrations, re-exported from `@sentry/server-utils`.
+// The first six are in the default set; `dataloader` and `knex` are opt-in (add
+// them to `integrations` to enable), matching Node.
+export {
+  amqplibChannelIntegration,
+  dataloaderChannelIntegration,
+  knexChannelIntegration,
+  koaChannelIntegration,
+  mongodbChannelIntegration,
+  mongooseChannelIntegration,
+  mysqlChannelIntegration,
+  postgresChannelIntegration,
+} from '@sentry/server-utils/orchestrion';
+// Deprecated aliases kept for back-compat. Each forwards to the shared
+// integration above, so its name is the shared name (e.g. `Mysql`), not the old
+// `Deno*` name. See each alias's `@deprecated` note.
+/* eslint-disable typescript/no-deprecated */
 export { denoMysqlIntegration } from './integrations/mysql';
 export { denoPostgresIntegration } from './integrations/postgres';
 export { denoAmqplibIntegration } from './integrations/amqplib';
-export { denoDataloaderIntegration } from './integrations/dataloader';
-export { denoKnexIntegration } from './integrations/knex';
 export { denoKoaIntegration } from './integrations/koa';
 export { denoMongoIntegration } from './integrations/mongo';
 export { denoMongooseIntegration } from './integrations/mongoose';
+export { denoDataloaderIntegration } from './integrations/dataloader';
+export { denoKnexIntegration } from './integrations/knex';
+/* eslint-enable typescript/no-deprecated */
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { normalizePathsIntegration } from './integrations/normalizepaths';

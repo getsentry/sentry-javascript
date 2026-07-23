@@ -11,7 +11,6 @@ import {
   HTTP_ON_CLIENT_REQUEST,
   HTTP_ON_SERVER_REQUEST,
 } from '@sentry/core';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 import {
   DENO_VERSION,
   HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
@@ -110,11 +109,6 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
         );
         return;
       }
-
-      // Wire up Deno's AsyncLocalStorage-backed ACS so the server subscription's
-      // `withIsolationScope(clone, ...)` actually activates the cloned scope.
-      // Without this, request isolation and span creation degrade silently.
-      setAsyncLocalStorageAsyncContextStrategy();
 
       if (HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED) {
         const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({

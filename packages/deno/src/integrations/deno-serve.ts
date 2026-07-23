@@ -1,6 +1,5 @@
 import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration } from '@sentry/core';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 import type { RequestHandlerWrapperOptions } from '../wrap-deno-request-handler';
 import { wrapDenoRequestHandler } from '../wrap-deno-request-handler';
 
@@ -63,8 +62,6 @@ const _denoServeIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      setAsyncLocalStorageAsyncContextStrategy();
-
       const originalServe = Deno.serve;
       const wrappedServe = instrumentedDenoServe(originalServe);
 

@@ -11,6 +11,14 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
+import {
+  amqplibChannelIntegration,
+  koaChannelIntegration,
+  mongodbChannelIntegration,
+  mongooseChannelIntegration,
+  mysqlChannelIntegration,
+  postgresChannelIntegration,
+} from '@sentry/server-utils/orchestrion';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
@@ -23,12 +31,6 @@ import {
 } from './denoVersion';
 import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
-import { denoAmqplibIntegration } from './integrations/amqplib';
-import { denoKoaIntegration } from './integrations/koa';
-import { denoMongoIntegration } from './integrations/mongo';
-import { denoMongooseIntegration } from './integrations/mongoose';
-import { denoMysqlIntegration } from './integrations/mysql';
-import { denoPostgresIntegration } from './integrations/postgres';
 import { denoRedisIntegration } from './integrations/redis';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
@@ -60,18 +62,21 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
       : []),
     // node:diagnostics_channel.tracingChannel exists on Deno 1.44.3+.
     ...(TRACING_CHANNEL_SUPPORTED ? [denoRedisIntegration()] : []),
-    // orchestrion-based instrumentations.
-    // It's possible that the orchestrion channels will be injected AFTER
-    // (or in parallel to) loading the SDK, so we only gate on whether the
-    // feature is possible. If they're never loaded, it'll just be a no-op.
+    // orchestrion-based instrumentations. We add a deliberate list here rather
+    // than every channel integration: each one needs a Deno test proving it
+    // records spans.
+    //
+    // The orchestrion channels may be injected after (or while) the SDK loads,
+    // so we gate only on whether the feature is possible. If they never load,
+    // this is a no-op.
     ...(MODULE_REGISTER_HOOKS_SUPPORTED
       ? [
-          denoAmqplibIntegration(),
-          denoKoaIntegration(),
-          denoMongoIntegration(),
-          denoMongooseIntegration(),
-          denoMysqlIntegration(),
-          denoPostgresIntegration(),
+          amqplibChannelIntegration(),
+          koaChannelIntegration(),
+          mongodbChannelIntegration(),
+          mongooseChannelIntegration(),
+          mysqlChannelIntegration(),
+          postgresChannelIntegration(),
         ]
       : []),
     contextLinesIntegration(),

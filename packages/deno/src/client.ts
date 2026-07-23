@@ -1,5 +1,6 @@
 import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { _INTERNAL_flushLogsBuffer, SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
+import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { DenoClientOptions } from './types';
 
 function getHostName(): string | undefined {
@@ -65,6 +66,16 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
 
       globalThis.addEventListener('unload', this._logOnExitFlushListener);
     }
+  }
+
+  /** @inheritDoc */
+  public init(): void {
+    // The channel-based default integrations propagate scope across async
+    // boundaries via Deno's AsyncLocalStorage context strategy. Install it here,
+    // the setup path both `Sentry.init()` and a directly-constructed client run
+    // through, so it is in place before the integrations subscribe.
+    setAsyncLocalStorageAsyncContextStrategy();
+    super.init();
   }
 
   /** @inheritDoc */
