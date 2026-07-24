@@ -38,5 +38,5 @@ export const onHidden = (cb: OnHiddenCallback) => {
     }
   };
 
-  addPageListener('visibilitychange', onHiddenCallback, { capture: true, once: true });
+  addPageListener('visibilitychange', onHiddenCallback, { capture: true });
 };
