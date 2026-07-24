@@ -73,10 +73,7 @@ const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions =
  * Subscribes to the `orchestrion:graphql:{parse,validate,execute}` channels the orchestrion code
  * transform injects into `graphql`'s `language/parser.js`, `validation/validate.js` and
  * `execution/execute.js`, emitting spans identical to the native path. Requires the orchestrion
- * runtime hook or bundler plugin; `@sentry/node`'s `Sentry.init()` installs the runtime hook by
- * default.
- *
- * @experimental
+ * runtime hook or bundler plugin.
  */
 export const graphqlChannelIntegration = defineIntegration(_graphqlChannelIntegration);
 

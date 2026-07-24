@@ -62,8 +62,7 @@ interface Mysql2Connection {
  *     transform intentionally leaves alone.
  *
  * The two version ranges never overlap, so no query is double-counted. Requires the orchestrion
- * runtime hook or bundler plugin to be active; `@sentry/node`'s `Sentry.init()` installs the runtime
- * hook by default.
+ * runtime hook or bundler plugin to be active.
  */
 function instrumentMysql2(): void {
   // mysql2 >= 3.20.0: native diagnostics_channel path (inert on older versions, which never publish).
