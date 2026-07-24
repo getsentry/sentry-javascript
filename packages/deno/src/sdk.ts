@@ -32,6 +32,7 @@ import {
   postgresChannelIntegration,
   postgresJsChannelIntegration,
   tediousChannelIntegration,
+  vercelAiChannelIntegration,
 } from '@sentry/server-utils/orchestrion';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
@@ -81,6 +82,12 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     // channels, which need only tracingChannel. The orchestrion implementation
     // (graphql v14–16) stays inert until the runtime hook injects those channels.
     ...(TRACING_CHANNEL_SUPPORTED ? [graphqlDiagnosticsChannelIntegration()] : []),
+    // vercel-ai is gated on tracingChannel rather than the module hook, like
+    // graphql: the composed integration also subscribes to the `ai` SDK v7's
+    // native `ai:telemetry` channel, which needs only tracingChannel. The
+    // orchestrion implementation (ai v4–6) stays inert until the runtime hook
+    // injects those channels.
+    ...(TRACING_CHANNEL_SUPPORTED ? [vercelAiChannelIntegration()] : []),
     // orchestrion-based instrumentations. We add a deliberate list here rather
     // than every channel integration: each one needs a Deno test proving it
     // records spans.
