@@ -1,30 +1,8 @@
-export { getRequestSpanData } from './utils/getRequestSpanData';
-
 export { getScopesFromContext } from './utils/contextData';
-
-export {
-  spanHasAttributes,
-  spanHasEvents,
-  spanHasKind,
-  spanHasName,
-  spanHasParentId,
-  spanHasStatus,
-} from './utils/spanTypes';
-
-// Re-export this for backwards compatibility (this used to be a different implementation)
-export { getDynamicSamplingContextFromSpan } from '@sentry/core';
 
 export { enhanceDscWithOpenTelemetryRootSpanName } from './utils/enhanceDscWithOpenTelemetryRootSpanName';
 
-export { getActiveSpan } from './utils/getActiveSpan';
-export {
-  startSpan,
-  startSpanManual,
-  startInactiveSpan,
-  withActiveSpan,
-  continueTrace,
-  getTraceContextForScope,
-} from './trace';
+export { getTraceContextForScope } from './trace';
 
 export { suppressTracing } from './utils/suppressTracing';
 
@@ -33,7 +11,7 @@ export { setupEventContextTrace } from './setupEventContextTrace';
 // eslint-disable-next-line typescript/no-deprecated
 export { wrapContextManagerClass } from './contextManager';
 
-export { SentryPropagator, shouldPropagateTraceForUrl } from './propagator';
+export { SentryPropagator } from './propagator';
 export { SentrySpanProcessor } from './spanProcessor';
 export { SentrySampler, wrapSamplingDecision } from './sampler';
 export { applyOtelSpanData } from './applyOtelSpanData';
@@ -44,8 +22,3 @@ export type { OpenTelemetryTracerProvider } from './types';
 export { openTelemetrySetupCheck, setIsSetup } from './utils/setupCheck';
 
 export { getSentryResource } from './resource';
-
-export { withStreamedSpan } from '@sentry/core';
-
-// Legacy
-export { getClient } from '@sentry/core';

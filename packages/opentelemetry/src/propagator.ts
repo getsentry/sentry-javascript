@@ -132,9 +132,6 @@ export class SentryPropagator extends W3CBaggagePropagator {
   }
 }
 
-// Re-exported from @sentry/core for backwards compatibility
-export { shouldPropagateTraceForUrl } from '@sentry/core';
-
 /**
  * Get propagation injection data for the given context.
  * The additional options can be passed to override the scope and client that is otherwise derived from the context.
