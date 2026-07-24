@@ -84,13 +84,8 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const { release, environment, _experiments, enableLogs, beforeSendLog } = client.getOptions();
-
-  // todo(v11): Remove the experimental flag
-  // eslint-disable-next-line typescript/no-deprecated
-  const logsEnabled = enableLogs ?? _experiments?.enableLogs ?? true;
-
-  if (!logsEnabled) {
+  const { release, environment, enableLogs = true, beforeSendLog } = client.getOptions();
+  if (!enableLogs) {
     DEBUG_BUILD && debug.warn('logging option not enabled, log will not be captured.');
     return;
   }
