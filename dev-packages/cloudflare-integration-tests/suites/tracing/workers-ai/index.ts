@@ -11,6 +11,7 @@ const ai = instrumentWorkersAiClient(new MockAi());
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     // Keep gen_ai spans embedded in the transaction (instead of streamed as a
     // separate envelope container) so they can be asserted on `transaction.spans`.

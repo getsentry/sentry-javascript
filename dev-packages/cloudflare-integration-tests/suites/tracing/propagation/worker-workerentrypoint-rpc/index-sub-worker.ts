@@ -44,6 +44,7 @@ class MySubWorkerEntrypointBase extends BaseEntrypoint {
 export const BindingEntrypoint = Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     enableRpcTracePropagation: true,
     initialScope: { tags: { initial_scope: 'applied' } },
@@ -59,6 +60,7 @@ export const BindingEntrypoint = Sentry.withSentry(
 export const NoPropagationEntrypoint = Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     transportOptions: { fetch: fetch.bind(globalThis) },
   }),

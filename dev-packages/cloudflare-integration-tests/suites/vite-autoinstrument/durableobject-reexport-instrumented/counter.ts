@@ -17,6 +17,6 @@ class CounterImpl extends DurableObject<Env> {
 // The Durable Object is manually instrumented here, in a module *separate* from
 // the worker entry. The entry only imports and re-exports the wrapped class.
 export const Counter = Sentry.instrumentDurableObjectWithSentry(
-  (env: Env) => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1.0 }),
+  (env: Env) => ({ dsn: env.SENTRY_DSN, traceLifecycle: 'static', tracesSampleRate: 1.0 }),
   CounterImpl,
 );

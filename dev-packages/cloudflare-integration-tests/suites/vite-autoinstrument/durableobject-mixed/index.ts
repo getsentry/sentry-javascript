@@ -19,7 +19,7 @@ class ManualImpl extends DurableObject<Env> {
 
 // Manually wrapped — the transform must leave this alone.
 export const Manual = Sentry.instrumentDurableObjectWithSentry(
-  (env: Env) => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1.0 }),
+  (env: Env) => ({ dsn: env.SENTRY_DSN, traceLifecycle: 'static', tracesSampleRate: 1.0 }),
   ManualImpl,
 );
 
