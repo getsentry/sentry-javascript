@@ -167,4 +167,19 @@ test.describe('server - instrumentation API performance', () => {
 
     expect(httpServerTransactions).toEqual(['GET /performance']);
   });
+
+  test('resolves a real http.route on routes without a loader/action', async ({ page }) => {
+    // Regression guard for the server OTel removal: routes without a loader/action must still get a
+    // proper `http.route` (not the catch-all `*` placeholder) from the underlying HTTP instrumentation.
+    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === 'GET /performance/ssr';
+    });
+
+    await page.goto(`/performance/ssr`);
+
+    const transaction = await txPromise;
+
+    expect(transaction.contexts?.trace?.op).toBe('http.server');
+    expect(transaction.contexts?.trace?.data?.['http.route']).toBe('/performance/ssr');
+  });
 });

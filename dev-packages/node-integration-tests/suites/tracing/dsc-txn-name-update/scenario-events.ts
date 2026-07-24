@@ -6,6 +6,7 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
+  attachStacktrace: false,
 });
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises

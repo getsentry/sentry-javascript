@@ -12,6 +12,7 @@ function getTestClient(callback: (event?: Event) => void): DenoClient {
     debug: true,
     integrations: getDefaultIntegrations({}),
     stackParser: createStackParser(nodeStackLineParser()),
+    attachStacktrace: false,
     transport: makeTestTransport(envelope => {
       callback(getNormalizedEvent(envelope));
     }),
