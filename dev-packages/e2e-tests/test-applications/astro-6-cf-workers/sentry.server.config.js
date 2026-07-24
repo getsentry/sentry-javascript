@@ -3,6 +3,7 @@ import handler from '@astrojs/cloudflare/entrypoints/server';
 
 export default Sentry.withSentry(
   env => ({
+    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     environment: 'qa',
     tracesSampleRate: 1.0,

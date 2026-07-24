@@ -36,6 +36,7 @@ export default {
     return wrapRequestHandler(
       {
         options: {
+          traceLifecycle: 'static',
           environment: 'qa', // dynamic sampling bias to keep transactions
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           tracesSampleRate: 1.0,
