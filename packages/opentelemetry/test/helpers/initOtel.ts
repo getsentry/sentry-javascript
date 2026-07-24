@@ -1,6 +1,6 @@
 import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import type { Client} from '@sentry/core';
+import type { Client } from '@sentry/core';
 import { debug, getClient } from '@sentry/core';
 import { SentryAsyncLocalStorageContextManager } from '../../src/asyncLocalStorageContextManager';
 import { DEBUG_BUILD } from '../../src/debug-build';

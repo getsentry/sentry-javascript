@@ -186,8 +186,6 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
-
     const client = mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const error = new Error('test');
@@ -226,8 +224,6 @@ describe('Integration | breadcrumbs', () => {
   it('handles deep nesting of scopes', async () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
-
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const client = mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
@@ -284,8 +280,6 @@ describe('Integration | breadcrumbs', () => {
   it('correctly adds & retrieves breadcrumbs in async isolation scopes', async () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
-
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const client = mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
