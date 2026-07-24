@@ -12,8 +12,6 @@
  * - Dropped the `@opentelemetry/instrumentation` base (undici reports via `diagnostics_channel`,
  *   so no module patching was needed) — exposed as a plain `instrumentUndici()` function that the
  *   integration wires up directly
- * - Dropped the pre-18.19.0 `diagnostics_channel` ref-counting workaround, since the SDK
- *   requires Node >=20.19.0
  */
 
 /* eslint-disable max-lines */
