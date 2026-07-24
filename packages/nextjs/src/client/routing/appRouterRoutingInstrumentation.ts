@@ -85,10 +85,6 @@ interface NextRouter {
 
 // Yes, yes, I know we shouldn't depend on these internals. But that's where we are at. We write the ugly code, so you don't have to.
 const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  // Available until 13.4.4-canary.3 - https://github.com/vercel/next.js/pull/50210
-  nd?: {
-    router?: NextRouter;
-  };
   // Available from 13.4.4-canary.4 - https://github.com/vercel/next.js/pull/50210
   next?: {
     router?: NextRouter;
@@ -188,7 +184,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
   const ROUTER_AVAILABILITY_CHECK_INTERVAL_MS = 20;
   const checkForRouterAvailabilityInterval = setInterval(() => {
     triesToFindRouter++;
-    const router = GLOBAL_OBJ_WITH_NEXT_ROUTER?.next?.router ?? GLOBAL_OBJ_WITH_NEXT_ROUTER?.nd?.router;
+    const router = GLOBAL_OBJ_WITH_NEXT_ROUTER?.next?.router;
 
     if (routerPatched || triesToFindRouter > MAX_TRIES_TO_FIND_ROUTER) {
       clearInterval(checkForRouterAvailabilityInterval);
@@ -199,22 +195,20 @@ export function appRouterInstrumentNavigation(client: Client): void {
       patchRouter(client, router, currentRouterPatchingNavigationSpanRef);
 
       // If the router at any point gets overridden - patch again
-      (['nd', 'next'] as const).forEach(globalValueName => {
-        const globalValue = GLOBAL_OBJ_WITH_NEXT_ROUTER[globalValueName];
-        if (globalValue) {
-          GLOBAL_OBJ_WITH_NEXT_ROUTER[globalValueName] = new Proxy(globalValue, {
-            set(target, p, newValue) {
-              if (p === 'router' && typeof newValue === 'object' && newValue !== null) {
-                patchRouter(client, newValue, currentRouterPatchingNavigationSpanRef);
-              }
+      const globalValue = GLOBAL_OBJ_WITH_NEXT_ROUTER.next;
+      if (globalValue) {
+        GLOBAL_OBJ_WITH_NEXT_ROUTER.next = new Proxy(globalValue, {
+          set(target, p, newValue) {
+            if (p === 'router' && typeof newValue === 'object' && newValue !== null) {
+              patchRouter(client, newValue, currentRouterPatchingNavigationSpanRef);
+            }
 
-              // @ts-expect-error we cannot possibly type this
-              target[p] = newValue;
-              return true;
-            },
-          });
-        }
-      });
+            // @ts-expect-error we cannot possibly type this
+            target[p] = newValue;
+            return true;
+          },
+        });
+      }
     }
   }, ROUTER_AVAILABILITY_CHECK_INTERVAL_MS);
 }
