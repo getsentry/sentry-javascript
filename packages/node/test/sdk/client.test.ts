@@ -33,6 +33,7 @@ describe('NodeClient', () => {
       dsn: expect.any(String),
       integrations: [],
       transport: options.transport,
+      traceLifecycle: 'static',
       transportOptions: {
         headers: {
           'user-agent': `sentry.javascript.node/${SDK_VERSION}`,

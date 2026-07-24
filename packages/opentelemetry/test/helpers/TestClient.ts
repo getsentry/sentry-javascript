@@ -66,6 +66,7 @@ export function init(options: Partial<Options> = {}): Client {
 export function getDefaultTestClientOptions(options: Partial<Options> = {}): ClientOptions {
   return {
     integrations: [],
+    traceLifecycle: 'static',
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
     stackParser: () => [],
     ...options,

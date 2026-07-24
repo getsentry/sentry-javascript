@@ -32,6 +32,7 @@ export function mockSdkInit(options?: Partial<NodeClientOptions>) {
     sendClientReports: false,
     // Use a mock transport to prevent network calls
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
+    traceLifecycle: 'static',
     ...options,
   });
 }
