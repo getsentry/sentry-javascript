@@ -9,12 +9,10 @@ import {
   getClient,
   getGlobalScope,
   GLOBAL_OBJ,
-  hasSpansEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
-import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -43,7 +41,6 @@ export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/n
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
-  _sentryOrchestrionTracingHooksDir?: string;
 };
 
 // Call at module level so `next build` prerender workers still register the runner without `init`
@@ -184,20 +181,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // Use appropriate SDK metadata based on the runtime environment
   applySdkMetadata(opts, 'nextjs', ['nextjs', cloudflareConfig ? 'cloudflare' : 'node']);
 
-  // Next.js bundles the SDK into its server build, so the channel-injection module hook can't
-  // resolve the bare `@apm-js-collab/tracing-hooks` specifier from the emitted chunk under isolated
-  // installs (pnpm). `withSentryConfig` resolves that package at build time and inlines its location
-  // here; register the hooks with it before `nodeInit()` runs. `nodeInit()` then calls
-  // `registerDiagnosticsChannelInjection()` again with no directory, which is a no-op because
-  // registration is idempotent. Gated on span recording to match `@sentry/node`'s own gate — and,
-  // like it, resolving `SENTRY_TRACES_SAMPLE_RATE` so tracing enabled purely via env still registers.
-  const tracingHooksDir =
-    process.env._sentryOrchestrionTracingHooksDir || globalWithInjectedValues._sentryOrchestrionTracingHooksDir;
-  const optionsWithResolvedTracing = { ...opts, tracesSampleRate: resolveTracesSampleRate(opts.tracesSampleRate) };
-  if (tracingHooksDir && hasSpansEnabled(optionsWithResolvedTracing)) {
-    registerDiagnosticsChannelInjection({ tracingHooksDir });
-  }
-
   const client = nodeInit(opts);
 
   client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
@@ -326,23 +309,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
 function sdkAlreadyInitialized(): boolean {
   return !!getClient();
-}
-
-/**
- * Resolve the effective `tracesSampleRate`, falling back to `SENTRY_TRACES_SAMPLE_RATE`. Mirrors
- * `@sentry/node`'s internal `getTracesSampleRate`, including dropping non-finite env values so an
- * invalid env var does not read as "tracing enabled".
- */
-function resolveTracesSampleRate(tracesSampleRate: NodeOptions['tracesSampleRate']): number | undefined {
-  if (tracesSampleRate !== undefined) {
-    return tracesSampleRate;
-  }
-  const sampleRateFromEnv = process.env.SENTRY_TRACES_SAMPLE_RATE;
-  if (!sampleRateFromEnv) {
-    return undefined;
-  }
-  const parsed = parseFloat(sampleRateFromEnv);
-  return isFinite(parsed) ? parsed : undefined;
 }
 
 export * from '../common';
