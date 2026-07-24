@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
   environment: import.meta.env.MODE || 'development',
   integrations: [Sentry.browserTracingIntegration()],

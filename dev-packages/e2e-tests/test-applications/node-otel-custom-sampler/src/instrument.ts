@@ -4,6 +4,7 @@ import { SentryPropagator, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { CustomSampler } from './custom-sampler';
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn:
     process.env.E2E_TEST_DSN ||

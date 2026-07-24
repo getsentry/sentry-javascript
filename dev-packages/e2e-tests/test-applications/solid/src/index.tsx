@@ -5,6 +5,7 @@ import App from './app';
 import './index.css';
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
   debug: true,
   environment: 'qa', // dynamic sampling bias to keep transactions

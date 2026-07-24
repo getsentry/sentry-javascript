@@ -57,6 +57,7 @@ declare module '@tanstack/vue-router' {
 const app = createApp(RouterProvider, { router });
 
 Sentry.init({
+  traceLifecycle: 'static',
   app,
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
   debug: true,

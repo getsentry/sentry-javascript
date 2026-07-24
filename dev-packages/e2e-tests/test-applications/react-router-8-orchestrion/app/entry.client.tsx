@@ -4,6 +4,7 @@ import { hydrateRoot } from 'react-dom/client';
 import { HydratedRouter } from 'react-router/dom';
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: 'https://username@domain/123',
   tunnel: `http://localhost:3031/`, // proxy server
