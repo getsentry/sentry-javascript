@@ -1,5 +1,4 @@
-import { getCapturedScopesOnSpan, getCurrentScope } from '@sentry/core';
-import { getClient } from '@sentry/opentelemetry';
+import { getCapturedScopesOnSpan, getCurrentScope, getClient } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Sentry from '../../src/';
 import type { NodeClient } from '../../src/sdk/client';

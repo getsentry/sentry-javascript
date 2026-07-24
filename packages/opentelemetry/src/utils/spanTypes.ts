@@ -1,8 +1,7 @@
-import type { SpanKind, SpanStatus } from '@opentelemetry/api';
-import type { ReadableSpan, TimedEvent } from '@opentelemetry/sdk-trace-base';
+import type { SpanStatus } from '@opentelemetry/api';
+import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import type { AbstractSpan } from '../types';
 import { isObjectLike } from '@sentry/core';
-import { getParentSpanId } from './getParentSpanId';
 
 /**
  * Check if a given span has attributes.
@@ -14,16 +13,6 @@ export function spanHasAttributes<SpanType extends AbstractSpan>(
 ): span is SpanType & { attributes: ReadableSpan['attributes'] } {
   const castSpan = span as ReadableSpan;
   return isObjectLike(castSpan.attributes);
-}
-
-/**
- * Check if a given span has a kind.
- * This is necessary because the base `Span` type does not have a kind,
- * so in places where we are passed a generic span, we need to check if we want to access it.
- */
-export function spanHasKind<SpanType extends AbstractSpan>(span: SpanType): span is SpanType & { kind: SpanKind } {
-  const castSpan = span as ReadableSpan;
-  return typeof castSpan.kind === 'number';
 }
 
 /**
@@ -46,28 +35,4 @@ export function spanHasStatus<SpanType extends AbstractSpan>(
 export function spanHasName<SpanType extends AbstractSpan>(span: SpanType): span is SpanType & { name: string } {
   const castSpan = span as ReadableSpan;
   return !!castSpan.name;
-}
-
-/**
- * Check if a given span has a kind.
- * This is necessary because the base `Span` type does not have a kind,
- * so in places where we are passed a generic span, we need to check if we want to access it.
- */
-export function spanHasParentId<SpanType extends AbstractSpan>(
-  span: SpanType,
-): span is SpanType & { parentSpanId: string } {
-  const castSpan = span as ReadableSpan;
-  return !!getParentSpanId(castSpan);
-}
-
-/**
- * Check if a given span has events.
- * This is necessary because the base `Span` type does not have events,
- * so in places where we are passed a generic span, we need to check if we want to access it.
- */
-export function spanHasEvents<SpanType extends AbstractSpan>(
-  span: SpanType,
-): span is SpanType & { events: TimedEvent[] } {
-  const castSpan = span as ReadableSpan;
-  return Array.isArray(castSpan.events);
 }
