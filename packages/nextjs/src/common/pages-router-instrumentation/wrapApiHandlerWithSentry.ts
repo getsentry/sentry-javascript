@@ -1,4 +1,14 @@
-import { captureException, debug, httpRequestToRequestData, objectify, withIsolationScope } from '@sentry/core';
+import {
+  captureException,
+  debug,
+  getActiveSpan,
+  getCurrentScope,
+  getRootSpan,
+  httpRequestToRequestData,
+  objectify,
+  setCapturedScopesOnSpan,
+  withIsolationScope,
+} from '@sentry/core';
 import type { NextApiRequest } from 'next';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
 import { flushSafelyWithTimeout } from '../utils/responseEnd';
@@ -47,6 +57,15 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
 
         isolationScope.setSDKProcessingMetadata({ normalizedRequest: httpRequestToRequestData(req) });
         isolationScope.setTransactionName(`${reqMethod}${parameterizedRoute}`);
+
+        // We no longer create the transaction ourselves: it's the Next.js root span, which captured a different
+        // isolation scope than the one forked here. Bind this scope to that span so the request data and anything
+        // set on the scope during the handler (tags, breadcrumbs) land on the transaction.
+        const activeSpan = getActiveSpan();
+        const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+        if (rootSpan) {
+          setCapturedScopesOnSpan(rootSpan, getCurrentScope(), isolationScope);
+        }
 
         try {
           return await wrappingTarget.apply(thisArg, args);

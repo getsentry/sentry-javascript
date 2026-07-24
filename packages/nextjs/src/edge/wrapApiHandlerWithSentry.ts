@@ -1,4 +1,12 @@
-import { captureException, winterCGRequestToRequestData, withIsolationScope } from '@sentry/core';
+import {
+  captureException,
+  getActiveSpan,
+  getCurrentScope,
+  getRootSpan,
+  setCapturedScopesOnSpan,
+  winterCGRequestToRequestData,
+  withIsolationScope,
+} from '@sentry/core';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
 
@@ -25,6 +33,15 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
           });
         } else {
           isolationScope.setTransactionName(`handler (${parameterizedRoute})`);
+        }
+
+        // We no longer create the transaction ourselves: it's the Next.js `Node.runHandler` root span, which
+        // captured a different isolation scope than the one forked here. Bind this scope to that span so the
+        // request data and anything set on the scope during the handler (tags, breadcrumbs) land on the transaction.
+        const activeSpan = getActiveSpan();
+        const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+        if (rootSpan) {
+          setCapturedScopesOnSpan(rootSpan, getCurrentScope(), isolationScope);
         }
 
         try {
