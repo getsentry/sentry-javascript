@@ -118,6 +118,7 @@ export type { DenoRedisIntegrationOptions } from './integrations/redis';
 export {
   amqplibChannelIntegration,
   dataloaderChannelIntegration,
+  genericPoolChannelIntegration,
   knexChannelIntegration,
   koaChannelIntegration,
   mongodbChannelIntegration,
