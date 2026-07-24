@@ -117,7 +117,6 @@ Deno.test('logger.info captures a log envelope item', async () => {
   const envelopes: Array<Envelope> = [];
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
-    enableLogs: true,
     integrations: getDefaultIntegrations({}),
     stackParser: createStackParser(nodeStackLineParser()),
     transport: makeTestTransport(envelope => {
@@ -153,7 +152,6 @@ Deno.test('logger.info captures a log envelope item', async () => {
 Deno.test('adds server.address to log attributes', () => {
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
-    enableLogs: true,
     serverName: 'test-server',
     integrations: getDefaultIntegrations({}),
     stackParser: createStackParser(nodeStackLineParser()),
@@ -169,7 +167,6 @@ Deno.test('adds server.address to log attributes', () => {
 Deno.test('preserves existing log attributes when adding server.address', () => {
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
-    enableLogs: true,
     serverName: 'test-server',
     integrations: getDefaultIntegrations({}),
     stackParser: createStackParser(nodeStackLineParser()),

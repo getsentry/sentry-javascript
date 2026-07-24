@@ -267,7 +267,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // Backfill enableLogs option from _experiments.enableLogs
     // TODO(v11): Remove or change default value
     // eslint-disable-next-line typescript/no-deprecated
-    this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs;
+    this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs ?? true;
 
     // Setup log flushing with weight and timeout tracking
     if (this._options.enableLogs) {
