@@ -143,7 +143,7 @@ describe('SentrySpan', () => {
   describe('tracer-provider span sealing', () => {
     it('seals a tracer-provider span against all mutation after it ends', () => {
       const span = new SentrySpan({ name: 'original', startTimestamp: 1, attributes: { key: 'before' } });
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'before' });
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'permission_denied' });
       span.addEvent('measurement', {
         [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
@@ -156,7 +156,7 @@ describe('SentrySpan', () => {
       // Every mutator must no-op on a tracer-provider span once it has ended, mirroring OTel SDK spans.
       span.setAttribute('key', 'after');
       span.setAttributes({ key2: 'after' });
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'after' });
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'already_exists' });
       span.updateName('after');
       span.updateStartTime(999);
       span.addLink({ context: linked.spanContext() });
@@ -169,7 +169,7 @@ describe('SentrySpan', () => {
       const json = spanToJSON(span);
       expect(json.data?.['key']).toBe('before');
       expect(json.data?.['key2']).toBeUndefined();
-      expect(json.status).toBe('before');
+      expect(json.status).toBe('permission_denied');
       expect(json.description).toBe('original');
       expect(json.start_timestamp).toBe(1);
       expect(json.links).toBeUndefined();

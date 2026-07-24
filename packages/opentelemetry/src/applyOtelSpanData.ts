@@ -10,9 +10,10 @@ import {
   spanToJSON,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
+  isStatusErrorMessageValid,
 } from '@sentry/core';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { inferStatusFromAttributes, isStatusErrorMessageValid } from './utils/mapStatus';
+import { inferStatusFromAttributes } from './utils/mapStatus';
 import { inferSpanData } from './utils/parseSpanDescription';
 
 /**

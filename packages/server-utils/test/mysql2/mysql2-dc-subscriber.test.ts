@@ -236,7 +236,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
         { error: new Error('table missing') },
       );
 
-      expect(spanToJSON(span!).status).toBe('table missing');
+      expect(spanToJSON(span!).status).toBe('internal_error');
       expect(spanToJSON(span!).timestamp).toBeDefined();
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });

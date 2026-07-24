@@ -16,6 +16,7 @@ import {
   resolvedSyncPromise,
   setAsyncContextStrategy,
   spanToJSON,
+  spanToStreamedSpanJSON,
   startInactiveSpan,
   startSpan,
 } from '@sentry/core';
@@ -292,7 +293,7 @@ describe('bindTracingChannelToSpan', () => {
       ).toThrow(error);
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToJSON(span).status).toBe('sync-throw');
+      expect(spanToJSON(span).status).toBe('internal_error');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -361,7 +362,7 @@ describe('bindTracingChannelToSpan', () => {
       await expect(promise).rejects.toThrow(error);
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToJSON(span).status).toBe('async-reject');
+      expect(spanToJSON(span).status).toBe('internal_error');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -379,7 +380,7 @@ describe('bindTracingChannelToSpan', () => {
       ).toThrow(error);
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToJSON(span).status).toBe('promise-sync-throw');
+      expect(spanToJSON(span).status).toBe('internal_error');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -421,7 +422,7 @@ describe('bindTracingChannelToSpan', () => {
       });
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToJSON(span).status).toBe('callback-error');
+      expect(spanToJSON(span).status).toBe('internal_error');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -442,7 +443,7 @@ describe('bindTracingChannelToSpan', () => {
       ).toThrow(error);
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToJSON(span).status).toBe('callback-sync-throw');
+      expect(spanToJSON(span).status).toBe('internal_error');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -459,8 +460,11 @@ describe('bindTracingChannelToSpan', () => {
           ),
         ).toThrow('bad input');
 
+        // The transaction status field is normalized to a valid value; the raw message survives on
+        // the streamed span as `sentry.status.message`.
         const { status, data } = spanToJSON(span);
-        expect(status).toBe('bad input');
+        expect(status).toBe('internal_error');
+        expect(spanToStreamedSpanJSON(span).attributes?.['sentry.status.message']).toBe('bad input');
         expect(data['error.type']).toBe('TypeError');
       });
 
@@ -477,7 +481,8 @@ describe('bindTracingChannelToSpan', () => {
         ).toThrow('plain failure');
 
         const { status, data } = spanToJSON(span);
-        expect(status).toBe('plain failure');
+        expect(status).toBe('internal_error');
+        expect(spanToStreamedSpanJSON(span).attributes?.['sentry.status.message']).toBe('plain failure');
         expect(data['error.type']).toBe('unknown');
       });
 
@@ -546,7 +551,7 @@ describe('bindTracingChannelToSpan', () => {
       ).rejects.toThrow(error);
 
       expect(captureExceptionSpy).not.toHaveBeenCalled();
-      expect(spanToJSON(span).status).toBe('db-down');
+      expect(spanToJSON(span).status).toBe('internal_error');
       expect(spanToJSON(span).timestamp).toBeDefined();
     });
 
@@ -576,7 +581,7 @@ describe('bindTracingChannelToSpan', () => {
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false },
       });
-      expect(spanToJSON(span).status).toBe('boom');
+      expect(spanToJSON(span).status).toBe('internal_error');
     });
 
     it('captures the exception on the synchronous error path when `captureError` is true', () => {
@@ -605,7 +610,7 @@ describe('bindTracingChannelToSpan', () => {
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false },
       });
-      expect(spanToJSON(span).status).toBe('sync-boom');
+      expect(spanToJSON(span).status).toBe('internal_error');
     });
 
     it('captures the exception on the callback error path when `captureError` is true', async () => {
@@ -637,7 +642,7 @@ describe('bindTracingChannelToSpan', () => {
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false },
       });
-      expect(spanToJSON(span).status).toBe('callback-boom');
+      expect(spanToJSON(span).status).toBe('internal_error');
     });
 
     it('captures the exception with the hint returned by a `captureError` function, passing it the thrown error', async () => {
@@ -669,7 +674,7 @@ describe('bindTracingChannelToSpan', () => {
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: { type: 'auto.http.custom', handled: false },
       });
-      expect(spanToJSON(span).status).toBe('boom');
+      expect(spanToJSON(span).status).toBe('internal_error');
     });
 
     it('uses the default mechanism when `captureError` is a function on the synchronous error path', () => {
@@ -826,7 +831,7 @@ describe('bindTracingChannelToSpan', () => {
     it('`end(error)` sets error status and the `error.type` attribute, then ends', () => {
       const { span, endSpy, end } = setupDeferred('test:defer:error');
       end(new TypeError('stream blew up'));
-      expect(spanToJSON(span).status).toBe('stream blew up');
+      expect(spanToJSON(span).status).toBe('internal_error');
       expect(spanToJSON(span).data['error.type']).toBe('TypeError');
       expect(endSpy).toHaveBeenCalledTimes(1);
     });
