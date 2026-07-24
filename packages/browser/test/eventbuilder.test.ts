@@ -182,6 +182,17 @@ describe('eventFromUnknownInput', () => {
     );
   });
 
+  it('does not throw and stringifies the value for a Symbol input', async () => {
+    const event = await eventFromUnknownInput(defaultStackParser, Symbol('foo'));
+
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        type: 'Error',
+        value: 'Symbol(foo)',
+      }),
+    );
+  });
+
   it('add a synthetic stack trace to DOMException with empty stack traces if attachStacktrace is true', async () => {
     const exception = new DOMException('The string did not match the expected pattern.', 'SyntaxError');
     exception.stack = '';
