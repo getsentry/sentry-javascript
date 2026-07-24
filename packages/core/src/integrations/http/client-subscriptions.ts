@@ -18,10 +18,10 @@ import { addOutgoingRequestBreadcrumb } from './add-outgoing-request-breadcrumb'
 import {
   bindScopeToEmitter,
   getSpanStatusFromHttpCode,
+  isTracingSuppressed,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_UNSET,
   startInactiveSpan,
-  SUPPRESS_TRACING_KEY,
   withActiveSpan,
 } from '../../tracing';
 import { debug } from '../../utils/debug-logger';
@@ -33,7 +33,7 @@ import type { HttpInstrumentationOptions, HttpClientRequest, HttpIncomingMessage
 import { DEBUG_BUILD } from '../../debug-build';
 import { LOG_PREFIX, HTTP_ON_CLIENT_REQUEST } from './constants';
 import type { ClientSubscriptionName } from './constants';
-import { getClient, getCurrentScope } from '../../currentScopes';
+import { getClient } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import { doubleWrapWarning } from './double-wrap-warning';
 
@@ -48,7 +48,7 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
   const onHttpClientRequestCreated: ChannelListener = (data: unknown): void => {
     // Skip all instrumentation if tracing is suppressed
     // (e.g., Sentry's own transport uses this to avoid self-instrumentation)
-    if (getCurrentScope().getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY] === true) {
+    if (isTracingSuppressed()) {
       return;
     }
 
