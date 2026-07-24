@@ -29,6 +29,7 @@ describe('NodeClient', () => {
     const client = new NodeClient(options);
 
     expect(client.getOptions()).toEqual({
+      attachStacktrace: true,
       dsn: expect.any(String),
       integrations: [],
       transport: options.transport,
