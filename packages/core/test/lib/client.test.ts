@@ -103,7 +103,7 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, test: true });
       const client = new TestClient(options);
 
-      expect(client.getOptions()).toEqual(options);
+      expect(client.getOptions()).toEqual({ attachStacktrace: true, ...options });
     });
   });
 

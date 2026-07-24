@@ -234,7 +234,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @param options Options for the client.
    */
   protected constructor(options: O) {
-    this._options = options;
+    this._options = { attachStacktrace: true, ...options };
     this._integrations = {};
     this._numProcessing = 0;
     this._outcomes = {};

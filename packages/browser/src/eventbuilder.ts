@@ -289,7 +289,7 @@ export function eventFromUnknownInput(
       event = eventFromError(stackParser, exception as Error);
 
       const firstException = event.exception?.values?.[0];
-      if (attachStacktrace !== false && syntheticException && firstException && !firstException.stacktrace) {
+      if (attachStacktrace && syntheticException && firstException && !firstException.stacktrace) {
         const frames = parseStackFrames(stackParser, syntheticException);
         if (frames.length) {
           firstException.stacktrace = { frames };
@@ -351,7 +351,7 @@ function eventFromString(
 ): Event {
   const event: Event = {};
 
-  if (attachStacktrace !== false && syntheticException) {
+  if (attachStacktrace && syntheticException) {
     const frames = parseStackFrames(stackParser, syntheticException);
     if (frames.length) {
       event.exception = {

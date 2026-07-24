@@ -19,6 +19,7 @@ import {
   captureEvent,
   captureException,
   captureMessage,
+  defaultStackParser,
   flush,
   getClient,
   getCurrentScope,
@@ -249,6 +250,23 @@ describe('SentryBrowser', () => {
             expect(event.level).toBe('info');
             expect(event.message).toBe('test');
             expect(event.exception).toBeUndefined();
+            resolve();
+            return event;
+          },
+          dsn,
+        });
+        setCurrentClient(new BrowserClient(options));
+        captureMessage('test');
+      }));
+
+    it('attaches a synthetic stacktrace to messages by default', () =>
+      new Promise<void>(resolve => {
+        const options = getDefaultBrowserClientOptions({
+          stackParser: defaultStackParser,
+          beforeSend: event => {
+            expect(event.message).toBe('test');
+            expect(event.exception?.values?.[0]?.stacktrace?.frames?.length).toBeGreaterThan(0);
+            expect(event.exception?.values?.[0]?.mechanism?.synthetic).toBe(true);
             resolve();
             return event;
           },
