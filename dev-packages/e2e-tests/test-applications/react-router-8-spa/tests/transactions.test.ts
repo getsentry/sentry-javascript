@@ -85,12 +85,41 @@ test('sends an INP span', async ({ page }) => {
 
   const inpSpan = await inpSpanPromise;
 
-  expect(inpSpan.name).toBe('body > div#root > input#exception-button[type="button"]');
-  expect(inpSpan.trace_id).toMatch(/[a-f0-9]{32}/);
-  expect(inpSpan.span_id).toMatch(/[a-f0-9]{16}/);
+  const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
+  expect(inpValue).toBeGreaterThan(0);
+
+  const pageloadSpanId = inpSpan.parent_span_id;
+
+  expect(inpSpan).toEqual(
+    expect.objectContaining({
+      name: 'body > div#root > input#exception-button[type="button"]',
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      start_timestamp: expect.any(Number),
+      end_timestamp: expect.any(Number),
+      is_segment: false,
+      status: 'ok',
+    }),
+  );
   expect(inpSpan.end_timestamp).toBeGreaterThan(inpSpan.start_timestamp);
-  expect(inpSpan.attributes['sentry.op']?.value).toBe('ui.interaction.click');
-  expect(inpSpan.attributes['sentry.origin']?.value).toBe('auto.http.browser.inp');
-  expect(inpSpan.attributes['sentry.exclusive_time']?.value).toEqual(expect.any(Number));
-  expect(inpSpan.attributes['browser.web_vital.inp.value']?.value).toBeGreaterThan(0);
+
+  // `client.address` and replay/user attributes are added by the server or vary by run, so we assert
+  // the stable subset rather than the exhaustive attribute set.
+  expect(inpSpan.attributes).toEqual(
+    expect.objectContaining({
+      'sentry.op': { value: 'ui.interaction.click', type: 'string' },
+      'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
+      'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
+      'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
+      'sentry.transaction': { value: '/', type: 'string' },
+      'sentry.segment.name': { value: '/', type: 'string' },
+      'sentry.segment.id': { value: pageloadSpanId, type: 'string' },
+      'sentry.pageload.span_id': { value: pageloadSpanId, type: 'string' },
+      'sentry.trace_lifecycle': { value: 'stream', type: 'string' },
+      'sentry.release': { value: 'e2e-test', type: 'string' },
+      'sentry.environment': { value: 'qa', type: 'string' },
+      'user_agent.original': { value: expect.stringContaining('Chrome'), type: 'string' },
+    }),
+  );
 });
