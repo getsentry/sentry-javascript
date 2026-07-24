@@ -399,13 +399,10 @@ export class SentrySpan implements Span {
 
     client?.emit('afterSpanEnd', this);
 
-    // A segment span is basically the root span of a local span tree.
-    const rootSpan = getRootSpan(this);
-    const isSegmentSpan = this === rootSpan;
-
-    // Non-segment children aren't captured on their own. A registered strategy may re-emit a late child
+    // Child spans aren't captured on their own. A registered strategy may re-emit a late child
     // as its own orphan transaction; without one, it's dropped.
-    if (!isSegmentSpan) {
+    const rootSpan = getRootSpan(this);
+    if (rootSpan !== this) {
       const strategy = getSegmentSpanCaptureStrategy();
       if (strategy) {
         const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
