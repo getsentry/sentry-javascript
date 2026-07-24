@@ -1,6 +1,6 @@
 {
   "name": "@sentry/server-utils",
-  "version": "10.67.0",
+  "version": "10.68.0",
   "description": "Server Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/server-utils",
@@ -119,7 +119,7 @@
     "@apm-js-collab/code-transformer-bundler-plugins": "0.7.1",
     "@apm-js-collab/tracing-hooks": "^0.13.0",
     "@sentry/conventions": "^0.16.0",
-    "@sentry/core": "10.67.0",
+    "@sentry/core": "10.68.0",
     "meriyah": "^6.1.4"
   },
   "devDependencies": {
