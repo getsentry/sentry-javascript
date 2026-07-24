@@ -121,6 +121,7 @@ export {
   genericPoolChannelIntegration,
   knexChannelIntegration,
   koaChannelIntegration,
+  lruMemoizerChannelIntegration,
   mongodbChannelIntegration,
   mongooseChannelIntegration,
   mysqlChannelIntegration,
