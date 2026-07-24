@@ -117,6 +117,7 @@ export type { DenoRedisIntegrationOptions } from './integrations/redis';
 // adds to the defaults, so users who customize `defaultIntegrations` can re-add it.
 export {
   amqplibChannelIntegration,
+  awsChannelIntegration,
   dataloaderChannelIntegration,
   expressChannelIntegration,
   genericPoolChannelIntegration,

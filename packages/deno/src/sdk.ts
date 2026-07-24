@@ -13,6 +13,7 @@ import {
 } from '@sentry/core';
 import {
   amqplibChannelIntegration,
+  awsChannelIntegration,
   expressChannelIntegration,
   genericPoolChannelIntegration,
   graphqlDiagnosticsChannelIntegration,
@@ -86,6 +87,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     ...(MODULE_REGISTER_HOOKS_SUPPORTED
       ? [
           amqplibChannelIntegration(),
+          awsChannelIntegration(),
           expressChannelIntegration(),
           genericPoolChannelIntegration(),
           hapiChannelIntegration(),
