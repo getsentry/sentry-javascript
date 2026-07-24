@@ -376,13 +376,7 @@ export class SentrySpan implements Span {
   /** Emit `spanEnd` when the span is ended. */
   private _onSpanEnded(): void {
     const client = getClient();
-    if (client) {
-      client.emit('spanEnd', this);
-      // Standalone spans send themselves below and must not also be streamed / captured elsewhere.
-      if (!this._isStandaloneSpan) {
-        client.emit('afterSpanEnd', this);
-      }
-    }
+    client?.emit('spanEnd', this);
 
     // A standalone span is sent on its own as a v2 streamed span and never becomes/joins a
     // transaction, so we send it here and stop.
@@ -390,17 +384,20 @@ export class SentrySpan implements Span {
     // streams, standalone spans are no longer needed (every span streams on its own) and this branch,
     // the `_isStandaloneSpan` flag, and the `_convertSpanToTransaction` exclusion can all be removed.
     if (this._isStandaloneSpan) {
-      if (client) {
-        if (this._sampled) {
-          sendStandaloneSpan(this, client);
-        } else {
-          DEBUG_BUILD &&
-            debug.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
-          client.recordDroppedEvent('sample_rate', 'span');
-        }
+      if (!client) return;
+
+      if (this._sampled) {
+        sendStandaloneSpan(this, client);
+        return;
       }
+
+      DEBUG_BUILD && debug.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
+      client.recordDroppedEvent('sample_rate', 'span');
+
       return;
     }
+
+    client?.emit('afterSpanEnd', this);
 
     // A segment span is basically the root span of a local span tree.
     const rootSpan = getRootSpan(this);
