@@ -246,6 +246,7 @@ describe('SentryBrowser', () => {
     it('should capture an message', () =>
       new Promise<void>(resolve => {
         const options = getDefaultBrowserClientOptions({
+          attachStacktrace: false,
           beforeSend: event => {
             expect(event.level).toBe('info');
             expect(event.message).toBe('test');
