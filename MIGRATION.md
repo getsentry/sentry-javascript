@@ -208,11 +208,16 @@ Sentry.init({
 });
 ```
 
-### `attachStacktrace` defaults to `true` for `captureMessage`
+### `attachStacktrace` defaults to `true`
 
 Affected SDKs: All SDKs.
 
-`captureMessage` now attaches a stack trace by default. Pass `attachStacktrace: false` in `Sentry.init` if you do not want stack traces attached to messages. Note that grouping in Sentry differs for events with and without stack traces, so you may see new issue groups after upgrading.
+`attachStacktrace` now defaults to `true`. Events captured with `Sentry.captureMessage`, and non-`Error` values passed to `Sentry.captureException`, now attach a synthetic stack trace pointing to the call site. Pass `attachStacktrace: false` in `Sentry.init` to restore the previous behavior.
+
+Two consequences to be aware of when upgrading:
+
+- **Issue grouping:** Grouping in Sentry differs for events with and without stack traces, so you may see new issue groups after upgrading.
+- **Release health:** Events with a stack trace are counted as errors, so a `captureMessage` call (including messages emitted by `captureConsoleIntegration`) now marks the current session as _errored_. This affects errored-session counts but does **not** mark sessions as crashed, so crash-free session rate is unaffected. If you use `captureMessage` for purely informational output, consider using Sentry Logs instead, which is better suited and does not affect release health.
 
 ### `tracePropagationTargets` matching is now case-insensitive
 
