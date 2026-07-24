@@ -175,7 +175,7 @@ function _init(
 
   const clientOptions = getClientOptions({ ...options, defaultIntegrations }, getDefaultIntegrationsImpl);
 
-  setOpenTelemetryContextAsyncContextStrategy(clientOptions);
+  setOpenTelemetryContextAsyncContextStrategy();
 
   const scope = getCurrentScope();
   scope.update(clientOptions.initialScope);
