@@ -116,19 +116,7 @@ function subscribeToChannel(
   diagnosticChannel: string,
   onMessage: (message: unknown, name: string | symbol) => void,
 ): void {
-  // `diagnostics_channel` had a ref counting bug until v18.19.0.
-  // https://github.com/nodejs/node/pull/47520
-  const [major = 0, minor = 0] = process.version
-    .replace('v', '')
-    .split('.')
-    .map(n => Number(n));
-  const useNewSubscribe = major > 18 || (major === 18 && minor >= 19);
-
-  if (useNewSubscribe) {
-    _channelSubs.push(diagch.subscribe?.(diagnosticChannel, onMessage));
-  } else {
-    _channelSubs.push(diagch.channel(diagnosticChannel).subscribe(onMessage));
-  }
+  _channelSubs.push(diagch.subscribe?.(diagnosticChannel, onMessage));
 }
 
 function parseRequestHeaders(request: UndiciRequest): Map<string, string | string[]> {

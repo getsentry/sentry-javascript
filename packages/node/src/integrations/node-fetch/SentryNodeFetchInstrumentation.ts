@@ -2,7 +2,6 @@ import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
 import { LRUMap, SDK_VERSION, isTracingSuppressed } from '@sentry/core';
 import * as diagch from 'diagnostics_channel';
-import { NODE_MAJOR, NODE_MINOR } from '../../nodeVersion';
 import {
   addFetchRequestBreadcrumb,
   addTracePropagationHeadersToFetchRequest,
@@ -160,23 +159,11 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
     diagnosticChannel: string,
     onMessage: (message: unknown, name: string | symbol) => void,
   ): void {
-    // `diagnostics_channel` had a ref counting bug until v18.19.0.
-    // https://github.com/nodejs/node/pull/47520
-    const useNewSubscribe = NODE_MAJOR > 18 || (NODE_MAJOR === 18 && NODE_MINOR >= 19);
-
-    let unsubscribe: () => void;
-    if (useNewSubscribe) {
-      diagch.subscribe?.(diagnosticChannel, onMessage);
-      unsubscribe = () => diagch.unsubscribe?.(diagnosticChannel, onMessage);
-    } else {
-      const channel = diagch.channel(diagnosticChannel);
-      channel.subscribe(onMessage);
-      unsubscribe = () => channel.unsubscribe(onMessage);
-    }
+    diagch.subscribe?.(diagnosticChannel, onMessage);
 
     this._channelSubs.push({
       name: diagnosticChannel,
-      unsubscribe,
+      unsubscribe: () => diagch.unsubscribe?.(diagnosticChannel, onMessage),
     });
   }
 

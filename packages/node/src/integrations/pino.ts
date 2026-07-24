@@ -232,7 +232,7 @@ interface PinoIntegrationFunction {
  *
  * If you disable automatic instrumentation with `autoInstrument: false`, you can mark specific loggers to be tracked with `pinoIntegration.trackLogger(logger)`.
  *
- * Requires Pino >=v8.0.0 and Node >=20.6.0 or >=18.19.0
+ * Requires Pino >=v8.0.0
  */
 export const pinoIntegration = Object.assign(_pinoIntegration, {
   trackLogger(logger: unknown): void {

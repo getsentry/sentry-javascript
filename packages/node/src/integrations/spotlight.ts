@@ -36,8 +36,6 @@ const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {
  * Use this integration to send errors and transactions to Spotlight.
  *
  * Learn more about spotlight at https://spotlightjs.com
- *
- * Important: This integration only works with Node 18 or newer.
  */
 export const spotlightIntegration = defineIntegration(_spotlightIntegration);
 
