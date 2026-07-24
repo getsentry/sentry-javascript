@@ -120,6 +120,7 @@ export {
   dataloaderChannelIntegration,
   expressChannelIntegration,
   genericPoolChannelIntegration,
+  hapiChannelIntegration,
   knexChannelIntegration,
   koaChannelIntegration,
   lruMemoizerChannelIntegration,
