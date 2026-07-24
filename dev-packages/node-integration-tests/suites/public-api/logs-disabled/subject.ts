@@ -14,11 +14,14 @@ scope.setClient(client);
 client.init();
 
 async function run(): Promise<void> {
-  // Should be dropped because logs are disabled.
   Sentry.logger.info('this log should not be captured', {}, { scope });
 
-  // Should be delivered — used as a sentinel so the test has a deterministic
-  // envelope to match instead of asserting on the absence of one.
+  // Flush the log buffer before the sentinel is captured. If the disable path is
+  // broken, the leaked log envelope is sent here and arrives before the error,
+  // failing the ordered `event` expectation. If logs are correctly disabled,
+  // the buffer is empty and only the sentinel error is delivered.
+  await client.flush();
+
   scope.captureException(new Error('sentinel_error'));
 
   await client.flush();
