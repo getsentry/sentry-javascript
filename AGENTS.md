@@ -63,12 +63,12 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Feature branches: `feat/descriptive-name`
 - Never update dependencies, `package.json`, or build scripts unless explicitly asked
 
-## Before Every Commit
+## Before Every Pull Request
 
 1. `yarn format`
-2. `yarn lint`
-3. `yarn test`
-4. `yarn build:dev`
+2. `yarn build:dev`
+3. `yarn lint`
+4. `yarn test`
 5. NEVER push on `develop`
 
 ## Pull Requests
