@@ -25,6 +25,7 @@ _sentryModuleMetadataGlobal._sentryModuleMetadata[new Error().stack] = Object.as
 );
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
     thirdPartyErrorFilterIntegration({ behaviour: 'apply-tag-if-contains-third-party-frames', filterKeys: ['my-app'] }),
