@@ -7,7 +7,7 @@ export const SPAN_STATUS_OK = 1;
 export const SPAN_STATUS_ERROR = 2;
 
 export function isStatusErrorMessageValid(message: string): boolean {
-  return SPAN_STATUS_TYPES.includes(message as SpanStatusType);
+  return message !== 'ok' && SPAN_STATUS_TYPES.includes(message as SpanStatusType);
 }
 
 /**
