@@ -120,6 +120,7 @@ export {
   awsChannelIntegration,
   dataloaderChannelIntegration,
   expressChannelIntegration,
+  firebaseChannelIntegration,
   genericPoolChannelIntegration,
   graphqlDiagnosticsChannelIntegration,
   hapiChannelIntegration,
