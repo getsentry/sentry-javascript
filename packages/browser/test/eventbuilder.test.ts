@@ -326,6 +326,20 @@ describe('eventFromMessage ', () => {
     });
   });
 
+  it('adds a synthetic stack trace by default when attachStacktrace is not set', async () => {
+    const syntheticException = new Error('Test message');
+    const event = await eventFromMessage(defaultStackParser, 'Test message', 'info', { syntheticException });
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        mechanism: { handled: true, synthetic: true, type: 'generic' },
+        stacktrace: {
+          frames: expect.arrayContaining([expect.any(Object), expect.any(Object)]),
+        },
+        value: 'Test message',
+      }),
+    );
+  });
+
   it('creates an event with a synthetic stack trace if attachStacktrace is true', async () => {
     const syntheticException = new Error('Test message');
     const event = await eventFromMessage(defaultStackParser, 'Test message', 'info', { syntheticException }, true);

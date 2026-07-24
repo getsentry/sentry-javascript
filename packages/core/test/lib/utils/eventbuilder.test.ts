@@ -167,6 +167,32 @@ describe('eventFromMessage', () => {
     });
   });
 
+  it('attaches a synthetic exception by default when `attachStackTrace` is not set', () => {
+    const syntheticException = new Error('Test Message');
+    const event = eventFromMessage(stackParser, 'Test Message', 'info', { syntheticException, event_id: '123abc' });
+
+    expect(event).toEqual({
+      event_id: '123abc',
+      exception: {
+        values: [
+          {
+            mechanism: {
+              handled: true,
+              synthetic: true,
+              type: 'generic',
+            },
+            stacktrace: {
+              frames: expect.any(Array),
+            },
+            value: 'Test Message',
+          },
+        ],
+      },
+      level: 'info',
+      message: 'Test Message',
+    });
+  });
+
   it('attaches a synthetic exception if passed and `attachStackTrace` is true', () => {
     const syntheticException = new Error('Test Message');
     const event = eventFromMessage(

@@ -182,12 +182,13 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   enabled?: boolean;
 
   /**
-   * When enabled, stack traces are automatically attached to all events captured with `Sentry.captureMessage`.
+   * Stack traces are automatically attached to all events captured with `Sentry.captureMessage`.
+   * Set this to `false` to disable attaching stack traces to these events.
    *
    * Grouping in Sentry is different for events with stack traces and without. As a result, you will get
    * new groups as you enable or disable this flag for certain events.
    *
-   * @default false
+   * @default true
    */
   attachStacktrace?: boolean;
 

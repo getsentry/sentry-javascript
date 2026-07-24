@@ -199,7 +199,7 @@ export function eventFromMessage(
     level,
   };
 
-  if (attachStacktrace && hint?.syntheticException) {
+  if (attachStacktrace !== false && hint?.syntheticException) {
     const frames = parseStackFrames(stackParser, hint.syntheticException);
     if (frames.length) {
       event.exception = {
