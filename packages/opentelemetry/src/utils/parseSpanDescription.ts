@@ -11,6 +11,7 @@ import {
   HTTP_URL,
   MESSAGING_SYSTEM,
   RPC_SERVICE,
+  SENTRY_GRAPHQL_OPERATION,
   SENTRY_KIND,
   URL_FULL,
 } from '@sentry/conventions/attributes';
@@ -25,7 +26,6 @@ import {
   spanToJSON,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
 import type { AbstractSpan } from '../types';
 import { spanHasAttributes, spanHasName } from './spanTypes';
 
@@ -175,7 +175,7 @@ export function descriptionForHttpMethod(
     return { ...getUserUpdatedNameAndSource(name, attributes), op: opParts.join('.') };
   }
 
-  const graphqlOperationsAttribute = attributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION];
+  const graphqlOperationsAttribute = attributes[SENTRY_GRAPHQL_OPERATION];
 
   // Ex. GET /api/users
   const baseDescription = `${httpMethod} ${urlPath}`;
