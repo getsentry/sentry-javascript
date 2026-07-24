@@ -5,6 +5,7 @@ window.Sentry = Sentry;
 window._errorCount = 0;
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   sampleRate: '0',
   beforeSend() {

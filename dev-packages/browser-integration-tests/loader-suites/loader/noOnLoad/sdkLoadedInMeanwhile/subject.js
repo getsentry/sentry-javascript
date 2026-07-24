@@ -6,6 +6,7 @@ setTimeout(() => {
 
   cdnScript.addEventListener('load', () => {
     Sentry.init({
+      traceLifecycle: 'static',
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
       replaysSessionSampleRate: 0.42,
     });

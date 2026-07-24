@@ -10,6 +10,7 @@ performance.measure('Next.js-before-hydration', {
 window.Sentry = Sentry;
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [Sentry.browserTracingIntegration()],
   tracesSampleRate: 1,
