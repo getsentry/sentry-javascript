@@ -30,6 +30,7 @@ class SqlDurableObjectBase extends DurableObject<Env> {
 export const TestDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
   }),
   SqlDurableObjectBase,
@@ -38,6 +39,7 @@ export const TestDurableObject = Sentry.instrumentDurableObjectWithSentry(
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
   }),
   {

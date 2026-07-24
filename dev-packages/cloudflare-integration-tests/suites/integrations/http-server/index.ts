@@ -8,6 +8,7 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     attachStacktrace: false,
+    traceLifecycle: 'static',
   }),
   {
     async fetch(request, _env, _ctx) {

@@ -10,6 +10,7 @@ const app = new Hono<{ Bindings: Env }>();
 app.use(
   sentry(app, {
     dsn: process.env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
   }),
 );
