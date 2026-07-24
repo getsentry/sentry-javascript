@@ -2,9 +2,6 @@ export { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from './semanticAttribute
 
 export { getRequestSpanData } from './utils/getRequestSpanData';
 
-export type { OpenTelemetryClient } from './types';
-export { wrapClientClass } from './custom/client';
-
 export { getScopesFromContext } from './utils/contextData';
 
 export {

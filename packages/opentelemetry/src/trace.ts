@@ -27,7 +27,7 @@ import {
   spanToTraceContext,
 } from '@sentry/core';
 import { continueTraceAsRemoteSpan } from './propagator';
-import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
+import type { OpenTelemetrySpanContext } from './types';
 import { getContextFromScope } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
@@ -189,7 +189,8 @@ export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) =>
 }
 
 function getTracer(): Tracer {
-  const client = getClient<Client & OpenTelemetryClient>();
+  // The node client has a `tracer` property, we use this if it exists, or else we use the global tracer
+  const client = getClient<Client & { tracer?: Tracer }>();
   return client?.tracer || trace.getTracer('@sentry/opentelemetry', SDK_VERSION);
 }
 
