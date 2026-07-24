@@ -265,7 +265,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     }
 
     // Backfill enableLogs option from _experiments.enableLogs
-    // TODO(v11): Remove or change default value
+    // todo(v11): Remove the experimental flag
     // eslint-disable-next-line typescript/no-deprecated
     this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs ?? true;
 
