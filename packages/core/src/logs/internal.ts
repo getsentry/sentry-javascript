@@ -10,7 +10,7 @@ import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
 import { getCombinedScopeData } from '../utils/scopeData';
 import { _getSpanForScope } from '../utils/spanOnScope';
-import { timestampInSeconds } from '../utils/time';
+import { dateTimestampInSeconds } from '../utils/time';
 import { getSequenceAttribute } from '../utils/timestampSequence';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
@@ -156,7 +156,13 @@ export function _INTERNAL_captureLog(
 
   const { level, message, attributes: logAttributes = {}, severityNumber } = log;
 
-  const timestamp = timestampInSeconds();
+  // Use the wall-clock (`Date.now()`) rather than `timestampInSeconds()`, which is derived from
+  // `performance.timeOrigin + performance.now()`. On some platforms (notably React Native/Hermes) that performance
+  // clock is anchored to process/device uptime instead of the UNIX epoch, which would stamp logs with a timestamp off
+  // by a large, constant offset. Using the wall clock keeps log timestamps consistent with error-event timestamps
+  // (which also use `dateTimestampInSeconds()`). Sub-second ordering is preserved via the `sentry.timestamp.sequence`
+  // attribute below. See: https://github.com/getsentry/sentry-react-native/issues/6510
+  const timestamp = dateTimestampInSeconds();
   const sequenceAttr = getSequenceAttribute(timestamp);
 
   const serializedLog: SerializedLog = {

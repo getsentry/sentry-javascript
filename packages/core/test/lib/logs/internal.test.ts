@@ -43,6 +43,30 @@ describe('_INTERNAL_captureLog', () => {
     );
   });
 
+  it('stamps logs with the wall clock (`dateTimestampInSeconds`), not the performance clock', () => {
+    // On platforms where the performance clock is not anchored to the UNIX epoch (e.g. React Native/Hermes),
+    // `timestampInSeconds()` would be off by a large constant. Logs must use the wall clock so their timestamps match
+    // error-event timestamps. See https://github.com/getsentry/sentry-react-native/issues/6510
+    const wallClockSeconds = 1_784_820_130.576;
+    const performanceClockSeconds = 1_784_453_353.186;
+    const dateSpy = vi.spyOn(timeModule, 'dateTimestampInSeconds').mockReturnValue(wallClockSeconds);
+    const perfSpy = vi.spyOn(timeModule, 'timestampInSeconds').mockReturnValue(performanceClockSeconds);
+
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+
+    _INTERNAL_captureLog({ level: 'info', message: 'clock check' }, scope);
+
+    expect(_INTERNAL_getLogBuffer(client)?.[0]?.timestamp).toBe(wallClockSeconds);
+    expect(dateSpy).toHaveBeenCalled();
+    expect(perfSpy).not.toHaveBeenCalled();
+
+    dateSpy.mockRestore();
+    perfSpy.mockRestore();
+  });
+
   it('does not capture logs when enableLogs is not enabled', () => {
     const logWarnSpy = vi.spyOn(loggerModule.debug, 'warn').mockImplementation(() => undefined);
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -1186,7 +1210,7 @@ describe('_INTERNAL_captureLog', () => {
 
   describe('sentry.timestamp.sequence', () => {
     it('increments the sequence number across consecutive logs', () => {
-      vi.spyOn(timeModule, 'timestampInSeconds').mockReturnValue(1000.001);
+      vi.spyOn(timeModule, 'dateTimestampInSeconds').mockReturnValue(1000.001);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
       const client = new TestClient(options);
@@ -1206,7 +1230,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('does not increment the sequence number for dropped logs', () => {
-      vi.spyOn(timeModule, 'timestampInSeconds').mockReturnValue(1000.001);
+      vi.spyOn(timeModule, 'dateTimestampInSeconds').mockReturnValue(1000.001);
 
       const beforeSendLog = vi.fn().mockImplementation(log => {
         if (log.message === 'drop me') {
@@ -1233,7 +1257,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('produces monotonically increasing sequence numbers within the same millisecond', () => {
-      vi.spyOn(timeModule, 'timestampInSeconds').mockReturnValue(1000.001);
+      vi.spyOn(timeModule, 'dateTimestampInSeconds').mockReturnValue(1000.001);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
       const client = new TestClient(options);
