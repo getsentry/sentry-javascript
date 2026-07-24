@@ -24,18 +24,13 @@ describe('withSentryConfig', () => {
   it("works when user's overall config is an object", () => {
     const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-    const { webpack, experimental, ...restOfFinalConfig } = finalConfig;
+    const { webpack, serverExternalPackages, ...restOfFinalConfig } = finalConfig;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { webpack: _userWebpack, experimental: _userExperimental, ...restOfUserConfig } = userNextConfig;
+    const { webpack: _userWebpack, ...restOfUserConfig } = userNextConfig;
 
     expect(restOfFinalConfig).toEqual(restOfUserConfig);
     expect(webpack).toBeInstanceOf(Function);
-    expect(experimental).toEqual(
-      expect.objectContaining({
-        instrumentationHook: true,
-        serverComponentsExternalPackages: expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES),
-      }),
-    );
+    expect(serverExternalPackages).toEqual(expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES));
   });
 
   it("works when user's overall config is a function", () => {
@@ -43,23 +38,13 @@ describe('withSentryConfig', () => {
 
     const finalConfig = materializeFinalNextConfig(exportedNextConfigFunction);
 
-    const { webpack, experimental, ...restOfFinalConfig } = finalConfig;
-    const {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      webpack: _userWebpack,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      experimental: _userExperimental,
-      ...restOfUserConfig
-    } = exportedNextConfigFunction();
+    const { webpack, serverExternalPackages, ...restOfFinalConfig } = finalConfig;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { webpack: _userWebpack, ...restOfUserConfig } = exportedNextConfigFunction();
 
     expect(restOfFinalConfig).toEqual(restOfUserConfig);
     expect(webpack).toBeInstanceOf(Function);
-    expect(experimental).toEqual(
-      expect.objectContaining({
-        instrumentationHook: true,
-        serverComponentsExternalPackages: expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES),
-      }),
-    );
+    expect(serverExternalPackages).toEqual(expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES));
   });
 
   it('correctly passes `phase` and `defaultConfig` through to functional `userNextConfig`', () => {
