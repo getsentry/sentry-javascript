@@ -15,6 +15,7 @@ import {
   amqplibChannelIntegration,
   expressChannelIntegration,
   genericPoolChannelIntegration,
+  graphqlDiagnosticsChannelIntegration,
   hapiChannelIntegration,
   kafkajsChannelIntegration,
   koaChannelIntegration,
@@ -70,6 +71,11 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
       : []),
     // node:diagnostics_channel.tracingChannel exists on Deno 1.44.3+.
     ...(TRACING_CHANNEL_SUPPORTED ? [denoRedisIntegration()] : []),
+    // graphql is gated on tracingChannel rather than the module hook: the
+    // composed integration also subscribes to graphql v17's native diagnostics
+    // channels, which need only tracingChannel. The orchestrion implementation
+    // (graphql v14–16) stays inert until the runtime hook injects those channels.
+    ...(TRACING_CHANNEL_SUPPORTED ? [graphqlDiagnosticsChannelIntegration()] : []),
     // orchestrion-based instrumentations. We add a deliberate list here rather
     // than every channel integration: each one needs a Deno test proving it
     // records spans.
