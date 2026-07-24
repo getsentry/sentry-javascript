@@ -126,6 +126,7 @@ export {
   mysql2ChannelIntegration,
   postgresChannelIntegration,
   postgresJsChannelIntegration,
+  tediousChannelIntegration,
 } from '@sentry/server-utils/orchestrion';
 // Deprecated aliases kept for back-compat. Each forwards to the shared
 // integration above, so its name is the shared name (e.g. `Mysql`), not the old
