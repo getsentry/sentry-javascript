@@ -20,9 +20,10 @@ test.describe('client - instrumentation API pageload', () => {
           op: 'pageload',
           data: {
             'url.template': '/performance',
-            // react-router-serve 301-redirects the bare index route to a trailing slash
-            'url.path': '/performance/',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/$/),
+            // react-router-serve 301-redirects the bare index route to a trailing slash in prod, while
+            // the dev server serves it without - accept both.
+            'url.path': expect.stringMatching(/^\/performance\/?$/),
+            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/?$/),
           },
         },
       },

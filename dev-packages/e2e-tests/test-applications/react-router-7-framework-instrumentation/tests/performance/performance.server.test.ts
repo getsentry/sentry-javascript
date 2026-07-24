@@ -152,7 +152,14 @@ test.describe('server - instrumentation API performance', () => {
     });
   });
 
+  // Prod-only: the dev server (Vite) serves source modules (`/@vite/client`, `/app/*`) as separate
+  // requests, each producing its own http.server transaction, so "exactly one" only holds in prod.
   test('sends exactly one http.server transaction per request (no double-instrumentation)', async ({ page }) => {
+    test.skip(
+      process.env.TEST_ENV === 'development',
+      'Dev server emits extra http.server transactions for module requests',
+    );
+
     const httpServerTransactions: Array<string | undefined> = [];
     void waitForTransaction(APP_NAME, async transactionEvent => {
       if (transactionEvent.contexts?.trace?.op === 'http.server') {
