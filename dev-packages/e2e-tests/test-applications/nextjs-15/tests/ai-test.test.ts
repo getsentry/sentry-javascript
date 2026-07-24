@@ -1,11 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpans, waitForTransaction } from '@sentry-internal/test-utils';
 
-// FIXME: This app uses `ai@^3`, which the channel-based Vercel AI integration doesn't instrument
-// (it supports v4-v6 via the orchestrion transform and v7 via the native `ai:telemetry` channel).
-// With channel-based instrumentation now the default, no gen_ai spans are produced. Re-enable once
-// the app is upgraded to `ai@v7` (or v3 support is restored).
-test.fixme('should create AI spans with correct attributes', async ({ page }) => {
+test('should create AI spans with correct attributes', async ({ page }) => {
   const aiTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
     return transactionEvent.transaction === 'GET /ai-test';
   });
