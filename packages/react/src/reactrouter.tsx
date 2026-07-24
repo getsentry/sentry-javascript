@@ -236,7 +236,10 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
 
       if (activeRootSpan) {
         activeRootSpan.updateName(route);
-        activeRootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: route });
+        activeRootSpan.setAttributes({
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: route,
+        });
       }
     }
 

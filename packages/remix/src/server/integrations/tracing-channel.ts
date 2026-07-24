@@ -7,6 +7,8 @@ import {
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanToJSON,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -115,7 +117,10 @@ function enrichActiveSpanWithRoute(result: unknown): void {
   if (route?.path) {
     // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_ROUTE, route.path);
-    span.updateName(`remix.request ${route.path}`);
+    // oxlint-disable-next-line typescript/no-deprecated
+    const method = spanToJSON(span).data[HTTP_METHOD];
+    span.updateName(typeof method === 'string' ? `${method} ${route.path}` : route.path);
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   }
   if (route?.id) {
     span.setAttribute(MATCH_ROUTE_ID, route.id);
@@ -125,17 +130,24 @@ function enrichActiveSpanWithRoute(result: unknown): void {
 function subscribeRequestHandler(): void {
   bindTracingChannelToSpan<ChannelContext>(
     diagnosticsChannel.tracingChannel(remixChannels.REMIX_REQUEST_HANDLER),
-    data =>
-      startInactiveSpan({
-        name: 'remix.request',
+    data => {
+      const requestAttributes = getRequestAttributes(data.arguments[0]);
+      // oxlint-disable-next-line typescript/no-deprecated
+      const method = requestAttributes[HTTP_METHOD];
+      const path = requestAttributes[URL_PATH];
+      const hasUrlName = typeof method === 'string' && typeof path === 'string';
+      return startInactiveSpan({
+        name: hasUrlName ? `${method} ${path}` : 'remix.request',
         attributes: {
           [SENTRY_KIND]: 'server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          ...(hasUrlName && { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' }),
           [CODE_FUNCTION]: 'requestHandler',
-          ...getRequestAttributes(data.arguments[0]),
+          ...requestAttributes,
         },
-      }),
+      });
+    },
     {
       beforeSpanEnd: (span, data) => setResponseStatus(span, data.result),
     },

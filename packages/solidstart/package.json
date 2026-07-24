@@ -69,7 +69,9 @@
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/solid": "10.67.0",
-    "@sentry/bundler-plugins": "10.67.0"
+    "@sentry/bundler-plugins": "10.67.0",
+    "@sentry/server-utils": "10.67.0",
+    "@sentry/conventions": "0.16.0"
   },
   "devDependencies": {
     "@solidjs/router": "^0.15.0",

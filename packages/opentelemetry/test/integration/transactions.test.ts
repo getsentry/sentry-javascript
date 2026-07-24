@@ -270,9 +270,9 @@ describe('Integration | Transactions', () => {
             data: {
               'sentry.op': 'test op b',
               'sentry.origin': 'manual',
-              'sentry.source': 'custom',
               'test.outer': 'test value b',
               'sentry.sample_rate': 1,
+              'sentry.source': 'custom',
             },
             op: 'test op b',
             span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -288,7 +288,6 @@ describe('Integration | Transactions', () => {
         },
         timestamp: expect.any(Number),
         transaction: 'test name b',
-        transaction_info: { source: 'custom' },
         type: 'transaction',
       }),
       {

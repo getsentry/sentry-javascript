@@ -47,6 +47,7 @@ import {
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
   isTracingSuppressed,
@@ -178,6 +179,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               // Sentry specific attributes
               [SENTRY_KIND]: 'server',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
               [URL_FULL]: fullUrl,
@@ -228,13 +230,17 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
                 const newAttributes = getIncomingRequestAttributesOnResponse(request, response, rpcMetadata);
                 span.setAttributes(newAttributes);
                 span.setStatus(status);
-                span.end();
 
-                // Update the transaction name if the route has changed
-                const route = newAttributes['http.route'];
+                // Once the route is resolved, upgrade the name/source from the raw URL to the parameterized route.
+                const route = newAttributes[HTTP_ROUTE];
                 if (route) {
-                  getIsolationScope().setTransactionName(`${request.method?.toUpperCase() || 'GET'} ${route}`);
+                  const name = `${request.method?.toUpperCase() || 'GET'} ${route}`;
+                  span.updateName(name);
+                  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+                  getIsolationScope().setTransactionName(name);
                 }
+
+                span.end();
               }
 
               response.on('close', () => {
@@ -440,6 +446,7 @@ function getIncomingRequestAttributesOnResponse(
   if (rpcMetadata?.type === RPCType.HTTP && rpcMetadata.route !== undefined) {
     const routeName = rpcMetadata.route;
     newAttributes[HTTP_ROUTE] = routeName;
+    newAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
   }
 
   return newAttributes;

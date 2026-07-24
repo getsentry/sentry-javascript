@@ -18,14 +18,6 @@ app.get('/test/:id/span-updateName', (_req, res) => {
   res.send({ response: 'response 1' });
 });
 
-app.get('/test/:id/span-updateName-source', (_req, res) => {
-  const span = Sentry.getActiveSpan();
-  const rootSpan = Sentry.getRootSpan(span);
-  rootSpan.updateName('new-name');
-  rootSpan.setAttribute(Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
-  res.send({ response: 'response 2' });
-});
-
 app.get('/test/:id/updateSpanName', (_req, res) => {
   const span = Sentry.getActiveSpan();
   const rootSpan = Sentry.getRootSpan(span);

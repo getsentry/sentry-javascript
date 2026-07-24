@@ -6,16 +6,14 @@ import {
   getActiveSpan,
   getDefaultIsolationScope,
   getIsolationScope,
-  getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
   startSpan,
 } from '@sentry/core';
 // oxlint-disable-next-line typescript/no-deprecated
 import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_NAME, KOA_TYPE } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
+import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 
 // Same name as the OTel integration. When enabled, the OTel 'Koa' integration is omitted from the default set.
 const INTEGRATION_NAME = 'Koa' as const;
@@ -229,28 +227,6 @@ function getMiddlewareMetadata(
     },
     name: `middleware - ${layer.name}`,
   };
-}
-
-/**
- * Set the `http.route` attribute on the root HTTP server span for the current trace.
- *
- * No-op when there is no active span, no root span, or the root span is not an
- * `http.server` span — so this can be called unconditionally without risking
- * attribute pollution on non-HTTP root spans.
- */
-function setHttpServerSpanRouteAttribute(route: string): void {
-  const activeSpan = getActiveSpan();
-  if (!activeSpan) {
-    return;
-  }
-  const rootSpan = getRootSpan(activeSpan);
-  if (!rootSpan) {
-    return;
-  }
-  if (spanToJSON(rootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'http.server') {
-    return;
-  }
-  rootSpan.setAttribute(HTTP_ROUTE, route);
 }
 
 /**

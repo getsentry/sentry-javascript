@@ -142,7 +142,7 @@ function subscribeQuery(channelName: string, operation: string): void {
     };
 
     const span = startInactiveSpan({
-      name: getSpanName(operation, databaseName, sql, request.table),
+      name: sql || getSpanName(operation, databaseName, sql, request.table),
       op: 'db',
       attributes,
     });

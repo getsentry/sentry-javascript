@@ -445,6 +445,7 @@ describe('createSentryClientInstrumentation', () => {
         );
         expect(mockNavigationSpan.updateName).toHaveBeenCalledWith(destination);
         expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+          'sentry.source': 'url',
           'url.path': destination,
           'url.full': `https://example.com${destination}`,
         });
@@ -486,6 +487,7 @@ describe('createSentryClientInstrumentation', () => {
       await hooks.navigate(mockCallNavigate, { currentUrl: '/current-page', to: -1 });
 
       expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+        'sentry.source': 'url',
         'url.path': '/previous-page',
         'url.full': 'https://example.com/previous-page',
       });
@@ -751,6 +753,7 @@ describe('createSentryClientInstrumentation', () => {
       // Only ONE span created (not two - no duplicate from popstate)
       expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
       expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith({
+        'sentry.source': 'url',
         'url.path': '/previous-page',
         'url.full': 'https://example.com/previous-page',
       });
