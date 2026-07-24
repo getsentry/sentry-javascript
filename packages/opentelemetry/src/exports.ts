@@ -1,5 +1,3 @@
-export { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from './semanticAttributes';
-
 export { getRequestSpanData } from './utils/getRequestSpanData';
 
 export { getScopesFromContext } from './utils/contextData';
