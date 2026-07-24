@@ -57,6 +57,7 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
   const routeBackfill = attributes[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL];
   if (typeof routeBackfill === 'string' && span.getName() !== 'GET /_app') {
     span.setName(`${typeof method === 'string' ? method : 'GET'} ${routeBackfill}`);
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
     attributes[HTTP_ROUTE] = attributes[HTTP_ROUTE] ?? routeBackfill;
   }
 
