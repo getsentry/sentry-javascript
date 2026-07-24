@@ -63,7 +63,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Feature branches: `feat/descriptive-name`
 - Never update dependencies, `package.json`, or build scripts unless explicitly asked
 
-## Before Every Commit
+## Before Every Pull Request
 
 1. `yarn format`
 2. `yarn lint`
