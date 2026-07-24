@@ -1,7 +1,6 @@
 import {
   captureException,
   getCapturedScopesOnSpan,
-  getClient,
   getCurrentScope,
   getIsolationScope,
   setTag,
@@ -11,7 +10,6 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { startSpan } from '../../src/trace';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
-import type { TestClientInterface } from '../helpers/TestClient';
 
 describe('Integration | Scope', () => {
   afterEach(async () => {
@@ -26,13 +24,11 @@ describe('Integration | Scope', () => {
       const beforeSend = vi.fn(() => null);
       const beforeSendTransaction = vi.fn(() => null);
 
-      mockSdkInit({
+      const client = mockSdkInit({
         tracesSampleRate: tracingEnabled ? 1 : 0,
         beforeSend,
         beforeSendTransaction,
       });
-
-      const client = getClient() as TestClientInterface;
 
       const rootScope = getCurrentScope();
 
@@ -144,9 +140,7 @@ describe('Integration | Scope', () => {
       const beforeSend = vi.fn(() => null);
       const beforeSendTransaction = vi.fn(() => null);
 
-      mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
-
-      const client = getClient() as TestClientInterface;
+      const client = mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
       const rootScope = getCurrentScope();
 
       const error1 = new Error('test error 1');
@@ -262,9 +256,8 @@ describe('Integration | Scope', () => {
       const beforeSend = vi.fn(() => null);
       const beforeSendTransaction = vi.fn(() => null);
 
-      mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
+      const client = mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
 
-      const client = getClient() as TestClientInterface;
       const rootScope = getCurrentScope();
 
       const error1 = new Error('test error 1');

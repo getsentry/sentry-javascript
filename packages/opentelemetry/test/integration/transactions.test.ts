@@ -5,7 +5,6 @@ import type { Event, TransactionEvent } from '@sentry/core';
 import {
   addBreadcrumb,
   debug,
-  getClient,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setTag,
@@ -17,7 +16,6 @@ import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { makeTraceState } from '../../src/utils/makeTraceState';
 import { cleanupOtel, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
-import type { TestClientInterface } from '../helpers/TestClient';
 
 describe('Integration | Transactions', () => {
   afterEach(async () => {
@@ -33,13 +31,11 @@ describe('Integration | Transactions', () => {
       return null;
     });
 
-    mockSdkInit({
+    const client = mockSdkInit({
       tracesSampleRate: 1,
       beforeSendTransaction,
       release: '8.0.0',
     });
-
-    const client = getClient() as TestClientInterface;
 
     addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
     setTag('outer.tag', 'test value');
@@ -176,9 +172,7 @@ describe('Integration | Transactions', () => {
   it('correctly creates concurrent transaction & spans', async () => {
     const beforeSendTransaction = vi.fn(() => null);
 
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
-
-    const client = getClient() as TestClientInterface;
+    const client = mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
@@ -337,9 +331,7 @@ describe('Integration | Transactions', () => {
       traceState,
     };
 
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
-
-    const client = getClient() as TestClientInterface;
+    const client = mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
@@ -745,13 +737,11 @@ describe('Integration | Transactions', () => {
       traceState: new TraceState().set(SENTRY_TRACE_STATE_DSC, dscString),
     };
 
-    mockSdkInit({
+    const client = mockSdkInit({
       tracesSampleRate: 1,
       beforeSendTransaction,
       release: '7.0.0',
     });
-
-    const client = getClient() as TestClientInterface;
 
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
