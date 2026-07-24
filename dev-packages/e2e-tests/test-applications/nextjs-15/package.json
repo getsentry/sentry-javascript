@@ -19,7 +19,7 @@
     "@types/node": "^18.19.1",
     "@types/react": "18.0.26",
     "@types/react-dom": "18.0.9",
-    "ai": "^4.3.16",
+    "ai": "^3.0.0",
     "next": "15.5.18",
     "react": "latest",
     "react-dom": "latest",
