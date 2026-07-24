@@ -128,6 +128,7 @@ export { getDefaultIntegrations } from './sdk';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
+export { spotlightIntegration } from './integrations/spotlight';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
 
 // eslint-disable-next-line typescript/no-deprecated
