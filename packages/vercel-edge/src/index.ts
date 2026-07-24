@@ -99,6 +99,8 @@ export {
   featureFlagsIntegration,
   logger,
   metrics,
+  withStaticSpan,
+  // eslint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';

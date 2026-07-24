@@ -11,6 +11,7 @@ import {
   setCurrentClient,
   SyncPromise,
   withMonitor,
+  withStaticSpan,
 } from '../../src';
 import * as integrationModule from '../../src/integration';
 import * as logsInternalModule from '../../src/logs/internal';
@@ -1180,7 +1181,7 @@ describe('Client', () => {
     test('calls `beforeSendSpan` and uses original spans without any changes', () => {
       expect.assertions(3);
 
-      const beforeSendSpan = vi.fn(span => span);
+      const beforeSendSpan = withStaticSpan(vi.fn(span => span));
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
@@ -1399,14 +1400,16 @@ describe('Client', () => {
     });
 
     test('does not modify existing contexts for root span in `beforeSendSpan`', () => {
-      const beforeSendSpan = vi.fn((span: SpanJSON) => {
-        return {
-          ...span,
-          data: {
-            modified: 'true',
-          },
-        };
-      });
+      const beforeSendSpan = withStaticSpan(
+        vi.fn((span: SpanJSON) => {
+          return {
+            ...span,
+            data: {
+              modified: 'true',
+            },
+          };
+        }),
+      );
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
@@ -1514,10 +1517,12 @@ describe('Client', () => {
     test('calls `beforeSendSpan` and uses the modified spans', () => {
       expect.assertions(4);
 
-      const beforeSendSpan = vi.fn(span => {
-        span.data = { version: 'bravo' };
-        return span;
-      });
+      const beforeSendSpan = withStaticSpan(
+        vi.fn(span => {
+          span.data = { version: 'bravo' };
+          return span;
+        }),
+      );
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
@@ -1596,7 +1601,7 @@ describe('Client', () => {
     test('does not discard span and warn when returning null from `beforeSendSpan', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-      const beforeSendSpan = vi.fn(() => null as unknown as SpanJSON);
+      const beforeSendSpan = withStaticSpan(vi.fn(() => null as unknown as SpanJSON));
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 

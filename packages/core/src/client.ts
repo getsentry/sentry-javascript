@@ -11,7 +11,7 @@ import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
-import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
+import { isStaticBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 import { extractGenAiSpansFromEvent } from './tracing/spans/extractGenAiSpans';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types/breadcrumb';
@@ -1677,7 +1677,7 @@ function processBeforeSend(
     // oxlint-disable-next-line typescript/no-deprecated
     beforeSendTransaction,
   } = options;
-  const beforeSendSpan = !isStreamedBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
+  const beforeSendSpan = isStaticBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
 
   let processedEvent = event;
 

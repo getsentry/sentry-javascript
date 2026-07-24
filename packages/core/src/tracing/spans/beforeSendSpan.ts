@@ -1,42 +1,63 @@
-import type { CoreOptions } from '../../types/options';
-import type { BeforeSendStreamedSpanCallback } from '../../types/options';
-import type { StreamedSpanJSON } from '../../types/span';
+import type { BeforeSendStaticSpanCallback, BeforeSendStreamedSpanCallback } from '../../types/options';
+import type { SpanJSON, StreamedSpanJSON } from '../../types/span';
 import { addNonEnumerableProperty } from '../../utils/object';
 
-type StaticBeforeSendSpanCallback = CoreOptions['beforeSendSpan'];
-
 /**
- * A wrapper to use the new span format in your `beforeSendSpan` callback.
+ * A wrapper to use the legacy transaction span format in your `beforeSendSpan` callback.
  *
- * When using `traceLifecycle: 'stream'`, wrap your callback with this function
- * to receive and return {@link StreamedSpanJSON} instead of the standard {@link SpanJSON}.
+ * When using `traceLifecycle: 'static'`, wrap your callback with this function
+ * to receive and return {@link SpanJSON} instead of {@link StreamedSpanJSON}.
  *
  * @example
  *
  * Sentry.init({
- *   traceLifecycle: 'stream',
- *   beforeSendSpan: withStreamedSpan((span) => {
- *     // span is of type StreamedSpanJSON
+ *   traceLifecycle: 'static',
+ *   beforeSendSpan: withStaticSpan((span) => {
+ *     // span is of type SpanJSON
  *     return span;
  *   }),
  * });
  *
+ * @param callback - The callback function that receives and returns a {@link SpanJSON}.
+ * @returns A callback that is compatible with the `beforeSendSpan` option when using `traceLifecycle: 'static'`.
+ */
+export function withStaticSpan(callback: (span: SpanJSON) => SpanJSON): BeforeSendStaticSpanCallback {
+  addNonEnumerableProperty(callback, '_static', true);
+  return callback as BeforeSendStaticSpanCallback;
+}
+
+/**
+ * A wrapper to explicitly use the streamed span format in your `beforeSendSpan` callback.
+ *
+ * @deprecated `beforeSendSpan` callbacks receive {@link StreamedSpanJSON} by default.
+ * This function will be removed in SDK version 12.
+ *
  * @param callback - The callback function that receives and returns a {@link StreamedSpanJSON}.
- * @returns A callback that is compatible with the `beforeSendSpan` option when using `traceLifecycle: 'stream'`.
+ * @returns The provided callback.
  */
 export function withStreamedSpan(
   callback: (span: StreamedSpanJSON) => StreamedSpanJSON,
-): StaticBeforeSendSpanCallback & { _streamed: true } {
+): BeforeSendStreamedSpanCallback & { _streamed: true } {
   addNonEnumerableProperty(callback, '_streamed', true);
-  return callback as unknown as StaticBeforeSendSpanCallback & { _streamed: true };
+  return callback as BeforeSendStreamedSpanCallback & { _streamed: true };
+}
+
+/**
+ * Typesafe check to identify if a `beforeSendSpan` callback expects the static span JSON format.
+ *
+ * @param callback - The `beforeSendSpan` callback to check.
+ * @returns `true` if the callback was wrapped with {@link withStaticSpan}.
+ */
+export function isStaticBeforeSendSpanCallback(callback: unknown): callback is BeforeSendStaticSpanCallback {
+  return !!callback && typeof callback === 'function' && '_static' in callback && !!callback._static;
 }
 
 /**
  * Typesafe check to identify if a `beforeSendSpan` callback expects the streamed span JSON format.
  *
  * @param callback - The `beforeSendSpan` callback to check.
- * @returns `true` if the callback was wrapped with {@link withStreamedSpan}.
+ * @returns `true` unless the callback was wrapped with {@link withStaticSpan}.
  */
 export function isStreamedBeforeSendSpanCallback(callback: unknown): callback is BeforeSendStreamedSpanCallback {
-  return !!callback && typeof callback === 'function' && '_streamed' in callback && !!callback._streamed;
+  return !!callback && typeof callback === 'function' && !isStaticBeforeSendSpanCallback(callback);
 }

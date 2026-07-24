@@ -131,6 +131,8 @@ export {
   createConsolaReporter,
   createSentryWinstonTransport,
   spanStreamingIntegration,
+  withStaticSpan,
+  // eslint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
 } from '@sentry/node';
 

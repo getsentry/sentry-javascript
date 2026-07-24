@@ -4,7 +4,7 @@ import {
   debug,
   defineIntegration,
   hasSpanStreamingEnabled,
-  isStreamedBeforeSendSpanCallback,
+  isStaticBeforeSendSpanCallback,
   SpanBuffer,
   spanIsSampled,
 } from '@sentry/core/browser';
@@ -26,12 +26,12 @@ export const spanStreamingIntegration = defineIntegration(() => {
       }
 
       const beforeSendSpan = clientOptions.beforeSendSpan;
-      // If users misconfigure their SDK by opting into span streaming but
-      // using an incompatible beforeSendSpan callback, we fall back to the static trace lifecycle.
-      if (beforeSendSpan && !isStreamedBeforeSendSpanCallback(beforeSendSpan)) {
+      if (isStaticBeforeSendSpanCallback(beforeSendSpan)) {
         clientOptions.traceLifecycle = 'static';
         DEBUG_BUILD &&
-          debug.warn(`${initialMessage} a beforeSendSpan callback using \`withStreamedSpan\`! ${fallbackMsg}`);
+          debug.warn(
+            `SpanStreaming integration is incompatible with a beforeSendSpan callback using \`withStaticSpan\`! ${fallbackMsg}`,
+          );
         return;
       }
 

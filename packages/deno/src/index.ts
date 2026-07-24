@@ -97,6 +97,8 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
+  withStaticSpan,
+  // eslint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   logger,
   consoleLoggingIntegration,

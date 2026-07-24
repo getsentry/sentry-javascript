@@ -58,21 +58,21 @@ describe('spanStreamingIntegration (core)', () => {
     },
   );
 
-  it('falls back to static trace lifecycle if beforeSendSpan is not compatible with span streaming', () => {
+  it('falls back to static trace lifecycle if beforeSendSpan is marked as static', () => {
     const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
     const client = new TestClient({
       ...getDefaultTestClientOptions(),
       dsn: 'https://username@domain/123',
       integrations: [spanStreamingIntegration()],
       traceLifecycle: 'stream',
-      beforeSendSpan: (span: SentryCore.SpanJSON) => span,
+      beforeSendSpan: SentryCore.withStaticSpan(span => span),
     });
 
     SentryCore.setCurrentClient(client);
     client.init();
 
     expect(debugSpy).toHaveBeenCalledWith(
-      'SpanStreaming integration requires a beforeSendSpan callback using `withStreamedSpan`! Falling back to static trace lifecycle.',
+      'SpanStreaming integration is incompatible with a beforeSendSpan callback using `withStaticSpan`! Falling back to static trace lifecycle.',
     );
     debugSpy.mockRestore();
 
