@@ -26,7 +26,7 @@ import {
 } from '@sentry/server-utils/orchestrion';
 import { instrumentSentryHttp } from '../http';
 import { fastifyIntegration, instrumentFastifyV3 } from './fastify';
-import { instrumentRedis, redisChannelIntegrations } from './redis';
+import { redisChannelIntegrations } from './redis';
 
 /**
  * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
@@ -76,10 +76,5 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     // The streamlined `Fastify` integration covers fastify `>=3.21.0 <6`; `instrumentFastifyV3`
     // fills the remaining early-v3 gap (`>=3.0.0 <3.21.0`), so it stays preloaded here.
     instrumentFastifyV3,
-    // Redis's composite integration keeps the vendored OTel patchers for runtimes without
-    // `tracingChannel` (Node <18.19); `instrumentRedis` internally gates on that, so preloading it is
-    // a no-op on modern Node (where the channel subscribers own instrumentation) and only patches on
-    // older runtimes.
-    instrumentRedis,
   ];
 }
