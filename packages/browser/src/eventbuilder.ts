@@ -334,7 +334,7 @@ export function eventFromUnknownInput(
   // - a plain Object
   //
   // So bail out and capture it as a simple message:
-  event = eventFromString(stackParser, exception as string, syntheticException, attachStacktrace);
+  event = eventFromString(stackParser, `${exception}`, syntheticException, attachStacktrace);
   addExceptionTypeValue(event, `${exception}`, undefined);
   addExceptionMechanism(event, {
     synthetic: true,

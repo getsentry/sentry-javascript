@@ -169,6 +169,19 @@ describe('eventFromUnknownInput', () => {
     });
   });
 
+  it('uses the stringified value for a non-Error input when attachStacktrace is true', async () => {
+    const syntheticException = new Error('Test message');
+    const event = await eventFromUnknownInput(defaultStackParser, new Response('test body'), syntheticException, true);
+
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        mechanism: { handled: true, synthetic: true, type: 'generic' },
+        type: 'Error',
+        value: '[object Response]',
+      }),
+    );
+  });
+
   it('add a synthetic stack trace to DOMException with empty stack traces if attachStacktrace is true', async () => {
     const exception = new DOMException('The string did not match the expected pattern.', 'SyntaxError');
     exception.stack = '';
