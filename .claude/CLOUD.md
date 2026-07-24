@@ -10,9 +10,11 @@ Most of the setup is committed to the repo and works automatically:
 These cannot live in the repo and must be set once per environment:
 
 1. **Setup script** — install the language runtime the sandbox lacks, e.g.:
+
    ```bash
    bash scripts/claude-cloud-setup.sh
    ```
+
    Do not rely on the cached result for freshness: install + build re-run on every session via the SessionStart hook, because the working branch changes constantly. This runs the same script mostly to warm the caches (node_modules, Nx) so the first real session is fast.
 
 2. **Network access:** `Trusted` (default) is sufficient — it already allows the npm registry and GitHub, which is all the install needs.
