@@ -64,6 +64,8 @@ export interface StartSpanOptions {
      * might be removed or changed in the future.
      * @hidden
      *
+     * @deprecated This option is deprecated and will be removed in the future.
+     *
      * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
      */
     standalone?: boolean;
