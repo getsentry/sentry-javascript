@@ -11,7 +11,6 @@ import type { CurrentScopes } from './types';
 import { getContextFromScope, getScopesFromContext } from './utils/contextData';
 import { getActiveSpan } from './utils/getActiveSpan';
 import { getTraceData } from './utils/getTraceData';
-import { suppressTracing, isTracingSuppressed } from './utils/suppressTracing';
 
 /**
  * Sets the async context strategy to use follow the OTEL context under the hood.
@@ -103,8 +102,6 @@ export function setOpenTelemetryContextAsyncContextStrategy(options?: {
     startSpanManual,
     startInactiveSpan,
     getActiveSpan,
-    suppressTracing,
-    isTracingSuppressed,
     getTraceData,
     continueTrace,
     startNewTrace,

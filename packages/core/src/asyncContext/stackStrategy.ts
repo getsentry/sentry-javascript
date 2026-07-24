@@ -1,6 +1,7 @@
 import type { Client } from '../client';
 import { getDefaultCurrentScope, getDefaultIsolationScope } from '../defaultScopes';
 import { Scope } from '../scope';
+import { suppressTracingInStack } from '../tracing/trace';
 import { chainAndCopyPromiseLike } from '../utils/chain-and-copy-promiselike';
 import { isThenable } from '../utils/is';
 import { getMainCarrier, getSentryCarrier } from './../carrier';
@@ -148,6 +149,7 @@ function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
  */
 export function getStackAsyncContextStrategy(): AsyncContextStrategy {
   return {
+    suppressTracing: suppressTracingInStack,
     withIsolationScope,
     withScope,
     withSetScope,
