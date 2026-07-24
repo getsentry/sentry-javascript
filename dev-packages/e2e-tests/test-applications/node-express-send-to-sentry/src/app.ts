@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/node';
 let lastTransactionId: string | undefined;
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
   includeLocalVariables: true,

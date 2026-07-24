@@ -4,6 +4,7 @@ const Sentry = require('@sentry/node');
 const { SentrySpanProcessor, SentryPropagator, SentrySampler } = require('@sentry/opentelemetry');
 
 const sentryClient = Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn:
     process.env.E2E_TEST_DSN ||

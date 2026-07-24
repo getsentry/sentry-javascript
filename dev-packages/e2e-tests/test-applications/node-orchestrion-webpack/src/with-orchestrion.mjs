@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/node';
 Sentry.experimentalUseDiagnosticsChannelInjection();
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   tracesSampleRate: 1,
 });

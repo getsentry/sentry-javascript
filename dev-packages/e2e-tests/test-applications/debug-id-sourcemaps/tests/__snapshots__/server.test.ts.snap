@@ -4,13 +4,13 @@ exports[`Find symbolicated event on sentry 1`] = `
 {
   "colno": 41,
   "contextLine": "const eventId = Sentry.captureException(new Error('Sentry Debug ID E2E Test Error'));",
-  "lineno": 8,
+  "lineno": 9,
   "postContext": [
     "",
     "process.stdout.write(eventId);",
   ],
   "preContext": [
-    "Sentry.init({",
+    "  traceLifecycle: 'static',",
     "  environment: 'qa', // dynamic sampling bias to keep transactions",
     "  dsn: process.env.E2E_TEST_DSN,",
     "});",

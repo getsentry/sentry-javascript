@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nestjs';
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa',
   dsn: process.env.E2E_TEST_DSN,
   tunnel: `http://localhost:3031/`,
