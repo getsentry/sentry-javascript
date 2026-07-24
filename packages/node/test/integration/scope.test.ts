@@ -263,7 +263,7 @@ describe('Integration | Scope', () => {
       expect(globalScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
 
       // Now when we call init, the global scope remains intact
-      Sentry.init({ dsn: 'https://username@domain/123', defaultIntegrations: false });
+      Sentry.init({ traceLifecycle: 'static', dsn: 'https://username@domain/123', defaultIntegrations: false });
 
       expect(globalScope.getClient()).toBeUndefined();
       expect(Sentry.getGlobalScope()).toBe(globalScope);
@@ -320,7 +320,7 @@ describe('Integration | Scope', () => {
       expect(isolationScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
 
       // Now when we call init, the isolation scope remains intact
-      Sentry.init({ dsn: 'https://username@domain/123', defaultIntegrations: false });
+      Sentry.init({ traceLifecycle: 'static', dsn: 'https://username@domain/123', defaultIntegrations: false });
 
       // client is only attached to global scope by default
       expect(isolationScope.getClient()).toBeUndefined();
@@ -471,7 +471,7 @@ describe('Integration | Scope', () => {
       expect(currentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
 
       // Now when we call init, the current scope remains intact
-      Sentry.init({ dsn: 'https://username@domain/123', defaultIntegrations: false });
+      Sentry.init({ traceLifecycle: 'static', dsn: 'https://username@domain/123', defaultIntegrations: false });
 
       // client is attached to current scope
       expect(currentScope.getClient()).toBeDefined();
