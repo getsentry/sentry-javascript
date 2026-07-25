@@ -1,10 +1,13 @@
-import { _INTERNAL_getSqlQuerySummary } from '@sentry/core';
+import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { targetsCloudflareInternalTable } from '../../src/utils/internalSqlQuery';
 
-// Builds the summary the same way `instrumentSqlStorage` does, so the test exercises the real
-// operation -> summary -> detection path rather than hand-written summaries.
-const summarize = (query: string): string | undefined => _INTERNAL_getSqlQuerySummary(query);
+// Runs the same sanitize -> summarize -> filter pipeline as `instrumentSqlStorage`, so the tests
+// exercise the real detection path rather than hand-written summaries.
+const check = (query: string, allowlist?: Array<string | RegExp>): boolean => {
+  const sanitized = _INTERNAL_sanitizeSqlQuery(query);
+  return targetsCloudflareInternalTable(_INTERNAL_getSqlQuerySummary(sanitized), allowlist, sanitized);
+};
 
 describe('targetsCloudflareInternalTable', () => {
   describe('internal queries (cf_ tables)', () => {
@@ -32,7 +35,22 @@ describe('targetsCloudflareInternalTable', () => {
       ['REPLACE INTO', 'REPLACE INTO cf_agents_queues (id, payload) VALUES (?, ?)'],
       ['UPDATE OR REPLACE', 'UPDATE OR REPLACE cf_agents_state SET state = ? WHERE id = ?'],
     ])('returns true for %s on internal tables', (_label, query) => {
-      expect(targetsCloudflareInternalTable(summarize(query))).toBe(true);
+      expect(check(query)).toBe(true);
+    });
+
+    // The summary of a CREATE INDEX carries the index name, not the indexed table — the cf_
+    // target only exists in the ON clause of the full statement.
+    it.each([
+      [
+        'framework statement',
+        `create index if not exists idx_ai_chat_agent_tool_request_id
+          on cf_ai_chat_agent_tool_runs(request_id)`,
+      ],
+      ['uppercase', 'CREATE INDEX idx_agents_state_id ON cf_agents_state (id)'],
+      ['UNIQUE', 'CREATE UNIQUE INDEX idx_agents_state_id ON cf_agents_state (id)'],
+      ['without IF NOT EXISTS', 'CREATE INDEX idx_chunks_stream ON cf_ai_chat_stream_chunks (stream_id)'],
+    ])('returns true for CREATE INDEX (%s) on an internal table', (_label, query) => {
+      expect(check(query)).toBe(true);
     });
 
     it('returns true for an internal JOIN', () => {
@@ -42,18 +60,16 @@ describe('targetsCloudflareInternalTable', () => {
         LEFT JOIN cf_agents_runs r ON r.id = f.fiber_id
         WHERE f.status IN ('pending', 'running')
       `;
-      expect(targetsCloudflareInternalTable(summarize(query))).toBe(true);
+      expect(check(query)).toBe(true);
     });
 
     it('returns true when an internal table is joined with a user table', () => {
       // `.some()` — any internal table present means the query is framework-driven noise.
-      expect(
-        targetsCloudflareInternalTable(summarize('SELECT * FROM cf_agents_state s JOIN users u ON u.id = s.id')),
-      ).toBe(true);
+      expect(check('SELECT * FROM cf_agents_state s JOIN users u ON u.id = s.id')).toBe(true);
     });
 
     it('handles case-insensitive keywords and prefixes', () => {
-      expect(targetsCloudflareInternalTable(summarize('select * from CF_AGENTS_STATE'))).toBe(true);
+      expect(check('select * from CF_AGENTS_STATE')).toBe(true);
     });
   });
 
@@ -64,64 +80,65 @@ describe('targetsCloudflareInternalTable', () => {
       ['UPDATE', 'UPDATE products SET price = ? WHERE id = ?'],
       ['DELETE', 'DELETE FROM sessions WHERE expired = 1'],
       ['CREATE TABLE', 'CREATE TABLE users (id TEXT PRIMARY KEY)'],
+      ['CREATE INDEX', 'CREATE INDEX idx_name ON users (name)'],
       ['table with cf in the middle', 'SELECT * FROM my_cf_table'],
       ['table starting with cfg', 'SELECT * FROM cfg_settings'],
       ['INSERT OR REPLACE', 'INSERT OR REPLACE INTO users (id, name) VALUES (?, ?)'],
       ['REPLACE INTO', 'REPLACE INTO sessions (id, token) VALUES (?, ?)'],
       ['UPDATE OR IGNORE', 'UPDATE OR IGNORE products SET price = ? WHERE id = ?'],
     ])('returns false for %s on user tables', (_label, query) => {
-      expect(targetsCloudflareInternalTable(summarize(query))).toBe(false);
+      expect(check(query)).toBe(false);
     });
   });
 
   describe('allowlist (opt a cf_ table back into instrumentation)', () => {
     it('returns false for an allowlisted table matched by exact string', () => {
-      expect(targetsCloudflareInternalTable(summarize('SELECT * FROM cf_my_table'), ['cf_my_table'])).toBe(false);
+      expect(check('SELECT * FROM cf_my_table', ['cf_my_table'])).toBe(false);
     });
 
     it('returns false for an allowlisted table matched by regex', () => {
-      expect(targetsCloudflareInternalTable(summarize('SELECT * FROM cf_reports_daily'), [/^cf_reports_/])).toBe(false);
+      expect(check('SELECT * FROM cf_reports_daily', [/^cf_reports_/])).toBe(false);
     });
 
     it('returns false for an allowlisted table targeted by an upsert', () => {
-      expect(
-        targetsCloudflareInternalTable(summarize('INSERT OR REPLACE INTO cf_my_table (id) VALUES (?)'), [
-          'cf_my_table',
-        ]),
-      ).toBe(false);
+      expect(check('INSERT OR REPLACE INTO cf_my_table (id) VALUES (?)', ['cf_my_table'])).toBe(false);
+    });
+
+    it('returns false for CREATE INDEX on an allowlisted table', () => {
+      expect(check('CREATE INDEX idx_mine ON cf_my_table (id)', ['cf_my_table'])).toBe(false);
     });
 
     it('requires an exact match for string entries', () => {
       // Substring matches must not opt a table back in, otherwise `cf_` would allowlist everything.
-      expect(targetsCloudflareInternalTable(summarize('SELECT * FROM cf_agents_state'), ['cf_agents'])).toBe(true);
+      expect(check('SELECT * FROM cf_agents_state', ['cf_agents'])).toBe(true);
     });
 
     it('still skips genuine internal tables that are not allowlisted', () => {
-      expect(targetsCloudflareInternalTable(summarize('SELECT * FROM cf_agents_state'), ['cf_my_table'])).toBe(true);
+      expect(check('SELECT * FROM cf_agents_state', ['cf_my_table'])).toBe(true);
     });
 
     it('still skips when an internal table is joined with an allowlisted table', () => {
-      expect(
-        targetsCloudflareInternalTable(summarize('SELECT * FROM cf_my_table t JOIN cf_agents_state s ON s.id = t.id'), [
-          'cf_my_table',
-        ]),
-      ).toBe(true);
+      expect(check('SELECT * FROM cf_my_table t JOIN cf_agents_state s ON s.id = t.id', ['cf_my_table'])).toBe(true);
     });
 
     it('ignores an empty allowlist', () => {
-      expect(targetsCloudflareInternalTable(summarize('SELECT * FROM cf_agents_state'), [])).toBe(true);
+      expect(check('SELECT * FROM cf_agents_state', [])).toBe(true);
     });
   });
 
   describe('summaries without a resolvable table target (safe default: instrument)', () => {
     it.each([
-      ['undefined', undefined],
-      ['empty', ''],
       ['no-table SELECT', 'SELECT 1'],
       ['PRAGMA', 'PRAGMA foreign_keys = ON'],
       ['bare operation', 'BEGIN'],
-    ])('returns false for %s', (_label, value) => {
-      const summary = typeof value === 'string' ? summarize(value) : value;
+    ])('returns false for %s', (_label, query) => {
+      expect(check(query)).toBe(false);
+    });
+
+    it.each([
+      ['undefined', undefined],
+      ['empty', ''],
+    ])('returns false for a %s summary', (_label, summary) => {
       expect(targetsCloudflareInternalTable(summary)).toBe(false);
     });
   });
