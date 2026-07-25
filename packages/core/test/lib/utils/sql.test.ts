@@ -75,12 +75,39 @@ describe('getSqlQuerySummary', () => {
         'INSERT shipping_details SELECT orders',
       );
     });
+
+    it.each([
+      ['INSERT OR REPLACE INTO users (id) VALUES (?)', 'INSERT users'],
+      ['INSERT OR IGNORE INTO users (id) VALUES (?)', 'INSERT users'],
+      ['INSERT OR ABORT INTO users (id) VALUES (?)', 'INSERT users'],
+      ['INSERT OR FAIL INTO users (id) VALUES (?)', 'INSERT users'],
+      ['INSERT OR ROLLBACK INTO users (id) VALUES (?)', 'INSERT users'],
+      ['insert or replace into orders (id) values (?)', 'insert orders'],
+    ])('strips the SQLite conflict clause: %j => %j', (input, expected) => {
+      expect(getSqlQuerySummary(input)).toBe(expected);
+    });
+
+    it.each([
+      ['REPLACE INTO users (id) VALUES (?)', 'REPLACE users'],
+      ['replace into orders (id) values (?)', 'replace orders'],
+      ['REPLACE INTO shipping_details SELECT * FROM orders', 'REPLACE shipping_details SELECT orders'],
+    ])('handles the REPLACE INTO shorthand: %j => %j', (input, expected) => {
+      expect(getSqlQuerySummary(input)).toBe(expected);
+    });
+
+    it('captures INSERT OR REPLACE...SELECT with both targets', () => {
+      expect(getSqlQuerySummary('INSERT OR REPLACE INTO shipping_details SELECT * FROM orders')).toBe(
+        'INSERT shipping_details SELECT orders',
+      );
+    });
   });
 
   describe('UPDATE', () => {
     it.each([
       ['UPDATE users SET name = ? WHERE id = ?', 'UPDATE users'],
       ['update orders SET status = ? WHERE created_at < ?', 'update orders'],
+      ['UPDATE OR REPLACE users SET name = ? WHERE id = ?', 'UPDATE users'],
+      ['UPDATE OR IGNORE orders SET status = ?', 'UPDATE orders'],
     ])('%j => %j', (input, expected) => {
       expect(getSqlQuerySummary(input)).toBe(expected);
     });

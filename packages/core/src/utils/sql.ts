@@ -8,8 +8,18 @@ const DDL_RE = new RegExp(
   'i',
 );
 
-const INSERT_RE = new RegExp(`^\\s*(?<operation>INSERT)\\s+INTO\\s+(?<table>${TABLE_NAME})`, 'i');
-const UPDATE_RE = new RegExp(`^\\s*(?<operation>UPDATE)\\s+(?<table>${TABLE_NAME})`, 'i');
+// SQLite upserts insert an optional conflict clause between operation and INTO
+// (`INSERT OR REPLACE INTO`, https://sqlite.org/lang_insert.html), with `REPLACE INTO` as the
+// standalone shorthand. The clause is filler like INTO — stripping it keeps upserts on the same
+// low-cardinality summary as plain inserts.
+const INSERT_RE = new RegExp(
+  `^\\s*(?<operation>INSERT|REPLACE)(?:\\s+OR\\s+(?:ROLLBACK|ABORT|FAIL|IGNORE|REPLACE))?\\s+INTO\\s+(?<table>${TABLE_NAME})`,
+  'i',
+);
+const UPDATE_RE = new RegExp(
+  `^\\s*(?<operation>UPDATE)(?:\\s+OR\\s+(?:ROLLBACK|ABORT|FAIL|IGNORE|REPLACE))?\\s+(?<table>${TABLE_NAME})`,
+  'i',
+);
 const DELETE_RE = new RegExp(`^\\s*(?<operation>DELETE)\\s+FROM\\s+(?<table>${TABLE_NAME})`, 'i');
 
 const SELECT_RE = /^\s*\(?\s*(?<operation>SELECT)\b/i;
