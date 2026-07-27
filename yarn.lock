@@ -8294,20 +8294,20 @@
     "@supabase/realtime-js" "2.11.2"
     "@supabase/storage-js" "2.7.1"
 
-"@sveltejs/acorn-typescript@^1.0.5", "@sveltejs/acorn-typescript@^1.0.9":
+"@sveltejs/acorn-typescript@^1.0.9":
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/@sveltejs/acorn-typescript/-/acorn-typescript-1.0.9.tgz#ac0bde368d6623727b0e0bc568cf6b4e5d5c4baa"
   integrity sha512-lVJX6qEgs/4DOcRTpo56tmKzVPtoWAaVbL4hfO7t7NVwl9AAXzQR6cihesW1BmNMPl+bK6dreu2sOKBP2Q9CIA==
 
-"@sveltejs/kit@^2.60.1":
-  version "2.60.1"
-  resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-2.60.1.tgz#41e73108f66588784e4bd3c32ac8500ee92e6b59"
-  integrity sha512-mQjlkNo+rJvpln7V2IGY2j99BqhcFbS4UN0AQNKNYfhBAFZTuCDAdW3a1sgf330mvtNvsBXn3HpAhcmvdJTcIQ==
+"@sveltejs/kit@^2.69.1":
+  version "2.69.1"
+  resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-2.69.1.tgz#ca5d1589ca6f3fefebbd039a92de216baf53248f"
+  integrity sha512-+nz8Fx/cElzb2ZPHC+6Ll3y3NEVIe4Na75PeplLlyTmd1dBXAjz2KR14y1ZgNjb2ThfAYzulu+PFy1UE3RCUzA==
   dependencies:
     "@standard-schema/spec" "^1.0.0"
-    "@sveltejs/acorn-typescript" "^1.0.5"
+    "@sveltejs/acorn-typescript" "^1.0.9"
     "@types/cookie" "^0.6.0"
-    acorn "^8.14.1"
+    acorn "^8.16.0"
     cookie "^0.6.0"
     devalue "^5.8.1"
     esm-env "^1.2.2"
@@ -10666,7 +10666,7 @@ acorn@8.11.3:
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.11.3.tgz#71e0b14e13a4ec160724b38fb7b0f233b1b81d7a"
   integrity sha512-Y9rRfJG5jcKOE0CLisYbojUjIrIEE7AGMzA/Sm4BslANhbS+cDMpgBdcPT91oJ7OuJ9hYJBx59RjbhxVnrF8Xg==
 
-acorn@^8.1.0, acorn@^8.10.0, acorn@^8.11.0, acorn@^8.14.0, acorn@^8.14.1, acorn@^8.15.0, acorn@^8.16.0, acorn@^8.5.0, acorn@^8.6.0, acorn@^8.7.0, acorn@^8.7.1, acorn@^8.8.2, acorn@^8.9.0:
+acorn@^8.1.0, acorn@^8.10.0, acorn@^8.11.0, acorn@^8.14.0, acorn@^8.15.0, acorn@^8.16.0, acorn@^8.5.0, acorn@^8.6.0, acorn@^8.7.0, acorn@^8.7.1, acorn@^8.8.2, acorn@^8.9.0:
   version "8.16.0"
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.16.0.tgz#4ce79c89be40afe7afe8f3adb902a1f1ce9ac08a"
   integrity sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw==
