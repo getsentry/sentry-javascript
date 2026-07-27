@@ -20,6 +20,17 @@ describe('targetsCloudflareInternalTable', () => {
       ['cf_ai_ prefix', 'INSERT INTO cf_ai_chat_stream_chunks (id) VALUES (?)'],
       ['cf_mcp_ prefix', 'SELECT * FROM cf_mcp_agent_event'],
       ['schema version', 'SELECT version FROM cf_schema_version'],
+      // SQLite upsert forms used by the agents framework for state/schedule/MCP persistence
+      ['INSERT OR REPLACE', 'INSERT OR REPLACE INTO cf_agents_state (id, state) VALUES (?, ?)'],
+      [
+        'INSERT OR REPLACE with column list',
+        `INSERT OR REPLACE INTO cf_agents_mcp_servers ( id, name, server_url, client_id, auth_url,
+          callback_url, server_options )
+        VALUES ( ?, ?, ?, ?, ?, ?, ? )`,
+      ],
+      ['INSERT OR IGNORE', 'INSERT OR IGNORE INTO cf_agents_sub_agents (class, name) VALUES (?, ?)'],
+      ['REPLACE INTO', 'REPLACE INTO cf_agents_queues (id, payload) VALUES (?, ?)'],
+      ['UPDATE OR REPLACE', 'UPDATE OR REPLACE cf_agents_state SET state = ? WHERE id = ?'],
     ])('returns true for %s on internal tables', (_label, query) => {
       expect(targetsCloudflareInternalTable(summarize(query))).toBe(true);
     });
@@ -55,6 +66,9 @@ describe('targetsCloudflareInternalTable', () => {
       ['CREATE TABLE', 'CREATE TABLE users (id TEXT PRIMARY KEY)'],
       ['table with cf in the middle', 'SELECT * FROM my_cf_table'],
       ['table starting with cfg', 'SELECT * FROM cfg_settings'],
+      ['INSERT OR REPLACE', 'INSERT OR REPLACE INTO users (id, name) VALUES (?, ?)'],
+      ['REPLACE INTO', 'REPLACE INTO sessions (id, token) VALUES (?, ?)'],
+      ['UPDATE OR IGNORE', 'UPDATE OR IGNORE products SET price = ? WHERE id = ?'],
     ])('returns false for %s on user tables', (_label, query) => {
       expect(targetsCloudflareInternalTable(summarize(query))).toBe(false);
     });
@@ -67,6 +81,14 @@ describe('targetsCloudflareInternalTable', () => {
 
     it('returns false for an allowlisted table matched by regex', () => {
       expect(targetsCloudflareInternalTable(summarize('SELECT * FROM cf_reports_daily'), [/^cf_reports_/])).toBe(false);
+    });
+
+    it('returns false for an allowlisted table targeted by an upsert', () => {
+      expect(
+        targetsCloudflareInternalTable(summarize('INSERT OR REPLACE INTO cf_my_table (id) VALUES (?)'), [
+          'cf_my_table',
+        ]),
+      ).toBe(false);
     });
 
     it('requires an exact match for string entries', () => {
