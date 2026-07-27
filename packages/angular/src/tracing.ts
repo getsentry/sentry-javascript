@@ -134,7 +134,7 @@ export class TraceService implements OnDestroy {
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                url: strippedUrl,
+                [URL_FULL]: strippedUrl,
                 ...(navigationEvent.navigationTrigger && {
                   navigationTrigger: navigationEvent.navigationTrigger,
                 }),

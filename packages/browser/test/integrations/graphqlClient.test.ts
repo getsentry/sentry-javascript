@@ -391,15 +391,15 @@ describe('GraphqlClient', () => {
       expect(json.data['graphql.document']).toBe(requestBody.query);
     });
 
-    test('enriches http.client span for relative URLs (only url attribute)', () => {
+    test('enriches http.client span for relative URLs', () => {
       const handler = setupHandler([/\/graphql$/]);
-      // Fetch instrumentation does not set `http.url` or `url.full` for relative URLs.
+      // Fetch instrumentation does not set `http.url` for relative URLs, only `url.full`.
       const span = new SentrySpan({
         name: 'POST /graphql',
         op: 'http.client',
         attributes: {
           'http.method': 'POST',
-          url: '/graphql',
+          [URL_FULL]: '/graphql',
         },
       });
 

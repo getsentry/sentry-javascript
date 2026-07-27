@@ -27,7 +27,6 @@ sentryTest('sanitizes data URLs in fetch span name and attributes', async ({ get
 
   expect(span?.data).toMatchObject({
     'http.method': 'GET',
-    url: sanitizedUrl,
     type: 'fetch',
   });
 

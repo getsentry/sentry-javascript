@@ -369,7 +369,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client',
         description: 'GET https://www.example.com/my-path',
         data: {
-          url: 'https://www.example.com/my-path',
+          'url.full': 'https://www.example.com/my-path',
         },
         source: 'url',
       },
@@ -389,7 +389,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client.prefetch',
         description: 'GET https://www.example.com/my-path',
         data: {
-          url: 'https://www.example.com/my-path',
+          'url.full': 'https://www.example.com/my-path',
         },
         source: 'url',
       },
@@ -408,7 +408,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.server',
         description: 'POST /my-path',
         data: {
-          url: 'https://www.example.com/my-path',
+          'url.full': 'https://www.example.com/my-path',
         },
         source: 'url',
       },
@@ -428,7 +428,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client',
         description: 'GET /my-path/:id',
         data: {
-          url: 'https://www.example.com/my-path/123',
+          'url.full': 'https://www.example.com/my-path/123',
         },
         source: 'route',
       },
@@ -446,7 +446,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http',
         description: 'test name',
         data: {
-          url: 'https://www.example.com/my-path',
+          'url.full': 'https://www.example.com/my-path',
         },
         source: 'custom',
       },
@@ -467,7 +467,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client',
         description: 'test name',
         data: {
-          url: 'https://www.example.com/my-path/123',
+          'url.full': 'https://www.example.com/my-path/123',
         },
         source: 'custom',
       },
@@ -489,7 +489,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client',
         description: 'custom name',
         data: {
-          url: 'https://www.example.com/my-path/123',
+          'url.full': 'https://www.example.com/my-path/123',
         },
         source: 'custom',
       },
@@ -511,13 +511,13 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client',
         description: 'custom name',
         data: {
-          url: 'https://www.example.com/my-path/123',
+          'url.full': 'https://www.example.com/my-path/123',
         },
         source: 'component',
       },
     ],
     [
-      'strips the leading `?`/`#` from http.query and http.fragment',
+      'strips the leading `?`/`#` for url.query and url.fragment',
       'GET',
       {
         [HTTP_METHOD]: 'GET',
@@ -530,9 +530,9 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client',
         description: 'GET https://www.example.com/my-path',
         data: {
-          url: 'https://www.example.com/my-path',
-          'http.query': 'id=1',
-          'http.fragment': 'section',
+          'url.full': 'https://www.example.com/my-path',
+          'url.query': 'id=1',
+          'url.fragment': 'section',
         },
         source: 'url',
       },

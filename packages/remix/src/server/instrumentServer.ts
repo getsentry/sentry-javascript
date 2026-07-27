@@ -133,7 +133,7 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
             onlyIfParent: true,
             attributes: {
               method: request.method,
-              url: request.url,
+              [URL_FULL]: request.url,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
             },

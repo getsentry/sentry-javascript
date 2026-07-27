@@ -31,7 +31,7 @@ describe('httpIntegration', () => {
                   span_id: expect.stringMatching(/[a-f\d]{16}/),
                   trace_id: expect.stringMatching(/[a-f\d]{32}/),
                   data: {
-                    url: expect.stringMatching(/\/test$/),
+                    'url.full': expect.stringMatching(/\/test$/),
                     'http.response.status_code': 200,
                     attr1: 'yes',
                     attr2: 'yes',
@@ -73,7 +73,7 @@ describe('httpIntegration', () => {
                   span_id: expect.stringMatching(/[a-f\d]{16}/),
                   trace_id: expect.stringMatching(/[a-f\d]{32}/),
                   data: {
-                    url: expect.stringMatching(/\/test$/),
+                    'url.full': expect.stringMatching(/\/test$/),
                     'http.response.status_code': 200,
                     incomingRequestSpanHook: 'yes',
                   },
@@ -110,7 +110,7 @@ describe('httpIntegration', () => {
                 'http.flavor': '1.1',
                 'http.host': `localhost:${port}`,
                 'http.method': 'GET',
-                'http.query': 'a=1&b=2',
+                'url.query': 'a=1&b=2',
                 'http.response.status_code': 200,
                 'http.route': '/test',
                 'http.scheme': 'http',
@@ -130,7 +130,6 @@ describe('httpIntegration', () => {
                 'sentry.origin': 'auto.http.otel.http',
                 'sentry.sample_rate': 1,
                 'sentry.source': 'route',
-                url: `http://localhost:${port}/test`,
                 [URL_FULL]: `http://localhost:${port}/test?a=1&b=2`,
                 [URL_PATH]: '/test',
                 ...getCommonHttpRequestHeaders(),
@@ -153,7 +152,7 @@ describe('httpIntegration', () => {
                 'http.flavor': '1.1',
                 'http.host': `localhost:${port}`,
                 'http.method': 'POST',
-                'http.query': 'a=1&b=2',
+                'url.query': 'a=1&b=2',
                 'http.request_content_length_uncompressed': 9,
                 'http.response.status_code': 200,
                 'http.route': '/test',
@@ -174,7 +173,6 @@ describe('httpIntegration', () => {
                 'sentry.origin': 'auto.http.otel.http',
                 'sentry.sample_rate': 1,
                 'sentry.source': 'route',
-                url: `http://localhost:${port}/test`,
                 [URL_FULL]: `http://localhost:${port}/test?a=1&b=2`,
                 [URL_PATH]: '/test',
                 'http.request.header.content_length': '9',
@@ -441,7 +439,7 @@ describe('httpIntegration', () => {
                 span_id: expect.stringMatching(/[a-f\d]{16}/),
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 data: {
-                  url: expect.stringMatching(/\/test$/),
+                  'url.full': expect.stringMatching(/\/test$/),
                   'http.response.status_code': 200,
                 },
                 op: 'http.server',
@@ -467,7 +465,7 @@ describe('httpIntegration', () => {
                 span_id: expect.stringMatching(/[a-f\d]{16}/),
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 data: {
-                  url: expect.stringMatching(/\/test$/),
+                  'url.full': expect.stringMatching(/\/test$/),
                   'http.response.status_code': 200,
                 },
                 op: 'http.server',
@@ -547,7 +545,7 @@ describe('httpIntegration', () => {
       .expect({
         transaction: event => {
           expect(event.transaction).toBe('GET /test');
-          expect(event.contexts?.trace?.data?.url).toMatch(/\/test$/);
+          expect(event.contexts?.trace?.data?.['url.full']).toMatch(/\/test$/);
           expect(event.contexts?.trace?.op).toBe('http.server');
           expect(event.contexts?.trace?.status).toBe('ok');
         },
@@ -570,7 +568,7 @@ describe('httpIntegration', () => {
       .expect({
         transaction: event => {
           expect(event.transaction).toBe('GET /favicon.ico');
-          expect(event.contexts?.trace?.data?.url).toMatch(/\/favicon.ico$/);
+          expect(event.contexts?.trace?.data?.['url.full']).toMatch(/\/favicon.ico$/);
           expect(event.contexts?.trace?.op).toBe('http.server');
           expect(event.contexts?.trace?.status).toBe('ok');
         },

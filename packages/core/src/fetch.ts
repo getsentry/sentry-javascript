@@ -1,11 +1,11 @@
 /* eslint-disable max-lines */
 import {
-  HTTP_FRAGMENT,
   HTTP_METHOD,
-  HTTP_QUERY,
   HTTP_URL,
   SERVER_ADDRESS,
+  URL_FRAGMENT,
   URL_FULL,
+  URL_QUERY,
 } from '@sentry/conventions/attributes';
 import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
@@ -23,6 +23,8 @@ import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
 import {
   getSanitizedUrlStringFromUrlObject,
+  getUrlFragment,
+  getUrlQuery,
   isURLObjectRelative,
   parseStringToURLObject,
   stripDataUrlContent,
@@ -393,7 +395,7 @@ function getFetchSpanAttributes(
   spanOrigin: SpanOrigin,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    url: stripDataUrlContent(url),
+    [URL_FULL]: stripDataUrlContent(url),
     type: 'fetch',
     // oxlint-disable-next-line typescript/no-deprecated
     [HTTP_METHOD]: method,
@@ -407,12 +409,8 @@ function getFetchSpanAttributes(
       attributes[URL_FULL] = stripDataUrlContent(parsedUrl.href);
       attributes[SERVER_ADDRESS] = parsedUrl.host;
     }
-    if (parsedUrl.search) {
-      attributes[HTTP_QUERY] = parsedUrl.search.slice(1) || undefined;
-    }
-    if (parsedUrl.hash) {
-      attributes[HTTP_FRAGMENT] = parsedUrl.hash.slice(1) || undefined;
-    }
+    attributes[URL_QUERY] = getUrlQuery(parsedUrl.search);
+    attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);
   }
   return attributes;
 }

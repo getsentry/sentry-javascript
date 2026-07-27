@@ -323,6 +323,8 @@ export {
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
   stripDataUrlContent,
+  getUrlQuery,
+  getUrlFragment,
 } from './utils/url';
 export {
   eventFromMessage,

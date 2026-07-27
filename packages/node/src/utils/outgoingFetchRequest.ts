@@ -1,3 +1,4 @@
+import { HTTP_METHOD, URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
 import type { LRUMap, SanitizedRequestData, Span } from '@sentry/core';
 import {
   addBreadcrumb,
@@ -6,6 +7,8 @@ import {
   getClient,
   getSanitizedUrlString,
   getTraceData,
+  getUrlFragment,
+  getUrlQuery,
   parseUrl,
   shouldPropagateTraceForUrl,
   mergeBaggageHeaders,
@@ -252,19 +255,13 @@ function getBreadcrumbData(request: UndiciRequest): Partial<SanitizedRequestData
     const url = getAbsoluteUrl(request.origin, request.path);
     const parsedUrl = parseUrl(url);
 
-    const data: Partial<SanitizedRequestData> = {
+    return {
       url: getSanitizedUrlString(parsedUrl),
-      'http.method': request.method || 'GET',
+      // eslint-disable-next-line typescript/no-deprecated
+      [HTTP_METHOD]: request.method || 'GET',
+      [URL_QUERY]: getUrlQuery(parsedUrl.search),
+      [URL_FRAGMENT]: getUrlFragment(parsedUrl.hash),
     };
-
-    if (parsedUrl.search) {
-      data['http.query'] = parsedUrl.search;
-    }
-    if (parsedUrl.hash) {
-      data['http.fragment'] = parsedUrl.hash;
-    }
-
-    return data;
   } catch {
     return {};
   }

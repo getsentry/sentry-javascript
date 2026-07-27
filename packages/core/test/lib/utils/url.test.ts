@@ -3,6 +3,8 @@ import {
   getHttpSpanDetailsFromUrlObject,
   getSanitizedUrlString,
   getSanitizedUrlStringFromUrlObject,
+  getUrlFragment,
+  getUrlQuery,
   isURLObjectRelative,
   parseStringToURLObject,
   parseUrl,
@@ -292,6 +294,33 @@ describe('parseStringToURLObject', () => {
   });
 });
 
+describe('getUrlQuery', () => {
+  it.each([
+    ['?foo=bar', 'foo=bar'],
+    ['foo=bar', 'foo=bar'],
+    ['?foo=bar&baz=qux', 'foo=bar&baz=qux'],
+    ['?a=?b', 'a=?b'],
+    ['?', undefined],
+    ['', undefined],
+    [undefined, undefined],
+  ])('strips the leading ? from %s', (input, expected) => {
+    expect(getUrlQuery(input)).toBe(expected);
+  });
+});
+
+describe('getUrlFragment', () => {
+  it.each([
+    ['#section', 'section'],
+    ['section', 'section'],
+    ['##double', '#double'],
+    ['#', undefined],
+    ['', undefined],
+    [undefined, undefined],
+  ])('strips the leading # from %s', (input, expected) => {
+    expect(getUrlFragment(input)).toBe(expected);
+  });
+});
+
 describe('isURLObjectRelative', () => {
   it('returns true for relative URLs', () => {
     expect(isURLObjectRelative(parseStringToURLObject('/path/to/happiness')!)).toBe(true);
@@ -415,7 +444,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.origin': 'test-origin',
       'sentry.source': 'url',
       'url.path': '/api/users',
-      url: '/api/users',
+      'url.full': '/api/users',
     });
   });
 
@@ -429,10 +458,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.path': '/api/users',
       'url.query': 'q=test',
       'url.fragment': 'section',
-      'http.query': 'q=test',
-      'http.fragment': 'section',
       'url.full': 'https://example.com/api/users?q=test#section',
-      url: 'https://example.com/api/users',
       'server.address': 'example.com',
       'url.scheme': 'https:',
     });
@@ -447,7 +473,6 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.source': 'url',
       'url.path': '/api/users',
       'url.full': 'https://example.com/api/users',
-      url: 'https://example.com/api/users',
       'server.address': 'example.com',
       'url.scheme': 'https:',
       'http.request.method': 'POST',
@@ -469,7 +494,6 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.source': 'route',
       'url.path': '/api/users',
       'url.full': 'https://example.com/api/users',
-      url: 'https://example.com/api/users',
       'server.address': 'example.com',
       'url.scheme': 'https:',
       'http.route': '/api/users/:id',
@@ -485,7 +509,6 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.source': 'route',
       'url.path': '/',
       'url.full': 'https://example.com/',
-      url: 'https://example.com/',
       'server.address': 'example.com',
       'url.scheme': 'https:',
     });
@@ -500,7 +523,6 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.source': 'url',
       'url.path': '/api/users',
       'url.full': 'https://example.com:8080/api/users',
-      url: 'https://example.com:8080/api/users',
       'server.address': 'example.com',
       'url.scheme': 'https:',
       'url.port': '8080',
@@ -516,7 +538,6 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.source': 'url',
       'url.path': '/api/users',
       'url.full': 'https://example.com:3000/api/users',
-      url: 'https://example.com:3000/api/users',
       'server.address': 'example.com',
       'url.scheme': 'https:',
       'url.port': '3000',
@@ -539,7 +560,6 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.source': 'route',
       'url.path': '/api/users/123',
       'url.full': 'https://example.com/api/users/123',
-      url: 'https://example.com/api/users/123',
       'server.address': 'example.com',
       'url.scheme': 'https:',
       'http.route': '/api/users/:id',
@@ -562,9 +582,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.source': 'route',
       'url.path': '/api/search',
       'url.query': 'q=test&page=1',
-      'http.query': 'q=test&page=1',
       'url.full': 'https://example.com/api/search?q=test&page=1',
-      url: 'https://example.com/api/search',
       'server.address': 'example.com',
       'url.scheme': 'https:',
       'http.route': '/api/search',
@@ -586,9 +604,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.source': 'route',
       'url.path': '/api/docs',
       'url.fragment': 'section-1',
-      'http.fragment': 'section-1',
       'url.full': 'https://example.com/api/docs#section-1',
-      url: 'https://example.com/api/docs',
       'server.address': 'example.com',
       'url.scheme': 'https:',
       'http.route': '/api/docs',
@@ -604,7 +620,6 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.source': 'url',
       'url.path': '/api/users',
       'url.full': 'https://user:pass@example.com/api/users',
-      url: 'https://%filtered%:%filtered%@example.com/api/users',
       'server.address': 'example.com',
       'url.scheme': 'https:',
     });
@@ -619,7 +634,6 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.source': 'url',
       'url.path': '/api/users',
       'url.full': 'https://192.168.1.1:8080/api/users',
-      url: 'https://192.168.1.1:8080/api/users',
       'server.address': '192.168.1.1',
       'url.scheme': 'https:',
       'url.port': '8080',
@@ -635,7 +649,6 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.source': 'url',
       'url.path': '/api/users',
       'url.full': 'https://[2001:db8::1]:8080/api/users',
-      url: 'https://[2001:db8::1]:8080/api/users',
       'server.address': '[2001:db8::1]',
       'url.scheme': 'https:',
       'url.port': '8080',
@@ -651,7 +664,6 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.source': 'url',
       'url.path': '/users',
       'url.full': 'https://api.example.com/users',
-      url: 'https://api.example.com/users',
       'server.address': 'api.example.com',
       'url.scheme': 'https:',
     });

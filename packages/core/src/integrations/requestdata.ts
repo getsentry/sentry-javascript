@@ -9,6 +9,7 @@ import type { QueryParams, RequestEventData } from '../types/request';
 import type { StreamedSpanJSON } from '../types/span';
 import { parseCookie } from '../utils/cookie';
 import { httpHeadersToSpanAttributes } from '../utils/request';
+import { getUrlQuery } from '../utils/url';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
 import { URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
@@ -230,7 +231,7 @@ function extractNormalizedRequestData(
 
 function normalizeQueryString(queryString: QueryParams): string | undefined {
   if (typeof queryString === 'string') {
-    return queryString || undefined;
+    return getUrlQuery(queryString);
   }
 
   const pairs = Array.isArray(queryString) ? queryString : Object.entries(queryString);

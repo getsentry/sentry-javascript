@@ -22,7 +22,6 @@ sentryTest('sanitizes data URLs in XHR span name and attributes', async ({ getLo
 
   expect(span?.data).toMatchObject({
     'http.method': 'GET',
-    url: sanitizedUrl,
     type: 'xhr',
   });
 

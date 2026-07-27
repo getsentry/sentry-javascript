@@ -1,6 +1,4 @@
 import {
-  HTTP_FRAGMENT,
-  HTTP_QUERY,
   HTTP_ROUTE,
   SERVER_ADDRESS,
   URL_DOMAIN,
@@ -128,6 +126,36 @@ export function getSanitizedUrlStringFromUrlObject(url: URLObject): string {
   return newUrl.toString();
 }
 
+/**
+ * Normalizes a query string for the `url.query` attribute, which is specced without the leading `?`.
+ *
+ * Accepts either a raw query string (`URL.search`, which includes the `?`) or an already-stripped one.
+ * Empty results become `undefined` so callers can assign the return value to an attribute
+ * unconditionally — setting an attribute to `undefined` is a no-op.
+ */
+export function getUrlQuery(query: string | undefined): string | undefined {
+  return stripUrlPartPrefix(query, '?');
+}
+
+/**
+ * Normalizes a fragment for the `url.fragment` attribute, which is specced without the leading `#`.
+ *
+ * Accepts either a raw fragment (`URL.hash`, which includes the `#`) or an already-stripped one.
+ * Empty results become `undefined` so callers can assign the return value to an attribute
+ * unconditionally — setting an attribute to `undefined` is a no-op.
+ */
+export function getUrlFragment(fragment: string | undefined): string | undefined {
+  return stripUrlPartPrefix(fragment, '#');
+}
+
+function stripUrlPartPrefix(value: string | undefined, prefix: '?' | '#'): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return (value.startsWith(prefix) ? value.slice(1) : value) || undefined;
+}
+
 type PartialRequest = {
   method?: string;
 };
@@ -187,20 +215,13 @@ export function getHttpSpanDetailsFromUrlObject(
   }
 
   if (urlObject) {
-    attributes['url'] = getSanitizedUrlStringFromUrlObject(urlObject);
+    // Relative URLs have no meaningful `href`, so fall back to the sanitized path.
+    attributes[URL_FULL] = isURLObjectRelative(urlObject)
+      ? getSanitizedUrlStringFromUrlObject(urlObject)
+      : urlObject.href;
 
-    if (urlObject.search) {
-      const query = urlObject.search.slice(1) || undefined;
-      attributes[URL_QUERY] = query;
-      // legacy attribute
-      attributes[HTTP_QUERY] = query;
-    }
-    if (urlObject.hash) {
-      const fragment = urlObject.hash.slice(1) || undefined;
-      attributes[URL_FRAGMENT] = fragment;
-      // legacy attribute
-      attributes[HTTP_FRAGMENT] = fragment;
-    }
+    attributes[URL_QUERY] = getUrlQuery(urlObject.search);
+    attributes[URL_FRAGMENT] = getUrlFragment(urlObject.hash);
     if (urlObject.pathname) {
       attributes[URL_PATH] = urlObject.pathname;
       if (urlObject.pathname === '/') {
@@ -209,7 +230,6 @@ export function getHttpSpanDetailsFromUrlObject(
     }
 
     if (!isURLObjectRelative(urlObject)) {
-      attributes[URL_FULL] = urlObject.href;
       if (urlObject.port) {
         attributes[URL_PORT] = urlObject.port;
       }

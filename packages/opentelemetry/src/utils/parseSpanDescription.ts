@@ -13,11 +13,15 @@ import {
   RPC_SERVICE,
   SENTRY_GRAPHQL_OPERATION,
   SENTRY_KIND,
+  URL_FRAGMENT,
   URL_FULL,
+  URL_QUERY,
 } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes, TransactionSource } from '@sentry/core';
 import {
   getSanitizedUrlString,
+  getUrlFragment,
+  getUrlQuery,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -179,17 +183,15 @@ export function descriptionForHttpMethod(
   const data: Record<string, string> = {};
 
   if (url) {
-    data.url = url;
+    data[URL_FULL] = url;
   }
-  if (query) {
-    // Strip the leading `?`/`#` (the `URL.search`/`URL.hash` prefix) so the attribute matches the
-    // canonical format the OTel SDK exporter emits (`getData` in `spanExporter.ts` slices these too).
-    // TODO(v11): emit `url.query`/`url.fragment` (OTel-standard, no leading `?`/`#`) and drop
-    // this stripping + `http.query`/`http.fragment`; `http.query` is specced to keep the leading `?`.
-    data['http.query'] = query.slice(1);
+  const urlQuery = getUrlQuery(query);
+  if (urlQuery) {
+    data[URL_QUERY] = urlQuery;
   }
-  if (fragment) {
-    data['http.fragment'] = fragment.slice(1);
+  const urlFragment = getUrlFragment(fragment);
+  if (urlFragment) {
+    data[URL_FRAGMENT] = urlFragment;
   }
 
   // If the span kind is neither client nor server, we use the original name

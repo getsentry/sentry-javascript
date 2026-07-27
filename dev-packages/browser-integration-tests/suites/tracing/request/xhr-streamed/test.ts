@@ -39,7 +39,6 @@ sentryTest('creates spans for XHR requests', async ({ getLocalTestUrl, page }) =
         'http.method': { type: 'string', value: 'GET' },
         'http.url': { type: 'string', value: `http://sentry-test-site.example/${index}` },
         'url.full': { type: 'string', value: `http://sentry-test-site.example/${index}` },
-        url: { type: 'string', value: `http://sentry-test-site.example/${index}` },
         'server.address': { type: 'string', value: 'sentry-test-site.example' },
         type: { type: 'string', value: 'xhr' },
       }),

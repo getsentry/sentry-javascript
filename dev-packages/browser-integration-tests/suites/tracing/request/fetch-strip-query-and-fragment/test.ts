@@ -32,18 +32,17 @@ sentryTest('strips query params in fetch request spans', async ({ getLocalTestUr
       'http.method': 'GET',
       'http.url': 'http://sentry-test-site.example/0?id=123;page=5',
       'url.full': 'http://sentry-test-site.example/0?id=123;page=5',
-      'http.query': 'id=123;page=5',
+      'url.query': 'id=123;page=5',
       'http.response.status_code': 200,
       'http.response_content_length': 2,
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.browser',
       type: 'fetch',
       'server.address': 'sentry-test-site.example',
-      url: 'http://sentry-test-site.example/0?id=123;page=5',
     }),
   });
 
-  expect(requestSpan?.data).not.toHaveProperty('http.fragment');
+  expect(requestSpan?.data).not.toHaveProperty('url.fragment');
 });
 
 sentryTest('strips hash fragment in fetch request spans', async ({ getLocalTestUrl, page }) => {
@@ -76,18 +75,17 @@ sentryTest('strips hash fragment in fetch request spans', async ({ getLocalTestU
       'http.method': 'GET',
       'http.url': 'http://sentry-test-site.example/1#fragment',
       'url.full': 'http://sentry-test-site.example/1#fragment',
-      'http.fragment': 'fragment',
+      'url.fragment': 'fragment',
       'http.response.status_code': 200,
       'http.response_content_length': 2,
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.browser',
       type: 'fetch',
       'server.address': 'sentry-test-site.example',
-      url: 'http://sentry-test-site.example/1#fragment',
     }),
   });
 
-  expect(requestSpan?.data).not.toHaveProperty('http.query');
+  expect(requestSpan?.data).not.toHaveProperty('url.query');
 });
 
 sentryTest('strips hash fragment and query params in fetch request spans', async ({ getLocalTestUrl, page }) => {
@@ -120,15 +118,14 @@ sentryTest('strips hash fragment and query params in fetch request spans', async
       'http.method': 'GET',
       'http.url': 'http://sentry-test-site.example/2?id=1#fragment',
       'url.full': 'http://sentry-test-site.example/2?id=1#fragment',
-      'http.query': 'id=1',
-      'http.fragment': 'fragment',
+      'url.query': 'id=1',
+      'url.fragment': 'fragment',
       'http.response.status_code': 200,
       'http.response_content_length': 2,
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.browser',
       type: 'fetch',
       'server.address': 'sentry-test-site.example',
-      url: 'http://sentry-test-site.example/2?id=1#fragment',
     }),
   });
 });
@@ -165,15 +162,14 @@ sentryTest(
         'http.method': 'GET',
         'http.url': 'http://sentry-test.io/api/users?id=1#fragment',
         'url.full': 'http://sentry-test.io/api/users?id=1#fragment',
-        'http.query': 'id=1',
-        'http.fragment': 'fragment',
+        'url.query': 'id=1',
+        'url.fragment': 'fragment',
         'http.response.status_code': 200,
         'http.response_content_length': 2,
         'sentry.op': 'http.client',
         'sentry.origin': 'auto.http.browser',
         type: 'fetch',
         'server.address': 'sentry-test.io',
-        url: '/api/users?id=1#fragment',
       }),
     });
   },

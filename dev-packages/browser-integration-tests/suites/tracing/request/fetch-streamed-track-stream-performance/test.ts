@@ -53,7 +53,7 @@ sentryTest(
         name: 'GET http://sentry-test-site.example/delayed',
         attributes: expect.objectContaining({
           'http.method': { type: 'string', value: 'GET' },
-          url: { type: 'string', value: 'http://sentry-test-site.example/delayed' },
+          'http.url': { type: 'string', value: 'http://sentry-test-site.example/delayed' },
           type: { type: 'string', value: 'fetch' },
         }),
       });

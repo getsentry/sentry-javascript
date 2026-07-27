@@ -564,7 +564,6 @@ describe('withSentry', () => {
           'sentry.source': 'route',
           'http.request.method': 'GET',
           'url.full': 'https://example.com/',
-          url: 'https://example.com/',
           'server.address': 'example.com',
           'network.protocol.name': 'HTTP/1.1',
           'url.scheme': 'https:',
