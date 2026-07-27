@@ -64,6 +64,7 @@ function getSentryOptions() {
     dsn: 'https://8@ingest.sentry.io/4',
     release: '1.0.0',
     tracesSampleRate: 1.0,
+    traceLifecycle: 'static' as const,
     transport: () => mockTransport,
   };
 }

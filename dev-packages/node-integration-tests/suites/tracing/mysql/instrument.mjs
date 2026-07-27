@@ -10,5 +10,5 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  traceLifecycle: process.env.STREAMED === 'true' ? 'stream' : undefined,
+  traceLifecycle: process.env.STREAMED === 'true' ? 'stream' : 'static',
 });

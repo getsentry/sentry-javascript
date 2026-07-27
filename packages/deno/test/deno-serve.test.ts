@@ -34,6 +34,7 @@ Deno.test('Deno.serve should create http.server spans', async () => {
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -72,6 +73,7 @@ Deno.test('Deno.serve should isolate context between concurrent requests', async
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -198,6 +200,7 @@ Deno.test('Deno.serve should handle OPTIONS and HEAD requests without creating s
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -239,6 +242,7 @@ Deno.test('Deno.serve should work with handler in options object', async () => {
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -276,6 +280,7 @@ Deno.test('Deno.serve should capture request headers and set response context', 
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     sendDefaultPii: true,
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
@@ -328,6 +333,7 @@ Deno.test('Deno.serve should capture client address and port when userInfo data 
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     dataCollection: { userInfo: true },
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
@@ -363,6 +369,7 @@ Deno.test('Deno.serve should capture client address and port when sendDefaultPii
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     sendDefaultPii: true,
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
@@ -398,6 +405,7 @@ Deno.test('Deno.serve should not capture client address by default', async () =>
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -432,6 +440,7 @@ Deno.test('Deno.serve should keep PII request headers when dataCollection enable
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     dataCollection: { httpHeaders: { request: true } },
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
@@ -468,6 +477,7 @@ Deno.test('Deno.serve should filter PII request headers by default', async () =>
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -503,6 +513,7 @@ Deno.test('Deno.serve should support distributed tracing with sentry-trace heade
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -551,6 +562,7 @@ Deno.test('Deno.serve should handle streaming responses', async () => {
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -596,6 +608,7 @@ Deno.test('Deno.serve should work when manually capturing exceptions within hand
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSend: (event: ErrorEvent) => {
       errorEvents.push(event);
       return null;
