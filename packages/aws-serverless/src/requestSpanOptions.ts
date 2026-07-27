@@ -16,7 +16,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CLOUD_ACCOUNT_ID, FAAS_COLDSTART, SENTRY_KIND, URL_FULL } from '@sentry/conventions/attributes';
+import {
+  CLOUD_ACCOUNT_ID,
+  CLOUD_PLATFORM,
+  CLOUD_PROVIDER,
+  FAAS_COLDSTART,
+  FAAS_NAME,
+  SENTRY_KIND,
+  URL_FULL,
+} from '@sentry/conventions/attributes';
+import { FAAS_FUNCTION_AWS_SPAN_OP } from '@sentry/conventions/op';
 import type { SpanAttributes, StartSpanOptions } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { Context } from 'aws-lambda';
@@ -30,13 +39,13 @@ interface ApiGatewayLikeEvent {
 }
 
 /**
- * Builds the options for the `function.aws.lambda` transaction started for each invocation.
+ * Builds the options for the `function.aws` transaction started for each invocation.
  */
 export function getRequestSpanOptions(event: unknown, context: Context, requestIsColdStart: boolean): StartSpanOptions {
   // The span is started within the surrounding `continueTrace`, so it continues the incoming trace.
   return {
     name: context.functionName,
-    op: 'function.aws.lambda',
+    op: FAAS_FUNCTION_AWS_SPAN_OP,
     forceTransaction: true,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws_lambda',
@@ -44,6 +53,9 @@ export function getRequestSpanOptions(event: unknown, context: Context, requestI
       [ATTR_FAAS_EXECUTION]: context.awsRequestId,
       [ATTR_FAAS_ID]: context.invokedFunctionArn,
       [CLOUD_ACCOUNT_ID]: extractAccountId(context.invokedFunctionArn),
+      [CLOUD_PROVIDER]: 'aws',
+      [CLOUD_PLATFORM]: 'aws_lambda',
+      [FAAS_NAME]: context.functionName,
       [FAAS_COLDSTART]: requestIsColdStart,
       ...extractOtherEventFields(event),
     },
