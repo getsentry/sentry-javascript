@@ -44,6 +44,7 @@
     "access": "public"
   },
   "peerDependencies": {
+    "@nuxt/kit": "^3.13.2 || ^4.0.0",
     "nuxt": ">=3.7.0 || 4.x || 5.x",
     "nitro": "2.x || 3.x"
   },
@@ -53,7 +54,6 @@
     }
   },
   "dependencies": {
-    "@nuxt/kit": "^3.13.2",
     "@sentry/browser": "10.67.0",
     "@sentry/cloudflare": "10.67.0",
     "@sentry/core": "10.67.0",
@@ -64,6 +64,7 @@
     "local-pkg": "^1.1.2"
   },
   "devDependencies": {
+    "@nuxt/kit": "^3.13.2",
     "@nuxt/nitro-server": "^3.21.6",
     "nitro": "^3.0.260311-beta",
     "nuxi": "^3.25.1",
