@@ -1,3 +1,4 @@
+import { agentsChannels } from './config/agents';
 import { amqplibChannels } from './config/amqplib';
 import { anthropicAiChannels } from './config/anthropic-ai';
 import { awsSdkChannels } from './config/aws-sdk';
@@ -45,6 +46,7 @@ import { vercelAiChannels } from './config/vercel-ai';
  * points rather than all appending to the end (fewer merge conflicts).
  */
 export const CHANNELS = {
+  ...agentsChannels,
   ...amqplibChannels,
   ...anthropicAiChannels,
   ...awsSdkChannels,

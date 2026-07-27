@@ -1,6 +1,7 @@
 import type { InstrumentationConfig } from '..';
 import { uniq } from '@sentry/core';
 
+import { agentsConfig, agentsSubscribeInjection } from './agents';
 import { awsSdkConfig, awsSdkSubscribeInjection } from './aws-sdk';
 import { amqplibConfig, amqplibSubscribeInjection } from './amqplib';
 import { anthropicAiConfig, anthropicAiSubscribeInjection } from './anthropic-ai';
@@ -41,6 +42,7 @@ import { vercelAiConfig, vercelAiSubscribeInjection } from './vercel-ai';
  * transformed is centralized here.
  */
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
+  ...agentsConfig,
   ...amqplibConfig,
   ...anthropicAiConfig,
   ...awsSdkConfig,
@@ -84,6 +86,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
  * `*SubscribeInjection` (derived from its channel configs), collected here.
  */
 export const SUBSCRIBE_INJECTIONS: InstrumentationConfig[] = [
+  ...agentsSubscribeInjection,
   ...amqplibSubscribeInjection,
   ...anthropicAiSubscribeInjection,
   ...awsSdkSubscribeInjection,

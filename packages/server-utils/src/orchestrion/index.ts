@@ -1,3 +1,4 @@
+import { agentsChannelIntegration } from '../integrations/tracing-channel/agents';
 import { amqplibChannelIntegration } from '../integrations/tracing-channel/amqplib';
 import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
 import { awsChannelIntegration } from '../integrations/tracing-channel/aws-sdk';
@@ -40,6 +41,7 @@ export { nestjsChannels } from './config/nestjs';
 // listener that subscribes to them lives in `@sentry/remix`, which imports this.
 export { remixChannels } from './config/remix';
 export {
+  agentsChannelIntegration,
   amqplibChannelIntegration,
   anthropicChannelIntegration,
   awsChannelIntegration,

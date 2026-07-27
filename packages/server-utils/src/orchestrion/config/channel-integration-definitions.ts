@@ -22,6 +22,7 @@
  * package is bundled is unconditionally correct.
  */
 export const CHANNEL_INTEGRATION_DEFINITIONS = [
+  { exportName: 'agentsChannelIntegration', modules: ['agents'] },
   { exportName: 'postgresChannelIntegration', modules: ['pg', 'pg-pool'] },
   { exportName: 'postgresJsChannelIntegration', modules: ['postgres'] },
   { exportName: 'mysqlChannelIntegration', modules: ['mysql'] },

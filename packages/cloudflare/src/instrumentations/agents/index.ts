@@ -1,9 +1,22 @@
+import { GLOBAL_OBJ } from '@sentry/core';
 import { instrumentAgentCallableRpc } from './instrumentAgentCallableRpc';
 import { instrumentAgentFiber } from './instrumentAgentFiber';
 import { instrumentAgentSchedule } from './instrumentAgentSchedule';
 import { instrumentAgentStart } from './instrumentAgentStart';
 import { instrumentChatAgentConversation } from './instrumentChatAgentConversation';
 import type { AgentInternals } from './types';
+
+/**
+ * Whether the orchestrion bundler plugin injected tracing channels into the `agents` package (its
+ * `__SENTRY_ORCHESTRION__.bundler` marker lists it). When it did, the schedule-task and fiber spans
+ * come from the channel subscriber (`agentsChannelIntegration`) rather than method-wrapping, so the
+ * corresponding monkey-patches here are skipped. The RPC dispatch and `onStart` live inside
+ * constructor-installed closures, so they can't be channel-injected and stay method-wrapped either way.
+ */
+function isAgentsOrchestrionInjected(): boolean {
+  const bundler = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler;
+  return Array.isArray(bundler) && bundler.includes('agents');
+}
 
 /**
  * Instruments an instance of a Cloudflare [`agents`](https://www.npmjs.com/package/agents) `Agent`
@@ -34,10 +47,15 @@ import type { AgentInternals } from './types';
 export function instrumentCloudflareAgent<T extends object>(agent: T): T {
   const internals = agent as T & AgentInternals;
 
+  const orchestrionInjected = isAgentsOrchestrionInjected();
+
   instrumentAgentCallableRpc(internals);
-  instrumentAgentSchedule(internals);
+  if (!orchestrionInjected) {
+    // The orchestrion channel subscriber produces these spans when `agents` is channel-injected.
+    instrumentAgentSchedule(internals);
+    instrumentAgentFiber(internals);
+  }
   instrumentAgentStart(internals);
-  instrumentAgentFiber(internals);
   instrumentChatAgentConversation(internals);
 
   return agent;
