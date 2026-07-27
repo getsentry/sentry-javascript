@@ -1,16 +1,7 @@
 import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { PropagationContext, Span, SpanAttributes } from '@sentry/core';
-import {
-  isObjectLike,
-  getActiveSpan,
-  getClient,
-  getRootSpan,
-  Scope,
-  spanToJSON,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+import { isObjectLike, Scope, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { ATTR_NEXT_SEGMENT, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
-import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
 const commonPropagationContextMap = new WeakMap<object, PropagationContext>();
 
