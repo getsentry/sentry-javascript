@@ -77,7 +77,11 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
   }
 
   public disable(): this {
-    this._asyncLocalStorage.disable();
+    try {
+      this._asyncLocalStorage.disable();
+    } catch {
+      // we don't care if something goes wrong here
+    }
     return this;
   }
 

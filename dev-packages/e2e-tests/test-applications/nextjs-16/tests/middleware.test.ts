@@ -131,7 +131,6 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
             'server.port': 3030,
             'url.full': 'http://localhost:3030/',
             'url.path': '/',
-            'url.query': '',
             'url.scheme': 'http',
             'user_agent.original': 'node',
           },

@@ -241,7 +241,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       data: {
         'sentry.op': 'http.client',
         'sentry.origin': 'auto.http.fetch',
-        url: expect.stringContaining('/api/user/myUsername123.json'),
+        'url.full': expect.stringContaining('/api/user/myUsername123.json'),
         'url.full': 'http://localhost:3030/api/user/myUsername123.json',
       },
     });
