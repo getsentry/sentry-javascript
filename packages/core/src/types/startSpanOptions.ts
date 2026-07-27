@@ -56,15 +56,17 @@ export interface StartSpanOptions {
    */
   experimental?: {
     /**
-     * If set to true, always start a standalone span which will be sent as a
-     * standalone segment span envelope instead of a transaction envelope.
+     * If set to true, the span is sent on its own as a v2 streamed span instead of being folded
+     * into a transaction. Used internally for late web vital spans (INP) when span streaming is
+     * disabled.
      *
-     * @internal this option is currently experimental and should only be
-     * used within SDK code. It might be removed or changed in the future.
-     * The payload ("envelope") of the resulting request sending the span to
-     * Sentry might change at any time.
-     *
+     * @internal this option is currently experimental and should only be used within SDK code. It
+     * might be removed or changed in the future.
      * @hidden
+     *
+     * @deprecated This option is deprecated and will be removed in the future.
+     *
+     * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
      */
     standalone?: boolean;
   };

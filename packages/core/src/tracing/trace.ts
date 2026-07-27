@@ -469,9 +469,10 @@ function createChildOrRootSpan({
  * but some of them need to be transformed.
  */
 function parseSentrySpanArguments(options: StartSpanOptions): SentrySpanArguments {
-  const exp = options.experimental || {};
   const initialCtx: SentrySpanArguments = {
-    isStandalone: exp.standalone,
+    // TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
+    // oxlint-disable-next-line typescript/no-deprecated
+    isStandalone: options.experimental?.standalone,
     ...options,
   };
 

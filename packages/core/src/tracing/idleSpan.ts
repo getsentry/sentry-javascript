@@ -360,6 +360,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       // If we already finished the idle span,
       // or if this is the idle span itself being started,
       // or if the started span has already been closed,
+      // or if the started span is standalone (it's sent on its own and must not prolong the idle span),
       // we don't care about it for activity
       if (
         _finished ||

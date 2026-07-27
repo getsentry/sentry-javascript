@@ -3,7 +3,6 @@ import { defineIntegration, hasSpanStreamingEnabled } from '@sentry/core/browser
 import {
   addWebVitalsToSpan,
   registerInpInteractionListener,
-  startTrackingINP,
   startTrackingWebVitals,
   trackClsAsSpan,
   trackInpAsSpan,
@@ -73,11 +72,12 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
         if (!ignored.has('cls')) {
           trackClsAsSpan(client);
         }
-        if (!ignored.has('inp')) {
-          trackInpAsSpan();
-        }
-      } else if (!ignored.has('inp')) {
-        startTrackingINP();
+      }
+
+      // INP is always sent as a streamed web vital span. When span streaming is disabled, INP still
+      // streams (it overrides the static trace lifecycle for INP only), see `trackInpAsSpan`.
+      if (!ignored.has('inp')) {
+        trackInpAsSpan(client);
       }
     },
     afterAllSetup() {
