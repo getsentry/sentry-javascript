@@ -2,6 +2,7 @@ import type { InstrumentationBase } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleFile } from '../../../InstrumentationNodeModuleFile';
 import { SENTRY_KIND } from '@sentry/conventions/attributes';
+import { FAAS_FUNCTION_GCP_SPAN_OP } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
 import {
   captureException,
@@ -87,7 +88,7 @@ export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions
         return startSpanManual(
           {
             name: `firebase.function.${triggerType}`,
-            op: 'http.request',
+            op: FAAS_FUNCTION_GCP_SPAN_OP,
             attributes,
           },
           async span => {
