@@ -15,6 +15,11 @@ import {
   SENTRY_KIND,
   URL_FULL,
 } from '@sentry/conventions/attributes';
+import {
+  WEB_SERVER_HTTP_CLIENT_SPAN_OP,
+  WEB_SERVER_HTTP_SERVER_SPAN_OP,
+  WEB_SERVER_HTTP_SPAN_OP,
+} from '@sentry/conventions/op';
 import type { Span, SpanAttributes, TransactionSource } from '@sentry/core';
 import {
   getSanitizedUrlString,
@@ -139,27 +144,19 @@ export function descriptionForHttpMethod(
   { name, attributes }: { name: string; attributes: Attributes },
   httpMethod: AttributeValue,
 ): SpanDescription {
-  const opParts = ['http'];
   const kind = attributes[SENTRY_KIND];
 
-  switch (kind) {
-    case 'client':
-      opParts.push('client');
-      break;
-    case 'server':
-      opParts.push('server');
-      break;
-  }
-
-  // Spans for HTTP requests we have determined to be prefetch requests will have a `.prefetch` postfix in the op
-  if (attributes['sentry.http.prefetch']) {
-    opParts.push('prefetch');
-  }
+  const op =
+    kind === 'client'
+      ? WEB_SERVER_HTTP_CLIENT_SPAN_OP
+      : kind === 'server'
+        ? WEB_SERVER_HTTP_SERVER_SPAN_OP
+        : WEB_SERVER_HTTP_SPAN_OP;
 
   const { urlPath, url, query, fragment, hasRoute } = getSanitizedUrl(attributes);
 
   if (!urlPath) {
-    return { ...getUserUpdatedNameAndSource(name, attributes), op: opParts.join('.') };
+    return { ...getUserUpdatedNameAndSource(name, attributes), op };
   }
 
   const graphqlOperationsAttribute = attributes[SENTRY_GRAPHQL_OPERATION];
@@ -214,7 +211,7 @@ export function descriptionForHttpMethod(
     : getUserUpdatedNameAndSource(name, attributes);
 
   return {
-    op: opParts.join('.'),
+    op,
     description,
     source,
     data,

@@ -386,8 +386,28 @@ describe('descriptionForHttpMethod', () => {
       },
       'test name',
       {
-        op: 'http.client.prefetch',
+        op: 'http.client',
         description: 'GET https://www.example.com/my-path',
+        data: {
+          url: 'https://www.example.com/my-path',
+        },
+        source: 'url',
+      },
+    ],
+    [
+      'works with prefetch server request',
+      'GET',
+      {
+        [HTTP_METHOD]: 'GET',
+        [HTTP_URL]: 'https://www.example.com/my-path',
+        [HTTP_TARGET]: '/my-path',
+        'sentry.http.prefetch': true,
+        [SENTRY_KIND]: 'server',
+      },
+      'test name',
+      {
+        op: 'http.server',
+        description: 'GET /my-path',
         data: {
           url: 'https://www.example.com/my-path',
         },
