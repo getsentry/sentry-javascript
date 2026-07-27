@@ -177,7 +177,6 @@ function withProfiler<P extends Record<string, any>>(
  *
  * `useProfiler` is a React hook that profiles a React component.
  *
- * Requires React 16.8 or above.
  * @param name displayName of component being profiled
  */
 function useProfiler(
