@@ -22,7 +22,7 @@ const _firebaseIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven firebase integration.
+ * Orchestrion-driven firebase integration.
  *
  * Subscribes to the `orchestrion:@firebase/firestore:*` and `orchestrion:firebase-functions:*`
  * diagnostics_channels the orchestrion code transform injects into firestore's `addDoc`/`getDocs`/

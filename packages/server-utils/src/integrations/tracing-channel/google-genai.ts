@@ -21,8 +21,8 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
-// Same name as the OTel integration by design: when enabled, the OTel 'Google_GenAI'
-// integration is dropped from the default set (see the Node opt-in loader).
+// Same name as the OTel integration by design, so the OTel 'Google_GenAI'
+// integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'Google_GenAI' as const;
 
 // Distinct from the proxy's `auto.ai.google_genai` so spans from the orchestrion path
@@ -161,7 +161,7 @@ function wrapStreamResult(span: Span, data: GoogleGenAIChannelContext, options: 
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven Google GenAI integration. Subscribes to the
+ * Orchestrion-driven Google GenAI integration. Subscribes to the
  * `orchestrion:@google/genai:*` diagnostics_channels injected into the SDK's `Models`
  * (`generateContent`/`generateContentStream`/`embedContent`) and `Chat`
  * (`sendMessage`/`sendMessageStream`) methods, so it requires the orchestrion runtime hook or

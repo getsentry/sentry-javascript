@@ -25,7 +25,7 @@ const _expressIntegration = ((options: ExpressIntegrationOptions = {}) => {
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven Express integration.
+ * Orchestrion-driven Express integration.
  *
  * Subscribes to the `orchestrion:express:handle` (Express v4) and
  * `orchestrion:router:handle` (Express v5, via the `router` package)
@@ -34,7 +34,6 @@ const _expressIntegration = ((options: ExpressIntegrationOptions = {}) => {
  * `handleRequest`). One span is opened per layer invocation — producing the
  * same spans as the OTel Express instrumentation.
  *
- * Requires the orchestrion runtime hook or bundler plugin to be active — wire
- * that up via `experimentalUseDiagnosticsChannelInjection()`.
+ * Requires the orchestrion runtime hook or bundler plugin to be active.
  */
 export const expressIntegration = defineIntegration(_expressIntegration);

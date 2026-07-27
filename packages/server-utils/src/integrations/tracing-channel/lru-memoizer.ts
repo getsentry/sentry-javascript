@@ -36,7 +36,7 @@ const _lruMemoizerIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven lru-memoizer integration. Subscribes to
+ * Orchestrion-driven lru-memoizer integration. Subscribes to
  * `orchestrion:lru-memoizer:load` (injected into `lru-memoizer/lib/async.js`'s
  * `memoizedFunction`). Creates no spans; only re-runs the memoized callback with the
  * caller's scope. Requires the orchestrion runtime hook or bundler plugin.

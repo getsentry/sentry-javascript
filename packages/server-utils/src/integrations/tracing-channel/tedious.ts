@@ -252,7 +252,7 @@ const _tediousIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL - orchestrion-driven tedious integration.
+ * Orchestrion-driven tedious integration.
  *
  * Subscribes to the `orchestrion:tedious:*` diagnostics_channels that the orchestrion code transform
  * injects into tedious's `Connection` request methods (each traced as one db span) and `Connection.connect`

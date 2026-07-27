@@ -20,8 +20,8 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
-// Same name as the OTel integration by design: when enabled, the OTel 'Anthropic_AI'
-// integration is dropped from the default set (see the Node opt-in loader).
+// Same name as the OTel integration by design, so the OTel 'Anthropic_AI'
+// integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'Anthropic_AI' as const;
 
 // Distinct from the proxy's `auto.ai.anthropic` so spans from the orchestrion path
@@ -176,7 +176,7 @@ function wrapStreamResult(
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven Anthropic integration. Subscribes to the `orchestrion:@anthropic-ai/sdk:*`
+ * Orchestrion-driven Anthropic integration. Subscribes to the `orchestrion:@anthropic-ai/sdk:*`
  * diagnostics_channels injected into the SDK's chat (`messages`/`completions`/beta `messages`), `models`, and
  * `messages.stream()` methods, so it requires the orchestrion runtime hook or bundler plugin.
  */

@@ -644,7 +644,7 @@ function getHeaderAsString(headers: Record<string, unknown> | undefined, key: st
 }
 
 /**
- * EXPERIMENTAL: orchestrion-driven `amqplib` integration.
+ * Orchestrion-driven `amqplib` integration.
  *
  * Subscribes to the `orchestrion:amqplib:*` diagnostics_channels that the orchestrion code transform
  * injects into `amqplib`'s channel/connection methods. Requires the orchestrion runtime hook or

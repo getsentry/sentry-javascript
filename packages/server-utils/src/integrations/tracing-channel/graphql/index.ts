@@ -67,7 +67,7 @@ const _graphqlIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) =>
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven graphql integration for graphql v14–16 (v17 publishes native
+ * Orchestrion-driven graphql integration for graphql v14–16 (v17 publishes native
  * `diagnostics_channel` events handled by `@sentry/server-utils`'s graphql integration instead).
  *
  * Subscribes to the `orchestrion:graphql:{parse,validate,execute}` channels the orchestrion code

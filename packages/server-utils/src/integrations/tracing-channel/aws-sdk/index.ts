@@ -249,7 +249,7 @@ const _awsIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven aws-sdk (v3) integration.
+ * Orchestrion-driven aws-sdk (v3) integration.
  *
  * Subscribes to the `orchestrion:@smithy/smithy-client:send` (and equivalent) diagnostics_channel
  * the orchestrion code transform injects into the AWS SDK's smithy `Client.prototype.send`, emitting

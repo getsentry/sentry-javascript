@@ -80,10 +80,8 @@ export type * from '../integrations/tracing-channel/graphql/graphql-types';
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
  * (OTel-parity) factory name.
  *
- * Single source of truth: add a new channel integration here and every consumer — the `@sentry/node`
- * opt-in helper (`experimentalUseDiagnosticsChannelInjection`) and its public
- * `diagnosticsChannelInjectionIntegrations()` map — picks it up automatically, so there's no separate
- * list to keep in sync.
+ * Single source of truth: add a new channel integration here and every consumer that spreads this map
+ * into its default integrations picks it up automatically, so there's no separate list to keep in sync.
  *
  * NOTE: `ioredisChannelIntegration` and `redisChannelIntegration` are intentionally NOT here. They
  * only partially replace the composite OTel `Redis` integration and need the node SDK's redis cache

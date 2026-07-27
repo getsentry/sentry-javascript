@@ -63,7 +63,7 @@ const _hapiIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven hapi integration. Subscribes to the
+ * Orchestrion-driven hapi integration. Subscribes to the
  * `orchestrion:@hapi/hapi:route` / `:ext` channels injected into `@hapi/hapi`'s
  * `lib/server.js`. Requires the orchestrion runtime hook or bundler plugin.
  */

@@ -18,9 +18,8 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
-// Same name as the OTel `PostgresJs` integration by design: when this is
-// enabled, the OTel integration of the same name is dropped from the default
-// set (see `experimentalUseDiagnosticsChannelInjection`).
+// Same name as the OTel `PostgresJs` integration by design, so the OTel
+// integration of the same name is deduplicated out of the default set.
 const INTEGRATION_NAME = 'PostgresJs' as const;
 
 const ORIGIN = 'auto.db.orchestrion.postgresjs';
@@ -324,7 +323,7 @@ const _postgresJsIntegration = ((options: PostgresJsIntegrationOptions = {}) => 
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven postgres.js (`postgres` v3.x) integration.
+ * Orchestrion-driven postgres.js (`postgres` v3.x) integration.
  *
  * Subscribes to the `orchestrion:postgres:handle` / `:connection` / `:execute` /
  * `:connect` diagnostics channels injected into postgres.js' `Query.prototype.handle`

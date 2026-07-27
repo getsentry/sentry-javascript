@@ -188,7 +188,7 @@ function stashParentSpan(self: object | undefined): void {
 }
 
 /**
- * EXPERIMENTAL: orchestrion-driven mongoose integration.
+ * Orchestrion-driven mongoose integration.
  *
  * Reproduces the vendored `@opentelemetry/instrumentation-mongoose` span
  * shape (legacy db/net semantic conventions, `mongoose.<Model>.<op>` names,

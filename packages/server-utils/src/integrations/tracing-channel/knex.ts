@@ -305,7 +305,7 @@ function extractPortFromConnectionString(connectionString: string | undefined): 
 }
 
 /**
- * EXPERIMENTAL - orchestrion-driven knex integration.
+ * Orchestrion-driven knex integration.
  *
  * Subscribes to the `orchestrion:knex:*` diagnostics_channels that the orchestrion code transform
  * injects into knex's `Runner.query` (span) and `Client.queryBuilder`/`schemaBuilder`/`raw` (parent-span

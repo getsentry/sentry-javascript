@@ -8,8 +8,8 @@ import { isWrappedConsumerCallback, wrapEachBatch, wrapEachMessage } from './con
 import { applyErrorToSpans, startProducerSpan } from './spans';
 import type { ConsumerRunConfig, ProducerBatch } from './types';
 
-// NOTE: this uses the same name as the OTel `Kafka` integration by design. When enabled, the OTel
-// integration is omitted from the default set (see `experimentalUseDiagnosticsChannelInjection`).
+// NOTE: this uses the same name as the OTel `Kafka` integration by design, so the OTel integration
+// is deduplicated out of the default set.
 const INTEGRATION_NAME = 'Kafka' as const;
 
 /** The tracing-channel context the transform attaches around `messageProducer.js`'s `sendBatch`. */
@@ -98,7 +98,7 @@ const _kafkajsIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven kafkajs integration.
+ * Orchestrion-driven kafkajs integration.
  *
  * Subscribes to the `orchestrion:kafkajs:*` diagnostics_channels that the orchestrion code transform
  * injects into `kafkajs`'s `producer/messageProducer.js` (`sendBatch`) and `consumer/index.js` (`run`).

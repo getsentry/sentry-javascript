@@ -278,7 +278,7 @@ function getConnectionString(params: PgConnectionParams): string {
 }
 
 /**
- * EXPERIMENTAL: orchestrion-driven `pg` (node-postgres) integration.
+ * Orchestrion-driven `pg` (node-postgres) integration.
  *
  * Subscribes to the `orchestrion:pg:query`/`:connect` and
  * `orchestrion:pg-pool:connect` diagnostics_channels that the orchestrion code

@@ -173,7 +173,7 @@ function bindV3(channelName: string, extract: (args: unknown[]) => V3CallInfo | 
 }
 
 /**
- * EXPERIMENTAL: orchestrion-driven mongodb integration.
+ * Orchestrion-driven mongodb integration.
  *
  * Reproduces the vendored `@opentelemetry/instrumentation-mongodb` span shape
  * (legacy db/net semantic conventions, `mongodb.<op>` names, scrubbed
