@@ -28,9 +28,6 @@ import { instrumentSentryHttp } from '../http';
 import { fastifyIntegration, instrumentFastifyV3 } from './fastify';
 import { redisChannelIntegrations } from './redis';
 
-/**
- * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
- */
 export function getAutoPerformanceIntegrations(): Integration[] {
   return [
     expressIntegration(),
