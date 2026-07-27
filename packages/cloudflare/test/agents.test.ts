@@ -28,6 +28,7 @@ describe('instrumentAgentWithSentry', () => {
     const testClass = class {
       fetch() {}
       onMessage() {}
+      _executeScheduleCallback() {}
     };
     const proto = testClass.prototype as any;
 
@@ -36,7 +37,7 @@ describe('instrumentAgentWithSentry', () => {
 
     // `instrumentCloudflareAgent` replaces each handler with a wrapper stored as an own-property,
     // so the instance's copy is a distinct function from the untouched prototype method.
-    for (const methodName of ['onMessage']) {
+    for (const methodName of ['onMessage', '_executeScheduleCallback']) {
       expect(Object.prototype.hasOwnProperty.call(obj, methodName), `${methodName} is an own-property`).toBe(true);
       expect(obj[methodName], `${methodName} differs from the prototype original`).not.toBe(proto[methodName]);
     }
@@ -46,6 +47,7 @@ describe('instrumentAgentWithSentry', () => {
     const testClass = class {
       fetch() {}
       onMessage() {}
+      _executeScheduleCallback() {}
       onChatMessage() {}
       rpcMethod() {
         return 'rpc';
@@ -60,6 +62,7 @@ describe('instrumentAgentWithSentry', () => {
 
     // Agent-specific handlers become own properties, so they are excluded from RPC method tracing.
     expect(Object.prototype.hasOwnProperty.call(obj, 'onMessage')).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(obj, '_executeScheduleCallback')).toBe(true);
     expect(Object.prototype.hasOwnProperty.call(obj, 'onChatMessage')).toBe(true);
 
     // RPC methods remain on the prototype and still work through the proxy.

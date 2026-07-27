@@ -14,9 +14,14 @@ function createFakeAgent(overrides: Record<string, unknown> = {}): Record<string
     _ParentClass: { name: 'MyAgent' },
     name: 'instance-1',
     messages: [] as unknown[],
+    executed: [] as unknown[],
     onMessage(this: any, _connection: unknown, message: unknown) {
       this.messages.push(message);
       return 'handled';
+    },
+    _executeScheduleCallback(this: any, row: unknown) {
+      this.executed.push(row);
+      return 'scheduled';
     },
     ...overrides,
   };
@@ -155,6 +160,58 @@ describe('instrumentCloudflareAgent', () => {
 
       expect(agent.seenConversationId).toBe('instance-1');
       expect('onChatMessage' in agent).toBe(false);
+    });
+
+    it('sets the conversation id during scheduled callback execution', () => {
+      const agent = createFakeAgent({
+        _executeScheduleCallback(this: any, row: unknown) {
+          // Capture what the scope sees while the scheduled callback is running.
+          this.seenConversationId = getCurrentScope().getScopeData().conversationId;
+          this.executed.push(row);
+          return 'scheduled';
+        },
+      });
+      instrumentCloudflareAgent(agent);
+
+      agent._executeScheduleCallback({ callback: 'sendReminder', id: 'sched-1' });
+
+      expect(agent.seenConversationId).toBe('instance-1');
+    });
+  });
+
+  describe('_executeScheduleCallback → schedule spans', () => {
+    it('creates a function span named after the callback', async () => {
+      const agent = createFakeAgent();
+      instrumentCloudflareAgent(agent);
+
+      const result = agent._executeScheduleCallback({ callback: 'sendReminder', id: 'sched-1' });
+
+      expect(result).toBe('scheduled');
+      expect(agent.executed).toHaveLength(1);
+
+      await client.flush();
+
+      expect(transactions).toHaveLength(1);
+      expect(transactions[0]?.transaction).toBe('sendReminder');
+      expect(transactions[0]?.contexts?.trace).toEqual(
+        expect.objectContaining({
+          op: 'function',
+          origin: 'auto.faas.cloudflare.agents',
+          data: expect.objectContaining({ 'cloudflare.agent.schedule.id': 'sched-1' }),
+        }),
+      );
+    });
+
+    it('does not create a span when the row has no callback name', async () => {
+      const agent = createFakeAgent();
+      instrumentCloudflareAgent(agent);
+
+      agent._executeScheduleCallback({ id: 'sched-1' });
+
+      await client.flush();
+
+      expect(agent.executed).toHaveLength(1);
+      expect(transactions).toHaveLength(0);
     });
   });
 });

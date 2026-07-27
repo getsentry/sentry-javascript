@@ -1,4 +1,7 @@
 import { instrumentAgentCallableRpc } from './instrumentAgentCallableRpc';
+import { instrumentAgentFiber } from './instrumentAgentFiber';
+import { instrumentAgentSchedule } from './instrumentAgentSchedule';
+import { instrumentAgentStart } from './instrumentAgentStart';
 import { instrumentChatAgentConversation } from './instrumentChatAgentConversation';
 import type { AgentInternals } from './types';
 
@@ -7,10 +10,14 @@ import type { AgentInternals } from './types';
  * with Sentry, adding telemetry that is specific to the Agent's runtime behavior:
  *
  * - **Callable RPC spans** — a span (op `rpc`) for each `@callable()` method invoked over WebSocket.
+ * - **Scheduled-task spans** — a span (op `function`) for each scheduled/queued callback execution.
+ * - **Agent-start spans** — a span (op `function`) for the per-isolate `onStart` cold-start phase
+ *   (state restore, MCP reconnect, in-flight work recovery, the user's `onStart`).
+ * - **Fiber-run spans** — a span (op `function`) for each managed fiber (`runFiber`/`startFiber`).
  * - **Conversation correlation** — sets the conversation id on the scope for each unit of agent
- *   work — chat turn or callable RPC call — so `gen_ai` spans created within it are correlated, for
- *   chat and plain agents alike. Defaults to the instance `name` and is rotated when the chat is
- *   cleared (`cf_agent_chat_clear`).
+ *   work — chat turn, callable RPC call, or scheduled task — so `gen_ai` spans created within it
+ *   are correlated, for chat and plain agents alike. Defaults to the instance `name` and is rotated
+ *   when the chat is cleared (`cf_agent_chat_clear`).
  *
  * It only hooks the `agents` package internals and uses Sentry's tracing primitives. On Cloudflare
  * Workers, prefer `instrumentAgentWithSentry`, which additionally instruments the Durable Object
@@ -28,6 +35,9 @@ export function instrumentCloudflareAgent<T extends object>(agent: T): T {
   const internals = agent as T & AgentInternals;
 
   instrumentAgentCallableRpc(internals);
+  instrumentAgentSchedule(internals);
+  instrumentAgentStart(internals);
+  instrumentAgentFiber(internals);
   instrumentChatAgentConversation(internals);
 
   return agent;

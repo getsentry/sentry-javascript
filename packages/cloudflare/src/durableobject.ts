@@ -303,6 +303,7 @@ export function instrumentDurableObjectWithSentry<
  * `instrumentCloudflareAgent`:
  *
  * - **Callable RPC spans** — a span (op `rpc`) for each `@callable()` method invoked over WebSocket.
+ * - **Scheduled-task spans** — a span (op `function`) for each scheduled/queued callback execution.
  * - **Breadcrumbs** — for every Agent observability event (`rpc`, `state:update`, `connect`,
  *   `disconnect`, `schedule:*`, `queue:*`, `workflow:*`, `email:*`, `mcp:*`, ...).
  *

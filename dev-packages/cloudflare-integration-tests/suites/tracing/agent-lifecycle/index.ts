@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/cloudflare';
-import { Agent, callable, routeAgentRequest } from 'agents';
+import { Agent, routeAgentRequest } from 'agents';
 
 interface Env {
   SENTRY_DSN: string;
@@ -7,21 +7,14 @@ interface Env {
 }
 
 class MyAgentBase extends Agent<Env> {
-  @callable()
-  public async greet(name: string): Promise<string> {
-    return `Hello, ${name}!`;
-  }
-
-  public async scheduledTask(): Promise<void> {
-    await new Promise<void>(resolve => setTimeout(resolve, 10));
-  }
-
   public async onRequest(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
-    if (url.pathname.endsWith('/schedule')) {
-      await this.schedule(0, 'scheduledTask');
-      return new Response('scheduled');
+    if (url.pathname.endsWith('/fiber')) {
+      await this.runFiber('refreshTokens', async () => {
+        await new Promise<void>(resolve => setTimeout(resolve, 10));
+      });
+      return new Response('fiber-done');
     }
 
     return new Response('ok');

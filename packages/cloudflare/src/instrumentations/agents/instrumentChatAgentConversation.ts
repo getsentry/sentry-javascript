@@ -9,9 +9,9 @@ import { type AgentInternals, setAgentConversationId } from './types';
  * the scope at `spanStart` and stamps `gen_ai.conversation.id` onto the AI spans created inside the
  * turn (e.g. by the Workers AI instrumentation), which correlates a turn's model and tool calls.
  *
- * Plain (non-chat) `Agent`s do not define `onChatMessage`, so they are skipped here — their unit
- * of work is the callable RPC method, where `instrumentAgentCallableRpc` sets the conversation id
- * instead.
+ * Plain (non-chat) `Agent`s do not define `onChatMessage`, so they are skipped here — their units
+ * of work are callable RPC methods and scheduled tasks, where `instrumentAgentCallableRpc` and
+ * `instrumentAgentSchedule` set the conversation id instead.
  */
 export function instrumentChatAgentConversation(obj: AgentInternals): void {
   const original = obj.onChatMessage;
