@@ -1465,12 +1465,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     const dataCategory = getDataCategoryByType(event.type);
 
+    let preparedEvent: Event = event;
+
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', dataCategory);
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
+
+        preparedEvent = prepared;
 
         const isInternalException = (hint.data as { __sentry__: boolean })?.__sentry__ === true;
         if (isInternalException) {
@@ -1493,7 +1497,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           // Reflects crashes inside release health sessions, regardless of beforeSend dropping the event.
           const session = currentScope.getSession() || isolationScope.getSession();
           if (isError && session) {
-            this._updateSessionFromEvent(session, event);
+            this._updateSessionFromEvent(session, preparedEvent);
           }
 
           throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
