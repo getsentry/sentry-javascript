@@ -21,11 +21,11 @@ it('Workflow steps create transactions with correct attributes', async ({ signal
             trace: {
               span_id: expect.any(String),
               trace_id: expect.any(String),
-              op: 'function.step.do',
+              op: 'function',
               origin: 'auto.faas.cloudflare.workflow',
               status: 'ok',
               data: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.step.do',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
@@ -48,11 +48,11 @@ it('Workflow steps create transactions with correct attributes', async ({ signal
             trace: {
               span_id: expect.any(String),
               trace_id: expect.any(String),
-              op: 'function.step.do',
+              op: 'function',
               origin: 'auto.faas.cloudflare.workflow',
               status: 'ok',
               data: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.step.do',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,

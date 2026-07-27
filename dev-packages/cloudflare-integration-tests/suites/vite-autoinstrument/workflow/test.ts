@@ -11,7 +11,7 @@ it('auto-instruments a Workflow class', async ({ signal }) => {
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as TransactionEvent;
       expect(transactionEvent.transaction).toBe('step-one');
-      expect(transactionEvent.contexts?.trace?.op).toBe('function.step.do');
+      expect(transactionEvent.contexts?.trace?.op).toBe('function');
       expect(transactionEvent.contexts?.trace?.origin).toBe('auto.faas.cloudflare.workflow');
     })
     .start(signal);

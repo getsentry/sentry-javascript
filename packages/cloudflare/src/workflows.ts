@@ -1,3 +1,5 @@
+import { CODE_FUNCTION_NAME } from '@sentry/conventions/attributes';
+import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { PropagationContext } from '@sentry/core';
 import {
   captureException,
@@ -117,10 +119,12 @@ class WrappedWorkflowStep implements WorkflowStep {
 
       return startSpan(
         {
-          op: 'function.step.do',
+          op: GENERAL_FUNCTION_SPAN_OP,
           name,
           scope: scopeForStep,
           attributes: {
+            [CODE_FUNCTION_NAME]: name,
+            'workflow.step.name': name,
             'cloudflare.workflow.timeout': config?.timeout,
             'cloudflare.workflow.retries.backoff': config?.retries?.backoff,
             // In workers-types v5, `delay` may be a `WorkflowDelayFunction`, which isn't a valid span attribute value.
