@@ -13,8 +13,10 @@ test('Waits for sse streaming when creating spans', async ({ page }) => {
 
   const rootSpan = await transactionPromise;
   const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0]!;
-  const httpGet = rootSpan.spans?.filter(span => span.description === 'GET http://localhost:8080/sse')[0]!;
-  const httpStream = rootSpan.spans?.filter(span => span.op === 'http.client.stream')[0]!;
+  const httpGet = rootSpan.spans?.filter(
+    span => span.description === 'GET http://localhost:8080/sse' && !span.data?.['http.response.body.streaming'],
+  )[0]!;
+  const httpStream = rootSpan.spans?.filter(span => span.data?.['http.response.body.streaming'])[0]!;
 
   expect(sseFetchCall).toBeDefined();
   expect(httpGet).toBeDefined();
@@ -26,7 +28,7 @@ test('Waits for sse streaming when creating spans', async ({ page }) => {
   // http.client span ends at header arrival (~0s)
   const httpGetDuration = Math.round((httpGet.timestamp as number) - httpGet.start_timestamp);
 
-  // body streaming duration is captured in the sibling http.client.stream span (~2s)
+  // body streaming duration is captured in the sibling streaming http.client span (~2s)
   const streamDuration = Math.round((httpStream.timestamp as number) - httpStream.start_timestamp);
 
   expect(resolveDuration).toBe(0);
@@ -46,7 +48,9 @@ test('Waits for sse streaming when sse has been explicitly aborted', async ({ pa
 
   const rootSpan = await transactionPromise;
   const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0]!;
-  const httpGet = rootSpan.spans?.filter(span => span.description === 'GET http://localhost:8080/sse')[0]!;
+  const httpGet = rootSpan.spans?.filter(
+    span => span.description === 'GET http://localhost:8080/sse' && !span.data?.['http.response.body.streaming'],
+  )[0]!;
 
   expect(sseFetchCall).toBeDefined();
   expect(httpGet).toBeDefined();
@@ -86,7 +90,10 @@ test('Aborts when stream takes longer than 5s, by not updating the span duration
 
   const rootSpan = await transactionPromise;
   const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0]!;
-  const httpGet = rootSpan.spans?.filter(span => span.description === 'GET http://localhost:8080/sse-timeout')[0]!;
+  const httpGet = rootSpan.spans?.filter(
+    span =>
+      span.description === 'GET http://localhost:8080/sse-timeout' && !span.data?.['http.response.body.streaming'],
+  )[0]!;
 
   expect(sseFetchCall).toBeDefined();
   expect(httpGet).toBeDefined();

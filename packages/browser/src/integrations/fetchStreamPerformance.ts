@@ -1,4 +1,5 @@
-import { URL_FULL } from '@sentry/conventions/attributes';
+import { SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
+import { WEB_SERVER_HTTP_CLIENT_SPAN_OP } from '@sentry/conventions/op';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   addFetchEndInstrumentationHandler,
@@ -6,7 +7,6 @@ import {
   defineIntegration,
   getSanitizedUrlStringFromUrlObject,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   stripDataUrlContent,
@@ -21,7 +21,8 @@ const STREAM_RESOLVE_FALLBACK_MS = 90_000;
 const STREAMING_CONTENT_TYPES = ['text/event-stream', 'application/x-ndjson', 'application/stream+json'];
 
 /**
- * Tracks streamed fetch response bodies by creating an `http.client.stream` sibling span.
+ * Tracks streamed fetch response bodies by creating a sibling `http.client` span,
+ * marked with `http.response.body.streaming`.
  *
  * The regular `http.client` span ends when response headers arrive. This integration adds
  * a span that starts at header arrival and ends when the body fully resolves:
@@ -29,7 +30,7 @@ const STREAMING_CONTENT_TYPES = ['text/event-stream', 'application/x-ndjson', 'a
  * ```
  * --------- pageload --------------------------------
  *     -- http.client --
- *                       -- http.client.stream -------
+ *                       -- http.client (streaming) --
  * ```
  */
 export const fetchStreamPerformanceIntegration = defineIntegration(() => {
@@ -84,7 +85,8 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
               [URL_FULL]: stripDataUrlContent(url),
               'http.method': method,
               type: 'fetch',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client.stream',
+              [SENTRY_OP]: WEB_SERVER_HTTP_CLIENT_SPAN_OP,
+              'http.response.body.streaming': true,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.stream',
             },
           });

@@ -3,10 +3,11 @@ import type { AddressInfo } from 'net';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import type { SerializedStreamedSpan } from '@sentry/core';
 import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest(
-  'creates an http.client.stream sibling span when fetchStreamPerformanceIntegration is used',
+  'creates a streaming http.client sibling span when fetchStreamPerformanceIntegration is used',
   async ({ getLocalTestUrl, page }) => {
     sentryTest.skip(shouldSkipTracingTest());
 
@@ -36,9 +37,18 @@ sentryTest(
 
       const url = await getLocalTestUrl({ testDir: __dirname });
 
-      // Wait for each span type separately since they may arrive in different envelopes
-      const httpSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'http.client');
-      const streamSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'http.client.stream');
+      // Wait for each span type separately since they may arrive in different envelopes.
+      // Both spans share the `http.client` op, so the streaming attribute is what tells them apart.
+      const isStreamSpan = (span: SerializedStreamedSpan): boolean =>
+        span.attributes['http.response.body.streaming']?.value === true;
+      const httpSpanPromise = waitForStreamedSpan(
+        page,
+        span => getSpanOp(span) === 'http.client' && !isStreamSpan(span),
+      );
+      const streamSpanPromise = waitForStreamedSpan(
+        page,
+        span => getSpanOp(span) === 'http.client' && isStreamSpan(span),
+      );
 
       await page.goto(url);
 
@@ -55,6 +65,7 @@ sentryTest(
           'http.method': { type: 'string', value: 'GET' },
           'url.full': { type: 'string', value: 'http://sentry-test-site.example/delayed' },
           type: { type: 'string', value: 'fetch' },
+          'http.response.body.streaming': { type: 'boolean', value: true },
         }),
       });
 
