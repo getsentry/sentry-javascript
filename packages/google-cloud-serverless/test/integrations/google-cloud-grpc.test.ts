@@ -142,9 +142,12 @@ describe('GoogleCloudGrpc tracing', () => {
       expect(mockStartInactiveSpan).toHaveBeenCalledWith({
         name: 'unary call unaryMethod',
         onlyIfParent: true,
-        op: 'grpc.test-service',
+        op: 'grpc',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',
+          'rpc.system.name': 'grpc',
+          'rpc.service': 'test-service',
+          'rpc.method': 'unaryMethod',
         },
       });
     });
