@@ -223,10 +223,10 @@ const HTTP_TIMING_WAIT_MS = 300;
  * Creates a temporary observer to listen to the next fetch/xhr resourcing timings,
  * so that when timings hit their per-browser limit they don't need to be removed.
  *
- * @param span A span that has yet to be finished, must contain `url` on data.
+ * @param span A span that has yet to be finished, must contain `url.full` on data.
  */
 function addHTTPTimings(span: Span, client: Client): void {
-  const { url } = spanToJSON(span).data;
+  const url = spanToJSON(span).data[URL_FULL];
 
   if (!url || typeof url !== 'string') {
     return;
