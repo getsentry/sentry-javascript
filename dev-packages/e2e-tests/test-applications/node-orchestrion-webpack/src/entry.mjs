@@ -1,8 +1,4 @@
-// Calls `experimentalUseDiagnosticsChannelInjection()`, so the orchestrion
-// subtree MUST be reachable and end up in the bundle.
 import * as Sentry from '@sentry/node';
-
-Sentry.experimentalUseDiagnosticsChannelInjection();
 
 Sentry.init({
   traceLifecycle: 'static',

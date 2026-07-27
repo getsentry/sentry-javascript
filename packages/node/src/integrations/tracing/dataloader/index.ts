@@ -1,7 +1,10 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '../../../otel/instrument';
-import { dataloaderChannelIntegration, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
+import {
+  dataloaderIntegration as dataloaderChannelIntegration,
+  isOrchestrionInjected,
+} from '@sentry/server-utils/orchestrion';
 import { DataloaderInstrumentation } from './vendored/instrumentation';
 
 const INTEGRATION_NAME = 'Dataloader' as const;

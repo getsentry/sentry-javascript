@@ -9,10 +9,9 @@ import {
 } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleFile } from './InstrumentationNodeModuleFile';
 import { DB_OPERATION_NAME, DB_QUERY_TEXT, DB_SYSTEM_NAME, ERROR_TYPE } from '@sentry/conventions/attributes';
-import type { IntegrationFn, Span } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import {
   debug,
-  defineIntegration,
   instrumentPostgresJsSql,
   replaceExports,
   SDK_VERSION,
@@ -400,29 +399,3 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
     return moduleExports;
   }
 }
-
-const _postgresJsIntegration = ((options?: PostgresJsInstrumentationConfig) => {
-  return {
-    name: INTEGRATION_NAME,
-    setupOnce() {
-      instrumentPostgresJs(options);
-    },
-  };
-}) satisfies IntegrationFn;
-
-/**
- * Adds Sentry tracing instrumentation for the [postgres](https://www.npmjs.com/package/postgres) library.
- *
- * For more information, see the [`postgresIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/postgres/).
- *
- * @example
- * ```javascript
- * const Sentry = require('@sentry/node');
- *
- * Sentry.init({
- *  integrations: [Sentry.postgresJsIntegration()],
- * });
- * ```
- */
-
-export const postgresJsIntegration = defineIntegration(_postgresJsIntegration);

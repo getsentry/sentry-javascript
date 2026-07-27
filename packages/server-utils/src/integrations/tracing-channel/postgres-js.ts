@@ -18,9 +18,8 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
-// Same name as the OTel `PostgresJs` integration by design: when this is
-// enabled, the OTel integration of the same name is dropped from the default
-// set (see `experimentalUseDiagnosticsChannelInjection`).
+// Same name as the OTel `PostgresJs` integration by design, so the OTel
+// integration of the same name is deduplicated out of the default set.
 const INTEGRATION_NAME = 'PostgresJs' as const;
 
 const ORIGIN = 'auto.db.orchestrion.postgresjs';
@@ -43,7 +42,7 @@ const CONNECTION_ATTRS_SET = Symbol('sentryPostgresJsConnectionAttrsSet');
 // span, so `deferSpanEnd` knows the wrappers own the lifecycle.
 const SPAN_ENDED = Symbol('sentryPostgresJsSpanEnded');
 
-export interface PostgresJsChannelIntegrationOptions {
+export interface PostgresJsIntegrationOptions {
   /**
    * Only create spans when there's already an active parent span. Defaults to
    * `true`, matching the OTel `postgresJsIntegration`.
@@ -195,7 +194,7 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitized
   }
 }
 
-const _postgresJsChannelIntegration = ((options: PostgresJsChannelIntegrationOptions = {}) => {
+const _postgresJsIntegration = ((options: PostgresJsIntegrationOptions = {}) => {
   const { requireParentSpan, requestHook } = options;
 
   return {
@@ -324,7 +323,7 @@ const _postgresJsChannelIntegration = ((options: PostgresJsChannelIntegrationOpt
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven postgres.js (`postgres` v3.x) integration.
+ * Orchestrion-driven postgres.js (`postgres` v3.x) integration.
  *
  * Subscribes to the `orchestrion:postgres:handle` / `:connection` / `:execute` /
  * `:connect` diagnostics channels injected into postgres.js' `Query.prototype.handle`
@@ -332,4 +331,4 @@ const _postgresJsChannelIntegration = ((options: PostgresJsChannelIntegrationOpt
  * spans matching the OTel `postgresJsIntegration`. Requires the orchestrion runtime
  * hook or bundler plugin.
  */
-export const postgresJsChannelIntegration = defineIntegration(_postgresJsChannelIntegration);
+export const postgresJsIntegration = defineIntegration(_postgresJsIntegration);

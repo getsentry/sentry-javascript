@@ -1,4 +1,4 @@
-// EXPERIMENTAL — orchestrion code-transform loader + webpack plugin. The loader is exposed
+// Orchestrion code-transform loader + webpack plugin. The loader is exposed
 // separately because Turbopack can only take webpack loaders (via `turbopack.rules`), not plugins.
 
 import { createRequire } from 'node:module';

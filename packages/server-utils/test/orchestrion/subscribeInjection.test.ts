@@ -19,9 +19,9 @@ function makePackage(root: string, name: string, version: string, type?: 'module
 
 describe('channel integration definitions', () => {
   it('maps every module to a defined subscriber export', () => {
-    expect(subscriberExportForModule('mysql')).toBe('mysqlChannelIntegration');
-    expect(subscriberExportForModule('pg')).toBe('postgresChannelIntegration');
-    expect(subscriberExportForModule('pg-pool')).toBe('postgresChannelIntegration');
+    expect(subscriberExportForModule('mysql')).toBe('mysqlIntegration');
+    expect(subscriberExportForModule('pg')).toBe('postgresIntegration');
+    expect(subscriberExportForModule('pg-pool')).toBe('postgresIntegration');
     expect(subscriberExportForModule('@redis/client')).toBe('redisChannelIntegration');
     expect(subscriberExportForModule('not-a-package')).toBeUndefined();
   });
@@ -67,14 +67,12 @@ describe('subscribe-injection transform option', () => {
     expect(result!.code.split('\n')[0]).toContain("'use strict'");
     // Imports ONLY the mysql factory plus the generic helper, from a single require.
     expect(result!.code).toMatch(
-      /const\s*\{\s*mysqlChannelIntegration,\s*registerOrchestrionChannelIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
+      /const\s*\{\s*mysqlIntegration,\s*registerOrchestrionChannelIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
     );
     // The helper stores the factory on the marker AND live-registers it on an existing client, so a
     // module that loads AFTER `init()` (mysql loads its instrumented file lazily) still subscribes
     // for the in-flight request instead of only the next `init()`.
-    expect(result!.code).toContain(
-      'registerOrchestrionChannelIntegration("mysqlChannelIntegration", mysqlChannelIntegration)',
-    );
+    expect(result!.code).toContain('registerOrchestrionChannelIntegration("mysqlIntegration", mysqlIntegration)');
     // No separate @sentry/core import at the injection site — the helper owns that.
     expect(result!.code).not.toContain('@sentry/core');
     // It imports ONLY the mysql factory — no central dispatch pulling in others.
@@ -93,12 +91,10 @@ describe('subscribe-injection transform option', () => {
 
     expect(result).not.toBeNull();
     expect(result!.code).toMatch(
-      /import\s*\{\s*postgresChannelIntegration,\s*registerOrchestrionChannelIntegration\s*\}\s*from\s*["']@sentry\/server-utils\/orchestrion["']/,
+      /import\s*\{\s*postgresIntegration,\s*registerOrchestrionChannelIntegration\s*\}\s*from\s*["']@sentry\/server-utils\/orchestrion["']/,
     );
     expect(result!.code).not.toContain('@sentry/core');
-    expect(result!.code).toContain(
-      'registerOrchestrionChannelIntegration("postgresChannelIntegration", postgresChannelIntegration)',
-    );
+    expect(result!.code).toContain('registerOrchestrionChannelIntegration("postgresIntegration", postgresIntegration)');
   });
 
   it('registers the factory at most once per file', () => {
@@ -109,8 +105,7 @@ describe('subscribe-injection transform option', () => {
       join(root, 'node_modules/pg/lib/client.js'),
     );
 
-    const registrations =
-      result!.code.match(/registerOrchestrionChannelIntegration\("postgresChannelIntegration"/g) ?? [];
+    const registrations = result!.code.match(/registerOrchestrionChannelIntegration\("postgresIntegration"/g) ?? [];
     expect(registrations).toHaveLength(1);
   });
 });

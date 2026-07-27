@@ -2,7 +2,7 @@ import { KnexInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '../../../otel/instrument';
-import { isOrchestrionInjected, knexChannelIntegration } from '@sentry/server-utils/orchestrion';
+import { isOrchestrionInjected, knexIntegration as knexChannelIntegration } from '@sentry/server-utils/orchestrion';
 
 const INTEGRATION_NAME = 'Knex' as const;
 

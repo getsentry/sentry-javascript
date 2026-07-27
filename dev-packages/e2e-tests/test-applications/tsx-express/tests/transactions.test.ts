@@ -190,6 +190,7 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
       'http.route': '/test-exception/:id',
       'express.name': '/test-exception/:id',
       'express.type': 'request_handler',
+      'error.type': 'Error',
     },
     description: '/test-exception/:id',
     op: 'request_handler.express',

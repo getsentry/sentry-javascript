@@ -1,7 +1,5 @@
 import * as Sentry from '@sentry/react-router';
 
-Sentry.experimentalUseDiagnosticsChannelInjection();
-
 Sentry.init({
   traceLifecycle: 'static',
   dsn: 'https://username@domain/123',

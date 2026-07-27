@@ -770,8 +770,7 @@ export type SentryBuildOptions = {
      *
      * When enabled, `withSentryConfig` injects the orchestrion code-transform loader for bundled
      * server packages and keeps the remaining instrumented packages external so the runtime module
-     * hook picks them up. You must still call `Sentry.experimentalUseDiagnosticsChannelInjection()`
-     * in your server config to record spans.
+     * hook picks them up.
      *
      * Turbopack support requires Next.js 16+; the webpack path works on earlier versions.
      *

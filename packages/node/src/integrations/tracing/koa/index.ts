@@ -1,7 +1,6 @@
 import type { KoaInstrumentationConfig, KoaLayerType } from './vendored/types';
 import { KoaInstrumentation } from './vendored/instrumentation';
-import type { IntegrationFn } from '@sentry/core';
-import { captureException, defineIntegration } from '@sentry/core';
+import { captureException } from '@sentry/core';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
 
@@ -23,49 +22,6 @@ export const instrumentKoa = generateInstrumentOnce(
     } satisfies KoaInstrumentationConfig;
   },
 );
-
-const _koaIntegration = ((options: KoaOptions = {}) => {
-  return {
-    name: INTEGRATION_NAME,
-    setupOnce() {
-      instrumentKoa(options);
-    },
-  };
-}) satisfies IntegrationFn;
-
-/**
- * Adds Sentry tracing instrumentation for [Koa](https://koajs.com/).
- *
- * If you also want to capture errors, you need to call `setupKoaErrorHandler(app)` after you set up your Koa server.
- *
- * For more information, see the [koa documentation](https://docs.sentry.io/platforms/javascript/guides/koa/).
- *
- * @param {KoaOptions} options Configuration options for the Koa integration.
- *
- * @example
- * ```javascript
- * const Sentry = require('@sentry/node');
- *
- * Sentry.init({
- *   integrations: [Sentry.koaIntegration()],
- * })
- * ```
- *
- * @example
- * ```javascript
- * // To ignore middleware spans
- * const Sentry = require('@sentry/node');
- *
- * Sentry.init({
- *   integrations: [
- *     Sentry.koaIntegration({
- *       ignoreLayersType: ['middleware']
- *     })
- *   ],
- * })
- * ```
- */
-export const koaIntegration = defineIntegration(_koaIntegration);
 
 /**
  * Add an Koa error handler to capture errors to Sentry.

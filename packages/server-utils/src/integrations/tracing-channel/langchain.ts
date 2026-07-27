@@ -19,8 +19,8 @@ import { CHANNELS } from '../../orchestrion/channels';
 import { langchainEmbeddingsChannels } from '../../orchestrion/config/langchain';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
-// Same name as the OTel integration by design: when enabled, the OTel 'LangChain' integration is
-// dropped from the default set (see the Node opt-in loader).
+// Same name as the OTel integration by design, so the OTel 'LangChain' integration is
+// deduplicated out of the default set.
 const INTEGRATION_NAME = LANGCHAIN_INTEGRATION_NAME;
 
 // LangChain drives the underlying AI provider SDKs itself, so while it's active those providers must
@@ -48,7 +48,7 @@ function markProvidersSkipped(): void {
   _INTERNAL_skipAiProviderWrapping(SKIPPED_PROVIDERS);
 }
 
-const _langChainChannelIntegration = ((options: LangChainOptions = {}) => {
+const _langChainIntegration = ((options: LangChainOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -114,8 +114,8 @@ function createEmbeddingsSpan(data: EmbeddingsChannelContext, options: LangChain
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven LangChain integration. Subscribes to the diagnostics_channels
+ * Orchestrion-driven LangChain integration. Subscribes to the diagnostics_channels
  * injected into `@langchain/core`'s `BaseChatModel` (to inject the Sentry callback handler) and into
  * `@langchain/openai`'s embedding methods, so it requires the orchestrion runtime hook or bundler plugin.
  */
-export const langChainChannelIntegration = defineIntegration(_langChainChannelIntegration);
+export const langChainIntegration = defineIntegration(_langChainIntegration);

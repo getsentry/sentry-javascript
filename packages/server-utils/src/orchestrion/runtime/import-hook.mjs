@@ -1,4 +1,4 @@
-// EXPERIMENTAL — diagnostics-channel injection runtime hook. The side-effecting
+// Diagnostics-channel injection runtime hook. The side-effecting
 // `--import` entry (e.g. `node --import @sentry/node/import app.js`) that injects
 // the channels unconditionally before the app loads.
 //
