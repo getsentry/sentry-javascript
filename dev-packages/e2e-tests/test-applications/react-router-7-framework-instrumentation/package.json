@@ -31,9 +31,10 @@
     "typecheck": "react-router typegen && tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:ts && pnpm test:playwright",
+    "test:assert": "pnpm test:ts && pnpm test:prod && pnpm test:dev",
     "test:ts": "pnpm typecheck",
-    "test:playwright": "playwright test"
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test"
   },
   "eslintConfig": {
     "extends": [
