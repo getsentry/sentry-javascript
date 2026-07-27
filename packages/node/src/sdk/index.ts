@@ -139,6 +139,21 @@ function _init(
 
   applySdkMetadata(options, 'node');
 
+  // Enable debug logging before channel-injection registration below, so its failure modes (e.g. no
+  // available Node hook API, dep-resolution errors) actually surface. `getClientOptions` resolves
+  // `debug` the same way for the client; resolving it here as well keeps the two in agreement.
+  if (envToBool(options.debug ?? process.env.SENTRY_DEBUG)) {
+    if (DEBUG_BUILD) {
+      debug.enable();
+    } else {
+      // use `console.warn` rather than `debug.warn` since non-debug bundles have all `debug.x` statements stripped
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
+      });
+    }
+  }
+
   // Resolve the tracing-affecting options (e.g. `SENTRY_TRACES_SAMPLE_RATE`) up front so that both
   // the span-enablement gate below and default-integration selection see the final values. Without
   // this, enabling tracing purely via env would leave `hasSpansEnabled` false at this point and skip
@@ -161,18 +176,6 @@ function _init(
   const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(optionsWithResolvedTracing);
 
   const clientOptions = getClientOptions({ ...options, defaultIntegrations }, getDefaultIntegrationsImpl);
-
-  if (clientOptions.debug === true) {
-    if (DEBUG_BUILD) {
-      debug.enable();
-    } else {
-      // use `console.warn` rather than `debug.warn` since by non-debug bundles have all `debug.x` statements stripped
-      consoleSandbox(() => {
-        // eslint-disable-next-line no-console
-        console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
-      });
-    }
-  }
 
   if (clientOptions.registerEsmLoaderHooks !== false) {
     initializeEsmLoader();
