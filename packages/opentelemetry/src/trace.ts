@@ -1,38 +1,24 @@
 import type { Context, Span, SpanContext, SpanOptions, TimeInput, Tracer } from '@opentelemetry/api';
 import { context, SpanStatusCode, trace, TraceFlags } from '@opentelemetry/api';
 import { isTracingSuppressed, suppressTracing } from '@opentelemetry/core';
-import type {
-  Client,
-  continueTrace as baseContinueTrace,
-  DynamicSamplingContext,
-  Scope,
-  Span as SentrySpan,
-  TraceContext,
-} from '@sentry/core';
+import type { Client, Scope, Span as SentrySpan } from '@sentry/core';
 import {
-  _INTERNAL_safeMathRandom,
-  generateSpanId,
-  generateTraceId,
   getClient,
   getCurrentScope,
-  getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
   getRootSpan,
-  getTraceContextFromScope,
   handleCallbackErrors,
   hasSpansEnabled,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
-  spanToTraceContext,
 } from '@sentry/core';
-import { SENTRY_TRACE_STATE_DSC } from './constants';
-import { continueTraceAsRemoteSpan } from './propagator';
 import type { OpenTelemetrySpanContext } from './types';
 import { getContextFromScope } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
 import { reconcileDscSampled } from './utils/reconcileDscSampled';
+import { SENTRY_TRACE_STATE_DSC } from './constants';
 
 /**
  * Internal helper for starting spans and manual spans. See {@link startSpan} and {@link startSpanManual} for the public APIs.
@@ -70,12 +56,15 @@ function _startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span)
       return context.with(suppressedCtx, () => {
         return tracer.startActiveSpan(name, spanOptions, suppressedCtx, span => {
           patchSpanEnd(span);
-          // Restore the original unsuppressed context for the callback execution
-          // so that custom OpenTelemetry spans maintain the correct context.
+          // Run the callback under the original unsuppressed context (so custom OpenTelemetry spans
+          // created inside are not suppressed) but with our span set as active. Without setting the
+          // span here, `getActiveSpan()` inside the callback would resolve to a stale ancestor on
+          // `activeCtx` (e.g. an outer span outside a `startNewTrace`/`continueTrace` boundary),
+          // and event trace-context would attach to the wrong trace.
           // We use activeCtx (not ctx) because ctx may be suppressed when onlyIfParent is true
           // and no parent span exists. Using activeCtx ensures custom OTel spans are never
           // inadvertently suppressed.
-          return context.with(activeCtx, () => {
+          return context.with(trace.setSpan(activeCtx, span), () => {
             return handleCallbackErrors(
               () => callback(span),
               () => {
@@ -296,70 +285,6 @@ function getContextForScope(scope?: Scope): Context {
   }
 
   return context.active();
-}
-
-/**
- * Continue a trace from `sentry-trace` and `baggage` values.
- * These values can be obtained from incoming request headers, or in the browser from `<meta name="sentry-trace">`
- * and `<meta name="baggage">` HTML tags.
- *
- * Spans started with `startSpan`, `startSpanManual` and `startInactiveSpan`, within the callback will automatically
- * be attached to the incoming trace.
- *
- * This is a custom version of `continueTrace` that is used in OTEL-powered environments.
- * It propagates the trace as a remote span, in addition to setting it on the propagation context.
- */
-export function continueTrace<T>(options: Parameters<typeof baseContinueTrace>[0], callback: () => T): T {
-  return continueTraceAsRemoteSpan(context.active(), options, callback);
-}
-
-/**
- * Start a new trace with a unique traceId, ensuring all spans created within the callback
- * share the same traceId.
- *
- * This is a custom version of `startNewTrace` for OTEL-powered environments.
- * It injects the new traceId as a remote span context into the OTEL context, so that
- * `startInactiveSpan` and `startSpan` pick it up correctly.
- */
-export function startNewTrace<T>(callback: () => T): T {
-  const traceId = generateTraceId();
-  const spanId = generateSpanId();
-
-  const spanContext: SpanContext = {
-    traceId,
-    spanId,
-    isRemote: true,
-    traceFlags: TraceFlags.NONE,
-  };
-
-  const ctxWithTrace = trace.setSpanContext(context.active(), spanContext);
-
-  return context.with(ctxWithTrace, () => {
-    getCurrentScope().setPropagationContext({
-      traceId,
-      sampleRand: _INTERNAL_safeMathRandom(),
-    });
-    return callback();
-  });
-}
-
-/**
- * Get the trace context for a given scope.
- * We have a custom implementation here because we need an OTEL-specific way to get the span from a scope.
- */
-export function getTraceContextForScope(
-  client: Client,
-  scope: Scope,
-): [dynamicSamplingContext: Partial<DynamicSamplingContext>, traceContext: TraceContext] {
-  const ctx = getContextFromScope(scope);
-  const span = ctx && trace.getSpan(ctx);
-
-  const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
-
-  const dynamicSamplingContext = span
-    ? getDynamicSamplingContextFromSpan(span)
-    : getDynamicSamplingContextFromScope(client, scope);
-  return [dynamicSamplingContext, traceContext];
 }
 
 function getActiveSpanWrapper<T>(parentSpan: Span | SentrySpan | undefined | null): (callback: () => T) => T {

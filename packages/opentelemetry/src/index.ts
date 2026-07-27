@@ -1,7 +1,5 @@
 export { getScopesFromContext } from './utils/contextData';
 
-export { getTraceContextForScope } from './trace';
-
 export { setupEventContextTrace } from './setupEventContextTrace';
 
 export { SentryPropagator } from './propagator';

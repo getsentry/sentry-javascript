@@ -257,8 +257,7 @@ export const continueTrace = <V>(
   return withScope(scope => {
     const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
     scope.setPropagationContext(propagationContext);
-    _setSpanForScope(scope, undefined);
-    return callback();
+    return withActiveSpan(null, callback);
   });
 };
 
@@ -330,13 +329,15 @@ export function startNewTrace<T>(callback: () => T): T {
     return acs.startNewTrace(callback);
   }
 
-  return withScope(scope => {
-    scope.setPropagationContext({
-      traceId: generateTraceId(),
-      sampleRand: safeMathRandom(),
+  return withActiveSpan(null, () => {
+    return withScope(scope => {
+      scope.setPropagationContext({
+        traceId: generateTraceId(),
+        sampleRand: safeMathRandom(),
+      });
+      DEBUG_BUILD && debug.log(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
+      return callback();
     });
-    DEBUG_BUILD && debug.log(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
-    return withActiveSpan(null, callback);
   });
 }
 
