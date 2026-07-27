@@ -26,7 +26,7 @@ import {
 } from '@sentry/server-utils/orchestrion';
 import { instrumentSentryHttp } from '../http';
 import { fastifyIntegration, instrumentFastifyV3 } from './fastify';
-import { redisChannelIntegrations } from './redis';
+import { redisIntegration } from './redis';
 
 export function getAutoPerformanceIntegrations(): Integration[] {
   return [
@@ -39,8 +39,9 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     mongooseIntegration(),
     mysqlIntegration(),
     mysql2Integration(),
-    // Redis keeps the node wrapper: it wires the cache `responseHook` into the channel integrations.
-    ...redisChannelIntegrations(),
+    // Redis keeps the node wrapper: it wires the cache `responseHook` into the channel subscribers
+    // and covers all redis client versions (native diagnostics_channel + orchestrion fallbacks).
+    redisIntegration(),
     postgresIntegration(),
     prismaIntegration(),
     hapiIntegration(),

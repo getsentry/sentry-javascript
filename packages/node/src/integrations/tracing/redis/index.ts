@@ -1,4 +1,4 @@
-import type { Integration, IntegrationFn } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration } from '@sentry/core';
 import { redisIntegration as redisNativeChannelIntegration } from '@sentry/server-utils';
 import { ioredisChannelIntegration, redisChannelIntegration } from '@sentry/server-utils/orchestrion';
@@ -12,15 +12,25 @@ export { _redisOptions, cacheResponseHook } from './cache';
 const INTEGRATION_NAME = 'Redis' as const;
 
 const _redisIntegration = ((options: RedisOptions = {}) => {
-  // The native diagnostics_channel subscription (node-redis >= 5.12.0, ioredis >= 5.11.0, and
-  // batches) lives in server-utils so it is shared across server runtimes; we extend it here to set
-  // the node cache options. The orchestrion channel integrations for the older ranges are appended
-  // separately (see `redisChannelIntegrations`). `cacheResponseHook` reads options set in the
-  // extension's `setupOnce` below, but it only runs at command time, by which point those options are set.
+  // A single public `Redis` integration covers every redis client version. The native
+  // diagnostics_channel subscription (node-redis >= 5.12.0, ioredis >= 5.11.0, and batches) lives in
+  // server-utils so it is shared across server runtimes; the orchestrion channel integrations cover
+  // the older node-redis (`<5.12.0`) and ioredis (`<5.11.0`) ranges. We fold the orchestrion
+  // subscribers into this integration's `setupOnce` so `Sentry.redisIntegration()` alone instruments
+  // all ranges, even with `defaultIntegrations: []`. All three share the node cache `responseHook`,
+  // which reads the options set below but only runs at command time, by which point they are set.
+  const orchestrionIntegrations = [
+    ioredisChannelIntegration({ responseHook: cacheResponseHook }),
+    redisChannelIntegration({ responseHook: cacheResponseHook }),
+  ];
+
   return extendIntegration(redisNativeChannelIntegration({ responseHook: cacheResponseHook }), {
     name: INTEGRATION_NAME,
     setupOnce() {
       setRedisOptions(options);
+      for (const integration of orchestrionIntegrations) {
+        integration.setupOnce?.();
+      }
     },
   });
 }) satisfies IntegrationFn;
@@ -41,17 +51,3 @@ const _redisIntegration = ((options: RedisOptions = {}) => {
  * ```
  */
 export const redisIntegration = defineIntegration(_redisIntegration);
-
-/**
- * The full set of default redis integrations: the `Redis` integration (native diagnostics_channel
- * for node-redis >= 5.12.0 / ioredis >= 5.11.0, and batches) plus the orchestrion channel
- * subscribers that cover the older node-redis (`<5.12.0`) and ioredis (`<5.11.0`) ranges. All three
- * share the node cache `responseHook`. Spread into `getAutoPerformanceIntegrations()`.
- */
-export function redisChannelIntegrations(options: RedisOptions = {}): Integration[] {
-  return [
-    redisIntegration(options),
-    ioredisChannelIntegration({ responseHook: cacheResponseHook }),
-    redisChannelIntegration({ responseHook: cacheResponseHook }),
-  ];
-}
