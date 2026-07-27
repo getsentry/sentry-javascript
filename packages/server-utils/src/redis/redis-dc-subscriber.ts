@@ -1,11 +1,13 @@
 import type { TracingChannel } from 'node:diagnostics_channel';
 import {
   DB_OPERATION_BATCH_SIZE,
+  DB_OPERATION_NAME,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DATABASE_DB_QUERY_SPAN_OP, DATABASE_DB_SPAN_OP } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -155,8 +157,9 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
         name: `redis-${data.command}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
+          [DB_OPERATION_NAME]: data.command,
           [DB_QUERY_TEXT]: statement,
           ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
           ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
@@ -182,7 +185,7 @@ function setupBatchChannel(
       name: getOperationName(data),
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
         [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
         // should only include batch size greater than 1,
         // or else it isn't properly considered a "batch"
@@ -200,7 +203,7 @@ function setupConnectChannel(tracingChannel: RedisTracingChannelFactory, channel
       name: 'redis-connect',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis.connect',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: DATABASE_DB_SPAN_OP,
         [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
         ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
         ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),

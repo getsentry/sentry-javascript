@@ -13,10 +13,10 @@ describeWithDockerCompose(
       transaction: 'Test Span IORedis 5.11 DC',
       spans: expect.arrayContaining([
         expect.objectContaining({
-          op: 'db.redis',
+          op: 'db.query',
           origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.op': 'db.redis',
+            'sentry.op': 'db.query',
             'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.system.name': 'redis',
             'db.query.text': 'set dc-test-key ?',
@@ -45,10 +45,10 @@ describeWithDockerCompose(
           }),
         }),
         expect.objectContaining({
-          op: 'db.redis',
+          op: 'db.query',
           origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.op': 'db.redis',
+            'sentry.op': 'db.query',
             'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.system.name': 'redis',
             'db.query.text': 'get dc-test-key',
@@ -78,10 +78,10 @@ describeWithDockerCompose(
           }),
         }),
         expect.objectContaining({
-          op: 'db.redis',
+          op: 'db.query',
           origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.op': 'db.redis',
+            'sentry.op': 'db.query',
             'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.system.name': 'redis',
             'db.query.text': 'mget ? ? ?',
