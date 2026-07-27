@@ -1,3 +1,4 @@
+import type { HTTP_METHOD, URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
 import type { WebFetchHeaders } from './webfetchapi';
 
 /**
@@ -27,9 +28,10 @@ export type SanitizedRequestData = {
    * {@link FetchBreadcrumbData}). Span attributes use `url.full` instead.
    */
   url: string;
-  'http.method': string;
-  'url.fragment'?: string;
-  'url.query'?: string;
+  // oxlint-disable-next-line typescript/no-deprecated
+  [HTTP_METHOD]: string;
+  [URL_FRAGMENT]?: string;
+  [URL_QUERY]?: string;
 };
 
 export interface RequestHookInfo {
