@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   browserTracingIntegration,
   spanStreamingIntegration,
-  userTimingSpansIntegration,
+  userTimingIntegration,
   webVitalsIntegration,
 } from '../src';
 import * as TracingLogsMetricsBundle from '../src/index.bundle.tracing.logs.metrics';
@@ -16,7 +16,7 @@ describe('index.bundle.tracing.logs.metrics', () => {
     expect(TracingLogsMetricsBundle.feedbackIntegration).toBe(feedbackIntegrationShim);
     expect(TracingLogsMetricsBundle.replayIntegration).toBe(replayIntegrationShim);
     expect(TracingLogsMetricsBundle.spanStreamingIntegration).toBe(spanStreamingIntegration);
-    expect(TracingLogsMetricsBundle.userTimingSpansIntegration).toBe(userTimingSpansIntegration);
+    expect(TracingLogsMetricsBundle.userTimingIntegration).toBe(userTimingIntegration);
     expect(TracingLogsMetricsBundle.webVitalsIntegration).toBe(webVitalsIntegration);
 
     expect(TracingLogsMetricsBundle.logger).toBe(coreLogger);

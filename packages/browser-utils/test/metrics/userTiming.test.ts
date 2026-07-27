@@ -10,12 +10,12 @@ import {
 } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as instrument from '../../src/metrics/instrument';
-import { _addUserTimingSpan, userTimingSpansIntegration } from '../../src/metrics/userTimingSpans';
+import { _addUserTimingSpan, userTimingIntegration } from '../../src/metrics/userTiming';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
 type PerformanceEntryHandler = (data: { entries: PerformanceEntry[] }) => void;
 
-describe('userTimingSpansIntegration', () => {
+describe('userTimingIntegration', () => {
   let handlers: Map<string, PerformanceEntryHandler>;
   let spans: Span[];
 
@@ -41,7 +41,7 @@ describe('userTimingSpansIntegration', () => {
   });
 
   it('captures mark and measure entries as child spans', () => {
-    userTimingSpansIntegration().setup?.({} as never);
+    userTimingIntegration().setup?.({} as never);
     const parentSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
 
     withActiveSpan(parentSpan, () => {
@@ -61,7 +61,7 @@ describe('userTimingSpansIntegration', () => {
   });
 
   it('does not capture entries without an active span', () => {
-    userTimingSpansIntegration().setup?.({} as never);
+    userTimingIntegration().setup?.({} as never);
 
     handlers.get('measure')!({
       entries: [createPerformanceEntry('measure', 'background-work', 14, 25)],
@@ -71,7 +71,7 @@ describe('userTimingSpansIntegration', () => {
   });
 
   it('attaches entries to the root pageload span even when a child span is active', () => {
-    userTimingSpansIntegration().setup?.({} as never);
+    userTimingIntegration().setup?.({} as never);
     const rootSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
 
     withActiveSpan(rootSpan, () => {
@@ -89,7 +89,7 @@ describe('userTimingSpansIntegration', () => {
   });
 
   it('does not capture entries when the active span is not a pageload or navigation', () => {
-    userTimingSpansIntegration().setup?.({} as never);
+    userTimingIntegration().setup?.({} as never);
     const rootSpan = new SentrySpan({ op: 'ui.action', name: 'click', sampled: true });
 
     withActiveSpan(rootSpan, () => {
@@ -102,7 +102,7 @@ describe('userTimingSpansIntegration', () => {
   });
 
   it('ignores entries matching strings and regular expressions', () => {
-    userTimingSpansIntegration({ ignore: ['extension-mark', /^framework-/] }).setup?.({} as never);
+    userTimingIntegration({ ignore: ['extension-mark', /^framework-/] }).setup?.({} as never);
     const parentSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
 
     withActiveSpan(parentSpan, () => {
@@ -125,7 +125,7 @@ describe('userTimingSpansIntegration', () => {
   });
 
   it('does not attach entries preceding a navigation span', () => {
-    userTimingSpansIntegration().setup?.({} as never);
+    userTimingIntegration().setup?.({} as never);
     const timeOrigin = performance.timeOrigin / 1000;
     const parentSpan = new SentrySpan({
       op: 'navigation',
@@ -184,7 +184,7 @@ describe('_addUserTimingSpan', () => {
       'sentry.browser.measure.detail.phase': 'client',
       'sentry.browser.measure.detail.counts': '{"components":4}',
       'sentry.op': 'measure',
-      'sentry.origin': 'auto.resource.browser.metrics',
+      'sentry.origin': 'auto.resource.browser.user_timing',
     });
   });
 

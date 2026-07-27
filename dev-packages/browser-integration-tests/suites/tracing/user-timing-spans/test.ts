@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
-import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import { sentryTest } from '../../../utils/fixtures';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../utils/helpers';
 
 sentryTest('captures non-ignored mark and measure spans', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {

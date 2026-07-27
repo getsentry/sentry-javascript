@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
-import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
-import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
+import { sentryTest } from '../../../utils/fixtures';
+import { shouldSkipTracingTest } from '../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpans } from '../../../utils/spanUtils';
 
 sentryTest('captures each mark and measure once with span streaming', async ({ getLocalTestUrl, page }) => {
   sentryTest.skip(shouldSkipTracingTest());

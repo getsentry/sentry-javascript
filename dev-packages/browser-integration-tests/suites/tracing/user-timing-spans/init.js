@@ -7,7 +7,7 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
     Sentry.browserTracingIntegration(),
-    Sentry.userTimingSpansIntegration({ ignore: ['measure-ignore', /mark-i/] }),
+    Sentry.userTimingIntegration({ ignore: ['measure-ignore', /mark-i/] }),
   ],
   tracesSampleRate: 1,
 });

@@ -13,7 +13,7 @@ import { addPerformanceInstrumentationHandler } from './instrument';
 import { msToSec, startAndEndSpan } from './utils';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 
-interface UserTimingSpansOptions {
+interface UserTimingOptions {
   /**
    * User Timing entries with names matching any of these strings or regular expressions will not be emitted.
    *
@@ -22,9 +22,9 @@ interface UserTimingSpansOptions {
   ignore?: Array<string | RegExp>;
 }
 
-const INTEGRATION_NAME = 'UserTimingSpans';
+const INTEGRATION_NAME = 'UserTiming';
 
-const _userTimingSpansIntegration = ((options: UserTimingSpansOptions = {}) => {
+const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup() {
@@ -89,14 +89,14 @@ const _userTimingSpansIntegration = ((options: UserTimingSpansOptions = {}) => {
  * Sentry.init({
  *   integrations: [
  *     Sentry.browserTracingIntegration(),
- *     Sentry.userTimingSpansIntegration({
+ *     Sentry.userTimingIntegration({
  *       ignore: ['third-party-mark', /framework-measure/],
  *     }),
  *   ],
  * });
  * ```
  */
-export const userTimingSpansIntegration = defineIntegration(_userTimingSpansIntegration);
+export const userTimingIntegration = defineIntegration(_userTimingIntegration);
 
 /**
  * Creates a span for a browser User Timing entry.
@@ -121,7 +121,7 @@ export function _addUserTimingSpan(
   const spanEndTimestamp = originalStartTimestamp + duration;
 
   const attributes: SpanAttributes = {
-    [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+    [SENTRY_ORIGIN]: 'auto.resource.browser.user_timing',
   };
 
   if (spanStartTimestamp !== originalStartTimestamp) {

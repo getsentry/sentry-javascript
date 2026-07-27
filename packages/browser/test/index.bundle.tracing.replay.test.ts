@@ -4,7 +4,7 @@ import {
   browserTracingIntegration,
   replayIntegration,
   spanStreamingIntegration,
-  userTimingSpansIntegration,
+  userTimingIntegration,
   webVitalsIntegration,
 } from '../src';
 import * as TracingReplayBundle from '../src/index.bundle.tracing.replay';
@@ -16,7 +16,7 @@ describe('index.bundle.tracing.replay', () => {
     expect(TracingReplayBundle.feedbackIntegration).toBe(feedbackIntegrationShim);
     expect(TracingReplayBundle.replayIntegration).toBe(replayIntegration);
     expect(TracingReplayBundle.spanStreamingIntegration).toBe(spanStreamingIntegration);
-    expect(TracingReplayBundle.userTimingSpansIntegration).toBe(userTimingSpansIntegration);
+    expect(TracingReplayBundle.userTimingIntegration).toBe(userTimingIntegration);
     expect(TracingReplayBundle.webVitalsIntegration).toBe(webVitalsIntegration);
 
     expect(TracingReplayBundle.logger).toBe(loggerShim);
