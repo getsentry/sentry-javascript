@@ -29,12 +29,20 @@ export function withSentry<
   Env = typeof cloudflareEnv,
   QueueHandlerMessage = unknown,
   CfHostMetadata = unknown,
-  T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> | WorkerEntrypointConstructor = ExportedHandler<
+  H extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> = ExportedHandler<
     Env,
     QueueHandlerMessage,
     CfHostMetadata
   >,
->(optionsCallback: (env: Env) => CloudflareOptions | undefined, handler: T): T {
+>(optionsCallback: (env: Env) => CloudflareOptions | undefined, handler: H): H;
+export function withSentry<T extends WorkerEntrypointConstructor>(
+  optionsCallback: (env: any) => CloudflareOptions | undefined,
+  handler: T,
+): T;
+export function withSentry(
+  optionsCallback: (env: any) => CloudflareOptions | undefined,
+  handler: any,
+): any {
   if (isCloudflareClass(handler, 'WorkerEntrypoint')) {
     // oxlint-disable-next-line typescript/no-explicit-any
     return instrumentWorkerEntrypoint(optionsCallback as any, handler);
