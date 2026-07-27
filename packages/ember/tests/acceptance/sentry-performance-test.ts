@@ -15,10 +15,7 @@ module('Acceptance | Sentry Performance', function (hooks) {
 
     assertSentryTransactionCount(assert, 1);
     assertSentryTransactions(assert, 0, {
-      spans: [
-        'ui.ember.transition | route:undefined -> route:tracing',
-        'ui.ember.component.render | component:test-section',
-      ],
+      spans: ['ui.ember.transition | route:undefined -> route:tracing', 'ui.render | component:test-section'],
       transaction: 'route:tracing',
       attributes: {
         fromRoute: undefined,
@@ -44,8 +41,8 @@ module('Acceptance | Sentry Performance', function (hooks) {
         'function:afterModel | slow-loading-route.index',
         'function:setupController | slow-loading-route',
         'function:setupController | slow-loading-route.index',
-        'ui.ember.component.render | component:slow-loading-list',
-        'ui.ember.component.render | component:slow-loading-list',
+        'ui.render | component:slow-loading-list',
+        'ui.render | component:slow-loading-list',
       ],
       transaction: 'route:slow-loading-route.index',
       durationCheck: duration => duration > SLOW_TRANSITION_WAIT,

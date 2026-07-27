@@ -1,7 +1,8 @@
 import { subscribe } from '@ember/instrumentation';
 import { scheduleOnce } from '@ember/runloop';
 import type { EmberRunQueues } from '@ember/runloop/-private/types';
-import { BROWSER_UI_TASK_SPAN_OP } from '@sentry/conventions/op';
+import { UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
+import { BROWSER_UI_RENDER_SPAN_OP, BROWSER_UI_TASK_SPAN_OP, GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/core';
@@ -149,13 +150,16 @@ function processComponentRenderAfter(
   const now = timestampInSeconds();
   const componentRenderDuration = now - begin.now;
 
+  const name = payload.containerKey || payload.object;
+
   if (componentRenderDuration * 1000 >= minComponentDuration) {
     startInactiveSpan({
-      name: payload.containerKey || payload.object,
+      name,
       op,
       startTime: begin.now,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+        [UI_COMPONENT_NAME]: name,
       },
       onlyIfParent: true,
     })?.end(now);
@@ -180,7 +184,7 @@ function _instrumentComponents(config: {
       },
 
       after(_name: string, _timestamp: number, payload: Payload, _beganIndex: number) {
-        processComponentRenderAfter(payload, beforeEntries, 'ui.ember.component.render', minComponentDuration);
+        processComponentRenderAfter(payload, beforeEntries, BROWSER_UI_RENDER_SPAN_OP, minComponentDuration);
       },
     });
     if (enableComponentDefinitions) {
@@ -190,7 +194,7 @@ function _instrumentComponents(config: {
         },
 
         after(_name: string, _timestamp: number, payload: Payload, _beganIndex: number) {
-          processComponentRenderAfter(payload, beforeComponentDefinitionEntries, 'ui.ember.component.definition', 0);
+          processComponentRenderAfter(payload, beforeComponentDefinitionEntries, GENERAL_FUNCTION_SPAN_OP, 0);
         },
       });
     }
@@ -232,7 +236,8 @@ function _instrumentInitialLoad(): void {
   const endTime = startTime + measure.duration / 1000;
 
   startInactiveSpan({
-    op: 'ui.ember.init',
+    // TODO(v11): Replace with the `ui.mount` constant from `@sentry/conventions/op` once it is registered there.
+    op: 'ui.mount',
     name: 'init',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
