@@ -134,7 +134,7 @@ export function getSanitizedUrlStringFromUrlObject(url: URLObject): string {
  * unconditionally — setting an attribute to `undefined` is a no-op.
  */
 export function getUrlQuery(query: string | undefined): string | undefined {
-  return stripUrlPartPrefix(query, '?');
+  return query?.replace(/^\?/, '') || undefined;
 }
 
 /**
@@ -145,15 +145,7 @@ export function getUrlQuery(query: string | undefined): string | undefined {
  * unconditionally — setting an attribute to `undefined` is a no-op.
  */
 export function getUrlFragment(fragment: string | undefined): string | undefined {
-  return stripUrlPartPrefix(fragment, '#');
-}
-
-function stripUrlPartPrefix(value: string | undefined, prefix: '?' | '#'): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  return (value.startsWith(prefix) ? value.slice(1) : value) || undefined;
+  return fragment?.replace(/^\#/, '') || undefined;
 }
 
 type PartialRequest = {
