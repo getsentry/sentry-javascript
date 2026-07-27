@@ -266,11 +266,11 @@ Affected SDKs: `@sentry/browser` and `@sentry/deno` (and their dependents).
 
 The `console` option of `breadcrumbsIntegration` was removed. Use the `consoleIntegration` from `@sentry/core` to capture console breadcrumbs instead.
 
-### Next.js: tracing removed from generated templates
+### `@sentry/nextjs`
 
-Affected SDKs: `@sentry/nextjs`.
+**Tracing removed from generated templates:** Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
 
-Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
+**Middleware span op changed to `middleware`:** Next.js middleware spans now use the `middleware` span op instead of `http.server.middleware`. If you filter or alert on the previous op (e.g. in dashboards or dynamic sampling rules), update it to `middleware`.
 
 ### Cloudflare: `nodejs_compat` compatibility flag is now required
 

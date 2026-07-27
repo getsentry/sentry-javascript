@@ -29,7 +29,7 @@ test.skip('Should create a transaction for middleware', async ({ request }) => {
   const middlewareTransaction = await middlewareTransactionPromise;
 
   expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
-  expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
+  expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
   expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
   expect(middlewareTransaction.transaction_info?.source).toBe('route');
 
@@ -57,7 +57,7 @@ test.skip('Faulty middlewares', async ({ request }) => {
   await test.step('should record transactions', async () => {
     const middlewareTransaction = await middlewareTransactionPromise;
     expect(middlewareTransaction.contexts?.trace?.status).toBe('internal_error');
-    expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
+    expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
     expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
     expect(middlewareTransaction.transaction_info?.source).toBe('route');
   });

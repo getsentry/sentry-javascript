@@ -126,7 +126,7 @@ describe('enhanceHandleRequestRootSpan', () => {
     expect(getName()).toBe('GET /_app');
   });
 
-  it('normalizes middleware span names and sets http.server.middleware op', () => {
+  it('normalizes middleware span names and sets the `middleware` op', () => {
     const { span, getName, getOp } = makeSpan(
       {
         [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest',
@@ -138,7 +138,7 @@ describe('enhanceHandleRequestRootSpan', () => {
     enhanceHandleRequestRootSpan(span);
 
     expect(getName()).toBe('middleware POST');
-    expect(getOp()).toBe('http.server.middleware');
+    expect(getOp()).toBe('middleware');
   });
 
   it('writes the middleware op into attributes when the adapter mirrors op writes (streamed shape)', () => {
@@ -163,7 +163,7 @@ describe('enhanceHandleRequestRootSpan', () => {
     enhanceHandleRequestRootSpan(span);
 
     expect(name).toBe('middleware GET');
-    expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server.middleware');
+    expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('middleware');
   });
 
   it('rewrites GET /_error using the http.target attribute', () => {

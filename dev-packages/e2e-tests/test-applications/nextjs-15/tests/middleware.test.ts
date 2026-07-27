@@ -14,7 +14,7 @@ test('tracesSampler receives normalizedRequest for edge middleware', async ({ re
   const middlewareTransaction = await middlewareTransactionPromise;
 
   expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
-  expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
+  expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
   expect(middlewareTransaction.request?.url).toContain('/api/endpoint-behind-middleware');
   expect(middlewareTransaction.request?.method).toBe('GET');
 });
