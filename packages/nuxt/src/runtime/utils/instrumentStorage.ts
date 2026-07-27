@@ -1,4 +1,9 @@
 import {
+  DATABASE_CACHE_GET_SPAN_OP,
+  DATABASE_CACHE_PUT_SPAN_OP,
+  DATABASE_CACHE_REMOVE_SPAN_OP,
+} from '@sentry/conventions/op';
+import {
   isObjectLike,
   captureException,
   debug,
@@ -54,6 +59,24 @@ type DriverMethod = keyof Driver;
  * Methods that should have an attribute to indicate a cache hit.
  */
 const CACHE_HIT_METHODS = new Set<DriverMethod>(['hasItem', 'getItem', 'getItemRaw']);
+
+/**
+ * Maps each unstorage method to a convention cache op. Reads (including existence and key
+ * listing) are `cache.get`, writes are `cache.put`, and deletions are `cache.remove`.
+ * The precise method stays available on `db.operation.name`.
+ */
+const METHOD_SPAN_OPS = {
+  hasItem: DATABASE_CACHE_GET_SPAN_OP,
+  getItem: DATABASE_CACHE_GET_SPAN_OP,
+  getItemRaw: DATABASE_CACHE_GET_SPAN_OP,
+  getItems: DATABASE_CACHE_GET_SPAN_OP,
+  getKeys: DATABASE_CACHE_GET_SPAN_OP,
+  setItem: DATABASE_CACHE_PUT_SPAN_OP,
+  setItemRaw: DATABASE_CACHE_PUT_SPAN_OP,
+  setItems: DATABASE_CACHE_PUT_SPAN_OP,
+  removeItem: DATABASE_CACHE_REMOVE_SPAN_OP,
+  clear: DATABASE_CACHE_REMOVE_SPAN_OP,
+} as const satisfies Partial<Record<DriverMethod, string>>;
 
 /**
  * Creates the Nitro storage plugin setup by instrumenting all relevant storage drivers.
@@ -204,13 +227,6 @@ function wrapStorageMount(storage: Storage): Storage['mount'] {
 }
 
 /**
- * Normalizes the method name to snake_case to be used in span names or op.
- */
-function normalizeMethodName(methodName: string): string {
-  return methodName.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-}
-
-/**
  * Creates the span start options for the storage method.
  */
 function createSpanStartOptions(
@@ -222,7 +238,7 @@ function createSpanStartOptions(
   const keys = getCacheKeys(args?.[0], mountBase);
 
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `cache.${normalizeMethodName(methodName)}`,
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: METHOD_SPAN_OPS[methodName as keyof typeof METHOD_SPAN_OPS],
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
     [SEMANTIC_ATTRIBUTE_CACHE_KEY]: keys.length > 1 ? keys : keys[0],
     'db.operation.name': methodName,
