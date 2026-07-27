@@ -3,7 +3,7 @@ import { sentryTest } from '../../../utils/fixtures';
 import { countEnvelopes, waitForSession } from '../../../utils/helpers';
 
 sentryTest(
-  'marks session as crashed when unhandled error is sampled out by sampleRate',
+  'marks session as unhandled when unhandled error is sampled out by sampleRate',
   async ({ getLocalTestUrl, page }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
 

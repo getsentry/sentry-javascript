@@ -1494,12 +1494,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
             this.recordDroppedEvent('before_send', 'span', spanCount);
           }
 
-          // Reflects crashes inside release health sessions, regardless of beforeSend dropping the event.
-          const session = currentScope.getSession() || isolationScope.getSession();
-          if (isError && session) {
-            this._updateSessionFromEvent(session, preparedEvent);
-          }
-
           throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
         }
 
