@@ -53,6 +53,7 @@ We raised the minimum supported versions of several frameworks and libraries:
 - **Astro:** dropped Astro 3 (minimum is now 4).
 - **React Router (framework mode):** minimum is now 7.15.
 - **Remix:** dropped `@remix-run/node` v1 (minimum is now v2).
+- **Fastify:** dropped Fastify 3.0 through 3.20 (minimum is now 3.21).
 
 <!-- TODO(v11): Evaluate whether we can move to Sentry CLI v4 already. -->
 
