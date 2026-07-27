@@ -492,7 +492,6 @@ describe('instrumentFetchRequest', () => {
           'http.method': 'GET',
           'sentry.origin': 'auto.http.fetch',
           'sentry.op': 'http.client',
-          'http.url': url,
           [URL_FULL]: url,
           'server.address': 'api.example.com',
           'url.query': 'include=profile',

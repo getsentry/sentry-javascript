@@ -224,7 +224,6 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   // Sanitize data URLs to prevent long base64 strings in span attributes
   if (url.startsWith('data:')) {
     const sanitizedUrl = stripDataUrlContent(url);
-    attributes['http.url'] = sanitizedUrl;
     attributes[URL_FULL] = sanitizedUrl;
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME] = `${request.method || 'GET'} ${sanitizedUrl}`;
   }

@@ -127,7 +127,7 @@ export function createSentryClientInstrumentation(
             const result = await callNavigate();
             if (result.status === 'error' && result.error instanceof Error) {
               captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
-                'http.url': info.currentUrl,
+                'url.full': info.currentUrl,
               });
             }
             return;
@@ -174,7 +174,7 @@ export function createSentryClientInstrumentation(
                   navigationSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 }
                 captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
-                  'http.url': WINDOW.location?.pathname || info.currentUrl,
+                  'url.full': WINDOW.location?.pathname || info.currentUrl,
                 });
               }
             } finally {
@@ -210,7 +210,7 @@ export function createSentryClientInstrumentation(
               navigationSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
             }
             captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
-              'http.url': toPath,
+              'url.full': toPath,
             });
           }
           return;
@@ -230,7 +230,7 @@ export function createSentryClientInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.fetcher', {
-                  'http.url': info.href,
+                  'url.full': info.href,
                 });
               }
             },
@@ -264,7 +264,7 @@ export function createSentryClientInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.client_loader', {
-                  'http.url': urlPath,
+                  'url.full': urlPath,
                 });
               }
             },
@@ -290,7 +290,7 @@ export function createSentryClientInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.client_action', {
-                  'http.url': urlPath,
+                  'url.full': urlPath,
                 });
               }
             },
@@ -326,7 +326,7 @@ export function createSentryClientInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.client_middleware', {
-                  'http.url': urlPath,
+                  'url.full': urlPath,
                 });
               }
             },

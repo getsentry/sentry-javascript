@@ -14,7 +14,6 @@ import {
   HTTP_SCHEME,
   HTTP_STATUS_CODE,
   HTTP_TARGET,
-  HTTP_URL,
   HTTP_USER_AGENT,
   NET_HOST_IP,
   NET_HOST_NAME,
@@ -187,7 +186,6 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               [URL_FRAGMENT]: fragment,
               // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
               /* eslint-disable typescript/no-deprecated */
-              [HTTP_URL]: fullUrl,
               [HTTP_METHOD]: normalizedRequest.method,
               [HTTP_TARGET]: urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
               [HTTP_HOST]: host,

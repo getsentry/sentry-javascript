@@ -182,7 +182,7 @@ describe('createSentryServerInstrumentation', () => {
       mechanism: {
         type: 'react_router.request_handler',
         handled: false,
-        data: { 'http.method': 'GET', 'http.url': '/api/users' },
+        data: { 'http.method': 'GET', 'url.full': '/api/users' },
       },
     });
   });
@@ -209,7 +209,7 @@ describe('createSentryServerInstrumentation', () => {
       mechanism: {
         type: 'react_router.request_handler',
         handled: false,
-        data: { 'http.method': 'GET', 'http.url': '/api/users' },
+        data: { 'http.method': 'GET', 'url.full': '/api/users' },
       },
     });
   });
@@ -544,7 +544,7 @@ describe('createSentryServerInstrumentation', () => {
       mechanism: {
         type: 'react_router.loader',
         handled: false,
-        data: { 'http.method': 'GET', 'http.url': '/test' },
+        data: { 'http.method': 'GET', 'url.full': '/test' },
       },
     });
 

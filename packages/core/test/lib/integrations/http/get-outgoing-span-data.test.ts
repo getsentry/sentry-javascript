@@ -5,6 +5,7 @@ import {
 } from '../../../../src/integrations/http/get-outgoing-span-data';
 import type { HttpClientRequest, HttpIncomingMessage } from '../../../../src/integrations/http/types';
 import type { Span } from '../../../../src/types/span';
+import { HTTP_METHOD, HTTP_TARGET, NET_PEER_NAME, URL_FULL } from '@sentry/conventions/attributes';
 
 function makeMockRequest(overrides: Partial<Record<string, unknown>> = {}): HttpClientRequest {
   return {
@@ -64,13 +65,13 @@ describe('getOutgoingRequestSpanData', () => {
     expect(result.name).toMatch(/^POST /);
   });
 
-  it('includes http.url, http.method, http.target, net.peer.name', () => {
+  it('includes URL_FULL, HTTP_METHOD, HTTP_TARGET, NET_PEER_NAME', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest());
     expect(result.attributes).toMatchObject({
-      'http.url': 'http://example.com/api/test',
-      'http.method': 'GET',
-      'http.target': '/api/test',
-      'net.peer.name': 'example.com',
+      [URL_FULL]: 'http://example.com/api/test',
+      [HTTP_METHOD]: 'GET',
+      [HTTP_TARGET]: '/api/test',
+      [NET_PEER_NAME]: 'example.com',
     });
   });
 
@@ -89,12 +90,12 @@ describe('getOutgoingRequestSpanData', () => {
 
   it('omits user_agent.original when user-agent header is absent', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest());
-    expect(result.attributes).not.toHaveProperty('user_agent.original');
+    expect(result.attributes!['user_agent.original']).toBeUndefined();
   });
 
   it('includes non-standard port in the URL', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest({ port: 3000 }));
-    expect(result.attributes!['http.url']).toContain(':3000');
+    expect(result.attributes![URL_FULL]).toContain(':3000');
   });
 });
 

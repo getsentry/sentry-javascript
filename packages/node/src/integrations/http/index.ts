@@ -202,9 +202,6 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
           const url = getRequestUrlFromClientRequest(request);
           if (url.startsWith('data:')) {
             const sanitizedUrl = stripDataUrlContent(url);
-            // TODO(v11): Update these to the Sentry semantic attributes.
-            // https://getsentry.github.io/sentry-conventions/attributes/
-            span.setAttribute('http.url', sanitizedUrl);
             span.setAttribute(URL_FULL, sanitizedUrl);
             span.updateName(`${request.method || 'GET'} ${sanitizedUrl}`);
           }

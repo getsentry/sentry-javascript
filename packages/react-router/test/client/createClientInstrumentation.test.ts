@@ -324,7 +324,7 @@ describe('createSentryClientInstrumentation', () => {
     });
 
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
-      mechanism: { type: 'react_router.client_loader', handled: false, data: { 'http.url': '/test-path' } },
+      mechanism: { type: 'react_router.client_loader', handled: false, data: { 'url.full': '/test-path' } },
     });
 
     // Should also set span status to error for actual Error instances
@@ -384,7 +384,7 @@ describe('createSentryClientInstrumentation', () => {
     });
 
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
-      mechanism: { type: 'react_router.navigate', handled: false, data: { 'http.url': '/about' } },
+      mechanism: { type: 'react_router.navigate', handled: false, data: { 'url.full': '/about' } },
     });
 
     // Should set span status to error
@@ -511,7 +511,7 @@ describe('createSentryClientInstrumentation', () => {
 
       expect(mockNavigationSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
       expect(core.captureException).toHaveBeenCalledWith(mockError, {
-        mechanism: { type: 'react_router.navigate', handled: false, data: { 'http.url': '/error-page' } },
+        mechanism: { type: 'react_router.navigate', handled: false, data: { 'url.full': '/error-page' } },
       });
     });
 

@@ -1,12 +1,5 @@
 /* eslint-disable max-lines */
-import {
-  HTTP_METHOD,
-  HTTP_URL,
-  SERVER_ADDRESS,
-  URL_FRAGMENT,
-  URL_FULL,
-  URL_QUERY,
-} from '@sentry/conventions/attributes';
+import { HTTP_METHOD, SERVER_ADDRESS, URL_FRAGMENT, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
 import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, spanIsIgnored, startInactiveSpan } from './tracing';
@@ -404,8 +397,6 @@ function getFetchSpanAttributes(
   };
   if (parsedUrl) {
     if (!isURLObjectRelative(parsedUrl)) {
-      // oxlint-disable-next-line typescript/no-deprecated
-      attributes[HTTP_URL] = stripDataUrlContent(parsedUrl.href);
       attributes[URL_FULL] = stripDataUrlContent(parsedUrl.href);
       attributes[SERVER_ADDRESS] = parsedUrl.host;
     }

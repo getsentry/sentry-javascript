@@ -16,7 +16,6 @@ import {
   HTTP_METHOD,
   HTTP_ROUTE,
   HTTP_STATUS_CODE,
-  HTTP_URL,
   URL_FULL,
   URL_PATH,
   SENTRY_KIND,
@@ -72,8 +71,6 @@ function getRequestAttributes(request: unknown): SpanAttributes {
     attributes[HTTP_METHOD] = method;
   }
   if (typeof url === 'string') {
-    // oxlint-disable-next-line typescript/no-deprecated
-    attributes[HTTP_URL] = url;
     const urlObject = parseStringToURLObject(url);
     attributes[URL_FULL] = urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined;
     attributes[URL_PATH] = urlObject?.pathname;

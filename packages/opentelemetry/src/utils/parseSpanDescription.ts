@@ -8,7 +8,6 @@ import {
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
   HTTP_TARGET,
-  HTTP_URL,
   MESSAGING_SYSTEM,
   RPC_SERVICE,
   SENTRY_GRAPHQL_OPERATION,
@@ -254,8 +253,7 @@ export function getSanitizedUrl(attributes: Attributes): {
   // eslint-disable-next-line typescript/no-deprecated
   const httpTarget = attributes[HTTP_TARGET];
   // This is the full URL, including host & query params etc., e.g. https://example.com/sub?foo=bar
-  // eslint-disable-next-line typescript/no-deprecated
-  const httpUrl = attributes[HTTP_URL] || attributes[URL_FULL];
+  const httpUrl = attributes[URL_FULL];
   // This is the normalized route name - may not always be available!
   const httpRoute = attributes[HTTP_ROUTE];
 

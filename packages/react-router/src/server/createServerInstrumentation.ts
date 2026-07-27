@@ -75,7 +75,7 @@ export function createSentryServerInstrumentation(
                   existingRootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                   captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
                     'http.method': info.request.method,
-                    'http.url': pathname,
+                    'url.full': pathname,
                   });
                 }
               } finally {
@@ -102,7 +102,7 @@ export function createSentryServerInstrumentation(
                       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                       captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
                         'http.method': info.request.method,
-                        'http.url': pathname,
+                        'url.full': pathname,
                       });
                     }
                   } finally {
@@ -142,7 +142,7 @@ export function createSentryServerInstrumentation(
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.loader', {
                   'http.method': info.request.method,
-                  'http.url': urlPath,
+                  'url.full': urlPath,
                 });
               }
             },
@@ -169,7 +169,7 @@ export function createSentryServerInstrumentation(
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.action', {
                   'http.method': info.request.method,
-                  'http.url': urlPath,
+                  'url.full': urlPath,
                 });
               }
             },
@@ -212,7 +212,7 @@ export function createSentryServerInstrumentation(
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.middleware', {
                   'http.method': info.request.method,
-                  'http.url': urlPath,
+                  'url.full': urlPath,
                 });
               }
             },
