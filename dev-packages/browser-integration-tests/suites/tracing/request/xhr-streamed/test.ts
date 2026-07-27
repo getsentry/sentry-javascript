@@ -22,7 +22,7 @@ sentryTest('creates spans for XHR requests', async ({ getLocalTestUrl, page }) =
   const requestSpans = allSpans
     .filter(s => getSpanOp(s) === 'http.client')
     .sort((a, b) =>
-      (a.attributes!['http.url']!.value as string).localeCompare(b.attributes!['http.url']!.value as string),
+      (a.attributes!['url.full']!.value as string).localeCompare(b.attributes!['url.full']!.value as string),
     );
 
   expect(requestSpans).toHaveLength(3);
@@ -37,7 +37,6 @@ sentryTest('creates spans for XHR requests', async ({ getLocalTestUrl, page }) =
       trace_id: pageloadSpan?.trace_id,
       attributes: expect.objectContaining({
         'http.method': { type: 'string', value: 'GET' },
-        'http.url': { type: 'string', value: `http://sentry-test-site.example/${index}` },
         'url.full': { type: 'string', value: `http://sentry-test-site.example/${index}` },
         'server.address': { type: 'string', value: 'sentry-test-site.example' },
         type: { type: 'string', value: 'xhr' },

@@ -104,7 +104,7 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
       startTimeUnixNano: expect.any(String),
       endTimeUnixNano: expect.any(String),
       attributes: expect.arrayContaining([
-        { key: 'http.url', value: { stringValue: 'http://localhost:3030/test-transaction' } },
+        { key: 'url.full', value: { stringValue: 'http://localhost:3030/test-transaction' } },
         { key: 'http.host', value: { stringValue: 'localhost:3030' } },
         { key: 'net.host.name', value: { stringValue: 'localhost' } },
         { key: 'http.method', value: { stringValue: 'GET' } },

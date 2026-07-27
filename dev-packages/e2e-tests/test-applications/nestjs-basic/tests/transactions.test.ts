@@ -48,7 +48,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       url: 'http://localhost:3030/test-transaction',
       'sentry.kind': 'server',
       'http.response.status_code': 200,
-      'http.url': 'http://localhost:3030/test-transaction',
       'url.full': 'http://localhost:3030/test-transaction',
       'url.path': '/test-transaction',
       'http.host': 'localhost:3030',

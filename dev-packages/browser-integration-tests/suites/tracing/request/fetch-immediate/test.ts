@@ -31,7 +31,6 @@ sentryTest('should create spans for fetch requests called directly after init', 
     trace_id: tracingEvent.contexts?.trace?.trace_id,
     data: {
       'http.method': 'GET',
-      'http.url': 'http://sentry-test-site.example/0',
       'url.full': 'http://sentry-test-site.example/0',
       'server.address': 'sentry-test-site.example',
       type: 'fetch',

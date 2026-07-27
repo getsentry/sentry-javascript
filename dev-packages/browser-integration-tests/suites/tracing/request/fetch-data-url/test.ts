@@ -30,6 +30,5 @@ sentryTest('sanitizes data URLs in fetch span name and attributes', async ({ get
     type: 'fetch',
   });
 
-  expect(span?.data?.['http.url']).toBe(sanitizedUrl);
   expect(span?.data?.['url.full']).toBe(sanitizedUrl);
 });

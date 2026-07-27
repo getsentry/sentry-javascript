@@ -81,7 +81,7 @@ test('server pageload request span has nested request span for sub request', asy
         data: expect.objectContaining({
           'http.method': 'GET',
           'http.route': '/api/users',
-          'http.url': 'https://localhost:3030/api/users',
+          'url.full': 'https://localhost:3030/api/users',
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.sveltekit',
           'sentry.source': 'route',

@@ -21,7 +21,6 @@ test('Sends successful transaction', async ({ baseURL }) => {
       url: 'http://localhost:3030/test-success',
       'sentry.kind': 'server',
       'http.response.status_code': 200,
-      'http.url': 'http://localhost:3030/test-success',
       'url.full': 'http://localhost:3030/test-success',
       'url.path': '/test-success',
       'http.host': 'localhost:3030',

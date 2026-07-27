@@ -30,7 +30,6 @@ sentryTest('strips query params in XHR request spans', async ({ getLocalTestUrl,
     trace_id: transactionEvent.contexts?.trace?.trace_id,
     data: expect.objectContaining({
       'http.method': 'GET',
-      'http.url': 'http://sentry-test-site.example/0?id=123;page=5',
       'url.full': 'http://sentry-test-site.example/0?id=123;page=5',
       'url.query': 'id=123;page=5',
       'http.response.status_code': 200,
@@ -72,7 +71,6 @@ sentryTest('strips hash fragment in XHR request spans', async ({ getLocalTestUrl
     trace_id: transactionEvent.contexts?.trace?.trace_id,
     data: expect.objectContaining({
       'http.method': 'GET',
-      'http.url': 'http://sentry-test-site.example/1#fragment',
       'url.full': 'http://sentry-test-site.example/1#fragment',
       'url.fragment': 'fragment',
       'http.response.status_code': 200,
@@ -114,7 +112,6 @@ sentryTest('strips hash fragment and query params in XHR request spans', async (
     trace_id: transactionEvent.contexts?.trace?.trace_id,
     data: expect.objectContaining({
       'http.method': 'GET',
-      'http.url': 'http://sentry-test-site.example/2?id=1#fragment',
       'url.full': 'http://sentry-test-site.example/2?id=1#fragment',
       'url.query': 'id=1',
       'url.fragment': 'fragment',
@@ -157,7 +154,6 @@ sentryTest(
       trace_id: transactionEvent.contexts?.trace?.trace_id,
       data: expect.objectContaining({
         'http.method': 'GET',
-        'http.url': 'http://sentry-test.io/api/users?id=1#fragment',
         'url.full': 'http://sentry-test.io/api/users?id=1#fragment',
         'url.query': 'id=1',
         'url.fragment': 'fragment',

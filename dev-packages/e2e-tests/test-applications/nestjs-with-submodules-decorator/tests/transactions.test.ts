@@ -22,7 +22,6 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
       url: 'http://localhost:3030/example-module/transaction',
       'sentry.kind': 'server',
       'http.response.status_code': 200,
-      'http.url': 'http://localhost:3030/example-module/transaction',
       'url.full': 'http://localhost:3030/example-module/transaction',
       'url.path': '/example-module/transaction',
       'http.host': 'localhost:3030',
