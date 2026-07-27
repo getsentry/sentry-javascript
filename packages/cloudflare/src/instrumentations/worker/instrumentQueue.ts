@@ -1,8 +1,8 @@
 import type { ExportedHandler, MessageBatch } from '@cloudflare/workers-types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
+import { MESSAGING_QUEUE_PROCESS_SPAN_OP } from '@sentry/conventions/op';
 import {
   captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
@@ -36,7 +36,7 @@ function wrapQueueHandler(
 
     return startSpan(
       {
-        op: 'faas.queue',
+        op: MESSAGING_QUEUE_PROCESS_SPAN_OP,
         name: `process ${batch.queue}`,
         attributes: {
           'faas.trigger': 'pubsub',
@@ -46,7 +46,6 @@ function wrapQueueHandler(
           'messaging.operation.name': 'process',
           'messaging.batch.message_count': batch.messages.length,
           'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts - 1, 0),
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.queue',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
         },
