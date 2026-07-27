@@ -34,21 +34,22 @@ describe('resolveAIRecordingOptions', () => {
     client.init();
   }
 
-  it('defaults to false when no client is set', () => {
-    expect(resolveAIRecordingOptions()).toEqual({ recordInputs: false, recordOutputs: false });
+  it('defaults to true when no client is set', () => {
+    expect(resolveAIRecordingOptions()).toEqual({ recordInputs: true, recordOutputs: true });
   });
 
-  it('defaults to false when sendDefaultPii is false (bridge)', () => {
+  // todo: delete the following tests once we remove sendDefaultPii
+  it.skip('defaults to false when sendDefaultPii is false (bridge)', () => {
     setupWithSendDefaultPii(false);
     expect(resolveAIRecordingOptions()).toEqual({ recordInputs: false, recordOutputs: false });
   });
 
-  it('defaults to true when sendDefaultPii is true (bridge)', () => {
+  it.skip('defaults to true when sendDefaultPii is true (bridge)', () => {
     setupWithSendDefaultPii(true);
     expect(resolveAIRecordingOptions()).toEqual({ recordInputs: true, recordOutputs: true });
   });
 
-  it('explicit options override sendDefaultPii bridge', () => {
+  it.skip('explicit options override sendDefaultPii bridge', () => {
     setupWithSendDefaultPii(true);
     expect(resolveAIRecordingOptions({ recordInputs: false })).toEqual({ recordInputs: false, recordOutputs: true });
   });

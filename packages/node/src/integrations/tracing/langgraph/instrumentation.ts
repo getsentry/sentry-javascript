@@ -94,8 +94,8 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
     const genAI = client?.getDataCollectionOptions().genAI;
     const options = {
       ...this.getConfig(),
-      recordInputs: this.getConfig().recordInputs ?? genAI?.inputs ?? false,
-      recordOutputs: this.getConfig().recordOutputs ?? genAI?.outputs ?? false,
+      recordInputs: this.getConfig().recordInputs ?? genAI?.inputs ?? true,
+      recordOutputs: this.getConfig().recordOutputs ?? genAI?.outputs ?? true,
     };
 
     // Patch StateGraph.compile to instrument both compile() and invoke()

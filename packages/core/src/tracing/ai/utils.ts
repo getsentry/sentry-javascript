@@ -47,14 +47,14 @@ export type InstrumentedMethodRegistry = Record<string, InstrumentedMethodEntry>
 
 /**
  * Resolves AI recording options by falling back to the client's `dataCollection.genAI` settings.
- * Precedence: explicit option > dataCollection.genAI > sendDefaultPii > false
+ * Precedence: explicit option > dataCollection.genAI > true (genAI data collected by default)
  */
 export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?: T): T & Required<AIRecordingOptions> {
   const genAI = getClient()?.getDataCollectionOptions().genAI;
   return {
     ...options,
-    recordInputs: options?.recordInputs ?? genAI?.inputs ?? false,
-    recordOutputs: options?.recordOutputs ?? genAI?.outputs ?? false,
+    recordInputs: options?.recordInputs ?? genAI?.inputs ?? true,
+    recordOutputs: options?.recordOutputs ?? genAI?.outputs ?? true,
   } as T & Required<AIRecordingOptions>;
 }
 
