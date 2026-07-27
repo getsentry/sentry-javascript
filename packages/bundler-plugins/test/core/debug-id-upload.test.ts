@@ -61,4 +61,48 @@ describe('prepareBundleForDebugIdUpload', () => {
     expect(capturedContexts).toHaveLength(1);
     expect(capturedContexts[0]!.mapDir).toBe(bundleDir);
   });
+
+  const debugIdSnippet = (debugId: string): string =>
+    `;!function(){try{var e="undefined"!=typeof window?window:{},n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="${debugId}",e._sentryDebugIdIdentifier="sentry-dbid-${debugId}")}catch(e){}}();`;
+
+  const noopRewriteHook: RewriteSourcesHook = source => source;
+  const makeLogger = (): Logger =>
+    ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }) as unknown as Logger;
+
+  it('does not write an upload artifact for a chunk that has no source map', async () => {
+    const bundleDir = path.join(tmpDir, 'src');
+    const uploadDir = path.join(tmpDir, 'upload');
+    fs.mkdirSync(bundleDir, { recursive: true });
+    fs.mkdirSync(uploadDir, { recursive: true });
+
+    const debugId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const bundlePath = path.join(bundleDir, 'stub.js');
+    // A stub chunk: debug ID snippet but no code and no sourceMappingURL / adjacent `.map`.
+    fs.writeFileSync(bundlePath, `"use strict";\n${debugIdSnippet(debugId)}`);
+
+    await prepareBundleForDebugIdUpload(bundlePath, uploadDir, 0, makeLogger(), noopRewriteHook, undefined);
+
+    expect(fs.readdirSync(uploadDir)).toEqual([]);
+  });
+
+  it('writes an upload artifact for a chunk whose source map is inlined', async () => {
+    const bundleDir = path.join(tmpDir, 'src');
+    const uploadDir = path.join(tmpDir, 'upload');
+    fs.mkdirSync(bundleDir, { recursive: true });
+    fs.mkdirSync(uploadDir, { recursive: true });
+
+    const debugId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const bundlePath = path.join(bundleDir, 'inline.js');
+    const inlineMap = Buffer.from(JSON.stringify({ version: 3, sources: ['a.ts'], mappings: 'AAAA' })).toString(
+      'base64',
+    );
+    fs.writeFileSync(
+      bundlePath,
+      `"use strict";\n// code\n${debugIdSnippet(debugId)}\n//# sourceMappingURL=data:application/json;base64,${inlineMap}`,
+    );
+
+    await prepareBundleForDebugIdUpload(bundlePath, uploadDir, 0, makeLogger(), noopRewriteHook, undefined);
+
+    expect(fs.readdirSync(uploadDir)).toEqual([`${debugId}-0.js`]);
+  });
 });
