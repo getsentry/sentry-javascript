@@ -123,10 +123,6 @@ const SEGMENT_SPAN = {
       type: 'string',
       value: expect.any(String),
     },
-    url: {
-      type: 'string',
-      value: expect.stringMatching(/^http:\/\/localhost:\d+\/test-sentry-span$/),
-    },
     'url.full': {
       type: 'string',
       value: expect.stringMatching(/^http:\/\/localhost:\d+\/test-sentry-span$/),
@@ -238,7 +234,6 @@ test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) 
     attributes: {
       ...SEGMENT_SPAN.attributes,
       'sentry.segment.name': { type: 'string', value: 'GET /test-interop' },
-      url: { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:\d+\/test-interop$/) },
       'url.full': { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:\d+\/test-interop$/) },
       'url.path': { type: 'string', value: '/test-interop' },
     },
