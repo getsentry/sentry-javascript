@@ -5,7 +5,6 @@ import type {
   continueTrace,
   isTracingSuppressed,
   startInactiveSpan,
-  startNewTrace,
   startSpan,
   startSpanManual,
   suppressTracing,
@@ -99,9 +98,6 @@ export interface AsyncContextStrategy {
    * and `<meta name="baggage">` HTML tags.
    */
   continueTrace?: typeof continueTrace;
-
-  /** Start a new trace, ensuring all spans in the callback share the same traceId. */
-  startNewTrace?: typeof startNewTrace;
 
   /** Get the runtime store required to bind tracing channels to an active span. */
   getTracingChannelBinding?: () => TracingChannelBinding | undefined;

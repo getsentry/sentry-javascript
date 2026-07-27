@@ -325,11 +325,6 @@ export function isTracingSuppressed(scope = getCurrentScope()): boolean {
  *            or page will automatically create a new trace.
  */
 export function startNewTrace<T>(callback: () => T): T {
-  const acs = getAcs();
-  if (acs.startNewTrace) {
-    return acs.startNewTrace(callback);
-  }
-
   return withScope(scope => {
     scope.setPropagationContext({
       traceId: generateTraceId(),

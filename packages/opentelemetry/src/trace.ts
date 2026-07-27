@@ -11,8 +11,6 @@ import type {
 } from '@sentry/core';
 import {
   _INTERNAL_safeMathRandom,
-  generateSpanId,
-  generateTraceId,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromScope,
@@ -303,35 +301,6 @@ export function continueTrace<T>(options: Parameters<typeof baseContinueTrace>[0
   return continueTraceAsRemoteSpan(context.active(), options, callback);
 }
 
-/**
- * Start a new trace with a unique traceId, ensuring all spans created within the callback
- * share the same traceId.
- *
- * This is a custom version of `startNewTrace` for OTEL-powered environments.
- * It injects the new traceId as a remote span context into the OTEL context, so that
- * `startInactiveSpan` and `startSpan` pick it up correctly.
- */
-export function startNewTrace<T>(callback: () => T): T {
-  const traceId = generateTraceId();
-  const spanId = generateSpanId();
-
-  const spanContext: SpanContext = {
-    traceId,
-    spanId,
-    isRemote: true,
-    traceFlags: TraceFlags.NONE,
-  };
-
-  const ctxWithTrace = trace.setSpanContext(context.active(), spanContext);
-
-  return context.with(ctxWithTrace, () => {
-    getCurrentScope().setPropagationContext({
-      traceId,
-      sampleRand: _INTERNAL_safeMathRandom(),
-    });
-    return callback();
-  });
-}
 
 /**
  * Get the trace context for a given scope.
