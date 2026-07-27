@@ -1,5 +1,11 @@
 import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
-import { applySdkMetadata, debug, ServerRuntimeClient, spanIsSampled } from '@sentry/core';
+import {
+  _INTERNAL_clearAiProviderSkips,
+  applySdkMetadata,
+  debug,
+  ServerRuntimeClient,
+  spanIsSampled,
+} from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import type { ExecutionContextCompat } from './executionContext';
 import type { makeFlushLock } from './flush';
@@ -138,6 +144,16 @@ export class CloudflareClient extends ServerRuntimeClient {
 
     this._resetSpanCompletionPromise();
     (this as unknown as { _flushLock: ReturnType<typeof makeFlushLock> | void })._flushLock = undefined;
+  }
+
+  /** @inheritDoc */
+  protected override _setupIntegrations(): void {
+    // Clear AI provider skip registrations before setting up integrations.
+    // The registry is module-global and Cloudflare calls `init()` per request, so without this a
+    // single `ai` SDK call would suppress direct `env.AI.run` spans for the rest of the isolate's
+    // life. Mirrors the same reset in the Node client.
+    _INTERNAL_clearAiProviderSkips();
+    super._setupIntegrations();
   }
 
   /**

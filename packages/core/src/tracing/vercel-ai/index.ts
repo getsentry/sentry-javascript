@@ -6,7 +6,9 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { shouldEnableTruncation } from '../ai/utils';
 import type { Event } from '../../types/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
+import { _INTERNAL_skipAiProviderWrapping } from '../../utils/ai/providerSkip';
 import { spanToJSON } from '../../utils/spanUtils';
+import { WORKERS_AI_INTEGRATION_NAME } from '../workers-ai/constants';
 import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_EMBEDDINGS_INPUT,
@@ -85,6 +87,12 @@ function onVercelAiSpanStart(span: Span): void {
   // V5+ Check if this is a Vercel AI span by name pattern.
   if (!attributes[AI_OPERATION_ID_ATTRIBUTE] && !name.startsWith('ai.')) {
     return;
+  }
+
+  // Registered lazily here (not at `setupOnce`) so a direct `env.AI.run` call made before any `ai`
+  // SDK call still gets its own span.
+  if (SPAN_TO_OPERATION_NAME.get(name) === 'generate_content') {
+    _INTERNAL_skipAiProviderWrapping([WORKERS_AI_INTEGRATION_NAME]);
   }
 
   const client = getClient();
