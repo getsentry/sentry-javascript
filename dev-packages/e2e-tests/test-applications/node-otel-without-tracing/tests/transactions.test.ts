@@ -65,7 +65,7 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
       attributes: expect.arrayContaining([
         { key: 'http.request.method', value: { stringValue: 'GET' } },
         { key: 'http.request.method_original', value: { stringValue: 'GET' } },
-        { key: 'url.full', value: { stringValue: 'http://localhost:3030/test-success' } },
+        { key: 'http.url', value: { stringValue: 'http://localhost:3030/test-success' } },
         { key: 'url.path', value: { stringValue: '/test-success' } },
         { key: 'url.query', value: { stringValue: '' } },
         { key: 'url.scheme', value: { stringValue: 'http' } },
@@ -104,7 +104,7 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
       startTimeUnixNano: expect.any(String),
       endTimeUnixNano: expect.any(String),
       attributes: expect.arrayContaining([
-        { key: 'url.full', value: { stringValue: 'http://localhost:3030/test-transaction' } },
+        { key: 'http.url', value: { stringValue: 'http://localhost:3030/test-transaction' } },
         { key: 'http.host', value: { stringValue: 'localhost:3030' } },
         { key: 'net.host.name', value: { stringValue: 'localhost' } },
         { key: 'http.method', value: { stringValue: 'GET' } },

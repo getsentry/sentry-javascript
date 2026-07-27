@@ -1414,8 +1414,7 @@ test('Second navigation span is not corrupted by first slow lazy handler complet
   // The /api/slow-data fetch is triggered by the slow-fetch route's lazy loading
   if (anotherLazyTransaction) {
     const leakedSpans = anotherLazyTransaction.spans.filter(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (span: any) => span.description?.includes('slow-data') || span.data?.url?.includes('slow-data'),
+      span => span.description?.includes('slow-data') || span.data?.['url.full'].includes('slow-data'),
     );
     expect(leakedSpans.length).toBe(0);
   }
@@ -1428,7 +1427,7 @@ test('Second navigation span is not corrupted by first slow lazy handler complet
     // Verify slow-fetch transaction doesn't contain spans that belong to /another-lazy
     const wrongSpans = slowFetchTransaction.spans.filter(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (span: any) => span.description?.includes('another-lazy') || span.data?.url?.includes('another-lazy'),
+      (span: any) => span.description?.includes('another-lazy') || span.data?.['url.full'].includes('another-lazy'),
     );
     expect(wrongSpans.length).toBe(0);
   }
@@ -1512,7 +1511,7 @@ test('GQL fetch span is attributed to the correct navigation transaction when na
   const pageloadGqlSpans = pageloadSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
       span.op === 'http.client' &&
-      (span.description?.includes('/api/graphql') || span.data?.url?.includes('/api/graphql')),
+      (span.description?.includes('/api/graphql') || span.data?.['url.full'].includes('/api/graphql')),
   );
   expect(pageloadGqlSpans.length).toBe(0);
 
@@ -1534,14 +1533,14 @@ test('GQL fetch span is attributed to the correct navigation transaction when na
   const navSpans = navigationEvent.spans || [];
   const userASpans = navSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.url?.includes('UserAQuery')),
+      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.['url.full'].includes('UserAQuery')),
   );
   expect(userASpans.length).toBe(1);
 
   // Verify NO UserBQuery spans leaked into this transaction
   const userBSpans = navSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.url?.includes('UserBQuery')),
+      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.['url.full'].includes('UserBQuery')),
   );
   expect(userBSpans.length).toBe(0);
 });
@@ -1572,14 +1571,14 @@ test('GQL fetch spans are attributed to correct navigation transactions when nav
   const firstNavSpans = firstNavEvent.spans || [];
   const firstUserASpans = firstNavSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.url?.includes('UserAQuery')),
+      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.['url.full'].includes('UserAQuery')),
   );
   expect(firstUserASpans.length).toBe(1);
 
   // First navigation must NOT contain UserBQuery spans
   const firstUserBSpans = firstNavSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.url?.includes('UserBQuery')),
+      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.['url.full'].includes('UserBQuery')),
   );
   expect(firstUserBSpans.length).toBe(0);
 
@@ -1603,14 +1602,14 @@ test('GQL fetch spans are attributed to correct navigation transactions when nav
   const secondNavSpans = secondNavEvent.spans || [];
   const secondUserBSpans = secondNavSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.url?.includes('UserBQuery')),
+      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.['url.full'].includes('UserBQuery')),
   );
   expect(secondUserBSpans.length).toBe(1);
 
   // Second navigation must NOT contain UserAQuery spans (no leaking from first nav)
   const secondUserASpans = secondNavSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.url?.includes('UserAQuery')),
+      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.['url.full'].includes('UserAQuery')),
   );
   expect(secondUserASpans.length).toBe(0);
 
