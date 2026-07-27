@@ -337,6 +337,93 @@ describe('instrumentChatAgentConversation', () => {
 
     expect('onChatMessage' in obj).toBe(false);
   });
+
+  it('uses the instance name as the conversation id before any clear', () => {
+    const setConversationId = vi.fn();
+    vi.spyOn(getCurrentScope(), 'setConversationId').mockImplementation(setConversationId);
+
+    const obj: AgentInternals = {
+      name: 'session-7',
+      onMessage() {
+        return 'msg-ok';
+      },
+      onChatMessage() {
+        return 'response';
+      },
+    };
+
+    instrumentChatAgentConversation(obj);
+
+    obj.onChatMessage!(() => {}, {});
+
+    expect(setConversationId).toHaveBeenCalledWith('session-7');
+  });
+
+  it('rotates the conversation id on cf_agent_chat_clear (fresh id, not the instance name)', () => {
+    const setConversationId = vi.fn();
+    vi.spyOn(getCurrentScope(), 'setConversationId').mockImplementation(setConversationId);
+
+    const obj: AgentInternals = {
+      name: 'session-7',
+      onMessage() {
+        return 'msg-ok';
+      },
+      onChatMessage() {
+        return 'response';
+      },
+    };
+
+    instrumentChatAgentConversation(obj);
+
+    // Simulate a chat clear over the WebSocket message handler.
+    obj.onMessage!({}, JSON.stringify({ type: 'cf_agent_chat_clear' }));
+
+    obj.onChatMessage!(() => {}, {});
+
+    expect(setConversationId).toHaveBeenCalledTimes(1);
+    const rotated = setConversationId.mock.calls[0]?.[0] as string;
+    expect(typeof rotated).toBe('string');
+    expect(rotated).not.toBe('session-7');
+    expect(obj.__sentryConversationId).toBe(rotated);
+  });
+
+  it('forwards cf_agent_chat_clear to the original onMessage', () => {
+    const received: unknown[] = [];
+    const obj: AgentInternals = {
+      name: 'session-7',
+      onMessage(_conn: unknown, msg: unknown) {
+        received.push(msg);
+        return 'msg-ok';
+      },
+      onChatMessage() {
+        return 'response';
+      },
+    };
+
+    instrumentChatAgentConversation(obj);
+
+    const clear = JSON.stringify({ type: 'cf_agent_chat_clear' });
+    expect(obj.onMessage!({}, clear)).toBe('msg-ok');
+    expect(received).toEqual([clear]);
+  });
+
+  it('does not rotate the conversation id for non-clear messages', () => {
+    const obj: AgentInternals = {
+      name: 'session-7',
+      onMessage() {
+        return 'msg-ok';
+      },
+      onChatMessage() {
+        return 'response';
+      },
+    };
+
+    instrumentChatAgentConversation(obj);
+
+    obj.onMessage!({}, JSON.stringify({ type: 'rpc', id: '1', method: 'greet', args: [] }));
+
+    expect(obj.__sentryConversationId).toBeUndefined();
+  });
 });
 
 describe('instrumentAgentStart', () => {
