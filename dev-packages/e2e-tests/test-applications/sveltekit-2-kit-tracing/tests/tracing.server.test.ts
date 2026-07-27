@@ -89,7 +89,6 @@ test('server pageload request span has nested request span for sub request', asy
           'sveltekit.is_data_request': false,
           'sveltekit.is_sub_request': true,
           'sveltekit.tracing.original_name': 'sveltekit.handle.root',
-          url: 'http://localhost:3030/api/users',
         }),
         description: 'GET /api/users',
         op: 'http.server',

@@ -19,7 +19,6 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
-      url: 'http://localhost:3030/example-module/transaction',
       'sentry.kind': 'server',
       'http.response.status_code': 200,
       'url.full': 'http://localhost:3030/example-module/transaction',

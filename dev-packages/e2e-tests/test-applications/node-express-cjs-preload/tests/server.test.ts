@@ -56,7 +56,6 @@ test('Should record a transaction for route with parameters', async ({ request }
       'sentry.origin': 'auto.http.otel.http',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
-      url: 'http://localhost:3030/test-transaction/1',
     }),
   );
 

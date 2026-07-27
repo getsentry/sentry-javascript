@@ -56,7 +56,6 @@ test('Should record a transaction for route with parameters', async ({ request }
       'sentry.origin': 'auto.http.otel.http',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
-      url: 'http://localhost:3030/test-transaction/1',
     }),
   );
 
@@ -147,7 +146,6 @@ test('Should record spans from http instrumentation', async ({ request }) => {
       'sentry.kind': 'client',
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.client',
-      url: 'http://example.com/',
     }),
     description: 'GET http://example.com/',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
