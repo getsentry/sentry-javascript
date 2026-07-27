@@ -65,28 +65,6 @@ export function commonObjectToIsolationScope(commonObject: unknown): Scope {
 }
 
 /**
- * Ideally this function never lands in the develop branch.
- *
- * Drops the entire span tree this function was called in, if it was a span tree created by Next.js.
- */
-export function dropNextjsRootContext(): void {
-  // When the user brings their own OTel setup (skipOpenTelemetrySetup: true), we should not
-  // mutate their spans with Sentry-internal attributes like `sentry.drop_transaction`
-  if ((getClient()?.getOptions() as { skipOpenTelemetrySetup?: boolean } | undefined)?.skipOpenTelemetrySetup) {
-    return;
-  }
-
-  const nextJsOwnedSpan = getActiveSpan();
-  if (nextJsOwnedSpan) {
-    const rootSpan = getRootSpan(nextJsOwnedSpan);
-    const rootSpanAttributes = spanToJSON(rootSpan).data;
-    if (rootSpanAttributes?.['next.span_type']) {
-      getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
-    }
-  }
-}
-
-/**
  * Checks if the span is a resolve segment span.
  * @param spanAttributes The attributes of the span to check.
  * @returns True if the span is a resolve segment span, false otherwise.
