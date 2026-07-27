@@ -28,6 +28,7 @@ import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetada
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
 import { SENTRY_KIND } from '@sentry/conventions/attributes';
+import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 
 export * from '@sentry/vercel-edge';
 export * from '../common';
@@ -134,7 +135,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
     // Make sure middleware spans get the right op
     if (spanAttributes?.['next.span_type'] === 'Middleware.execute') {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server.middleware');
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP);
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
     }
 

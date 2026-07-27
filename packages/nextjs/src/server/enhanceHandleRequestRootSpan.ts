@@ -1,4 +1,5 @@
 import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_ROUTE, HTTP_TARGET } from '@sentry/conventions/attributes';
+import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, stripUrlQueryAndFragment } from '@sentry/core';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../common/span-attributes-with-logic-attached';
@@ -64,7 +65,7 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
 
   if (middlewareMatch) {
     span.setName(`middleware ${middlewareMatch[1]}`);
-    span.setOp('http.server.middleware');
+    span.setOp(WEB_SERVER_MIDDLEWARE_SPAN_OP);
   }
 
   // Next.js overrides transaction names for page loads that throw an error
