@@ -26,8 +26,6 @@ import {
   spanToJSON,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import type { AbstractSpan } from '../types';
-import { spanHasAttributes, spanHasName } from './spanTypes';
 
 interface SpanDescription {
   op: string | undefined;
@@ -103,21 +101,10 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes): Spa
  *
  * Based on https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/7422ce2a06337f68a59b552b8c5a2ac125d6bae5/exporter/sentryexporter/sentry_exporter.go#L306
  */
-export function parseSpanDescription(span: AbstractSpan): SpanDescription {
-  let attributes: Attributes;
-  let name: string;
-
-  // TODO(v11): Once the OTel SDK provider is removed and SentryTracerProvider is the only path,
-  // every span is a native Sentry span — drop this `spanHasAttributes` (OTel ReadableSpan) branch
-  // and keep only the `spanToJSON()` path below.
-  if (spanHasAttributes(span)) {
-    attributes = span.attributes;
-    name = spanHasName(span) ? span.name : '<unknown>';
-  } else {
-    const json = typeof (span as Span).spanContext === 'function' ? spanToJSON(span as Span) : undefined;
-    attributes = json?.data || {};
-    name = spanHasName(span) ? span.name : json?.description || '<unknown>';
-  }
+export function parseSpanDescription(span: Span): SpanDescription {
+  const json = spanToJSON(span);
+  const attributes = json.data;
+  const name = json.description || '<unknown>';
 
   return inferSpanData(name, attributes);
 }

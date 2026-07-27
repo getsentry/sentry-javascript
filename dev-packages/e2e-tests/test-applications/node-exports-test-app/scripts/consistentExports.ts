@@ -19,7 +19,6 @@ const NODE_EXPORTS_IGNORE = [
   'getDefaultIntegrationsWithoutPerformance',
   'initWithoutDefaultIntegrations',
   'SentryContextManager',
-  'validateOpenTelemetrySetup',
   'preloadOpenTelemetry',
   // Experimental, Node-runtime-only opt-in (diagnostics-channel injection); it
   // registers Node module hooks and is not surfaced through the framework /

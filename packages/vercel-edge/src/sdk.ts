@@ -1,5 +1,4 @@
 import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
-import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Client, Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
@@ -11,7 +10,6 @@ import {
   getCurrentScope,
   getIntegrationsToSetup,
   GLOBAL_OBJ,
-  hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   nodeStackLineParser,
@@ -21,16 +19,13 @@ import {
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
   getSentryResource,
-  openTelemetrySetupCheck,
   SentryPropagator,
-  SentrySampler,
-  SentrySpanProcessor,
+  SentryTracerProvider,
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
   wrapContextManagerClass,
 } from '@sentry/opentelemetry';
 import { VercelEdgeClient } from './client';
-import { DEBUG_BUILD } from './debug-build';
 import { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 import { makeEdgeTransport } from './transports';
 import type { VercelEdgeOptions } from './types';
@@ -61,7 +56,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
 }
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
-export function init(options: VercelEdgeOptions = {}): Client | undefined {
+export function init(options: VercelEdgeOptions = {}): Client {
   // We force skipOpenTelemetrySetup: true here, because this triggers the custom lookup for the AsyncLocalStorage instance
   // Since we use a custom Context Manager here (because AsyncLocalStorage is looked up differently than in Node), we need to do this
   setOpenTelemetryContextAsyncContextStrategy({ skipOpenTelemetrySetup: true });
@@ -109,41 +104,12 @@ export function init(options: VercelEdgeOptions = {}): Client | undefined {
   // There is no way to use this SDK without OpenTelemetry!
   if (!options.skipOpenTelemetrySetup) {
     setupOtel(client);
-    validateOpenTelemetrySetup();
   }
 
   enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
 
   return client;
-}
-
-function validateOpenTelemetrySetup(): void {
-  if (!DEBUG_BUILD) {
-    return;
-  }
-
-  const setup = openTelemetrySetupCheck();
-
-  const required: ReturnType<typeof openTelemetrySetupCheck> = ['SentryContextManager', 'SentryPropagator'];
-
-  if (hasSpansEnabled()) {
-    required.push('SentrySpanProcessor');
-  }
-
-  for (const k of required) {
-    if (!setup.includes(k)) {
-      debug.error(
-        `You have to set up the ${k}. Without this, the OpenTelemetry & Sentry integration will not work properly.`,
-      );
-    }
-  }
-
-  if (!setup.includes('SentrySampler')) {
-    debug.warn(
-      'You have to set up the SentrySampler. Without this, the OpenTelemetry & Sentry integration may still work, but sample rates set for the Sentry SDK will not be respected. If you use a custom sampler, make sure to use `wrapSamplingDecision`.',
-    );
-  }
 }
 
 // exported for tests
@@ -153,25 +119,16 @@ export function setupOtel(client: VercelEdgeClient): void {
     setupOpenTelemetryLogger();
   }
 
-  // Create and configure NodeTracerProvider
-  const provider = new BasicTracerProvider({
-    sampler: new SentrySampler(client),
-    resource: getSentryResource('edge'),
-    forceFlushTimeoutMillis: 500,
-    spanProcessors: [
-      new SentrySpanProcessor({
-        timeout: client.getOptions().maxSpanWaitDuration,
-        client,
-      }),
-    ],
-  });
-
-  // eslint-disable-next-line typescript/no-deprecated
-  const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
+  const provider = new SentryTracerProvider({ resource: getSentryResource('edge') });
 
   trace.setGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());
-  context.setGlobalContextManager(new SentryContextManager());
+
+  // oxlint-disable-next-line typescript/no-deprecated
+  const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
+
+  const ctxManager = new SentryContextManager();
+  context.setGlobalContextManager(ctxManager);
 
   client.traceProvider = provider;
 }

@@ -28,7 +28,6 @@ import { EventEmitter } from 'node:events';
 import type { AsyncLocalStorageLookup } from './contextManager';
 import { SENTRY_SCOPES_CONTEXT_KEY } from './constants';
 import { buildContextWithSentryScopes } from './utils/buildContextWithSentryScopes';
-import { setIsSetup } from './utils/setupCheck';
 import { getAsyncContextStrategy, getMainCarrier } from '@sentry/core';
 
 type ListenerFn = (...args: unknown[]) => unknown;
@@ -51,7 +50,6 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
   private _wrapped = false;
 
   public constructor() {
-    setIsSetup('SentryContextManager');
     // Pick the instance from the async context strategy
     // this should normally always be there, but if it is not for whatever reason, we fall back to a new instance
     this._asyncLocalStorage =

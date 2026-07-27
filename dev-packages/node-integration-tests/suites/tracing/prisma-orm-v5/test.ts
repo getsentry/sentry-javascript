@@ -11,9 +11,6 @@ const ADDITIONAL_DEPENDENCIES = {
   prisma: '5.22.0',
 };
 
-// Prisma v5 engine spans are minted by Sentry's v5 compatibility shim through Sentry's
-// provider-agnostic span APIs, so the same span tree must be produced under both the default
-// SentryTracerProvider and the opt-in OTel BasicTracerProvider (`openTelemetryBasicTracerProvider`).
 function expectPrismaV5Spans(transaction: TransactionEvent): void {
   expect(transaction.transaction).toBe('Test Transaction');
   const spans = transaction.spans || [];
@@ -120,26 +117,6 @@ describeWithDockerCompose('Prisma ORM v5', { workingDirectory: [__dirname] }, ()
       __dirname,
       'scenario.mjs',
       'instrument.mjs',
-      (createRunner, test) => {
-        test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
-          await createRunner().expect({ transaction: expectPrismaV5Spans }).start().completed();
-        });
-      },
-      {
-        additionalDependencies: ADDITIONAL_DEPENDENCIES,
-        afterSetupCommand: AFTER_SETUP_COMMAND,
-        copyPaths: ['prisma'],
-      },
-    );
-  });
-
-  // The BasicTracerProvider path is opt-in via `openTelemetryBasicTracerProvider: true`; it must produce
-  // the same Prisma v5 span tree as the default SentryTracerProvider.
-  describe('Prisma ORM v5 Tests (BasicTracerProvider)', () => {
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario.mjs',
-      'instrument-basic-tracer-provider.mjs',
       (createRunner, test) => {
         test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
           await createRunner().expect({ transaction: expectPrismaV5Spans }).start().completed();

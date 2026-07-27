@@ -1,5 +1,4 @@
 import { context, trace, TraceFlags, type Context } from '@opentelemetry/api';
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Scope } from '@sentry/core';
 import {
   addChildSpanToSpan,
@@ -20,23 +19,18 @@ import { setNodeOpenTelemetryContextAsyncContextStrategy } from '../src/nodeAsyn
 import { TraceState } from '../src/utils/TraceState';
 import { setupOtel } from './helpers/initOtel';
 import { cleanupOtel } from './helpers/mockSdkInit';
-import { getDefaultTestClientOptions, TestClient } from './helpers/TestClient';
 
 describe('asyncContextStrategy', () => {
-  let provider: BasicTracerProvider | undefined;
-
   beforeEach(() => {
     getCurrentScope().clear();
     getIsolationScope().clear();
 
-    const options = getDefaultTestClientOptions();
-    const client = new TestClient(options);
-    [provider] = setupOtel(client);
+    setupOtel();
     setOpenTelemetryContextAsyncContextStrategy();
   });
 
   afterEach(() => {
-    cleanupOtel(provider);
+    cleanupOtel();
   });
 
   afterAll(() => {
