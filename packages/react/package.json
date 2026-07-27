@@ -41,7 +41,7 @@
     "@sentry/conventions": "^0.16.0"
   },
   "peerDependencies": {
-    "react": "^16.14.0 || 17.x || 18.x || 19.x"
+    "react": "17.x || 18.x || 19.x"
   },
   "devDependencies": {
     "@testing-library/react": "^15.0.5",

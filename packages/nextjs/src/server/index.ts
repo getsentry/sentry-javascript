@@ -159,7 +159,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     /^\/404$/,
     // App router /404 and /_not-found segments (any HTTP method)
     /^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/(404|_not-found)$/,
-    // Next.js 13 root transactions named "NextServer.getRequestHandler" containing useless tracing
+    // Root transactions named "NextServer.getRequestHandler" containing useless tracing
     /^NextServer\.getRequestHandler$/,
     // Spans flagged via TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION
     // (set in `dropMiddlewareTunnelRequests` during `spanStart`)

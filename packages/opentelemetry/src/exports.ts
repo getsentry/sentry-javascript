@@ -12,13 +12,8 @@ export { setupEventContextTrace } from './setupEventContextTrace';
 export { wrapContextManagerClass } from './contextManager';
 
 export { SentryPropagator } from './propagator';
-export { SentrySpanProcessor } from './spanProcessor';
-export { SentrySampler, wrapSamplingDecision } from './sampler';
 export { applyOtelSpanData } from './applyOtelSpanData';
 export { backfillStreamedSpanDataFromOtel } from './utils/backfillStreamedSpanData';
 export { SentryTracerProvider } from './tracerProvider';
-export type { OpenTelemetryTracerProvider } from './types';
-
-export { openTelemetrySetupCheck, setIsSetup } from './utils/setupCheck';
 
 export { getSentryResource } from './resource';

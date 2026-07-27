@@ -7,21 +7,15 @@ const SERVER_BUILD_MODULE_ID = 'virtual:react-router/server-build';
  * A Sentry plugin for React Router to capture the server build for middleware name resolution.
  */
 export function makeServerBuildCapturePlugin(): Plugin {
-  let isSsrBuild = false;
-
   return {
     name: 'sentry-react-router-server-build-capture',
     enforce: 'post',
 
-    configResolved(config) {
-      isSsrBuild = !!config.build.ssr;
-    },
-
-    transform(code, id) {
-      // TODO: This only captures the server build for production SSR builds. Dev mode
-      // (`react-router dev`) is not covered yet, so middleware names may be missing there - this
-      // should be handled for dev too.
-      if (!isSsrBuild) {
+    transform(code, id, options) {
+      // Only inject into the server build module when transforming for the SSR environment.
+      // `options.ssr` is set for the SSR module in both dev (`react-router dev`) and production
+      // builds, so this covers both - unlike `config.build.ssr`, which is only true during a build.
+      if (!options?.ssr) {
         return null;
       }
 

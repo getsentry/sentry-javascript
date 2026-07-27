@@ -17,7 +17,6 @@ import {
 } from '@sentry/core';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
-  openTelemetrySetupCheck,
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
 } from '@sentry/opentelemetry';
@@ -225,10 +224,7 @@ function _init(
 
   // Add Node SDK specific OpenTelemetry setup
   if (!clientOptions.skipOpenTelemetrySetup) {
-    initOpenTelemetry(client, {
-      spanProcessors: clientOptions.openTelemetrySpanProcessors,
-    });
-    validateOpenTelemetrySetup();
+    initOpenTelemetry(client);
   }
 
   // Warn about missing or doubled channel injection. Runs after the client
@@ -238,39 +234,6 @@ function _init(
   }
 
   return client;
-}
-
-/**
- * Validate that your OpenTelemetry setup is correct.
- */
-export function validateOpenTelemetrySetup(): void {
-  if (!DEBUG_BUILD) {
-    return;
-  }
-
-  const setup = openTelemetrySetupCheck();
-
-  const required: ReturnType<typeof openTelemetrySetupCheck> = ['SentryContextManager', 'SentryPropagator'];
-
-  const hasSentryTracerProvider = setup.includes('SentryTracerProvider');
-
-  if (hasSpansEnabled() && !hasSentryTracerProvider) {
-    required.push('SentrySpanProcessor');
-  }
-
-  for (const k of required) {
-    if (!setup.includes(k)) {
-      debug.error(
-        `You have to set up the ${k}. Without this, the OpenTelemetry & Sentry integration will not work properly.`,
-      );
-    }
-  }
-
-  if (!hasSentryTracerProvider && !setup.includes('SentrySampler')) {
-    debug.warn(
-      'You have to set up the SentrySampler. Without this, the OpenTelemetry & Sentry integration may still work, but sample rates set for the Sentry SDK will not be respected. If you use a custom sampler, make sure to use `wrapSamplingDecision`.',
-    );
-  }
 }
 
 function getClientOptions(

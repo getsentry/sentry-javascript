@@ -1,5 +1,5 @@
 import type { Context, Span as OpenTelemetrySpan, SpanOptions, Tracer } from '@opentelemetry/api';
-import { context, trace } from '@opentelemetry/api';
+import { context, isSpanContextValid, trace } from '@opentelemetry/api';
 import { isTracingSuppressed } from '@opentelemetry/core';
 import {
   _INTERNAL_safeMathRandom,
@@ -30,7 +30,11 @@ export class SentryTracer implements Tracer {
   /** @inheritdoc */
   public startSpan(name: string, options: SpanOptions = {}, ctx?: Context): OpenTelemetrySpan {
     const parentContext = ctx || context.active();
-    const parentSpan = options.root ? undefined : trace.getSpan(parentContext);
+    const parentSpanCandidate = options.root ? undefined : trace.getSpan(parentContext);
+    // Ignore an invalid parent (e.g. a malformed incoming trace/span id) and start a fresh trace,
+    // matching the OTel SDK sampler's `getValidSpan` behaviour.
+    const parentSpan =
+      parentSpanCandidate && isSpanContextValid(parentSpanCandidate.spanContext()) ? parentSpanCandidate : undefined;
 
     if (isTracingSuppressed(parentContext)) {
       return this._createNonRecordingSpan(parentSpan);

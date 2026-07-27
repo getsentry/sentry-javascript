@@ -19,7 +19,6 @@ const NODE_EXPORTS_IGNORE = [
   'getDefaultIntegrationsWithoutPerformance',
   'initWithoutDefaultIntegrations',
   'SentryContextManager',
-  'validateOpenTelemetrySetup',
   'preloadOpenTelemetry',
   // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
   '_INTERNAL_normalizeCollectionInterval',

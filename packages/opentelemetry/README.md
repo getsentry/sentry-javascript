@@ -28,7 +28,6 @@ Note that `@sentry/opentelemetry` depends on the following peer dependencies:
 
 - `@opentelemetry/api` version `1.0.0` or greater
 - `@opentelemetry/core` version `1.0.0` or greater
-- `@opentelemetry/sdk-trace-base` version `1.0.0` or greater, or a package that implements that, like
   `@opentelemetry/sdk-node`.
 
 ## Usage
@@ -101,18 +100,9 @@ const span = trace.getTracer('example').startSpan('work');
 span.end();
 ```
 
-In `@sentry/node`, this is the default tracer provider. To use the full OpenTelemetry SDK `BasicTracerProvider`
-instead, opt out with:
+In `@sentry/node`, this is the default tracer provider.
 
-```js
-Sentry.init({
-  dsn: 'xxx',
-  openTelemetryBasicTracerProvider: true,
-});
-```
-
-Providing `openTelemetrySpanProcessors` also falls back to the full OpenTelemetry SDK provider, since custom span
-processors require the SDK span pipeline. The `SentryTracerProvider` does not handle OpenTelemetry logs and metrics.
+The `SentryTracerProvider` does not handle OpenTelemetry logs and metrics.
 
 ## Links
 

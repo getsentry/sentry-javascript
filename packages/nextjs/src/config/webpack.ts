@@ -124,11 +124,6 @@ export function constructWebpackConfigFunction({
 
     addOtelWarningIgnoreRule(newConfig);
 
-    // Add edge runtime polyfills when building for edge in dev mode
-    if (major && major === 13 && runtime === 'edge' && isDev) {
-      addEdgeRuntimePolyfills(newConfig, buildContext);
-    }
-
     let pagesDirPath: string | undefined;
     const maybePagesDirPath = path.join(projectDir, 'pages');
     const maybeSrcPagesDirPath = path.join(projectDir, 'src', 'pages');
@@ -801,9 +796,6 @@ function resolveNextPackageDirFromDirectory(basedir: string): string | undefined
 }
 
 const POTENTIAL_REQUEST_ASYNC_STORAGE_LOCATIONS = [
-  // Original location of RequestAsyncStorage
-  // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
-  'next/dist/client/components/request-async-storage.js',
   // Introduced in Next.js 13.4.20
   // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
   'next/dist/client/components/request-async-storage.external.js',
@@ -890,24 +882,6 @@ function prependOrchestrionRuntimeExternals(newConfig: WebpackConfigObjectWithMo
   } else {
     newConfig.externals = [externalizeOrchestrionRuntimePackages, existingExternals];
   }
-}
-
-function addEdgeRuntimePolyfills(newConfig: WebpackConfigObjectWithModuleRules, buildContext: BuildContext): void {
-  // Use ProvidePlugin to inject performance global only when accessed
-  newConfig.plugins = newConfig.plugins || [];
-  newConfig.plugins.push(
-    new buildContext.webpack.ProvidePlugin({
-      performance: [path.resolve(__dirname, 'polyfills', 'perf_hooks.js'), 'performance'],
-    }),
-  );
-
-  // Add module resolution aliases for problematic Node.js modules in edge runtime
-  newConfig.resolve = newConfig.resolve || {};
-  newConfig.resolve.alias = {
-    ...newConfig.resolve.alias,
-    // Redirect perf_hooks imports to a polyfilled version
-    perf_hooks: path.resolve(__dirname, 'polyfills', 'perf_hooks.js'),
-  };
 }
 
 /**

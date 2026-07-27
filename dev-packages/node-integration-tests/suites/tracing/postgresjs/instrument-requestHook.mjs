@@ -17,6 +17,7 @@ const requestHook = (span, sanitizedSqlQuery, connectionContext) => {
 // `postgresJsIntegration()` is the diagnostics-channel implementation by default; it forwards the
 // `requestHook` to the channel subscriber.
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,

@@ -41,8 +41,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
           const isTunnelRequest = isPathnameUnderSentryTunnelRoute(url.pathname, tunnelRoute);
 
           if (isTunnelRequest) {
-            // Create a simple response that mimics NextResponse.next() so we don't need to import internals here
-            // which breaks next 13 apps
+            // Create a simple response that mimics NextResponse.next() so we don't need to import Next.js internals here
             // https://github.com/vercel/next.js/blob/c12c9c1f78ad384270902f0890dc4cd341408105/packages/next/src/server/web/spec-extension/response.ts#L146
             return new Response(null, {
               status: 200,

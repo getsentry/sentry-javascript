@@ -2,7 +2,6 @@ import type { AsyncLocalStorage } from 'node:async_hooks';
 import type { Context, ContextManager } from '@opentelemetry/api';
 import { SENTRY_SCOPES_CONTEXT_KEY } from './constants';
 import { buildContextWithSentryScopes } from './utils/buildContextWithSentryScopes';
-import { setIsSetup } from './utils/setupCheck';
 
 export type AsyncLocalStorageLookup = {
   asyncLocalStorage: AsyncLocalStorage<unknown>;
@@ -38,10 +37,6 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
 
   // @ts-expect-error TS does not like this, but we know this is fine
   class SentryContextManager extends ContextManagerClass {
-    public constructor(...args: unknown[]) {
-      super(...args);
-      setIsSetup('SentryContextManager');
-    }
     /**
      * Overwrite with() of the original AsyncLocalStorageContextManager
      * to ensure we also create new scopes per context.
