@@ -175,7 +175,7 @@ test('captures correct spans for navigation', async ({ page }) => {
   const afterModelSpans = spans.filter(
     span => span.op === 'function' && span.data?.['ember.route.hook'] === 'afterModel',
   );
-  const renderSpans = spans.filter(span => span.op === 'ui.ember.runloop.render');
+  const renderSpans = spans.filter(span => span.op === 'ui.task' && span.data?.['ember.runloop.queue'] === 'render');
 
   expect(transitionSpans).toHaveLength(1);
 
@@ -322,11 +322,12 @@ test('captures correct spans for navigation', async ({ page }) => {
 
   expect(renderSpans).toContainEqual({
     data: {
-      'sentry.op': 'ui.ember.runloop.render',
+      'ember.runloop.queue': 'render',
+      'sentry.op': 'ui.task',
       'sentry.origin': 'auto.ui.ember',
     },
     description: 'runloop',
-    op: 'ui.ember.runloop.render',
+    op: 'ui.task',
     origin: 'auto.ui.ember',
     status: 'ok',
     parent_span_id: spanId,

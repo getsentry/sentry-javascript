@@ -1,6 +1,7 @@
 import { subscribe } from '@ember/instrumentation';
 import { scheduleOnce } from '@ember/runloop';
 import type { EmberRunQueues } from '@ember/runloop/-private/types';
+import { BROWSER_UI_TASK_SPAN_OP } from '@sentry/conventions/op';
 import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/core';
@@ -90,9 +91,10 @@ function _instrumentEmberRunloop(config: { minimumRunloopQueueDuration?: number 
           startInactiveSpan({
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+              'ember.runloop.queue': queue,
             },
             name: 'runloop',
-            op: `ui.ember.runloop.${queue}`,
+            op: BROWSER_UI_TASK_SPAN_OP,
             startTime: currentQueueStart,
             onlyIfParent: true,
           })?.end(now);
