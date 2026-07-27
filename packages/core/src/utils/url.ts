@@ -145,7 +145,7 @@ export function getUrlQuery(query: string | undefined): string | undefined {
  * unconditionally — setting an attribute to `undefined` is a no-op.
  */
 export function getUrlFragment(fragment: string | undefined): string | undefined {
-  return fragment?.replace(/^\#/, '') || undefined;
+  return fragment?.replace(/^#/, '') || undefined;
 }
 
 type PartialRequest = {

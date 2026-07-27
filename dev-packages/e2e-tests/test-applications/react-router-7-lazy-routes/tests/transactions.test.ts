@@ -1533,14 +1533,16 @@ test('GQL fetch span is attributed to the correct navigation transaction when na
   const navSpans = navigationEvent.spans || [];
   const userASpans = navSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.['url.full'].includes('UserAQuery')),
+      span.op === 'http.client' &&
+      (span.description?.includes('UserAQuery') || span.data?.['url.full'].includes('UserAQuery')),
   );
   expect(userASpans.length).toBe(1);
 
   // Verify NO UserBQuery spans leaked into this transaction
   const userBSpans = navSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.['url.full'].includes('UserBQuery')),
+      span.op === 'http.client' &&
+      (span.description?.includes('UserBQuery') || span.data?.['url.full'].includes('UserBQuery')),
   );
   expect(userBSpans.length).toBe(0);
 });
@@ -1571,14 +1573,16 @@ test('GQL fetch spans are attributed to correct navigation transactions when nav
   const firstNavSpans = firstNavEvent.spans || [];
   const firstUserASpans = firstNavSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.['url.full'].includes('UserAQuery')),
+      span.op === 'http.client' &&
+      (span.description?.includes('UserAQuery') || span.data?.['url.full'].includes('UserAQuery')),
   );
   expect(firstUserASpans.length).toBe(1);
 
   // First navigation must NOT contain UserBQuery spans
   const firstUserBSpans = firstNavSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.['url.full'].includes('UserBQuery')),
+      span.op === 'http.client' &&
+      (span.description?.includes('UserBQuery') || span.data?.['url.full'].includes('UserBQuery')),
   );
   expect(firstUserBSpans.length).toBe(0);
 
@@ -1602,14 +1606,16 @@ test('GQL fetch spans are attributed to correct navigation transactions when nav
   const secondNavSpans = secondNavEvent.spans || [];
   const secondUserBSpans = secondNavSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.['url.full'].includes('UserBQuery')),
+      span.op === 'http.client' &&
+      (span.description?.includes('UserBQuery') || span.data?.['url.full'].includes('UserBQuery')),
   );
   expect(secondUserBSpans.length).toBe(1);
 
   // Second navigation must NOT contain UserAQuery spans (no leaking from first nav)
   const secondUserASpans = secondNavSpans.filter(
     (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.['url.full'].includes('UserAQuery')),
+      span.op === 'http.client' &&
+      (span.description?.includes('UserAQuery') || span.data?.['url.full'].includes('UserAQuery')),
   );
   expect(secondUserASpans.length).toBe(0);
 
