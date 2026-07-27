@@ -26,10 +26,11 @@ import { debug, parseStringToURLObject, stripUrlQueryAndFragment, timestampInSec
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
-import { ANGULAR_INIT_OP, ANGULAR_OP, ANGULAR_ROUTING_OP } from './constants';
+import { ANGULAR_INIT_OP, ANGULAR_ROUTING_OP } from './constants';
 import { IS_DEBUG_BUILD } from './flags';
 import { runOutsideAngular } from './zone';
-import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 
 let instrumentationInitialized: boolean;
 
@@ -387,10 +388,11 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
         startInactiveSpan({
           onlyIfParent: true,
           name: `<${options?.name ? options.name : 'unnamed'}>`,
-          op: `${ANGULAR_OP}.${String(propertyKey)}`,
+          op: GENERAL_FUNCTION_SPAN_OP,
           startTime: now,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
+            [CODE_FUNCTION_NAME]: String(propertyKey),
           },
         }).end(now);
       });
