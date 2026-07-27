@@ -28,7 +28,7 @@ export function instrumentAgentSchedule(obj: AgentInternals): void {
   obj._executeScheduleCallback = function (this: AgentInternals, row: ScheduleRow): unknown {
     const callbackName = row?.callback;
 
-    if (typeof callbackName !== 'string') {
+    if (typeof callbackName !== 'string' || !callbackName) {
       return original.call(this, row);
     }
 
