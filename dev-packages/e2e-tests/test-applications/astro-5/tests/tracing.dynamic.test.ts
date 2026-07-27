@@ -258,7 +258,6 @@ test.describe('nested SSR routes (client, server, server request)', () => {
         'sentry.origin': 'auto.http.otel.node_fetch',
         'url.full': expect.stringContaining('/api/user/myUsername123.json'),
         'url.path': '/api/user/myUsername123.json',
-        'url.full': expect.stringContaining('/api/user/myUsername123.json'),
       },
     });
 
