@@ -26,3 +26,7 @@ allow-ghsas:
   - GHSA-wrwg-2hg8-v723
   - GHSA-8hv8-536x-4wqp
   - GHSA-2pvr-wf23-7pc7
+  # sharp, pulled in as an optional dependency of astro 4 (^0.33.3). Only fixed in
+  # 0.35.0, which is outside that range. Already present on develop via sharp 0.32.6
+  # and 0.34.5, both of which are affected by the same advisory.
+  - GHSA-f88m-g3jw-g9cj
