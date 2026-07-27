@@ -2555,6 +2555,112 @@ describe('Client', () => {
     });
   });
 
+  describe('session updates are decoupled from event sampling and beforeSend', () => {
+    test('drops unhandled error event when sampled out but still marks session as crashed', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
+      const client = new TestClient(options);
+      setCurrentClient(client);
+
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureEvent(
+        {
+          exception: {
+            values: [{ type: 'Error', value: 'unhandled crash', mechanism: { type: 'generic', handled: false } }],
+          },
+        },
+        { mechanism: { handled: false } },
+      );
+
+      // The error event is not sent — it was sampled out
+      expect(TestClient.instance!.event).toBeUndefined();
+
+      // But the session update is still sent, reflecting the crash
+      expect(client.session?.errors).toBe(1);
+      expect(client.session?.status).toBe('crashed');
+    });
+
+    test('drops handled error event when sampled out but still marks session as errored', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
+      const client = new TestClient(options);
+      setCurrentClient(client);
+
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureEvent(
+        {
+          exception: {
+            values: [{ type: 'Error', value: 'handled capture', mechanism: { type: 'generic', handled: true } }],
+          },
+        },
+        {},
+      );
+
+      // The error event is not sent — it was sampled out
+      expect(TestClient.instance!.event).toBeUndefined();
+
+      // But the session update is still sent, recording the error
+      expect(client.session?.errors).toBe(1);
+      expect(client.session?.status).toBe('ok');
+    });
+
+    test('drops unhandled error event when beforeSend returns null but still marks session as crashed', () => {
+      const beforeSend = vi.fn(() => null);
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+      const client = new TestClient(options);
+      setCurrentClient(client);
+
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureEvent(
+        {
+          exception: {
+            values: [{ type: 'Error', value: 'unhandled crash', mechanism: { type: 'generic', handled: false } }],
+          },
+        },
+        { mechanism: { handled: false } },
+      );
+
+      // The error event is not sent — beforeSend discarded it
+      expect(beforeSend).toHaveBeenCalledOnce();
+      expect(TestClient.instance!.event).toBeUndefined();
+
+      // But the session update is still sent, reflecting the crash
+      expect(client.session?.errors).toBe(1);
+      expect(client.session?.status).toBe('crashed');
+    });
+
+    test('drops handled error event when beforeSend returns null but still marks session as errored', () => {
+      const beforeSend = vi.fn(() => null);
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+      const client = new TestClient(options);
+      setCurrentClient(client);
+
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureEvent(
+        {
+          exception: {
+            values: [{ type: 'Error', value: 'handled capture', mechanism: { type: 'generic', handled: true } }],
+          },
+        },
+        {},
+      );
+
+      // The error event is not sent — beforeSend discarded it
+      expect(beforeSend).toHaveBeenCalledOnce();
+      expect(TestClient.instance!.event).toBeUndefined();
+
+      // But the session update is still sent, recording the error
+      expect(client.session?.errors).toBe(1);
+      expect(client.session?.status).toBe('ok');
+    });
+  });
+
   describe('recordDroppedEvent()/_clearOutcomes()', () => {
     test('records and returns outcomes', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });

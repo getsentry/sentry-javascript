@@ -138,8 +138,12 @@ export function wrap<T extends WrappableFunction, NonFunction>(
           return event;
         });
 
-        // no need to add a mechanism here, we already add it via an event processor above
-        captureException(ex);
+        // Mechanism is passed via hint so it's available even when the event
+        // is dropped before event processors run (e.g. sampleRate sampling).
+        // We also add it via an event processor above.
+        captureException(ex, {
+          mechanism: options.mechanism,
+        });
       });
 
       throw ex;

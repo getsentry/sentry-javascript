@@ -45,7 +45,7 @@ import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelop
 import { getPossibleEventMessages } from './utils/eventUtils';
 import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
 import { merge } from './utils/merge';
-import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
+import { addExceptionMechanism, checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
@@ -1445,6 +1445,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
     if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
       this.recordDroppedEvent('sample_rate', 'error');
+
+      // Reflects crashes inside release health sessions, regardless of event sampling
+      const session = currentScope.getSession() || isolationScope.getSession();
+      if (session) {
+        // _prepareEvent (which normally merges hint.mechanism) is skipped in this code path, so we add it here
+        if (hint.mechanism) {
+          addExceptionMechanism(event, hint.mechanism);
+        }
+        this._updateSessionFromEvent(session, event);
+      }
+
       return rejectedSyncPromise(
         _makeDoNotSendEventError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
@@ -1478,6 +1489,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
             const spanCount = 1 + spans.length;
             this.recordDroppedEvent('before_send', 'span', spanCount);
           }
+
+          // Reflects crashes inside release health sessions, regardless of beforeSend dropping the event.
+          const session = currentScope.getSession() || isolationScope.getSession();
+          if (isError && session) {
+            this._updateSessionFromEvent(session, event);
+          }
+
           throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
         }
 
