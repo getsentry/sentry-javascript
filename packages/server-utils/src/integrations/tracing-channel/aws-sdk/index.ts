@@ -69,7 +69,7 @@ function setMetadataAttributes(span: Span, metadata: Record<string, any> | undef
   }
 }
 
-const _awsChannelIntegration = (() => {
+const _awsIntegration = (() => {
   const servicesExtensions = new ServicesExtensions();
 
   return {
@@ -256,4 +256,4 @@ const _awsChannelIntegration = (() => {
  * spans identical to the OTel `@opentelemetry/instrumentation-aws-sdk` integration (with a distinct
  * `auto.aws.orchestrion.aws_sdk` origin). Requires the orchestrion runtime hook or bundler plugin.
  */
-export const awsChannelIntegration = defineIntegration(_awsChannelIntegration);
+export const awsIntegration = defineIntegration(_awsIntegration);

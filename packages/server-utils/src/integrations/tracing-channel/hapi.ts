@@ -23,7 +23,7 @@ interface HapiChannelContext {
   self?: { realm?: { plugin?: string } };
 }
 
-const _hapiChannelIntegration = (() => {
+const _hapiIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -67,4 +67,4 @@ const _hapiChannelIntegration = (() => {
  * `orchestrion:@hapi/hapi:route` / `:ext` channels injected into `@hapi/hapi`'s
  * `lib/server.js`. Requires the orchestrion runtime hook or bundler plugin.
  */
-export const hapiChannelIntegration = defineIntegration(_hapiChannelIntegration);
+export const hapiIntegration = defineIntegration(_hapiIntegration);

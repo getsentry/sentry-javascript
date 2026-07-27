@@ -100,7 +100,7 @@ interface KnexBuilderChannelContext {
   result?: KnexBuilder;
 }
 
-const _knexChannelIntegration = (() => {
+const _knexIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -311,4 +311,4 @@ function extractPortFromConnectionString(connectionString: string | undefined): 
  * injects into knex's `Runner.query` (span) and `Client.queryBuilder`/`schemaBuilder`/`raw` (parent-span
  * bookkeeping). Requires the orchestrion runtime hook or bundler plugin to be active.
  */
-export const knexChannelIntegration = defineIntegration(_knexChannelIntegration);
+export const knexIntegration = defineIntegration(_knexIntegration);

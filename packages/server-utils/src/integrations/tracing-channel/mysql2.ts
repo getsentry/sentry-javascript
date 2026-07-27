@@ -133,7 +133,7 @@ function getConnectionAttributes(config: Mysql2ConnectionConfig | undefined): Sp
   };
 }
 
-const _mysql2ChannelIntegration = (() => {
+const _mysql2Integration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -160,4 +160,4 @@ const _mysql2ChannelIntegration = (() => {
  * (`connection.query(sql).on('result', ...)`) is not traced — see the `mysql2` orchestrion config for
  * why. The callback and promise forms (the common case) are fully instrumented.
  */
-export const mysql2ChannelIntegration = defineIntegration(_mysql2ChannelIntegration);
+export const mysql2Integration = defineIntegration(_mysql2Integration);

@@ -162,7 +162,7 @@ const NOOP = (): void => {};
 // the subscribe logic twice and emit duplicate spans for every operation.
 let subscribed = false;
 
-const _amqplibChannelIntegration = (() => {
+const _amqplibIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -650,4 +650,4 @@ function getHeaderAsString(headers: Record<string, unknown> | undefined, key: st
  * injects into `amqplib`'s channel/connection methods. Requires the orchestrion runtime hook or
  * bundler plugin to be active.
  */
-export const amqplibChannelIntegration = defineIntegration(_amqplibChannelIntegration);
+export const amqplibIntegration = defineIntegration(_amqplibIntegration);

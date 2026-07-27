@@ -14,7 +14,7 @@ type VercelAiOptions = Parameters<typeof baseVercelAiIntegration>[0];
 // `experimental_telemetry.isEnabled` to `false`, so `ai` falls back to its
 // internal no-op tracer and never creates the native spans in the first place.
 // See `subscribeVercelAiOrchestrionChannels`.
-const _vercelAiChannelIntegration = ((options: VercelAiOptions = {}) => {
+const _vercelAiIntegration = ((options: VercelAiOptions = {}) => {
   const parentIntegration = baseVercelAiIntegration(options);
 
   return extendIntegration(parentIntegration, {
@@ -37,4 +37,4 @@ const _vercelAiChannelIntegration = ((options: VercelAiOptions = {}) => {
  * - v7 via native `ai:telemetry` tracing channel
  * - v4, v5 & v6 via orchestrion `orchestrion:ai:*` channels
  */
-export const vercelAiChannelIntegration = defineIntegration(_vercelAiChannelIntegration);
+export const vercelAiIntegration = defineIntegration(_vercelAiIntegration);

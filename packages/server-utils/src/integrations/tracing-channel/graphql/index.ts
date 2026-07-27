@@ -34,7 +34,7 @@ function getOptionsWithDefaults(options: GraphqlDiagnosticChannelsOptions): Grap
   };
 }
 
-const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) => {
+const _graphqlIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) => {
   const config = getOptionsWithDefaults(options);
   const getConfig = (): GraphqlResolvedConfig => config;
 
@@ -75,7 +75,7 @@ const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions =
  * `execution/execute.js`, emitting spans identical to the native path. Requires the orchestrion
  * runtime hook or bundler plugin.
  */
-export const graphqlChannelIntegration = defineIntegration(_graphqlChannelIntegration);
+export const graphqlIntegration = defineIntegration(_graphqlIntegration);
 
 /**
  * The complete graphql diagnostics-channel integration: the native subscriber (graphql v17) composed
@@ -83,8 +83,8 @@ export const graphqlChannelIntegration = defineIntegration(_graphqlChannelIntegr
  * version via diagnostics channels without the OTel patcher. Reuses the OTel `Graphql` name so
  * enabling injection swaps this in for it.
  */
-export const graphqlDiagnosticsChannelIntegration = (options?: GraphqlDiagnosticChannelsOptions) => {
-  const orchestrion = graphqlChannelIntegration(options);
+export const graphqlDiagnosticsIntegration = (options?: GraphqlDiagnosticChannelsOptions) => {
+  const orchestrion = graphqlIntegration(options);
   return extendIntegration(graphqlNativeIntegration(options), {
     name: INTEGRATION_NAME,
     setupOnce: () => orchestrion.setupOnce?.(),

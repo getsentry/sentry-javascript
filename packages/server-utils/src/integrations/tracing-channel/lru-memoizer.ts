@@ -13,7 +13,7 @@ interface LruMemoizerLoadContext {
   arguments: unknown[];
 }
 
-const _lruMemoizerChannelIntegration = (() => {
+const _lruMemoizerIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -41,4 +41,4 @@ const _lruMemoizerChannelIntegration = (() => {
  * `memoizedFunction`). Creates no spans; only re-runs the memoized callback with the
  * caller's scope. Requires the orchestrion runtime hook or bundler plugin.
  */
-export const lruMemoizerChannelIntegration = defineIntegration(_lruMemoizerChannelIntegration);
+export const lruMemoizerIntegration = defineIntegration(_lruMemoizerIntegration);

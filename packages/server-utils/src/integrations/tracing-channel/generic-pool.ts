@@ -17,7 +17,7 @@ interface GenericPoolAcquireContext {
   arguments: unknown[];
 }
 
-const _genericPoolChannelIntegration = (() => {
+const _genericPoolIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -37,7 +37,7 @@ const _genericPoolChannelIntegration = (() => {
  * `Pool.prototype.acquire`). Creates a `generic-pool.acquire` span for each
  * acquisition. Requires the orchestrion runtime hook or bundler plugin.
  */
-export const genericPoolChannelIntegration = defineIntegration(_genericPoolChannelIntegration);
+export const genericPoolIntegration = defineIntegration(_genericPoolIntegration);
 
 function instrumentGenericPool(): void {
   bindTracingChannelToSpan(

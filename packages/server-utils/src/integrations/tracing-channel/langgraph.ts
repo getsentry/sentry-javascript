@@ -38,7 +38,7 @@ let subscribed = false;
 // nested compile so a react agent gets a single `invoke_agent` span, matching the OTel path.
 let insideCreateReactAgent = false;
 
-const _langGraphChannelIntegration = ((options: LangGraphOptions = {}) => {
+const _langGraphIntegration = ((options: LangGraphOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -160,4 +160,4 @@ function wrapCompiledGraphInvoke(
  * injected into `@langchain/langgraph`'s `StateGraph.compile` and `createReactAgent`, so it requires
  * the orchestrion runtime hook or bundler plugin.
  */
-export const langGraphChannelIntegration = defineIntegration(_langGraphChannelIntegration);
+export const langGraphIntegration = defineIntegration(_langGraphIntegration);

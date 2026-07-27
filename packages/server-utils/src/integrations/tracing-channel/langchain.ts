@@ -48,7 +48,7 @@ function markProvidersSkipped(): void {
   _INTERNAL_skipAiProviderWrapping(SKIPPED_PROVIDERS);
 }
 
-const _langChainChannelIntegration = ((options: LangChainOptions = {}) => {
+const _langChainIntegration = ((options: LangChainOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -118,4 +118,4 @@ function createEmbeddingsSpan(data: EmbeddingsChannelContext, options: LangChain
  * injected into `@langchain/core`'s `BaseChatModel` (to inject the Sentry callback handler) and into
  * `@langchain/openai`'s embedding methods, so it requires the orchestrion runtime hook or bundler plugin.
  */
-export const langChainChannelIntegration = defineIntegration(_langChainChannelIntegration);
+export const langChainIntegration = defineIntegration(_langChainIntegration);

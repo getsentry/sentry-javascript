@@ -5,7 +5,7 @@ import { instrumentFirebase } from './instrumentation';
 
 const INTEGRATION_NAME = 'Firebase' as const;
 
-const _firebaseChannelIntegration = (() => {
+const _firebaseIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -30,4 +30,4 @@ const _firebaseChannelIntegration = (() => {
  * to the OTel integration — with a distinct `auto.firebase.orchestrion.*` origin. Requires the
  * orchestrion runtime hook or bundler plugin.
  */
-export const firebaseChannelIntegration = defineIntegration(_firebaseChannelIntegration);
+export const firebaseIntegration = defineIntegration(_firebaseIntegration);

@@ -71,12 +71,12 @@ interface KoaUseContext {
   arguments: unknown[];
 }
 
-export interface KoaChannelIntegrationOptions {
+export interface KoaIntegrationOptions {
   /** Ignore layers of the specified types (`'middleware'` and/or `'router'`). */
   ignoreLayersType?: Array<'middleware' | 'router'>;
 }
 
-const _koaChannelIntegration = ((options: KoaChannelIntegrationOptions = {}) => {
+const _koaIntegration = ((options: KoaIntegrationOptions = {}) => {
   const ignoreLayersType = options.ignoreLayersType ?? [];
 
   return {
@@ -259,4 +259,4 @@ function setHttpServerSpanRouteAttribute(route: string): void {
  * wraps each registered middleware/router layer in a span-creating proxy.
  * Requires the orchestrion runtime hook or bundler plugin.
  */
-export const koaChannelIntegration = defineIntegration(_koaChannelIntegration);
+export const koaIntegration = defineIntegration(_koaIntegration);

@@ -227,7 +227,7 @@ function once<Args extends unknown[]>(fn: (...args: Args) => void): (...args: Ar
   };
 }
 
-const _tediousChannelIntegration = (() => {
+const _tediousIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -258,4 +258,4 @@ const _tediousChannelIntegration = (() => {
  * injects into tedious's `Connection` request methods (each traced as one db span) and `Connection.connect`
  * (active-database bookkeeping). Requires the orchestrion runtime hook or bundler plugin to be active.
  */
-export const tediousChannelIntegration = defineIntegration(_tediousChannelIntegration);
+export const tediousIntegration = defineIntegration(_tediousIntegration);

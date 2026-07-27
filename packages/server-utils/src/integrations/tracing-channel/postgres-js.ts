@@ -43,7 +43,7 @@ const CONNECTION_ATTRS_SET = Symbol('sentryPostgresJsConnectionAttrsSet');
 // span, so `deferSpanEnd` knows the wrappers own the lifecycle.
 const SPAN_ENDED = Symbol('sentryPostgresJsSpanEnded');
 
-export interface PostgresJsChannelIntegrationOptions {
+export interface PostgresJsIntegrationOptions {
   /**
    * Only create spans when there's already an active parent span. Defaults to
    * `true`, matching the OTel `postgresJsIntegration`.
@@ -195,7 +195,7 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitized
   }
 }
 
-const _postgresJsChannelIntegration = ((options: PostgresJsChannelIntegrationOptions = {}) => {
+const _postgresJsIntegration = ((options: PostgresJsIntegrationOptions = {}) => {
   const { requireParentSpan, requestHook } = options;
 
   return {
@@ -332,4 +332,4 @@ const _postgresJsChannelIntegration = ((options: PostgresJsChannelIntegrationOpt
  * spans matching the OTel `postgresJsIntegration`. Requires the orchestrion runtime
  * hook or bundler plugin.
  */
-export const postgresJsChannelIntegration = defineIntegration(_postgresJsChannelIntegration);
+export const postgresJsIntegration = defineIntegration(_postgresJsIntegration);

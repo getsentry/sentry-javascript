@@ -79,7 +79,7 @@ interface PgPoolOptions extends PgConnectionParams {
   max?: number;
 }
 
-const _postgresChannelIntegration = ((options: { ignoreConnectSpans?: boolean } = {}) => {
+const _postgresIntegration = ((options: { ignoreConnectSpans?: boolean } = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -286,4 +286,4 @@ function getConnectionString(params: PgConnectionParams): string {
  * and `pg-pool`'s `Pool.prototype.connect`. Requires the orchestrion runtime
  * hook or bundler plugin to be active.
  */
-export const postgresChannelIntegration = defineIntegration(_postgresChannelIntegration);
+export const postgresIntegration = defineIntegration(_postgresIntegration);

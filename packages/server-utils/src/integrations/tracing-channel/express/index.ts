@@ -8,7 +8,7 @@ import { instrumentExpress } from './instrumentation';
 // When enabled, the OTel 'Express' integration is omitted from the default set.
 const INTEGRATION_NAME = 'Express' as const;
 
-const _expressChannelIntegration = ((options: ExpressIntegrationOptions = {}) => {
+const _expressIntegration = ((options: ExpressIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -37,4 +37,4 @@ const _expressChannelIntegration = ((options: ExpressIntegrationOptions = {}) =>
  * Requires the orchestrion runtime hook or bundler plugin to be active — wire
  * that up via `experimentalUseDiagnosticsChannelInjection()`.
  */
-export const expressChannelIntegration = defineIntegration(_expressChannelIntegration);
+export const expressIntegration = defineIntegration(_expressIntegration);

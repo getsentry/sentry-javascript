@@ -78,7 +78,7 @@ function subscribeToConsumer(): void {
   channel.subscribe(subscribers as TracingChannelSubscribers<ConsumerRunChannelContext>);
 }
 
-const _kafkajsChannelIntegration = (() => {
+const _kafkajsIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -109,4 +109,4 @@ const _kafkajsChannelIntegration = (() => {
  * Transactional `send`/`sendBatch` calls still produce producer spans, since they route through the
  * same instrumented `sendBatch`.
  */
-export const kafkajsChannelIntegration = defineIntegration(_kafkajsChannelIntegration);
+export const kafkajsIntegration = defineIntegration(_kafkajsIntegration);

@@ -49,7 +49,7 @@ interface AnthropicChannelContext {
 
 let subscribed = false;
 
-const _anthropicChannelIntegration = ((options: AnthropicAiOptions = {}) => {
+const _anthropicIntegration = ((options: AnthropicAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -180,4 +180,4 @@ function wrapStreamResult(
  * diagnostics_channels injected into the SDK's chat (`messages`/`completions`/beta `messages`), `models`, and
  * `messages.stream()` methods, so it requires the orchestrion runtime hook or bundler plugin.
  */
-export const anthropicChannelIntegration = defineIntegration(_anthropicChannelIntegration);
+export const anthropicIntegration = defineIntegration(_anthropicIntegration);

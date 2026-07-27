@@ -58,7 +58,7 @@ const STORED_PARENT_SPAN = new WeakMap<object, Span>();
 
 let orchestrionSubscribed = false;
 
-const _mongooseChannelIntegration = (() => {
+const _mongooseIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -198,4 +198,4 @@ function stashParentSpan(self: object | undefined): void {
  * diagnostics_channel subscription, so this single integration covers every
  * supported version once it replaces the OTel one.
  */
-export const mongooseChannelIntegration = defineIntegration(_mongooseChannelIntegration);
+export const mongooseIntegration = defineIntegration(_mongooseIntegration);

@@ -46,7 +46,7 @@ interface GoogleGenAIChannelContext {
 
 let subscribed = false;
 
-const _googleGenAIChannelIntegration = ((options: GoogleGenAIOptions = {}) => {
+const _googleGenAIIntegration = ((options: GoogleGenAIOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -167,4 +167,4 @@ function wrapStreamResult(span: Span, data: GoogleGenAIChannelContext, options: 
  * (`sendMessage`/`sendMessageStream`) methods, so it requires the orchestrion runtime hook or
  * bundler plugin.
  */
-export const googleGenAIChannelIntegration = defineIntegration(_googleGenAIChannelIntegration);
+export const googleGenAIIntegration = defineIntegration(_googleGenAIIntegration);
