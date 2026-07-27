@@ -3,7 +3,7 @@ import * as breadcrumbModule from '../../../../src/integrations/http/add-outgoin
 import { HTTP_ON_CLIENT_REQUEST } from '../../../../src/integrations/http/constants';
 import { getHttpClientSubscriptions } from '../../../../src/integrations/http/client-subscriptions';
 import type { HttpClientRequest, HttpIncomingMessage } from '../../../../src/integrations/http/types';
-import { SUPPRESS_TRACING_KEY } from '../../../../src/tracing';
+import { SUPPRESS_TRACING_KEY } from '../../../../src/tracing/constants';
 import { getCurrentScope, withScope } from '../../../../src/currentScopes';
 
 function makeMockRequest(): HttpClientRequest & {

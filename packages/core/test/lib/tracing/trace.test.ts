@@ -25,7 +25,6 @@ import {
   startInactiveSpan,
   startSpan,
   startSpanManual,
-  SUPPRESS_TRACING_KEY,
   suppressTracing,
   withActiveSpan,
 } from '../../../src/tracing';
@@ -37,6 +36,7 @@ import type { StartSpanOptions } from '../../../src/types/startSpanOptions';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { SUPPRESS_TRACING_KEY } from '../../../src/tracing/constants';
 
 const enum Type {
   Sync = 'sync',
