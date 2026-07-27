@@ -6,7 +6,6 @@ import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { inspect } from 'util';
 import { expect } from 'vitest';
-import WebSocket from 'ws';
 
 const CLEANUP_STEPS = new Set<() => void>();
 
@@ -131,23 +130,8 @@ function deferredPromise<T = void>(
 
 type Expected = Envelope | ((envelope: Envelope) => void);
 
-/** Drives Cloudflare Agents over the WebSocket protocol the Agents SDK speaks. */
-type AgentRunner = {
-  /**
-   * Opens a chat WebSocket to `/agents/<binding>/<instance>`, sends one
-   * `cf_agent_use_chat_request` frame, and resolves once the turn completes.
-   */
-  sendChatMessage(options: { binding: string; instance: string; prompt: string }): Promise<void>;
-  /**
-   * Opens a WebSocket to `/agents/<binding>/<instance>`, sends one RPC frame,
-   * and resolves on the matching reply.
-   */
-  callRpc(options: { binding: string; instance: string; method: string; args: unknown[] }): Promise<void>;
-};
-
 type StartResult = {
   completed(): Promise<void>;
-  agents: AgentRunner;
   makeRequest<T>(
     method: 'get' | 'post',
     path: string,
@@ -428,106 +412,9 @@ export function createRunner(...paths: string[]) {
           reject(e);
         });
 
-      async function getWorkerUrl(): Promise<string> {
-        return `http://localhost:${await workerPortPromise}`;
-      }
-
-      /** Sends a single frame over a WS to the given agent instance and resolves once `predicate` matches a reply. */
-      async function driveAgentSocket(
-        binding: string,
-        instance: string,
-        frame: unknown,
-        isDone: (reply: { type?: string; id?: string; done?: boolean }) => boolean,
-        timeoutLabel: string,
-      ): Promise<void> {
-        const baseUrl = await getWorkerUrl();
-        const wsUrl = `${baseUrl.replace(/^http/, 'ws')}/agents/${binding}/${instance}`;
-
-        return new Promise<void>((resolveSocket, rejectSocket) => {
-          const socket = new WebSocket(wsUrl);
-          const timeout = setTimeout(() => {
-            socket.close();
-            rejectSocket(new Error(`Timed out waiting for ${timeoutLabel}`));
-          }, 10_000);
-
-          socket.on('open', () => {
-            socket.send(JSON.stringify(frame));
-          });
-
-          socket.on('message', data => {
-            try {
-              const parsed = JSON.parse(data.toString()) as { type?: string; id?: string; done?: boolean };
-              if (isDone(parsed)) {
-                clearTimeout(timeout);
-                socket.close();
-                resolveSocket();
-              }
-            } catch {
-              // Ignore non-JSON / unrelated frames.
-            }
-          });
-
-          socket.on('error', err => {
-            clearTimeout(timeout);
-            rejectSocket(err);
-          });
-        });
-      }
-
       return {
         completed: async function (): Promise<void> {
           return isComplete;
-        },
-        agents: {
-          sendChatMessage: function ({
-            binding,
-            instance,
-            prompt,
-          }: {
-            binding: string;
-            instance: string;
-            prompt: string;
-          }): Promise<void> {
-            const id = `chat-${instance}`;
-            const frame = {
-              type: 'cf_agent_use_chat_request',
-              id,
-              init: {
-                method: 'POST',
-                body: JSON.stringify({
-                  messages: [{ id: 'msg-1', role: 'user', parts: [{ type: 'text', text: prompt }] }],
-                }),
-              },
-            };
-            return driveAgentSocket(
-              binding,
-              instance,
-              frame,
-              reply => reply.type === 'cf_agent_use_chat_response' && reply.id === id && !!reply.done,
-              'chat response',
-            );
-          },
-          callRpc: function ({
-            binding,
-            instance,
-            method,
-            args,
-          }: {
-            binding: string;
-            instance: string;
-            method: string;
-            args: unknown[];
-          }): Promise<void> {
-            const id = `rpc-${method}`;
-            const frame = { type: 'rpc', id, method, args };
-            return driveAgentSocket(
-              binding,
-              instance,
-              frame,
-              reply => reply.type === 'rpc' && reply.id === id && !!reply.done,
-              `RPC reply to "${method}"`,
-            );
-          },
         },
         makeRequest: async function <T>(
           method: 'get' | 'post',
