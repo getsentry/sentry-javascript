@@ -65,7 +65,7 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
       attributes: expect.arrayContaining([
         { key: 'http.request.method', value: { stringValue: 'GET' } },
         { key: 'http.request.method_original', value: { stringValue: 'GET' } },
-        { key: 'http.url', value: { stringValue: 'http://localhost:3030/test-success' } },
+        { key: 'url.full', value: { stringValue: 'http://localhost:3030/test-success' } },
         { key: 'url.path', value: { stringValue: '/test-success' } },
         { key: 'url.query', value: { stringValue: '' } },
         { key: 'url.scheme', value: { stringValue: 'http' } },
