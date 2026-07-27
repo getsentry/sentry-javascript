@@ -22,10 +22,9 @@ describe('init', () => {
     expect(client).toBeInstanceOf(CloudflareClient);
   });
 
-  test('installs SpanStreaming integration when traceLifecycle is "stream"', () => {
+  test('installs SpanStreaming integration by default', () => {
     init({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      traceLifecycle: 'stream',
     });
     const client = getClient();
 
@@ -36,8 +35,8 @@ describe('init', () => {
     );
   });
 
-  test("does not install SpanStreaming integration when traceLifecycle is not 'stream'", () => {
-    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+  test("does not install SpanStreaming integration when traceLifecycle is 'static'", () => {
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', traceLifecycle: 'static' });
     const client = getClient();
 
     expect(client?.getOptions()).toEqual(

@@ -112,6 +112,7 @@ export class LocalLambdaStack extends Stack {
               SENTRY_DSN: dsn,
               SENTRY_TRACES_SAMPLE_RATE: 1.0,
               SENTRY_DEBUG: true,
+              SENTRY_TRACE_LIFECYCLE: 'static',
               NODE_OPTIONS: `--import=@sentry/aws-serverless/awslambda-auto`,
             },
           },
