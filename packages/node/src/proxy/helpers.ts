@@ -62,7 +62,7 @@ export function req(url: string | URL, opts: https.RequestOptions = {}): Thenabl
   const href = typeof url === 'string' ? url : url.href;
   const req = (href.startsWith('https:') ? https : http).request(url, opts) as ThenableRequest;
   const promise = new Promise<http.IncomingMessage>((resolve, reject) => {
-    req.once('response', resolve).once('error', reject).end() as unknown as ThenableRequest;
+    req.once('response', resolve).once('error', reject).end();
   });
   req.then = promise.then.bind(promise);
   return req;

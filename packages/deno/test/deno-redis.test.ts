@@ -67,6 +67,7 @@ Deno.test('denoRedisIntegration: node-redis:command channel produces a db.redis 
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: sink.beforeSendTransaction,
   });
 
@@ -105,6 +106,7 @@ Deno.test('denoRedisIntegration: errors on the command channel set span status',
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: sink.beforeSendTransaction,
   });
 
@@ -141,6 +143,7 @@ Deno.test('denoRedisIntegration: ioredis:command channel produces a db.redis chi
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: sink.beforeSendTransaction,
   });
 

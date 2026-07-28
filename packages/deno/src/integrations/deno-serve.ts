@@ -29,11 +29,12 @@ const isServeInitOptions = (p: ServeParams): p is [Deno.ServeOptions<Deno.Addr> 
   'handler' in p[0] &&
   typeof p[0].handler === 'function';
 
-const applyHandlerWrap = <A extends Deno.Addr>(
-  handler: (request: Request, info: Deno.ServeHandlerInfo<A>) => Response | Promise<Response>,
-  serveOptions?: Deno.ServeOptions,
-): Deno.ServeHandler =>
-  ((request, info) =>
+const applyHandlerWrap =
+  <A extends Deno.Addr>(
+    handler: (request: Request, info: Deno.ServeHandlerInfo<A>) => Response | Promise<Response>,
+    serveOptions?: Deno.ServeOptions,
+  ): Deno.ServeHandler =>
+  (request, info) =>
     wrapDenoRequestHandler<A>(
       {
         request,
@@ -41,7 +42,7 @@ const applyHandlerWrap = <A extends Deno.Addr>(
         serveOptions,
       } as RequestHandlerWrapperOptions<A>,
       () => handler(request, info as Deno.ServeHandlerInfo<A>),
-    )) as Deno.ServeHandler;
+    );
 
 const instrumentedDenoServe = (serve: typeof Deno.serve): typeof Deno.serve =>
   new Proxy(serve, {

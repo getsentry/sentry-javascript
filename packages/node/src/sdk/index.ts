@@ -21,6 +21,8 @@ import {
   setupEventContextTrace,
 } from '@sentry/opentelemetry';
 import { isMainThread, parentPort } from 'node:worker_threads';
+import { detectOrchestrionSetup } from '@sentry/server-utils/orchestrion';
+import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
 import { consoleIntegration } from '../integrations/console';
@@ -42,10 +44,6 @@ import { getEntryPointType } from '../utils/entry-point';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
-import {
-  isDiagnosticsChannelInjectionEnabled,
-  resolveDiagnosticsChannelInjection,
-} from './diagnosticsChannelInjection';
 import { initializeEsmLoader } from './esmLoader';
 import { initOpenTelemetry } from './initOtel';
 
@@ -100,37 +98,6 @@ export function getDefaultIntegrations(options: Options): Integration[] {
 }
 
 /**
- * When the app opted into diagnostics-channel injection (via
- * `experimentalUseDiagnosticsChannelInjection()`) AND span recording is enabled, drop the OTel
- * integrations that have a channel-based replacement and append the FULL channel-integration set,
- * so the two never both instrument the same library. Otherwise returns `integrations` unchanged.
- *
- * `_init` applies the same swap to `defaultIntegrations`, but SDKs that seed their integrations
- * through the user `integrations` option instead (e.g. the `@sentry/aws-serverless` Lambda layer
- * entry) never hit that path, so they call this directly from their own `getDefaultIntegrations`.
- *
- * Note the asymmetry: appended channel integrations are not limited to ones whose OTel counterpart
- * was in `integrations`. For `@sentry/node` that makes no difference (the incoming list carries the
- * whole OTel performance set), but a caller with a narrower list (e.g. `@sentry/aws-serverless`)
- * gains channel coverage for libraries it never shipped OTel integrations for. Channel integrations
- * produce nothing but spans, so this is gated on span recording. Exported so SDKs that build their
- * own default-integration set can apply the same logic instead of duplicating it.
- */
-export function applyDiagnosticsChannelInjectionIntegrations(
-  integrations: Integration[],
-  options: Options,
-): Integration[] {
-  if (isDiagnosticsChannelInjectionEnabled() && hasSpansEnabled(options)) {
-    const diagnosticsChannelInjection = resolveDiagnosticsChannelInjection();
-    if (diagnosticsChannelInjection) {
-      const replaced = new Set(diagnosticsChannelInjection.replacedOtelIntegrationNames);
-      return [...integrations.filter(i => !replaced.has(i.name)), ...diagnosticsChannelInjection.integrations];
-    }
-  }
-  return integrations;
-}
-
-/**
  * Initialize Sentry for Node.
  */
 export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
@@ -171,6 +138,21 @@ function _init(
 
   applySdkMetadata(options, 'node');
 
+  // Enable debug logging before channel-injection registration below, so its failure modes (e.g. no
+  // available Node hook API, dep-resolution errors) actually surface. `getClientOptions` resolves
+  // `debug` the same way for the client; resolving it here as well keeps the two in agreement.
+  if (envToBool(options.debug ?? process.env.SENTRY_DEBUG)) {
+    if (DEBUG_BUILD) {
+      debug.enable();
+    } else {
+      // use `console.warn` rather than `debug.warn` since non-debug bundles have all `debug.x` statements stripped
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
+      });
+    }
+  }
+
   // Resolve the tracing-affecting options (e.g. `SENTRY_TRACES_SAMPLE_RATE`) up front so that both
   // the span-enablement gate below and default-integration selection see the final values. Without
   // this, enabling tracing purely via env would leave `hasSpansEnabled` false at this point and skip
@@ -180,56 +162,19 @@ function _init(
     tracesSampleRate: getTracesSampleRate(options.tracesSampleRate),
   };
 
-  // EXPERIMENTAL: diagnostics-channel injection, opted into via
-  // `experimentalUseDiagnosticsChannelInjection()`. Gated on span recording to
-  // match the OTel integrations it replaces. With tracing off there are no
-  // channel subscribers, so injecting is pointless work.
-  const diagnosticsChannelInjection =
-    isDiagnosticsChannelInjectionEnabled() && hasSpansEnabled(optionsWithResolvedTracing)
-      ? resolveDiagnosticsChannelInjection()
-      : undefined;
-
-  // Install the channel-injection hooks as early as possible, before the app
-  // imports its instrumented modules.
-  if (diagnosticsChannelInjection) {
-    diagnosticsChannelInjection.register();
+  // Channel-based (orchestrion diagnostics-channel) instrumentation is the default. Gated on span
+  // recording: the channel integrations only produce spans, so with tracing off there are no
+  // subscribers and injecting the module hooks would be pointless work. Install the hooks as early
+  // as possible, before the app imports its instrumented modules.
+  const useChannelInjection = hasSpansEnabled(optionsWithResolvedTracing);
+  if (useChannelInjection) {
+    registerDiagnosticsChannelInjection();
   }
 
   // Only use Node SDK defaults if none provided.
-  let defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(optionsWithResolvedTracing);
-
-  // When opted into diagnostics-channel injection, swap the channel-based
-  // integrations in place of their OTel equivalents so the two don't both
-  // instrument the same library. Done here (rather than in
-  // `getDefaultIntegrations`) so it also covers framework SDKs (e.g.
-  // `@sentry/nestjs`) that pass their own `defaultIntegrations` array.
-  //
-  // Only when there's a non-empty default set to swap:
-  // `defaultIntegrations: false` (not an array) and `[]` /
-  // `initWithoutDefaultIntegrations()` (explicitly no defaults) are left
-  // untouched, as appending channel integrations there would resurrect
-  // defaults the caller opted out of.
-  if (diagnosticsChannelInjection && Array.isArray(defaultIntegrations) && defaultIntegrations.length > 0) {
-    const replaced = new Set(diagnosticsChannelInjection.replacedOtelIntegrationNames);
-    defaultIntegrations = [
-      ...defaultIntegrations.filter(integration => !replaced.has(integration.name)),
-      ...diagnosticsChannelInjection.integrations,
-    ];
-  }
+  const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(optionsWithResolvedTracing);
 
   const clientOptions = getClientOptions({ ...options, defaultIntegrations }, getDefaultIntegrationsImpl);
-
-  if (clientOptions.debug === true) {
-    if (DEBUG_BUILD) {
-      debug.enable();
-    } else {
-      // use `console.warn` rather than `debug.warn` since by non-debug bundles have all `debug.x` statements stripped
-      consoleSandbox(() => {
-        // eslint-disable-next-line no-console
-        console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
-      });
-    }
-  }
 
   if (clientOptions.registerEsmLoaderHooks !== false) {
     initializeEsmLoader();
@@ -284,8 +229,8 @@ function _init(
 
   // Warn about missing or doubled channel injection. Runs after the client
   // is created so the debug logger is enabled and the warning is emitted.
-  if (diagnosticsChannelInjection) {
-    diagnosticsChannelInjection.detect();
+  if (useChannelInjection) {
+    detectOrchestrionSetup();
   }
 
   return client;
@@ -300,6 +245,7 @@ function getClientOptions(
   const spotlight = getSpotlightConfig(options.spotlight);
 
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
+  const traceLifecycle = getTraceLifecycle(options.traceLifecycle);
 
   const mergedOptions = {
     ...options,
@@ -311,6 +257,7 @@ function getClientOptions(
     release,
     tracesSampleRate,
     spotlight,
+    traceLifecycle,
     debug: envToBool(options.debug ?? process.env.SENTRY_DEBUG),
   };
 
@@ -353,6 +300,20 @@ function getTracesSampleRate(tracesSampleRate: NodeOptions['tracesSampleRate']):
 
   const parsed = parseFloat(sampleRateFromEnv);
   return isFinite(parsed) ? parsed : undefined;
+}
+
+function getTraceLifecycle(traceLifecycle: NodeOptions['traceLifecycle']): 'stream' | 'static' {
+  if (traceLifecycle !== undefined) {
+    return traceLifecycle;
+  }
+
+  const lifecycleFromEnv = process.env.SENTRY_TRACE_LIFECYCLE;
+
+  if (lifecycleFromEnv === 'stream' || lifecycleFromEnv === 'static') {
+    return lifecycleFromEnv;
+  }
+
+  return 'stream';
 }
 
 /**

@@ -3,7 +3,6 @@ import { webVitalsIntegration } from '../../src/integrations/webVitals';
 
 const mockAddWebVitalsToSpan = vi.hoisted(() => vi.fn());
 const mockRegisterInpInteractionListener = vi.hoisted(() => vi.fn());
-const mockStartTrackingINP = vi.hoisted(() => vi.fn());
 const mockStartTrackingWebVitals = vi.hoisted(() => vi.fn());
 const mockTrackClsAsSpan = vi.hoisted(() => vi.fn());
 const mockTrackInpAsSpan = vi.hoisted(() => vi.fn());
@@ -12,7 +11,6 @@ const mockTrackLcpAsSpan = vi.hoisted(() => vi.fn());
 vi.mock('@sentry/browser-utils', () => ({
   addWebVitalsToSpan: mockAddWebVitalsToSpan,
   registerInpInteractionListener: mockRegisterInpInteractionListener,
-  startTrackingINP: mockStartTrackingINP,
   startTrackingWebVitals: mockStartTrackingWebVitals,
   trackClsAsSpan: mockTrackClsAsSpan,
   trackInpAsSpan: mockTrackInpAsSpan,
@@ -52,7 +50,7 @@ describe('webVitalsIntegration', () => {
     vi.restoreAllMocks();
   });
 
-  it('tracks web vitals as measurements by default', () => {
+  it('tracks CLS/LCP as measurements and INP as a span by default', () => {
     const client = getMockClient();
     const integration = webVitalsIntegration();
 
@@ -64,11 +62,10 @@ describe('webVitalsIntegration', () => {
       trackLcp: true,
       client,
     });
-    expect(mockStartTrackingINP).toHaveBeenCalledTimes(1);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
     expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
     expect(mockTrackClsAsSpan).not.toHaveBeenCalled();
-    expect(mockTrackInpAsSpan).not.toHaveBeenCalled();
   });
 
   it('tracks LCP, CLS and INP as streamed spans when span streaming is enabled', () => {
@@ -87,7 +84,6 @@ describe('webVitalsIntegration', () => {
     expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client);
     expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
     expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
-    expect(mockStartTrackingINP).not.toHaveBeenCalled();
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
   });
 
@@ -115,7 +111,6 @@ describe('webVitalsIntegration', () => {
       trackLcp: false,
       client,
     });
-    expect(mockStartTrackingINP).not.toHaveBeenCalled();
     expect(mockTrackInpAsSpan).not.toHaveBeenCalled();
     expect(mockRegisterInpInteractionListener).not.toHaveBeenCalled();
   });

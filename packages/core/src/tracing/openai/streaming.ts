@@ -223,9 +223,9 @@ export async function* instrumentStream<T>(
   try {
     for await (const event of stream) {
       if (isChatCompletionChunk(event)) {
-        processChatCompletionChunk(event as ChatCompletionChunk, state, recordOutputs);
+        processChatCompletionChunk(event, state, recordOutputs);
       } else if (isResponsesApiStreamEvent(event)) {
-        processResponsesApiEvent(event as ResponseStreamingEvent, state, recordOutputs, span);
+        processResponsesApiEvent(event, state, recordOutputs, span);
       }
       yield event;
     }

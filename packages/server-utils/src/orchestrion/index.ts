@@ -1,32 +1,29 @@
-import { amqplibChannelIntegration } from '../integrations/tracing-channel/amqplib';
-import { anthropicChannelIntegration } from '../integrations/tracing-channel/anthropic';
-import { awsChannelIntegration } from '../integrations/tracing-channel/aws-sdk';
-import { dataloaderChannelIntegration } from '../integrations/tracing-channel/dataloader';
-import { genericPoolChannelIntegration } from '../integrations/tracing-channel/generic-pool';
-import { googleGenAIChannelIntegration } from '../integrations/tracing-channel/google-genai';
-import {
-  graphqlChannelIntegration,
-  graphqlDiagnosticsChannelIntegration,
-} from '../integrations/tracing-channel/graphql';
-import { hapiChannelIntegration } from '../integrations/tracing-channel/hapi';
-import { koaChannelIntegration } from '../integrations/tracing-channel/koa';
+import { amqplibIntegration } from '../integrations/tracing-channel/amqplib';
+import { anthropicIntegration } from '../integrations/tracing-channel/anthropic';
+import { awsIntegration } from '../integrations/tracing-channel/aws-sdk';
+import { dataloaderIntegration } from '../integrations/tracing-channel/dataloader';
+import { genericPoolIntegration } from '../integrations/tracing-channel/generic-pool';
+import { googleGenAIIntegration } from '../integrations/tracing-channel/google-genai';
+import { graphqlIntegration, graphqlDiagnosticsIntegration } from '../integrations/tracing-channel/graphql';
+import { hapiIntegration } from '../integrations/tracing-channel/hapi';
+import { koaIntegration } from '../integrations/tracing-channel/koa';
 import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
-import { kafkajsChannelIntegration } from '../integrations/tracing-channel/kafkajs';
-import { knexChannelIntegration } from '../integrations/tracing-channel/knex';
-import { langChainChannelIntegration } from '../integrations/tracing-channel/langchain';
-import { langGraphChannelIntegration } from '../integrations/tracing-channel/langgraph';
-import { lruMemoizerChannelIntegration } from '../integrations/tracing-channel/lru-memoizer';
-import { mongodbChannelIntegration } from '../integrations/tracing-channel/mongodb';
-import { mongooseChannelIntegration } from '../integrations/tracing-channel/mongoose';
-import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
-import { mysql2ChannelIntegration } from '../integrations/tracing-channel/mysql2';
-import { openaiChannelIntegration } from '../integrations/tracing-channel/openai';
-import { postgresChannelIntegration } from '../integrations/tracing-channel/postgres';
-import { postgresJsChannelIntegration } from '../integrations/tracing-channel/postgres-js';
-import { tediousChannelIntegration } from '../integrations/tracing-channel/tedious';
-import { vercelAiChannelIntegration } from '../integrations/tracing-channel/vercel-ai';
-import { expressChannelIntegration } from '../integrations/tracing-channel/express';
-import { firebaseChannelIntegration } from '../integrations/tracing-channel/firebase';
+import { kafkajsIntegration } from '../integrations/tracing-channel/kafkajs';
+import { knexIntegration } from '../integrations/tracing-channel/knex';
+import { langChainIntegration } from '../integrations/tracing-channel/langchain';
+import { langGraphIntegration } from '../integrations/tracing-channel/langgraph';
+import { lruMemoizerIntegration } from '../integrations/tracing-channel/lru-memoizer';
+import { mongodbIntegration } from '../integrations/tracing-channel/mongodb';
+import { mongooseIntegration } from '../integrations/tracing-channel/mongoose';
+import { mysqlIntegration } from '../integrations/tracing-channel/mysql';
+import { mysql2Integration } from '../integrations/tracing-channel/mysql2';
+import { openaiIntegration } from '../integrations/tracing-channel/openai';
+import { postgresIntegration } from '../integrations/tracing-channel/postgres';
+import { postgresJsIntegration } from '../integrations/tracing-channel/postgres-js';
+import { tediousIntegration } from '../integrations/tracing-channel/tedious';
+import { vercelAiIntegration } from '../integrations/tracing-channel/vercel-ai';
+import { expressIntegration } from '../integrations/tracing-channel/express';
+import { firebaseIntegration } from '../integrations/tracing-channel/firebase';
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 // The runtime target of the subscribe-injection snippet: instrumented modules
@@ -40,37 +37,37 @@ export { nestjsChannels } from './config/nestjs';
 // listener that subscribes to them lives in `@sentry/remix`, which imports this.
 export { remixChannels } from './config/remix';
 export {
-  amqplibChannelIntegration,
-  anthropicChannelIntegration,
-  awsChannelIntegration,
-  dataloaderChannelIntegration,
-  genericPoolChannelIntegration,
-  googleGenAIChannelIntegration,
-  graphqlChannelIntegration,
-  graphqlDiagnosticsChannelIntegration,
-  hapiChannelIntegration,
-  koaChannelIntegration,
+  amqplibIntegration,
+  anthropicIntegration,
+  awsIntegration,
+  dataloaderIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlIntegration,
+  graphqlDiagnosticsIntegration,
+  hapiIntegration,
+  koaIntegration,
   ioredisChannelIntegration,
-  kafkajsChannelIntegration,
-  knexChannelIntegration,
-  langChainChannelIntegration,
-  langGraphChannelIntegration,
-  lruMemoizerChannelIntegration,
-  mongodbChannelIntegration,
-  mongooseChannelIntegration,
-  mysqlChannelIntegration,
-  mysql2ChannelIntegration,
-  openaiChannelIntegration,
-  postgresChannelIntegration,
-  postgresJsChannelIntegration,
-  tediousChannelIntegration,
-  vercelAiChannelIntegration,
-  expressChannelIntegration,
-  firebaseChannelIntegration,
+  kafkajsIntegration,
+  knexIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mongodbIntegration,
+  mongooseIntegration,
+  mysqlIntegration,
+  mysql2Integration,
+  openaiIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  tediousIntegration,
+  vercelAiIntegration,
+  expressIntegration,
+  firebaseIntegration,
 };
-export type { KoaChannelIntegrationOptions } from '../integrations/tracing-channel/koa';
+export type { KoaIntegrationOptions } from '../integrations/tracing-channel/koa';
 export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/tracing-channel/ioredis';
-export type { PostgresJsChannelIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
+export type { PostgresJsIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
 export { redisChannelIntegration } from '../integrations/tracing-channel/redis';
 export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/tracing-channel/redis';
 export type { InstrumentationConfig, CustomTransform } from './apmTypes';
@@ -83,10 +80,8 @@ export type * from '../integrations/tracing-channel/graphql/graphql-types';
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
  * (OTel-parity) factory name.
  *
- * Single source of truth: add a new channel integration here and every consumer — the `@sentry/node`
- * opt-in helper (`experimentalUseDiagnosticsChannelInjection`) and its public
- * `diagnosticsChannelInjectionIntegrations()` map — picks it up automatically, so there's no separate
- * list to keep in sync.
+ * Single source of truth: add a new channel integration here and every consumer that spreads this map
+ * into its default integrations picks it up automatically, so there's no separate list to keep in sync.
  *
  * NOTE: `ioredisChannelIntegration` and `redisChannelIntegration` are intentionally NOT here. They
  * only partially replace the composite OTel `Redis` integration and need the node SDK's redis cache
@@ -96,33 +91,33 @@ export type * from '../integrations/tracing-channel/graphql/graphql-types';
  * either: their transform config is still in `SENTRY_INSTRUMENTATIONS`, but the listener lives in
  * their package and picks the channel-vs-OTel path itself at `setupOnce`, so it needs no central swap.
  *
- * NOTE: `dataloaderChannelIntegration` is also NOT here. Everything in this map is auto-appended to
+ * NOTE: `dataloaderIntegration` is also NOT here. Everything in this map is auto-appended to
  * the default integrations, but the OTel `Dataloader` integration is opt-in (never a default). Like
  * `@sentry/nestjs`'s `Nest`, its `@sentry/node` factory picks the channel-vs-OTel path itself at
  * `setupOnce` (via `isOrchestrionInjected()`), so there's nothing for the central swap to do.
  */
 export const channelIntegrations = {
-  postgresIntegration: postgresChannelIntegration,
-  postgresJsIntegration: postgresJsChannelIntegration,
-  mongoIntegration: mongodbChannelIntegration,
-  mysqlIntegration: mysqlChannelIntegration,
-  mysql2Integration: mysql2ChannelIntegration,
-  genericPoolIntegration: genericPoolChannelIntegration,
-  mongooseIntegration: mongooseChannelIntegration,
-  lruMemoizerIntegration: lruMemoizerChannelIntegration,
-  openaiIntegration: openaiChannelIntegration,
-  anthropicIntegration: anthropicChannelIntegration,
-  googleGenAIIntegration: googleGenAIChannelIntegration,
-  langChainIntegration: langChainChannelIntegration,
-  langGraphIntegration: langGraphChannelIntegration,
-  vercelAiIntegration: vercelAiChannelIntegration,
-  amqplibIntegration: amqplibChannelIntegration,
-  hapiIntegration: hapiChannelIntegration,
-  koaIntegration: koaChannelIntegration,
-  expressIntegration: expressChannelIntegration,
-  graphqlIntegration: graphqlDiagnosticsChannelIntegration,
-  kafkajsIntegration: kafkajsChannelIntegration,
-  tediousIntegration: tediousChannelIntegration,
-  awsIntegration: awsChannelIntegration,
-  firebaseIntegration: firebaseChannelIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  mongoIntegration: mongodbIntegration,
+  mysqlIntegration,
+  mysql2Integration,
+  genericPoolIntegration,
+  mongooseIntegration,
+  lruMemoizerIntegration,
+  openaiIntegration,
+  anthropicIntegration,
+  googleGenAIIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  vercelAiIntegration,
+  amqplibIntegration,
+  hapiIntegration,
+  koaIntegration,
+  expressIntegration,
+  graphqlIntegration: graphqlDiagnosticsIntegration,
+  kafkajsIntegration,
+  tediousIntegration,
+  awsIntegration,
+  firebaseIntegration,
 } as const;

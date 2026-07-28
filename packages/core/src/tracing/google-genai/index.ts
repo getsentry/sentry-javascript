@@ -40,7 +40,7 @@ import {
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
-import type { ContentListUnion, ContentUnion, Message, PartListUnion } from './utils';
+import type { ContentListUnion, Message, PartListUnion } from './utils';
 import { contentUnionToMessages } from './utils';
 
 /**
@@ -165,7 +165,7 @@ export function addPrivateRequestAttributes(
     'systemInstruction' in params.config &&
     params.config.systemInstruction
   ) {
-    messages.push(...contentUnionToMessages(params.config.systemInstruction as ContentUnion, 'system'));
+    messages.push(...contentUnionToMessages(params.config.systemInstruction, 'system'));
   }
 
   // For chats.create: history contains the conversation history
@@ -350,7 +350,7 @@ function instrumentMethod<T extends unknown[], R>(
         },
       );
     },
-  }) as (...args: T) => R | Promise<R>;
+  });
 }
 
 /**

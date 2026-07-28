@@ -1,4 +1,4 @@
-import { HTTP_TARGET, HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_TARGET, URL_FULL } from '@sentry/conventions/attributes';
 import {
   getClient,
   GLOBAL_OBJ,
@@ -51,9 +51,7 @@ export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes |
 }
 
 function isSentryRequestSpan(attrs: SpanAttributes): boolean {
-  // `URL_FULL` is the new attribute, but we still support the old one, `HTTP_URL`, for now.
-  // eslint-disable-next-line typescript/no-deprecated
-  const httpUrl = attrs[HTTP_URL] || attrs[URL_FULL];
+  const httpUrl = attrs[URL_FULL];
 
   if (!httpUrl) {
     return false;

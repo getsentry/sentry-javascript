@@ -6,7 +6,7 @@ interface Env {
   SENTRY_DSN: string;
 }
 
-const ai = instrumentWorkersAiClient(new MockAi());
+const ai = instrumentWorkersAiClient(new MockAi(), { recordInputs: false, recordOutputs: false });
 
 export default Sentry.withSentry(
   (env: Env) => ({

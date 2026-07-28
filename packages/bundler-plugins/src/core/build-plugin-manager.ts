@@ -638,9 +638,8 @@ export function createSentryBuildPluginManager(
                 globAssets = buildArtifactPaths;
               }
 
-              const globResult = await startSpan(
-                { name: 'glob', scope: sentryScope },
-                async () => await globFiles(globAssets, { ignore: options.sourcemaps?.ignore }),
+              const globResult = await startSpan({ name: 'glob', scope: sentryScope }, async () =>
+                globFiles(globAssets, { ignore: options.sourcemaps?.ignore }),
               );
 
               const debugIdChunkFilePaths = globResult.filter(debugIdChunkFilePath => {
@@ -703,6 +702,19 @@ export function createSentryBuildPluginManager(
                   setMeasurement('files', files.length, 'none', prepBundlesSpan);
                   setMeasurement('upload_size', uploadSize, 'byte', prepBundlesSpan);
 
+                  // Preparation produced no artifacts, meaning none of the
+                  // matched bundles had an associated source map. This almost
+                  // always means source map generation is turned off in the
+                  // bundler, so warn instead of silently reporting success.
+                  if (files.length === 0) {
+                    logger.warn(
+                      `No source maps found for any of the ${debugIdChunkFilePaths.length} matched build ` +
+                        'artifacts, so no source maps were uploaded to Sentry. This usually means source map ' +
+                        'generation is not enabled in your bundler. Enable it so Sentry can un-minify your stack traces.',
+                    );
+                    return;
+                  }
+
                   await startSpan({ name: 'upload', scope: sentryScope }, async () => {
                     const cliInstance = createCliInstance(options);
                     await cliInstance.releases.uploadSourceMaps(options.release.name ?? 'undefined', {
@@ -717,9 +729,11 @@ export function createSentryBuildPluginManager(
                       live: 'rejectOnError',
                     });
                   });
-                });
 
-                logger.info('Successfully uploaded source maps to Sentry');
+                  // this must be in the method so that the "no sourcemaps"
+                  // early return doesn't also log success.
+                  logger.info('Successfully uploaded source maps to Sentry');
+                });
               }
             }
           } catch (e) {

@@ -8,12 +8,6 @@
         "browser": true,
         "node": false
       }
-    },
-    {
-      "files": ["{addon,app,tests}/**/*.{js,ts,d.ts}"],
-      "rules": {
-        "import/no-unresolved": "off"
-      }
     }
   ]
 }

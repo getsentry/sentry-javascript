@@ -333,7 +333,7 @@ const _redisChannelIntegration = ((options: RedisChannelIntegrationOptions = {})
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven redis integration for `redis` v2-v3 and
+ * Orchestrion-driven redis integration for `redis` v2-v3 and
  * node-redis v4/v5 `<5.12.0` (`@redis/client`). Covers single commands, `connect`,
  * and multi/pipeline batches, fully replacing `@opentelemetry/instrumentation-redis`.
  * Requires the orchestrion runtime hook or bundler plugin.

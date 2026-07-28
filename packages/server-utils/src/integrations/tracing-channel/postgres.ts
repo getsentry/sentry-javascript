@@ -79,7 +79,7 @@ interface PgPoolOptions extends PgConnectionParams {
   max?: number;
 }
 
-const _postgresChannelIntegration = ((options: { ignoreConnectSpans?: boolean } = {}) => {
+const _postgresIntegration = ((options: { ignoreConnectSpans?: boolean } = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -278,7 +278,7 @@ function getConnectionString(params: PgConnectionParams): string {
 }
 
 /**
- * EXPERIMENTAL: orchestrion-driven `pg` (node-postgres) integration.
+ * Orchestrion-driven `pg` (node-postgres) integration.
  *
  * Subscribes to the `orchestrion:pg:query`/`:connect` and
  * `orchestrion:pg-pool:connect` diagnostics_channels that the orchestrion code
@@ -286,4 +286,4 @@ function getConnectionString(params: PgConnectionParams): string {
  * and `pg-pool`'s `Pool.prototype.connect`. Requires the orchestrion runtime
  * hook or bundler plugin to be active.
  */
-export const postgresChannelIntegration = defineIntegration(_postgresChannelIntegration);
+export const postgresIntegration = defineIntegration(_postgresIntegration);

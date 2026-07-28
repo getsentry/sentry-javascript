@@ -48,7 +48,7 @@ describe('Bun Serve Integration', () => {
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
           'sentry.source': 'url',
-          'url.query': '?id=123',
+          'url.query': 'id=123',
           'url.path': '/users',
           'url.full': `http://localhost:${port}/users?id=123`,
           'url.port': port.toString(),

@@ -5,7 +5,7 @@ import { instrumentFirebase } from './instrumentation';
 
 const INTEGRATION_NAME = 'Firebase' as const;
 
-const _firebaseChannelIntegration = (() => {
+const _firebaseIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -22,14 +22,12 @@ const _firebaseChannelIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven firebase integration.
+ * Orchestrion-driven firebase integration.
  *
  * Subscribes to the `orchestrion:@firebase/firestore:*` and `orchestrion:firebase-functions:*`
  * diagnostics_channels the orchestrion code transform injects into firestore's `addDoc`/`getDocs`/
  * `setDoc`/`deleteDoc` and firebase-functions' `onX` registration functions, emitting spans identical
  * to the OTel integration — with a distinct `auto.firebase.orchestrion.*` origin. Requires the
- * orchestrion runtime hook or bundler plugin — wire it up via `experimentalUseDiagnosticsChannelInjection()`.
- *
- * @experimental
+ * orchestrion runtime hook or bundler plugin.
  */
-export const firebaseChannelIntegration = defineIntegration(_firebaseChannelIntegration);
+export const firebaseIntegration = defineIntegration(_firebaseIntegration);

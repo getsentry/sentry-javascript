@@ -1,4 +1,4 @@
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { HTTP_METHOD, HTTP_ROUTE, URL_FULL } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import type { AnyFn } from './helpers';
@@ -95,8 +95,9 @@ export function wrapRequestContextHandler(
       [AttributeNames.CALLBACK]: callbackName,
       [AttributeNames.VERSION]: moduleVersion || undefined,
       [HTTP_ROUTE]: httpRoute || undefined,
-      ['http.method']: req.method || undefined,
-      ['http.url']: req.originalUrl || req.url || undefined,
+      // oxlint-disable-next-line typescript/no-deprecated
+      [HTTP_METHOD]: req.method || undefined,
+      [URL_FULL]: req.originalUrl || req.url || undefined,
     };
     return startSpan({ name: spanName, op: `${NestType.REQUEST_CONTEXT}.nestjs`, attributes }, () =>
       handler.apply(this, handlerArgs),

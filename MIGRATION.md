@@ -53,6 +53,7 @@ We raised the minimum supported versions of several frameworks and libraries:
 - **Astro:** dropped Astro 3 (minimum is now 4).
 - **React Router (framework mode):** minimum is now 7.15.
 - **Remix:** dropped `@remix-run/node` v1 (minimum is now v2).
+- **Fastify:** dropped Fastify 3.0 through 3.20 (minimum is now 3.21).
 
 <!-- TODO(v11): Evaluate whether we can move to Sentry CLI v4 already. -->
 
@@ -301,6 +302,7 @@ Affected SDKs: `@sentry/cloudflare`.
 ### `@sentry/core` / All SDKs
 
 - The internal, deprecated `addAutoIpAddressToUser` export was removed.
+- The `createSpanEnvelope` function and the `SpanEnvelope` / `SpanItem` types were removed. They existed only to send standalone (v1) spans as their own segment envelope, which the SDK no longer does. Standalone spans are gone; spans are sent either on their transaction or, with span streaming, as streamed spans (`StreamedSpanEnvelope`).
 - The deprecated `sendDefaultPii` option was removed. Use [`dataCollection`](#senddefaultpii-is-replaced-by-datacollection) instead.
 - The `_experiments.enableMetrics` and `_experiments.beforeSendMetric` options were removed, use the top-level `enableMetrics` and `beforeSendMetric` options instead.
 
@@ -341,6 +343,7 @@ Sentry.init({
 ### `@sentry/browser`
 
 - The experimental `_experiments.enableStandaloneClsSpans` and `_experiments.enableStandaloneLcpSpans` options were removed from both `browserTracingIntegration` and `webVitalsIntegration`. CLS and LCP are no longer configurable: they are recorded as measurements on the pageload span, unless span streaming is enabled (`traceLifecycle: 'stream'`), in which case they are sent as dedicated spans.
+- INP is now always sent as a web vital span (streamed when span streaming is enabled, standalone otherwise) that carries its value as a `browser.web_vital.inp.value` attribute. Previously, with span streaming disabled, INP was sent as a standalone span that carried its value as a span measurement.
 
 ### `@sentry/node` / Server-side SDKs
 

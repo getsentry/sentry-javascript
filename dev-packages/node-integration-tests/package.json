@@ -16,13 +16,12 @@
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g suites/**/node_modules suites/**/tmp_* && run-p clean:script",
     "clean:script": "node scripts/clean.js",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
     "type-check": "run-s type-check:src type-check:test",
     "type-check:src": "tsc --noEmit",
     "type-check:test": "tsc -p tsconfig.test.json --noEmit",
     "test": "vitest run",
-    "test:orchestrion": "INJECT_ORCHESTRION=true yarn test",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {

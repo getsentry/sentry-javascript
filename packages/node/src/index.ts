@@ -1,32 +1,38 @@
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
-export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
+export { expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
-export { graphqlIntegration } from './integrations/tracing/graphql';
-export { kafkaIntegration } from './integrations/tracing/kafka';
-export { lruMemoizerIntegration } from './integrations/tracing/lrumemoizer';
-export { mongoIntegration } from './integrations/tracing/mongo';
-export { mongooseIntegration } from './integrations/tracing/mongoose';
-export { mysqlIntegration } from './integrations/tracing/mysql';
-export { mysql2Integration } from './integrations/tracing/mysql2';
+export {
+  amqplibIntegration,
+  anthropicIntegration as anthropicAIIntegration,
+  dataloaderIntegration,
+  expressIntegration,
+  firebaseIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlDiagnosticsIntegration as graphqlIntegration,
+  hapiIntegration,
+  kafkajsIntegration as kafkaIntegration,
+  knexIntegration,
+  koaIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mongodbIntegration as mongoIntegration,
+  mongooseIntegration,
+  mysqlIntegration,
+  mysql2Integration,
+  openaiIntegration as openAIIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  tediousIntegration,
+  vercelAiIntegration as vercelAIIntegration,
+} from '@sentry/server-utils/orchestrion';
 export { redisIntegration } from './integrations/tracing/redis';
-export { postgresIntegration } from './integrations/tracing/postgres';
-export { postgresJsIntegration } from './integrations/tracing/postgresjs';
 export { prismaIntegration } from '@sentry/server-utils';
-export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
-export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
-export { knexIntegration } from './integrations/tracing/knex';
-export { tediousIntegration } from './integrations/tracing/tedious';
-export { genericPoolIntegration } from './integrations/tracing/genericPool';
-export { dataloaderIntegration } from './integrations/tracing/dataloader';
-export { amqplibIntegration } from './integrations/tracing/amqplib';
-export { vercelAIIntegration } from './integrations/tracing/vercelai';
-export { openAIIntegration } from './integrations/tracing/openai';
-export { anthropicAIIntegration } from './integrations/tracing/anthropic-ai';
-export { googleGenAIIntegration } from './integrations/tracing/google-genai';
-export { langChainIntegration } from './integrations/tracing/langchain';
-export { langGraphIntegration } from './integrations/tracing/langgraph';
+export { setupHapiErrorHandler } from './integrations/tracing/hapi';
+export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
@@ -36,20 +42,13 @@ export {
   unleashIntegration,
   growthbookIntegration,
 } from './integrations/featureFlagShims';
-export { firebaseIntegration } from './integrations/tracing/firebase';
 
 export {
   init,
   getDefaultIntegrations,
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
-  applyDiagnosticsChannelInjectionIntegrations,
 } from './sdk';
-export {
-  experimentalUseDiagnosticsChannelInjection,
-  diagnosticsChannelInjectionIntegrations,
-} from './sdk/experimentalUseDiagnosticsChannelInjection';
-export { isDiagnosticsChannelInjectionEnabled } from './sdk/diagnosticsChannelInjection';
 export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 

@@ -57,5 +57,5 @@ export const initInteractionCountPolyfill = (): void => {
     type: 'event',
     buffered: true,
     durationThreshold: 0,
-  } as PerformanceObserverInit);
+  });
 };

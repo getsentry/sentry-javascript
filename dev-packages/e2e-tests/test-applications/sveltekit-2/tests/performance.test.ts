@@ -173,7 +173,7 @@ test.describe('performance events', () => {
       op: 'http.client',
       origin: 'auto.http.browser',
       data: {
-        url: expect.stringContaining('/api/users'),
+        'url.full': expect.stringContaining('/api/users'),
         type: 'fetch',
         'http.method': 'GET',
         'http.response.status_code': 200,

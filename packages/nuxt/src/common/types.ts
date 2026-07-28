@@ -191,9 +191,8 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
     /**
      * Enables build-time diagnostics-channel instrumentation for supported dependencies bundled into the Nitro server.
      *
-     * 1. Call `Sentry.experimentalUseDiagnosticsChannelInjection()` just before `Sentry.init()`
-     * 2. Remove `--import ./.output/server/sentry.server.config.mjs` from your `start`script
-     * 3. Add `sentry.autoInjectServerSentry: 'top-level-import'` in `nuxt.config.ts` so Sentry's server configuration is automatically imported
+     * 1. Remove `--import ./.output/server/sentry.server.config.mjs` from your `start` script
+     * 2. Add `sentry.autoInjectServerSentry: 'top-level-import'` in `nuxt.config.ts` so Sentry's server configuration is automatically imported
      *
      * @default false
      * @experimental May change or be removed in any release.

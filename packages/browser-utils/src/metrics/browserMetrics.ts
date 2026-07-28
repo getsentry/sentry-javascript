@@ -239,7 +239,7 @@ export function startTrackingInteractions(): void {
   });
 }
 
-export { registerInpInteractionListener, startTrackingINP } from './inp';
+export { registerInpInteractionListener } from './inp';
 
 /**
  * Starts tracking the Cumulative Layout Shift on the current page and collects the value and last entry

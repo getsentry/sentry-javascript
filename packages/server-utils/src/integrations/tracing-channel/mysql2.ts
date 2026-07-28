@@ -62,8 +62,7 @@ interface Mysql2Connection {
  *     transform intentionally leaves alone.
  *
  * The two version ranges never overlap, so no query is double-counted. Requires the orchestrion
- * runtime hook or bundler plugin to be active — wire that up via
- * `experimentalUseDiagnosticsChannelInjection`.
+ * runtime hook or bundler plugin to be active.
  */
 function instrumentMysql2(): void {
   // mysql2 >= 3.20.0: native diagnostics_channel path (inert on older versions, which never publish).
@@ -134,7 +133,7 @@ function getConnectionAttributes(config: Mysql2ConnectionConfig | undefined): Sp
   };
 }
 
-const _mysql2ChannelIntegration = (() => {
+const _mysql2Integration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -161,4 +160,4 @@ const _mysql2ChannelIntegration = (() => {
  * (`connection.query(sql).on('result', ...)`) is not traced — see the `mysql2` orchestrion config for
  * why. The callback and promise forms (the common case) are fully instrumented.
  */
-export const mysql2ChannelIntegration = defineIntegration(_mysql2ChannelIntegration);
+export const mysql2Integration = defineIntegration(_mysql2Integration);

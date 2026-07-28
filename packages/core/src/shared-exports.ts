@@ -10,7 +10,7 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export type { IntegrationIndex } from './integration';
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope, createSpanEnvelope } from './envelope';
+export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
   captureCheckIn,
   withMonitor,
@@ -288,7 +288,6 @@ export {
   createAttachmentEnvelopeItem,
   createEnvelope,
   createEventEnvelopeHeaders,
-  createSpanEnvelopeItem,
   envelopeContainsItemType,
   envelopeItemTypeToDataCategory,
   forEachEnvelopeItem,
@@ -324,6 +323,8 @@ export {
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
   stripDataUrlContent,
+  getUrlQuery,
+  getUrlFragment,
 } from './utils/url';
 export {
   eventFromMessage,
@@ -380,9 +381,7 @@ export type {
   ProfileItem,
   ProfileChunkEnvelope,
   ProfileChunkItem,
-  SpanEnvelope,
   StreamedSpanEnvelope,
-  SpanItem,
   LogEnvelope,
   MetricEnvelope,
 } from './types/envelope';

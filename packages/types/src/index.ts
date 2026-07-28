@@ -133,8 +133,6 @@ import type {
   SpanAttributes as SpanAttributes_imported,
   SpanAttributeValue as SpanAttributeValue_imported,
   SpanContextData as SpanContextData_imported,
-  SpanEnvelope as SpanEnvelope_imported,
-  SpanItem as SpanItem_imported,
   SpanJSON as SpanJSON_imported,
   SpanOrigin as SpanOrigin_imported,
   SpanStatus as SpanStatus_imported,
@@ -273,10 +271,6 @@ export type ProfileItem = ProfileItem_imported;
 export type ProfileChunkEnvelope = ProfileChunkEnvelope_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type ProfileChunkItem = ProfileChunkItem_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type SpanEnvelope = SpanEnvelope_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type SpanItem = SpanItem_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type ExtendedError = ExtendedError_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */

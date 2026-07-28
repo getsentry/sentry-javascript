@@ -117,7 +117,7 @@ export function instrumentStateGraphCompile(
               options,
               undefined,
               sentryHandler,
-            ) as typeof originalInvoke;
+            );
           }
 
           return compiledGraph;
@@ -133,7 +133,7 @@ export function instrumentStateGraphCompile(
         }
       });
     },
-  }) as (...args: unknown[]) => CompiledGraph;
+  });
 
   Object.defineProperty(wrapped, SENTRY_PATCHED, { value: true, enumerable: false });
   return wrapped;
@@ -257,7 +257,7 @@ export function instrumentCompiledGraphInvoke(
         },
       );
     },
-  }) as (...args: unknown[]) => Promise<unknown>;
+  });
 }
 
 /**
@@ -309,12 +309,12 @@ export function instrumentCreateReactAgent(
           resolvedOptions,
           llm,
           sentryHandler,
-        ) as typeof originalInvoke;
+        );
       }
 
       return compiledGraph;
     },
-  }) as (...args: unknown[]) => CompiledGraph;
+  });
 
   Object.defineProperty(wrapped, SENTRY_PATCHED, { value: true, enumerable: false });
   return wrapped;

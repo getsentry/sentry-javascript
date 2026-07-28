@@ -72,7 +72,7 @@ describe('getNormalizedRequestFromAttributes', () => {
     expect(normalizedRequest).toEqual({ url: '/foo?a=1', query_string: 'a=1' });
   });
 
-  it('falls back to `url.path` when `url.full` and `http.url` are absent', () => {
+  it('falls back to `url.path` when `url.full` and `http.target` are absent', () => {
     const normalizedRequest = getNormalizedRequestFromAttributes({
       'http.request.method': 'GET',
       'url.path': '/api/resource',

@@ -173,9 +173,13 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
 
   // `constructedRoute` (the full registered pattern) names the span/transaction;
   // `matchedRoute` (validated against the request URL) is the `http.route`.
-  const constructedRoute = type === 'request_handler' ? getConstructedRoute(req) : undefined;
-  const matchedRoute =
-    type === 'request_handler' && constructedRoute != null ? getActualMatchedRoute(req, constructedRoute) : undefined;
+  // Computed for every layer type (not just `request_handler`) so routes served
+  // by mounted middleware (`app.use('/trpc', handler)`) still propagate their
+  // path to the root `http.server` span — mirroring the OTel Express integration,
+  // which resolves the route on every layer. Without this, such transactions keep
+  // the raw URL name (e.g. `GET /trpc/foo` instead of `GET /trpc`).
+  const constructedRoute = getConstructedRoute(req);
+  const matchedRoute = constructedRoute != null ? getActualMatchedRoute(req, constructedRoute) : undefined;
 
   const name =
     type === 'request_handler'

@@ -11,7 +11,7 @@ import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('aws-sdk instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Aws'), `Aws should be in defaults, got ${names.join(', ')}`);
 });
@@ -26,6 +26,7 @@ Deno.test('aws-sdk instrumentation: orchestrion @smithy/smithy-client:send chann
   resetGlobals();
   const sink = transactionSink();
   const client = init({
+    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     beforeSendTransaction: sink.beforeSendTransaction,

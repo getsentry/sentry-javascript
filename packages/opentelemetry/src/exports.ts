@@ -4,8 +4,6 @@ export { enhanceDscWithOpenTelemetryRootSpanName } from './utils/enhanceDscWithO
 
 export { getTraceContextForScope } from './trace';
 
-export { suppressTracing } from './utils/suppressTracing';
-
 export { setupEventContextTrace } from './setupEventContextTrace';
 
 // eslint-disable-next-line typescript/no-deprecated

@@ -17,7 +17,10 @@ export const fsIntegration = defineIntegration((options: FsInstrumentationConfig
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      enableFsInstrumentation(options);
+      // We only run this in the next tick to avoid instrumenting the `fs` module while the SDK is initializating
+      // especially, at the point when this runs the Async Context Manager may not be set up yet,
+      // which could lead to weird outcomes - so we wait until everything is settled before we instrument.
+      setImmediate(() => enableFsInstrumentation(options));
     },
   };
 });

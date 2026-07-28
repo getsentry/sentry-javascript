@@ -3,7 +3,7 @@ import type { Env, Hono } from 'hono';
 import { DEBUG_BUILD } from '../debug-build';
 import { patchAppRequest } from './patchAppRequest';
 import { patchAppUse, patchHttpMethodHandlers } from './patchAppUse';
-import { type HonoRoute, type RouteHookHandle, installRouteHookOnPrototype, wrapSubAppMiddleware } from './patchRoute';
+import { type RouteHookHandle, installRouteHookOnPrototype, wrapSubAppMiddleware } from './patchRoute';
 
 // Lazily set by the first call to earlyPatchHono or applyPatches.
 let _routeHook: RouteHookHandle | undefined;
@@ -48,7 +48,7 @@ export function applyPatches<E extends Env>(app: Hono<E>): void {
   }
 
   for (const subApp of pendingSubApps) {
-    wrapSubAppMiddleware(subApp.routes as HonoRoute[]);
+    wrapSubAppMiddleware(subApp.routes);
     patchAppRequest(subApp);
   }
 

@@ -13,6 +13,7 @@ function makeLegacySpanProfilingClient(): [Sentry.NodeClient, Transport] {
     stackParser: Sentry.defaultStackParser,
     tracesSampleRate: 1,
     profilesSampleRate: 1,
+    traceLifecycle: 'static',
     debug: true,
     environment: 'test-environment',
     dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
@@ -34,6 +35,7 @@ function makeLegacyContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
   const client = new Sentry.NodeClient({
     stackParser: Sentry.defaultStackParser,
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     debug: true,
     environment: 'test-environment',
     dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
@@ -956,6 +958,7 @@ describe('ProfilingIntegration', () => {
 
       it('sends a profile_chunk envelope type', async () => {
         const [client, transport] = makeCurrentSpanProfilingClient({
+          traceLifecycle: 'static',
           profileLifecycle: 'trace',
           profileSessionSampleRate: 1,
         });

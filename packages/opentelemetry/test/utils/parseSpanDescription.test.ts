@@ -9,10 +9,10 @@ import {
   HTTP_ROUTE,
   HTTP_STATUS_CODE,
   HTTP_TARGET,
-  HTTP_URL,
   MESSAGING_SYSTEM,
   RPC_SERVICE,
   SENTRY_KIND,
+  URL_FULL,
 } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
@@ -360,7 +360,7 @@ describe('descriptionForHttpMethod', () => {
       'GET',
       {
         [HTTP_METHOD]: 'GET',
-        [HTTP_URL]: 'https://www.example.com/my-path',
+        [URL_FULL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
         [SENTRY_KIND]: 'client' as const,
       },
@@ -369,7 +369,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client',
         description: 'GET https://www.example.com/my-path',
         data: {
-          url: 'https://www.example.com/my-path',
+          'url.full': 'https://www.example.com/my-path',
         },
         source: 'url',
       },
@@ -379,7 +379,7 @@ describe('descriptionForHttpMethod', () => {
       'GET',
       {
         [HTTP_METHOD]: 'GET',
-        [HTTP_URL]: 'https://www.example.com/my-path',
+        [URL_FULL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
         'sentry.http.prefetch': true,
         [SENTRY_KIND]: 'client' as const,
@@ -389,7 +389,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client.prefetch',
         description: 'GET https://www.example.com/my-path',
         data: {
-          url: 'https://www.example.com/my-path',
+          'url.full': 'https://www.example.com/my-path',
         },
         source: 'url',
       },
@@ -399,7 +399,7 @@ describe('descriptionForHttpMethod', () => {
       'POST',
       {
         [HTTP_METHOD]: 'POST',
-        [HTTP_URL]: 'https://www.example.com/my-path',
+        [URL_FULL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
         [SENTRY_KIND]: 'server' as const,
       },
@@ -408,7 +408,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.server',
         description: 'POST /my-path',
         data: {
-          url: 'https://www.example.com/my-path',
+          'url.full': 'https://www.example.com/my-path',
         },
         source: 'url',
       },
@@ -418,7 +418,7 @@ describe('descriptionForHttpMethod', () => {
       'GET',
       {
         [HTTP_METHOD]: 'GET',
-        [HTTP_URL]: 'https://www.example.com/my-path/123',
+        [URL_FULL]: 'https://www.example.com/my-path/123',
         [HTTP_TARGET]: '/my-path/123',
         [HTTP_ROUTE]: '/my-path/:id',
         [SENTRY_KIND]: 'client' as const,
@@ -428,7 +428,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client',
         description: 'GET /my-path/:id',
         data: {
-          url: 'https://www.example.com/my-path/123',
+          'url.full': 'https://www.example.com/my-path/123',
         },
         source: 'route',
       },
@@ -438,7 +438,7 @@ describe('descriptionForHttpMethod', () => {
       'GET',
       {
         [HTTP_METHOD]: 'GET',
-        [HTTP_URL]: 'https://www.example.com/my-path',
+        [URL_FULL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
       },
       'test name',
@@ -446,7 +446,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http',
         description: 'test name',
         data: {
-          url: 'https://www.example.com/my-path',
+          'url.full': 'https://www.example.com/my-path',
         },
         source: 'custom',
       },
@@ -456,7 +456,7 @@ describe('descriptionForHttpMethod', () => {
       'GET',
       {
         [HTTP_METHOD]: 'GET',
-        [HTTP_URL]: 'https://www.example.com/my-path/123',
+        [URL_FULL]: 'https://www.example.com/my-path/123',
         [HTTP_TARGET]: '/my-path/123',
         [HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
@@ -467,7 +467,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client',
         description: 'test name',
         data: {
-          url: 'https://www.example.com/my-path/123',
+          'url.full': 'https://www.example.com/my-path/123',
         },
         source: 'custom',
       },
@@ -477,7 +477,7 @@ describe('descriptionForHttpMethod', () => {
       'GET',
       {
         [HTTP_METHOD]: 'GET',
-        [HTTP_URL]: 'https://www.example.com/my-path/123',
+        [URL_FULL]: 'https://www.example.com/my-path/123',
         [HTTP_TARGET]: '/my-path/123',
         [HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
@@ -489,7 +489,7 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client',
         description: 'custom name',
         data: {
-          url: 'https://www.example.com/my-path/123',
+          'url.full': 'https://www.example.com/my-path/123',
         },
         source: 'custom',
       },
@@ -499,7 +499,7 @@ describe('descriptionForHttpMethod', () => {
       'GET',
       {
         [HTTP_METHOD]: 'GET',
-        [HTTP_URL]: 'https://www.example.com/my-path/123',
+        [URL_FULL]: 'https://www.example.com/my-path/123',
         [HTTP_TARGET]: '/my-path/123',
         [HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
@@ -511,17 +511,17 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client',
         description: 'custom name',
         data: {
-          url: 'https://www.example.com/my-path/123',
+          'url.full': 'https://www.example.com/my-path/123',
         },
         source: 'component',
       },
     ],
     [
-      'strips the leading `?`/`#` from http.query and http.fragment',
+      'strips the leading `?`/`#` for url.query and url.fragment',
       'GET',
       {
         [HTTP_METHOD]: 'GET',
-        [HTTP_URL]: 'https://www.example.com/my-path?id=1#section',
+        [URL_FULL]: 'https://www.example.com/my-path?id=1#section',
         [HTTP_TARGET]: '/my-path?id=1#section',
         [SENTRY_KIND]: 'client' as const,
       },
@@ -530,9 +530,9 @@ describe('descriptionForHttpMethod', () => {
         op: 'http.client',
         description: 'GET https://www.example.com/my-path',
         data: {
-          url: 'https://www.example.com/my-path',
-          'http.query': 'id=1',
-          'http.fragment': 'section',
+          'url.full': 'https://www.example.com/my-path',
+          'url.query': 'id=1',
+          'url.fragment': 'section',
         },
         source: 'url',
       },
@@ -559,7 +559,7 @@ describe('getSanitizedUrl', () => {
     [
       'uses url without query for client request',
       {
-        [HTTP_URL]: 'http://example.com/?what=true',
+        [URL_FULL]: 'http://example.com/?what=true',
         [HTTP_METHOD]: 'GET',
         [HTTP_TARGET]: '/?what=true',
         [HTTP_HOST]: 'example.com:80',
@@ -577,7 +577,7 @@ describe('getSanitizedUrl', () => {
     [
       'uses url without hash for client request',
       {
-        [HTTP_URL]: 'http://example.com/sub#hash',
+        [URL_FULL]: 'http://example.com/sub#hash',
         [HTTP_METHOD]: 'GET',
         [HTTP_TARGET]: '/sub#hash',
         [HTTP_HOST]: 'example.com:80',
@@ -595,7 +595,7 @@ describe('getSanitizedUrl', () => {
     [
       'uses route if available for client request',
       {
-        [HTTP_URL]: 'http://example.com/?what=true',
+        [URL_FULL]: 'http://example.com/?what=true',
         [HTTP_METHOD]: 'GET',
         [HTTP_TARGET]: '/?what=true',
         [HTTP_ROUTE]: '/my-route',
@@ -631,7 +631,7 @@ describe('getSanitizedUrl', () => {
     [
       'uses target without query for server request',
       {
-        [HTTP_URL]: 'http://example.com/?what=true',
+        [URL_FULL]: 'http://example.com/?what=true',
         [HTTP_METHOD]: 'GET',
         [HTTP_TARGET]: '/?what=true',
         [HTTP_HOST]: 'example.com:80',
@@ -649,7 +649,7 @@ describe('getSanitizedUrl', () => {
     [
       'uses target without hash for server request',
       {
-        [HTTP_URL]: 'http://example.com/?what=true',
+        [URL_FULL]: 'http://example.com/?what=true',
         [HTTP_METHOD]: 'GET',
         [HTTP_TARGET]: '/sub#hash',
         [HTTP_HOST]: 'example.com:80',
@@ -667,7 +667,7 @@ describe('getSanitizedUrl', () => {
     [
       'uses route for server request if available',
       {
-        [HTTP_URL]: 'http://example.com/?what=true',
+        [URL_FULL]: 'http://example.com/?what=true',
         [HTTP_METHOD]: 'GET',
         [HTTP_TARGET]: '/?what=true',
         [HTTP_ROUTE]: '/my-route',

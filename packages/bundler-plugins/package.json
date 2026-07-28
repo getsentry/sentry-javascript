@@ -86,8 +86,8 @@
     "clean": "rimraf build dist coverage sentry-bundler-plugins-*.tgz",
     "clean:all": "run-p clean clean:deps",
     "clean:deps": "rimraf node_modules",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
     "test": "vitest run",
     "test:unit": "vitest run"
   },

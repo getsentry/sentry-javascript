@@ -3,6 +3,8 @@ import {
   getHttpSpanDetailsFromUrlObject,
   getSanitizedUrlString,
   getSanitizedUrlStringFromUrlObject,
+  getUrlFragment,
+  getUrlQuery,
   isURLObjectRelative,
   parseStringToURLObject,
   parseUrl,
@@ -292,6 +294,33 @@ describe('parseStringToURLObject', () => {
   });
 });
 
+describe('getUrlQuery', () => {
+  it.each([
+    ['?foo=bar', 'foo=bar'],
+    ['foo=bar', 'foo=bar'],
+    ['?foo=bar&baz=qux', 'foo=bar&baz=qux'],
+    ['?a=?b', 'a=?b'],
+    ['?', undefined],
+    ['', undefined],
+    [undefined, undefined],
+  ])('strips the leading ? from %s', (input, expected) => {
+    expect(getUrlQuery(input)).toBe(expected);
+  });
+});
+
+describe('getUrlFragment', () => {
+  it.each([
+    ['#section', 'section'],
+    ['section', 'section'],
+    ['##double', '#double'],
+    ['#', undefined],
+    ['', undefined],
+    [undefined, undefined],
+  ])('strips the leading # from %s', (input, expected) => {
+    expect(getUrlFragment(input)).toBe(expected);
+  });
+});
+
 describe('isURLObjectRelative', () => {
   it('returns true for relative URLs', () => {
     expect(isURLObjectRelative(parseStringToURLObject('/path/to/happiness')!)).toBe(true);
@@ -415,6 +444,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.origin': 'test-origin',
       'sentry.source': 'url',
       'url.path': '/api/users',
+      'url.full': '/api/users',
     });
   });
 
@@ -426,8 +456,8 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.origin': 'test-origin',
       'sentry.source': 'url',
       'url.path': '/api/users',
-      'url.query': '?q=test',
-      'url.fragment': '#section',
+      'url.query': 'q=test',
+      'url.fragment': 'section',
       'url.full': 'https://example.com/api/users?q=test#section',
       'server.address': 'example.com',
       'url.scheme': 'https:',
@@ -551,7 +581,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.origin': 'test-origin',
       'sentry.source': 'route',
       'url.path': '/api/search',
-      'url.query': '?q=test&page=1',
+      'url.query': 'q=test&page=1',
       'url.full': 'https://example.com/api/search?q=test&page=1',
       'server.address': 'example.com',
       'url.scheme': 'https:',
@@ -573,7 +603,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'sentry.origin': 'test-origin',
       'sentry.source': 'route',
       'url.path': '/api/docs',
-      'url.fragment': '#section-1',
+      'url.fragment': 'section-1',
       'url.full': 'https://example.com/api/docs#section-1',
       'server.address': 'example.com',
       'url.scheme': 'https:',

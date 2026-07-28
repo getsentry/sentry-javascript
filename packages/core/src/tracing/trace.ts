@@ -34,8 +34,7 @@ import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { setCapturedScopesOnSpan } from './utils';
 import type { Client } from '../client';
-
-export const SUPPRESS_TRACING_KEY = '__SENTRY_SUPPRESS_TRACING__';
+import { SUPPRESS_TRACING_KEY } from './constants';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -293,15 +292,8 @@ export function suppressTracing<T>(callback: () => T): T {
   }
 
   return withScope(scope => {
-    // Note: We do not wait for the callback to finish before we reset the metadata
-    // the reason for this is that otherwise, in the browser this can lead to very weird behavior
-    // as there is only a single top scope, if the callback takes longer to finish,
-    // other, unrelated spans may also be suppressed, which we do not want
-    // so instead, we only suppress tracing synchronoysly in the browser
     scope.setSDKProcessingMetadata({ [SUPPRESS_TRACING_KEY]: true });
-    const res = callback();
-    scope.setSDKProcessingMetadata({ [SUPPRESS_TRACING_KEY]: undefined });
-    return res;
+    return callback();
   });
 }
 
@@ -477,9 +469,10 @@ function createChildOrRootSpan({
  * but some of them need to be transformed.
  */
 function parseSentrySpanArguments(options: StartSpanOptions): SentrySpanArguments {
-  const exp = options.experimental || {};
   const initialCtx: SentrySpanArguments = {
-    isStandalone: exp.standalone,
+    // TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
+    // oxlint-disable-next-line typescript/no-deprecated
+    isStandalone: options.experimental?.standalone,
     ...options,
   };
 

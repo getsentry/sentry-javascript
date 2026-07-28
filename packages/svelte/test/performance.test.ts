@@ -29,6 +29,7 @@ describe('Sentry.trackComponent()', () => {
     init({
       dsn: PUBLIC_DSN,
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
       beforeSendTransaction,
     });
   });

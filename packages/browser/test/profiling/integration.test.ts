@@ -39,6 +39,7 @@ describe('BrowserProfilingIntegration', () => {
     const send = vi.fn().mockImplementation(() => Promise.resolve());
     const client = Sentry.init({
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
       profilesSampleRate: 1,
       environment: 'test-environment',
       dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
@@ -134,6 +135,7 @@ describe('BrowserProfilingIntegration', () => {
       const send = vi.fn().mockResolvedValue(undefined);
       const client = Sentry.init({
         tracesSampleRate: 1,
+        traceLifecycle: 'static',
         profilesSampleRate: 1,
         dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
         transport: _opts => ({

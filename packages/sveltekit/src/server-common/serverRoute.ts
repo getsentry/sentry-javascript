@@ -46,7 +46,7 @@ export function wrapServerRouteWithSentry<T extends RequestEvent>(
       const routeId = event.route?.id;
       const httpMethod = event.request.method;
 
-      addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+      addNonEnumerableProperty(event, '__sentry_wrapped__', true);
 
       try {
         return await startSpan(

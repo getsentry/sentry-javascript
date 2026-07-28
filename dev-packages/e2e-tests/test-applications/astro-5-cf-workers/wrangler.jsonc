@@ -9,6 +9,7 @@
     "SENTRY_ENVIRONMENT": "qa",
     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
     "SENTRY_TUNNEL": "http://localhost:3031/",
+    "SENTRY_TRACE_LIFECYCLE": "static",
   },
   "assets": {
     "binding": "ASSETS",

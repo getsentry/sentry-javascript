@@ -360,7 +360,6 @@ describe('GraphqlClient', () => {
         op: 'http.client',
         attributes: {
           'http.method': 'POST',
-          'http.url': 'http://localhost:4000/graphql',
           [URL_FULL]: 'http://localhost:4000/graphql',
           url: 'http://localhost:4000/graphql',
         },
@@ -391,15 +390,14 @@ describe('GraphqlClient', () => {
       expect(json.data['graphql.document']).toBe(requestBody.query);
     });
 
-    test('enriches http.client span for relative URLs (only url attribute)', () => {
+    test('enriches http.client span for relative URLs', () => {
       const handler = setupHandler([/\/graphql$/]);
-      // Fetch instrumentation does not set `http.url` or `url.full` for relative URLs.
       const span = new SentrySpan({
         name: 'POST /graphql',
         op: 'http.client',
         attributes: {
           'http.method': 'POST',
-          url: '/graphql',
+          [URL_FULL]: '/graphql',
         },
       });
 
@@ -452,7 +450,6 @@ describe('GraphqlClient', () => {
         op: 'http.client',
         attributes: {
           'http.method': 'POST',
-          'http.url': 'http://localhost:4000/graphql',
           [URL_FULL]: 'http://localhost:4000/graphql',
           url: 'http://localhost:4000/graphql',
         },

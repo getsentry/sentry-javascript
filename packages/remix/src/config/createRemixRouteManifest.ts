@@ -27,7 +27,7 @@ function isRouteFile(filename: string): boolean {
  * Convert Remix route file paths to parameterized paths at build time.
  *
  * Examples:
- *   - index.tsx -> /
+ *   - _index.tsx -> /
  *   - users.tsx -> /users
  *   - users.$id.tsx -> /users/:id
  *   - users.$id.posts.$postId.tsx -> /users/:id/posts/:postId
@@ -35,7 +35,7 @@ function isRouteFile(filename: string): boolean {
  *   - docs.$.tsx -> /docs/:*
  *   - users/$id.tsx (nested folder) -> /users/:id
  *   - users/$id/posts.tsx (nested folder) -> /users/:id/posts
- *   - users/index.tsx (nested folder) -> /users
+ *   - users/_index.tsx (nested folder) -> /users
  *   - _layout.tsx -> null (pathless layout route, not URL-addressable)
  *   - _auth.tsx -> null (pathless layout route, not URL-addressable)
  *
@@ -48,7 +48,7 @@ export function convertRemixRouteToPath(filename: string): { path: string; isDyn
   const basename = filename.replace(/\.(tsx?|jsx?)$/, '');
 
   // Handle root index route
-  if (basename === 'index' || basename === '_index') {
+  if (basename === '_index') {
     return { path: '/', isDynamic: false };
   }
 
@@ -75,13 +75,6 @@ export function convertRemixRouteToPath(filename: string): { path: string; isDyn
       continue;
     }
 
-    // Handle 'index' segments at the end (skip only if there are path segments,
-    // otherwise root index is handled by the early return above)
-    if (segment === 'index' && i === segments.length - 1 && pathSegments.length > 0) {
-      isIndexRoute = true;
-      continue;
-    }
-
     if (segment === '$') {
       pathSegments.push(':*');
       isDynamic = true;
@@ -92,7 +85,7 @@ export function convertRemixRouteToPath(filename: string): { path: string; isDyn
       const paramName = segment.substring(1);
       pathSegments.push(`:${paramName}`);
       isDynamic = true;
-    } else if (segment !== 'index') {
+    } else {
       pathSegments.push(segment);
     }
   }

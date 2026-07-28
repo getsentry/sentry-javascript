@@ -8,8 +8,8 @@ import { isWrappedConsumerCallback, wrapEachBatch, wrapEachMessage } from './con
 import { applyErrorToSpans, startProducerSpan } from './spans';
 import type { ConsumerRunConfig, ProducerBatch } from './types';
 
-// NOTE: this uses the same name as the OTel `Kafka` integration by design. When enabled, the OTel
-// integration is omitted from the default set (see `experimentalUseDiagnosticsChannelInjection`).
+// NOTE: this uses the same name as the OTel `Kafka` integration by design, so the OTel integration
+// is deduplicated out of the default set.
 const INTEGRATION_NAME = 'Kafka' as const;
 
 /** The tracing-channel context the transform attaches around `messageProducer.js`'s `sendBatch`. */
@@ -78,7 +78,7 @@ function subscribeToConsumer(): void {
   channel.subscribe(subscribers as TracingChannelSubscribers<ConsumerRunChannelContext>);
 }
 
-const _kafkajsChannelIntegration = (() => {
+const _kafkajsIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -98,16 +98,15 @@ const _kafkajsChannelIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven kafkajs integration.
+ * Orchestrion-driven kafkajs integration.
  *
  * Subscribes to the `orchestrion:kafkajs:*` diagnostics_channels that the orchestrion code transform
  * injects into `kafkajs`'s `producer/messageProducer.js` (`sendBatch`) and `consumer/index.js` (`run`).
- * Requires the orchestrion runtime hook or bundler plugin to be active — wire that up via
- * `experimentalUseDiagnosticsChannelInjection`.
+ * Requires the orchestrion runtime hook or bundler plugin to be active.
  *
  * Known limitation vs. the OTel integration it replaces: the wrapping producer-`transaction` span is
  * not emitted (the transformer can't replace `transaction()`'s return value to patch commit/abort).
  * Transactional `send`/`sendBatch` calls still produce producer spans, since they route through the
  * same instrumented `sendBatch`.
  */
-export const kafkajsChannelIntegration = defineIntegration(_kafkajsChannelIntegration);
+export const kafkajsIntegration = defineIntegration(_kafkajsIntegration);

@@ -117,7 +117,6 @@ describe('sentryMiddleware', () => {
         attributes: {
           'sentry.origin': 'auto.http.astro',
           method: 'GET',
-          url: 'https://mydomain.io/users/123/details',
           [URL_FULL]: 'https://mydomain.io/users/123/details',
           [URL_PATH]: '/users/123/details',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
@@ -156,7 +155,6 @@ describe('sentryMiddleware', () => {
         attributes: {
           'sentry.origin': 'auto.http.astro',
           method: 'GET',
-          url: 'http://localhost:1234/a%xx',
           [URL_FULL]: 'http://localhost:1234/a%xx',
           [URL_PATH]: 'a%xx',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',

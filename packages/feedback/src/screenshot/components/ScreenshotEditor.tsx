@@ -244,7 +244,7 @@ export function ScreenshotEditorFactory({
           y: Math.min(startingPoint.y, y),
           w: Math.abs(x - startingPoint.x),
           h: Math.abs(y - startingPoint.y),
-        } as DrawCommand;
+        };
       };
 
       const handleMouseMove = (e: MouseEvent): void => {

@@ -93,7 +93,7 @@ function makeSpanOptions(
   };
 }
 
-const _dataloaderChannelIntegration = (() => {
+const _dataloaderIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -182,10 +182,10 @@ function startInactiveSpanFor(loader: DataLoaderInstance | undefined, operation:
 }
 
 /**
- * EXPERIMENTAL: orchestrion-driven `dataloader` integration.
+ * Orchestrion-driven `dataloader` integration.
  *
  * Subscribes to the `orchestrion:dataloader:*` diagnostics_channels that the orchestrion code
  * transform injects into `dataloader`'s constructor and prototype methods. Requires the orchestrion
  * runtime hook or bundler plugin to be active.
  */
-export const dataloaderChannelIntegration = defineIntegration(_dataloaderChannelIntegration);
+export const dataloaderIntegration = defineIntegration(_dataloaderIntegration);

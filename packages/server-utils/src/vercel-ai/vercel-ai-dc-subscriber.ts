@@ -29,6 +29,7 @@ import {
 import { GEN_AI_EXECUTE_TOOL_SPAN_OP, GEN_AI_INVOKE_AGENT_SPAN_OP } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
+  _INTERNAL_skipAiProviderWrapping,
   captureException,
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
@@ -66,6 +67,8 @@ const GEN_AI_RERANK_OPERATION = 'rerank';
 // The model-call op matches the Vercel AI OTel integration (`gen_ai.generate_content`) rather than
 // the generic `gen_ai.chat`, so v6 (OTel) and v7 (channel) produce the same spans.
 const GEN_AI_GENERATE_CONTENT_OPERATION = 'generate_content';
+// TODO(v11): export the constant from server-utils and import it here instead.
+const WORKERS_AI_INTEGRATION_NAME = 'WorkersAI';
 
 // Subset of the `vercel.ai.*` passthrough attributes the OTel integration emits that we reproduce.
 const VERCEL_AI_OPERATION_ID_ATTRIBUTE = 'vercel.ai.operationId';
@@ -395,6 +398,8 @@ export function createSpanFromMessage(
       // the OTel path derives from the SDK's Zod schema is not reconstructed on the channel path.
       return buildInvokeAgentSpan(event, baseAttributes, recordInputs, enableTruncation, callId, type === 'streamText');
     case 'languageModelCall':
+      _INTERNAL_skipAiProviderWrapping([WORKERS_AI_INTEGRATION_NAME]);
+
       return buildModelCallSpan(event, baseAttributes, recordInputs, enableTruncation, callId, modelId);
     case 'executeTool':
       return buildToolSpan(event, recordInputs);

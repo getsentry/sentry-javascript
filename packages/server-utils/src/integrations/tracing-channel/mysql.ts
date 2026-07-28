@@ -58,7 +58,7 @@ interface MysqlConnection {
   config?: MysqlConnectionConfig;
 }
 
-const _mysqlChannelIntegration = (() => {
+const _mysqlIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -169,11 +169,11 @@ function getJDBCString(host: string | undefined, port: number | undefined, datab
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven mysql integration.
+ * Orchestrion-driven mysql integration.
  *
  * Subscribes to the `orchestrion:mysql:query` diagnostics_channel that the
  * orchestrion code transform injects into `mysql/lib/Connection.js`'s
  * `Connection.prototype.query`. Requires the orchestrion runtime hook or
- * bundler plugin to be active — wire that up via `_experimentalSetupOrchestrion`.
+ * bundler plugin to be active.
  */
-export const mysqlChannelIntegration = defineIntegration(_mysqlChannelIntegration);
+export const mysqlIntegration = defineIntegration(_mysqlIntegration);

@@ -56,7 +56,7 @@ export const modulesIntegration = _modulesIntegration;
 
 function getRequireCachePaths(): string[] {
   try {
-    return require.cache ? Object.keys(require.cache as Record<string, unknown>) : [];
+    return require.cache ? Object.keys(require.cache) : [];
   } catch {
     return [];
   }

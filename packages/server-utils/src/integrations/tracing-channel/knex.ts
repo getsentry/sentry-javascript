@@ -100,7 +100,7 @@ interface KnexBuilderChannelContext {
   result?: KnexBuilder;
 }
 
-const _knexChannelIntegration = (() => {
+const _knexIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -264,7 +264,7 @@ function getName(db: string | undefined, operation?: string, table?: string): st
 function extractTableName(builder: KnexBuilder | undefined): string | undefined {
   const table = builder?._single?.table;
   if (table && typeof table === 'object') {
-    return extractTableName(table as KnexBuilder);
+    return extractTableName(table);
   }
   return typeof table === 'string' ? table : undefined;
 }
@@ -305,10 +305,10 @@ function extractPortFromConnectionString(connectionString: string | undefined): 
 }
 
 /**
- * EXPERIMENTAL - orchestrion-driven knex integration.
+ * Orchestrion-driven knex integration.
  *
  * Subscribes to the `orchestrion:knex:*` diagnostics_channels that the orchestrion code transform
  * injects into knex's `Runner.query` (span) and `Client.queryBuilder`/`schemaBuilder`/`raw` (parent-span
  * bookkeeping). Requires the orchestrion runtime hook or bundler plugin to be active.
  */
-export const knexChannelIntegration = defineIntegration(_knexChannelIntegration);
+export const knexIntegration = defineIntegration(_knexIntegration);

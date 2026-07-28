@@ -1,12 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
 
-// Opt into diagnostics-channel-based auto-instrumentation. This registers the
-// channel subscribers (e.g. for `pg` and `ioredis`) that turn the
-// diagnostics-channel events — injected at build time by the orchestrion transform
-// (the Turbopack loader / webpack plugin, see `next.config.ts`) — into Sentry spans.
-// Must run before `Sentry.init()`.
-Sentry.experimentalUseDiagnosticsChannelInjection();
-
 Sentry.init({
   traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions

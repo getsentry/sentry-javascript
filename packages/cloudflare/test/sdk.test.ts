@@ -22,10 +22,9 @@ describe('init', () => {
     expect(client).toBeInstanceOf(CloudflareClient);
   });
 
-  test('installs SpanStreaming integration when traceLifecycle is "stream"', () => {
+  test('installs SpanStreaming integration by default', () => {
     init({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      traceLifecycle: 'stream',
     });
     const client = getClient();
 
@@ -36,8 +35,8 @@ describe('init', () => {
     );
   });
 
-  test("does not install SpanStreaming integration when traceLifecycle is not 'stream'", () => {
-    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+  test("does not install SpanStreaming integration when traceLifecycle is 'static'", () => {
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', traceLifecycle: 'static' });
     const client = getClient();
 
     expect(client?.getOptions()).toEqual(
@@ -90,14 +89,14 @@ describe('getDefaultIntegrations', () => {
     // Mirror what the snippet the vite plugin injects into each instrumented
     // module does at runtime: import its factory and `.set` it on the marker map,
     // keyed by export name (so a package split across files registers once).
-    const { mysqlChannelIntegration, postgresChannelIntegration, lruMemoizerChannelIntegration } =
+    const { mysqlIntegration, postgresIntegration, lruMemoizerIntegration } =
       await import('@sentry/server-utils/orchestrion');
     globalThis.__SENTRY_ORCHESTRION__ = {
       bundler: true,
       integrations: new Map([
-        ['mysqlChannelIntegration', mysqlChannelIntegration],
-        ['postgresChannelIntegration', postgresChannelIntegration],
-        ['lruMemoizerChannelIntegration', lruMemoizerChannelIntegration],
+        ['mysqlIntegration', mysqlIntegration],
+        ['postgresIntegration', postgresIntegration],
+        ['lruMemoizerIntegration', lruMemoizerIntegration],
       ]),
     };
 

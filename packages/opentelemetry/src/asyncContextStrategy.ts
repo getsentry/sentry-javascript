@@ -1,5 +1,5 @@
 import * as api from '@opentelemetry/api';
-import type { Scope, TracingChannelBinding, withActiveSpan as defaultWithActiveSpan } from '@sentry/core';
+import type { Scope, TracingChannelBinding } from '@sentry/core';
 import { getDefaultCurrentScope, getDefaultIsolationScope, setAsyncContextStrategy } from '@sentry/core';
 import {
   SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY,
@@ -11,7 +11,6 @@ import type { CurrentScopes } from './types';
 import { getContextFromScope, getScopesFromContext } from './utils/contextData';
 import { getActiveSpan } from './utils/getActiveSpan';
 import { getTraceData } from './utils/getTraceData';
-import { suppressTracing, isTracingSuppressed } from './utils/suppressTracing';
 
 /**
  * Sets the async context strategy to use follow the OTEL context under the hood.
@@ -103,14 +102,12 @@ export function setOpenTelemetryContextAsyncContextStrategy(options?: {
     startSpanManual,
     startInactiveSpan,
     getActiveSpan,
-    suppressTracing,
-    isTracingSuppressed,
     getTraceData,
     continueTrace,
     startNewTrace,
     // The types here don't fully align, because our own `Span` type is narrower
     // than the OTEL one - but this is OK for here, as we now we'll only have OTEL spans passed around
-    withActiveSpan: withActiveSpan as typeof defaultWithActiveSpan,
+    withActiveSpan: withActiveSpan,
     getTracingChannelBinding: options?.getTracingChannelBinding,
   });
 }
