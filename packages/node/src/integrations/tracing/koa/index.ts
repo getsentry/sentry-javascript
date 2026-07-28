@@ -1,27 +1,5 @@
-import type { KoaInstrumentationConfig, KoaLayerType } from './vendored/types';
-import { KoaInstrumentation } from './vendored/instrumentation';
 import { captureException } from '@sentry/core';
-import { generateInstrumentOnce } from '../../../otel/instrument';
 import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
-
-interface KoaOptions {
-  /**
-   * Ignore layers of specified types
-   */
-  ignoreLayersType?: Array<'middleware' | 'router'>;
-}
-
-const INTEGRATION_NAME = 'Koa' as const;
-
-export const instrumentKoa = generateInstrumentOnce(
-  INTEGRATION_NAME,
-  KoaInstrumentation,
-  (options: KoaOptions = {}) => {
-    return {
-      ignoreLayersType: options.ignoreLayersType as KoaLayerType[],
-    } satisfies KoaInstrumentationConfig;
-  },
-);
 
 /**
  * Add an Koa error handler to capture errors to Sentry.
