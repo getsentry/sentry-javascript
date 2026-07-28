@@ -19,6 +19,13 @@ import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTran
  * ```
  */
 export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
+  if (options.buildTimeInstrumentation?.disable) {
+    // Return an inert plugin so SDKs that unconditionally push it into their
+    // plugin array can still opt out without any code transform, `noExternal`
+    // force-bundling, or injected diagnostics landing in the build.
+    return { name: 'sentry-orchestrion-disabled' };
+  }
+
   return {
     ...codeTransformer(orchestrionTransformOptions(options)),
     applyToEnvironment(environment) {

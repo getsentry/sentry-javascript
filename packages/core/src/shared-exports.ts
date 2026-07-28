@@ -520,6 +520,7 @@ export type { LegacyCSPReport } from './types/csp';
 export type { SerializedLog, SerializedLogContainer } from './types/log';
 export type {
   BuildTimeOptionsBase,
+  BuildTimeInstrumentationOptions,
   UnstableVitePluginOptions,
   UnstableRollupPluginOptions,
   UnstableWebpackPluginOptions,

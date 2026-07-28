@@ -1,5 +1,6 @@
 import { sentryRollupPlugin as sentryRollupBundlerPlugin } from '@sentry/bundler-plugins/rollup';
 import type { SentryRollupPluginOptions as SentryRollupPluginOptionsBase } from '@sentry/bundler-plugins/rollup';
+import type { BuildTimeInstrumentationOptions } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/rollup';
 
 export type SentryRollupPluginOptions = SentryRollupPluginOptionsBase & {
@@ -7,6 +8,13 @@ export type SentryRollupPluginOptions = SentryRollupPluginOptionsBase & {
    * @ignore This is for internal use only when this plugin is consumed by a framework SDK
    */
   instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionPlugin>[0]>['instrumentations'];
+
+  /**
+   * Options related to automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set `buildTimeInstrumentation.disable` to `true` to turn it off.
+   */
+  buildTimeInstrumentation?: BuildTimeInstrumentationOptions;
 };
 
 type RollupPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
@@ -27,5 +35,7 @@ type RollupPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  * ```
  */
 export function sentryRollupPlugin(options?: SentryRollupPluginOptions): RollupPlugin[] {
-  return [...sentryRollupBundlerPlugin(options), sentryOrchestrionPlugin(options)];
+  const bundlerPlugins = sentryRollupBundlerPlugin(options);
+  const isOrchestrionDisabled = options?.buildTimeInstrumentation?.disable;
+  return [...bundlerPlugins, ...(isOrchestrionDisabled ? [] : [sentryOrchestrionPlugin(options)])];
 }

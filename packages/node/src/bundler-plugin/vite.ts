@@ -1,5 +1,6 @@
 import { sentryVitePlugin as sentryViteBundlerPlugin } from '@sentry/bundler-plugins/vite';
 import type { SentryVitePluginOptions as SentryVitePluginOptionsBase } from '@sentry/bundler-plugins/vite';
+import type { BuildTimeInstrumentationOptions } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 
 export type SentryVitePluginOptions = SentryVitePluginOptionsBase & {
@@ -7,6 +8,13 @@ export type SentryVitePluginOptions = SentryVitePluginOptionsBase & {
    * @ignore This is for internal use only when this plugin is consumed by a framework SDK
    */
   instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionPlugin>[0]>['instrumentations'];
+
+  /**
+   * Options related to automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set `buildTimeInstrumentation.disable` to `true` to turn it off.
+   */
+  buildTimeInstrumentation?: BuildTimeInstrumentationOptions;
 };
 
 type VitePlugin = ReturnType<typeof sentryOrchestrionPlugin>;
@@ -28,5 +36,7 @@ type VitePlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  * ```
  */
 export function sentryVitePlugin(options?: SentryVitePluginOptions): VitePlugin[] {
-  return [...sentryViteBundlerPlugin(options), sentryOrchestrionPlugin(options)];
+  const bundlerPlugins = sentryViteBundlerPlugin(options);
+  const isOrchestrionDisabled = options?.buildTimeInstrumentation?.disable;
+  return [...bundlerPlugins, ...(isOrchestrionDisabled ? [] : [sentryOrchestrionPlugin(options)])];
 }

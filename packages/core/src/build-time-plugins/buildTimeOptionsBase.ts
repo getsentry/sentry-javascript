@@ -127,6 +127,11 @@ export interface BuildTimeOptionsBase {
   bundleSizeOptimizations?: BundleSizeOptimizationsOptions;
 
   /**
+   * Options related to automatic build-time instrumentation of server-side dependencies.
+   */
+  buildTimeInstrumentation?: BuildTimeInstrumentationOptions;
+
+  /**
    * A key that is used to identify the application in the Sentry bundler plugins.
    * This key is used by the `thirdPartyErrorFilterIntegration` to filter out errors
    * originating from third-party scripts.
@@ -134,6 +139,21 @@ export interface BuildTimeOptionsBase {
    * @see https://docs.sentry.io/platforms/javascript/configuration/filtering/#using-thirdpartyerrorfilterintegration
    */
   applicationKey?: string;
+}
+
+/**
+ * Options related to automatic instrumentation of server-side dependencies at build time.
+ *
+ * @internal Only meant for Sentry-internal SDK usage.
+ * @hidden
+ */
+export interface BuildTimeInstrumentationOptions {
+  /**
+   * If set to `true`, disables automatic instrumentation of server-side dependencies at build time.
+   *
+   * @default false
+   */
+  disable?: boolean;
 }
 
 /**
