@@ -114,7 +114,7 @@ export function _addUserTimingSpan(
   const spanEndTimestamp = originalStartTimestamp + duration;
 
   const attributes: SpanAttributes = {
-    [SENTRY_ORIGIN]: 'auto.resource.browser.user_timing',
+    [SENTRY_ORIGIN]: `auto.browser.user_timing.${entry.entryType}`,
   };
 
   if (spanStartTimestamp !== originalStartTimestamp) {

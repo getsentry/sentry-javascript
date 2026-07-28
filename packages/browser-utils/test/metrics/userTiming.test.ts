@@ -163,7 +163,7 @@ describe('_addUserTimingSpan', () => {
       'sentry.browser.measure.detail.phase': 'client',
       'sentry.browser.measure.detail.counts': '{"components":4}',
       'sentry.op': 'measure',
-      'sentry.origin': 'auto.resource.browser.user_timing',
+      'sentry.origin': 'auto.browser.user_timing.measure',
     });
   });
 
