@@ -23,10 +23,13 @@
   "compatibility_flags": ["nodejs_compat"],
 
   "durable_objects": {
-    "bindings": [{ "name": "MyAgent", "class_name": "MyAgent" }],
+    "bindings": [
+      { "name": "MyAgent", "class_name": "MyAgent" },
+      { "name": "MyChatAgent", "class_name": "MyChatAgent" },
+    ],
   },
 
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MyAgent"] }],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MyAgent", "MyChatAgent"] }],
 
   "version_metadata": {
     "binding": "CF_VERSION_METADATA",
