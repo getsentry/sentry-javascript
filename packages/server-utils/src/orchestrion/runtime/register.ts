@@ -12,11 +12,11 @@ type NodeModule = {
   register?: typeof register;
 };
 
-/** `Module.registerHooks` only became stable in Node 24.13 / 25.1 and Deno 2.8. */
-function hasStableSyncModuleHooks(denoVersionString: string | undefined): boolean {
-  if (denoVersionString) {
-    const { major = 0, minor = 0 } = parseSemver(denoVersionString);
-    return major > 2 || (major === 2 && minor >= 8);
+/** `Module.registerHooks` only became stable in Node 24.13 / 25.1. */
+function hasStableSyncModuleHooks(isDeno: boolean): boolean {
+  // The minimum supported Deno (2.8.3) always has stable sync module hooks.
+  if (isDeno) {
+    return true;
   }
 
   const { major = 0, minor = 0 } = parseSemver(process.versions.node ?? '0.0.0');
@@ -41,7 +41,7 @@ export function registerDiagnosticsChannelInjection(): void {
   }
 
   const globalAny = globalThis as { Bun?: unknown; Deno?: { version?: { deno?: string } } };
-  const stableSyncHooks = hasStableSyncModuleHooks(globalAny.Deno?.version?.deno);
+  const stableSyncHooks = hasStableSyncModuleHooks(Boolean(globalAny.Deno));
 
   // `Module.registerHooks` / `Module.register` are newer than the @types/node
   // we build against, hence the cast.

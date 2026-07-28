@@ -546,7 +546,7 @@ jobs:
       - name: Set up Deno
         uses: denoland/setup-deno@v2.0.4
         with:
-          deno-version: ${{ matrix.deno-version || 'v2.8.0' }}
+          deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -936,7 +936,7 @@ jobs:
       - name: Set up Deno
         uses: denoland/setup-deno@v2.0.4
         with:
-          deno-version: 'v2.8.0'
+          deno-version: 'v2.8.3'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1046,7 +1046,7 @@ jobs:
           matrix.test-application == 'deno-pg'
         uses: denoland/setup-deno@v2.0.4
         with:
-          deno-version: ${{ matrix.deno-version || 'v2.8.0' }}
+          deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1169,7 +1169,7 @@ jobs:
         if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
         uses: denoland/setup-deno@v2.0.4
         with:
-          deno-version: ${{ matrix.deno-version || 'v2.8.0' }}
+          deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:

@@ -34,7 +34,7 @@ Version 11 of the Sentry SDK has new compatibility ranges for runtimes and frame
 
 **Node.js:** The minimum supported Node.js version is now **20.19.0**. Node.js 18 is no longer supported.
 
-**Deno:** The minimum supported Deno version is now **2.8.2**.
+**Deno:** The minimum supported Deno version is now **2.8.3**.
 
 **Browsers:** Support for **Safari 14** was dropped. Sentry now requires Safari 15 or higher. For the rest of the browser support matrix, refer to the [Sentry docs](https://docs.sentry.io/platforms/javascript/#browser-support).
 
