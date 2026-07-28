@@ -100,13 +100,13 @@ export function shapeFromAst(ast: ProgramBody): ModuleShape {
   for (const node of ast.body) {
     switch (node.type) {
       case 'ClassDeclaration':
-        addAstClass(shape, node as ClassNode);
+        addAstClass(shape, node);
         break;
       case 'ImportDeclaration':
-        addAstImports(shape, node as ImportDeclarationNode);
+        addAstImports(shape, node);
         break;
       case 'ExportNamedDeclaration':
-        addAstNamedExport(shape, node as ExportNamedNode);
+        addAstNamedExport(shape, node);
         break;
       case 'ExportDefaultDeclaration': {
         const decl = (node as ExportDefaultNode).declaration;
@@ -114,7 +114,7 @@ export function shapeFromAst(ast: ProgramBody): ModuleShape {
           shape.defaultExportIsClass = true;
           shape.defaultExportSuper = superRefFromNode((decl as ClassNode).superClass);
           // `export default class Foo {}` also binds `Foo` locally.
-          addAstClass(shape, decl as ClassNode);
+          addAstClass(shape, decl);
         } else if (decl.type === 'Identifier') {
           shape.defaultExportName = (decl as IdentifierNode).name;
         }
@@ -174,7 +174,7 @@ function addAstImports(shape: ModuleShape, node: ImportDeclarationNode): void {
 
 function addAstNamedExport(shape: ModuleShape, node: ExportNamedNode): void {
   if (node.declaration?.type === 'ClassDeclaration') {
-    addAstClass(shape, node.declaration as ClassNode);
+    addAstClass(shape, node.declaration);
     return;
   }
 
