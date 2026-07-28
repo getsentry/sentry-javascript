@@ -1,4 +1,5 @@
 import { consoleSandbox } from '@sentry/core';
+import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin } from 'vite';
@@ -52,6 +53,13 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
         onlyInstrumentClient: kitTracingEnabled,
       }),
     );
+  }
+
+  // Auto-instrument server-side dependencies at build time (mysql, ioredis, …) by injecting
+  // `diagnostics_channel` publishers. The plugin self-scopes to the SSR build and honors
+  // `buildTimeInstrumentation: false` itself. Cloudflare/workerd is not supported yet.
+  if (mergedOptions.adapter !== 'cloudflare') {
+    sentryPlugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: mergedOptions.buildTimeInstrumentation }));
   }
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
