@@ -33,7 +33,7 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
         const allowlist = (getClient()?.getOptions() as CloudflareClientOptions | undefined)
           ?.durableObjectSqlSpanAllowlist;
 
-        if (targetsCloudflareInternalTable(querySummary, allowlist)) {
+        if (targetsCloudflareInternalTable(querySummary, allowlist, sanitizedQuery)) {
           return (original as (...a: unknown[]) => ReturnType<SqlStorage['exec']>).apply(target, args);
         }
 
