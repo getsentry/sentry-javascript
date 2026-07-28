@@ -23,6 +23,7 @@ import {
   FAAS_COLDSTART,
   FAAS_NAME,
   SENTRY_KIND,
+  SENTRY_OP,
   URL_FULL,
 } from '@sentry/conventions/attributes';
 import { FAAS_FUNCTION_AWS_SPAN_OP } from '@sentry/conventions/op';
@@ -45,9 +46,9 @@ export function getRequestSpanOptions(event: unknown, context: Context, requestI
   // The span is started within the surrounding `continueTrace`, so it continues the incoming trace.
   return {
     name: context.functionName,
-    op: FAAS_FUNCTION_AWS_SPAN_OP,
     forceTransaction: true,
     attributes: {
+      [SENTRY_OP]: FAAS_FUNCTION_AWS_SPAN_OP,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws_lambda',
       [SENTRY_KIND]: 'server',
       [ATTR_FAAS_EXECUTION]: context.awsRequestId,
