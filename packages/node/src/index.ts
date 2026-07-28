@@ -6,6 +6,7 @@ export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tra
 export {
   amqplibIntegration,
   anthropicIntegration as anthropicAIIntegration,
+  dataloaderIntegration,
   expressIntegration,
   firebaseIntegration,
   genericPoolIntegration,
@@ -13,6 +14,7 @@ export {
   graphqlDiagnosticsIntegration as graphqlIntegration,
   hapiIntegration,
   kafkajsIntegration as kafkaIntegration,
+  knexIntegration,
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
@@ -31,8 +33,6 @@ export { redisIntegration } from './integrations/tracing/redis';
 export { prismaIntegration } from '@sentry/server-utils';
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
-export { knexIntegration } from './integrations/tracing/knex';
-export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
