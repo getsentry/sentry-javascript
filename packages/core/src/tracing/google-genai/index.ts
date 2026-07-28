@@ -273,12 +273,15 @@ function instrumentMethod<T extends unknown[], R>(
   methodPath: string,
   instrumentedMethod: InstrumentedMethodEntry,
   context: unknown,
-  options: GoogleGenAIOptions,
+  userOptions: GoogleGenAIOptions,
 ): (...args: T) => R | Promise<R> {
   const isEmbeddings = instrumentedMethod.operation === 'embeddings';
 
   return new Proxy(originalMethod, {
     apply(target, _, args: T): R | Promise<R> {
+      // Resolved per call: clients are often wrapped before Sentry.init(), when there is no client to read
+      const options = resolveAIRecordingOptions(userOptions);
+
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
       const requestAttributes = extractRequestAttributes(operationName, params, context);
@@ -425,5 +428,5 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * ```
  */
 export function instrumentGoogleGenAIClient<T extends object>(client: T, options?: GoogleGenAIOptions): T {
-  return createDeepProxy(client, '', resolveAIRecordingOptions(options));
+  return createDeepProxy(client, '', options ?? {});
 }

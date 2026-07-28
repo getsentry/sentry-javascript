@@ -24,9 +24,12 @@ function isReadableStream(value: unknown): value is ReadableStream<Uint8Array> {
 function instrumentRun(
   originalRun: (...args: unknown[]) => Promise<unknown>,
   context: unknown,
-  options: WorkersAiOptions & Required<Pick<WorkersAiOptions, 'recordInputs' | 'recordOutputs'>>,
+  userOptions?: WorkersAiOptions,
 ): (...args: unknown[]) => Promise<unknown> {
   return function instrumentedRun(...args: unknown[]): Promise<unknown> {
+    // Resolved per call: clients are often wrapped before Sentry.init(), when there is no client to read
+    const options = resolveAIRecordingOptions(userOptions);
+
     const [model, inputs, runOptions] = args as [unknown, unknown, Record<string, unknown> | undefined];
 
     const operationName = getOperationName(inputs);
@@ -114,20 +117,16 @@ function instrumentRun(
  * ```
  */
 export function instrumentWorkersAiClient<T extends object>(client: T, options?: WorkersAiOptions): T {
-  const resolvedOptions = resolveAIRecordingOptions(options);
-
-  const instrumented = new Proxy(client, {
+  return new Proxy(client, {
     get(target: object, prop: string | symbol, receiver: unknown): unknown {
       const value = Reflect.get(target, prop, receiver);
 
       if (prop === 'run' && typeof value === 'function') {
-        return instrumentRun(value as (...args: unknown[]) => Promise<unknown>, target, resolvedOptions);
+        return instrumentRun(value as (...args: unknown[]) => Promise<unknown>, target, options);
       }
 
       // Bind passed-through functions to the original target to preserve `this` (e.g. private fields).
       return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(target) : value;
     },
   }) as T;
-
-  return instrumented;
 }

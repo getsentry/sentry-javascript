@@ -149,9 +149,12 @@ function instrumentMethod<T extends unknown[], R>(
   methodPath: string,
   instrumentedMethod: InstrumentedMethodEntry,
   context: unknown,
-  options: OpenAiOptions,
+  userOptions: OpenAiOptions,
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
+    // Resolved per call: clients are often wrapped before Sentry.init(), when there is no client to read
+    const options = resolveAIRecordingOptions(userOptions);
+
     const operationName = instrumentedMethod.operation || 'unknown';
     const requestAttributes = extractRequestAttributes(args, operationName);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
@@ -275,5 +278,5 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge
  */
 export function instrumentOpenAiClient<T extends object>(client: T, options?: OpenAiOptions): T {
-  return createDeepProxy(client, '', resolveAIRecordingOptions(options));
+  return createDeepProxy(client, '', options ?? {});
 }

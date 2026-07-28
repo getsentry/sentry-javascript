@@ -270,10 +270,13 @@ function instrumentMethod<T extends unknown[], R>(
   methodPath: string,
   instrumentedMethod: InstrumentedMethodEntry,
   context: unknown,
-  options: AnthropicAiOptions,
+  userOptions: AnthropicAiOptions,
 ): (...args: T) => R | Promise<R> {
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: T): R | Promise<R> {
+      // Resolved per call: clients are often wrapped before Sentry.init(), when there is no client to read
+      const options = resolveAIRecordingOptions(userOptions);
+
       // Preserve the caller's `this` so instrumentation stays transparent: the SDK's methods
       // rely on private fields bound to the real instance, and internal delegation (e.g.
       // `messages.stream()` calling `this.create()`) must resolve against the same object it
@@ -406,5 +409,5 @@ function instrumentClientInPlace<T extends object>(client: T, options: Anthropic
  * @returns The instrumented client with the same type as the input
  */
 export function instrumentAnthropicAiClient<T extends object>(anthropicAiClient: T, options?: AnthropicAiOptions): T {
-  return instrumentClientInPlace(anthropicAiClient, resolveAIRecordingOptions(options));
+  return instrumentClientInPlace(anthropicAiClient, options ?? {});
 }
