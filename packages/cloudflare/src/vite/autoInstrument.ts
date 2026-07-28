@@ -13,7 +13,24 @@ function normalizePath(path: string): string {
 // `.html`, … — sharing the entry's basename must never be treated as the entry.
 const JS_EXTENSION_REGEX = /\.[cm]?[jt]sx?$/;
 
-export function sentryCloudflareAutoInstrumentPlugin() {
+/**
+ * Options for {@link sentryCloudflareAutoInstrumentPlugin}.
+ */
+interface SentryCloudflareAutoInstrumentPluginOptions {
+  /**
+   * Inject the Sentry namespace import from the `@sentry/cloudflare/nodejs_compat`
+   * entry instead of `@sentry/cloudflare`. Set when diagnostics-channel injection
+   * is active: that setup already requires the `nodejs_compat` compatibility flag
+   * at runtime, and the matching entry exposes the full feature set (e.g. the
+   * channel-based `vercelAIIntegration`, `prismaIntegration`).
+   */
+  useNodejsCompatEntry?: boolean;
+}
+
+export function sentryCloudflareAutoInstrumentPlugin(options: SentryCloudflareAutoInstrumentPluginOptions = {}) {
+  const sentryImportSpecifier = options.useNodejsCompatEntry
+    ? '@sentry/cloudflare/nodejs_compat'
+    : '@sentry/cloudflare';
   let wranglerConfig: WranglerConfig | undefined;
   let entryFilePath: string | undefined;
 
@@ -97,6 +114,7 @@ export function sentryCloudflareAutoInstrumentPlugin() {
         classWrappers,
         optionsFn,
         optionsImport,
+        sentryImportSpecifier,
       });
 
       const wrappedClasses = result?.wrappedClasses ?? new Set<string>();

@@ -49,6 +49,14 @@ describe('default export wrapping', () => {
     expect(result.map).toBeDefined();
   });
 
+  it('imports from the nodejs_compat entry when sentryImportSpecifier is set', () => {
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = transform(code, { ...ctx, sentryImportSpecifier: '@sentry/cloudflare/nodejs_compat' })!;
+    expect(result).toBeDefined();
+    expect(result.code).toContain("import * as __SENTRY__ from '@sentry/cloudflare/nodejs_compat'");
+    expect(result.code).not.toContain("from '@sentry/cloudflare';");
+  });
+
   it('wraps an inline object default export', () => {
     const code = 'export default { fetch() { return new Response("ok"); } };';
     const result = transform(code, ctx)!;

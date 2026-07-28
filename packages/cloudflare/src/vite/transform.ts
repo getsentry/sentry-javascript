@@ -102,6 +102,14 @@ export interface TransformContext {
   optionsFn: string;
   /** Import statement prepended when `optionsFn` references a separate module. */
   optionsImport?: string;
+  /**
+   * Module specifier for the injected `__SENTRY__` namespace import, defaulting
+   * to `@sentry/cloudflare`. The plugin passes `@sentry/cloudflare/nodejs_compat`
+   * when diagnostics-channel injection is enabled: that setup already requires
+   * the `nodejs_compat` compatibility flag at runtime, and the matching entry
+   * exposes the full feature set (e.g. channel-based `vercelAIIntegration`).
+   */
+  sentryImportSpecifier?: string;
 }
 
 export interface TransformResult {
@@ -173,7 +181,7 @@ export function applyAutoInstrumentTransforms(
   }
 
   if (ctx.optionsImport) ms.prepend(ctx.optionsImport);
-  ms.prepend("import * as __SENTRY__ from '@sentry/cloudflare';\n");
+  ms.prepend(`import * as __SENTRY__ from '${ctx.sentryImportSpecifier ?? '@sentry/cloudflare'}';\n`);
 
   return {
     code: ms.toString(),

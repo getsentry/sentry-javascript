@@ -37,6 +37,11 @@ export interface SentryCloudflareVitePluginOptions {
      * Durable Object class with `instrumentDurableObjectWithSentry`. Both
      * `vite build` and `vite dev` are instrumented.
      *
+     * When combined with `useDiagnosticsChannelInjection`, the injected Sentry
+     * import targets `@sentry/cloudflare/nodejs_compat` rather than
+     * `@sentry/cloudflare`, since channel injection requires the `nodejs_compat`
+     * compatibility flag anyway and that entry exposes the full feature set.
+     *
      * @default false
      * @experimental May change or be removed in any release.
      */
@@ -76,10 +81,16 @@ export interface SentryCloudflareVitePluginOptions {
  * ```
  */
 export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOptions = {}) {
+  const useDiagnosticsChannelInjection = options._experimental?.useDiagnosticsChannelInjection ?? false;
+  const autoInstrumentation = options._experimental?.autoInstrumentation ?? false;
+
   return [
-    ...(options._experimental?.useDiagnosticsChannelInjection
-      ? [sentryOrchestrionPlugin({ injectChannelSubscribers: true })]
+    ...(useDiagnosticsChannelInjection ? [sentryOrchestrionPlugin({ injectChannelSubscribers: true })] : []),
+    // Channel injection only runs under the `nodejs_compat` compatibility flag,
+    // so the auto-instrumented entry imports the matching `nodejs_compat` SDK
+    // entry to expose the full feature set.
+    ...(autoInstrumentation
+      ? [sentryCloudflareAutoInstrumentPlugin({ useNodejsCompatEntry: useDiagnosticsChannelInjection })]
       : []),
-    ...(options._experimental?.autoInstrumentation ? [sentryCloudflareAutoInstrumentPlugin()] : []),
   ];
 }

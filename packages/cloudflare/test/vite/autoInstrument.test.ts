@@ -53,6 +53,19 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     const result = tx(code, entryPath);
     expect(result).toBeDefined();
     expect(result.code).toContain('__SENTRY__.withSentry(');
+    expect(result.code).toContain("import * as __SENTRY__ from '@sentry/cloudflare';");
+  });
+
+  it('imports from the nodejs_compat entry when useNodejsCompatEntry is set', () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin({ useNodejsCompatEntry: true });
+    plugin.configResolved({ root: dir });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'src/index.ts'));
+
+    expect(result).toBeDefined();
+    expect(result.code).toContain("import * as __SENTRY__ from '@sentry/cloudflare/nodejs_compat';");
   });
 
   it('leaves an already-manually-wrapped entry untouched', () => {
