@@ -241,6 +241,31 @@ interface BaseCloudflareOptions {
   durableObjectSqlSpanAllowlist?: Array<string | RegExp>;
 
   /**
+   * KV keys that should stay instrumented even though they match a reserved prefix used by Durable
+   * Object frameworks (`agents`, `partyserver`, ...) for their internal storage entries.
+   *
+   * By default, KV reads/writes (`get`, `put`, `delete`, `list`) of `cf_`- or `__ps_`-prefixed keys
+   * are treated as framework noise and no `durable_object_storage_*` span is created for them,
+   * mirroring how `cf_`-prefixed SQL tables are handled (see {@link durableObjectSqlSpanAllowlist}).
+   * If one of your own keys happens to use such a prefix, add it here to opt it back into
+   * instrumentation. Strings must match exactly, while regular expressions give you prefix/pattern
+   * matching.
+   *
+   * @default []
+   * @example
+   * ```ts
+   * export default Sentry.withSentry(
+   *   (env) => ({
+   *     dsn: env.SENTRY_DSN,
+   *     durableObjectStorageSpanAllowlist: ['cf_my_key', /^cf_reports_/],
+   *   }),
+   *   handler,
+   * );
+   * ```
+   */
+  durableObjectStorageSpanAllowlist?: Array<string | RegExp>;
+
+  /**
    * @deprecated Use `enableRpcTracePropagation` instead. This option will be removed in a future major version.
    *
    * Enable instrumentation of prototype methods for DurableObjects.

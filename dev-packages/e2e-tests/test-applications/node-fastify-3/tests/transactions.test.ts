@@ -98,7 +98,6 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
     data: expect.objectContaining({
       'sentry.origin': 'auto.http.otel.fastify',
       'sentry.op': 'request_handler.fastify',
-      // format is slightly different in v3.20.0 and v3.21.0
       'fastify.type': expect.stringMatching(/request[-_]handler/),
       'http.route': '/test-transaction',
     }),
