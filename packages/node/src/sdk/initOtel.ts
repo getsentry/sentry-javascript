@@ -4,7 +4,6 @@ import { debug as coreDebug, hasSpanStreamingEnabled } from '@sentry/core';
 import { SentryContextManager } from '../otel/contextManager';
 import { setupOpenTelemetryLogger } from '../otel/logger';
 import type { NodeClient } from './client';
-import { initializeEsmLoader } from './esmLoader';
 import {
   applyOtelSpanData,
   type AsyncLocalStorageLookup,
@@ -100,8 +99,6 @@ export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
   if (debug) {
     coreDebug.enable();
   }
-
-  initializeEsmLoader();
 
   // These are all integrations that we need to pre-load to ensure they are set up before any other code runs
   getPreloadMethods(options.integrations).forEach(fn => {

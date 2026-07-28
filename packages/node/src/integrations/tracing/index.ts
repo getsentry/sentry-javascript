@@ -25,14 +25,12 @@ import {
   vercelAiIntegration,
 } from '@sentry/server-utils/orchestrion';
 import { instrumentSentryHttp } from '../http';
-import { fastifyIntegration, instrumentFastifyV3 } from './fastify';
+import { fastifyIntegration } from './fastify';
 import { redisIntegration } from './redis';
 
 export function getAutoPerformanceIntegrations(): Integration[] {
   return [
     expressIntegration(),
-    // Fastify keeps the node wrapper: the streamlined integration covers fastify `>=3.21.0 <6`, and
-    // the wrapper adds `instrumentFastifyV3` for the remaining early-v3 range (`>=3.0.0 <3.21.0`).
     fastifyIntegration(),
     graphqlDiagnosticsIntegration(),
     mongodbIntegration(),
@@ -69,10 +67,5 @@ export function getAutoPerformanceIntegrations(): Integration[] {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) => void) & { id: string })[] {
-  return [
-    instrumentSentryHttp,
-    // The streamlined `Fastify` integration covers fastify `>=3.21.0 <6`; `instrumentFastifyV3`
-    // fills the remaining early-v3 gap (`>=3.0.0 <3.21.0`), so it stays preloaded here.
-    instrumentFastifyV3,
-  ];
+  return [instrumentSentryHttp];
 }
