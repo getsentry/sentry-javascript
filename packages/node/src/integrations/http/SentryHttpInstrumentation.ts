@@ -2,17 +2,14 @@ import type { ChannelListener } from 'node:diagnostics_channel';
 import { subscribe, unsubscribe } from 'node:diagnostics_channel';
 import { context, trace } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
-import { InstrumentationBase } from '@opentelemetry/instrumentation';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'node:http';
 import type { HttpClientRequest, HttpIncomingMessage, HttpInstrumentationOptions, Span } from '@sentry/core';
 import {
   getHttpClientSubscriptions,
   patchHttpModuleClient,
-  SDK_VERSION,
   getRequestOptions,
   isTracingSuppressed,
 } from '@sentry/core';
-import { INSTRUMENTATION_NAME } from './constants';
 import { HTTP_ON_CLIENT_REQUEST } from '@sentry/core';
 import { NODE_VERSION } from '../../nodeVersion';
 import { errorMonitor } from 'node:events';
@@ -221,33 +218,4 @@ function instrumentHttpOutgoingRequestsViaChannel(options: HttpInstrumentationOp
 function instrumentHttpOutgoingRequestsViaMonkeyPatching(options: HttpInstrumentationOptions): void {
   // Patching http also patches https, as this uses the same underlying object
   patchHttpModuleClient(http, options);
-}
-
-/**
- * This custom HTTP instrumentation handles outgoing HTTP requests.
- *
- * It provides:
- * - Breadcrumbs for all outgoing requests
- * - Trace propagation headers (when enabled)
- * - Span creation for outgoing requests (when createSpansForOutgoingRequests is enabled)
- *
- * Span creation requires Node 22+ and uses diagnostic channels to avoid monkey-patching.
- * By default, this is only enabled in the node SDK, not in other runtime SDKs that reuse this instrumentation.
- *
- * Important note: Contrary to other OTEL instrumentation, this one cannot be unwrapped.
- *
- * This is heavily inspired & adapted from:
- * https://github.com/open-telemetry/opentelemetry-js/blob/f8ab5592ddea5cba0a3b33bf8d74f27872c0367f/experimental/packages/opentelemetry-instrumentation-http/src/http.ts
- *
- * @deprecated This will be removed in v11. Use instrumentHttpOutgoingRequests() instead.
- */
-export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
-  public constructor(config: SentryHttpInstrumentationOptions = {}) {
-    super(INSTRUMENTATION_NAME, SDK_VERSION, config);
-  }
-
-  /** @inheritdoc */
-  public init(): void {
-    instrumentHttpOutgoingRequests(this.getConfig());
-  }
 }
