@@ -1,8 +1,10 @@
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span } from '../../types/span';
+import { _INTERNAL_shouldSkipAiProviderWrapping } from '../../utils/ai/providerSkip';
 import { isObjectLike } from '../../utils/is';
 import { resolveAIRecordingOptions, shouldEnableTruncation } from '../ai/utils';
+import { WORKERS_AI_INTEGRATION_NAME } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
 import type { WorkersAiOptions } from './types';
 import { addRequestAttributes, addResponseAttributes, extractRequestAttributes, getOperationName } from './utils';
@@ -27,6 +29,12 @@ function instrumentRun(
   options: WorkersAiOptions & Required<Pick<WorkersAiOptions, 'recordInputs' | 'recordOutputs'>>,
 ): (...args: unknown[]) => Promise<unknown> {
   return function instrumentedRun(...args: unknown[]): Promise<unknown> {
+    // When another integration (e.g. Vercel AI via `workers-ai-provider`) is driving this binding,
+    // it records the spans itself and marks this provider as skipped; skip here to avoid double spans.
+    if (_INTERNAL_shouldSkipAiProviderWrapping(WORKERS_AI_INTEGRATION_NAME)) {
+      return originalRun.apply(context, args);
+    }
+
     const [model, inputs, runOptions] = args as [unknown, unknown, Record<string, unknown> | undefined];
 
     const operationName = getOperationName(inputs);
