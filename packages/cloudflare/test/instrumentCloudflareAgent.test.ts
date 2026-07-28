@@ -35,6 +35,7 @@ describe('instrumentCloudflareAgent', () => {
     const options: CloudflareClientOptions = {
       dsn,
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
       stackParser: () => [],
       integrations: [],
       transport: () => ({

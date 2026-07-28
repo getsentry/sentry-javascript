@@ -9,11 +9,12 @@ import { MockAi } from './mocks';
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 
 const sentryOptions = (env: Env) => ({
-  traceLifecycle: 'static',
+  traceLifecycle: 'static' as const,
   dsn: env.E2E_TEST_DSN,
   tunnel: `http://localhost:3031/`,
   tracesSampleRate: 1,
   enableRpcTracePropagation: true,
+  durableObjectStorageSpanAllowlist: ['cf_user_key'],
   // Keep gen_ai spans embedded in the transaction (instead of streamed as a separate envelope
   // container) so they can be asserted on `transaction.spans`.
   streamGenAiSpans: false,
