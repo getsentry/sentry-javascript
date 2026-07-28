@@ -19,5 +19,5 @@ export const onRequest: MiddlewareHandler = (ctx, next) => {
   // shaped differently across the Astro majors we support. The handler returned by
   // `handleRequest()` is typed against Astro's types, so we cast back to its expected
   // parameter types here – the runtime shapes are identical.
-  return middleware(ctx as Parameters<typeof middleware>[0], next as Parameters<typeof middleware>[1]);
+  return middleware(ctx as Parameters<typeof middleware>[0], next);
 };
