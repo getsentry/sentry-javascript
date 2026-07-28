@@ -1,3 +1,4 @@
+import { uuid4 } from '@sentry/core';
 import { type AgentInternals, setAgentConversationId } from './types';
 
 /**
@@ -23,18 +24,23 @@ export function instrumentChatAgentConversation(obj: AgentInternals): void {
   // Rotate the conversation id when the chat is cleared. `_emit` is the central choke-point through
   // which all `agents:*` observability events are published, and it already exists on the base
   // `Agent` class — so this hook composes with the RPC instrumentation, which keys off the same
-  // surface. We shadow it with an own-property wrapper that defers to the original.
+  // surface. We shadow it with an own property so the original stays reachable on the prototype.
   const originalEmit = obj._emit;
+
   if (typeof originalEmit === 'function') {
-    obj._emit = function (this: AgentInternals, type: string, payload?: Record<string, unknown>): void {
-      if (type === 'message:clear') {
-        this.__sentryConversationId = crypto.randomUUID();
-      }
-      return originalEmit.call(this, type, payload);
-    };
+    obj._emit = new Proxy(originalEmit, {
+      apply(target, thisArg: AgentInternals, args: [string, Record<string, unknown>?]) {
+        if (args[0] === 'message:clear') {
+          thisArg.__sentryConversationId = uuid4();
+        }
+
+        return Reflect.apply(target, thisArg, args);
+      },
+    });
   }
 
   const original = obj.onChatMessage;
+
   if (typeof original !== 'function') {
     return;
   }
