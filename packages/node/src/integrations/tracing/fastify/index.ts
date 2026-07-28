@@ -1,8 +1,6 @@
-import type { Integration, IntegrationFn } from '@sentry/core';
-import { defineIntegration, extendIntegration, getClient } from '@sentry/core';
-import { generateInstrumentOnce } from '../../../otel/instrument';
+import type { Integration } from '@sentry/core';
+import { defineIntegration, getClient } from '@sentry/core';
 import type { FastifyInstance, FastifyMinimal, FastifyReply, FastifyRequest } from './types';
-import { FastifyInstrumentationV3 } from './v3/instrumentation';
 import {
   fastifyIntegration as serverUtilsFastifyIntegration,
   instrumentFastify,
@@ -94,11 +92,6 @@ interface FastifyHandlerOptions {
 
 const INTEGRATION_NAME = 'Fastify' as const;
 
-export const instrumentFastifyV3 = generateInstrumentOnce(
-  `${INTEGRATION_NAME}.v3`,
-  () => new FastifyInstrumentationV3(),
-);
-
 function getFastifyIntegration(): FastifyIntegration | undefined {
   const client = getClient();
   if (!client) {
@@ -107,16 +100,6 @@ function getFastifyIntegration(): FastifyIntegration | undefined {
     return client.getIntegrationByName(INTEGRATION_NAME);
   }
 }
-
-const _fastifyIntegration = ((options: Partial<FastifyIntegrationOptions>) => {
-  const parentIntegration = serverUtilsFastifyIntegration(options) as FastifyIntegration;
-
-  return extendIntegration(parentIntegration, {
-    setupOnce() {
-      instrumentFastifyV3();
-    },
-  });
-}) satisfies IntegrationFn;
 
 /**
  * Adds Sentry tracing instrumentation for [Fastify](https://fastify.dev/).
@@ -135,7 +118,7 @@ const _fastifyIntegration = ((options: Partial<FastifyIntegrationOptions>) => {
  * ```
  */
 export const fastifyIntegration = defineIntegration((options: Partial<FastifyIntegrationOptions> = {}) =>
-  _fastifyIntegration(options),
+  serverUtilsFastifyIntegration(options),
 );
 
 /**
