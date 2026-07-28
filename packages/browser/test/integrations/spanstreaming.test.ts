@@ -6,7 +6,7 @@ import {
 } from '@sentry/core/browser';
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BrowserClient, spanStreamingIntegration } from '../../src';
+import { BrowserClient, spanStreamingIntegration, withStaticSpan } from '../../src';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 // Mock SpanBuffer as a class that can be instantiated
@@ -87,7 +87,7 @@ describe('spanStreamingIntegration', () => {
       dsn: 'https://username@domain/123',
       integrations: [spanStreamingIntegration()],
       traceLifecycle: 'stream',
-      beforeSendSpan: SentryCore.withStaticSpan(span => span),
+      beforeSendSpan: withStaticSpan(span => span),
     });
 
     SentryCore.setCurrentClient(client);

@@ -3,7 +3,7 @@ import type { SpanJSON, StreamedSpanJSON } from '../../types/span';
 import { addNonEnumerableProperty } from '../../utils/object';
 
 /**
- * A wrapper to use the legacy transaction span format in your `beforeSendSpan` callback.
+ * A wrapper to use the static, transaction-based span format in your `beforeSendSpan` callback.
  *
  * When using `traceLifecycle: 'static'`, wrap your callback with this function
  * to receive and return {@link SpanJSON} instead of {@link StreamedSpanJSON}.
@@ -55,7 +55,7 @@ export function isStaticBeforeSendSpanCallback(callback: unknown): callback is B
  * Typesafe check to identify if a `beforeSendSpan` callback expects the streamed span JSON format.
  *
  * @param callback - The `beforeSendSpan` callback to check.
- * @returns `true` unless the callback was wrapped with {@link withStaticSpan}.
+ * @returns `true` unless the callback was marked as a static span callback.
  */
 export function isStreamedBeforeSendSpanCallback(callback: unknown): callback is BeforeSendStreamedSpanCallback {
   return !!callback && typeof callback === 'function' && !isStaticBeforeSendSpanCallback(callback);
