@@ -16,7 +16,7 @@ type ScopeWithMaybeSpan = Scope & {
 export function _setSpanForScope(scope: Scope, span: Span | undefined): void {
   if (span) {
     // Use WeakRef to avoid circular reference with span holding scope
-    addNonEnumerableProperty(scope as ScopeWithMaybeSpan, SCOPE_SPAN_FIELD, makeWeakRef(span));
+    addNonEnumerableProperty(scope, SCOPE_SPAN_FIELD, makeWeakRef(span));
   } else {
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete (scope as ScopeWithMaybeSpan)[SCOPE_SPAN_FIELD];

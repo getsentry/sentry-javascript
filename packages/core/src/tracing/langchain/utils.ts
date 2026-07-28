@@ -391,9 +391,7 @@ function addTokenUsageAttributes(
 ): void {
   if (!llmOutput) return;
 
-  const tokenUsage = llmOutput.tokenUsage as
-    | { promptTokens?: number; completionTokens?: number; totalTokens?: number }
-    | undefined;
+  const tokenUsage = llmOutput.tokenUsage;
   const anthropicUsage = llmOutput.usage as
     | {
         input_tokens?: number;

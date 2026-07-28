@@ -61,7 +61,7 @@ export function instrumentFirebase() {
     // span inside that wrapper. The other lifecycle events are irrelevant, so no-op them.
     diagnosticsChannel.tracingChannel(channel).subscribe({
       start: data =>
-        void safeChannelCallback(() => wrapFunctionsRegistration(data as { arguments: unknown[] }, triggerType)),
+        safeChannelCallback(() => wrapFunctionsRegistration(data as { arguments: unknown[] }, triggerType)),
       end: NOOP,
       asyncStart: NOOP,
       asyncEnd: NOOP,

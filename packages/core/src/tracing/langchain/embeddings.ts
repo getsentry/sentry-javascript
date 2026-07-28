@@ -104,7 +104,7 @@ export function instrumentEmbeddingMethod(
         });
       });
     },
-  }) as (...args: unknown[]) => Promise<unknown>;
+  });
 }
 
 /**

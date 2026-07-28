@@ -60,7 +60,7 @@ export function reactRouterV3BrowserTracingIntegration(
       if (instrumentPageLoad && WINDOW.location) {
         normalizeTransactionName(
           routes,
-          WINDOW.location as unknown as Location,
+          WINDOW.location,
           match,
           (localName: string, source: ReactRouterV3TransactionSource = 'url') => {
             startBrowserTracingPageLoadSpan(client, {

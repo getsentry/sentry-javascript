@@ -58,7 +58,7 @@ export function instrumentNodeCron<T>(
                   // We have to manually catch here and capture the exception because node-cron swallows errors
                   // https://github.com/node-cron/node-cron/issues/399
                   try {
-                    // oxlint-disable-next-line typescript/await-thenable -- callback may be async at runtime
+                    // oxlint-disable-next-line typescript/await-thenable, typescript/return-await -- callback may be async at runtime; awaiting inside the try lets us capture its rejection
                     return await callback(...args);
                   } catch (e) {
                     captureException(e, {

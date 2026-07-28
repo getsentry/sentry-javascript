@@ -127,7 +127,7 @@ function setConnectionAttributes(span: Span, query: PostgresQuery, context: Post
  * the `connectionContexts` WeakMap. Idempotent (guarded inside `setConnectionAttributes`).
  */
 function attachConnectionAttributesFromChannel(message: PostgresJsQueryContext): void {
-  const connection = message.self as object | undefined;
+  const connection = message.self;
   const query = message.arguments?.[0] as PostgresQuery | undefined;
   if (!connection || !query) {
     return;

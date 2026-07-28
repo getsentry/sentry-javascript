@@ -59,6 +59,7 @@ export function instrumentDurableObjectStorage(
       return function (this: unknown, ...args: unknown[]) {
         // KV entries managed by the DO framework itself (agents/partyserver state) are bookkeeping
         // rather than user work — skip the span, mirroring how `cf_` SQL tables are treated.
+        // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast reaches the Cloudflare-only `durableObjectStorageSpanAllowlist`; tsc errors without it
         const allowlist = (getClient()?.getOptions() as CloudflareClientOptions | undefined)
           ?.durableObjectStorageSpanAllowlist;
         const keys = getStorageKeys(methodName, args);

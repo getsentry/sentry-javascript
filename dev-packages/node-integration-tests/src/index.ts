@@ -89,6 +89,9 @@ export async function waitForConnection<T extends () => Promise<unknown>>(
   let lastError: unknown;
   for (;;) {
     try {
+      // probe() is already awaited here; the cast widens to ReturnType<T> (a Promise type), which
+      // makes return-await think an outer await is still needed, so suppress it.
+      // oxlint-disable-next-line typescript/return-await
       return (await probe()) as ReturnType<T>;
     } catch (error) {
       lastError = error;

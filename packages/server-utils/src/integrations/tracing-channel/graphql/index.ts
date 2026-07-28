@@ -53,13 +53,13 @@ const _graphqlIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) =>
         bindTracingChannelToSpan(
           diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_VALIDATE),
           data => safeChannelCallback(() => startValidateSpan(data.arguments[1])),
-          { beforeSpanEnd: (span, data) => void safeChannelCallback(() => finalizeValidateSpan(span, data.result)) },
+          { beforeSpanEnd: (span, data) => safeChannelCallback(() => finalizeValidateSpan(span, data.result)) },
         );
 
         bindTracingChannelToSpan(
           diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_EXECUTE),
           data => safeChannelCallback(() => startExecuteSpan(data.arguments, data.self, config, getConfig)),
-          { beforeSpanEnd: (span, data) => void safeChannelCallback(() => finalizeExecuteSpan(span, data.result)) },
+          { beforeSpanEnd: (span, data) => safeChannelCallback(() => finalizeExecuteSpan(span, data.result)) },
         );
       });
     },

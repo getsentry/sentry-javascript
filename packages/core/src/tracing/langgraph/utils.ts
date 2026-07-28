@@ -297,7 +297,7 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
 
   // Extract and set tool calls from new messages BEFORE normalization
   // (normalization strips tool_calls, so we need to extract them first)
-  const toolCalls = extractToolCalls(newMessages as Array<Record<string, unknown>>);
+  const toolCalls = extractToolCalls(newMessages);
   if (toolCalls) {
     span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS, JSON.stringify(toolCalls));
   }
