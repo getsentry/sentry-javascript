@@ -17,28 +17,30 @@ export function instrumentAgentCallableRpc(obj: AgentInternals): void {
     return;
   }
 
-  obj.onMessage = function (this: AgentInternals, ...args: unknown[]): unknown {
-    const method = extractCallableMethod(args[1]);
+  obj.onMessage = new Proxy(original, {
+    apply(target, thisArg: AgentInternals, args: unknown[]): unknown {
+      const method = extractCallableMethod(args[1]);
 
-    if (!method) {
-      return original.apply(this, args);
-    }
+      if (!method) {
+        return Reflect.apply(target, thisArg, args);
+      }
 
-    return startSpan(
-      {
-        name: method,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'rpc',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: AGENT_SPAN_ORIGIN,
-          ...getAgentAttributes(this),
+      return startSpan(
+        {
+          name: method,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'rpc',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: AGENT_SPAN_ORIGIN,
+            ...getAgentAttributes(thisArg),
+          },
         },
-      },
-      () => {
-        setAgentConversationId(this);
-        return original.apply(this, args);
-      },
-    );
-  };
+        () => {
+          setAgentConversationId(thisArg);
+          return Reflect.apply(target, thisArg, args);
+        },
+      );
+    },
+  });
 }
 
 /** Extracts the RPC method name from a WebSocket message, mirroring the SDK's `isRPCRequest`. */

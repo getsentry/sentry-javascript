@@ -19,9 +19,11 @@ export function instrumentChatAgentConversation(obj: AgentInternals): void {
     return;
   }
 
-  obj.onChatMessage = function (this: AgentInternals, ...args: unknown[]): unknown {
-    setAgentConversationId(this);
+  obj.onChatMessage = new Proxy(original, {
+    apply(target, thisArg: AgentInternals, args: unknown[]): unknown {
+      setAgentConversationId(thisArg);
 
-    return original.apply(this, args);
-  };
+      return Reflect.apply(target, thisArg, args);
+    },
+  });
 }
