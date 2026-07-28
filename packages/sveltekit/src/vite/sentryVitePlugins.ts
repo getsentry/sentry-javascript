@@ -55,9 +55,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     );
   }
 
-  // Auto-instrument server-side dependencies at build time (mysql, ioredis, …) by injecting
-  // `diagnostics_channel` publishers. The plugin self-scopes to the SSR build and honors
-  // `buildTimeInstrumentation: false` itself. Cloudflare/workerd is not supported yet.
+  // TODO: Cloudflare needs different wiring
   if (mergedOptions.adapter !== 'cloudflare') {
     sentryPlugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: mergedOptions.buildTimeInstrumentation }));
   }
