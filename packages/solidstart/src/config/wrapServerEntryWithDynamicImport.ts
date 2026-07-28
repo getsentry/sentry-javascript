@@ -29,8 +29,13 @@ export type WrapServerEntryPluginOptions = {
  * @param config.debug Whether debug logs are enabled in the build time environment
  */
 export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOptions): InputPluginOption {
-  const { serverConfigFileName, serverEntrypointFileName, resolvedServerConfigPath, entrypointWrappedFunctions, debug } =
-    config;
+  const {
+    serverConfigFileName,
+    serverEntrypointFileName,
+    resolvedServerConfigPath,
+    entrypointWrappedFunctions,
+    debug,
+  } = config;
 
   // In order to correctly import the server config file
   // and dynamically import the nitro runtime, we need to
