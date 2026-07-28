@@ -1,22 +1,13 @@
 import type { Span } from '@sentry/core';
-import {
-  getCurrentScope,
-  getIsolationScope,
-  SentrySpan,
-  setCurrentClient,
-  spanToJSON,
-  startInactiveSpan,
-  withActiveSpan,
-} from '@sentry/core';
+import { getCurrentScope, getIsolationScope, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import * as instrument from '../../src/metrics/instrument';
 import { _addUserTimingSpan, userTimingIntegration } from '../../src/metrics/userTiming';
+import * as utils from '../../src/metrics/utils';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
-type PerformanceEntryHandler = (data: { entries: PerformanceEntry[] }) => void;
-
 describe('userTimingIntegration', () => {
-  let handlers: Map<string, PerformanceEntryHandler>;
+  let client: TestClient;
+  let performanceEntries: PerformanceEntry[];
   let spans: Span[];
 
   beforeEach(() => {
@@ -24,108 +15,99 @@ describe('userTimingIntegration', () => {
     getCurrentScope().clear();
     getIsolationScope().clear();
 
-    const client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1 }));
+    client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1 }));
     setCurrentClient(client);
     client.init();
+
+    performanceEntries = [];
+    vi.spyOn(utils, 'getBrowserPerformanceAPI').mockReturnValue({
+      getEntries: () => performanceEntries,
+    } as Performance);
 
     spans = [];
     client.on('spanEnd', span => {
       spans.push(span);
     });
-
-    handlers = new Map();
-    vi.spyOn(instrument, 'addPerformanceInstrumentationHandler').mockImplementation((type, handler) => {
-      handlers.set(type, handler);
-      return () => undefined;
-    });
   });
 
-  it('captures mark and measure entries as child spans', () => {
-    userTimingIntegration().setup?.({} as never);
+  it('captures mark and measure entries created before setup', () => {
+    performanceEntries.push(
+      createPerformanceEntry('mark', 'app-ready', 12, 0),
+      createPerformanceEntry('measure', 'hydrate', 14, 25),
+    );
+
+    userTimingIntegration().setup?.(client);
     const parentSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
 
-    withActiveSpan(parentSpan, () => {
-      handlers.get('mark')!({
-        entries: [createPerformanceEntry('mark', 'app-ready', 12, 0)],
-      });
-      handlers.get('measure')!({
-        entries: [createPerformanceEntry('measure', 'hydrate', 14, 25)],
-      });
-    });
+    client.emit('beforeIdleSpanEnd', parentSpan);
 
     expect(spans).toHaveLength(2);
     expect(spans.map(span => spanToJSON(span).description)).toEqual(['app-ready', 'hydrate']);
     expect(spans.map(span => spanToJSON(span).op)).toEqual(['mark', 'measure']);
     expect(spanToJSON(spans[0]!).timestamp).toBe(spanToJSON(spans[0]!).start_timestamp);
     expect(spanToJSON(spans[1]!).timestamp! - spanToJSON(spans[1]!).start_timestamp).toBeCloseTo(0.025);
+    expect(spanToJSON(spans[1]!).parent_span_id).toBe(parentSpan.spanContext().spanId);
   });
 
-  it('does not capture entries without an active span', () => {
-    userTimingIntegration().setup?.({} as never);
+  it('captures only entries added since the previous idle span ended', () => {
+    userTimingIntegration().setup?.(client);
+    performanceEntries.push(createPerformanceEntry('mark', 'initial-render', 12, 0));
 
-    handlers.get('measure')!({
-      entries: [createPerformanceEntry('measure', 'background-work', 14, 25)],
-    });
+    client.emit('beforeIdleSpanEnd', new SentrySpan({ op: 'pageload', name: '/', sampled: true }));
+    performanceEntries.push(createPerformanceEntry('measure', 'route-render', 30, 10));
+    client.emit(
+      'beforeIdleSpanEnd',
+      new SentrySpan({
+        op: 'navigation',
+        name: '/settings',
+        sampled: true,
+        startTimestamp: performance.timeOrigin / 1000 + 0.02,
+      }),
+    );
 
-    expect(spans).toHaveLength(0);
+    expect(spans).toHaveLength(2);
+    expect(spans.map(span => spanToJSON(span).description)).toEqual(['initial-render', 'route-render']);
   });
 
-  it('attaches entries to the root pageload span even when a child span is active', () => {
-    userTimingIntegration().setup?.({} as never);
-    const rootSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+  it('reads the latest entries immediately before the segment ends', () => {
+    userTimingIntegration().setup?.(client);
+    const parentSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
 
-    withActiveSpan(rootSpan, () => {
-      const childSpan = startInactiveSpan({ name: 'child' });
-      withActiveSpan(childSpan, () => {
-        handlers.get('measure')!({
-          entries: [createPerformanceEntry('measure', 'hydrate', 14, 25)],
-        });
-      });
-    });
+    performanceEntries.push(createPerformanceEntry('measure', 'last-moment-work', 14, 25));
+    client.emit('beforeIdleSpanEnd', parentSpan);
 
-    const measureSpan = spans.find(span => spanToJSON(span).description === 'hydrate');
-    expect(measureSpan).toBeDefined();
-    expect(spanToJSON(measureSpan!).parent_span_id).toBe(rootSpan.spanContext().spanId);
+    expect(spans).toHaveLength(1);
+    expect(spanToJSON(spans[0]!).description).toBe('last-moment-work');
   });
 
-  it('does not capture entries when the active span is not a pageload or navigation', () => {
-    userTimingIntegration().setup?.({} as never);
-    const rootSpan = new SentrySpan({ op: 'ui.action', name: 'click', sampled: true });
+  it('does not capture entries for unrelated idle spans', () => {
+    userTimingIntegration().setup?.(client);
+    const idleSpan = new SentrySpan({ op: 'ui.action', name: 'click', sampled: true });
+    performanceEntries.push(createPerformanceEntry('measure', 'work', 14, 25));
 
-    withActiveSpan(rootSpan, () => {
-      handlers.get('measure')!({
-        entries: [createPerformanceEntry('measure', 'work', 14, 25)],
-      });
-    });
+    client.emit('beforeIdleSpanEnd', idleSpan);
 
     expect(spans).toHaveLength(0);
   });
 
   it('ignores entries matching strings and regular expressions', () => {
-    userTimingIntegration({ ignore: ['extension-mark', /^framework-/] }).setup?.({} as never);
+    userTimingIntegration({ ignore: ['extension-mark', /^framework-/] }).setup?.(client);
     const parentSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
 
-    withActiveSpan(parentSpan, () => {
-      handlers.get('mark')!({
-        entries: [
-          createPerformanceEntry('mark', 'extension-mark', 10, 0),
-          createPerformanceEntry('mark', 'application-mark', 11, 0),
-        ],
-      });
-      handlers.get('measure')!({
-        entries: [
-          createPerformanceEntry('measure', 'framework-render', 12, 10),
-          createPerformanceEntry('measure', 'application-render', 13, 10),
-        ],
-      });
-    });
+    performanceEntries.push(
+      createPerformanceEntry('mark', 'extension-mark', 10, 0),
+      createPerformanceEntry('mark', 'application-mark', 11, 0),
+      createPerformanceEntry('measure', 'framework-render', 12, 10),
+      createPerformanceEntry('measure', 'application-render', 13, 10),
+    );
+    client.emit('beforeIdleSpanEnd', parentSpan);
 
     expect(spans).toHaveLength(2);
     expect(spans.map(span => spanToJSON(span).description)).toEqual(['application-mark', 'application-render']);
   });
 
   it('does not attach entries preceding a navigation span', () => {
-    userTimingIntegration().setup?.({} as never);
+    userTimingIntegration().setup?.(client);
     const timeOrigin = performance.timeOrigin / 1000;
     const parentSpan = new SentrySpan({
       op: 'navigation',
@@ -134,14 +116,11 @@ describe('userTimingIntegration', () => {
       startTimestamp: timeOrigin + 0.02,
     });
 
-    withActiveSpan(parentSpan, () => {
-      handlers.get('measure')!({
-        entries: [
-          createPerformanceEntry('measure', 'previous-route', 10, 5),
-          createPerformanceEntry('measure', 'current-route', 30, 5),
-        ],
-      });
-    });
+    performanceEntries.push(
+      createPerformanceEntry('measure', 'previous-route', 10, 5),
+      createPerformanceEntry('measure', 'current-route', 30, 5),
+    );
+    client.emit('beforeIdleSpanEnd', parentSpan);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!).description).toBe('current-route');

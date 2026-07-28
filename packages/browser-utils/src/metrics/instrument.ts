@@ -10,8 +10,6 @@ type InstrumentHandlerTypePerformanceObserver =
   | 'longtask'
   | 'event'
   | 'navigation'
-  | 'mark'
-  | 'measure'
   | 'paint'
   | 'resource'
   | 'element'

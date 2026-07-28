@@ -3,14 +3,11 @@ import type { IntegrationFn, Span, SpanAttributes, SpanAttributeValue } from '@s
 import {
   browserPerformanceTimeOrigin,
   defineIntegration,
-  getActiveSpan,
-  getRootSpan,
   isPrimitive,
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
-import { addPerformanceInstrumentationHandler } from './instrument';
-import { msToSec, startAndEndSpan } from './utils';
+import { getBrowserPerformanceAPI, msToSec, startAndEndSpan } from './utils';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 
 interface UserTimingOptions {
@@ -27,32 +24,33 @@ const INTEGRATION_NAME = 'UserTiming';
 const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setup() {
+    setup(client) {
+      const performance = getBrowserPerformanceAPI();
       const timeOrigin = browserPerformanceTimeOrigin();
-      if (!timeOrigin) {
+      if (!performance?.getEntries || !timeOrigin) {
         return;
       }
       const timeOriginInSeconds = msToSec(timeOrigin);
+      let performanceCursor = 0;
 
-      const handleEntries = ({ entries }: { entries: PerformanceEntry[] }): void => {
-        const activeSpan = getActiveSpan();
-        if (!activeSpan) {
+      client.on('beforeIdleSpanEnd', idleSpan => {
+        if (!idleSpan.isRecording()) {
           return;
         }
 
-        // Attach entries to the pageload/navigation root span rather than whatever child span happens to
-        // be active when the browser reports them, so they consistently nest under the transaction.
-        const rootSpan = getRootSpan(activeSpan);
-        const { op: parentOp, start_timestamp: parentStartTimestamp } = spanToJSON(rootSpan);
+        const { op: parentOp, start_timestamp: parentStartTimestamp } = spanToJSON(idleSpan);
         if (parentOp !== 'pageload' && parentOp !== 'navigation') {
           return;
         }
 
-        // The navigation entry is stable for the lifetime of the document, so resolve it once per batch
-        // rather than for every entry.
         const requestTime = msToSec(getNavigationEntry(false)?.requestStart ?? 0);
+        const performanceEntries = performance.getEntries();
 
-        for (const entry of entries) {
+        for (const entry of performanceEntries.slice(performanceCursor)) {
+          if (entry.entryType !== 'mark' && entry.entryType !== 'measure') {
+            continue;
+          }
+
           const startTime = msToSec(entry.startTime);
           const absoluteStartTime = timeOriginInSeconds + startTime;
 
@@ -61,7 +59,7 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
           }
 
           _addUserTimingSpan(
-            rootSpan,
+            idleSpan,
             entry,
             startTime,
             msToSec(Math.max(0, entry.duration)),
@@ -70,10 +68,9 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
             options.ignore ?? [],
           );
         }
-      };
 
-      addPerformanceInstrumentationHandler('mark', handleEntries);
-      addPerformanceInstrumentationHandler('measure', handleEntries);
+        performanceCursor = performanceEntries.length;
+      });
     },
   };
 }) satisfies IntegrationFn;
@@ -82,7 +79,7 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
  * Captures spans created with the browser's User Timing APIs, `performance.mark` and `performance.measure`.
  *
  * The integration must be explicitly added to `Sentry.init`. Entries are attached to the active pageload or
- * navigation span when the browser reports them through the PerformanceObserver API.
+ * navigation span when it ends.
  *
  * @example
  * ```ts
