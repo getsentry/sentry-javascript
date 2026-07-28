@@ -1,5 +1,6 @@
 import type { ExportedHandler, MessageBatch } from '@cloudflare/workers-types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { MESSAGING_QUEUE_PROCESS_SPAN_OP } from '@sentry/conventions/op';
 import {
   captureException,
@@ -16,7 +17,6 @@ import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
 import { instrumentEnv } from './instrumentEnv';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
 
 /**
  * Core queue handler logic - wraps execution with Sentry instrumentation.
