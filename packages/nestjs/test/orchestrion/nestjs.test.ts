@@ -261,7 +261,7 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
       'nestjs.version': '10.4.1',
       'http.route': '/cats',
       'http.method': 'GET',
-      'http.url': '/cats?q=1',
+      'url.full': '/cats?q=1',
     });
   });
 

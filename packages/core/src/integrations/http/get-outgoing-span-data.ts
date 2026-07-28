@@ -4,6 +4,15 @@ import { getHttpSpanDetailsFromUrlObject, parseStringToURLObject } from '../../u
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
 import { getRequestUrlFromClientRequest } from './get-request-url';
 import type { StartSpanOptions } from '../../types/startSpanOptions';
+import {
+  HTTP_HOST,
+  HTTP_METHOD,
+  HTTP_TARGET,
+  NET_PEER_NAME,
+  SENTRY_KIND,
+  URL_FULL,
+  USER_AGENT_ORIGINAL,
+} from '@sentry/conventions/attributes';
 
 /**
  * Build the initial span name and attributes for an outgoing HTTP request.
@@ -26,13 +35,15 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
       // TODO(v11): Update these to the Sentry semantic attributes for urls.
       // https://getsentry.github.io/sentry-conventions/attributes/
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-      'sentry.kind': 'client',
-      'http.url': url,
-      'http.method': request.method,
-      'http.target': request.path || '/',
-      'net.peer.name': request.host,
-      'http.host': request.getHeader('host') as string | undefined,
-      ...(userAgent ? { 'user_agent.original': userAgent as string } : {}),
+      [SENTRY_KIND]: 'client',
+      [URL_FULL]: url,
+      /* eslint-disable typescript/no-deprecated */
+      [HTTP_METHOD]: request.method,
+      [HTTP_TARGET]: request.path || '/',
+      [NET_PEER_NAME]: request.host,
+      [HTTP_HOST]: request.getHeader('host') as string | undefined,
+      /* eslint-enable typescript/no-deprecated */
+      [USER_AGENT_ORIGINAL]: userAgent || undefined,
       ...attributes,
     },
     onlyIfParent: true,

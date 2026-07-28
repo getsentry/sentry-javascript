@@ -1,3 +1,4 @@
+import type { HTTP_METHOD, URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
 import type { WebFetchHeaders } from './webfetchapi';
 
 /**
@@ -21,10 +22,16 @@ export type QueryParams = string | { [key: string]: string } | Array<[string, st
  * See https://develop.sentry.dev/sdk/data-handling/#structuring-data
  */
 export type SanitizedRequestData = {
+  /**
+   * The sanitized URL. Named `url` rather than `url.full` because this shape is also used for
+   * `http` breadcrumb data, where `url` is the field the Sentry UI renders (see
+   * {@link FetchBreadcrumbData}). Span attributes use `url.full` instead.
+   */
   url: string;
-  'http.method': string;
-  'http.fragment'?: string;
-  'http.query'?: string;
+  // oxlint-disable-next-line typescript/no-deprecated
+  [HTTP_METHOD]: string;
+  [URL_FRAGMENT]?: string;
+  [URL_QUERY]?: string;
 };
 
 export interface RequestHookInfo {

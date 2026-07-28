@@ -19,6 +19,7 @@ import { applyOtelSpanData } from '../src/applyOtelSpanData';
 import { SentryTracerProvider } from '../src/tracerProvider';
 import { cleanupOtel } from './helpers/mockSdkInit';
 import { init as initTestClient } from './helpers/TestClient';
+import { URL_FULL } from '@sentry/conventions/attributes';
 
 describe('SentryTracerProvider', () => {
   beforeEach(() => {
@@ -228,7 +229,7 @@ describe('SentryTracerProvider', () => {
       kind: SpanKind.SERVER,
       attributes: {
         'http.method': 'POST',
-        'http.url': 'https://www.example.com/my-path',
+        [URL_FULL]: 'https://www.example.com/my-path',
         'http.target': '/my-path',
       },
     });

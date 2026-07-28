@@ -488,16 +488,14 @@ describe('instrumentFetchRequest', () => {
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'GET https://api.example.com/users/42',
         attributes: {
-          url,
           type: 'fetch',
           'http.method': 'GET',
           'sentry.origin': 'auto.http.fetch',
           'sentry.op': 'http.client',
-          'http.url': url,
           [URL_FULL]: url,
           'server.address': 'api.example.com',
-          'http.query': '?include=profile',
-          'http.fragment': '#bio',
+          'url.query': 'include=profile',
+          'url.fragment': 'bio',
         },
       });
     });

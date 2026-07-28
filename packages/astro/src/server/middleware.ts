@@ -1,15 +1,16 @@
 /* eslint-disable max-lines */
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, URL_FRAGMENT, URL_FULL, URL_PATH, URL_QUERY } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
   flushIfServerless,
   getIsolationScope,
   getRootSpan,
+  getUrlFragment,
+  getUrlQuery,
   objectify,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
-  stripUrlQueryAndFragment,
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import {
@@ -221,7 +222,6 @@ async function instrumentRequestStartHttpServerSpan(
             method,
             [URL_FULL]: ctx.url.href,
             [URL_PATH]: ctx.url.pathname,
-            url: stripUrlQueryAndFragment(ctx.url.href),
             ...httpHeadersToSpanAttributes(
               winterCGHeadersToDict(request.headers),
               getClient()?.getDataCollectionOptions() ?? false,
@@ -229,16 +229,11 @@ async function instrumentRequestStartHttpServerSpan(
           };
 
           if (parametrizedRoute) {
-            attributes['http.route'] = parametrizedRoute;
+            attributes[HTTP_ROUTE] = parametrizedRoute;
           }
 
-          if (ctx.url.search) {
-            attributes['http.query'] = ctx.url.search;
-          }
-
-          if (ctx.url.hash) {
-            attributes['http.fragment'] = ctx.url.hash;
-          }
+          attributes[URL_QUERY] = getUrlQuery(ctx.url.search);
+          attributes[URL_FRAGMENT] = getUrlFragment(ctx.url.hash);
 
           isolationScope.setTransactionName(`${method} ${parametrizedRoute || ctx.url.pathname}`);
 

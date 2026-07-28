@@ -50,7 +50,7 @@ describe('remixIntegration (Orchestrion-based)', () => {
           'sentry.op': 'http.server',
           'code.function': 'requestHandler',
           'http.method': 'GET',
-          'http.url': 'http://localhost/users',
+          'url.full': 'http://localhost/users',
         }),
       }),
     );
@@ -102,7 +102,7 @@ describe('remixIntegration (Orchestrion-based)', () => {
           'sentry.op': 'loader.remix',
           'code.function': 'loader',
           'http.method': 'GET',
-          'http.url': 'http://localhost/users/123',
+          'url.full': 'http://localhost/users/123',
           'match.route.id': 'routes/users.$userId',
           'match.params.userId': '123',
         }),

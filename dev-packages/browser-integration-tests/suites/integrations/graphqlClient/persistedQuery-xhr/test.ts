@@ -43,9 +43,7 @@ sentryTest('should update spans for GraphQL persisted query XHR requests', async
     data: {
       type: 'xhr',
       'http.method': 'POST',
-      'http.url': 'http://sentry-test.io/graphql',
       'url.full': 'http://sentry-test.io/graphql',
-      url: 'http://sentry-test.io/graphql',
       'server.address': 'sentry-test.io',
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.browser',
