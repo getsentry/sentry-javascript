@@ -113,6 +113,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     attributes,
     startTime,
     parentSpan,
+    // oxlint-disable-next-line typescript/no-deprecated -- intentional during the v1/v2 transition; see the TODO(standalone) above
     experimental: standalone ? { standalone: true } : undefined,
   });
 

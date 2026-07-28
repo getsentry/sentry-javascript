@@ -400,14 +400,14 @@ function subscribeResolveLanguageModel(
 ): void {
   tracingChannel<OrchestrionContext>(channelName).subscribe({
     end(rawCtx) {
-      const ctx = rawCtx as OrchestrionContext;
+      const ctx = rawCtx;
       if (!isObjectLike(ctx.result)) {
         return;
       }
       // Patch the model's `doGenerate`/`doStream` once. The model call recovers its parent from the
       // active async context at call time (the operation span `bindTracingChannelToSpan` bound), which
       // propagates into the model call for `streamText` too, so there is nothing to capture on the model here.
-      patchModelMethods(ctx.result as PatchableModel, options);
+      patchModelMethods(ctx.result, options);
     },
     start() {
       /* no-op */
@@ -574,7 +574,7 @@ function patchOperationTools(tools: Record<string, unknown>, options: VercelAiCh
   try {
     for (const [toolName, tool] of Object.entries(tools)) {
       if (isObjectLike(tool)) {
-        patchToolExecute(toolName, tool as PatchableTool, tools, options);
+        patchToolExecute(toolName, tool, tools, options);
       }
     }
   } catch {

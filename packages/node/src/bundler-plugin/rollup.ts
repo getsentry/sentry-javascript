@@ -7,6 +7,15 @@ export type SentryRollupPluginOptions = SentryRollupPluginOptionsBase & {
    * @ignore This is for internal use only when this plugin is consumed by a framework SDK
    */
   instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionPlugin>[0]>['instrumentations'];
+
+  /**
+   * Automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set to `false` to turn it off.
+   *
+   * @default true
+   */
+  buildTimeInstrumentation?: boolean;
 };
 
 type RollupPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
@@ -27,5 +36,6 @@ type RollupPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  * ```
  */
 export function sentryRollupPlugin(options?: SentryRollupPluginOptions): RollupPlugin[] {
-  return [...sentryRollupBundlerPlugin(options), sentryOrchestrionPlugin(options)];
+  const bundlerPlugins = sentryRollupBundlerPlugin(options);
+  return [...bundlerPlugins, sentryOrchestrionPlugin(options)];
 }

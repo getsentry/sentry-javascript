@@ -1,6 +1,6 @@
 import { subscribe } from 'node:diagnostics_channel';
 import { errorMonitor } from 'node:events';
-import type { ClientRequest, RequestOptions } from 'node:http';
+import type { RequestOptions } from 'node:http';
 import type { HttpIncomingMessage, Integration, IntegrationFn, Span } from '@sentry/core';
 import {
   debug,
@@ -136,7 +136,7 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
           breadcrumbs,
           propagateTrace: tracePropagation,
           ignoreOutgoingRequests: options.ignoreOutgoingRequests
-            ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request as ClientRequest))
+            ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request))
             : undefined,
           // Deno doesn't run OTel's http instrumentation, so there's no
           // double-wrap to detect; skip the warning to avoid loading the module.

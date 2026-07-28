@@ -1,5 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { Integration, IntegrationFn, LogSeverityLevel } from '@sentry/core';
+import type { IntegrationFn, LogSeverityLevel } from '@sentry/core';
 import {
   _INTERNAL_captureLog,
   addExceptionMechanism,
@@ -208,22 +208,6 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
   };
 }) satisfies IntegrationFn;
 
-interface PinoIntegrationFunction {
-  (userOptions?: DeepPartial<PinoOptions>): Integration;
-  /**
-   * Marks a Pino logger to be tracked by the Pino integration.
-   *
-   * @param logger A Pino logger instance.
-   */
-  trackLogger(logger: unknown): void;
-  /**
-   * Marks a Pino logger to be ignored by the Pino integration.
-   *
-   * @param logger A Pino logger instance.
-   */
-  untrackLogger(logger: unknown): void;
-}
-
 /**
  * Integration for Pino logging library.
  * Captures Pino logs as Sentry logs and optionally captures some log levels as events.
@@ -245,4 +229,4 @@ export const pinoIntegration = Object.assign(_pinoIntegration, {
       (logger as Pino)[SENTRY_TRACK_SYMBOL] = 'ignore';
     }
   },
-}) as PinoIntegrationFunction;
+});

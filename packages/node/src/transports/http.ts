@@ -48,7 +48,7 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
 
   try {
     urlSegments = new URL(options.url);
-  } catch (_e) {
+  } catch {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(

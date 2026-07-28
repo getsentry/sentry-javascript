@@ -139,6 +139,47 @@ describe('sentryOrchestrionPlugin (vite)', () => {
   });
 });
 
+describe('buildTimeInstrumentation: false', () => {
+  const disabled = { buildTimeInstrumentation: false };
+
+  it('returns an inert vite plugin without the transform hooks', () => {
+    const plugin = vitePlugin(disabled);
+
+    expect(plugin.name).toBe('sentry-orchestrion-disabled');
+    expect(plugin.config).toBeUndefined();
+    expect(plugin.configResolved).toBeUndefined();
+    expect(plugin.applyToEnvironment).toBeUndefined();
+  });
+
+  it('returns an inert rollup plugin without the transform hooks', () => {
+    const plugin = rollupPlugin(disabled);
+
+    expect(plugin.name).toBe('sentry-orchestrion-disabled');
+    expect(plugin.buildStart).toBeUndefined();
+    expect((plugin as { transform?: unknown }).transform).toBeUndefined();
+  });
+
+  it('returns an inert esbuild plugin whose setup is a no-op', () => {
+    const build = { initialOptions: {}, onStart: vi.fn() } as unknown as PluginBuild;
+    const plugin = esbuildPlugin(disabled);
+
+    expect(plugin.name).toBe('sentry-orchestrion-disabled');
+    expect(plugin.setup(build)).toBeUndefined();
+    expect(build.onStart).not.toHaveBeenCalled();
+  });
+
+  it('returns an inert webpack plugin whose apply is a no-op', () => {
+    const tap = vi.fn();
+    const compiler = {
+      options: { externals: ['mysql'] },
+      hooks: { thisCompilation: { tap } },
+    } as unknown as Compiler;
+
+    expect(() => sentryOrchestrionWebpackPlugin(disabled).apply(compiler)).not.toThrow();
+    expect(tap).not.toHaveBeenCalled();
+  });
+});
+
 describe('resolveOrchestrionRuntimeRequest', () => {
   it.each([
     // Self-references — resolve through this package's own exports map to the CJS build.

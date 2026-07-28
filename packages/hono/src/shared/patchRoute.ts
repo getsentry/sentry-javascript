@@ -46,7 +46,7 @@ function createRouteHook(): { handle: RouteHookHandle; onSubAppMounted: (subApp:
     onSubAppMounted: (subApp: HonoAny) => {
       if (activated) {
         DEBUG_BUILD && debug.log(`[hono] Instrumenting sub-app at mount time (${subApp.routes.length} routes).`);
-        wrapSubAppMiddleware(subApp.routes as HonoRoute[]);
+        wrapSubAppMiddleware(subApp.routes);
         patchAppRequest(subApp);
       } else {
         DEBUG_BUILD &&

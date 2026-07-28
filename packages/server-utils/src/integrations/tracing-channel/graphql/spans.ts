@@ -85,7 +85,7 @@ function normalizeExecuteArgs(argsArray: unknown[]): NormalizedExecuteArgs {
     return {
       schema: argsArray[ExecuteArg.SCHEMA] as GraphQLSchema | undefined,
       document: argsArray[ExecuteArg.DOCUMENT] as DocumentNode | undefined,
-      contextValue: (argsArray[ExecuteArg.CONTEXT_VALUE] ?? {}) as ObjectWithGraphQLData,
+      contextValue: argsArray[ExecuteArg.CONTEXT_VALUE] ?? {},
       operationName: argsArray[ExecuteArg.OPERATION_NAME] as Maybe<string>,
       fieldResolver: argsArray[ExecuteArg.FIELD_RESOLVER] as Maybe<GraphQLFieldResolver>,
       writeBack: (contextValue, fieldResolver) => {
@@ -105,7 +105,7 @@ function normalizeExecuteArgs(argsArray: unknown[]): NormalizedExecuteArgs {
   return {
     schema: obj.schema,
     document: obj.document,
-    contextValue: (obj.contextValue ?? {}) as ObjectWithGraphQLData,
+    contextValue: obj.contextValue ?? {},
     operationName: obj.operationName,
     fieldResolver: obj.fieldResolver,
     writeBack: (contextValue, fieldResolver) => {
@@ -161,7 +161,7 @@ export function startExecuteSpan(
       ...BASE_ATTRIBUTES,
       [GRAPHQL_OPERATION_TYPE]: operationType,
       [GRAPHQL_OPERATION_NAME]: operationName || undefined,
-      [GRAPHQL_DOCUMENT]: collectGraphqlDocument(document as GraphqlDocumentNode | undefined),
+      [GRAPHQL_DOCUMENT]: collectGraphqlDocument(document),
     },
   });
 

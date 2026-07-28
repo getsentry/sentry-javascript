@@ -240,7 +240,8 @@ export function createRunner(...paths: string[]) {
           if (process.env.DEBUG) log('making request', method, url, headers, body);
 
           try {
-            const res = await fetch(url, { headers, method, body });
+            const init: RequestInit = { headers, method, body };
+            const res = await fetch(url, init);
 
             if (!res.ok) {
               if (!expectError) {

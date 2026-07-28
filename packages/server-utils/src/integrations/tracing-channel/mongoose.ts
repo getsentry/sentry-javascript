@@ -162,9 +162,7 @@ function startSpan(
 // `start`-only (or `end`-only) subscriber for the context-capture channels
 // is accepted.
 function channel(channelName: string): SentryTracingChannel<MongooseChannelContext> {
-  return diagnosticsChannel.tracingChannel<MongooseChannelContext>(
-    channelName,
-  ) as unknown as SentryTracingChannel<MongooseChannelContext>;
+  return diagnosticsChannel.tracingChannel<MongooseChannelContext>(channelName);
 }
 
 function bindExecSpan(channelName: string, getSpan: (self: object) => Span): void {

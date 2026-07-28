@@ -70,7 +70,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
         ...event,
       };
 
-      addNonEnumerableProperty(patchedEvent as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+      addNonEnumerableProperty(patchedEvent, '__sentry_wrapped__', true);
 
       const routeId = getRouteId(event);
 

@@ -36,11 +36,7 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: Handl
       !event.ctrlKey &&
       !event.shiftKey
     ) {
-      handleClick(
-        replay.clickDetector,
-        result as Breadcrumb & { timestamp: number; data: { nodeId: number } },
-        getClickTargetNode(handlerData.event as Event) as HTMLElement,
-      );
+      handleClick(replay.clickDetector, result, getClickTargetNode(handlerData.event as Event) as HTMLElement);
     }
 
     addBreadcrumbEvent(replay, result);

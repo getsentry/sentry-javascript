@@ -172,6 +172,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     ignoreIncomingRequests: options.ignoreIncomingRequests,
     ignoreStaticAssets: options.ignoreStaticAssets,
     ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
+    // oxlint-disable-next-line typescript/no-deprecated -- pass through the deprecated option for back-compat
     instrumentation: options.instrumentation,
     onSpanCreated: options.incomingRequestSpanHook,
   };
@@ -195,6 +196,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         breadcrumbs: options.breadcrumbs,
         spans,
         propagateTraceInOutgoingRequests: options.tracePropagation ?? true,
+        // oxlint-disable-next-line typescript/no-deprecated -- deprecated alias kept until removal
         createSpansForOutgoingRequests: spans,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
         outgoingRequestHook: (span: Span, request: HttpClientRequest) => {

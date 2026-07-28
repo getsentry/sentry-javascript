@@ -405,11 +405,7 @@ export function updateNavigationSpan(
 
       // Only mark as finalized for non-wildcard route names (allows URL→route upgrades).
       if (!transactionNameHasWildcard(name) && source === 'route') {
-        addNonEnumerableProperty(
-          activeRootSpan as { __sentry_navigation_name_set__?: boolean },
-          '__sentry_navigation_name_set__',
-          true,
-        );
+        addNonEnumerableProperty(activeRootSpan, '__sentry_navigation_name_set__', true);
       }
     }
   }
@@ -530,11 +526,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
       opts && 'patchRoutesOnNavigation' in opts && typeof opts.patchRoutesOnNavigation === 'function';
     if (hasPatchRoutesOnNavigation && activeRootSpan) {
       // Mark the span as potentially having lazy routes
-      addNonEnumerableProperty(
-        activeRootSpan as unknown as Record<string, boolean>,
-        '__sentry_may_have_lazy_routes__',
-        true,
-      );
+      addNonEnumerableProperty(activeRootSpan, '__sentry_may_have_lazy_routes__', true);
       createDeferredLazyRoutePromise(activeRootSpan);
     }
 
@@ -606,11 +598,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
     const hasPatchRoutesOnNavigation =
       opts && 'patchRoutesOnNavigation' in opts && typeof opts.patchRoutesOnNavigation === 'function';
     if (hasPatchRoutesOnNavigation && memoryActiveRootSpanEarly) {
-      addNonEnumerableProperty(
-        memoryActiveRootSpanEarly as unknown as Record<string, boolean>,
-        '__sentry_may_have_lazy_routes__',
-        true,
-      );
+      addNonEnumerableProperty(memoryActiveRootSpanEarly, '__sentry_may_have_lazy_routes__', true);
       createDeferredLazyRoutePromise(memoryActiveRootSpanEarly);
     }
 
@@ -1000,15 +988,11 @@ export function handleNavigation(opts: {
         } else {
           // Update existing real span from wildcard to parameterized route name
           trackedNav.span.updateName(name);
-          trackedNav.span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source as 'route' | 'url' | 'custom');
+          trackedNav.span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
           if (source === 'route') {
             trackedNav.span.setAttribute(URL_TEMPLATE, name);
           }
-          addNonEnumerableProperty(
-            trackedNav.span as { __sentry_navigation_name_set__?: boolean },
-            '__sentry_navigation_name_set__',
-            true,
-          );
+          addNonEnumerableProperty(trackedNav.span, '__sentry_navigation_name_set__', true);
           trackedNav.routeName = name;
           DEBUG_BUILD && debug.log(`[Tracing] Updated navigation span name from "${oldName}" to "${name}"`);
         }
@@ -1278,7 +1262,7 @@ function patchSpanEnd(
       const client = getClient();
       if (client && spanType === 'navigation') {
         const trackedNav = activeNavigationSpans.get(client);
-        if (trackedNav && trackedNav.span === span) {
+        if (trackedNav?.span === span) {
           activeNavigationSpans.delete(client);
         }
       }
@@ -1348,7 +1332,7 @@ function patchSpanEnd(
     originalEnd(endTimestamp);
   };
 
-  addNonEnumerableProperty(span as unknown as Record<string, boolean>, patchedPropertyName, true);
+  addNonEnumerableProperty(span, patchedPropertyName, true);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
