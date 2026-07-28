@@ -2706,8 +2706,8 @@ describe('Client', () => {
       });
     });
 
-    describe('edge case: sampled-out error that beforeSend would have filtered', () => {
-      test('updates session even though beforeSend would have dropped the error', () => {
+    describe('sampleRate runs after beforeSend', () => {
+      test('does not update session when beforeSend drops an error that would be sampled out', () => {
         const beforeSend = vi.fn(() => null);
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0, beforeSend });
         const client = new TestClient(options);
@@ -2719,19 +2719,47 @@ describe('Client', () => {
         client.captureEvent(
           {
             exception: {
-              values: [{ type: 'Error', value: 'unhandled crash', mechanism: { type: 'generic', handled: false } }],
+              values: [{ type: 'Error', value: 'filtered crash', mechanism: { type: 'generic', handled: false } }],
             },
           },
           { mechanism: { handled: false } },
         );
 
-        // sampleRate runs first — the error never reaches beforeSend
-        expect(beforeSend).not.toHaveBeenCalled();
+        expect(beforeSend).toHaveBeenCalledOnce();
         expect(TestClient.instance!.event).toBeUndefined();
+        expect(client.session).toBeUndefined();
+        expect(session.errors).toBe(0);
+        expect(session.status).toBe('ok');
+      });
 
-        // But the session is updated because sampleRate drops always update the session
+      test('uses the event returned by beforeSend to update a sampled-out session', () => {
+        const beforeSend = vi.fn((event: ErrorEvent) => {
+          const exception = event.exception?.values?.[0];
+          if (exception) {
+            exception.mechanism = { type: 'generic', handled: true };
+          }
+          return event;
+        });
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0, beforeSend });
+        const client = new TestClient(options);
+        setCurrentClient(client);
+
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        client.captureEvent(
+          {
+            exception: {
+              values: [{ type: 'Error', value: 'reclassified crash', mechanism: { type: 'generic', handled: false } }],
+            },
+          },
+          { mechanism: { handled: false } },
+        );
+
+        expect(beforeSend).toHaveBeenCalledOnce();
+        expect(TestClient.instance!.event).toBeUndefined();
         expect(client.session?.errors).toBe(1);
-        expect(client.session?.status).toBe('crashed');
+        expect(client.session?.status).toBe('ok');
       });
     });
   });

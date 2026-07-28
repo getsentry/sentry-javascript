@@ -45,14 +45,13 @@ import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelop
 import { getPossibleEventMessages } from './utils/eventUtils';
 import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
 import { merge } from './utils/merge';
-import { addExceptionMechanism, checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
+import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { safeMathRandom } from './utils/randomSafeContext';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning } from './utils/spanUtils';
-import { rejectedSyncPromise } from './utils/syncpromise';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
@@ -1443,26 +1442,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
-    if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
-      this.recordDroppedEvent('sample_rate', 'error');
-
-      // Reflects crashes inside release health sessions, regardless of event sampling
-      const session = currentScope.getSession() || isolationScope.getSession();
-      if (session) {
-        // _prepareEvent (which normally merges hint.mechanism) is skipped in this code path, so we add it here
-        if (hint.mechanism) {
-          addExceptionMechanism(event, hint.mechanism);
-        }
-        this._updateSessionFromEvent(session, event);
-      }
-
-      return rejectedSyncPromise(
-        _makeDoNotSendEventError(
-          `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
-        ),
-      );
-    }
-
     const dataCategory = getDataCategoryByType(event.type);
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
@@ -1489,13 +1468,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
             const spanCount = 1 + spans.length;
             this.recordDroppedEvent('before_send', 'span', spanCount);
           }
-
           throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
         }
 
         const session = currentScope.getSession() || isolationScope.getSession();
         if (isError && session) {
           this._updateSessionFromEvent(session, processedEvent);
+        }
+
+        if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
+          this.recordDroppedEvent('sample_rate', 'error');
+          throw _makeDoNotSendEventError(
+            `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
+          );
         }
 
         if (isTransaction) {
