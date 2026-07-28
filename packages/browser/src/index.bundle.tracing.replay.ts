@@ -38,7 +38,6 @@ export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 export { spanStreamingIntegration } from './integrations/spanstreaming';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 export { webVitalsIntegration } from './integrations/webVitals';
-export { userTimingIntegration } from '@sentry/browser-utils';
 
 export { feedbackIntegrationShim as feedbackAsyncIntegration, feedbackIntegrationShim as feedbackIntegration };
 

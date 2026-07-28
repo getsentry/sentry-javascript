@@ -5,7 +5,6 @@ import {
   feedbackAsyncIntegration,
   replayIntegration,
   spanStreamingIntegration,
-  userTimingIntegration,
   webVitalsIntegration,
 } from '../src';
 import * as TracingReplayFeedbackBundle from '../src/index.bundle.tracing.replay.feedback';
@@ -17,7 +16,6 @@ describe('index.bundle.tracing.replay.feedback', () => {
     expect(TracingReplayFeedbackBundle.feedbackIntegration).toBe(feedbackAsyncIntegration);
     expect(TracingReplayFeedbackBundle.replayIntegration).toBe(replayIntegration);
     expect(TracingReplayFeedbackBundle.spanStreamingIntegration).toBe(spanStreamingIntegration);
-    expect(TracingReplayFeedbackBundle.userTimingIntegration).toBe(userTimingIntegration);
     expect(TracingReplayFeedbackBundle.webVitalsIntegration).toBe(webVitalsIntegration);
 
     expect(TracingReplayFeedbackBundle.logger).toBe(loggerShim);
