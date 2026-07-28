@@ -16,6 +16,7 @@ import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
 import { instrumentEnv } from './instrumentEnv';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 
 /**
  * Core queue handler logic - wraps execution with Sentry instrumentation.
@@ -36,9 +37,9 @@ function wrapQueueHandler(
 
     return startSpan(
       {
-        op: MESSAGING_QUEUE_PROCESS_SPAN_OP,
         name: `process ${batch.queue}`,
         attributes: {
+          [SENTRY_OP]: MESSAGING_QUEUE_PROCESS_SPAN_OP,
           'faas.trigger': 'pubsub',
           'messaging.destination.name': batch.queue,
           'messaging.system': 'cloudflare',
