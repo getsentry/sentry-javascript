@@ -1,4 +1,3 @@
-import type { BuildTimeInstrumentationOptions } from '@sentry/core';
 import type { InstrumentationConfig, CustomTransform } from '..';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 import { subscribeInjectionOptions } from './subscribeInjection';
@@ -10,11 +9,13 @@ export type PluginOptions = {
    */
   instrumentations?: InstrumentationConfig[];
   /**
-   * Options related to automatic build-time instrumentation. Set
-   * `buildTimeInstrumentation.disable` to `true` to make the orchestrion plugin
-   * inert, so no `diagnostics_channel` instrumentation code is injected.
+   * Automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set to `false` to make the plugin inert, so no instrumentation code is injected.
+   *
+   * @default true
    */
-  buildTimeInstrumentation?: BuildTimeInstrumentationOptions;
+  buildTimeInstrumentation?: boolean;
   /**
    * Custom transforms that can be applied using the `transform` option in each `InstrumentationConfig`.
    */

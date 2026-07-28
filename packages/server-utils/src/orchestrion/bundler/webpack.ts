@@ -112,7 +112,7 @@ function fixupLoaderPath(compiler: Compiler): void {
  * transform, so a compilation warning is emitted for them.
  */
 export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): { apply(compiler: Compiler): void } {
-  if (options.buildTimeInstrumentation?.disable) {
+  if (options.buildTimeInstrumentation === false) {
     // Inert plugin — no code transform, so no instrumentation lands in the bundle.
     return { apply: () => undefined };
   }

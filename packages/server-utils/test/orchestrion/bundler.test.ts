@@ -139,8 +139,8 @@ describe('sentryOrchestrionPlugin (vite)', () => {
   });
 });
 
-describe('buildTimeInstrumentation.disable', () => {
-  const disabled = { buildTimeInstrumentation: { disable: true } };
+describe('buildTimeInstrumentation: false', () => {
+  const disabled = { buildTimeInstrumentation: false };
 
   it('returns an inert vite plugin without the transform hooks', () => {
     const plugin = vitePlugin(disabled);

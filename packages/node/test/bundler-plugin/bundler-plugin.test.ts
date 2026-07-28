@@ -30,51 +30,26 @@ describe('@sentry/node bundler plugins', () => {
     vi.clearAllMocks();
   });
 
-  describe('by default (no opt-out)', () => {
-    it('vite includes the orchestrion plugin', () => {
-      const plugins = sentryVitePlugin();
-      expect(plugins.map(p => p.name)).toContain('sentry-orchestrion-vite');
-    });
-
-    it('rollup includes the orchestrion plugin', () => {
-      const plugins = sentryRollupPlugin();
-      expect(plugins.map(p => p.name)).toContain('sentry-orchestrion-rollup');
-    });
-
-    it('esbuild runs the orchestrion setup', async () => {
-      await sentryEsbuildPlugin().setup({} as never);
-      expect(orchestrionEsbuildSetup).toHaveBeenCalledTimes(1);
-    });
-
-    it('webpack applies the orchestrion plugin', () => {
-      sentryWebpackPlugin().apply({} as never);
-      expect(orchestrionWebpackApply).toHaveBeenCalledTimes(1);
-    });
+  // The wrappers always wire in the orchestrion plugin. Opting out via
+  // `buildTimeInstrumentation: false` is handled inside the orchestrion plugin
+  // itself (covered in @sentry/server-utils), which returns an inert plugin.
+  it('vite includes the orchestrion plugin', () => {
+    const plugins = sentryVitePlugin();
+    expect(plugins.map(p => p.name)).toContain('sentry-orchestrion-vite');
   });
 
-  describe('with buildTimeInstrumentation.disable', () => {
-    const disabled = { buildTimeInstrumentation: { disable: true } };
+  it('rollup includes the orchestrion plugin', () => {
+    const plugins = sentryRollupPlugin();
+    expect(plugins.map(p => p.name)).toContain('sentry-orchestrion-rollup');
+  });
 
-    it('vite omits the orchestrion plugin entirely', () => {
-      const plugins = sentryVitePlugin(disabled);
-      expect(plugins.map(p => p.name)).not.toContain('sentry-orchestrion-vite');
-      expect(orchestrionVite).not.toHaveBeenCalled();
-    });
+  it('esbuild runs the orchestrion setup', async () => {
+    await sentryEsbuildPlugin().setup({} as never);
+    expect(orchestrionEsbuildSetup).toHaveBeenCalledTimes(1);
+  });
 
-    it('rollup omits the orchestrion plugin entirely', () => {
-      const plugins = sentryRollupPlugin(disabled);
-      expect(plugins.map(p => p.name)).not.toContain('sentry-orchestrion-rollup');
-      expect(orchestrionRollup).not.toHaveBeenCalled();
-    });
-
-    it('esbuild never runs the orchestrion setup', async () => {
-      await sentryEsbuildPlugin(disabled).setup({} as never);
-      expect(orchestrionEsbuildSetup).not.toHaveBeenCalled();
-    });
-
-    it('webpack never applies the orchestrion plugin', () => {
-      sentryWebpackPlugin(disabled).apply({} as never);
-      expect(orchestrionWebpackApply).not.toHaveBeenCalled();
-    });
+  it('webpack applies the orchestrion plugin', () => {
+    sentryWebpackPlugin().apply({} as never);
+    expect(orchestrionWebpackApply).toHaveBeenCalledTimes(1);
   });
 });

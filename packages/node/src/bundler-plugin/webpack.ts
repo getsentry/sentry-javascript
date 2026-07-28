@@ -1,6 +1,5 @@
 import { sentryWebpackPlugin as sentryWebpackBundlerPlugin } from '@sentry/bundler-plugins/webpack';
 import type { SentryWebpackPluginOptions as SentryWebpackPluginOptionsBase } from '@sentry/bundler-plugins/webpack';
-import type { BuildTimeInstrumentationOptions } from '@sentry/core';
 import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
 
 export type SentryWebpackPluginOptions = SentryWebpackPluginOptionsBase & {
@@ -10,11 +9,13 @@ export type SentryWebpackPluginOptions = SentryWebpackPluginOptionsBase & {
   instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionWebpackPlugin>[0]>['instrumentations'];
 
   /**
-   * Options related to automatic instrumentation of server-side dependencies at build time.
+   * Automatic instrumentation of server-side dependencies at build time.
    *
-   * Set `buildTimeInstrumentation.disable` to `true` to turn it off.
+   * Set to `false` to turn it off.
+   *
+   * @default true
    */
-  buildTimeInstrumentation?: BuildTimeInstrumentationOptions;
+  buildTimeInstrumentation?: boolean;
 };
 
 type WebpackCompiler = Parameters<ReturnType<typeof sentryWebpackBundlerPlugin>['apply']>[0];
@@ -37,13 +38,12 @@ export function sentryWebpackPlugin(options?: SentryWebpackPluginOptions): {
   apply: (compiler: WebpackCompiler) => void;
 } {
   const bundlerPlugin = sentryWebpackBundlerPlugin(options) as { apply: (compiler: WebpackCompiler) => void };
+  const orchestrionPlugin = sentryOrchestrionWebpackPlugin(options) as { apply: (compiler: WebpackCompiler) => void };
 
   return {
     apply(compiler: WebpackCompiler): void {
       bundlerPlugin.apply(compiler);
-      if (!options?.buildTimeInstrumentation?.disable) {
-        (sentryOrchestrionWebpackPlugin(options) as { apply: (compiler: WebpackCompiler) => void }).apply(compiler);
-      }
+      orchestrionPlugin.apply(compiler);
     },
   };
 }

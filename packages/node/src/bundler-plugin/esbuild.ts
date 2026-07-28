@@ -1,6 +1,5 @@
 import { sentryEsbuildPlugin as sentryEsbuildBundlerPlugin } from '@sentry/bundler-plugins/esbuild';
 import type { SentryEsbuildPluginOptions as SentryEsbuildPluginOptionsBase } from '@sentry/bundler-plugins/esbuild';
-import type { BuildTimeInstrumentationOptions } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/esbuild';
 
 export type SentryEsbuildPluginOptions = SentryEsbuildPluginOptionsBase & {
@@ -10,11 +9,13 @@ export type SentryEsbuildPluginOptions = SentryEsbuildPluginOptionsBase & {
   instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionPlugin>[0]>['instrumentations'];
 
   /**
-   * Options related to automatic instrumentation of server-side dependencies at build time.
+   * Automatic instrumentation of server-side dependencies at build time.
    *
-   * Set `buildTimeInstrumentation.disable` to `true` to turn it off.
+   * Set to `false` to turn it off.
+   *
+   * @default true
    */
-  buildTimeInstrumentation?: BuildTimeInstrumentationOptions;
+  buildTimeInstrumentation?: boolean;
 };
 
 type EsbuildPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
@@ -35,14 +36,13 @@ type EsbuildPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  */
 export function sentryEsbuildPlugin(options?: SentryEsbuildPluginOptions): EsbuildPlugin {
   const bundlerPlugin = sentryEsbuildBundlerPlugin(options) as EsbuildPlugin;
+  const orchestrionPlugin = sentryOrchestrionPlugin(options);
 
   return {
     name: 'sentry-node-esbuild',
     async setup(build): Promise<void> {
       await bundlerPlugin.setup(build);
-      if (!options?.buildTimeInstrumentation?.disable) {
-        await sentryOrchestrionPlugin(options).setup(build);
-      }
+      await orchestrionPlugin.setup(build);
     },
   };
 }

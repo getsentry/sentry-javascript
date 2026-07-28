@@ -18,7 +18,7 @@ import { externalizedModulesWarning, orchestrionTransformOptions } from './optio
  * ```
  */
 export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
-  if (options.buildTimeInstrumentation?.disable) {
+  if (options.buildTimeInstrumentation === false) {
     // Inert plugin — no code transform, so no instrumentation lands in the bundle.
     return { name: 'sentry-orchestrion-disabled' };
   }
