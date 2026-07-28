@@ -282,6 +282,24 @@ describe('startIdleSpan', () => {
     expect(transaction.spans).toEqual([expect.objectContaining({ description: 'from beforeSpanEnd' })]);
   });
 
+  it('runs beforeIdleSpanEnd before trimming the idle span', () => {
+    const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
+    const beforeIdleSpanEnd = vi.fn((span: Span) => {
+      expect(spanToJSON(span).timestamp).toBeUndefined();
+      const childSpan = startInactiveSpan({ name: 'last-moment child', startTime: baseTimeInSeconds });
+      childSpan.end(baseTimeInSeconds + 1);
+    });
+    getClient()!.on('beforeIdleSpanEnd', beforeIdleSpanEnd);
+
+    const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds });
+    vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
+    vi.runOnlyPendingTimers();
+
+    expect(beforeIdleSpanEnd).toHaveBeenCalledOnce();
+    expect(beforeIdleSpanEnd).toHaveBeenCalledWith(idleSpan);
+    expect(spanToJSON(idleSpan).timestamp).toBe(baseTimeInSeconds + 1);
+  });
+
   it('filters spans on end', () => {
     const transactions: Event[] = [];
     const beforeSendTransaction = vi.fn(event => {

@@ -140,6 +140,8 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   // eslint-disable-next-line @typescript-eslint/unbound-method
   span.end = new Proxy(span.end, {
     apply(target, thisArg, args: Parameters<Span['end']>) {
+      client.emit('beforeIdleSpanEnd', span);
+
       if (beforeSpanEnd) {
         beforeSpanEnd(span);
       }

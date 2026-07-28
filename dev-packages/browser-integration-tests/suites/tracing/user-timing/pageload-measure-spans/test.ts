@@ -30,6 +30,6 @@ sentryTest('should add browser-related spans to pageload transaction', async ({ 
     'sentry.browser.measure_happened_before_request': true,
     'sentry.browser.measure_start_time': expect.any(Number),
     'sentry.op': 'measure',
-    'sentry.origin': 'auto.resource.browser.metrics',
+    'sentry.origin': 'auto.browser.user_timing.measure',
   });
 });

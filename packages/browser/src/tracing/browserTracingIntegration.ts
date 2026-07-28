@@ -193,41 +193,6 @@ export interface BrowserTracingOptions {
   ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
 
   /**
-   * Spans created from the following browser Performance APIs,
-   *
-   * - [`performance.mark(...)`](https://developer.mozilla.org/en-US/docs/Web/API/Performance/mark)
-   * - [`performance.measure(...)`](https://developer.mozilla.org/en-US/docs/Web/API/Performance/measure)
-   *
-   * will not be emitted if their names match strings in this array.
-   *
-   * This is useful, if you come across `mark` or `measure` spans in your Sentry traces
-   * that you want to ignore. For example, sometimes, browser extensions or libraries
-   * emit these entries on their own, which might not be relevant to your application.
-   *
-   * * @example
-   * ```ts
-   * Sentry.init({
-   *   integrations: [
-   *     Sentry.browserTracingIntegration({
-   *      ignorePerformanceApiSpans: ['myMeasurement', /myMark/],
-   *     }),
-   *   ],
-   * });
-   *
-   * // no spans will be created for these:
-   * performance.mark('myMark');
-   * performance.measure('myMeasurement');
-   *
-   * // spans will be created for these:
-   * performance.mark('authenticated');
-   * performance.measure('input-duration', ...);
-   * ```
-   *
-   * Default: [] - By default, all `mark` and `measure` entries are sent as spans.
-   */
-  ignorePerformanceApiSpans: Array<string | RegExp>;
-
-  /**
    * By default, the SDK will try to detect redirects and avoid creating separate spans for them.
    * If you want to opt-out of this behavior, you can set this option to `false`.
    *
@@ -339,7 +304,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongAnimationFrame: true,
   enableInp: true,
   ignoreResourceSpans: [],
-  ignorePerformanceApiSpans: [],
   detectRedirects: true,
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
@@ -395,7 +359,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     shouldCreateSpanForRequest,
     enableHTTPTimings,
     ignoreResourceSpans,
-    ignorePerformanceApiSpans,
     instrumentPageLoad,
     instrumentNavigation,
     detectRedirects,
@@ -464,7 +427,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       beforeSpanEnd: span => {
         addPerformanceEntries(span, {
           ignoreResourceSpans,
-          ignorePerformanceApiSpans,
           spanStreamingEnabled: hasSpanStreamingEnabled(client),
         });
         setActiveIdleSpan(client, undefined);
