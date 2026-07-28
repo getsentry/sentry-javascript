@@ -6,7 +6,7 @@ import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('MongoDB auto-instrumentation', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongo' : 'auto.db.otel.mongo';
+  const origin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

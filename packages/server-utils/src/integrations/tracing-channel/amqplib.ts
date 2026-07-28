@@ -36,8 +36,8 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 // When enabled, the OTel 'Amqplib' integration is omitted from the default set.
 const INTEGRATION_NAME = 'Amqplib' as const;
 
-const PUBLISHER_ORIGIN = 'auto.amqplib.orchestrion.publisher';
-const CONSUMER_ORIGIN = 'auto.amqplib.orchestrion.consumer';
+const PUBLISHER_ORIGIN = 'auto.amqplib.publisher';
+const CONSUMER_ORIGIN = 'auto.amqplib.consumer';
 
 // Legacy messaging semantic-conventions, inlined to keep this integration free of `@opentelemetry/*`
 // deps. These mirror what the vendored OTel amqplib instrumentation has always emitted. We keep

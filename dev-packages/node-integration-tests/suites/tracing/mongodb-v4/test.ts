@@ -21,7 +21,7 @@ describe('MongoDB v4 auto-instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongo' : 'auto.db.otel.mongo';
+  const origin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
 
   const spanFor = (operation: string): unknown =>
     expect.objectContaining({

@@ -25,9 +25,7 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 // integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'Google_GenAI' as const;
 
-// Distinct from the proxy's `auto.ai.google_genai` so spans from the orchestrion path
-// are attributable separately from the OTel/proxy one.
-const ORIGIN = 'auto.ai.orchestrion.google_genai';
+const ORIGIN = 'auto.ai.google_genai';
 
 // Each instrumented method maps to the gen_ai operation its span reports.
 const INSTRUMENTED_CHANNELS = [

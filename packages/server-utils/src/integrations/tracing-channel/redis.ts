@@ -38,7 +38,7 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 // is fully gated off in the node SDK.
 const INTEGRATION_NAME = 'RedisChannel' as const;
 
-const ORIGIN = 'auto.db.orchestrion.redis';
+const ORIGIN = 'auto.db.redis';
 
 // todo(v11): drop this — it is already covered by host and port.
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';

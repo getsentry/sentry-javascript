@@ -32,7 +32,7 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 // NOTE: this uses the same name as the OTel integration by design. `@sentry/node`'s `knexIntegration`
 // picks this subscriber over the vendored OTel path when orchestrion injection is active.
 const INTEGRATION_NAME = 'Knex' as const;
-const ORIGIN = 'auto.db.orchestrion.knex';
+const ORIGIN = 'auto.db.knex';
 
 // Max length of the query text captured in `db.statement`; "..." is appended when truncated, so the
 // truncated statement caps at 1024 chars (1 KiB), matching `@opentelemetry/instrumentation-knex`.

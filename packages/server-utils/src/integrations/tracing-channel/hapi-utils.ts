@@ -110,7 +110,7 @@ function startMetadataSpan(metadata: SpanMetadata, original: () => unknown): unk
       op: `${metadata.attributes[AttributeNames.HAPI_TYPE]}.hapi`,
       attributes: {
         ...metadata.attributes,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.orchestrion.hapi',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.hapi',
       },
     },
     original,
