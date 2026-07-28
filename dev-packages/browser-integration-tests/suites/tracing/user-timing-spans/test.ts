@@ -20,6 +20,5 @@ sentryTest('captures non-ignored mark and measure spans', async ({ getLocalTestU
   expect(userTimingSpans).toEqual([
     { name: 'mark-pass', op: 'mark' },
     { name: 'measure-pass', op: 'measure' },
-    { name: 'sentry-tracing-init', op: 'mark' },
   ]);
 });

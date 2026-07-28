@@ -88,11 +88,6 @@ interface StartTrackingWebVitalsOptions {
 export function startTrackingWebVitals({ trackCls, trackLcp }: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin()) {
-    // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
-    if (performance.mark) {
-      WINDOW.performance.mark('sentry-tracing-init');
-    }
-
     const lcpCleanupCallback = trackLcp ? _trackLCP() : undefined;
     const clsCleanupCallback = trackCls ? _trackCLS() : undefined;
     const ttfbCleanupCallback = _trackTtfb();
