@@ -38,8 +38,7 @@ sentryTest('captures CLS as a streamed span with source attributes', async ({ ge
   expect(clsSpan.attributes['sentry.exclusive_time']).toEqual({ type: 'integer', value: 0 });
   expect(clsSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
 
-  // Check the CLS span carries the transaction/segment name it belongs to
-  expect(clsSpan.attributes['sentry.transaction']).toEqual({ type: 'string', value: '/index.html' });
+  // Check the CLS span carries the segment name it belongs to
   expect(clsSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: '/index.html' });
 
   // Check browser.web_vital.cls.source attributes

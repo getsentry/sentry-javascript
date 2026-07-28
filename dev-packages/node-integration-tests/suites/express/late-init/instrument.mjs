@@ -10,6 +10,7 @@ Sentry.preloadOpenTelemetry({ integrations: ['Express'] });
 // existing instrumentation to update its options. The lazy getOptions()
 // in patchLayer ensures the updated options are read at request time.
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,

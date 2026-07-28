@@ -1,5 +1,4 @@
 import type { Span } from '@sentry/core';
-import { SPAN_KIND } from '@sentry/core';
 import { AWS_SECRETSMANAGER_SECRET_ARN as ATTR_AWS_SECRETSMANAGER_SECRET_ARN } from '@sentry/conventions/attributes';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
@@ -14,7 +13,6 @@ export class SecretsManagerServiceExtension implements ServiceExtension {
 
     return {
       spanAttributes,
-      spanKind: SPAN_KIND.CLIENT,
     };
   }
 

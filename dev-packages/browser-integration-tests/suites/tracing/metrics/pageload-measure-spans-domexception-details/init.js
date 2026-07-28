@@ -22,6 +22,7 @@ Object.defineProperty(measure, 'detail', {
 window.Sentry = Sentry;
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [Sentry.browserTracingIntegration({})],
   tracesSampleRate: 1,

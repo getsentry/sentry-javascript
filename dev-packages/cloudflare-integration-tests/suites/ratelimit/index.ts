@@ -13,6 +13,7 @@ function json(data: unknown): Response {
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1,
   }),
   {

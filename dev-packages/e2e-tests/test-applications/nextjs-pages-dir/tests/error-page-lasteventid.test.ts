@@ -1,11 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
-import { isNext13 } from './nextjsVersion';
 
 test('lastEventId() should return the event ID after captureUnderscoreErrorException', async ({ page }) => {
   test.skip(isDevMode, 'should be skipped for non-dev mode');
-  test.skip(isNext13, 'should be skipped for Next.js 13');
 
   const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Test error to trigger _error.tsx page';
@@ -39,7 +37,6 @@ test('lastEventId() should return the event ID after captureUnderscoreErrorExcep
 
 test('lastEventId() should return the event ID for component render errors', async ({ page }) => {
   test.skip(isDevMode, 'should be skipped for non-dev mode');
-  test.skip(isNext13, 'should be skipped for Next.js 13');
 
   const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Test render error to trigger _error.tsx page';

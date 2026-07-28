@@ -15,6 +15,7 @@ console.warn = new Proxy(console.warn, {
 });
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
   integrations: [

@@ -89,7 +89,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
                   'db.query.text':
                     'SELECT "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" FROM "public"."User" WHERE 1=1 OFFSET $1',
                   'db.system': 'postgresql',
-                  'otel.kind': 'CLIENT',
+                  'sentry.kind': 'client',
                 },
                 description:
                   'SELECT "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" FROM "public"."User" WHERE 1=1 OFFSET $1',
@@ -100,7 +100,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
                   'sentry.op': 'db',
                   'db.query.text': 'DELETE FROM "public"."User" WHERE "public"."User"."email"::text LIKE $1',
                   'db.system': 'postgresql',
-                  'otel.kind': 'CLIENT',
+                  'sentry.kind': 'client',
                 },
                 description: 'DELETE FROM "public"."User" WHERE "public"."User"."email"::text LIKE $1',
               });

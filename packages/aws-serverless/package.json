@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build/npm",
@@ -58,13 +58,6 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
@@ -74,7 +67,7 @@
     "@sentry/conventions": "^0.16.0",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
-    "@sentry/node-core": "10.67.0",
+    "@sentry/server-utils": "10.67.0",
     "@types/aws-lambda": "^8.10.161"
   },
   "devDependencies": {
@@ -88,9 +81,7 @@
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "run-s build:transpile:npm build:extension",
     "build:transpile:npm": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

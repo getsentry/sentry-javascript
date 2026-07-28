@@ -1,5 +1,4 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
-import { SpanKind } from '@opentelemetry/api';
 import {
   DB_STATEMENT,
   DB_SYSTEM,
@@ -12,6 +11,8 @@ import {
   HTTP_URL,
   MESSAGING_SYSTEM,
   RPC_SERVICE,
+  SENTRY_GRAPHQL_OPERATION,
+  SENTRY_KIND,
   URL_FULL,
 } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes, TransactionSource } from '@sentry/core';
@@ -25,10 +26,6 @@ import {
   spanToJSON,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
-import type { AbstractSpan } from '../types';
-import { getSpanKind } from './getSpanKind';
-import { spanHasAttributes, spanHasName } from './spanTypes';
 
 interface SpanDescription {
   op: string | undefined;
@@ -40,12 +37,12 @@ interface SpanDescription {
 /**
  * Infer the op & description for a set of name, attributes and kind of a span.
  */
-export function inferSpanData(spanName: string, attributes: SpanAttributes, kind: SpanKind): SpanDescription {
+export function inferSpanData(spanName: string, attributes: SpanAttributes): SpanDescription {
   // if http.method exists, this is an http request span
   // eslint-disable-next-line typescript/no-deprecated
   const httpMethod = attributes[HTTP_REQUEST_METHOD] || attributes[HTTP_METHOD];
   if (httpMethod) {
-    return descriptionForHttpMethod({ attributes, name: spanName, kind }, httpMethod);
+    return descriptionForHttpMethod({ attributes, name: spanName }, httpMethod);
   }
 
   // eslint-disable-next-line typescript/no-deprecated
@@ -104,24 +101,12 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
  *
  * Based on https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/7422ce2a06337f68a59b552b8c5a2ac125d6bae5/exporter/sentryexporter/sentry_exporter.go#L306
  */
-export function parseSpanDescription(span: AbstractSpan): SpanDescription {
-  let attributes: Attributes;
-  let name: string;
+export function parseSpanDescription(span: Span): SpanDescription {
+  const json = spanToJSON(span);
+  const attributes = json.data;
+  const name = json.description || '<unknown>';
 
-  // TODO(v11): Once the OTel SDK provider is removed and SentryTracerProvider is the only path,
-  // every span is a native Sentry span — drop this `spanHasAttributes` (OTel ReadableSpan) branch
-  // and keep only the `spanToJSON()` path below.
-  if (spanHasAttributes(span)) {
-    attributes = span.attributes;
-    name = spanHasName(span) ? span.name : '<unknown>';
-  } else {
-    const json = typeof (span as Span).spanContext === 'function' ? spanToJSON(span as Span) : undefined;
-    attributes = json?.data || {};
-    name = spanHasName(span) ? span.name : json?.description || '<unknown>';
-  }
-
-  const kind = getSpanKind(span);
-  return inferSpanData(name, attributes, kind);
+  return inferSpanData(name, attributes);
 }
 
 function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; name: string }): SpanDescription {
@@ -151,16 +136,17 @@ function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; 
 
 /** Only exported for tests. */
 export function descriptionForHttpMethod(
-  { name, kind, attributes }: { name: string; attributes: Attributes; kind: SpanKind },
+  { name, attributes }: { name: string; attributes: Attributes },
   httpMethod: AttributeValue,
 ): SpanDescription {
   const opParts = ['http'];
+  const kind = attributes[SENTRY_KIND];
 
   switch (kind) {
-    case SpanKind.CLIENT:
+    case 'client':
       opParts.push('client');
       break;
-    case SpanKind.SERVER:
+    case 'server':
       opParts.push('server');
       break;
   }
@@ -170,13 +156,13 @@ export function descriptionForHttpMethod(
     opParts.push('prefetch');
   }
 
-  const { urlPath, url, query, fragment, hasRoute } = getSanitizedUrl(attributes, kind);
+  const { urlPath, url, query, fragment, hasRoute } = getSanitizedUrl(attributes);
 
   if (!urlPath) {
     return { ...getUserUpdatedNameAndSource(name, attributes), op: opParts.join('.') };
   }
 
-  const graphqlOperationsAttribute = attributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION];
+  const graphqlOperationsAttribute = attributes[SENTRY_GRAPHQL_OPERATION];
 
   // Ex. GET /api/users
   const baseDescription = `${httpMethod} ${urlPath}`;
@@ -208,7 +194,7 @@ export function descriptionForHttpMethod(
 
   // If the span kind is neither client nor server, we use the original name
   // this infers that somebody manually started this span, in which case we don't want to overwrite the name
-  const isClientOrServerKind = kind === SpanKind.CLIENT || kind === SpanKind.SERVER;
+  const isClientOrServerKind = kind === 'client' || kind === 'server';
 
   // If the span is an auto-span (=it comes from one of our instrumentations),
   // we always want to infer the name
@@ -253,16 +239,15 @@ function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
 }
 
 /** Exported for tests only */
-export function getSanitizedUrl(
-  attributes: Attributes,
-  kind: SpanKind,
-): {
+export function getSanitizedUrl(attributes: Attributes): {
   url: string | undefined;
   urlPath: string | undefined;
   query: string | undefined;
   fragment: string | undefined;
   hasRoute: boolean;
 } {
+  const kind = attributes[SENTRY_KIND];
+
   // This is the relative path of the URL, e.g. /sub
   // eslint-disable-next-line typescript/no-deprecated
   const httpTarget = attributes[HTTP_TARGET];
@@ -281,7 +266,7 @@ export function getSanitizedUrl(
     return { urlPath: httpRoute, url, query, fragment, hasRoute: true };
   }
 
-  if (kind === SpanKind.SERVER && typeof httpTarget === 'string') {
+  if (kind === 'server' && typeof httpTarget === 'string') {
     return { urlPath: stripUrlQueryAndFragment(httpTarget), url, query, fragment, hasRoute: false };
   }
 

@@ -2,8 +2,11 @@
   "name": "node-express-cjs-preload",
   "version": "1.0.0",
   "private": true,
+  "sentryTest": {
+    "skip": true
+  },
   "scripts": {
-    "start": "node --require @sentry/node/preload src/app.js",
+    "start": "node --import @sentry/node/preload src/app.js",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install",
     "test:assert": "playwright test"

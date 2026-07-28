@@ -1,11 +1,10 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { CACHE_KEY } from '@sentry/conventions/attributes';
+import { CACHE_KEY, SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span, StartSpanOptions } from '@sentry/core';
 import {
   debug,
   defineIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   startInactiveSpan,
   startSpan,
   waitForTracingChannelBinding,
@@ -81,20 +80,20 @@ function makeSpanOptions(
 
   return {
     name: getSpanName(loader, operation),
-    // Every direct operation (`load`/`loadMany`/`prime`/`clear`/`clearAll`) is a client call, matching
-    // the vendored OTel instrumentation. The `batch` runs off a deferred tick with no obvious network
-    // peer, so it gets no kind.
-    kind: operation === 'batch' ? undefined : SPAN_KIND.CLIENT,
     op: isCacheGet ? CACHE_GET_OP : undefined,
     onlyIfParent: true,
     attributes: {
+      // Every direct operation (`load`/`loadMany`/`prime`/`clear`/`clearAll`) is a client call, matching
+      // the vendored OTel instrumentation. The `batch` runs off a deferred tick with no obvious network
+      // peer, so it gets no kind.
+      [SENTRY_KIND]: operation === 'batch' ? undefined : 'client',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       [CACHE_KEY]: isCacheGet ? getCacheKey(keyArg) : undefined,
     },
   };
 }
 
-const _dataloaderChannelIntegration = (() => {
+const _dataloaderIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -183,10 +182,10 @@ function startInactiveSpanFor(loader: DataLoaderInstance | undefined, operation:
 }
 
 /**
- * EXPERIMENTAL: orchestrion-driven `dataloader` integration.
+ * Orchestrion-driven `dataloader` integration.
  *
  * Subscribes to the `orchestrion:dataloader:*` diagnostics_channels that the orchestrion code
  * transform injects into `dataloader`'s constructor and prototype methods. Requires the orchestrion
  * runtime hook or bundler plugin to be active.
  */
-export const dataloaderChannelIntegration = defineIntegration(_dataloaderChannelIntegration);
+export const dataloaderIntegration = defineIntegration(_dataloaderIntegration);

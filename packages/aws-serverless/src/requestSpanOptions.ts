@@ -16,9 +16,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CLOUD_ACCOUNT_ID, FAAS_COLDSTART, URL_FULL } from '@sentry/conventions/attributes';
+import { CLOUD_ACCOUNT_ID, FAAS_COLDSTART, SENTRY_KIND, URL_FULL } from '@sentry/conventions/attributes';
 import type { SpanAttributes, StartSpanOptions } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_KIND } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { Context } from 'aws-lambda';
 import { ATTR_FAAS_EXECUTION, ATTR_FAAS_ID } from './semconv';
 
@@ -38,9 +38,9 @@ export function getRequestSpanOptions(event: unknown, context: Context, requestI
     name: context.functionName,
     op: 'function.aws.lambda',
     forceTransaction: true,
-    kind: SPAN_KIND.SERVER,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws_lambda',
+      [SENTRY_KIND]: 'server',
       [ATTR_FAAS_EXECUTION]: context.awsRequestId,
       [ATTR_FAAS_ID]: context.invokedFunctionArn,
       [CLOUD_ACCOUNT_ID]: extractAccountId(context.invokedFunctionArn),

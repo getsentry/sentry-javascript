@@ -1,3 +1,4 @@
+// oxlint-disable max-lines
 /**
  * Provide the `http.server.request.start` subscription function that we use
  * to instrument incoming HTTP requests that use the `node:http` module.
@@ -37,9 +38,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
-import { SPAN_KIND } from '../../spanKind';
 import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
+import { HTTP_URL, URL_FULL, URL_PATH, SENTRY_KIND } from '@sentry/conventions/attributes';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -278,19 +279,15 @@ function buildServerSpanWrap(
       return startSpanManual(
         {
           name,
-          // Pass SERVER so the OTel sampler infers op='http.server' rather than
-          // 'http', which it does for the INTERNAL default.
-          kind: SPAN_KIND.SERVER,
           attributes: {
             // Sentry-specific attributes
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            [SENTRY_KIND]: 'server',
             // Set http.route to the URL path as a best-effort route name.
             // Framework integrations (Express, etc.) update this via onSpanEnd.
             'http.route': httpTargetWithoutQueryFragment,
-            // OTel kind (explicit attribute so it appears in span data)
-            'otel.kind': 'SERVER',
             // Network attributes
             'net.host.ip': localAddress,
             'net.host.port': localPort,
@@ -298,7 +295,10 @@ function buildServerSpanWrap(
             'net.peer.port': remotePort,
             'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
             // Old Semantic Conventions attributes for compatibility
-            'http.url': fullUrl,
+            [URL_FULL]: fullUrl,
+            [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
+            // oxlint-disable-next-line typescript-eslint(no-deprecated)
+            [HTTP_URL]: fullUrl,
             'http.method': method,
             'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
             'http.host': host,

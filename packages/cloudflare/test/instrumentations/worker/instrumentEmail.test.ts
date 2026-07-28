@@ -268,6 +268,7 @@ describe('instrumentEmail', () => {
         },
         op: 'faas.email',
         origin: 'auto.faas.cloudflare.email',
+        status: 'ok',
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });

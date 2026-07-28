@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GEN_AI_INPUT_MESSAGES_ATTRIBUTE } from '../../../src/tracing/ai/gen-ai-attributes';
+import { GEN_AI_INPUT_MESSAGES } from '@sentry/conventions/attributes';
 import type { LangChainMessage } from '../../../src/tracing/langchain/types';
 import {
   _INTERNAL_mergeLangChainCallbackHandler,
@@ -242,7 +242,7 @@ describe('extractChatModelRequestAttributes with multimodal content', () => {
     ];
 
     const attrs = extractChatModelRequestAttributes(serialized, messages, true, true);
-    const inputMessages = attrs[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] as string | undefined;
+    const inputMessages = attrs[GEN_AI_INPUT_MESSAGES] as string | undefined;
 
     expect(inputMessages).toBeDefined();
     expect(inputMessages).not.toContain(b64Data);

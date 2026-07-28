@@ -161,13 +161,10 @@ function getPopFirstTopFrames(ex: Error & { framesToPop?: unknown }): number {
 }
 
 // https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Exception
-// @ts-expect-error - WebAssembly.Exception is a valid class
 function isWebAssemblyException(exception: unknown): exception is WebAssembly.Exception {
   // Check for support
-  // @ts-expect-error - WebAssembly.Exception is a valid class
   // oxlint-disable-next-line typescript/prefer-optional-chain
   if (typeof WebAssembly !== 'undefined' && typeof WebAssembly.Exception !== 'undefined') {
-    // @ts-expect-error - WebAssembly.Exception is a valid class
     return exception instanceof WebAssembly.Exception;
   } else {
     return false;
@@ -337,8 +334,9 @@ export function eventFromUnknownInput(
   // - a plain Object
   //
   // So bail out and capture it as a simple message:
-  event = eventFromString(stackParser, exception as string, syntheticException, attachStacktrace);
-  addExceptionTypeValue(event, `${exception}`, undefined);
+  const stringifiedException = String(exception);
+  event = eventFromString(stackParser, stringifiedException, syntheticException, attachStacktrace);
+  addExceptionTypeValue(event, stringifiedException, undefined);
   addExceptionMechanism(event, {
     synthetic: true,
   });

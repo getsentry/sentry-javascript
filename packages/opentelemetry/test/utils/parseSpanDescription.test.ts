@@ -1,6 +1,4 @@
 /* eslint-disable typescript/no-deprecated */
-import type { Span } from '@opentelemetry/api';
-import { SpanKind } from '@opentelemetry/api';
 import {
   DB_STATEMENT,
   DB_SYSTEM,
@@ -14,6 +12,7 @@ import {
   HTTP_URL,
   MESSAGING_SYSTEM,
   RPC_SERVICE,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
@@ -21,27 +20,15 @@ import {
   descriptionForHttpMethod,
   getSanitizedUrl,
   getUserUpdatedNameAndSource,
-  parseSpanDescription,
+  inferSpanData,
 } from '../../src/utils/parseSpanDescription';
 
-describe('parseSpanDescription', () => {
+describe('inferSpanData', () => {
   it.each([
-    [
-      'works without attributes & name',
-      undefined,
-      undefined,
-      undefined,
-      {
-        description: '<unknown>',
-        op: undefined,
-        source: 'custom',
-      },
-    ],
     [
       'works with empty attributes',
       {},
       'test name',
-      SpanKind.CLIENT,
       {
         description: 'test name',
         op: undefined,
@@ -52,9 +39,9 @@ describe('parseSpanDescription', () => {
       'works with deprecated http method',
       {
         [HTTP_METHOD]: 'GET',
+        [SENTRY_KIND]: 'client',
       },
       'test name',
-      SpanKind.CLIENT,
       {
         description: 'test name',
         op: 'http.client',
@@ -65,9 +52,9 @@ describe('parseSpanDescription', () => {
       'works with http method',
       {
         'http.request.method': 'GET',
+        [SENTRY_KIND]: 'client',
       },
       'test name',
-      SpanKind.CLIENT,
       {
         description: 'test name',
         op: 'http.client',
@@ -79,9 +66,9 @@ describe('parseSpanDescription', () => {
       {
         [DB_SYSTEM]: 'mysql',
         [DB_STATEMENT]: 'SELECT * from users',
+        [SENTRY_KIND]: 'client',
       },
       'test name',
-      SpanKind.CLIENT,
       {
         description: 'SELECT * from users',
         op: 'db',
@@ -94,9 +81,9 @@ describe('parseSpanDescription', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         [DB_SYSTEM]: 'mysql',
         [DB_STATEMENT]: 'SELECT * from users',
+        [SENTRY_KIND]: 'client',
       },
       'test name',
-      SpanKind.CLIENT,
       {
         description: 'test name',
         op: 'db',
@@ -110,9 +97,9 @@ describe('parseSpanDescription', () => {
         [DB_SYSTEM]: 'mysql',
         [DB_STATEMENT]: 'SELECT * from users',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+        [SENTRY_KIND]: 'client',
       },
       'test name',
-      SpanKind.CLIENT,
       {
         description: 'custom name',
         op: 'db',
@@ -126,9 +113,9 @@ describe('parseSpanDescription', () => {
         [DB_SYSTEM]: 'mysql',
         [DB_STATEMENT]: 'SELECT * from users',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+        [SENTRY_KIND]: 'client',
       },
       'test name',
-      SpanKind.CLIENT,
       {
         description: 'custom name',
         op: 'db',
@@ -139,9 +126,9 @@ describe('parseSpanDescription', () => {
       'works with db system without statement',
       {
         [DB_SYSTEM]: 'mysql',
+        [SENTRY_KIND]: 'client',
       },
       'test name',
-      SpanKind.CLIENT,
       {
         description: 'test name',
         op: 'db',
@@ -153,9 +140,9 @@ describe('parseSpanDescription', () => {
       {
         [DB_SYSTEM_NAME]: 'postgresql',
         [DB_STATEMENT]: 'SELECT * from users',
+        [SENTRY_KIND]: 'client',
       },
       'test name',
-      SpanKind.CLIENT,
       {
         description: 'SELECT * from users',
         op: 'db',
@@ -166,9 +153,9 @@ describe('parseSpanDescription', () => {
       'works with db.system.name without statement',
       {
         [DB_SYSTEM_NAME]: 'postgresql',
+        [SENTRY_KIND]: 'client',
       },
       'test name',
-      SpanKind.CLIENT,
       {
         description: 'test name',
         op: 'db',
@@ -181,9 +168,9 @@ describe('parseSpanDescription', () => {
         [DB_SYSTEM_NAME]: 'postgresql',
         [DB_SYSTEM]: 'mysql',
         [DB_STATEMENT]: 'SELECT * from users',
+        [SENTRY_KIND]: 'client',
       },
       'test name',
-      SpanKind.CLIENT,
       {
         description: 'SELECT * from users',
         op: 'db',
@@ -196,7 +183,6 @@ describe('parseSpanDescription', () => {
         [RPC_SERVICE]: 'rpc-test-service',
       },
       'test name',
-      undefined,
       {
         description: 'test name',
         op: 'rpc',
@@ -210,7 +196,6 @@ describe('parseSpanDescription', () => {
         [RPC_SERVICE]: 'rpc-test-service',
       },
       'test name',
-      undefined,
       {
         description: 'test name',
         op: 'rpc',
@@ -225,7 +210,6 @@ describe('parseSpanDescription', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
-      undefined,
       {
         description: 'custom name',
         op: 'rpc',
@@ -240,7 +224,6 @@ describe('parseSpanDescription', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
-      undefined,
       {
         description: 'custom name',
         op: 'rpc',
@@ -253,7 +236,6 @@ describe('parseSpanDescription', () => {
         [MESSAGING_SYSTEM]: 'test-messaging-system',
       },
       'test name',
-      undefined,
       {
         description: 'test name',
         op: 'message',
@@ -267,7 +249,6 @@ describe('parseSpanDescription', () => {
         [MESSAGING_SYSTEM]: 'test-messaging-system',
       },
       'test name',
-      undefined,
       {
         description: 'test name',
         op: 'message',
@@ -282,7 +263,6 @@ describe('parseSpanDescription', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
-      undefined,
       {
         description: 'custom name',
         op: 'message',
@@ -297,7 +277,6 @@ describe('parseSpanDescription', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
-      undefined,
       {
         description: 'custom name',
         op: 'message',
@@ -310,7 +289,6 @@ describe('parseSpanDescription', () => {
         [FAAS_TRIGGER]: 'test-faas-trigger',
       },
       'test name',
-      undefined,
       {
         description: 'test name',
         op: 'test-faas-trigger',
@@ -324,7 +302,6 @@ describe('parseSpanDescription', () => {
         [FAAS_TRIGGER]: 'test-faas-trigger',
       },
       'test name',
-      undefined,
       {
         description: 'test name',
         op: 'test-faas-trigger',
@@ -339,7 +316,6 @@ describe('parseSpanDescription', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
-      undefined,
       {
         description: 'custom name',
         op: 'test-faas-trigger',
@@ -354,15 +330,14 @@ describe('parseSpanDescription', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
-      undefined,
       {
         description: 'custom name',
         op: 'test-faas-trigger',
         source: 'component',
       },
     ],
-  ])('%s', (_, attributes, name, kind, expected) => {
-    const actual = parseSpanDescription({ attributes, kind, name } as unknown as Span);
+  ])('%s', (_, attributes, name, expected) => {
+    const actual = inferSpanData(name, attributes);
     expect(actual).toEqual(expected);
   });
 });
@@ -374,9 +349,8 @@ describe('descriptionForHttpMethod', () => {
       'GET',
       {},
       'test name',
-      SpanKind.CLIENT,
       {
-        op: 'http.client',
+        op: 'http',
         description: 'test name',
         source: 'custom',
       },
@@ -388,9 +362,9 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_METHOD]: 'GET',
         [HTTP_URL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
-      SpanKind.CLIENT,
       {
         op: 'http.client',
         description: 'GET https://www.example.com/my-path',
@@ -408,9 +382,9 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_URL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
         'sentry.http.prefetch': true,
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
-      SpanKind.CLIENT,
       {
         op: 'http.client.prefetch',
         description: 'GET https://www.example.com/my-path',
@@ -427,9 +401,9 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_METHOD]: 'POST',
         [HTTP_URL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
+        [SENTRY_KIND]: 'server' as const,
       },
       'test name',
-      SpanKind.SERVER,
       {
         op: 'http.server',
         description: 'POST /my-path',
@@ -447,9 +421,9 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_URL]: 'https://www.example.com/my-path/123',
         [HTTP_TARGET]: '/my-path/123',
         [HTTP_ROUTE]: '/my-path/:id',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
-      SpanKind.CLIENT,
       {
         op: 'http.client',
         description: 'GET /my-path/:id',
@@ -460,7 +434,7 @@ describe('descriptionForHttpMethod', () => {
       },
     ],
     [
-      'works with basic client GET with SpanKind.INTERNAL',
+      'works with basic client GET without span kind',
       'GET',
       {
         [HTTP_METHOD]: 'GET',
@@ -468,7 +442,6 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_TARGET]: '/my-path',
       },
       'test name',
-      SpanKind.INTERNAL,
       {
         op: 'http',
         description: 'test name',
@@ -487,9 +460,9 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_TARGET]: '/my-path/123',
         [HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
-      SpanKind.CLIENT,
       {
         op: 'http.client',
         description: 'test name',
@@ -509,9 +482,9 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
-      SpanKind.CLIENT,
       {
         op: 'http.client',
         description: 'custom name',
@@ -531,9 +504,9 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
-      SpanKind.CLIENT,
       {
         op: 'http.client',
         description: 'custom name',
@@ -550,9 +523,9 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_METHOD]: 'GET',
         [HTTP_URL]: 'https://www.example.com/my-path?id=1#section',
         [HTTP_TARGET]: '/my-path?id=1#section',
+        [SENTRY_KIND]: 'client' as const,
       },
       'test name',
-      SpanKind.CLIENT,
       {
         op: 'http.client',
         description: 'GET https://www.example.com/my-path',
@@ -564,8 +537,8 @@ describe('descriptionForHttpMethod', () => {
         source: 'url',
       },
     ],
-  ])('%s', (_, httpMethod, attributes, name, kind, expected) => {
-    const actual = descriptionForHttpMethod({ attributes, kind, name }, httpMethod);
+  ])('%s', (_, httpMethod, attributes, name, expected) => {
+    const actual = descriptionForHttpMethod({ attributes, name }, httpMethod);
     expect(actual).toEqual(expected);
   });
 });
@@ -575,7 +548,6 @@ describe('getSanitizedUrl', () => {
     [
       'works without attributes',
       {},
-      SpanKind.CLIENT,
       {
         urlPath: undefined,
         url: undefined,
@@ -592,8 +564,8 @@ describe('getSanitizedUrl', () => {
         [HTTP_TARGET]: '/?what=true',
         [HTTP_HOST]: 'example.com:80',
         [HTTP_STATUS_CODE]: 200,
+        [SENTRY_KIND]: 'client',
       },
-      SpanKind.CLIENT,
       {
         urlPath: 'http://example.com/',
         url: 'http://example.com/',
@@ -610,8 +582,8 @@ describe('getSanitizedUrl', () => {
         [HTTP_TARGET]: '/sub#hash',
         [HTTP_HOST]: 'example.com:80',
         [HTTP_STATUS_CODE]: 200,
+        [SENTRY_KIND]: 'client',
       },
-      SpanKind.CLIENT,
       {
         urlPath: 'http://example.com/sub',
         url: 'http://example.com/sub',
@@ -629,8 +601,8 @@ describe('getSanitizedUrl', () => {
         [HTTP_ROUTE]: '/my-route',
         [HTTP_HOST]: 'example.com:80',
         [HTTP_STATUS_CODE]: 200,
+        [SENTRY_KIND]: 'client',
       },
-      SpanKind.CLIENT,
       {
         urlPath: '/my-route',
         url: 'http://example.com/',
@@ -646,8 +618,8 @@ describe('getSanitizedUrl', () => {
         [HTTP_TARGET]: '/?what=true',
         [HTTP_HOST]: 'example.com:80',
         [HTTP_STATUS_CODE]: 200,
+        [SENTRY_KIND]: 'client',
       },
-      SpanKind.CLIENT,
       {
         urlPath: '/',
         url: undefined,
@@ -664,8 +636,8 @@ describe('getSanitizedUrl', () => {
         [HTTP_TARGET]: '/?what=true',
         [HTTP_HOST]: 'example.com:80',
         [HTTP_STATUS_CODE]: 200,
+        [SENTRY_KIND]: 'server',
       },
-      SpanKind.SERVER,
       {
         urlPath: '/',
         url: 'http://example.com/',
@@ -682,8 +654,8 @@ describe('getSanitizedUrl', () => {
         [HTTP_TARGET]: '/sub#hash',
         [HTTP_HOST]: 'example.com:80',
         [HTTP_STATUS_CODE]: 200,
+        [SENTRY_KIND]: 'server',
       },
-      SpanKind.SERVER,
       {
         urlPath: '/sub',
         url: 'http://example.com/',
@@ -701,8 +673,8 @@ describe('getSanitizedUrl', () => {
         [HTTP_ROUTE]: '/my-route',
         [HTTP_HOST]: 'example.com:80',
         [HTTP_STATUS_CODE]: 200,
+        [SENTRY_KIND]: 'server',
       },
-      SpanKind.SERVER,
       {
         urlPath: '/my-route',
         url: 'http://example.com/',
@@ -711,8 +683,8 @@ describe('getSanitizedUrl', () => {
         hasRoute: true,
       },
     ],
-  ])('%s', (_, attributes, kind, expected) => {
-    const actual = getSanitizedUrl(attributes, kind);
+  ])('%s', (_, attributes, expected) => {
+    const actual = getSanitizedUrl(attributes);
 
     expect(actual).toEqual(expected);
   });

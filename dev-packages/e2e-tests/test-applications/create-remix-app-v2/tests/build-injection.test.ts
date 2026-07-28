@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
 
 // The `db.test.ts` runtime assertions prove orchestrion spans appear, but spans alone
 // don't prove they came from the BUILD-time transform: if the Vite plugin silently
-// failed to load, the deps would stay external and the runtime `--require` hook would
+// failed to load, the deps would stay external and the runtime `--import` hook would
 // inject the channels at runtime instead - the span tests would still pass. These
 // assertions inspect the built server bundle directly so a broken plugin can't hide
 // behind that runtime fallback. Only relevant in the orchestrion variant.

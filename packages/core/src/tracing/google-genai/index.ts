@@ -1,3 +1,4 @@
+/* eslint-disable typescript-eslint/no-deprecated */
 /* eslint-disable max-lines */
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
@@ -6,27 +7,27 @@ import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types/span';
 import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
 import {
-  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_K_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+  GEN_AI_EMBEDDINGS_INPUT,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_REQUEST_FREQUENCY_PENALTY,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_PRESENCE_PENALTY,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_REQUEST_TOP_K,
+  GEN_AI_REQUEST_TOP_P,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_SYSTEM,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
+import { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../ai/utils';
 import { stringify } from '../../utils/string';
 import {
@@ -76,22 +77,22 @@ function extractConfigAttributes(config: Record<string, unknown>): Record<string
   const attributes: Record<string, SpanAttributeValue> = {};
 
   if ('temperature' in config && typeof config.temperature === 'number') {
-    attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = config.temperature;
+    attributes[GEN_AI_REQUEST_TEMPERATURE] = config.temperature;
   }
   if ('topP' in config && typeof config.topP === 'number') {
-    attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE] = config.topP;
+    attributes[GEN_AI_REQUEST_TOP_P] = config.topP;
   }
   if ('topK' in config && typeof config.topK === 'number') {
-    attributes[GEN_AI_REQUEST_TOP_K_ATTRIBUTE] = config.topK;
+    attributes[GEN_AI_REQUEST_TOP_K] = config.topK;
   }
   if ('maxOutputTokens' in config && typeof config.maxOutputTokens === 'number') {
-    attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE] = config.maxOutputTokens;
+    attributes[GEN_AI_REQUEST_MAX_TOKENS] = config.maxOutputTokens;
   }
   if ('frequencyPenalty' in config && typeof config.frequencyPenalty === 'number') {
-    attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = config.frequencyPenalty;
+    attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY] = config.frequencyPenalty;
   }
   if ('presencePenalty' in config && typeof config.presencePenalty === 'number') {
-    attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = config.presencePenalty;
+    attributes[GEN_AI_REQUEST_PRESENCE_PENALTY] = config.presencePenalty;
   }
 
   return attributes;
@@ -107,13 +108,13 @@ export function extractRequestAttributes(
   context?: unknown,
 ): Record<string, SpanAttributeValue> {
   const attributes: Record<string, SpanAttributeValue> = {
-    [GEN_AI_SYSTEM_ATTRIBUTE]: GOOGLE_GENAI_SYSTEM_NAME,
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
+    [GEN_AI_SYSTEM]: GOOGLE_GENAI_SYSTEM_NAME,
+    [GEN_AI_OPERATION_NAME]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
   };
 
   if (params) {
-    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = extractModel(params, context);
+    attributes[GEN_AI_REQUEST_MODEL] = extractModel(params, context);
 
     // Extract generation config parameters
     if ('config' in params && typeof params.config === 'object' && params.config) {
@@ -125,11 +126,11 @@ export function extractRequestAttributes(
         const functionDeclarations = config.tools.flatMap(
           (tool: { functionDeclarations: unknown[] }) => tool.functionDeclarations,
         );
-        attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = JSON.stringify(functionDeclarations);
+        attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] = JSON.stringify(functionDeclarations);
       }
     }
   } else {
-    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = extractModel({}, context);
+    attributes[GEN_AI_REQUEST_MODEL] = extractModel({}, context);
   }
 
   return attributes;
@@ -149,10 +150,7 @@ export function addPrivateRequestAttributes(
   if (operationName === 'embeddings') {
     const contents = params.contents;
     if (contents != null) {
-      span.setAttribute(
-        GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
-        typeof contents === 'string' ? contents : JSON.stringify(contents),
-      );
+      span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, typeof contents === 'string' ? contents : JSON.stringify(contents));
     }
     return;
   }
@@ -189,13 +187,13 @@ export function addPrivateRequestAttributes(
     const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
 
     if (systemInstructions) {
-      span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+      span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
     }
 
     const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
     span.setAttributes({
       [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
-      [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
+      [GEN_AI_INPUT_MESSAGES]: enableTruncation
         ? getTruncatedJsonString(filteredMessages)
         : stringify(filteredMessages),
     });
@@ -210,7 +208,7 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
   if (!response || typeof response !== 'object') return;
 
   if (response.modelVersion) {
-    span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, response.modelVersion);
+    span.setAttribute(GEN_AI_RESPONSE_MODEL, response.modelVersion);
   }
 
   // Add usage metadata if present
@@ -218,17 +216,17 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
     const usage = response.usageMetadata;
     if (typeof usage.promptTokenCount === 'number') {
       span.setAttributes({
-        [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: usage.promptTokenCount,
+        [GEN_AI_USAGE_INPUT_TOKENS]: usage.promptTokenCount,
       });
     }
     if (typeof usage.candidatesTokenCount === 'number') {
       span.setAttributes({
-        [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: usage.candidatesTokenCount,
+        [GEN_AI_USAGE_OUTPUT_TOKENS]: usage.candidatesTokenCount,
       });
     }
     if (typeof usage.totalTokenCount === 'number') {
       span.setAttributes({
-        [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: usage.totalTokenCount,
+        [GEN_AI_USAGE_TOTAL_TOKENS]: usage.totalTokenCount,
       });
     }
   }
@@ -249,7 +247,7 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
 
     if (responseTexts.length > 0) {
       span.setAttributes({
-        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: responseTexts.join(''),
+        [GEN_AI_RESPONSE_TEXT]: responseTexts.join(''),
       });
     }
   }
@@ -259,7 +257,7 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
     const functionCalls = response.functionCalls;
     if (Array.isArray(functionCalls) && functionCalls.length > 0) {
       span.setAttributes({
-        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(functionCalls),
+        [GEN_AI_RESPONSE_TOOL_CALLS]: JSON.stringify(functionCalls),
       });
     }
   }
@@ -284,7 +282,7 @@ function instrumentMethod<T extends unknown[], R>(
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
       const requestAttributes = extractRequestAttributes(operationName, params, context);
-      const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
+      const model = requestAttributes[GEN_AI_REQUEST_MODEL] ?? 'unknown';
 
       // Check if this is a streaming method
       if (instrumentedMethod.streaming) {

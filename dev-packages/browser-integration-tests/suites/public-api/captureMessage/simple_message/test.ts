@@ -10,4 +10,15 @@ sentryTest('should capture a simple message string', async ({ getLocalTestUrl, p
 
   expect(eventData.message).toBe('foo');
   expect(eventData.level).toBe('info');
+  expect(eventData.exception?.values?.[0]).toEqual({
+    mechanism: {
+      handled: true,
+      type: 'generic',
+      synthetic: true,
+    },
+    stacktrace: {
+      frames: expect.arrayContaining([expect.any(Object), expect.any(Object)]),
+    },
+    value: 'foo',
+  });
 });

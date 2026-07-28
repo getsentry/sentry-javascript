@@ -112,11 +112,12 @@ export {
   metrics,
   withStreamedSpan,
   spanStreamingIntegration,
-  instrumentLangGraph,
+  instrumentStateGraph,
   instrumentCreateReactAgent,
 } from '@sentry/core';
 
 export { withSentry } from './withSentry';
+export { defineCloudflareOptions } from './defineCloudflareOptions';
 export { instrumentDurableObjectWithSentry } from './durableobject';
 export { sentryPagesPlugin } from './pages-plugin';
 
@@ -127,9 +128,8 @@ export { getDefaultIntegrations } from './sdk';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
+export { spotlightIntegration } from './integrations/spotlight';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
-// eslint-disable-next-line typescript/no-deprecated
-export { honoIntegration } from './integrations/hono';
 
 // eslint-disable-next-line typescript/no-deprecated
 export { instrumentD1WithSentry } from './instrumentations/worker/instrumentD1';

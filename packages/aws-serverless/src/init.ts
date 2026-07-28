@@ -1,14 +1,9 @@
 import type { Integration, Options } from '@sentry/core';
-import { applySdkMetadata, debug, getSDKSource } from '@sentry/core';
+import { applySdkMetadata, debug, envToBool, getSDKSource } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import {
-  applyDiagnosticsChannelInjectionIntegrations,
-  getDefaultIntegrationsWithoutPerformance,
-  initWithoutDefaultIntegrations,
-} from '@sentry/node';
-import { envToBool } from '@sentry/node-core';
+import { getDefaultIntegrationsWithoutPerformance, initWithoutDefaultIntegrations } from '@sentry/node';
+import { awsIntegration } from '@sentry/server-utils/orchestrion';
 import { DEBUG_BUILD } from './debug-build';
-import { awsIntegration } from './integration/aws';
 import { awsLambdaIntegration } from './integration/awslambda';
 
 /**
@@ -53,13 +48,8 @@ function shouldDisableLayerExtensionForProxy(): boolean {
  */
 // NOTE: in awslambda-auto.ts, we also call the original `getDefaultIntegrations` from `@sentry/node` to load performance integrations.
 // If at some point we need to filter a node integration out for good, we need to make sure to also filter it out there.
-export function getDefaultIntegrations(options: Options): Integration[] {
-  const integrations = [...getDefaultIntegrationsWithoutPerformance(), awsIntegration(), awsLambdaIntegration()];
-  // If the app opted into diagnostics-channel injection, the OTel `Aws` integration is swapped for
-  // its channel-based equivalent AND the full channel-integration set is appended (mysql, postgres,
-  // express, ...), giving opted-in apps performance coverage this SDK's defaults otherwise omit.
-  // No-op otherwise.
-  return applyDiagnosticsChannelInjectionIntegrations(integrations, options);
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  return [...getDefaultIntegrationsWithoutPerformance(), awsIntegration(), awsLambdaIntegration()];
 }
 
 export interface AwsServerlessOptions extends NodeOptions {

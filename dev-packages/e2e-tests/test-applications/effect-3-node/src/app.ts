@@ -10,6 +10,7 @@ import { createServer } from 'http';
 
 const SentryLive = Layer.mergeAll(
   Sentry.effectLayer({
+    traceLifecycle: 'static',
     dsn: process.env.E2E_TEST_DSN,
     environment: 'qa',
     debug: !!process.env.DEBUG,

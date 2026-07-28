@@ -25,7 +25,6 @@ import {
   startInactiveSpan,
   startSpan,
   startSpanManual,
-  SUPPRESS_TRACING_KEY,
   suppressTracing,
   withActiveSpan,
 } from '../../../src/tracing';
@@ -37,6 +36,7 @@ import type { StartSpanOptions } from '../../../src/types/startSpanOptions';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { SUPPRESS_TRACING_KEY } from '../../../src/tracing/constants';
 
 const enum Type {
   Sync = 'sync',
@@ -105,7 +105,7 @@ describe('startSpan', () => {
       expect(_span).toBeDefined();
 
       expect(spanToJSON(_span!).description).toEqual('GET users/[id]');
-      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : undefined);
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
     });
 
     it('allows for transaction to be mutated', async () => {
@@ -148,7 +148,7 @@ describe('startSpan', () => {
       expect(spans).toHaveLength(2);
       expect(spanToJSON(spans[1]!).description).toEqual('SELECT * from users');
       expect(spanToJSON(spans[1]!).parent_span_id).toEqual(_span!.spanContext().spanId);
-      expect(spanToJSON(spans[1]!).status).toEqual(isError ? 'internal_error' : undefined);
+      expect(spanToJSON(spans[1]!).status).toEqual(isError ? 'internal_error' : 'ok');
     });
 
     it('allows for span to be mutated', async () => {
@@ -207,7 +207,7 @@ describe('startSpan', () => {
         description: 'GET users/[id]',
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
-        status: isError ? 'internal_error' : undefined,
+        status: isError ? 'internal_error' : 'ok',
         timestamp: expect.any(Number),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
@@ -573,6 +573,7 @@ describe('startSpan', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
+        status: 'ok',
       },
     });
     expect(outerTransaction?.spans).toEqual([{ name: 'inner span', id: expect.any(String) }]);
@@ -598,6 +599,7 @@ describe('startSpan', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
+        status: 'ok',
       },
     });
     expect(innerTransaction?.spans).toEqual([{ name: 'inner span 2', id: expect.any(String) }]);
@@ -888,41 +890,6 @@ describe('startSpan', () => {
 
     expect(result).toBe('aha');
   });
-
-  describe('[experimental] standalone spans', () => {
-    it('starts a standalone segment span if standalone is set', () => {
-      const span = startSpan(
-        {
-          name: 'test span',
-          experimental: { standalone: true },
-        },
-        span => {
-          return span;
-        },
-      );
-
-      const spanJson = spanToJSON(span);
-      expect(spanJson.is_segment).toBe(true);
-      expect(spanJson.segment_id).toBe(spanJson.span_id);
-      expect(spanJson.segment_id).toMatch(/^[a-f0-9]{16}$/);
-    });
-
-    it.each([undefined, false])("doesn't set segment properties if standalone is falsy (%s)", standalone => {
-      const span = startSpan(
-        {
-          name: 'test span',
-          experimental: { standalone },
-        },
-        span => {
-          return span;
-        },
-      );
-
-      const spanJson = spanToJSON(span);
-      expect(spanJson.is_segment).toBeUndefined();
-      expect(spanJson.segment_id).toBeUndefined();
-    });
-  });
 });
 
 describe('startSpanManual', () => {
@@ -1212,6 +1179,7 @@ describe('startSpanManual', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
+        status: 'ok',
       },
     });
     expect(outerTransaction?.spans).toEqual([{ name: 'inner span', id: expect.any(String) }]);
@@ -1237,6 +1205,7 @@ describe('startSpanManual', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
+        status: 'ok',
       },
     });
     expect(innerTransaction?.spans).toEqual([{ name: 'inner span 2', id: expect.any(String) }]);
@@ -1639,6 +1608,7 @@ describe('startInactiveSpan', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
+        status: 'ok',
       },
     });
     expect(outerTransaction?.spans).toEqual([{ name: 'inner span', id: expect.any(String) }]);
@@ -1664,6 +1634,7 @@ describe('startInactiveSpan', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
+        status: 'ok',
       },
     });
     expect(innerTransaction?.spans).toEqual([]);

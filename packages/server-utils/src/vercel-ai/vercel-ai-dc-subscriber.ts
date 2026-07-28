@@ -17,6 +17,7 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_SYSTEM,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
   GEN_AI_TOOL_OUTPUT,
@@ -31,7 +32,6 @@ import {
   captureException,
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   getClient,
   getProviderMetadataAttributes,
   getTruncatedJsonString,
@@ -732,7 +732,7 @@ function buildInputMessageAttributes(
   // `gen_ai.system_instructions` as `[{ type: 'text', content }]`; mirror that shape here.
   const instructions = asString(event.instructions);
   if (instructions) {
-    attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE] = stringify([{ type: 'text', content: instructions }]);
+    attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = stringify([{ type: 'text', content: instructions }]);
   }
 
   // The AI SDK start events extend `StandardizedPrompt`; messages live on `messages`, otherwise the

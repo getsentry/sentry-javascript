@@ -63,6 +63,7 @@ class MyDurableObjectBase extends DurableObject<Env> {
 
 export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
+    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     environment: 'qa', // dynamic sampling bias to keep transactions
     tunnel: `http://localhost:3031/`, // proxy server
@@ -109,6 +110,7 @@ class MyWorker extends WorkerEntrypoint {
 
 export default Sentry.withSentry(
   env => ({
+    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     environment: 'qa', // dynamic sampling bias to keep transactions
     tunnel: `http://localhost:3031/`, // proxy server

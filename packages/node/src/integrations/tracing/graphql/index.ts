@@ -1,8 +1,5 @@
 import { GraphQLInstrumentation } from './vendored/instrumentation';
-import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, extendIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
-import { graphqlIntegration as graphqlChannelIntegration } from '@sentry/server-utils';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 
 interface GraphqlOptions {
   /**
@@ -40,38 +37,6 @@ export const instrumentGraphql = generateInstrumentOnce(
   GraphQLInstrumentation,
   (_options: GraphqlOptions) => getOptionsWithDefaults(_options),
 );
-
-const _graphqlIntegration = ((options: GraphqlOptions = {}) => {
-  // The diagnostics_channel subscription (graphql >= 17) lives in server-utils so it is shared
-  // across server runtimes; we extend it here to also run the vendored OTel patcher for graphql < 17.
-  // Both paths read the same `ignoreResolveSpans` / `ignoreTrivialResolveSpans` options.
-  return extendIntegration(graphqlChannelIntegration(getOptionsWithDefaults(options)), {
-    name: INTEGRATION_NAME,
-    setupOnce() {
-      // We set defaults here, too, because otherwise we'd update the instrumentation config
-      // to the config without defaults, as `generateInstrumentOnce` automatically calls `setConfig(options)`
-      // when being called the second time
-      instrumentGraphql(getOptionsWithDefaults(options));
-    },
-  });
-}) satisfies IntegrationFn;
-
-/**
- * Adds Sentry tracing instrumentation for the [graphql](https://www.npmjs.com/package/graphql) library.
- *
- * For more information, see the [`graphqlIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/graphql/).
- *
- * @param {GraphqlOptions} options Configuration options for the GraphQL integration.
- *
- * @example
- * ```javascript
- * const Sentry = require('@sentry/node');
- *
- * Sentry.init({
- *  integrations: [Sentry.graphqlIntegration()],
- * });
- */
-export const graphqlIntegration = defineIntegration(_graphqlIntegration);
 
 function getOptionsWithDefaults(options?: GraphqlOptions): GraphqlOptions {
   return {

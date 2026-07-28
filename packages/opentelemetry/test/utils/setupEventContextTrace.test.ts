@@ -1,18 +1,15 @@
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { captureException, setCurrentClient } from '@sentry/core';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
-import type { TestClientInterface } from '../helpers/TestClient';
 import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
 describe('setupEventContextTrace', () => {
   const beforeSend = vi.fn(() => null);
-  let client: TestClientInterface;
-  let provider: BasicTracerProvider | undefined;
+  let client: TestClient;
 
   beforeEach(() => {
     client = new TestClient(
@@ -29,12 +26,12 @@ describe('setupEventContextTrace', () => {
     client.init();
 
     setupEventContextTrace(client);
-    [provider] = setupOtel(client);
+    setupOtel();
   });
 
   afterEach(() => {
     beforeSend.mockReset();
-    cleanupOtel(provider);
+    return cleanupOtel();
   });
 
   afterAll(() => {
@@ -71,11 +68,11 @@ describe('setupEventContextTrace', () => {
     let innerId: string | undefined;
     let traceId: string | undefined;
 
-    client.tracer.startActiveSpan('outer', outerSpan => {
+    client.tracer?.startActiveSpan('outer', outerSpan => {
       outerId = outerSpan.spanContext().spanId;
       traceId = outerSpan.spanContext().traceId;
 
-      client.tracer.startActiveSpan('inner', innerSpan => {
+      client.tracer?.startActiveSpan('inner', innerSpan => {
         innerId = innerSpan.spanContext().spanId;
         captureException(error);
       });

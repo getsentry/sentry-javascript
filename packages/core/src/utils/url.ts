@@ -1,8 +1,8 @@
+import { URL_FULL } from '@sentry/conventions/attributes';
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SEMANTIC_ATTRIBUTE_URL_FULL,
 } from '../semanticAttributes';
 import type { SpanAttributes } from '../types/span';
 
@@ -188,7 +188,7 @@ export function getHttpSpanDetailsFromUrlObject(
     }
 
     if (!isURLObjectRelative(urlObject)) {
-      attributes[SEMANTIC_ATTRIBUTE_URL_FULL] = urlObject.href;
+      attributes[URL_FULL] = urlObject.href;
       if (urlObject.port) {
         attributes['url.port'] = urlObject.port;
       }

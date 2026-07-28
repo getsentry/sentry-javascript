@@ -1,25 +1,25 @@
+/* eslint-disable typescript-eslint/no-deprecated */
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span, SpanAttributes } from '../../types/span';
 import {
-  GEN_AI_AGENT_NAME_ATTRIBUTE,
-  GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
-  GEN_AI_TOOL_INPUT_ATTRIBUTE,
-  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
-  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
-  GEN_AI_TOOL_NAME_ATTRIBUTE,
-  GEN_AI_TOOL_TYPE_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+  GEN_AI_AGENT_NAME,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_TOOL_DESCRIPTION,
+  GEN_AI_TOOL_INPUT,
+  GEN_AI_TOOL_NAME,
+  GEN_AI_TOOL_OUTPUT,
+  GEN_AI_TOOL_TYPE,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
+import { GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
 import { startSpan } from '../trace';
@@ -79,9 +79,9 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
         const spanAttributes: SpanAttributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
-          [GEN_AI_TOOL_NAME_ATTRIBUTE]: toolName,
-          [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
+          [GEN_AI_OPERATION_NAME]: 'execute_tool',
+          [GEN_AI_TOOL_NAME]: toolName,
+          [GEN_AI_TOOL_TYPE]: 'function',
         };
 
         // Read agent name from LangChain's propagated config metadata at call time,
@@ -89,11 +89,11 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
         const callConfig = args[1] as Record<string, unknown> | undefined;
         const callAgentName = (callConfig?.metadata as Record<string, unknown>)?.lc_agent_name ?? agentName;
         if (typeof callAgentName === 'string') {
-          spanAttributes[GEN_AI_AGENT_NAME_ATTRIBUTE] = callAgentName;
+          spanAttributes[GEN_AI_AGENT_NAME] = callAgentName;
         }
 
         if (toolDescription) {
-          spanAttributes[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE] = toolDescription;
+          spanAttributes[GEN_AI_TOOL_DESCRIPTION] = toolDescription;
         }
 
         // LangGraph ToolNode passes { name, args, id, type: "tool_call" }
@@ -106,7 +106,7 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
           if (options.recordInputs) {
             const toolArgs = 'args' in input && typeof input.args === 'object' ? input.args : input;
             try {
-              spanAttributes[GEN_AI_TOOL_INPUT_ATTRIBUTE] = JSON.stringify(toolArgs);
+              spanAttributes[GEN_AI_TOOL_INPUT] = JSON.stringify(toolArgs);
             } catch {
               // skip if not serializable
             }
@@ -130,7 +130,7 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
                   const content =
                     resultObj && typeof resultObj === 'object' && 'content' in resultObj ? resultObj.content : result;
                   span.setAttribute(
-                    GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
+                    GEN_AI_TOOL_OUTPUT,
                     typeof content === 'string' ? content : JSON.stringify(content),
                   );
                 } catch {
@@ -242,11 +242,11 @@ export function extractModelMetadata(span: Span, message: LangChainMessage): voi
     const metadata = msg.response_metadata as Record<string, unknown>;
 
     if (metadata.model_name && typeof metadata.model_name === 'string') {
-      span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, metadata.model_name);
+      span.setAttribute(GEN_AI_RESPONSE_MODEL, metadata.model_name);
     }
 
     if (metadata.finish_reason && typeof metadata.finish_reason === 'string') {
-      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE, [metadata.finish_reason]);
+      span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [metadata.finish_reason]);
     }
   }
 }
@@ -299,12 +299,12 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
   // (normalization strips tool_calls, so we need to extract them first)
   const toolCalls = extractToolCalls(newMessages as Array<Record<string, unknown>>);
   if (toolCalls) {
-    span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, JSON.stringify(toolCalls));
+    span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS, JSON.stringify(toolCalls));
   }
 
   // Normalize the new messages
   const normalizedNewMessages = normalizeLangChainMessages(newMessages);
-  span.setAttribute(GEN_AI_RESPONSE_TEXT_ATTRIBUTE, JSON.stringify(normalizedNewMessages));
+  span.setAttribute(GEN_AI_RESPONSE_TEXT, JSON.stringify(normalizedNewMessages));
 
   // Accumulate token usage across all messages
   let totalInputTokens = 0;
@@ -325,12 +325,12 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
 
   // Set accumulated token usage on span
   if (totalInputTokens > 0) {
-    span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE, totalInputTokens);
+    span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, totalInputTokens);
   }
   if (totalOutputTokens > 0) {
-    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE, totalOutputTokens);
+    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, totalOutputTokens);
   }
   if (totalTokens > 0) {
-    span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, totalTokens);
+    span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS, totalTokens);
   }
 }

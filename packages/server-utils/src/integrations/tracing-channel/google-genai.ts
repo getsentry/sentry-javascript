@@ -1,3 +1,4 @@
+import { GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { GoogleGenAIOptions, GoogleGenAIResponse, IntegrationFn, Span } from '@sentry/core';
 import {
@@ -7,7 +8,6 @@ import {
   debug,
   defineIntegration,
   extractGoogleGenAIRequestAttributes,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   getActiveSpan,
   instrumentGoogleGenAIStream,
   resolveAIRecordingOptions,
@@ -21,8 +21,8 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
-// Same name as the OTel integration by design: when enabled, the OTel 'Google_GenAI'
-// integration is dropped from the default set (see the Node opt-in loader).
+// Same name as the OTel integration by design, so the OTel 'Google_GenAI'
+// integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'Google_GenAI' as const;
 
 // Distinct from the proxy's `auto.ai.google_genai` so spans from the orchestrion path
@@ -46,7 +46,7 @@ interface GoogleGenAIChannelContext {
 
 let subscribed = false;
 
-const _googleGenAIChannelIntegration = ((options: GoogleGenAIOptions = {}) => {
+const _googleGenAIIntegration = ((options: GoogleGenAIOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -119,7 +119,7 @@ function createGenAiSpan(
   const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   const attributes = extractGoogleGenAIRequestAttributes(operation, params, data.self);
-  const model = (attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
+  const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
 
   const span = startInactiveSpan({
@@ -161,10 +161,10 @@ function wrapStreamResult(span: Span, data: GoogleGenAIChannelContext, options: 
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven Google GenAI integration. Subscribes to the
+ * Orchestrion-driven Google GenAI integration. Subscribes to the
  * `orchestrion:@google/genai:*` diagnostics_channels injected into the SDK's `Models`
  * (`generateContent`/`generateContentStream`/`embedContent`) and `Chat`
  * (`sendMessage`/`sendMessageStream`) methods, so it requires the orchestrion runtime hook or
  * bundler plugin.
  */
-export const googleGenAIChannelIntegration = defineIntegration(_googleGenAIChannelIntegration);
+export const googleGenAIIntegration = defineIntegration(_googleGenAIIntegration);

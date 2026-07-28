@@ -1,4 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Scope } from '@sentry/core';
 import {
   isObjectLike,
@@ -7,7 +8,6 @@ import {
   defineIntegration,
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -58,7 +58,7 @@ interface MysqlConnection {
   config?: MysqlConnectionConfig;
 }
 
-const _mysqlChannelIntegration = (() => {
+const _mysqlIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -84,9 +84,9 @@ const _mysqlChannelIntegration = (() => {
 
             return startInactiveSpan({
               name: sql ?? 'mysql.query',
-              kind: SPAN_KIND.CLIENT,
               op: 'db',
               attributes: {
+                [SENTRY_KIND]: 'client',
                 [ATTR_DB_SYSTEM]: 'mysql',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.orchestrion.mysql',
                 [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
@@ -169,11 +169,11 @@ function getJDBCString(host: string | undefined, port: number | undefined, datab
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven mysql integration.
+ * Orchestrion-driven mysql integration.
  *
  * Subscribes to the `orchestrion:mysql:query` diagnostics_channel that the
  * orchestrion code transform injects into `mysql/lib/Connection.js`'s
  * `Connection.prototype.query`. Requires the orchestrion runtime hook or
- * bundler plugin to be active — wire that up via `_experimentalSetupOrchestrion`.
+ * bundler plugin to be active.
  */
-export const mysqlChannelIntegration = defineIntegration(_mysqlChannelIntegration);
+export const mysqlIntegration = defineIntegration(_mysqlIntegration);

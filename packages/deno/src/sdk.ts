@@ -11,6 +11,31 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
+import {
+  amqplibIntegration,
+  anthropicIntegration,
+  awsIntegration,
+  expressIntegration,
+  firebaseIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlDiagnosticsIntegration,
+  hapiIntegration,
+  kafkajsIntegration,
+  koaIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mongodbIntegration,
+  mongooseIntegration,
+  mysqlIntegration,
+  mysql2Integration,
+  openaiIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  tediousIntegration,
+  vercelAiIntegration,
+} from '@sentry/server-utils/orchestrion';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
@@ -23,12 +48,6 @@ import {
 } from './denoVersion';
 import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
-import { denoAmqplibIntegration } from './integrations/amqplib';
-import { denoKoaIntegration } from './integrations/koa';
-import { denoMongoIntegration } from './integrations/mongo';
-import { denoMongooseIntegration } from './integrations/mongoose';
-import { denoMysqlIntegration } from './integrations/mysql';
-import { denoPostgresIntegration } from './integrations/postgres';
 import { denoRedisIntegration } from './integrations/redis';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
@@ -60,18 +79,47 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
       : []),
     // node:diagnostics_channel.tracingChannel exists on Deno 1.44.3+.
     ...(TRACING_CHANNEL_SUPPORTED ? [denoRedisIntegration()] : []),
-    // orchestrion-based instrumentations.
-    // It's possible that the orchestrion channels will be injected AFTER
-    // (or in parallel to) loading the SDK, so we only gate on whether the
-    // feature is possible. If they're never loaded, it'll just be a no-op.
+    // graphql is gated on tracingChannel rather than the module hook: the
+    // composed integration also subscribes to graphql v17's native diagnostics
+    // channels, which need only tracingChannel. The orchestrion implementation
+    // (graphql v14–16) stays inert until the runtime hook injects those channels.
+    ...(TRACING_CHANNEL_SUPPORTED ? [graphqlDiagnosticsIntegration()] : []),
+    // vercel-ai is gated on tracingChannel rather than the module hook, like
+    // graphql: the composed integration also subscribes to the `ai` SDK v7's
+    // native `ai:telemetry` channel, which needs only tracingChannel. The
+    // orchestrion implementation (ai v4–6) stays inert until the runtime hook
+    // injects those channels.
+    ...(TRACING_CHANNEL_SUPPORTED ? [vercelAiIntegration()] : []),
+    // orchestrion-based instrumentations. We add a deliberate list here rather
+    // than every channel integration: each one needs a Deno test proving it
+    // records spans.
+    //
+    // The orchestrion channels may be injected after (or while) the SDK loads,
+    // so we gate only on whether the feature is possible. If they never load,
+    // this is a no-op.
     ...(MODULE_REGISTER_HOOKS_SUPPORTED
       ? [
-          denoAmqplibIntegration(),
-          denoKoaIntegration(),
-          denoMongoIntegration(),
-          denoMongooseIntegration(),
-          denoMysqlIntegration(),
-          denoPostgresIntegration(),
+          amqplibIntegration(),
+          anthropicIntegration(),
+          awsIntegration(),
+          expressIntegration(),
+          firebaseIntegration(),
+          genericPoolIntegration(),
+          googleGenAIIntegration(),
+          hapiIntegration(),
+          kafkajsIntegration(),
+          koaIntegration(),
+          langChainIntegration(),
+          langGraphIntegration(),
+          lruMemoizerIntegration(),
+          mongodbIntegration(),
+          mongooseIntegration(),
+          mysqlIntegration(),
+          mysql2Integration(),
+          openaiIntegration(),
+          postgresIntegration(),
+          postgresJsIntegration(),
+          tediousIntegration(),
         ]
       : []),
     contextLinesIntegration(),

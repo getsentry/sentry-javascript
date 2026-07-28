@@ -264,6 +264,7 @@ describe('instrumentScheduled', () => {
         },
         op: 'faas.cron',
         origin: 'auto.faas.cloudflare.scheduled',
+        status: 'ok',
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });

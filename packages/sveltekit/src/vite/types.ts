@@ -1,5 +1,5 @@
 import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import type { AutoInstrumentSelection } from './autoInstrument';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
 
@@ -134,7 +134,7 @@ type SourceMapsUploadOptions = {
   url?: string;
 
   /**
-   * Options to further customize the Sentry Vite Plugin (@sentry/vite-plugin) behavior directly.
+   * Options to further customize the Sentry Vite Plugin (@sentry/bundler-plugins/vite) behavior directly.
    * Options specified in this object take precedence over the options specified in
    * the `sourcemaps` and `release` objects.
    *

@@ -1,15 +1,18 @@
+/* eslint-disable typescript-eslint/no-deprecated */
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { startSpan } from '../../tracing/trace';
 import type { SpanAttributeValue } from '../../types/span';
 import {
+  GEN_AI_EMBEDDINGS_INPUT,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_SYSTEM,
+} from '@sentry/conventions/attributes';
+import {
   GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
-  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { resolveAIRecordingOptions } from '../ai/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
@@ -40,11 +43,11 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
   const attributes: Record<string, unknown> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
-    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: embeddingsInstance.model ?? 'unknown',
+    [GEN_AI_OPERATION_NAME]: 'embeddings',
+    [GEN_AI_REQUEST_MODEL]: embeddingsInstance.model ?? 'unknown',
   };
 
-  attributes[GEN_AI_SYSTEM_ATTRIBUTE] = inferSystemFromInstance(embeddingsInstance);
+  attributes[GEN_AI_SYSTEM] = inferSystemFromInstance(embeddingsInstance);
   if ('dimensions' in embeddingsInstance) {
     attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = embeddingsInstance.dimensions;
   }
@@ -68,10 +71,10 @@ export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
 ): { name: string; op: string; attributes: Record<string, SpanAttributeValue> } {
   const { recordInputs } = resolveAIRecordingOptions(options);
   const attributes = extractEmbeddingAttributes(instance);
-  const modelName = attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] || 'unknown';
+  const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
 
   if (recordInputs && input != null) {
-    attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = typeof input === 'string' ? input : JSON.stringify(input);
+    attributes[GEN_AI_EMBEDDINGS_INPUT] = typeof input === 'string' ? input : JSON.stringify(input);
   }
 
   return {

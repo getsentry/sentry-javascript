@@ -19,7 +19,7 @@ sentryTest('should finish a custom transaction when the page goes background', a
   const status_before = spanJsonBefore.status;
 
   expect(description_before).toBe('test-span');
-  expect(status_before).toBeUndefined();
+  expect(status_before).toBe('ok');
 
   await page.locator('#go-background').click();
   const spanJsonAfter: SpanJSON = await page.evaluate('window.getSpanJson()');

@@ -12,7 +12,7 @@
  *
  * `exportName` must be a named export of `@sentry/server-utils/orchestrion`.
  * `modules` must match `module.name` values in `SENTRY_INSTRUMENTATIONS` — e.g.
- * `postgresChannelIntegration` covers both `pg` and `pg-pool`, and
+ * `postgresIntegration` covers both `pg` and `pg-pool`, and
  * `redisChannelIntegration` both `redis` and `@redis/client`.
  *
  * `redis`, `ioredis` and `dataloader` are included even though they're not in
@@ -22,24 +22,24 @@
  * package is bundled is unconditionally correct.
  */
 export const CHANNEL_INTEGRATION_DEFINITIONS = [
-  { exportName: 'postgresChannelIntegration', modules: ['pg', 'pg-pool'] },
-  { exportName: 'postgresJsChannelIntegration', modules: ['postgres'] },
-  { exportName: 'mysqlChannelIntegration', modules: ['mysql'] },
-  { exportName: 'mysql2ChannelIntegration', modules: ['mysql2'] },
-  { exportName: 'genericPoolChannelIntegration', modules: ['generic-pool'] },
-  { exportName: 'lruMemoizerChannelIntegration', modules: ['lru-memoizer'] },
-  { exportName: 'openaiChannelIntegration', modules: ['openai'] },
-  { exportName: 'anthropicChannelIntegration', modules: ['@anthropic-ai/sdk'] },
-  { exportName: 'googleGenAIChannelIntegration', modules: ['@google/genai'] },
-  { exportName: 'vercelAiChannelIntegration', modules: ['ai'] },
-  { exportName: 'amqplibChannelIntegration', modules: ['amqplib'] },
-  { exportName: 'hapiChannelIntegration', modules: ['@hapi/hapi'] },
-  { exportName: 'expressChannelIntegration', modules: ['express', 'router'] },
-  { exportName: 'graphqlChannelIntegration', modules: ['graphql'] },
-  { exportName: 'kafkajsChannelIntegration', modules: ['kafkajs'] },
+  { exportName: 'postgresIntegration', modules: ['pg', 'pg-pool'] },
+  { exportName: 'postgresJsIntegration', modules: ['postgres'] },
+  { exportName: 'mysqlIntegration', modules: ['mysql'] },
+  { exportName: 'mysql2Integration', modules: ['mysql2'] },
+  { exportName: 'genericPoolIntegration', modules: ['generic-pool'] },
+  { exportName: 'lruMemoizerIntegration', modules: ['lru-memoizer'] },
+  { exportName: 'openaiIntegration', modules: ['openai'] },
+  { exportName: 'anthropicIntegration', modules: ['@anthropic-ai/sdk'] },
+  { exportName: 'googleGenAIIntegration', modules: ['@google/genai'] },
+  { exportName: 'vercelAiIntegration', modules: ['ai'] },
+  { exportName: 'amqplibIntegration', modules: ['amqplib'] },
+  { exportName: 'hapiIntegration', modules: ['@hapi/hapi'] },
+  { exportName: 'expressIntegration', modules: ['express', 'router'] },
+  { exportName: 'graphqlIntegration', modules: ['graphql'] },
+  { exportName: 'kafkajsIntegration', modules: ['kafkajs'] },
   { exportName: 'redisChannelIntegration', modules: ['redis', '@redis/client'] },
   { exportName: 'ioredisChannelIntegration', modules: ['ioredis'] },
-  { exportName: 'dataloaderChannelIntegration', modules: ['dataloader'] },
+  { exportName: 'dataloaderIntegration', modules: ['dataloader'] },
 ] as const satisfies ReadonlyArray<{ exportName: string; modules: readonly string[] }>;
 
 /** Look up the subscriber export name for an instrumented package, if any. */

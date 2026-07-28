@@ -1,16 +1,16 @@
 import { expect, it } from 'vitest';
 import type { SerializedStreamedSpan } from '@sentry/core';
 import {
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_REQUEST_TOP_P,
+  GEN_AI_SYSTEM,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
 import { createRunner } from '../../../runner';
 
 // This test runs the `@google/genai` SDK on the Workers runtime (with a
@@ -43,12 +43,12 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
         attributes: {
           'sentry.origin': { value: 'auto.ai.google_genai', type: 'string' },
           'sentry.op': { value: 'gen_ai.chat', type: 'string' },
-          [GEN_AI_SYSTEM_ATTRIBUTE]: { value: 'google_genai', type: 'string' },
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: { value: 'chat', type: 'string' },
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: { value: 'gemini-1.5-pro', type: 'string' },
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: { value: 8, type: 'integer' },
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: { value: 12, type: 'integer' },
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: { value: 20, type: 'integer' },
+          [GEN_AI_SYSTEM]: { value: 'google_genai', type: 'string' },
+          [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
+          [GEN_AI_REQUEST_MODEL]: { value: 'gemini-1.5-pro', type: 'string' },
+          [GEN_AI_USAGE_INPUT_TOKENS]: { value: 8, type: 'integer' },
+          [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 12, type: 'integer' },
+          [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 20, type: 'integer' },
         },
       });
 
@@ -64,15 +64,15 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
         attributes: {
           'sentry.origin': { value: 'auto.ai.google_genai', type: 'string' },
           'sentry.op': { value: 'gen_ai.generate_content', type: 'string' },
-          [GEN_AI_SYSTEM_ATTRIBUTE]: { value: 'google_genai', type: 'string' },
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: { value: 'generate_content', type: 'string' },
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: { value: 'gemini-1.5-flash', type: 'string' },
-          [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: { value: 0.7, type: 'double' },
-          [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: { value: 0.9, type: 'double' },
-          [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: { value: 100, type: 'integer' },
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: { value: 8, type: 'integer' },
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: { value: 12, type: 'integer' },
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: { value: 20, type: 'integer' },
+          [GEN_AI_SYSTEM]: { value: 'google_genai', type: 'string' },
+          [GEN_AI_OPERATION_NAME]: { value: 'generate_content', type: 'string' },
+          [GEN_AI_REQUEST_MODEL]: { value: 'gemini-1.5-flash', type: 'string' },
+          [GEN_AI_REQUEST_TEMPERATURE]: { value: 0.7, type: 'double' },
+          [GEN_AI_REQUEST_TOP_P]: { value: 0.9, type: 'double' },
+          [GEN_AI_REQUEST_MAX_TOKENS]: { value: 100, type: 'integer' },
+          [GEN_AI_USAGE_INPUT_TOKENS]: { value: 8, type: 'integer' },
+          [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 12, type: 'integer' },
+          [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 20, type: 'integer' },
         },
       });
 
@@ -88,9 +88,9 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
         attributes: {
           'sentry.origin': { value: 'auto.ai.google_genai', type: 'string' },
           'sentry.op': { value: 'gen_ai.embeddings', type: 'string' },
-          [GEN_AI_SYSTEM_ATTRIBUTE]: { value: 'google_genai', type: 'string' },
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: { value: 'embeddings', type: 'string' },
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: { value: 'text-embedding-004', type: 'string' },
+          [GEN_AI_SYSTEM]: { value: 'google_genai', type: 'string' },
+          [GEN_AI_OPERATION_NAME]: { value: 'embeddings', type: 'string' },
+          [GEN_AI_REQUEST_MODEL]: { value: 'text-embedding-004', type: 'string' },
         },
       });
     })

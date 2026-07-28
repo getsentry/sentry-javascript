@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/sveltekit';
 import * as Spotlight from '@spotlightjs/spotlight';
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: env.PUBLIC_E2E_TEST_DSN,
   debug: !!env.PUBLIC_DEBUG,

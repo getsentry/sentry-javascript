@@ -1,9 +1,9 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import type { Plugin, UserConfig } from 'vite';
 import type { SentrySolidStartPluginOptions } from './types';
 
 /**
- * A Sentry plugin for adding the @sentry/vite-plugin to automatically upload source maps to Sentry.
+ * A Sentry plugin for adding the @sentry/bundler-plugins/vite plugin to automatically upload source maps to Sentry.
  */
 export function makeAddSentryVitePlugin(options: SentrySolidStartPluginOptions, viteConfig: UserConfig): Plugin[] {
   const { authToken, debug, org, project, sourceMapsUploadOptions } = options;

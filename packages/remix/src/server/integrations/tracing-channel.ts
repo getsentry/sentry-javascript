@@ -3,14 +3,24 @@ import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
   isObjectLike,
+  isURLObjectRelative,
+  parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
-import { CODE_FUNCTION, HTTP_METHOD, HTTP_ROUTE, HTTP_STATUS_CODE, HTTP_URL } from '@sentry/conventions/attributes';
+import {
+  CODE_FUNCTION,
+  HTTP_METHOD,
+  HTTP_ROUTE,
+  HTTP_STATUS_CODE,
+  HTTP_URL,
+  URL_FULL,
+  URL_PATH,
+  SENTRY_KIND,
+} from '@sentry/conventions/attributes';
 import { remixChannels } from '@sentry/server-utils/orchestrion';
 
 const ORIGIN = 'auto.http.orchestrion.remix';
@@ -64,6 +74,9 @@ function getRequestAttributes(request: unknown): SpanAttributes {
   if (typeof url === 'string') {
     // oxlint-disable-next-line typescript/no-deprecated
     attributes[HTTP_URL] = url;
+    const urlObject = parseStringToURLObject(url);
+    attributes[URL_FULL] = urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined;
+    attributes[URL_PATH] = urlObject?.pathname;
   }
   return attributes;
 }
@@ -121,8 +134,8 @@ function subscribeRequestHandler(): void {
     data =>
       startInactiveSpan({
         name: 'remix.request',
-        kind: SPAN_KIND.SERVER,
         attributes: {
+          [SENTRY_KIND]: 'server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
           [CODE_FUNCTION]: 'requestHandler',

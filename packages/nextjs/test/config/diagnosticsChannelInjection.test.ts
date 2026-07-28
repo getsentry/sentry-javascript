@@ -1,6 +1,9 @@
+import { existsSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
+  externalizeOrchestrionRuntimePackages,
   filterInstrumentedExternals,
 } from '../../src/config/diagnosticsChannelInjection';
 import { setUpBuildTimeVariables } from '../../src/config/withSentryConfig/buildTime';
@@ -33,8 +36,7 @@ describe('getServerExternalPackagesPatch (diagnostics-channel injection)', () =>
     expect(externals).toContain('pg');
     expect(externals).toContain('pg-pool');
     // The orchestrion machinery must be external for the runtime hook to work.
-    expect(externals).toContain('@apm-js-collab/tracing-hooks');
-    expect(externals).toContain('@apm-js-collab/code-transformer');
+    expect(externals).toContain('@sentry/server-utils');
   });
 
   it('respects user-provided externals even for bundle-safe packages', () => {
@@ -51,6 +53,43 @@ describe('getServerExternalPackagesPatch (diagnostics-channel injection)', () =>
   });
 });
 
+describe('externalizeOrchestrionRuntimePackages', () => {
+  it.each(['@sentry/server-utils', '@sentry/server-utils/orchestrion', '@sentry/server-utils/orchestrion/register'])(
+    'externalizes %s as an absolute-path commonjs require',
+    async request => {
+      const external = await externalizeOrchestrionRuntimePackages({ request });
+
+      expect(external).toMatch(/^commonjs /);
+      const resolvedPath = external!.slice('commonjs '.length);
+      expect(isAbsolute(resolvedPath)).toBe(true);
+      expect(existsSync(resolvedPath)).toBe(true);
+    },
+  );
+
+  it('ignores the bundled @apm-js-collab packages — no import of them exists in the dist anymore', async () => {
+    await expect(
+      externalizeOrchestrionRuntimePackages({ request: '@apm-js-collab/tracing-hooks' }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('resolves @sentry/server-utils subpaths to the CJS build, since the emitted external is a require()', async () => {
+    const external = await externalizeOrchestrionRuntimePackages({
+      request: '@sentry/server-utils/orchestrion/register',
+    });
+
+    expect(external).toMatch(/[/\\]cjs[/\\]/);
+  });
+
+  it('ignores unrelated requests so later externals handlers still run', async () => {
+    await expect(externalizeOrchestrionRuntimePackages({ request: 'some-other-package' })).resolves.toBeUndefined();
+    // Prefix matching must not leak beyond a package-name boundary.
+    await expect(
+      externalizeOrchestrionRuntimePackages({ request: '@sentry/server-utils-extras' }),
+    ).resolves.toBeUndefined();
+    await expect(externalizeOrchestrionRuntimePackages({})).resolves.toBeUndefined();
+  });
+});
+
 describe('setUpBuildTimeVariables (diagnostics-channel injection)', () => {
   it('injects the flag marker and the tracing-hooks location', () => {
     const nextConfig: NextConfigObject = {};
@@ -58,8 +97,6 @@ describe('setUpBuildTimeVariables (diagnostics-channel injection)', () => {
 
     expect(nextConfig.env).toMatchObject({
       _sentryUseDiagnosticsChannelInjection: 'true',
-      // The runtime module hook joins subpaths onto this, so it must be an absolute directory.
-      _sentryOrchestrionTracingHooksDir: expect.stringMatching(/@apm-js-collab[/+]tracing-hooks/),
     });
   });
 
@@ -68,6 +105,5 @@ describe('setUpBuildTimeVariables (diagnostics-channel injection)', () => {
     setUpBuildTimeVariables(nextConfig, {}, undefined);
 
     expect(nextConfig.env).not.toHaveProperty('_sentryUseDiagnosticsChannelInjection');
-    expect(nextConfig.env).not.toHaveProperty('_sentryOrchestrionTracingHooksDir');
   });
 });

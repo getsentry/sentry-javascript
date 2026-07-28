@@ -3,12 +3,12 @@ import { onCreateWebpackConfig } from '../gatsby-node';
 
 vi.hoisted(
   () =>
-    void mock('@sentry/webpack-plugin', {
+    void mock('@sentry/bundler-plugins/webpack', {
       sentryWebpackPlugin: vi.fn().mockReturnValue({}),
     }),
 );
 
-// Need to override mock because `gatsby-node.js` loads `@sentry/webpack-plugin` as a CJS file.
+// Need to override mock because `gatsby-node.js` loads `@sentry/bundler-plugins/webpack` as a CJS file.
 async function mock(mockedUri: string, stub: any) {
   const { Module } = await import('module');
 
@@ -24,7 +24,7 @@ async function mock(mockedUri: string, stub: any) {
 
 describe('onCreateWebpackConfig', () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { sentryWebpackPlugin } = require('@sentry/webpack-plugin');
+  const { sentryWebpackPlugin } = require('@sentry/bundler-plugins/webpack');
   let originalNodeEnv: string | undefined;
 
   beforeAll(() => {

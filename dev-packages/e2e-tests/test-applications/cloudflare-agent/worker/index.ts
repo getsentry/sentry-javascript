@@ -10,6 +10,7 @@ class MyBaseAgent extends Agent {
 
 export const MyAgent = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
+    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     tunnel: `http://localhost:3031/`,
     tracesSampleRate: 1,
@@ -20,6 +21,7 @@ export const MyAgent = Sentry.instrumentDurableObjectWithSentry(
 
 export default Sentry.withSentry(
   (env: Env) => ({
+    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     tunnel: `http://localhost:3031/`,
     tracesSampleRate: 1,

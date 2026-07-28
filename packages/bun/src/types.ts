@@ -1,5 +1,5 @@
 import type { BaseTransportOptions, ClientOptions, Options } from '@sentry/core';
-import type { OpenTelemetryServerRuntimeOptions } from '@sentry/node-core';
+import type { OpenTelemetryServerRuntimeOptions } from '@sentry/node';
 
 /**
  * Base options for the Sentry Bun SDK.

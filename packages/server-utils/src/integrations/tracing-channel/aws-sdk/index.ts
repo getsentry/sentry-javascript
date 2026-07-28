@@ -4,7 +4,6 @@ import {
   debug,
   defineIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -13,11 +12,12 @@ import {
   AWS_REQUEST_EXTENDED_ID,
   CLOUD_REGION,
   HTTP_STATUS_CODE,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../../debug-build';
 import { CHANNELS } from '../../../orchestrion/channels';
 import type { TracingChannelLifeCycleOptions } from '../../../tracing-channel';
-import { bindTracingChannelToSpan } from '../../../tracing-channel';
+import { bindTracingChannelToSpan, safeChannelCallback } from '../../../tracing-channel';
 import { AWS_SDK_ORIGIN } from './constants';
 import { ServicesExtensions } from './services';
 import type { NormalizedRequest, NormalizedResponse, RequestMetadata } from './types';
@@ -49,16 +49,6 @@ interface AwsV3Command {
   constructor?: { name?: string };
 }
 
-/** Runs a span-building callback so a throw inside it can never break the user's aws-sdk call. */
-function safe<T>(fn: () => T): T | undefined {
-  try {
-    return fn();
-  } catch (error) {
-    DEBUG_BUILD && debug.warn('[orchestrion:aws-sdk] error building span', error);
-    return undefined;
-  }
-}
-
 // `metadata` is smithy's `ResponseMetadata`, read off the untyped channel result/error (`any` for the
 // same reason as `CommandInput`, see types.ts).
 function setMetadataAttributes(span: Span, metadata: Record<string, any> | undefined): void {
@@ -79,7 +69,7 @@ function setMetadataAttributes(span: Span, metadata: Record<string, any> | undef
   }
 }
 
-const _awsChannelIntegration = (() => {
+const _awsIntegration = (() => {
   const servicesExtensions = new ServicesExtensions();
 
   return {
@@ -91,7 +81,7 @@ const _awsChannelIntegration = (() => {
       }
 
       const getSpan = (data: AwsSendChannelContext): Span | undefined =>
-        safe(() => {
+        safeChannelCallback(() => {
           const command = data.arguments[0] as AwsV3Command | undefined;
           const commandName = command?.constructor?.name;
           if (!command || !commandName) {
@@ -120,11 +110,11 @@ const _awsChannelIntegration = (() => {
 
           const span = startInactiveSpan({
             name: requestMetadata.spanName ?? `${normalizedRequest.serviceName}.${normalizedRequest.commandName}`,
-            kind: requestMetadata.spanKind ?? SPAN_KIND.CLIENT,
             // `rpc` matches what the exporter infers from `rpc.service` for the OTel aws-sdk spans;
             // service extensions override it where inference yields a different op (DynamoDB: `db`).
             op: requestMetadata.spanOp || 'rpc',
             attributes: {
+              [SENTRY_KIND]: 'client',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: AWS_SDK_ORIGIN,
               ...extractAttributesFromNormalizedRequest(normalizedRequest),
               ...requestMetadata.spanAttributes,
@@ -140,7 +130,7 @@ const _awsChannelIntegration = (() => {
           // so `cloud.region` cannot be lost when `send` settles first (e.g. an early failure).
           //
           // The provider call is guarded separately: the span is already started, so a synchronous
-          // throw bubbling into the enclosing `safe` would discard it without ending it (a leaked
+          // throw bubbling into the enclosing `safeChannelCallback` would discard it without ending it (a leaked
           // open span).
           let regionResult: string | Promise<string> | undefined;
           try {
@@ -169,7 +159,7 @@ const _awsChannelIntegration = (() => {
 
           // Inject trace-propagation headers into outgoing messages (SQS/SNS/Lambda). Runs before
           // `send` proceeds, so the mutated `commandInput` is used to build the request.
-          safe(() => servicesExtensions.requestPostSpanHook(normalizedRequest, span));
+          safeChannelCallback(() => servicesExtensions.requestPostSpanHook(normalizedRequest, span));
 
           return span;
         });
@@ -186,7 +176,7 @@ const _awsChannelIntegration = (() => {
 
           // The channel `result`/`error` are untyped; the `$metadata` casts below name smithy's
           // `ResponseMetadata` shape (`any`-valued, see `setMetadataAttributes`).
-          safe(() => {
+          safeChannelCallback(() => {
             if (failed) {
               const err = data.error as
                 | { $metadata?: Record<string, any>; RequestId?: string; extendedRequestId?: string }
@@ -259,14 +249,11 @@ const _awsChannelIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven aws-sdk (v3) integration.
+ * Orchestrion-driven aws-sdk (v3) integration.
  *
  * Subscribes to the `orchestrion:@smithy/smithy-client:send` (and equivalent) diagnostics_channel
  * the orchestrion code transform injects into the AWS SDK's smithy `Client.prototype.send`, emitting
  * spans identical to the OTel `@opentelemetry/instrumentation-aws-sdk` integration (with a distinct
- * `auto.aws.orchestrion.aws_sdk` origin). Requires the orchestrion runtime hook or bundler plugin —
- * wire it up via `experimentalUseDiagnosticsChannelInjection()`.
- *
- * @experimental
+ * `auto.aws.orchestrion.aws_sdk` origin). Requires the orchestrion runtime hook or bundler plugin.
  */
-export const awsChannelIntegration = defineIntegration(_awsChannelIntegration);
+export const awsIntegration = defineIntegration(_awsIntegration);

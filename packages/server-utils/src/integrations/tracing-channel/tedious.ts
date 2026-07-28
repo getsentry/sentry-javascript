@@ -9,7 +9,6 @@ import {
   debug,
   defineIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   waitForTracingChannelBinding,
@@ -21,6 +20,7 @@ import {
   DB_USER,
   NET_PEER_NAME,
   NET_PEER_PORT,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -129,6 +129,7 @@ function subscribeQuery(channelName: string, operation: string): void {
     const sql = extractSql(request);
 
     const attributes: SpanAttributes = {
+      [SENTRY_KIND]: 'client',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       [DB_SYSTEM]: DB_SYSTEM_VALUE_MSSQL,
       [DB_NAME]: databaseName,
@@ -142,7 +143,6 @@ function subscribeQuery(channelName: string, operation: string): void {
 
     const span = startInactiveSpan({
       name: getSpanName(operation, databaseName, sql, request.table),
-      kind: SPAN_KIND.CLIENT,
       op: 'db',
       attributes,
     });
@@ -227,7 +227,7 @@ function once<Args extends unknown[]>(fn: (...args: Args) => void): (...args: Ar
   };
 }
 
-const _tediousChannelIntegration = (() => {
+const _tediousIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -252,10 +252,10 @@ const _tediousChannelIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL - orchestrion-driven tedious integration.
+ * Orchestrion-driven tedious integration.
  *
  * Subscribes to the `orchestrion:tedious:*` diagnostics_channels that the orchestrion code transform
  * injects into tedious's `Connection` request methods (each traced as one db span) and `Connection.connect`
  * (active-database bookkeeping). Requires the orchestrion runtime hook or bundler plugin to be active.
  */
-export const tediousChannelIntegration = defineIntegration(_tediousChannelIntegration);
+export const tediousIntegration = defineIntegration(_tediousIntegration);

@@ -9,6 +9,7 @@ import {
   DB_SYSTEM_NAME,
   NET_PEER_NAME,
   NET_PEER_PORT,
+  SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
@@ -20,7 +21,6 @@ import {
   getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   waitForTracingChannelBinding,
@@ -145,8 +145,8 @@ function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanA
 function startCommandSpan(commandName: string, commandArgs: Array<string | Buffer>, attributes: SpanAttributes): Span {
   return startInactiveSpan({
     name: `redis-${commandName}`,
-    kind: SPAN_KIND.CLIENT,
     attributes: {
+      [SENTRY_KIND]: 'client',
       ...attributes,
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
       [DB_STATEMENT]: defaultDbStatementSerializer(commandName, commandArgs),
@@ -272,8 +272,7 @@ function bindNodeRedisConnectChannel(): void {
     const options = (data.self as NodeRedisClient | undefined)?.options;
     return startInactiveSpan({
       name: 'redis-connect',
-      kind: SPAN_KIND.CLIENT,
-      attributes: { ...nodeRedisAttributes(options), [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db' },
+      attributes: { [SENTRY_KIND]: 'client', ...nodeRedisAttributes(options), [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db' },
     });
   });
 }
@@ -289,8 +288,8 @@ function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: Com
     const socket = (data.self as NodeRedisClient | undefined)?.options?.socket;
     return startInactiveSpan({
       name: getOperation(data),
-      kind: SPAN_KIND.CLIENT,
       attributes: {
+        [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
         [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
@@ -334,7 +333,7 @@ const _redisChannelIntegration = ((options: RedisChannelIntegrationOptions = {})
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven redis integration for `redis` v2-v3 and
+ * Orchestrion-driven redis integration for `redis` v2-v3 and
  * node-redis v4/v5 `<5.12.0` (`@redis/client`). Covers single commands, `connect`,
  * and multi/pipeline batches, fully replacing `@opentelemetry/instrumentation-redis`.
  * Requires the orchestrion runtime hook or bundler plugin.

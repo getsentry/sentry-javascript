@@ -3,7 +3,6 @@ import { defineIntegration, hasSpanStreamingEnabled } from '@sentry/core/browser
 import {
   addWebVitalsToSpan,
   registerInpInteractionListener,
-  startTrackingINP,
   startTrackingWebVitals,
   trackClsAsSpan,
   trackInpAsSpan,
@@ -19,14 +18,6 @@ export interface WebVitalsOptions {
    * Web vitals to skip.
    */
   ignore?: WebVitalName[];
-
-  /**
-   * @experimental
-   */
-  _experiments?: Partial<{
-    enableStandaloneClsSpans: boolean;
-    enableStandaloneLcpSpans: boolean;
-  }>;
 }
 
 /**
@@ -43,17 +34,15 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
     name: WEB_VITALS_INTEGRATION_NAME,
     setup(client) {
       const spanStreamingEnabled = hasSpanStreamingEnabled(client);
-      const { enableStandaloneClsSpans, enableStandaloneLcpSpans } = options._experiments ?? {};
 
-      const recordClsStandaloneSpans =
-        spanStreamingEnabled || ignored.has('cls') ? undefined : enableStandaloneClsSpans || false;
-      const recordLcpStandaloneSpans =
-        spanStreamingEnabled || ignored.has('lcp') ? undefined : enableStandaloneLcpSpans || false;
+      // With span streaming enabled, CLS and LCP are tracked as standalone v2 spans (like INP).
+      // Otherwise, they're recorded as measurements on the pageload span.
+      const trackClsOnPageloadSpan = !spanStreamingEnabled && !ignored.has('cls');
+      const trackLcpOnPageloadSpan = !spanStreamingEnabled && !ignored.has('lcp');
 
-      // eslint-disable-next-line typescript/no-deprecated
       const finalizeWebVitals = startTrackingWebVitals({
-        recordClsStandaloneSpans,
-        recordLcpStandaloneSpans,
+        trackCls: trackClsOnPageloadSpan,
+        trackLcp: trackLcpOnPageloadSpan,
         client,
       });
 
@@ -70,10 +59,8 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
 
         finalizeWebVitals();
         addWebVitalsToSpan(span, {
-          // CLS/LCP are recorded as pageload span measurements only when they're neither
-          // tracked as standalone spans nor handled by span streaming (and not ignored).
-          recordClsOnPageloadSpan: recordClsStandaloneSpans === false,
-          recordLcpOnPageloadSpan: recordLcpStandaloneSpans === false,
+          recordClsOnPageloadSpan: trackClsOnPageloadSpan,
+          recordLcpOnPageloadSpan: trackLcpOnPageloadSpan,
           spanStreamingEnabled,
         });
       });
@@ -85,11 +72,12 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
         if (!ignored.has('cls')) {
           trackClsAsSpan(client);
         }
-        if (!ignored.has('inp')) {
-          trackInpAsSpan();
-        }
-      } else if (!ignored.has('inp')) {
-        startTrackingINP();
+      }
+
+      // INP is always sent as a streamed web vital span. When span streaming is disabled, INP still
+      // streams (it overrides the static trace lifecycle for INP only), see `trackInpAsSpan`.
+      if (!ignored.has('inp')) {
+        trackInpAsSpan(client);
       }
     },
     afterAllSetup() {

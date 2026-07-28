@@ -1,5 +1,5 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
-import type { ResolvedConfig } from 'vite';
+import type { Plugin, ResolvedConfig } from 'vite';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
@@ -18,9 +18,15 @@ import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTran
  * export default { plugins: [sentryOrchestrionPlugin()] };
  * ```
  */
-export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
+export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
   return {
     ...codeTransformer(orchestrionTransformOptions(options)),
+    applyToEnvironment(environment) {
+      // Orchestrion splices `node:diagnostics_channel` calls into instrumented modules, which only
+      // exist server-side. Only apply to server-consumed environments so injected `tracingChannel`
+      // calls never land in a browser (`client`) bundle (where they'd throw `X is not a function`).
+      return environment.config.consumer === 'server';
+    },
     config(): { ssr: { noExternal: string[] } } {
       // Force-bundle every instrumented package so the code transform actually
       // sees its source. Vite externalizes dependencies in SSR builds by

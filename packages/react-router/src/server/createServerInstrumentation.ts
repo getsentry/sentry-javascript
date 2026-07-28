@@ -1,5 +1,5 @@
 import { context, createContextKey } from '@opentelemetry/api';
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import {
   debug,
   flushIfServerless,
@@ -65,6 +65,8 @@ export function createSentryServerInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                [URL_FULL]: info.request.url,
+                [URL_PATH]: pathname,
               });
 
               try {
@@ -88,9 +90,9 @@ export function createSentryServerInstrumentation(
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                    'http.request.method': info.request.method,
-                    'url.path': pathname,
-                    'url.full': info.request.url,
+                    [HTTP_REQUEST_METHOD]: info.request.method,
+                    [URL_PATH]: pathname,
+                    [URL_FULL]: info.request.url,
                   },
                 },
                 async span => {

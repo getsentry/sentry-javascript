@@ -6,6 +6,7 @@ const app = new Hono<{ Bindings: { E2E_TEST_DSN: string } }>();
 
 app.use(
   sentry(app, env => ({
+    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     environment: 'qa',
     tracesSampleRate: 1.0,

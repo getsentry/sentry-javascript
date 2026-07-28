@@ -13,17 +13,15 @@ import {
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_REQUEST_TOP_K,
   GEN_AI_REQUEST_TOP_P,
+  GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import {
-  GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-} from '../../../src/tracing/ai/gen-ai-attributes';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../src/tracing/ai/gen-ai-attributes';
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from '../../../src/tracing/workers-ai/constants';
 import {
   addRequestAttributes,
@@ -205,7 +203,7 @@ describe('workers-ai utils', () => {
 
       addResponseAttributes(span, { response: 'Paris' }, false);
 
-      expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeUndefined();
+      expect(attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
     });
 
     it('records response text when recordOutputs is true', () => {
@@ -213,8 +211,8 @@ describe('workers-ai utils', () => {
 
       addResponseAttributes(span, { response: 'Paris' }, true);
 
-      expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBe('Paris');
-      expect(attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]).toBe(
+      expect(attributes[GEN_AI_RESPONSE_TEXT]).toBe('Paris');
+      expect(attributes[GEN_AI_OUTPUT_MESSAGES]).toBe(
         JSON.stringify([{ role: 'assistant', parts: [{ type: 'text', content: 'Paris' }] }]),
       );
     });
@@ -225,9 +223,9 @@ describe('workers-ai utils', () => {
 
       addResponseAttributes(span, { tool_calls: toolCalls }, true);
 
-      expect(attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toBe(JSON.stringify(toolCalls));
+      expect(attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBe(JSON.stringify(toolCalls));
       // The product reads model output from `gen_ai.output.messages`; tool calls must appear there too.
-      expect(attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]).toBe(
+      expect(attributes[GEN_AI_OUTPUT_MESSAGES]).toBe(
         JSON.stringify([
           {
             role: 'assistant',
@@ -245,7 +243,7 @@ describe('workers-ai utils', () => {
 
       addResponseAttributes(span, { tool_calls: toolCalls }, true);
 
-      expect(attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]).toBe(
+      expect(attributes[GEN_AI_OUTPUT_MESSAGES]).toBe(
         JSON.stringify([
           {
             role: 'assistant',
@@ -261,9 +259,9 @@ describe('workers-ai utils', () => {
 
       addResponseAttributes(span, { response: 'Looking that up', tool_calls: toolCalls }, true);
 
-      expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBe('Looking that up');
-      expect(attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toBe(JSON.stringify(toolCalls));
-      expect(attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]).toBe(
+      expect(attributes[GEN_AI_RESPONSE_TEXT]).toBe('Looking that up');
+      expect(attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBe(JSON.stringify(toolCalls));
+      expect(attributes[GEN_AI_OUTPUT_MESSAGES]).toBe(
         JSON.stringify([
           {
             role: 'assistant',
@@ -281,7 +279,7 @@ describe('workers-ai utils', () => {
 
       addResponseAttributes(span, { response: 'Paris', tool_calls: [{ name: 'lookup' }] }, false);
 
-      expect(attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]).toBeUndefined();
+      expect(attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
     });
 
     it('serializes non-string response payloads as JSON', () => {
@@ -289,7 +287,7 @@ describe('workers-ai utils', () => {
 
       addResponseAttributes(span, { response: { translated_text: 'Bonjour' } }, true);
 
-      expect(attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBe(JSON.stringify({ translated_text: 'Bonjour' }));
+      expect(attributes[GEN_AI_RESPONSE_TEXT]).toBe(JSON.stringify({ translated_text: 'Bonjour' }));
     });
 
     it('ignores raw Response objects', () => {

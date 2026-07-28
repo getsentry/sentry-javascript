@@ -8,7 +8,7 @@ import {
   setAsyncContextStrategy,
 } from '@sentry/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { postgresChannelIntegration } from '../../src/orchestrion';
+import { postgresIntegration } from '../../src/orchestrion';
 import { CHANNELS } from '../../src/orchestrion/channels';
 
 interface TestStore {
@@ -64,7 +64,7 @@ function installTestAsyncContextStrategy(): void {
 // integration in the same module context has subscribed. vitest isolates
 // module state per file, so this file keeps that assertion clean (the default
 // options integration is exercised in `postgres.test.ts`).
-describe('postgresChannelIntegration({ ignoreConnectSpans: true })', () => {
+describe('postgresIntegration({ ignoreConnectSpans: true })', () => {
   beforeAll(() => {
     installTestAsyncContextStrategy();
   });
@@ -74,7 +74,7 @@ describe('postgresChannelIntegration({ ignoreConnectSpans: true })', () => {
   });
 
   it('subscribes to the query channel but NOT the connect / pool-connect channels', () => {
-    postgresChannelIntegration({ ignoreConnectSpans: true }).setupOnce?.();
+    postgresIntegration({ ignoreConnectSpans: true }).setupOnce?.();
 
     expect(tracingChannel(CHANNELS.PG_QUERY).start.hasSubscribers).toBe(true);
     expect(tracingChannel(CHANNELS.PG_CONNECT).start.hasSubscribers).toBe(false);

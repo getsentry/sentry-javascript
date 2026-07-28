@@ -1,105 +1,41 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-const spanAddDoc = expect.objectContaining({
-  description: 'addDoc cities',
-  data: expect.objectContaining({
-    'db.collection.name': 'cities',
-    'db.namespace': '[DEFAULT]',
-    'db.operation.name': 'addDoc',
-    'db.system.name': 'firebase.firestore',
-    'firebase.firestore.options.projectId': 'sentry-15d85',
-    'firebase.firestore.type': 'collection',
-    'otel.kind': 'CLIENT',
-    'server.address': '127.0.0.1',
-    'server.port': 8080,
-    'sentry.origin': 'auto.firebase.otel.firestore',
-    'sentry.op': 'db.query',
-  }),
-  op: 'db.query',
-  origin: 'auto.firebase.otel.firestore',
-  parent_span_id: expect.any(String),
-  trace_id: expect.any(String),
-  span_id: expect.any(String),
-  timestamp: expect.any(Number),
-  start_timestamp: expect.any(Number),
-  status: 'ok',
-});
+// The orchestrion spans are Sentry-native, so they carry no span-kind attribute (`sentry.kind`).
+const origin = 'auto.firebase.orchestrion.firestore';
 
-const spanSetDocs = expect.objectContaining({
-  description: 'setDoc cities',
-  data: expect.objectContaining({
+function firestoreSpan(operation: string): unknown {
+  const data: Record<string, unknown> = {
     'db.collection.name': 'cities',
     'db.namespace': '[DEFAULT]',
-    'db.operation.name': 'setDoc',
+    'db.operation.name': operation,
     'db.system.name': 'firebase.firestore',
     'firebase.firestore.options.projectId': 'sentry-15d85',
     'firebase.firestore.type': 'collection',
-    'otel.kind': 'CLIENT',
     'server.address': '127.0.0.1',
     'server.port': 8080,
-    'sentry.origin': 'auto.firebase.otel.firestore',
+    'sentry.origin': origin,
     'sentry.op': 'db.query',
-  }),
-  op: 'db.query',
-  origin: 'auto.firebase.otel.firestore',
-  parent_span_id: expect.any(String),
-  trace_id: expect.any(String),
-  span_id: expect.any(String),
-  timestamp: expect.any(Number),
-  start_timestamp: expect.any(Number),
-  status: 'ok',
-});
+  };
 
-const spanGetDocs = expect.objectContaining({
-  description: 'getDocs cities',
-  data: expect.objectContaining({
-    'db.collection.name': 'cities',
-    'db.namespace': '[DEFAULT]',
-    'db.operation.name': 'getDocs',
-    'db.system.name': 'firebase.firestore',
-    'firebase.firestore.options.projectId': 'sentry-15d85',
-    'firebase.firestore.type': 'collection',
-    'otel.kind': 'CLIENT',
-    'server.address': '127.0.0.1',
-    'server.port': 8080,
-    'sentry.origin': 'auto.firebase.otel.firestore',
-    'sentry.op': 'db.query',
-  }),
-  op: 'db.query',
-  origin: 'auto.firebase.otel.firestore',
-  parent_span_id: expect.any(String),
-  trace_id: expect.any(String),
-  span_id: expect.any(String),
-  timestamp: expect.any(Number),
-  start_timestamp: expect.any(Number),
-  status: 'ok',
-});
+  return expect.objectContaining({
+    description: `${operation} cities`,
+    data: expect.objectContaining(data),
+    op: 'db.query',
+    origin,
+    parent_span_id: expect.any(String),
+    trace_id: expect.any(String),
+    span_id: expect.any(String),
+    timestamp: expect.any(Number),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+  });
+}
 
-const spanDeleteDoc = expect.objectContaining({
-  description: 'deleteDoc cities',
-  data: expect.objectContaining({
-    'db.collection.name': 'cities',
-    'db.namespace': '[DEFAULT]',
-    'db.operation.name': 'deleteDoc',
-    'db.system.name': 'firebase.firestore',
-    'firebase.firestore.options.projectId': 'sentry-15d85',
-    'firebase.firestore.type': 'collection',
-    'otel.kind': 'CLIENT',
-    'server.address': '127.0.0.1',
-    'server.port': 8080,
-    'sentry.origin': 'auto.firebase.otel.firestore',
-    'sentry.op': 'db.query',
-  }),
-  op: 'db.query',
-  origin: 'auto.firebase.otel.firestore',
-  parent_span_id: expect.any(String),
-  trace_id: expect.any(String),
-  span_id: expect.any(String),
-  timestamp: expect.any(Number),
-  start_timestamp: expect.any(Number),
-  status: 'ok',
-});
+const spanAddDoc = firestoreSpan('addDoc');
+const spanSetDocs = firestoreSpan('setDoc');
+const spanGetDocs = firestoreSpan('getDocs');
+const spanDeleteDoc = firestoreSpan('deleteDoc');
 
 test('should add, set, get and delete document', async ({ baseURL, page }) => {
   const serverTransactionPromise = waitForTransaction('node-firebase', span => {

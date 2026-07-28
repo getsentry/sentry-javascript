@@ -9,6 +9,7 @@ import * as Effect from 'effect/Effect';
 const LogLevelLive = Logger.minimumLogLevel(LogLevel.Debug);
 const AppLayer = Layer.mergeAll(
   Sentry.effectLayer({
+    traceLifecycle: 'static',
     dsn: process.env.E2E_TEST_DSN,
     integrations: [
       Sentry.browserTracingIntegration({

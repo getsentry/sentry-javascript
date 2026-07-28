@@ -3,7 +3,7 @@
   "version": "10.67.0",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "private": true,
   "scripts": {
@@ -16,7 +16,7 @@
   "dependencies": {
     "@sentry/bun": "10.67.0",
     "@sentry/hono": "10.67.0",
-    "hono": "^4.12.25",
+    "hono": "^4.12.27",
     "mysql": "^2.18.1",
     "pg": "8.16.0"
   },

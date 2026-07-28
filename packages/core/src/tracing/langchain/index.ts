@@ -1,3 +1,4 @@
+/* eslint-disable typescript-eslint/no-deprecated */
 /* eslint-disable max-lines */
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
@@ -5,13 +6,13 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types/span';
 import {
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_TOOL_INPUT_ATTRIBUTE,
-  GEN_AI_TOOL_NAME_ATTRIBUTE,
-  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_TOOL_INPUT,
+  GEN_AI_TOOL_NAME,
+  GEN_AI_TOOL_OUTPUT,
+} from '@sentry/conventions/attributes';
 import { resolveAIRecordingOptions, shouldEnableTruncation } from '../ai/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type {
@@ -98,8 +99,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         invocationParams,
         metadata,
       );
-      const modelName = attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE];
-      const operationName = attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE];
+      const modelName = attributes[GEN_AI_REQUEST_MODEL];
+      const operationName = attributes[GEN_AI_OPERATION_NAME];
 
       startSpanManual(
         {
@@ -141,11 +142,11 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
       const toolDefsJson = extractToolDefinitions(extraParams);
       if (toolDefsJson) {
-        attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = toolDefsJson;
+        attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] = toolDefsJson;
       }
 
-      const modelName = attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE];
-      const operationName = attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE];
+      const modelName = attributes[GEN_AI_REQUEST_MODEL];
+      const operationName = attributes[GEN_AI_OPERATION_NAME];
 
       startSpanManual(
         {
@@ -293,12 +294,12 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       const attributes: Record<string, SpanAttributeValue> = {
         ...getAgentNameFromMetadata(metadata),
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
-        [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
-        [GEN_AI_TOOL_NAME_ATTRIBUTE]: toolName,
+        [GEN_AI_OPERATION_NAME]: 'execute_tool',
+        [GEN_AI_TOOL_NAME]: toolName,
       };
 
       if (recordInputs) {
-        attributes[GEN_AI_TOOL_INPUT_ATTRIBUTE] = input;
+        attributes[GEN_AI_TOOL_INPUT] = input;
       }
 
       startSpanManual(
@@ -327,7 +328,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           const content =
             outputObj && typeof outputObj === 'object' && 'content' in outputObj ? outputObj.content : output;
           span.setAttributes({
-            [GEN_AI_TOOL_OUTPUT_ATTRIBUTE]: typeof content === 'string' ? content : JSON.stringify(content),
+            [GEN_AI_TOOL_OUTPUT]: typeof content === 'string' ? content : JSON.stringify(content),
           });
         }
         exitSpan(runId);

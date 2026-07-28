@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-vite-autoinstrument-durableobject-specifier-alias",
+  // `main` points at the source entry; the Sentry Vite plugin builds from it (so
+  // the auto-instrument transform runs) and the runner serves the built output.
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_als"],
+  "durable_objects": {
+    // The binding references the *exported* alias (`Counter`), while the class
+    // is declared locally as `CounterImpl` and exported via `export { ... as Counter }`.
+    "bindings": [{ "name": "COUNTER", "class_name": "Counter" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Counter"] }],
+}

@@ -1,13 +1,33 @@
-import type { Span as WriteableSpan } from '@opentelemetry/api';
-import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import type { ClientOptions, Options, SamplingContext, Scope, Span } from '@sentry/core';
-import type { NodeTransportOptions, OpenTelemetryServerRuntimeOptions } from '@sentry/node-core';
+import type { ClientOptions, Options, SamplingContext, Scope, ServerRuntimeOptions } from '@sentry/core';
+import type { NodeTransportOptions } from './transports';
+
+/**
+ * Base options for WinterTC-compatible server-side JavaScript runtimes with OpenTelemetry support.
+ * This interface extends the base ServerRuntimeOptions from @sentry/core with OpenTelemetry-specific configuration options.
+ * Used by Node.js, Bun, and other WinterTC-compliant runtime SDKs that support OpenTelemetry instrumentation.
+ */
+export interface OpenTelemetryServerRuntimeOptions extends ServerRuntimeOptions {
+  /**
+   * If this is set to true, the SDK will not set up OpenTelemetry automatically.
+   * In this case, you _have_ to ensure to set it up correctly yourself, including:
+   * * The `SentryPropagator`
+   * * The `SentryContextManager`
+   */
+  skipOpenTelemetrySetup?: boolean;
+}
 
 /**
  * Base options for the Sentry Node SDK.
  * Extends the common WinterTC options with OpenTelemetry support shared with Bun and other server-side SDKs.
  */
 export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
+  /**
+   * Override the runtime name reported in events.
+   * Defaults to 'node' with the current process version if not specified.
+   *
+   * @hidden This is primarily used internally to support platforms like Next on OpenNext/Cloudflare.
+   */
+  runtime?: { name: string; version?: string };
   /**
    * Sets profiling sample rate when @sentry/profiling-node is installed
    *
@@ -83,14 +103,3 @@ export interface CurrentScopes {
   scope: Scope;
   isolationScope: Scope;
 }
-
-/**
- * The base `Span` type is basically a `WriteableSpan`.
- * There are places where we basically want to allow passing _any_ span,
- * so in these cases we type this as `AbstractSpan` which could be either a regular `Span` or a `ReadableSpan`.
- * You'll have to make sur to check relevant fields before accessing them.
- *
- * Note that technically, the `Span` exported from `@opentelemetry/sdk-trace-base` matches this,
- * but we cannot be 100% sure that we are actually getting such a span, so this type is more defensive.
- */
-export type AbstractSpan = WriteableSpan | ReadableSpan | Span;

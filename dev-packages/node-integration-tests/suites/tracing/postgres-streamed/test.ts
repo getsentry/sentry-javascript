@@ -36,9 +36,9 @@ const COMMON_DB_ATTRIBUTES = {
     type: 'integer',
     value: expect.any(Number),
   },
-  'otel.kind': {
+  'sentry.kind': {
     type: 'string',
-    value: 'CLIENT',
+    value: 'client',
   },
   'sentry.environment': {
     type: 'string',
@@ -200,9 +200,10 @@ describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingD
               expect(dbSpans.find(span => span.name.includes('connect'))).toBeUndefined();
               expect(dbSpans.length).toBe(4);
 
-              // This block passes an explicit `postgresIntegration({ ignoreConnectSpans: true })`, which
-              // survives the orchestrion swap, so query spans keep the OTel origin even under INJECT_ORCHESTRION.
-              const origin = 'auto.db.otel.postgres';
+              // `postgresIntegration()` is the diagnostics-channel implementation by default, so query
+              // spans carry the orchestrion origin even when passing explicit options like
+              // `ignoreConnectSpans`.
+              const origin = 'auto.db.orchestrion.postgres';
               expect(dbSpans).toEqual([
                 expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT, origin }),
                 expectedDbSpan({

@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/sveltekit';
 import { setupSidecar } from '@spotlightjs/spotlight/sidecar';
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: E2E_TEST_DSN,
   debug: !!process.env.DEBUG,

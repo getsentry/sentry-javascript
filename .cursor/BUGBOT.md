@@ -45,7 +45,7 @@ Unless explicitly noted (e.g. in the `Testing Conventions` section), only flag t
   - Only consider calling `captureException` if the instrumentation prevents errors from bubbling up (e.g. by swallowing them in a `try/catch` or an error event listener). Doing so is generally discouraged — prefer to let the error propagate instead.
   - Flag any instrumentation that swallows errors without calling `captureException`, and any instrumentation that calls `captureException` even though the error would still bubble up to the user (which causes double-reporting).
 - When calling `generateInstrumentationOnce`, the passed in name MUST match the name of the integration that uses it. If there are multiple instrumentations, they need to follow the pattern `${INSTRUMENTATION_NAME}.some-suffix`.
-- Flag any unguarded `debug.log` / `debug.warn` / `debug.error` call in SDK source. The convention is the short-circuit form `DEBUG_BUILD && debug.log(...)` (not `if (DEBUG_BUILD) { ... }` wrapping). Without the `DEBUG_BUILD` gate the message text ships in production bundles and bloats bundle size.
+- When SDK source code ends up in browser SDK output (ie. core/browser packages), flag any unguarded `debug.log` / `debug.warn` / `debug.error` calls. The convention is the short-circuit form `DEBUG_BUILD && debug.log(...)` (not `if (DEBUG_BUILD) { ... }` wrapping). Without the `DEBUG_BUILD` gate the message text ships in production bundles and bloats bundle size.
 - Flag direct `console.log` / `console.warn` / `console.error` / `console.info` / `console.debug` calls in SDK source. The accepted patterns are:
   - The SDK's `debug` logger (gated with `DEBUG_BUILD && debug.*`) for SDK-internal diagnostics.
   - `consoleSandbox(() => { console.warn(...) })` for intentional user-facing warnings (e.g. init-time misconfiguration messages). The `consoleSandbox` wrapper prevents the SDK's own console instrumentation from intercepting the call. Bare `console.*` calls outside very early init paths (e.g. before the logger is available) should be flagged.
@@ -68,7 +68,7 @@ Unless explicitly noted (e.g. in the `Testing Conventions` section), only flag t
   - Race conditions when waiting on multiple requests. Ensure that waiting checks are unique enough and don't depend on a hard order when there's a chance that telemetry can be sent in arbitrary order.
   - Timeouts or sleeps in tests. Instead suggest concrete events or other signals to wait on.
 - Flag usage of `getFirstEnvelope*`, `getMultipleEnvelope*` or related test helpers in E2E tests. These are NOT reliable anymore. Instead suggest helpers like `waitForTransaction`, `waitForError`, `waitForSpans`, etc.
-- Flag any new or modified `docker-compose.yml` under `dev-packages/node-integration-tests/suites/` or `dev-packages/node-core-integration-tests/suites/` where a service does not define a `healthcheck:`. The runner uses `docker compose up --wait` and relies on healthchecks to know when services are actually ready; without one the test will race the service's startup.
+- Flag any new or modified `docker-compose.yml` under `dev-packages/node-integration-tests/suites/` where a service does not define a `healthcheck:`. The runner uses `docker compose up --wait` and relies on healthchecks to know when services are actually ready; without one the test will race the service's startup.
 
 ## Platform-safe code
 

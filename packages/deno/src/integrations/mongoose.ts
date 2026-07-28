@@ -1,34 +1,10 @@
-import { mongooseChannelIntegration } from '@sentry/server-utils/orchestrion';
-import type { Integration, IntegrationFn } from '@sentry/core';
-import { defineIntegration, extendIntegration } from '@sentry/core';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
-
-const INTEGRATION_NAME = 'DenoMongoose' as const;
+import { mongooseIntegration } from '@sentry/server-utils/orchestrion';
 
 /**
- * Create spans for `mongoose` queries under Deno.
+ * Create spans for `mongoose` queries under Deno. Included in the default
+ * integrations.
  *
- * `mongoose` channels are injected by the orchestrion runtime hook at load
- * time. The `@sentry/deno/import` loader must be active for this integration
- * to record anything.
- *
- * The channel-subscription logic is shared with the other server runtimes in
- * `@sentry/server-utils`. This just installs Deno's `AsyncLocalStorage`
- * context strategy (so spans nest under the active span and survive mongoose's
- * internal callback dispatch) before delegating.
+ * @deprecated Use `mongooseIntegration` instead. This alias will be
+ * removed in a future major.
  */
-const _denoMongooseIntegration = (() => {
-  const inner = mongooseChannelIntegration();
-
-  return extendIntegration(inner, {
-    name: INTEGRATION_NAME,
-    setupOnce() {
-      setAsyncLocalStorageAsyncContextStrategy();
-    },
-  });
-}) satisfies IntegrationFn;
-
-export const denoMongooseIntegration = defineIntegration(_denoMongooseIntegration) as () => Integration & {
-  name: 'DenoMongoose';
-  setupOnce: () => void;
-};
+export const denoMongooseIntegration = mongooseIntegration;

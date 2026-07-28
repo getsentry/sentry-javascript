@@ -1,10 +1,11 @@
-import type { Span, SpanKindValue } from '@sentry/core';
-import { getTraceData, SPAN_KIND } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { getTraceData } from '@sentry/core';
 import {
   AWS_SNS_TOPIC_ARN as ATTR_AWS_SNS_TOPIC_ARN,
   MESSAGING_DESTINATION as ATTR_MESSAGING_DESTINATION,
   MESSAGING_DESTINATION_NAME,
   MESSAGING_SYSTEM,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { ATTR_MESSAGING_DESTINATION_KIND, MESSAGING_DESTINATION_KIND_VALUE_TOPIC } from '../constants';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
@@ -13,14 +14,14 @@ import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
 
 export class SnsServiceExtension implements ServiceExtension {
   public requestPreSpanHook(request: NormalizedRequest): RequestMetadata {
-    let spanKind: SpanKindValue = SPAN_KIND.CLIENT;
     let spanName = `SNS ${request.commandName}`;
     const spanAttributes: Record<string, unknown> = {
       [MESSAGING_SYSTEM]: 'aws.sns',
+      [SENTRY_KIND]: 'client',
     };
 
     if (request.commandName === 'Publish') {
-      spanKind = SPAN_KIND.PRODUCER;
+      spanAttributes[SENTRY_KIND] = 'producer';
 
       spanAttributes[ATTR_MESSAGING_DESTINATION_KIND] = MESSAGING_DESTINATION_KIND_VALUE_TOPIC;
       const { TopicArn, TargetArn, PhoneNumber } = request.commandInput;
@@ -39,7 +40,6 @@ export class SnsServiceExtension implements ServiceExtension {
 
     return {
       spanAttributes,
-      spanKind,
       spanName,
     };
   }

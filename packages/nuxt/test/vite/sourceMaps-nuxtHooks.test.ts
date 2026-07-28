@@ -54,10 +54,10 @@ describe('setupSourceMaps hooks', () => {
   const consoleWarnSpy = vi.spyOn(console, 'warn');
 
   beforeAll(() => {
-    vi.doMock('@sentry/vite-plugin', () => ({
+    vi.doMock('@sentry/bundler-plugins/vite', () => ({
       sentryVitePlugin: mockSentryVitePlugin,
     }));
-    vi.doMock('@sentry/rollup-plugin', () => ({
+    vi.doMock('@sentry/bundler-plugins/rollup', () => ({
       sentryRollupPlugin: mockSentryRollupPlugin,
     }));
   });
@@ -65,8 +65,8 @@ describe('setupSourceMaps hooks', () => {
   afterAll(() => {
     consoleLogSpy.mockRestore();
     consoleWarnSpy.mockRestore();
-    vi.doUnmock('@sentry/vite-plugin');
-    vi.doUnmock('@sentry/rollup-plugin');
+    vi.doUnmock('@sentry/bundler-plugins/vite');
+    vi.doUnmock('@sentry/bundler-plugins/rollup');
   });
 
   beforeEach(() => {

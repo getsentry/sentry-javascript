@@ -63,6 +63,7 @@ describe('Sentry.trackComponent()', () => {
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      status: 'ok',
     });
   });
 
@@ -103,6 +104,7 @@ describe('Sentry.trackComponent()', () => {
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      status: 'ok',
     });
 
     expect(transaction.spans![1]).toEqual({
@@ -118,6 +120,7 @@ describe('Sentry.trackComponent()', () => {
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      status: 'ok',
     });
 
     expect(transaction.spans![2]).toEqual({
@@ -133,6 +136,7 @@ describe('Sentry.trackComponent()', () => {
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      status: 'ok',
     });
   });
 

@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build"
@@ -52,13 +52,46 @@
       "require": {
         "default": "./build/cjs/preload.js"
       }
-    }
-  },
-  "typesVersions": {
-    "<5.0": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ]
+    },
+    "./vite": {
+      "import": {
+        "types": "./build/types/bundler-plugin/vite.d.ts",
+        "default": "./build/esm/bundler-plugin/vite.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/vite.d.ts",
+        "default": "./build/cjs/bundler-plugin/vite.js"
+      }
+    },
+    "./rollup": {
+      "import": {
+        "types": "./build/types/bundler-plugin/rollup.d.ts",
+        "default": "./build/esm/bundler-plugin/rollup.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/rollup.d.ts",
+        "default": "./build/cjs/bundler-plugin/rollup.js"
+      }
+    },
+    "./webpack": {
+      "import": {
+        "types": "./build/types/bundler-plugin/webpack.d.ts",
+        "default": "./build/esm/bundler-plugin/webpack.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/webpack.d.ts",
+        "default": "./build/cjs/bundler-plugin/webpack.js"
+      }
+    },
+    "./esbuild": {
+      "import": {
+        "types": "./build/types/bundler-plugin/esbuild.d.ts",
+        "default": "./build/esm/bundler-plugin/esbuild.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/esbuild.d.ts",
+        "default": "./build/cjs/bundler-plugin/esbuild.js"
+      }
     }
   },
   "publishConfig": {
@@ -66,13 +99,13 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/core": "^2.9.0",
     "@opentelemetry/instrumentation": "^0.220.0",
-    "@opentelemetry/sdk-trace-base": "^2.9.0",
     "@sentry/conventions": "^0.16.0",
     "@sentry/core": "10.67.0",
-    "@sentry/node-core": "10.67.0",
     "@sentry/opentelemetry": "10.67.0",
     "@sentry/server-utils": "10.67.0",
+    "@sentry/bundler-plugins": "10.67.0",
     "import-in-the-middle": "^3.0.0"
   },
   "devDependencies": {
@@ -82,9 +115,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

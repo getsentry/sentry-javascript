@@ -56,7 +56,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'rpc.service': 'S3',
       'cloud.region': 'us-east-1',
       'aws.s3.bucket': 'ot-demo-test',
-      'otel.kind': 'CLIENT',
+      'sentry.kind': 'client',
     }),
   });
 
@@ -119,7 +119,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'messaging.destination.name': 'my-queue',
       'url.full': 'https://sqs.us-east-1.amazonaws.com/123456789012/my-queue',
       'messaging.message.id': 'message-id-1',
-      'otel.kind': 'PRODUCER',
+      'sentry.kind': 'producer',
     }),
   });
 
@@ -133,7 +133,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'messaging.system': 'aws_sqs',
       'messaging.operation.type': 'receive',
       'messaging.batch.message_count': 1,
-      'otel.kind': 'CONSUMER',
+      'sentry.kind': 'consumer',
     }),
   });
 
@@ -148,7 +148,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'messaging.system': 'aws.sns',
       'messaging.destination': 'my-topic',
       'aws.sns.topic.arn': 'arn:aws:sns:us-east-1:123456789012:my-topic',
-      'otel.kind': 'PRODUCER',
+      'sentry.kind': 'producer',
     }),
   });
 

@@ -20,6 +20,7 @@ import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavi
 import type { RouteHandlerContext } from './types';
 import { flushSafelyWithTimeout, waitUntil } from './utils/responseEnd';
 import { commonObjectToIsolationScope } from './utils/tracingUtils';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 
 /**
  * Wraps a Next.js App Router Route handler with Sentry error and performance instrumentation.
@@ -47,8 +48,11 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         edgeRuntimeIsolationScopeOverride = isolationScope;
 
         rootSpan.updateName(`${method} ${parameterizedRoute}`);
-        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+        rootSpan.setAttributes({
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          [HTTP_ROUTE]: parameterizedRoute,
+        });
       }
 
       return withIsolationScope(

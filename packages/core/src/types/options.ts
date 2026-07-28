@@ -85,17 +85,6 @@ export interface ServerRuntimeOptions {
   clientReportFlushInterval?: number;
 
   /**
-   * The max. duration in seconds that the SDK will wait for parent spans to be finished before discarding a span.
-   * The SDK will automatically clean up spans that have no finished parent after this duration.
-   * This is necessary to prevent memory leaks in case of parent spans that are never finished or otherwise dropped/missing.
-   * However, if you have very long-running spans in your application, a shorter duration might cause spans to be discarded too early.
-   * In this case, you can increase this duration to a value that fits your expected data.
-   *
-   * Defaults to 300 seconds (5 minutes).
-   */
-  maxSpanWaitDuration?: number;
-
-  /**
    * Callback that is executed when a fatal global error occurs.
    */
   onFatalError?(this: void, error: Error): void;
@@ -182,12 +171,14 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   enabled?: boolean;
 
   /**
-   * When enabled, stack traces are automatically attached to all events captured with `Sentry.captureMessage`.
+   * Stack traces are automatically attached to events that don't otherwise have one. This applies
+   * to events captured with `Sentry.captureMessage` and to non-Error values passed to
+   * `Sentry.captureException`. Set this to `false` to disable attaching these stack traces.
    *
    * Grouping in Sentry is different for events with stack traces and without. As a result, you will get
    * new groups as you enable or disable this flag for certain events.
    *
-   * @default false
+   * @default true
    */
   attachStacktrace?: boolean;
 

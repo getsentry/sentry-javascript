@@ -1,7 +1,10 @@
+/* eslint-disable typescript-eslint/no-deprecated */
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
@@ -9,17 +12,15 @@ import {
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_REQUEST_TOP_K,
   GEN_AI_REQUEST_TOP_P,
-  GEN_AI_PROVIDER_NAME,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Span, SpanAttributeValue } from '../../types/span';
 import {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { extractSystemInstructions, getTruncatedJsonString, setTokenUsageAttributes } from '../ai/utils';
 import { stringify } from '../../utils/string';
@@ -181,7 +182,7 @@ export function setOutputMessagesAttribute(
   }
 
   if (parts.length > 0) {
-    span.setAttribute(GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE, JSON.stringify([{ role: 'assistant', parts }]));
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, JSON.stringify([{ role: 'assistant', parts }]));
   }
 }
 
@@ -208,16 +209,16 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
     let responseText: string | undefined;
     if (typeof response.response === 'string') {
       responseText = response.response;
-      span.setAttribute(GEN_AI_RESPONSE_TEXT_ATTRIBUTE, response.response);
+      span.setAttribute(GEN_AI_RESPONSE_TEXT, response.response);
     } else if (response.response != null) {
       responseText = JSON.stringify(response.response);
-      span.setAttribute(GEN_AI_RESPONSE_TEXT_ATTRIBUTE, responseText);
+      span.setAttribute(GEN_AI_RESPONSE_TEXT, responseText);
     }
 
     const toolCalls =
       Array.isArray(response.tool_calls) && response.tool_calls.length > 0 ? response.tool_calls : undefined;
     if (toolCalls) {
-      span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, JSON.stringify(toolCalls));
+      span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS, JSON.stringify(toolCalls));
     }
 
     setOutputMessagesAttribute(span, { responseText, toolCalls });

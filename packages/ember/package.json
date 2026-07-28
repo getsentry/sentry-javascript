@@ -34,6 +34,7 @@
     "@embroider/macros": "^1.16.0",
     "@sentry/browser": "10.67.0",
     "@sentry/core": "10.67.0",
+    "@sentry/conventions": "^0.16.0",
     "ember-auto-import": "^2.7.2",
     "ember-cli-babel": "^8.2.0",
     "ember-cli-htmlbars": "^6.1.1",
@@ -77,10 +78,11 @@
     "qunit": "~2.22.0",
     "qunit-dom": "~3.5.0",
     "sinon": "21.0.1",
+    "typescript": "~5.8.0",
     "webpack": "~5.104.1"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "ember": {
     "edition": "octane"

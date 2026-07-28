@@ -6,6 +6,7 @@ const app = new Hono();
 
 app.use(
   sentry(app, {
+    traceLifecycle: 'static',
     dsn: process.env.E2E_TEST_DSN,
     environment: 'qa',
     tracesSampleRate: 1.0,

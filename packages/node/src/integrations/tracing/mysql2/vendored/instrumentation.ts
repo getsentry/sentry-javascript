@@ -12,15 +12,9 @@
 
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
-import { DB_STATEMENT, DB_SYSTEM } from '@sentry/conventions/attributes';
+import { DB_STATEMENT, DB_SYSTEM, SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
-  SPAN_STATUS_ERROR,
-  startInactiveSpan,
-} from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
 import { InstrumentationNodeModuleFile } from '../../InstrumentationNodeModuleFile';
 import type { Connection, FormatFunction, Query, QueryError, QueryOptions } from './mysql2-types';
 import { DB_SYSTEM_VALUE_MYSQL } from './semconv';
@@ -119,6 +113,7 @@ export class MySQL2Instrumentation extends InstrumentationBase<InstrumentationCo
         }
 
         const attributes: SpanAttributes = {
+          [SENTRY_KIND]: 'client',
           ...getConnectionAttributes(this.config),
           // oxlint-disable-next-line typescript/no-deprecated
           [DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
@@ -129,7 +124,6 @@ export class MySQL2Instrumentation extends InstrumentationBase<InstrumentationCo
 
         const span = startInactiveSpan({
           name: getSpanName(query),
-          kind: SPAN_KIND.CLIENT,
           attributes,
         });
 

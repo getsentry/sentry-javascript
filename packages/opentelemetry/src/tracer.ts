@@ -1,5 +1,5 @@
 import type { Context, Span as OpenTelemetrySpan, SpanOptions, Tracer } from '@opentelemetry/api';
-import { context, trace } from '@opentelemetry/api';
+import { context, isSpanContextValid, trace } from '@opentelemetry/api';
 import { isTracingSuppressed } from '@opentelemetry/core';
 import {
   _INTERNAL_safeMathRandom,
@@ -16,19 +16,25 @@ import {
   SentryNonRecordingSpan,
   setCapturedScopesOnSpan,
   spanIsIgnored,
+  spanKindToName,
   startNewTrace,
   withScope,
 } from '@sentry/core';
 import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
-import { applyOtelSpanData, applyOtelSpanKind } from './applyOtelSpanData';
+import { applyOtelSpanData } from './applyOtelSpanData';
 import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY, SENTRY_TRACE_STATE_DSC } from './constants';
 import { getSamplingDecision } from './utils/getSamplingDecision';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 
 export class SentryTracer implements Tracer {
   /** @inheritdoc */
   public startSpan(name: string, options: SpanOptions = {}, ctx?: Context): OpenTelemetrySpan {
     const parentContext = ctx || context.active();
-    const parentSpan = options.root ? undefined : trace.getSpan(parentContext);
+    const parentSpanCandidate = options.root ? undefined : trace.getSpan(parentContext);
+    // Ignore an invalid parent (e.g. a malformed incoming trace/span id) and start a fresh trace,
+    // matching the OTel SDK sampler's `getValidSpan` behaviour.
+    const parentSpan =
+      parentSpanCandidate && isSpanContextValid(parentSpanCandidate.spanContext()) ? parentSpanCandidate : undefined;
 
     if (isTracingSuppressed(parentContext)) {
       return this._createNonRecordingSpan(parentSpan);
@@ -41,7 +47,6 @@ export class SentryTracer implements Tracer {
     // are not marked and keep their mutable behavior.
     markSpanAsTracerProviderSpan(span);
 
-    applyOtelSpanKind(span, options.kind);
     if (options.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === undefined) {
       markSpanForOtelSourceInference(span);
     }
@@ -109,10 +114,15 @@ export class SentryTracer implements Tracer {
   ): Span {
     const sentryOptions = {
       name,
-      attributes: options.attributes as SpanAttributes | undefined,
+      attributes: (options.attributes as SpanAttributes) || {},
       links: options.links as SpanLink[] | undefined,
       startTime: options.startTime,
     };
+
+    // Convert otel kind to our sentry.kind attribtue
+    if (options.kind) {
+      sentryOptions.attributes[SENTRY_KIND] = spanKindToName(options.kind);
+    }
 
     if (options.root) {
       return startNewTrace(() => _INTERNAL_startInactiveSpan({ ...sentryOptions, parentSpan: null }));

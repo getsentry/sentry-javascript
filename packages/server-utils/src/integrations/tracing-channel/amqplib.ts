@@ -7,7 +7,6 @@ import {
   defineIntegration,
   getTraceData,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   timestampInSeconds,
@@ -23,6 +22,7 @@ import {
   NET_PEER_PORT,
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
+  SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FULL,
@@ -162,7 +162,7 @@ const NOOP = (): void => {};
 // the subscribe logic twice and emit duplicate spans for every operation.
 let subscribed = false;
 
-const _amqplibChannelIntegration = (() => {
+const _amqplibIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -475,8 +475,8 @@ function startPublishSpan(data: AmqpChannelContext): Span {
   const span = startInactiveSpan({
     name: `publish ${normalizeExchange(exchange)}`,
     op: 'message',
-    kind: SPAN_KIND.PRODUCER,
     attributes: {
+      [SENTRY_KIND]: 'producer',
       ...getStoredConnectionAttributes(data.self),
       [ATTR_MESSAGING_DESTINATION]: exchange, // TODO(v11) remove this attribute
       [MESSAGING_DESTINATION_NAME]: exchange,
@@ -513,8 +513,8 @@ function startConsumeSpan(queue: string, msg: ConsumeMessage, channel: ChannelLi
   return startInactiveSpan({
     name: `${queue} process`,
     op: 'message',
-    kind: SPAN_KIND.CONSUMER,
     attributes: {
+      [SENTRY_KIND]: 'consumer',
       ...getStoredConnectionAttributes(channel),
       [ATTR_MESSAGING_DESTINATION]: msg.fields?.exchange, // TODO(v11) remove this attribute
       [MESSAGING_DESTINATION_NAME]: msg.fields?.exchange,
@@ -644,10 +644,10 @@ function getHeaderAsString(headers: Record<string, unknown> | undefined, key: st
 }
 
 /**
- * EXPERIMENTAL: orchestrion-driven `amqplib` integration.
+ * Orchestrion-driven `amqplib` integration.
  *
  * Subscribes to the `orchestrion:amqplib:*` diagnostics_channels that the orchestrion code transform
  * injects into `amqplib`'s channel/connection methods. Requires the orchestrion runtime hook or
  * bundler plugin to be active.
  */
-export const amqplibChannelIntegration = defineIntegration(_amqplibChannelIntegration);
+export const amqplibIntegration = defineIntegration(_amqplibIntegration);

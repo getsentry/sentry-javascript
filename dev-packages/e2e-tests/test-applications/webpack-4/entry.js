@@ -1,6 +1,7 @@
 import { browserTracingIntegration, init } from '@sentry/browser';
 
 init({
+  traceLifecycle: 'static',
   dsn: process.env.E2E_TEST_DSN,
   integrations: [browserTracingIntegration()],
   tunnel: 'http://localhost:3031',

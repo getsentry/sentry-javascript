@@ -1,7 +1,6 @@
 import {
   captureException,
   getCapturedScopesOnSpan,
-  getClient,
   getCurrentScope,
   getIsolationScope,
   setTag,
@@ -11,7 +10,6 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { startSpan } from '../../src/trace';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
-import type { TestClientInterface } from '../helpers/TestClient';
 
 describe('Integration | Scope', () => {
   afterEach(async () => {
@@ -26,13 +24,11 @@ describe('Integration | Scope', () => {
       const beforeSend = vi.fn(() => null);
       const beforeSendTransaction = vi.fn(() => null);
 
-      mockSdkInit({
+      const client = mockSdkInit({
         tracesSampleRate: tracingEnabled ? 1 : 0,
         beforeSend,
         beforeSendTransaction,
       });
-
-      const client = getClient() as TestClientInterface;
 
       const rootScope = getCurrentScope();
 
@@ -53,7 +49,10 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           startSpan({ name: 'outer' }, span => {
-            expect(getCapturedScopesOnSpan(span).scope).toBe(tracingEnabled ? scope2 : undefined);
+            // A recording root span starts a new trace, which forks the active scope, so the captured
+            // scope is a fork of `scope2`; a non-recording span captures the active scope directly.
+            // Either way it carries `scope2`'s data.
+            expect(getCapturedScopesOnSpan(span).scope?.getScopeData().tags).toEqual(scope2.getScopeData().tags);
 
             spanId = span.spanContext().spanId;
             traceId = span.spanContext().traceId;
@@ -144,9 +143,7 @@ describe('Integration | Scope', () => {
       const beforeSend = vi.fn(() => null);
       const beforeSendTransaction = vi.fn(() => null);
 
-      mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
-
-      const client = getClient() as TestClientInterface;
+      const client = mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
       const rootScope = getCurrentScope();
 
       const error1 = new Error('test error 1');
@@ -262,9 +259,8 @@ describe('Integration | Scope', () => {
       const beforeSend = vi.fn(() => null);
       const beforeSendTransaction = vi.fn(() => null);
 
-      mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
+      const client = mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
 
-      const client = getClient() as TestClientInterface;
       const rootScope = getCurrentScope();
 
       const error1 = new Error('test error 1');

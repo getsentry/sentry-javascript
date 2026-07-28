@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { debug, getTraceData, SPAN_KIND } from '@sentry/core';
+import { debug, getTraceData } from '@sentry/core';
 import {
   FAAS_EXECUTION as ATTR_FAAS_EXECUTION,
   FAAS_INVOKED_NAME as ATTR_FAAS_INVOKED_NAME,
@@ -27,7 +27,6 @@ export class LambdaServiceExtension implements ServiceExtension {
 
     return {
       spanAttributes,
-      spanKind: SPAN_KIND.CLIENT,
       spanName,
     };
   }

@@ -9,7 +9,7 @@ import {
   setAsyncContextStrategy,
 } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { postgresChannelIntegration } from '../../src/orchestrion';
+import { postgresIntegration } from '../../src/orchestrion';
 import { CHANNELS } from '../../src/orchestrion/channels';
 
 interface TestStore {
@@ -77,7 +77,7 @@ interface ChannelContext {
   self?: unknown;
 }
 
-describe('postgresChannelIntegration', () => {
+describe('postgresIntegration', () => {
   let startInactiveSpanSpy: MockInstance;
   let getActiveSpanSpy: MockInstance;
   let span: Span;
@@ -87,7 +87,7 @@ describe('postgresChannelIntegration', () => {
   // strategy must be installed first so `setupOnce`'s `waitForTracingChannelBinding` fires synchronously.
   beforeAll(() => {
     installTestAsyncContextStrategy();
-    postgresChannelIntegration().setupOnce?.();
+    postgresIntegration().setupOnce?.();
   });
 
   afterAll(() => {

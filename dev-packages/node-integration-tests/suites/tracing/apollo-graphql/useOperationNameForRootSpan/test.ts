@@ -19,12 +19,13 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
           data: {
             'graphql.operation.name': 'GetHello',
             'graphql.operation.type': 'query',
-            'graphql.source': 'query GetHello {hello}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'graphql.document': 'query GetHello {hello}',
+            'sentry.origin': 'auto.graphql.diagnostic_channel',
+            'sentry.op': 'graphql',
           },
           description: 'query GetHello',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: 'auto.graphql.diagnostic_channel',
         }),
       ]),
     };
@@ -48,14 +49,15 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
           data: {
             'graphql.operation.name': 'TestMutation',
             'graphql.operation.type': 'mutation',
-            'graphql.source': `mutation TestMutation($email: String) {
+            'graphql.document': `mutation TestMutation($email: String) {
   login(email: $email)
 }`,
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'sentry.origin': 'auto.graphql.diagnostic_channel',
+            'sentry.op': 'graphql',
           },
           description: 'mutation TestMutation',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: 'auto.graphql.diagnostic_channel',
         }),
       ]),
     };
@@ -79,12 +81,13 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
           data: {
             'graphql.operation.name': 'GetHello',
             'graphql.operation.type': 'query',
-            'graphql.source': 'query GetHello {hello}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'graphql.document': 'query GetHello {hello}',
+            'sentry.origin': 'auto.graphql.diagnostic_channel',
+            'sentry.op': 'graphql',
           },
           description: 'query GetHello',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: 'auto.graphql.diagnostic_channel',
         }),
       ]),
     };
@@ -107,12 +110,13 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
         expect.objectContaining({
           data: {
             'graphql.operation.type': 'query',
-            'graphql.source': 'query {hello}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'graphql.document': 'query {hello}',
+            'sentry.origin': 'auto.graphql.diagnostic_channel',
+            'sentry.op': 'graphql',
           },
           description: 'query',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: 'auto.graphql.diagnostic_channel',
         }),
       ]),
     };
@@ -136,23 +140,25 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
           data: {
             'graphql.operation.name': 'GetHello',
             'graphql.operation.type': 'query',
-            'graphql.source': 'query GetHello {hello}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'graphql.document': 'query GetHello {hello}',
+            'sentry.origin': 'auto.graphql.diagnostic_channel',
+            'sentry.op': 'graphql',
           },
           description: 'query GetHello',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: 'auto.graphql.diagnostic_channel',
         }),
         expect.objectContaining({
           data: {
             'graphql.operation.name': 'GetWorld',
             'graphql.operation.type': 'query',
-            'graphql.source': 'query GetWorld {world}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'graphql.document': 'query GetWorld {world}',
+            'sentry.origin': 'auto.graphql.diagnostic_channel',
+            'sentry.op': 'graphql',
           },
           description: 'query GetWorld',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: 'auto.graphql.diagnostic_channel',
         }),
       ]),
     };

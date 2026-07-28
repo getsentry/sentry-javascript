@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/sveltekit';
 // With SvelteKit 3 native instrumentation enabled (`experimental.instrumentation.server`),
 // `Sentry.init` runs here instead of in `hooks.server.ts`.
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: E2E_TEST_DSN,
   debug: !!process.env.DEBUG,

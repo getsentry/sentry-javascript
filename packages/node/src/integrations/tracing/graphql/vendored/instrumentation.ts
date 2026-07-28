@@ -65,8 +65,9 @@ import {
   startInactiveSpan,
   withActiveSpan,
 } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '@sentry/opentelemetry';
+
 import type { GraphQLInstrumentationConfig, GraphQLInstrumentationParsedConfig } from './types';
+import { SENTRY_GRAPHQL_OPERATION } from '@sentry/conventions/attributes';
 
 const PACKAGE_NAME = '@sentry/instrumentation-graphql';
 
@@ -245,8 +246,8 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
    */
   private _updateSpanFromResult(span: Span, result: ExecutionResult): void {
     // We want to ensure spans are marked as errored if there are errors in the result
-    // We only do that if the span is not already marked with a status
-    if (result.errors?.length && !spanToJSON(span).status) {
+    // We only do that if the span is not already marked with another error status
+    if (result.errors?.length && spanToJSON(span).status === 'ok') {
       span.setStatus({ code: SPAN_STATUS_ERROR });
     }
 
@@ -267,7 +268,7 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     const rootSpan = getRootSpan(span);
     const rootSpanAttributes = spanToJSON(rootSpan).data;
 
-    const existingOperations = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION] || [];
+    const existingOperations = rootSpanAttributes[SENTRY_GRAPHQL_OPERATION] || [];
 
     const newOperation = operationName ? `${operationType} ${operationName}` : `${operationType}`;
 
@@ -275,11 +276,11 @@ export class GraphQLInstrumentation extends InstrumentationBase<GraphQLInstrumen
     // This can either be a string, or an array of strings (if there are multiple operations)
     if (Array.isArray(existingOperations)) {
       (existingOperations as string[]).push(newOperation);
-      rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, existingOperations);
+      rootSpan.setAttribute(SENTRY_GRAPHQL_OPERATION, existingOperations);
     } else if (typeof existingOperations === 'string') {
-      rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, [existingOperations, newOperation]);
+      rootSpan.setAttribute(SENTRY_GRAPHQL_OPERATION, [existingOperations, newOperation]);
     } else {
-      rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, newOperation);
+      rootSpan.setAttribute(SENTRY_GRAPHQL_OPERATION, newOperation);
     }
 
     if (!spanToJSON(rootSpan).data['original-description']) {

@@ -61,7 +61,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
       'rpc.service': { value: 'S3', type: 'string' },
       'cloud.region': { value: 'us-east-1', type: 'string' },
       'aws.s3.bucket': { value: 'ot-demo-test', type: 'string' },
-      'otel.kind': { value: 'CLIENT', type: 'string' },
+      'sentry.kind': { value: 'client', type: 'string' },
     }),
   });
 
@@ -129,7 +129,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
       'messaging.destination.name': { value: 'my-queue', type: 'string' },
       'url.full': { value: 'https://sqs.us-east-1.amazonaws.com/123456789012/my-queue', type: 'string' },
       'messaging.message.id': { value: 'message-id-1', type: 'string' },
-      'otel.kind': { value: 'PRODUCER', type: 'string' },
+      'sentry.kind': { value: 'producer', type: 'string' },
     }),
   });
 
@@ -141,7 +141,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
       'messaging.system': { value: 'aws_sqs', type: 'string' },
       'messaging.operation.type': { value: 'receive', type: 'string' },
       'messaging.batch.message_count': { value: 1, type: 'integer' },
-      'otel.kind': { value: 'CONSUMER', type: 'string' },
+      'sentry.kind': { value: 'consumer', type: 'string' },
     }),
   });
 
@@ -154,7 +154,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
       'messaging.system': { value: 'aws.sns', type: 'string' },
       'messaging.destination': { value: 'my-topic', type: 'string' },
       'aws.sns.topic.arn': { value: 'arn:aws:sns:us-east-1:123456789012:my-topic', type: 'string' },
-      'otel.kind': { value: 'PRODUCER', type: 'string' },
+      'sentry.kind': { value: 'producer', type: 'string' },
     }),
   });
 

@@ -3,11 +3,16 @@
 
   "compilerOptions": {
     "lib": ["dom", "ES2020"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "noEmit": true,
     "strict": true,
     "allowSyntheticDefaultImports": true,
-    "noUncheckedIndexedAccess": false
+    "noUncheckedIndexedAccess": false,
+    // These tests white-box internal replay state, whose types aren't published. `bundler`
+    // resolution honors `exports` (unlike the removed `node10`), so map the deep build path to source.
+    "paths": {
+      "@sentry/replay/build/npm/types/types": ["../../packages/replay-internal/src/types"]
+    }
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]

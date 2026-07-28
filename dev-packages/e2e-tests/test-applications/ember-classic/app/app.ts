@@ -6,6 +6,7 @@ import Resolver from 'ember-resolver';
 import config from './config/environment';
 
 Sentry.init({
+  traceLifecycle: 'static',
   replaysSessionSampleRate: 1,
   replaysOnErrorSampleRate: 1,
   tunnel: `http://localhost:3031/`, // proxy server

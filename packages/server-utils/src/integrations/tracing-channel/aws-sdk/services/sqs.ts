@@ -1,11 +1,12 @@
-import type { Span, SpanKindValue } from '@sentry/core';
-import { getTraceData, propagationContextFromHeaders, SPAN_KIND } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { getTraceData, propagationContextFromHeaders } from '@sentry/core';
 import {
   MESSAGING_BATCH_MESSAGE_COUNT,
   MESSAGING_DESTINATION_NAME,
   MESSAGING_MESSAGE_ID,
   MESSAGING_OPERATION_TYPE,
   MESSAGING_SYSTEM,
+  SENTRY_KIND,
   URL_FULL,
 } from '@sentry/conventions/attributes';
 import type { SQS } from '../aws-sdk.types';
@@ -21,21 +22,21 @@ export class SqsServiceExtension implements ServiceExtension {
   public requestPreSpanHook(request: NormalizedRequest): RequestMetadata {
     const queueUrl = extractQueueUrl(request.commandInput);
     const queueName = extractQueueNameFromUrl(queueUrl);
-    let spanKind: SpanKindValue = SPAN_KIND.CLIENT;
     let spanName: string | undefined;
 
     const spanAttributes: Record<string, unknown> = {
       [MESSAGING_SYSTEM]: 'aws_sqs',
       [MESSAGING_DESTINATION_NAME]: queueName,
       [URL_FULL]: queueUrl,
+      [SENTRY_KIND]: 'client',
     };
 
     switch (request.commandName) {
       case 'ReceiveMessage':
         {
-          spanKind = SPAN_KIND.CONSUMER;
           spanName = `${queueName} receive`;
           spanAttributes[MESSAGING_OPERATION_TYPE] = 'receive';
+          spanAttributes[SENTRY_KIND] = 'consumer';
 
           request.commandInput.MessageAttributeNames = addPropagationFieldsToAttributeNames(
             request.commandInput.MessageAttributeNames,
@@ -45,14 +46,13 @@ export class SqsServiceExtension implements ServiceExtension {
 
       case 'SendMessage':
       case 'SendMessageBatch':
-        spanKind = SPAN_KIND.PRODUCER;
+        spanAttributes[SENTRY_KIND] = 'producer';
         spanName = `${queueName} send`;
         break;
     }
 
     return {
       spanAttributes,
-      spanKind,
       spanName,
     };
   }

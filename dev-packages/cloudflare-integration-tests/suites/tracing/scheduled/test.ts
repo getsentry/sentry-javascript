@@ -24,6 +24,7 @@ it('Scheduled handler creates transaction with correct attributes', async ({ sig
               trace_id: expect.any(String),
               op: 'faas.cron',
               origin: 'auto.faas.cloudflare.scheduled',
+              status: 'ok',
               data: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'faas.cron',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.scheduled',
