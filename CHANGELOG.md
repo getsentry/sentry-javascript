@@ -13,10 +13,6 @@ Work in this release was contributed by @psh4607, @trinitiwowka, @nehaprasad-dev
   - `DenoMongoose` => `Mongoose`
   - `DenoMysql` => `Mysql`
   - `DenoPostgres` => `Postgres`
-- feat(node)!: Remove `import-in-the-middle`-based instrumentations from `@sentry/node`. All performance integrations are now channel-based via `@sentry/server-utils`. As part of this:
-  - The `registerEsmLoaderHooks` option was removed from `NodeOptions`. The SDK no longer registers `import-in-the-middle` ESM loader hooks, and `import-in-the-middle` is no longer a dependency.
-  - `knexIntegration` and `dataloaderIntegration` are now channel-only and no longer fall back to OpenTelemetry instrumentation on runtimes without diagnostics-channel injection.
-  - Support for Fastify `<3.21.0` was dropped.
 
 ## 10.67.0
 
