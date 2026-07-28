@@ -46,6 +46,7 @@ export default Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
+    dataCollection: { genAI: { inputs: true } },
     streamGenAiSpans: true,
   }),
   {

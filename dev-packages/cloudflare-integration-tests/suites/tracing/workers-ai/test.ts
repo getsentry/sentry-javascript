@@ -1,16 +1,23 @@
 import {
+  GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
-import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import {
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
+} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // These tests are not exhaustive because the instrumentation is
@@ -53,6 +60,13 @@ it('traces a basic Workers AI text generation request', async ({ signal }) => {
                 [GEN_AI_USAGE_INPUT_TOKENS]: 12,
                 [GEN_AI_USAGE_OUTPUT_TOKENS]: 7,
                 [GEN_AI_USAGE_TOTAL_TOKENS]: 19,
+                // collect input and output messages
+                [GEN_AI_SYSTEM_INSTRUCTIONS]: '[{"type":"text","content":"You are a helpful assistant."}]',
+                [GEN_AI_INPUT_MESSAGES]: '[{"role":"user","content":"What is the capital of France?"}]',
+                [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+                [GEN_AI_OUTPUT_MESSAGES]:
+                  '[{"role":"assistant","parts":[{"type":"text","content":"The capital of France is Paris."}]}]',
+                [GEN_AI_RESPONSE_TEXT]: 'The capital of France is Paris.',
               },
             }),
           ],
@@ -98,6 +112,12 @@ it('traces a streaming Workers AI text generation request', async ({ signal }) =
                 [GEN_AI_USAGE_INPUT_TOKENS]: 12,
                 [GEN_AI_USAGE_OUTPUT_TOKENS]: 7,
                 [GEN_AI_USAGE_TOTAL_TOKENS]: 19,
+                [GEN_AI_INPUT_MESSAGES]: '[{"role":"user","content":"What is the capital of France?"}]',
+                [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+                // Accumulated from the streamed chunks rather than read off a single response body.
+                [GEN_AI_OUTPUT_MESSAGES]:
+                  '[{"role":"assistant","parts":[{"type":"text","content":"The capital of France is Paris."}]}]',
+                [GEN_AI_RESPONSE_TEXT]: 'The capital of France is Paris.',
               },
             }),
           ],
