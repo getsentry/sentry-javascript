@@ -21,15 +21,16 @@ import {
   startInactiveSpan,
   getAbsoluteUrl,
 } from '@sentry/browser';
+import { CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
 import { debug, parseStringToURLObject, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
-import { ANGULAR_INIT_OP, ANGULAR_OP, ANGULAR_ROUTING_OP } from './constants';
+import { ANGULAR_INIT_OP, ANGULAR_ROUTING_OP } from './constants';
 import { IS_DEBUG_BUILD } from './flags';
 import { runOutsideAngular } from './zone';
-import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 let instrumentationInitialized: boolean;
 
@@ -293,8 +294,10 @@ export class TraceDirective implements OnInit, AfterViewInit {
       this._tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
           name: `<${this.componentName}>`,
-          op: ANGULAR_INIT_OP,
-          attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive' },
+          attributes: {
+            [SENTRY_OP]: ANGULAR_INIT_OP,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+          },
         }),
       );
     }
@@ -342,8 +345,8 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
         startInactiveSpan({
           onlyIfParent: true,
           name: `<${options?.name || 'unnamed'}>`,
-          op: ANGULAR_INIT_OP,
           attributes: {
+            [SENTRY_OP]: ANGULAR_INIT_OP,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
           },
         }),
@@ -387,10 +390,11 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
         startInactiveSpan({
           onlyIfParent: true,
           name: `<${options?.name ? options.name : 'unnamed'}>`,
-          op: `${ANGULAR_OP}.${String(propertyKey)}`,
           startTime: now,
           attributes: {
+            [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
+            [CODE_FUNCTION_NAME]: String(propertyKey),
           },
         }).end(now);
       });
