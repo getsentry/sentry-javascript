@@ -103,6 +103,22 @@ const DeepTeamRoutes = () => (
   </SentryRoutes>
 );
 
+// Two independent descendant <SentryRoutes> trees that each contribute a single-segment param leaf
+// (`:fooId` / `:barId`). Because `allRoutes` is a shared module-level set, once both have mounted a
+// navigation into one can pick up the param name from the other, yielding a hybrid name like
+// `/bar/:fooId` instead of `/bar/:barId` (see issue #22782).
+const FooRoutes = () => (
+  <SentryRoutes>
+    <Route path=":fooId" element={<div id="foo">Foo</div>} />
+  </SentryRoutes>
+);
+
+const BarRoutes = () => (
+  <SentryRoutes>
+    <Route path=":barId" element={<div id="bar">Bar</div>} />
+  </SentryRoutes>
+);
+
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <BrowserRouter>
@@ -110,6 +126,8 @@ root.render(
       <Route path="/" element={<Index />} />
       <Route path="child/*" element={<ChildRoutes />} />
       <Route path="workspace/*" element={<DeepTeamRoutes />} />
+      <Route path="foo/*" element={<FooRoutes />} />
+      <Route path="bar/*" element={<BarRoutes />} />
       <Route path="/*" element={<ProjectsRoutes />} />
     </SentryRoutes>
   </BrowserRouter>,
