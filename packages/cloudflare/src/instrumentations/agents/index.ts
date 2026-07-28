@@ -10,7 +10,7 @@ import type { AgentInternals } from './types';
  * - **Conversation correlation** — sets the conversation id on the scope for each unit of agent
  *   work — chat turn or callable RPC call — so `gen_ai` spans created within it are correlated, for
  *   chat and plain agents alike. Defaults to the instance `name` and is rotated when the chat is
- *   cleared (`cf_agent_chat_clear`).
+ *   cleared (the `message:clear` observability event).
  *
  * It only hooks the `agents` package internals and uses Sentry's tracing primitives. On Cloudflare
  * Workers, prefer `instrumentAgentWithSentry`, which additionally instruments the Durable Object
