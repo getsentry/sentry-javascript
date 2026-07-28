@@ -1,21 +1,18 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpans } from '../../../utils/spanUtils';
 
 sentryTest('does not capture mark and measure spans by default', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const transactionRequestPromise = waitForTransactionRequest(
-    page,
-    event => event.type === 'transaction' && event.contexts?.trace?.op === 'pageload',
-  );
+  const spansPromise = waitForStreamedSpans(page, spans => spans.some(span => getSpanOp(span) === 'pageload'));
 
   await page.goto(url);
 
-  const transactionEvent = envelopeRequestParser(await transactionRequestPromise);
-  const userTimingSpans = transactionEvent.spans?.filter(({ op }) => op === 'mark' || op === 'measure');
+  const spans = await spansPromise;
+  const userTimingSpans = spans.filter(span => ['mark', 'measure'].includes(getSpanOp(span) ?? ''));
+
   expect(userTimingSpans).toHaveLength(0);
 });

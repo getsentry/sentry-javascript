@@ -1,39 +1,25 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpans } from '../../../utils/spanUtils';
 
 sentryTest('captures non-ignored mark and measure spans', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-
-  const transactionRequestPromise = waitForTransactionRequest(
-    page,
-    evt => evt.type === 'transaction' && evt.contexts?.trace?.op === 'pageload',
-  );
+  const spansPromise = waitForStreamedSpans(page, spans => spans.some(span => getSpanOp(span) === 'pageload'));
 
   await page.goto(url);
 
-  const transactionEvent = envelopeRequestParser(await transactionRequestPromise);
-  const markAndMeasureSpans = transactionEvent.spans?.filter(({ op }) => op && ['mark', 'measure'].includes(op));
+  const spans = await spansPromise;
+  const userTimingSpans = spans
+    .filter(span => ['mark', 'measure'].includes(getSpanOp(span) ?? ''))
+    .map(span => ({ name: span.name, op: getSpanOp(span) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
-  expect(markAndMeasureSpans?.length).toBe(3);
-  expect(markAndMeasureSpans).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        description: 'mark-pass',
-        op: 'mark',
-      }),
-      expect.objectContaining({
-        description: 'measure-pass',
-        op: 'measure',
-      }),
-      expect.objectContaining({
-        description: 'sentry-tracing-init',
-        op: 'mark',
-      }),
-    ]),
-  );
+  expect(userTimingSpans).toEqual([
+    { name: 'mark-pass', op: 'mark' },
+    { name: 'measure-pass', op: 'measure' },
+    { name: 'sentry-tracing-init', op: 'mark' },
+  ]);
 });
