@@ -1,5 +1,5 @@
 import { BigQuery } from '@google-cloud/bigquery';
-import { HTTP_REQUEST_METHOD, SENTRY_OP, SERVER_ADDRESS } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, SENTRY_OP, SERVER_ADDRESS, URL_FULL } from '@sentry/conventions/attributes';
 import { WEB_SERVER_HTTP_CLIENT_SPAN_OP } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { createTransport, NodeClient, setCurrentClient } from '@sentry/node';
@@ -85,6 +85,7 @@ describe('GoogleCloudHttp tracing', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
           [HTTP_REQUEST_METHOD]: 'POST',
           [SERVER_ADDRESS]: 'bigquery.googleapis.com',
+          [URL_FULL]: '/jobs',
         },
       });
       expect(mockStartInactiveSpan).toBeCalledWith({
@@ -95,6 +96,7 @@ describe('GoogleCloudHttp tracing', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
           [HTTP_REQUEST_METHOD]: 'GET',
           [SERVER_ADDRESS]: 'bigquery.googleapis.com',
+          [URL_FULL]: expect.stringMatching(/^\/queries\/.+/),
         },
       });
     });

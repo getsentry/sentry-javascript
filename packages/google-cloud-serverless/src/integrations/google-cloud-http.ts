@@ -1,5 +1,5 @@
 import type * as common from '@google-cloud/common';
-import { HTTP_REQUEST_METHOD, SENTRY_OP, SERVER_ADDRESS } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, SENTRY_OP, SERVER_ADDRESS, URL_FULL } from '@sentry/conventions/attributes';
 import { WEB_SERVER_HTTP_CLIENT_SPAN_OP } from '@sentry/conventions/op';
 import type { Client, IntegrationFn } from '@sentry/core';
 import {
@@ -63,6 +63,7 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
             [HTTP_REQUEST_METHOD]: httpMethod,
             [SERVER_ADDRESS]: getServerAddress(this.apiEndpoint),
+            [URL_FULL]: reqOpts.uri,
           },
         })
       : new SentryNonRecordingSpan();
