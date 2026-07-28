@@ -34,10 +34,6 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
       let performanceCursor = 0;
 
       client.on('beforeIdleSpanEnd', idleSpan => {
-        if (!idleSpan.isRecording()) {
-          return;
-        }
-
         const { op: parentOp, start_timestamp: parentStartTimestamp } = spanToJSON(idleSpan);
         if (parentOp !== 'pageload' && parentOp !== 'navigation') {
           return;
