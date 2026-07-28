@@ -3,7 +3,6 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Isolation scope prevents tag leaking between requests', async ({ request }) => {
   const transactionEventPromise = waitForTransaction('nitro-3', event => {
-    console.log('event', event.transaction, event.contexts?.trace);
     return event?.transaction === 'GET /api/test-isolation/:id';
   });
 

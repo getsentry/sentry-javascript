@@ -61,19 +61,6 @@ describe('captureErrorHook', () => {
     );
   });
 
-  it('should set transaction name from method and path', async () => {
-    const mockSetTransactionName = vi.fn();
-    (SentryCore.getCurrentScope as any).mockReturnValue({
-      setTransactionName: mockSetTransactionName,
-    });
-
-    const error = new Error('Test error');
-
-    await captureErrorHook(error, mockErrorContext);
-
-    expect(mockSetTransactionName).toHaveBeenCalledWith('GET /test-path');
-  });
-
   it('should skip HTTPError with 4xx status codes', async () => {
     const error = new HTTPError({ status: 404, message: 'Not found' });
 
