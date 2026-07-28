@@ -1,4 +1,6 @@
 import { BigQuery } from '@google-cloud/bigquery';
+import { HTTP_REQUEST_METHOD, SENTRY_OP, SERVER_ADDRESS } from '@sentry/conventions/attributes';
+import { WEB_SERVER_HTTP_CLIENT_SPAN_OP } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { createTransport, NodeClient, setCurrentClient } from '@sentry/node';
 import * as fs from 'fs';
@@ -76,23 +78,23 @@ describe('GoogleCloudHttp tracing', () => {
       const resp = await bigquery.query('SELECT true AS foo');
       expect(resp).toEqual([[{ foo: true }]]);
       expect(mockStartInactiveSpan).toBeCalledWith({
-        op: 'http.client',
         name: 'POST /jobs',
         onlyIfParent: true,
         attributes: {
+          [SENTRY_OP]: WEB_SERVER_HTTP_CLIENT_SPAN_OP,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
-          'http.request.method': 'POST',
-          'server.address': 'bigquery.googleapis.com',
+          [HTTP_REQUEST_METHOD]: 'POST',
+          [SERVER_ADDRESS]: 'bigquery.googleapis.com',
         },
       });
       expect(mockStartInactiveSpan).toBeCalledWith({
-        op: 'http.client',
         name: expect.stringMatching(/^GET \/queries\/.+/),
         onlyIfParent: true,
         attributes: {
+          [SENTRY_OP]: WEB_SERVER_HTTP_CLIENT_SPAN_OP,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
-          'http.request.method': 'GET',
-          'server.address': 'bigquery.googleapis.com',
+          [HTTP_REQUEST_METHOD]: 'GET',
+          [SERVER_ADDRESS]: 'bigquery.googleapis.com',
         },
       });
     });
