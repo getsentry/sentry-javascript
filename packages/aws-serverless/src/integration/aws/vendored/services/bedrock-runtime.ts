@@ -19,7 +19,9 @@ import {
   GEN_AI_SYSTEM,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT_SPAN_OP } from '@sentry/conventions/op';
 import {
   ATTR_GEN_AI_REQUEST_STOP_SEQUENCES,
   GEN_AI_OPERATION_NAME_VALUE_CHAT,
@@ -40,6 +42,8 @@ interface ConverseStreamOutput {
   metadata?: { usage?: TokenUsage };
   [key: string]: any;
 }
+
+const GEN_AI_GENERATE_CONTENT_SPAN_OP = 'generate_content';
 
 export class BedrockRuntimeServiceExtension implements ServiceExtension {
   private _diag: DiagLogger = diag;
@@ -76,6 +80,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       // oxlint-disable-next-line typescript/no-deprecated
       [GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
       [GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_CHAT,
+      [SENTRY_OP]: GEN_AI_CHAT_SPAN_OP,
     };
 
     const modelId = request.commandInput.modelId;
@@ -120,6 +125,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     const spanAttributes: Attributes = {
       // oxlint-disable-next-line typescript/no-deprecated
       [GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
+      [SENTRY_OP]: GEN_AI_GENERATE_CONTENT_SPAN_OP,
       // add operation name for InvokeModel API
     };
 

@@ -11,7 +11,9 @@ import {
   GEN_AI_SYSTEM,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT_SPAN_OP } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../../../debug-build';
 import { GEN_AI_OPERATION_NAME_VALUE_CHAT, GEN_AI_SYSTEM_VALUE_AWS_BEDROCK } from '../constants';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
@@ -35,6 +37,8 @@ interface ConverseStreamOutput {
 // claude, llama, cohere, mistral); the record helpers probe the shapes defensively, so `any` instead
 // of one structural type per family.
 type ParsedChunk = any;
+
+const GEN_AI_GENERATE_CONTENT_SPAN_OP = 'generate_content';
 
 const textDecoder = new TextDecoder();
 
@@ -85,6 +89,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
       // oxlint-disable-next-line typescript/no-deprecated
       [GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
       [GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_CHAT,
+      [SENTRY_OP]: GEN_AI_CHAT_SPAN_OP,
     };
 
     const modelId = request.commandInput.modelId;
@@ -123,6 +128,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
     const spanAttributes: Record<string, unknown> = {
       // oxlint-disable-next-line typescript/no-deprecated
       [GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
+      [SENTRY_OP]: GEN_AI_GENERATE_CONTENT_SPAN_OP,
     };
 
     const modelId = request.commandInput?.modelId;

@@ -19,6 +19,7 @@ function assertBedrockSpans(transaction: TransactionEvent): void {
   expect(spans, 'expected a Bedrock Converse span').toContainEqual(
     expect.objectContaining({
       description: `chat ${MODEL_ID}`,
+      op: 'chat',
       origin: ORIGIN,
       status: 'ok',
       data: expect.objectContaining({
@@ -39,6 +40,7 @@ function assertBedrockSpans(transaction: TransactionEvent): void {
   // InvokeModel (non-streaming, anthropic.claude request/response body)
   expect(spans, 'expected a Bedrock InvokeModel span').toContainEqual(
     expect.objectContaining({
+      op: 'generate_content',
       origin: ORIGIN,
       status: 'ok',
       data: expect.objectContaining({
