@@ -61,7 +61,6 @@
     "@sentry/bundler-plugins": "10.67.0",
     "@sentry/server-utils": "10.67.0",
     "@sentry/vue": "10.67.0",
-    "import-in-the-middle": "^3.0.0",
     "local-pkg": "^1.1.2"
   },
   "devDependencies": {
