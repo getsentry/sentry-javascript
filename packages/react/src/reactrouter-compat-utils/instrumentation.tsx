@@ -755,6 +755,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
     locationArg?: Partial<Location> | string;
   }> = (props: { children?: React.ReactNode; routes: RouteObject[]; locationArg?: Partial<Location> | string }) => {
     const isMountRenderPass = React.useRef(true);
+    const addedRoutes = React.useRef<RouteObject[]>([]);
     const { routes, locationArg } = props;
 
     const Routes = origUseRoutes(routes, locationArg);
@@ -771,7 +772,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
         typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
 
       if (isMountRenderPass.current) {
-        addRoutesToAllRoutes(routes);
+        addedRoutes.current = addRoutesToAllRoutes(routes);
 
         updatePageloadTransaction({
           activeRootSpan: getActiveRootSpan(),
@@ -793,6 +794,10 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
         });
       }
     }, [navigationType, stableLocationParam]);
+
+    // Drop this `<Routes>`'s routes from the shared set when it unmounts, so they don't leak into later
+    // unrelated navigations (#22782).
+    useIsomorphicLayoutEffect(() => () => removeRoutesFromAllRoutes(addedRoutes.current), []);
 
     return Routes;
   };
@@ -1049,13 +1054,28 @@ export function handleNavigation(opts: {
 }
 
 /* Only exported for testing purposes */
-export function addRoutesToAllRoutes(routes: RouteObject[]): void {
+export function addRoutesToAllRoutes(routes: RouteObject[]): RouteObject[] {
+  const added: RouteObject[] = [];
   routes.forEach(route => {
     const extractedChildRoutes = getChildRoutesRecursively(route);
 
     extractedChildRoutes.forEach(r => {
       allRoutes.add(r);
+      added.push(r);
     });
+  });
+
+  return added;
+}
+
+/**
+ * Removes routes previously added via `addRoutesToAllRoutes` from the shared set. Called when a
+ * `<Routes>` unmounts so its routes don't linger and get matched against later, unrelated navigations
+ * (which produced hybrid names like `/bar/:fooId` across independent routers - see #22782).
+ */
+function removeRoutesFromAllRoutes(routes: RouteObject[]): void {
+  routes.forEach(route => {
+    allRoutes.delete(route);
   });
 }
 
@@ -1351,6 +1371,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
 
   const SentryRoutes: React.FC<P> = (props: P) => {
     const isMountRenderPass = React.useRef(true);
+    const addedRoutes = React.useRef<RouteObject[]>([]);
 
     const location = _useLocation();
     const navigationType = _useNavigationType();
@@ -1360,7 +1381,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
         const routes = _createRoutesFromChildren(props.children) as RouteObject[];
 
         if (isMountRenderPass.current) {
-          addRoutesToAllRoutes(routes);
+          addedRoutes.current = addRoutesToAllRoutes(routes);
 
           updatePageloadTransaction({
             activeRootSpan: getActiveRootSpan(),
@@ -1379,6 +1400,10 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
       // Re-run only on location/navigation changes, not children changes
       [location, navigationType],
     );
+
+    // Drop this `<Routes>`'s routes from the shared set when it unmounts, so they don't leak into later
+    // unrelated navigations (#22782).
+    useIsomorphicLayoutEffect(() => () => removeRoutesFromAllRoutes(addedRoutes.current), []);
 
     // @ts-expect-error Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
