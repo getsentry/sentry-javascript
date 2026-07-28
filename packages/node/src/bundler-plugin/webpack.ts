@@ -7,6 +7,15 @@ export type SentryWebpackPluginOptions = SentryWebpackPluginOptionsBase & {
    * @ignore This is for internal use only when this plugin is consumed by a framework SDK
    */
   instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionWebpackPlugin>[0]>['instrumentations'];
+
+  /**
+   * Automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set to `false` to turn it off.
+   *
+   * @default true
+   */
+  buildTimeInstrumentation?: boolean;
 };
 
 type WebpackCompiler = Parameters<ReturnType<typeof sentryWebpackBundlerPlugin>['apply']>[0];

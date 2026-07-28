@@ -7,6 +7,15 @@ export type SentryVitePluginOptions = SentryVitePluginOptionsBase & {
    * @ignore This is for internal use only when this plugin is consumed by a framework SDK
    */
   instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionPlugin>[0]>['instrumentations'];
+
+  /**
+   * Automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set to `false` to turn it off.
+   *
+   * @default true
+   */
+  buildTimeInstrumentation?: boolean;
 };
 
 type VitePlugin = ReturnType<typeof sentryOrchestrionPlugin>;
@@ -28,5 +37,6 @@ type VitePlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  * ```
  */
 export function sentryVitePlugin(options?: SentryVitePluginOptions): VitePlugin[] {
-  return [...sentryViteBundlerPlugin(options), sentryOrchestrionPlugin(options)];
+  const bundlerPlugins = sentryViteBundlerPlugin(options);
+  return [...bundlerPlugins, sentryOrchestrionPlugin(options)];
 }

@@ -9,6 +9,14 @@ export type PluginOptions = {
    */
   instrumentations?: InstrumentationConfig[];
   /**
+   * Automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set to `false` to make the plugin inert, so no instrumentation code is injected.
+   *
+   * @default true
+   */
+  buildTimeInstrumentation?: boolean;
+  /**
    * Custom transforms that can be applied using the `transform` option in each `InstrumentationConfig`.
    */
   customTransforms?: Record<string, CustomTransform>;
