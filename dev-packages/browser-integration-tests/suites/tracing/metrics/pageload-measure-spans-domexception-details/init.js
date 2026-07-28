@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/browser';
-
+import { userTimingIntegration } from '@sentry/browser';
 // Create measures BEFORE SDK initializes
 
 // Create a measure with detail
@@ -24,7 +24,7 @@ window.Sentry = Sentry;
 Sentry.init({
   traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [Sentry.browserTracingIntegration(), Sentry.userTimingIntegration()],
+  integrations: [Sentry.browserTracingIntegration(), userTimingIntegration()],
   tracesSampleRate: 1,
 });
 
