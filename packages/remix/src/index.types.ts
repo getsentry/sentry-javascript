@@ -20,7 +20,7 @@ export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsInteg
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
 export declare const withStaticSpan: typeof clientSdk.withStaticSpan;
-// eslint-disable-next-line typescript/no-deprecated
+// oxlint-disable-next-line typescript/no-deprecated
 export declare const withStreamedSpan: typeof clientSdk.withStreamedSpan;
 
 export declare const getDefaultIntegrations: (options: Options) => Integration[];

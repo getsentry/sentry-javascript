@@ -234,7 +234,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @param options Options for the client.
    */
   protected constructor(options: O) {
-    this._options = { attachStacktrace: true, traceLifecycle: 'stream', ...options };
+    // Any value other than `'static'` normalizes to the `'stream'` default, so that `traceLifecycle`
+    // is always one of the two known values for the rest of the SDK.
+    this._options = {
+      attachStacktrace: true,
+      ...options,
+      traceLifecycle: options.traceLifecycle === 'static' ? 'static' : 'stream',
+    };
     this._integrations = {};
     this._numProcessing = 0;
     this._outcomes = {};
@@ -248,6 +254,21 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this._dsn = makeDsn(options.dsn);
     } else {
       DEBUG_BUILD && debug.warn('No DSN provided, client will not send events.');
+    }
+
+    const { beforeSendSpan, traceLifecycle } = this._options;
+    // A `beforeSendSpan` callback is only invoked for the span format matching the trace lifecycle,
+    // so a mismatch means it is silently never called.
+    if (
+      DEBUG_BUILD &&
+      beforeSendSpan &&
+      isStaticBeforeSendSpanCallback(beforeSendSpan) !== (traceLifecycle === 'static')
+    ) {
+      debug.warn(
+        `Ignoring \`beforeSendSpan\`: ${
+          traceLifecycle === 'static' ? 'wrap it with' : 'remove'
+        } \`Sentry.withStaticSpan\` to use it with \`traceLifecycle: "${traceLifecycle}"\`.`,
+      );
     }
 
     if (this._dsn) {

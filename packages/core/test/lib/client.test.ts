@@ -95,6 +95,80 @@ describe('Client', () => {
       expect(consoleWarnSpy).toHaveBeenCalledTimes(0);
       consoleWarnSpy.mockRestore();
     });
+
+    test('warns that a streamed beforeSendSpan is ignored with traceLifecycle "static"', () => {
+      const warnSpy = vi.spyOn(debugLoggerModule.debug, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({ dsn: PUBLIC_DSN, traceLifecycle: 'static', beforeSendSpan: span => span }),
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Ignoring `beforeSendSpan`: wrap it with `Sentry.withStaticSpan` to use it with `traceLifecycle: "static"`.',
+      );
+      warnSpy.mockRestore();
+    });
+
+    test('warns that a static beforeSendSpan is ignored with traceLifecycle "stream"', () => {
+      const warnSpy = vi.spyOn(debugLoggerModule.debug, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          traceLifecycle: 'stream',
+          beforeSendSpan: withStaticSpan(span => span),
+        }),
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Ignoring `beforeSendSpan`: remove `Sentry.withStaticSpan` to use it with `traceLifecycle: "stream"`.',
+      );
+      warnSpy.mockRestore();
+    });
+
+    test('reports the normalized traceLifecycle when warning about an unknown value', () => {
+      const warnSpy = vi.spyOn(debugLoggerModule.debug, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          // @ts-expect-error - we want to test normalization of invalid traceLifecycle values
+          traceLifecycle: 'somethingElse',
+          beforeSendSpan: withStaticSpan(span => span),
+        }),
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Ignoring `beforeSendSpan`: remove `Sentry.withStaticSpan` to use it with `traceLifecycle: "stream"`.',
+      );
+      warnSpy.mockRestore();
+    });
+
+    test('does not warn for a streamed beforeSendSpan with traceLifecycle "stream"', () => {
+      const warnSpy = vi.spyOn(debugLoggerModule.debug, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({ dsn: PUBLIC_DSN, traceLifecycle: 'stream', beforeSendSpan: span => span }),
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    test('does not warn for a static beforeSendSpan with traceLifecycle "static"', () => {
+      const warnSpy = vi.spyOn(debugLoggerModule.debug, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          traceLifecycle: 'static',
+          beforeSendSpan: withStaticSpan(span => span),
+        }),
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
   });
 
   describe('init() / transaction option warnings', () => {
@@ -211,6 +285,15 @@ describe('Client', () => {
       const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'static' }));
 
       expect(client.getOptions().traceLifecycle).toBe('static');
+    });
+
+    test('normalizes an unknown traceLifecycle to stream', () => {
+      const client = new TestClient(
+        // @ts-expect-error - we want to test normalization of invalid traceLifecycle values
+        getDefaultTestClientOptions({ traceLifecycle: 'somethingElse' }),
+      );
+
+      expect(client.getOptions().traceLifecycle).toBe('stream');
     });
   });
 

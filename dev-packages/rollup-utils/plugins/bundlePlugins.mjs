@@ -150,9 +150,8 @@ export function makeTerserPlugin() {
           '_resolveFilename',
           // Set on e.g. the shim feedbackIntegration to be able to detect it
           '_isShim',
-          // Markers used to distinguish static and explicitly streamed `beforeSendSpan` callbacks
+          // Marker used to detect `beforeSendSpan` callbacks expecting the static span format
           '_static',
-          '_streamed',
           // This is used in metadata integration
           '_sentryModuleMetadata',
         ],

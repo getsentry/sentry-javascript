@@ -118,7 +118,7 @@ export {
   spanToBaggageHeader,
   updateSpanName,
   withStaticSpan,
-  // eslint-disable-next-line typescript/no-deprecated
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   featureFlagsIntegration,
 } from '@sentry/core';

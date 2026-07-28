@@ -87,7 +87,7 @@ export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export {
   withStaticSpan,
-  // eslint-disable-next-line typescript/no-deprecated
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
 } from './tracing/spans/beforeSendSpan';
 export { isStaticBeforeSendSpanCallback, isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';

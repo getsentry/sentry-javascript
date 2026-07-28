@@ -84,7 +84,7 @@ export {
   withMonitor,
   withScope,
   withStaticSpan,
-  // eslint-disable-next-line typescript/no-deprecated
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   supabaseIntegration,
   instrumentSupabaseClient,

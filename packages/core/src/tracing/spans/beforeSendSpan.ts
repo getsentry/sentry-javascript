@@ -30,16 +30,15 @@ export function withStaticSpan(callback: (span: SpanJSON) => SpanJSON): BeforeSe
  * A wrapper to explicitly use the streamed span format in your `beforeSendSpan` callback.
  *
  * @deprecated `beforeSendSpan` callbacks receive {@link StreamedSpanJSON} by default.
- * This function will be removed in SDK version 12.
+ * This function returns the callback unchanged and will be removed in SDK version 12.
  *
  * @param callback - The callback function that receives and returns a {@link StreamedSpanJSON}.
  * @returns The provided callback.
  */
 export function withStreamedSpan(
   callback: (span: StreamedSpanJSON) => StreamedSpanJSON,
-): BeforeSendStreamedSpanCallback & { _streamed: true } {
-  addNonEnumerableProperty(callback, '_streamed', true);
-  return callback as BeforeSendStreamedSpanCallback & { _streamed: true };
+): BeforeSendStreamedSpanCallback {
+  return callback;
 }
 
 /**

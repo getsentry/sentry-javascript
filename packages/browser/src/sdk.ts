@@ -116,9 +116,7 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     defaultIntegrations,
   });
 
-  options.traceLifecycle ??= 'stream';
-
-  if (options.traceLifecycle === 'stream' && !integrations.some(integration => integration.name === 'SpanStreaming')) {
+  if (options.traceLifecycle !== 'static' && !integrations.some(integration => integration.name === 'SpanStreaming')) {
     integrations.push(spanStreamingIntegration());
   }
 

@@ -176,7 +176,7 @@ export type {
   CaptureContext,
 } from '@sentry/core';
 
-// eslint-disable-next-line typescript/no-deprecated
+// oxlint-disable-next-line typescript/no-deprecated
 export { metrics, withStaticSpan, withStreamedSpan } from '@sentry/core';
 export * as logger from './logs/exports';
 

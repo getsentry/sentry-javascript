@@ -669,12 +669,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
  *
  * @see {@link StreamedSpanJSON} for the streamed span format used with `traceLifecycle: 'stream'`
  */
-export type BeforeSendStreamedSpanCallback = ((span: StreamedSpanJSON) => StreamedSpanJSON) & {
-  /**
-   * @deprecated `beforeSendSpan` callbacks use {@link StreamedSpanJSON} by default.
-   */
-  _streamed?: true;
-};
+export type BeforeSendStreamedSpanCallback = (span: StreamedSpanJSON) => StreamedSpanJSON;
 
 declare const beforeSendStaticSpanCallback: unique symbol;
 

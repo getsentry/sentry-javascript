@@ -1,35 +1,21 @@
 import type { IntegrationFn } from '../types/integration';
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
-import { isStaticBeforeSendSpanCallback } from '../tracing/spans/beforeSendSpan';
 import { captureSpan } from '../tracing/spans/captureSpan';
 import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
 import { SpanBuffer } from '../tracing/spans/spanBuffer';
 import { debug } from '../utils/debug-logger';
 import { spanIsSampled } from '../utils/spanUtils';
 
+const INTEGRATION_NAME = 'SpanStreaming' as const;
+
 export const spanStreamingIntegration = defineIntegration(() => {
   return {
-    name: 'SpanStreaming' as const,
+    name: INTEGRATION_NAME,
 
     setup(client) {
-      const initialMessage = 'SpanStreaming integration requires';
-      const fallbackMsg = 'Falling back to static trace lifecycle.';
-      const clientOptions = client.getOptions();
-
       if (!hasSpanStreamingEnabled(client)) {
-        clientOptions.traceLifecycle = 'static';
-        DEBUG_BUILD && debug.warn(`${initialMessage} \`traceLifecycle\` to be set to "stream"! ${fallbackMsg}`);
-        return;
-      }
-
-      const beforeSendSpan = clientOptions.beforeSendSpan;
-      if (isStaticBeforeSendSpanCallback(beforeSendSpan)) {
-        clientOptions.traceLifecycle = 'static';
-        DEBUG_BUILD &&
-          debug.warn(
-            `SpanStreaming integration is incompatible with a beforeSendSpan callback using \`withStaticSpan\`! ${fallbackMsg}`,
-          );
+        DEBUG_BUILD && debug.log(`[${INTEGRATION_NAME}] \`traceLifecycle\` is "static", skipping setup.`);
         return;
       }
 

@@ -28,7 +28,7 @@ export declare const consoleIntegration: typeof serverSdk.consoleIntegration;
 export declare const pinoIntegration: typeof serverSdk.pinoIntegration;
 export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
 export declare const withStaticSpan: typeof clientSdk.withStaticSpan;
-// eslint-disable-next-line typescript/no-deprecated
+// oxlint-disable-next-line typescript/no-deprecated
 export declare const withStreamedSpan: typeof clientSdk.withStreamedSpan;
 
 // Different implementation in server and worker

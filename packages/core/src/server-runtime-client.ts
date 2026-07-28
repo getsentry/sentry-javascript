@@ -40,12 +40,10 @@ export class ServerRuntimeClient<
   public constructor(options: O) {
     addUserAgentToTransportHeaders(options);
 
-    options.traceLifecycle ??= 'stream';
-
     // When span streaming is enabled (`traceLifecycle: 'stream'`), the `spanStreamingIntegration`
     // is required to flush spans. We add it here so the individual server SDKs don't have to.
     // A user-provided `spanStreamingIntegration` always takes precedence over the one we add.
-    if (options.traceLifecycle === 'stream' && !options.integrations.some(i => i.name === 'SpanStreaming')) {
+    if (options.traceLifecycle !== 'static' && !options.integrations.some(i => i.name === 'SpanStreaming')) {
       options.integrations.push(spanStreamingIntegration());
     }
 

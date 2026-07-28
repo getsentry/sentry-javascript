@@ -17,10 +17,11 @@ describe('beforeSendSpan callback formats', () => {
   });
 
   describe('withStreamedSpan', () => {
-    it('marks the callback as streamed', () => {
+    it('returns the callback unchanged', () => {
       const beforeSendSpan = vi.fn();
-      const wrapped = withStreamedSpan(beforeSendSpan);
-      expect(wrapped._streamed).toBe(true);
+
+      expect(withStreamedSpan(beforeSendSpan)).toBe(beforeSendSpan);
+      expect(Object.keys(beforeSendSpan)).not.toContain('_streamed');
     });
   });
 
