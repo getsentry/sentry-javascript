@@ -101,29 +101,13 @@ test.fixme('should create a document and trigger onDocumentCreated and another w
       'faas.provider': 'firebase',
       'faas.trigger': 'http.request',
       'sentry.kind': 'server',
-<<<<<<< HEAD
-      'sentry.op': 'http.request',
-      'sentry.origin': 'auto.firebase.orchestrion.functions',
-||||||| parent of e1785e3201 (feat(node)!: Use `function.gcp` span op for Firebase functions)
-      'sentry.op': 'http.request',
-      'sentry.origin': 'auto.firebase.otel.functions',
-=======
       'sentry.op': 'function.gcp',
-      'sentry.origin': 'auto.firebase.otel.functions',
->>>>>>> e1785e3201 (feat(node)!: Use `function.gcp` span op for Firebase functions)
+      'sentry.origin': 'auto.firebase.orchestrion.functions',
       'sentry.sample_rate': expect.any(Number),
       'sentry.source': 'route',
     },
-<<<<<<< HEAD
-    op: 'http.request',
-    origin: 'auto.firebase.orchestrion.functions',
-||||||| parent of e1785e3201 (feat(node)!: Use `function.gcp` span op for Firebase functions)
-    op: 'http.request',
-    origin: 'auto.firebase.otel.functions',
-=======
     op: 'function.gcp',
-    origin: 'auto.firebase.otel.functions',
->>>>>>> e1785e3201 (feat(node)!: Use `function.gcp` span op for Firebase functions)
+    origin: 'auto.firebase.orchestrion.functions',
     span_id: expect.any(String),
     status: 'ok',
     trace_id: expect.any(String),
