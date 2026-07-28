@@ -1,7 +1,7 @@
 import type { InstrumentationBase } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import { InstrumentationNodeModuleFile } from '../../../InstrumentationNodeModuleFile';
-import { SENTRY_KIND } from '@sentry/conventions/attributes';
+import { SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FAAS_FUNCTION_GCP_SPAN_OP } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
 import {
@@ -69,6 +69,7 @@ export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions
         const functionName = process.env.FUNCTION_TARGET || process.env.K_SERVICE || 'unknown';
 
         const attributes: SpanAttributes = {
+          [SENTRY_OP]: FAAS_FUNCTION_GCP_SPAN_OP,
           [SENTRY_KIND]: 'server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.firebase.otel.functions',
           'faas.name': functionName,
@@ -88,7 +89,6 @@ export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions
         return startSpanManual(
           {
             name: `firebase.function.${triggerType}`,
-            op: FAAS_FUNCTION_GCP_SPAN_OP,
             attributes,
           },
           async span => {
