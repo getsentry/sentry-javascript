@@ -257,12 +257,39 @@ export function shapeFromSource(rawCode: string): ModuleShape {
 
 /** Pull the superclass out of the text between a class name and its body. */
 function superRefFromHeader(header: string): SuperRef | undefined {
-  // Skip any generic parameter list, then read the (possibly dotted) base name. Trailing generic
-  // args on the base (`extends Agent<Env>`) stop the match naturally.
-  const match = /\bextends\s+([A-Za-z_$][\w$]*)\s*(?:\.\s*([A-Za-z_$][\w$]*))?/.exec(header);
+  // The header still carries the class's own generic parameter list (`<T extends S>`), whose
+  // constraint `extends` would otherwise be mistaken for the superclass clause. Strip a leading
+  // balanced `<...>` first, then read the (possibly dotted) base name. Trailing generic args on the
+  // base (`extends Agent<Env>`) stop the match naturally.
+  const withoutParams = stripLeadingGenerics(header);
+  const match = /\bextends\s+([A-Za-z_$][\w$]*)\s*(?:\.\s*([A-Za-z_$][\w$]*))?/.exec(withoutParams);
   if (!match) return undefined;
 
   return match[2] ? { kind: 'member', object: match[1]!, property: match[2] } : { kind: 'identifier', name: match[1]! };
+}
+
+/**
+ * Remove a leading `<...>` generic parameter list, honoring nesting (`<T extends Map<K, V>>`).
+ * Anything after the balanced close — the superclass clause — is returned unchanged. When the
+ * header doesn't start with `<` (no generics), it is returned as-is.
+ */
+function stripLeadingGenerics(header: string): string {
+  const start = header.indexOf('<');
+  // Only treat it as a parameter list when `<` is the first meaningful token — a `<` appearing
+  // later is part of the superclass's own generic args and must be left alone.
+  if (start === -1 || header.slice(0, start).trim() !== '') return header;
+
+  let depth = 0;
+  for (let i = start; i < header.length; i++) {
+    const char = header[i];
+    if (char === '<') depth++;
+    else if (char === '>') {
+      depth--;
+      if (depth === 0) return header.slice(i + 1);
+    }
+  }
+  // Unbalanced `<` — fall back to the untouched header rather than dropping the superclass.
+  return header;
 }
 
 /** Parse `a, b as c` into `{ imported: 'b', local: 'c' }` pairs (type-only specifiers dropped). */

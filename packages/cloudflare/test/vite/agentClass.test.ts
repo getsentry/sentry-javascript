@@ -203,6 +203,33 @@ describe('detectAgentClasses', () => {
     expect(await detect(code, modules)).toEqual(new Set(['MyAgent']));
   });
 
+  // A constrained generic (`<T extends S>`) puts an `extends` before the superclass clause; the
+  // source scan must skip the parameter list rather than latch onto the constraint.
+  it('resolves a base class past a constrained generic parameter', async () => {
+    const code = ["import { MyBase } from './base';", 'export class MyAgent extends MyBase {}'].join('\n');
+    const modules = {
+      '/app/src/base.js': [
+        "import { Agent } from 'agents';",
+        'interface Constraint { name: string }',
+        'export class MyBase<T extends Constraint> extends Agent<Env> {',
+        '  private field?: T;',
+        '}',
+      ].join('\n'),
+    };
+    expect(await detect(code, modules)).toEqual(new Set(['MyAgent']));
+  });
+
+  it('resolves a base class past a nested generic constraint', async () => {
+    const code = ["import { MyBase } from './base';", 'export class MyAgent extends MyBase {}'].join('\n');
+    const modules = {
+      '/app/src/base.js': [
+        "import { Agent } from 'agents';",
+        'export class MyBase<T extends Map<string, number>> extends Agent<Env> {}',
+      ].join('\n'),
+    };
+    expect(await detect(code, modules)).toEqual(new Set(['MyAgent']));
+  });
+
   it('ignores an `extends` that only appears inside a comment or string', async () => {
     const code = ["import { MyBase } from './base';", 'export class MyDO extends MyBase {}'].join('\n');
     const modules = {
