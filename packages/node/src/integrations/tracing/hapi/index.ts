@@ -1,13 +1,7 @@
-import { HapiInstrumentation } from './vendored/instrumentation';
 import { captureException, debug, getDefaultIsolationScope, getIsolationScope, SDK_VERSION } from '@sentry/core';
-import { generateInstrumentOnce } from '../../../otel/instrument';
 import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
 import { DEBUG_BUILD } from '../../../debug-build';
 import type { Request, RequestEvent, Server } from './types';
-
-const INTEGRATION_NAME = 'Hapi' as const;
-
-export const instrumentHapi = generateInstrumentOnce(INTEGRATION_NAME, () => new HapiInstrumentation());
 
 function isErrorEvent(event: unknown): event is RequestEvent {
   return !!(event && typeof event === 'object' && 'error' in event && event.error);
