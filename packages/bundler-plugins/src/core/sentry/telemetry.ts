@@ -27,6 +27,7 @@ export function createSentryInstance(
     dsn: 'https://4c2bae7d9fbc413e8f7385f55c515d51@o1.ingest.sentry.io/6690737',
 
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     sampleRate: 1,
 
     release: LIB_VERSION,

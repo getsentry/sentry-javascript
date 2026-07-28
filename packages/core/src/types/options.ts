@@ -543,7 +543,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * The trace lifecycle, determining whether spans are sent statically when the entire local span tree is complete,
    * or streamed in batches, following interval- and action-based triggers.
    *
-   * @default 'static'
+   * @default 'stream'
    */
   traceLifecycle?: 'static' | 'stream';
 

@@ -59,16 +59,12 @@ describe('init()', () => {
   });
 
   describe('integrations', () => {
-    it("doesn't install default integrations if told not to", () => {
+    it('only installs the required spanStreaming integration if default integrations are disabled', () => {
       init({ dsn: PUBLIC_DSN, defaultIntegrations: false });
 
       const client = getClient();
 
-      expect(client?.getOptions()).toEqual(
-        expect.objectContaining({
-          integrations: [],
-        }),
-      );
+      expect(client?.getOptions().integrations.map(integration => integration.name)).toEqual(['SpanStreaming']);
 
       expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
     });
@@ -169,8 +165,8 @@ describe('init()', () => {
       );
     });
 
-    it('installs spanStreaming integration when traceLifecycle is "stream"', () => {
-      init({ dsn: PUBLIC_DSN, traceLifecycle: 'stream' });
+    it('installs spanStreaming integration by default', () => {
+      init({ dsn: PUBLIC_DSN });
       const client = getClient();
 
       expect(client?.getOptions()).toEqual(
@@ -180,8 +176,8 @@ describe('init()', () => {
       );
     });
 
-    it("doesn't install spanStreaming integration when traceLifecycle is not 'stream'", () => {
-      init({ dsn: PUBLIC_DSN });
+    it("doesn't install spanStreaming integration when traceLifecycle is 'static'", () => {
+      init({ dsn: PUBLIC_DSN, traceLifecycle: 'static' });
 
       const client = getClient();
       expect(client?.getOptions()).toEqual(
@@ -192,7 +188,7 @@ describe('init()', () => {
     });
 
     it('installs spanStreaming integration even with custom defaultIntegrations', () => {
-      init({ dsn: PUBLIC_DSN, traceLifecycle: 'stream', defaultIntegrations: [] });
+      init({ dsn: PUBLIC_DSN, defaultIntegrations: [] });
       const client = getClient();
 
       expect(client?.getOptions()).toEqual(

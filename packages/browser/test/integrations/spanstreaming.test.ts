@@ -37,22 +37,7 @@ describe('spanStreamingIntegration', () => {
     const integration = spanStreamingIntegration();
     expect(integration.name).toBe('SpanStreaming');
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(integration.beforeSetup).toBeDefined();
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(integration.setup).toBeDefined();
-  });
-
-  it('sets traceLifecycle to "stream" if not set', () => {
-    const client = new BrowserClient({
-      ...getDefaultBrowserClientOptions(),
-      dsn: 'https://username@domain/123',
-      integrations: [spanStreamingIntegration()],
-    });
-
-    SentryCore.setCurrentClient(client);
-    client.init();
-
-    expect(client.getOptions().traceLifecycle).toBe('stream');
   });
 
   it.each(['static', 'somethingElse'])(

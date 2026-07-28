@@ -89,6 +89,8 @@ export function init(options: VercelEdgeOptions = {}): Client {
   options.environment =
     options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
 
+  options.traceLifecycle = options.traceLifecycle ?? getTraceLifecycleFromEnv(process.env.SENTRY_TRACE_LIFECYCLE);
+
   const client = new VercelEdgeClient({
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || nodeStackParser),
@@ -257,4 +259,8 @@ export function getSentryRelease(fallback?: string): string | undefined {
     possibleReleaseNameOfCiProvidersWithGenericEnvVar ||
     fallback
   );
+}
+
+function getTraceLifecycleFromEnv(envVar: string | undefined): 'static' | 'stream' | undefined {
+  return envVar === 'stream' || envVar === 'static' ? envVar : undefined;
 }

@@ -245,6 +245,7 @@ function getClientOptions(
   const spotlight = getSpotlightConfig(options.spotlight);
 
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
+  const traceLifecycle = getTraceLifecycle(options.traceLifecycle);
 
   const mergedOptions = {
     ...options,
@@ -256,6 +257,7 @@ function getClientOptions(
     release,
     tracesSampleRate,
     spotlight,
+    traceLifecycle,
     debug: envToBool(options.debug ?? process.env.SENTRY_DEBUG),
   };
 
@@ -298,6 +300,20 @@ function getTracesSampleRate(tracesSampleRate: NodeOptions['tracesSampleRate']):
 
   const parsed = parseFloat(sampleRateFromEnv);
   return isFinite(parsed) ? parsed : undefined;
+}
+
+function getTraceLifecycle(traceLifecycle: NodeOptions['traceLifecycle']): 'stream' | 'static' {
+  if (traceLifecycle !== undefined) {
+    return traceLifecycle;
+  }
+
+  const lifecycleFromEnv = process.env.SENTRY_TRACE_LIFECYCLE;
+
+  if (lifecycleFromEnv === 'stream' || lifecycleFromEnv === 'static') {
+    return lifecycleFromEnv;
+  }
+
+  return 'stream';
 }
 
 /**

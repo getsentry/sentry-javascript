@@ -77,6 +77,7 @@ export class LocalLambdaStack extends Stack {
             Variables: {
               SENTRY_TRACES_SAMPLE_RATE: 1.0,
               SENTRY_DEBUG: true,
+              SENTRY_TRACE_LIFECYCLE: 'static',
               NODE_OPTIONS: `--import=@sentry/aws-serverless/awslambda-auto`,
               // We only set SENTRY_DSN if not running TunnelNoDsn, because there
               // we want to test that the extension tunnel forwards requests when SENTRY_DSN is missing.

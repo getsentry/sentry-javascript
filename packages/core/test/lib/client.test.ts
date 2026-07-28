@@ -103,7 +103,21 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, test: true });
       const client = new TestClient(options);
 
-      expect(client.getOptions()).toEqual({ attachStacktrace: true, ...options });
+      expect(client.getOptions()).toEqual({ attachStacktrace: true, traceLifecycle: 'stream', ...options });
+    });
+
+    test('defaults traceLifecycle to stream', () => {
+      const options = getDefaultTestClientOptions();
+      delete options.traceLifecycle;
+      const client = new TestClient(options);
+
+      expect(client.getOptions().traceLifecycle).toBe('stream');
+    });
+
+    test('preserves an explicit static traceLifecycle', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'static' }));
+
+      expect(client.getOptions().traceLifecycle).toBe('static');
     });
   });
 
