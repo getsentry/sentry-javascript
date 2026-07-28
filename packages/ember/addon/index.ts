@@ -4,7 +4,7 @@
 import { assert } from '@ember/debug';
 import type Route from '@ember/routing/route';
 import { getOwnConfig } from '@embroider/macros';
-import { CODE_FUNCTION_NAME } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { BrowserOptions } from '@sentry/browser';
 import { startSpan } from '@sentry/browser';
@@ -67,10 +67,10 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+          [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
           [CODE_FUNCTION_NAME]: hookName,
           'ember.route.hook': hookName,
         },
-        op: GENERAL_FUNCTION_SPAN_OP,
         name,
         onlyIfParent: true,
       },

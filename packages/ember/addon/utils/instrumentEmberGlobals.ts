@@ -91,11 +91,11 @@ function _instrumentEmberRunloop(config: { minimumRunloopQueueDuration?: number 
         if ((now - currentQueueStart) * 1000 >= minQueueDuration) {
           startInactiveSpan({
             attributes: {
+              [SENTRY_OP]: BROWSER_UI_TASK_SPAN_OP,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
               'ember.runloop.queue': queue,
             },
             name: 'runloop',
-            op: BROWSER_UI_TASK_SPAN_OP,
             startTime: currentQueueStart,
             onlyIfParent: true,
           })?.end(now);
