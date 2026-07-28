@@ -10,6 +10,7 @@ export default Sentry.withSentry(
     tunnel: 'http://localhost:3031/',
     tracesSampleRate: 1.0,
     streamGenAiSpans: false,
+    dataCollection: { genAI: { inputs: false, outputs: false } },
     integrations: [Sentry.vercelAIIntegration()],
   }),
   {
