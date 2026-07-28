@@ -258,6 +258,7 @@ describe('instrumentQueue', () => {
         env => ({
           dsn: env.SENTRY_DSN,
           tracesSampleRate: 1,
+          traceLifecycle: 'static',
           beforeSendTransaction(event) {
             sentryEvent = event;
             return null;

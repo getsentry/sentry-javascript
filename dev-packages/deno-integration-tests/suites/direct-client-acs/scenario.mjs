@@ -16,6 +16,7 @@ let nested = false;
 const client = new DenoClient({
   dsn: 'https://username@domain/123',
   tracesSampleRate: 1,
+  traceLifecycle: 'static',
   integrations: getDefaultIntegrations({}),
   stackParser: createStackParser(nodeStackLineParser()),
   beforeSendTransaction(event) {

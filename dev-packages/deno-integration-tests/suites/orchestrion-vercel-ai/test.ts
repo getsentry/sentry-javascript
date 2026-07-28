@@ -19,6 +19,7 @@ Deno.test('vercel-ai instrumentation: orchestrion:ai:generateText channel produc
   resetGlobals();
   const sink = transactionSink();
   init({
+    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     beforeSendTransaction: sink.beforeSendTransaction,

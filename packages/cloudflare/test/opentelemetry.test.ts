@@ -16,6 +16,7 @@ describe('opentelemetry compatibility', () => {
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
       skipOpenTelemetrySetup: true,
       beforeSendTransaction: event => {
         transactionEvents.push(event);
@@ -46,6 +47,7 @@ describe('opentelemetry compatibility', () => {
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;
@@ -106,6 +108,7 @@ describe('opentelemetry compatibility', () => {
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;
@@ -149,6 +152,7 @@ describe('opentelemetry compatibility', () => {
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;
@@ -176,6 +180,7 @@ describe('opentelemetry compatibility', () => {
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;

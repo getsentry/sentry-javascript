@@ -107,6 +107,7 @@ Deno.test({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
       beforeSendTransaction: sink.beforeSendTransaction,
+      traceLifecycle: 'static',
     });
 
     const server = http.createServer((_req, res) => {
@@ -148,6 +149,7 @@ Deno.test({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
       beforeSendTransaction: sink.beforeSendTransaction,
+      traceLifecycle: 'static',
     });
 
     // Use Deno.serve for the target so the test does not depend on the
