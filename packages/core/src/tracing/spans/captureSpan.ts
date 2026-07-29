@@ -1,5 +1,6 @@
 import type { RawAttributes } from '../../attributes';
 import type { Client } from '../../client';
+import { DEBUG_BUILD } from '../../debug-build';
 import type { ScopeData } from '../../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
@@ -12,6 +13,7 @@ import {
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
 import type { SerializedStreamedSpan, Span, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
+import { debug } from '../../utils/debug-logger';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
   INTERNAL_getSegmentSpan,
@@ -211,7 +213,17 @@ export function applyBeforeSendSpanCallback(
   span: StreamedSpanJSON,
   beforeSendSpan: (span: StreamedSpanJSON) => StreamedSpanJSON,
 ): StreamedSpanJSON {
-  const modifedSpan = beforeSendSpan(span);
+  let modifedSpan: StreamedSpanJSON;
+  try {
+    modifedSpan = beforeSendSpan(span);
+  } catch (error) {
+    // Spans are captured synchronously when they end, so a throwing callback would otherwise
+    // propagate into whatever user code ended the span.
+    DEBUG_BUILD && debug.error('The `beforeSendSpan` callback threw an error, sending the span unmodified:', error);
+    return span;
+  }
+
+
   if (!modifedSpan) {
     showSpanDropWarning();
     return span;
