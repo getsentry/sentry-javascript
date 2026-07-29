@@ -495,10 +495,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       }
 
       client.on('beforeIdleSpanEnd', span => {
-        const op = spanToJSON(span).op;
         // Interaction idle spans also flow through this hook, but the route bookkeeping below only
-        // applies to pageload/navigation spans.
-        if (op !== 'pageload' && op !== 'navigation') {
+        // applies to the pageload/navigation span. We identify it by reference rather than by op:
+        // only the route span is registered as the active idle span.
+        if (getActiveIdleSpan(client) !== span) {
           return;
         }
 
@@ -521,7 +521,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           dsc: getDynamicSamplingContextFromSpan(span),
         });
 
-        if (op === 'pageload') {
+        if (_pageloadSpan === span) {
           // clean up the stored pageload span on the integration.
           _pageloadSpan = undefined;
         }
