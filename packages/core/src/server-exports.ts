@@ -58,7 +58,6 @@ export type {
 // avoid shipping the AI tracing code in browser bundles.
 export { addVercelAiProcessors, getProviderMetadataAttributes } from './tracing/vercel-ai';
 export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptions } from './tracing/ai/utils';
-export { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from './tracing/ai/gen-ai-attributes';
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
 export {

@@ -9,12 +9,12 @@ import {
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import { getCurrentScope, withScope } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SENTRY_BAGGAGE_HEADER, SENTRY_SCOPES_CONTEXT_KEY, SENTRY_TRACE_HEADER } from '../src/constants';
 import { SentryPropagator } from '../src/propagator';
 import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { makeTraceState } from '../src/utils/makeTraceState';
-import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
+import { mockSdkInit } from './helpers/mockSdkInit';
 
 describe('SentryPropagator', () => {
   const propagator = new SentryPropagator();
@@ -28,10 +28,6 @@ describe('SentryPropagator', () => {
       tracesSampleRate: 1,
       dsn: 'https://abc@domain/123',
     });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
   });
 
   it('returns fields set', () => {

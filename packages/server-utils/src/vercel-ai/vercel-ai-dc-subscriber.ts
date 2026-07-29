@@ -32,7 +32,6 @@ import {
   _INTERNAL_skipAiProviderWrapping,
   captureException,
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   getClient,
   getProviderMetadataAttributes,
   getTruncatedJsonString,
@@ -745,8 +744,6 @@ function buildInputMessageAttributes(
   const messages = event.messages ?? event.prompt;
   if (messages !== undefined) {
     attributes[GEN_AI_INPUT_MESSAGES] = enableTruncation ? getTruncatedJsonString(messages) : stringify(messages);
-    // The original (pre-truncation) message count, so the product can show how many were dropped.
-    attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE] = Array.isArray(messages) ? messages.length : 1;
   }
 
   return attributes;

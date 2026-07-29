@@ -16,10 +16,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import {
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-} from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('OpenAI Tool Calls integration', () => {
@@ -357,10 +354,6 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'string',
               value: 'gpt-4',
             });
-            expect(chatToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-              type: 'integer',
-              value: 1,
-            });
             expect(chatToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
               type: 'string',
               value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
@@ -432,10 +425,6 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'boolean',
               value: true,
             });
-            expect(streamingChatToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-              type: 'integer',
-              value: 1,
-            });
             expect(streamingChatToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
               type: 'string',
               value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
@@ -504,10 +493,6 @@ describe('OpenAI Tool Calls integration', () => {
               value: 'gpt-4',
             });
             expect(responsesToolsSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
-            expect(responsesToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-              type: 'integer',
-              value: 1,
-            });
             expect(responsesToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
               type: 'string',
               value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
@@ -574,10 +559,6 @@ describe('OpenAI Tool Calls integration', () => {
             expect(streamingResponsesToolsSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({
               type: 'boolean',
               value: true,
-            });
-            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-              type: 'integer',
-              value: 1,
             });
             expect(streamingResponsesToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
               type: 'string',

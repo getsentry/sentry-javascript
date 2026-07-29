@@ -11,7 +11,6 @@ export default Sentry.withSentry(
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     dataCollection: { genAI: { inputs: true, outputs: true } },
-    streamGenAiSpans: true,
   }),
   {
     async fetch(_request, _env, _ctx) {

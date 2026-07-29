@@ -1,4 +1,4 @@
-import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
+import { diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import type { Client, Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
@@ -23,14 +23,12 @@ import {
   SentryTracerProvider,
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
-  wrapContextManagerClass,
 } from '@sentry/opentelemetry';
 import { VercelEdgeClient } from './client';
 import { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 import { makeEdgeTransport } from './transports';
 import type { VercelEdgeOptions } from './types';
 import { getVercelEnv } from './utils/vercel';
-import { AsyncLocalStorageContextManager } from './vendored/async-local-storage-context-manager';
 
 declare const process: {
   env: Record<string, string>;
@@ -57,9 +55,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): Client {
-  // We force skipOpenTelemetrySetup: true here, because this triggers the custom lookup for the AsyncLocalStorage instance
-  // Since we use a custom Context Manager here (because AsyncLocalStorage is looked up differently than in Node), we need to do this
-  setOpenTelemetryContextAsyncContextStrategy({ skipOpenTelemetrySetup: true });
+  setOpenTelemetryContextAsyncContextStrategy();
 
   const scope = getCurrentScope();
   scope.update(options.initialScope);
@@ -125,12 +121,6 @@ export function setupOtel(client: VercelEdgeClient): void {
 
   trace.setGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());
-
-  // oxlint-disable-next-line typescript/no-deprecated
-  const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
-
-  const ctxManager = new SentryContextManager();
-  context.setGlobalContextManager(ctxManager);
 
   client.traceProvider = provider;
 }

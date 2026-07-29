@@ -24,10 +24,13 @@ it('traces a basic Workers AI text generation request', async ({ signal }) => {
     .ignore('event')
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as any;
+      expect(transactionEvent.transaction).toBe('GET /');
 
-      // The transaction event is framework-generated and carries non-deterministic fields
-      // (random ports, ids, timestamps, sdk version), so we assert the stable subset.
-      expect(transactionEvent).toEqual(
+      const container = envelope[1]?.[1]?.[1] as any;
+      expect(container).toBeDefined();
+      expect(container.items).toHaveLength(1);
+
+      expect(container.items[0]).toEqual(
         expect.objectContaining({
           type: 'transaction',
           transaction: 'GET /',
@@ -75,8 +78,13 @@ it('traces a streaming Workers AI text generation request', async ({ signal }) =
     .ignore('event')
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as any;
+      expect(transactionEvent.transaction).toBe('GET /stream');
 
-      expect(transactionEvent).toEqual(
+      const container = envelope[1]?.[1]?.[1] as any;
+      expect(container).toBeDefined();
+      expect(container.items).toHaveLength(1);
+
+      expect(container.items[0]).toEqual(
         expect.objectContaining({
           type: 'transaction',
           transaction: 'GET /stream',
