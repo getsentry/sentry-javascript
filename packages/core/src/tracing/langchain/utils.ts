@@ -19,16 +19,13 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import {
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE,
-  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import { isContentMedia, stripInlineMediaFromSingleMessage } from '../ai/mediaStripping';
 import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
@@ -412,13 +409,9 @@ function addTokenUsageAttributes(
 
     // Extra Anthropic cache metrics (present only when caching is enabled)
     if (anthropicUsage.cache_creation_input_tokens !== undefined)
-      setNumberIfDefined(
-        attrs,
-        GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE,
-        anthropicUsage.cache_creation_input_tokens,
-      );
+      setNumberIfDefined(attrs, GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, anthropicUsage.cache_creation_input_tokens);
     if (anthropicUsage.cache_read_input_tokens !== undefined)
-      setNumberIfDefined(attrs, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS_ATTRIBUTE, anthropicUsage.cache_read_input_tokens);
+      setNumberIfDefined(attrs, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, anthropicUsage.cache_read_input_tokens);
   }
 }
 
