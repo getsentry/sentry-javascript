@@ -1,5 +1,4 @@
 /* eslint-disable max-lines */
-/* eslint-disable typescript-eslint/no-deprecated */
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_FUNCTION_ID,
@@ -17,7 +16,6 @@ import {
   GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -480,7 +478,6 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
     recordInputs && toolName ? resolveToolDescription(asString(event.callId), toolName, event.tools) : undefined;
   return startGenAiSpan(GEN_AI_EXECUTE_TOOL_SPAN_OP, toolName, {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-    [GEN_AI_TOOL_TYPE]: 'function',
     ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
     ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
     ...(description ? { [GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE]: description } : {}),

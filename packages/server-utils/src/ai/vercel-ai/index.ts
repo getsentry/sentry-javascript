@@ -1,4 +1,3 @@
-/* eslint-disable typescript-eslint/no-deprecated */
 /* eslint-disable max-lines */
 import {
   _INTERNAL_skipAiProviderWrapping,
@@ -25,7 +24,6 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -428,10 +426,6 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
     toolCallSpanContextMap.set(toolCallId, span.spanContext());
   }
 
-  // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
-  if (!attributes[GEN_AI_TOOL_TYPE]) {
-    span.setAttribute(GEN_AI_TOOL_TYPE, 'function');
-  }
   const toolName = attributes[GEN_AI_TOOL_NAME];
   if (toolName) {
     span.updateName(`execute_tool ${toolName}`);

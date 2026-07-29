@@ -11,7 +11,6 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -118,7 +117,6 @@ describe('Vercel AI integration (streaming, v6)', () => {
         attributes: expect.objectContaining({
           [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: attr('call-1'),
           [GEN_AI_TOOL_NAME]: attr('getWeather'),
-          [GEN_AI_TOOL_TYPE]: attr('function'),
           [GEN_AI_OPERATION_NAME]: attr('execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
@@ -230,7 +228,6 @@ describe('Vercel AI integration (streaming, v6)', () => {
           [GEN_AI_TOOL_CALL_ARGUMENTS]: expect.objectContaining({ value: expect.any(String) }),
           [GEN_AI_TOOL_NAME]: attr('getWeather'),
           [GEN_AI_TOOL_CALL_RESULT]: expect.objectContaining({ value: expect.any(String) }),
-          [GEN_AI_TOOL_TYPE]: attr('function'),
           [GEN_AI_OPERATION_NAME]: attr('execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
@@ -268,7 +265,6 @@ describe('Vercel AI integration (streaming, v6)', () => {
         attributes: expect.objectContaining({
           [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: attr('call-1'),
           [GEN_AI_TOOL_NAME]: attr('getWeather'),
-          [GEN_AI_TOOL_TYPE]: attr('function'),
           [GEN_AI_OPERATION_NAME]: attr('execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(origin),
