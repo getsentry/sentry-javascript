@@ -16,7 +16,6 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
-  enhanceDscWithOpenTelemetryRootSpanName,
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
 } from '@sentry/opentelemetry';
@@ -206,7 +205,6 @@ function _init(
 
   updateScopeFromEnvVariables();
 
-  enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
 
   // Ensure we flush events when vercel functions are ended

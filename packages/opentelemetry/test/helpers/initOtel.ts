@@ -4,7 +4,6 @@ import { DEBUG_BUILD } from '../../src/debug-build';
 import { SentryPropagator } from '../../src/propagator';
 import { getSentryResource } from '../../src/resource';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
-import { enhanceDscWithOpenTelemetryRootSpanName } from '../../src/utils/enhanceDscWithOpenTelemetryRootSpanName';
 import type { TestClient } from './TestClient';
 import { SentryTracerProvider } from '../../src/tracerProvider';
 
@@ -38,7 +37,6 @@ export function initOtel(): void {
   }
 
   setupEventContextTrace(client);
-  enhanceDscWithOpenTelemetryRootSpanName(client);
 
   const provider = new SentryTracerProvider({ resource: getSentryResource('node') });
 
