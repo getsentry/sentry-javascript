@@ -1,5 +1,7 @@
 import type { ExportedHandler, ScheduledController } from '@cloudflare/workers-types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -32,9 +34,9 @@ function wrapScheduledHandler(
 
     return startSpan(
       {
-        op: 'faas.cron',
         name: `Scheduled Cron ${controller.cron}`,
         attributes: {
+          [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
           'faas.cron': controller.cron,
           'faas.time': new Date(controller.scheduledTime).toISOString(),
           'faas.trigger': 'timer',
