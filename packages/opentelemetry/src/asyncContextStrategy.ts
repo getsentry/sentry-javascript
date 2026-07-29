@@ -19,7 +19,7 @@ import { getContextFromScope, getScopesFromContext } from './utils/contextData';
 import { getActiveSpan } from './utils/getActiveSpan';
 import { getTraceData } from './utils/getTraceData';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { AsyncLocalStorageLookup} from './asyncLocalStorageContextManager';
+import type { AsyncLocalStorageLookup } from './asyncLocalStorageContextManager';
 import { SentryAsyncLocalStorageContextManager } from './asyncLocalStorageContextManager';
 
 /**
